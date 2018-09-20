@@ -9,72 +9,68 @@ var mappingJson = {
     name: "com.highfidelity.testing.accelerationTest",
     channels: [
         {
-            from: "Vive.LeftHand",
-            to: "Standard.LeftHand",
+            from: "Standard.LeftHand",
+            to: "Actions.LeftHand",
             filters: [
                 {
                     type: "accelerationLimiter",
                     rotationAccelerationLimit: 2000.0,
-                    rotationDecelerationLimit: 4000.0,
                     translationAccelerationLimit: 100.0,
-                    translationDecelerationLimit: 200.0
                 }
             ]
         },
         {
-            from: "Vive.RightHand",
-            to: "Standard.RightHand",
+            from: "Standard.RightHand",
+            to: "Actions.RightHand",
             filters: [
                 {
                     type: "accelerationLimiter",
                     rotationAccelerationLimit: 2000.0,
-                    rotationDecelerationLimit: 4000.0,
                     translationAccelerationLimit: 100.0,
-                    translationDecelerationLimit: 200.0
                 }
             ]
         },
         {
-            from: "Vive.LeftFoot",
-            to: "Standard.LeftFoot",
+            from: "Standard.LeftFoot",
+            to: "Actions.LeftFoot",
             filters: [
                 {
-                    type: "exponentialSmoothing",
-                    rotation: 0.15,
-                    translation: 0.3
+                    type: "accelerationLimiter",
+                    rotationAccelerationLimit: 2000.0,
+                    translationAccelerationLimit: 100.0,
                 }
             ]
         },
         {
-            from: "Vive.RightFoot",
-            to: "Standard.RightFoot",
+            from: "Standard.RightFoot",
+            to: "Actions.RightFoot",
             filters: [
                 {
-                    type: "exponentialSmoothing",
-                    rotation: 0.15,
-                    translation: 0.3
+                    type: "accelerationLimiter",
+                    rotationAccelerationLimit: 2000.0,
+                    translationAccelerationLimit: 100.0,
                 }
             ]
         },
         {
-            from: "Vive.Hips",
-            to: "Standard.Hips",
+            from: "Standard.Hips",
+            to: "Actions.Hips",
             filters: [
                 {
-                    type: "exponentialSmoothing",
-                    rotation: 0.15,
-                    translation: 0.3
+                    type: "accelerationLimiter",
+                    rotationAccelerationLimit: 2000.0,
+                    translationAccelerationLimit: 100.0,
                 }
             ]
         },
         {
-            from: "Vive.Spine2",
-            to: "Standard.Spine2",
+            from: "Standard.Spine2",
+            to: "Actions.Spine2",
             filters: [
                 {
-                    type: "exponentialSmoothing",
-                    rotation: 0.15,
-                    translation: 0.3
+                    type: "accelerationLimiter",
+                    rotationAccelerationLimit: 2000.0,
+                    translationAccelerationLimit: 100.0,
                 }
             ]
         }
@@ -86,7 +82,7 @@ var mappingJson = {
 //
 
 var TABLET_BUTTON_NAME = "ACCFILT";
-var HTML_URL = "https://s3.amazonaws.com/hifi-public/tony/html/accelerationFilterApp.html";
+var HTML_URL = "https://s3.amazonaws.com/hifi-public/tony/html/accelerationFilterApp.html?2";
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
@@ -132,42 +128,54 @@ function setTranslationAccelerationLimit(i, value) {
     mappingJson.channels[i].filters[0].translationAccelerationLimit = value;
     mappingChanged();
 }
-function getTranslationDecelerationLimit(i) {
-    return mappingJson.channels[i].filters[0].translationDecelerationLimit;
-}
-function setTranslationDecelerationLimit(i, value) {
-    mappingJson.channels[i].filters[0].translationDecelerationLimit = value; mappingChanged();
-}
 function getRotationAccelerationLimit(i) {
     return mappingJson.channels[i].filters[0].rotationAccelerationLimit;
 }
 function setRotationAccelerationLimit(i, value) {
     mappingJson.channels[i].filters[0].rotationAccelerationLimit = value; mappingChanged();
 }
-function getRotationDecelerationLimit(i) {
-    return mappingJson.channels[i].filters[0].rotationDecelerationLimit;
-}
-function setRotationDecelerationLimit(i, value) {
-    mappingJson.channels[i].filters[0].rotationDecelerationLimit = value; mappingChanged();
-}
 
 function onWebEventReceived(msg) {
     if (msg.name === "init-complete") {
         var values = [
             {name: "left-hand-translation-acceleration-limit", val: getTranslationAccelerationLimit(LEFT_HAND_INDEX), checked: false},
-            {name: "left-hand-translation-deceleration-limit", val: getTranslationDecelerationLimit(LEFT_HAND_INDEX), checked: false},
             {name: "left-hand-rotation-acceleration-limit", val: getRotationAccelerationLimit(LEFT_HAND_INDEX), checked: false},
-            {name: "left-hand-rotation-deceleration-limit", val: getRotationDecelerationLimit(LEFT_HAND_INDEX), checked: false}
+            {name: "right-hand-translation-acceleration-limit", val: getTranslationAccelerationLimit(RIGHT_HAND_INDEX), checked: false},
+            {name: "right-hand-rotation-acceleration-limit", val: getRotationAccelerationLimit(RIGHT_HAND_INDEX), checked: false},
+            {name: "left-foot-translation-acceleration-limit", val: getTranslationAccelerationLimit(LEFT_FOOT_INDEX), checked: false},
+            {name: "left-foot-rotation-acceleration-limit", val: getRotationAccelerationLimit(LEFT_FOOT_INDEX), checked: false},
+            {name: "right-foot-translation-acceleration-limit", val: getTranslationAccelerationLimit(RIGHT_FOOT_INDEX), checked: false},
+            {name: "right-foot-rotation-acceleration-limit", val: getRotationAccelerationLimit(RIGHT_FOOT_INDEX), checked: false},
+            {name: "hips-translation-acceleration-limit", val: getTranslationAccelerationLimit(HIPS_INDEX), checked: false},
+            {name: "hips-rotation-acceleration-limit", val: getRotationAccelerationLimit(HIPS_INDEX), checked: false},
+            {name: "spine2-translation-acceleration-limit", val: getTranslationAccelerationLimit(SPINE2_INDEX), checked: false},
+            {name: "spine2-rotation-acceleration-limit", val: getRotationAccelerationLimit(SPINE2_INDEX), checked: false}
         ];
         tablet.emitScriptEvent(JSON.stringify(values));
     } else if (msg.name === "left-hand-translation-acceleration-limit") {
         setTranslationAccelerationLimit(LEFT_HAND_INDEX, parseInt(msg.val, 10));
-    } else if (msg.name === "left-hand-translation-deceleration-limit") {
-        setTranslationDecelerationLimit(LEFT_HAND_INDEX, parseInt(msg.val, 10));
     } else if (msg.name === "left-hand-rotation-acceleration-limit") {
         setRotationAccelerationLimit(LEFT_HAND_INDEX, parseInt(msg.val, 10));
-    } else if (msg.name === "left-hand-rotation-deceleration-limit") {
-        setRotationDecelerationLimit(LEFT_HAND_INDEX, parseInt(msg.val, 10));
+    } else if (msg.name === "right-hand-translation-acceleration-limit") {
+        setTranslationAccelerationLimit(RIGHT_HAND_INDEX, parseInt(msg.val, 10));
+    } else if (msg.name === "right-hand-rotation-acceleration-limit") {
+        setRotationAccelerationLimit(RIGHT_HAND_INDEX, parseInt(msg.val, 10));
+    } else if (msg.name === "left-foot-translation-acceleration-limit") {
+        setTranslationAccelerationLimit(LEFT_FOOT_INDEX, parseInt(msg.val, 10));
+    } else if (msg.name === "left-foot-rotation-acceleration-limit") {
+        setRotationAccelerationLimit(LEFT_FOOT_INDEX, parseInt(msg.val, 10));
+    } else if (msg.name === "right-foot-translation-acceleration-limit") {
+        setTranslationAccelerationLimit(RIGHT_FOOT_INDEX, parseInt(msg.val, 10));
+    } else if (msg.name === "right-foot-rotation-acceleration-limit") {
+        setRotationAccelerationLimit(RIGHT_FOOT_INDEX, parseInt(msg.val, 10));
+    } else if (msg.name === "hips-translation-acceleration-limit") {
+        setTranslationAccelerationLimit(HIPS_INDEX, parseInt(msg.val, 10));
+    } else if (msg.name === "hips-rotation-acceleration-limit") {
+        setRotationAccelerationLimit(HIPS_INDEX, parseInt(msg.val, 10));
+    } else if (msg.name === "spine2-translation-acceleration-limit") {
+        setTranslationAccelerationLimit(SPINE2_INDEX, parseInt(msg.val, 10));
+    } else if (msg.name === "spine2-rotation-acceleration-limit") {
+        setRotationAccelerationLimit(SPINE2_INDEX, parseInt(msg.val, 10));
     }
 }
 

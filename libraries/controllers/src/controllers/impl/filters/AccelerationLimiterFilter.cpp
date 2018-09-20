@@ -39,7 +39,7 @@ static glm::quat deltaRotFromAngularVel(const glm::vec3& omega, float dt) {
 }
 
 static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, const glm::vec3& x2, const glm::vec3& x3,
-                                   const glm::vec3& unfilteredVelocity, float dt, const float accLimit, const float decLimit) {
+                                   float dt, const float accLimit) {
 
     // measure the linear velocities of this step and the previoius step
     glm::vec3 v1 = (x3 - x1) / (2.0f * dt);
@@ -52,9 +52,7 @@ static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, con
     float aLen = glm::length(a);
 
     // pick limit based on if we are moving faster then our target
-    float limit = glm::length(v1) > glm::length(unfilteredVelocity) ? accLimit : decLimit;
-
-    if (aLen > limit) {
+    if (aLen > accLimit) {
         // Solve for a new `v1`, such that `a` does not exceed `aLimit`
         // This combines two steps:
         // 1) Computing a limited accelration in the direction of `a`, but with a magnitute of `aLimit`:
@@ -62,7 +60,7 @@ static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, con
         // 2) Computing new `v1`
         //    `v1 = newA * dt + v0`
         // We combine the scalars from step 1 and step 2 into a single term to avoid having to do multiple scalar-vec3 multiplies.
-        v1 = a * ((limit * dt) / aLen) + v0;
+        v1 = a * ((accLimit * dt) / aLen) + v0;
 
         // apply limited v1 to compute filtered x3
         return v1 * dt + x2;
@@ -73,7 +71,7 @@ static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, con
 }
 
 static glm::quat filterRotation(const glm::quat& q0In, const glm::quat& q1In, const glm::quat& q2In, const glm::quat& q3In,
-                                const glm::vec3& unfilteredVelocity, float dt, const float accLimit, const float decLimit) {
+                                float dt, const float accLimit) {
 
     // ensure quaternions have the same polarity
     glm::quat q0 = q0In;
@@ -88,13 +86,10 @@ static glm::quat filterRotation(const glm::quat& q0In, const glm::quat& q1In, co
     const glm::vec3 a = (w1 - w0) / dt;
     float aLen = glm::length(a);
 
-    // pick limit based on if we are moving faster then our target
-    float limit = glm::length(w1) > glm::length(unfilteredVelocity) ? accLimit : decLimit;
-
     // clamp the acceleration if it is over the limit
-    if (aLen > limit) {
+    if (aLen > accLimit) {
         // solve for a new w1, such that a does not exceed the accLimit
-        w1 = a * ((limit * dt) / aLen) + w0;
+        w1 = a * ((accLimit * dt) / aLen) + w0;
 
         // apply limited w1 to compute filtered q3
         return deltaRotFromAngularVel(w1, dt) * q2;
@@ -124,14 +119,11 @@ namespace controller {
                 const float DELTA_TIME = 0.01111111f;
 
                 glm::vec3 unfilteredTranslation = sensorValue.translation;
-                glm::vec3 unfilteredLinearVel = (unfilteredTranslation - _unfilteredPrevPos[1]) / (2.0f * DELTA_TIME);
-                sensorValue.translation = filterTranslation(_prevPos[0], _prevPos[1], _prevPos[2], sensorValue.translation, unfilteredLinearVel,
-                                                            DELTA_TIME, _translationAccelerationLimit, _translationDecelerationLimit);
+                sensorValue.translation = filterTranslation(_prevPos[0], _prevPos[1], _prevPos[2], sensorValue.translation,
+                                                            DELTA_TIME, _translationAccelerationLimit);
                 glm::quat unfilteredRot = sensorValue.rotation;
-                glm::quat unfilteredPrevRot = glm::dot(unfilteredRot, _unfilteredPrevRot[1]) < 0.0f ? -_unfilteredPrevRot[1] : _unfilteredPrevRot[1];
-                glm::vec3 unfilteredAngularVel = angularVelFromDeltaRot(unfilteredRot * glm::inverse(unfilteredPrevRot), 2.0f * DELTA_TIME);
-                sensorValue.rotation = filterRotation(_prevRot[0], _prevRot[1], _prevRot[2], sensorValue.rotation, unfilteredAngularVel,
-                                                      DELTA_TIME, _rotationAccelerationLimit, _rotationDecelerationLimit);
+                sensorValue.rotation = filterRotation(_prevRot[0], _prevRot[1], _prevRot[2], sensorValue.rotation,
+                                                      DELTA_TIME, _rotationAccelerationLimit);
 
                 // remember previous values.
                 _prevPos[0] = _prevPos[1];
@@ -183,12 +175,9 @@ namespace controller {
     bool AccelerationLimiterFilter::parseParameters(const QJsonValue& parameters) {
         if (parameters.isObject()) {
             auto obj = parameters.toObject();
-            if (obj.contains(JSON_ROTATION_ACCELERATION_LIMIT) && obj.contains(JSON_ROTATION_DECELERATION_LIMIT) &&
-                obj.contains(JSON_TRANSLATION_ACCELERATION_LIMIT) && obj.contains(JSON_TRANSLATION_DECELERATION_LIMIT)) {
+            if (obj.contains(JSON_ROTATION_ACCELERATION_LIMIT) && obj.contains(JSON_TRANSLATION_ACCELERATION_LIMIT)) {
                 _rotationAccelerationLimit = (float)obj[JSON_ROTATION_ACCELERATION_LIMIT].toDouble();
-                _rotationDecelerationLimit = (float)obj[JSON_ROTATION_DECELERATION_LIMIT].toDouble();
                 _translationAccelerationLimit = (float)obj[JSON_TRANSLATION_ACCELERATION_LIMIT].toDouble();
-                _translationDecelerationLimit = (float)obj[JSON_TRANSLATION_DECELERATION_LIMIT].toDouble();
                 return true;
             }
         }
