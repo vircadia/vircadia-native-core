@@ -446,8 +446,9 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
 
 void EntityMotionState::updateSendVelocities() {
     if (!_body->isActive()) {
-        // make sure all derivatives are zero
-        clearObjectVelocities();
+        if (!_body->isKinematicObject()) {
+            clearObjectVelocities();
+        }
         // we pretend we sent the inactive update for this object
         _numInactiveUpdates = 1;
     } else {

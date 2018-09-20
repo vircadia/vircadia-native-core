@@ -2302,8 +2302,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
-#endif
-
+#else
     static int CHECK_LOGIN_TIMER = 3000;
     QTimer* checkLoginTimer = new QTimer(this);
     checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
@@ -2321,6 +2320,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
     checkLoginTimer->start();
+#endif
 }
 
 void Application::updateVerboseLogging() {

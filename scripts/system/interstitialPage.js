@@ -137,10 +137,10 @@
 
     var loadingToTheSpotID = Overlays.addOverlay("image3d", {
         name: "Loading-Destination-Card-Text",
-        localPosition: { x: 0.0 , y: -1.8, z: 0.0 },
-        url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/goTo_button.png",
+        localPosition: { x: 0.0 , y: -1.5, z: -0.3 },
+        url: Script.resourcesPath() + "images/interstitialPage/goTo_button.png",
         alpha: 1,
-        dimensions: { x: 1.2, y: 0.6},
+        dimensions: { x: 1.5, y: 1.0 },
         visible: isVisible,
         emissive: true,
         ignoreRayIntersection: false,
@@ -415,13 +415,13 @@
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
         if (overlayID === loadingToTheSpotID) {
-            Overlays.editOverlay(loadingToTheSpotID, { color: greyColor});
+            Overlays.editOverlay(loadingToTheSpotID, { color: greyColor });
         }
     });
 
     Overlays.hoverLeaveOverlay.connect(function(overlayID, event) {
         if (overlayID === loadingToTheSpotID) {
-            Overlays.editOverlay(loadingToTheSpotID, { color: whiteColor});
+            Overlays.editOverlay(loadingToTheSpotID, { color: whiteColor });
         }
     });
 
