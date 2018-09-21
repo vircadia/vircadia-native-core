@@ -70,8 +70,8 @@ Rectangle {
                          "Diffuse:LightingModel:enableDiffuse",
                          "Specular:LightingModel:enableSpecular",
                          "Albedo:LightingModel:enableAlbedo",
-                         "Wireframe:LightingModel:enableWireframe"
-                         "Skinning:LightingModel:enableSkinnning"
+                         "Wireframe:LightingModel:enableWireframe",
+                         "Skinning:LightingModel:enableSkinnning",
                          "Blendshape:LightingModel:enableBlendshape"
                     ]
                     HifiControls.CheckBox {
