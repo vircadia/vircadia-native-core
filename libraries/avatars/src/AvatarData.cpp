@@ -384,8 +384,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     QByteArray avatarDataByteArray((int)byteArraySize, 0);
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
-    unsigned char* startPosition = destinationBuffer;
-    const unsigned char * packetEnd = destinationBuffer + maxDataSize;
+    const unsigned char* const startPosition = destinationBuffer;
+    const unsigned char* const packetEnd = destinationBuffer + maxDataSize;
 
     AvatarDataPacket::HasFlags includedFlags = 0;
 
@@ -970,6 +970,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             _globalBoundingBoxOffset = newOffset;
             _avatarBoundingBoxChanged = now;
         }
+
+        _defaultBubbleBox = computeBubbleBox();
 
         sourceBuffer += sizeof(AvatarDataPacket::AvatarBoundingBox);
         int numBytesRead = sourceBuffer - startSection;
@@ -2915,4 +2917,22 @@ void AvatarEntityMapFromScriptValue(const QScriptValue& object, AvatarEntityMap&
 
         value[EntityID] = binaryEntityProperties;
     }
+}
+
+const float AvatarData::DEFAULT_BUBBLE_SCALE = 2.4f; // magic number determined empirically
+
+AABox AvatarData::computeBubbleBox(float bubbleScale) const {
+    AABox box = AABox(_globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions);
+    glm::vec3 size = box.getScale();
+    size *= bubbleScale;
+    const glm::vec3 MIN_BUBBLE_SCALE(0.3f, 1.3f, 0.3);
+    size= glm::max(size, MIN_BUBBLE_SCALE);
+    box.setScaleStayCentered(size);
+    return box;
+}
+
+AABox AvatarData::getDefaultBubbleBox() const {
+    AABox bubbleBox(_defaultBubbleBox);
+    bubbleBox.translate(_globalPosition);
+    return bubbleBox;
 }

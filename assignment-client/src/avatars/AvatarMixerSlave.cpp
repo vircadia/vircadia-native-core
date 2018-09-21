@@ -244,7 +244,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // reset the internal state for correct random number distribution
     distribution.reset();
 
-    // Base number to sort on number previously sent.
+    // Estimate number to sort on number sent last frame.
     const int numToSendEst = std::max(nodeData->getNumAvatarsSentLastFrame() * 2, 20);
 
     // reset the number of sent avatars
@@ -342,8 +342,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
             if (destinationNode->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
                 // Perform the collision check between the two bounding boxes
-                const float OTHER_AVATAR_BUBBLE_EXPANSION_FACTOR = 2.4f; // magic number determined empirically
-                AABox otherNodeBox = computeBubbleBox(avatarClientNodeData->getAvatar(), OTHER_AVATAR_BUBBLE_EXPANSION_FACTOR);
+                AABox otherNodeBox = avatarClientNodeData->getAvatar().getDefaultBubbleBox();
                 if (nodeBox.touches(otherNodeBox)) {
                     nodeData->ignoreOther(destinationNode, avatarNode);
                     shouldIgnore = !getsAnyIgnored;
@@ -396,7 +395,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     auto avatarPacket = NLPacket::create(PacketType::BulkAvatarData);
     const int avatarPacketCapacity = avatarPacket->getPayloadCapacity();
     int avatarSpaceAvailable = avatarPacketCapacity;
-    //avatarSpaceAvailable = 100;
     int numPacketsSent = 0;
 
     const auto& sortedAvatarVector = sortedAvatars.getSortedVector(numToSendEst);

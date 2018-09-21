@@ -1100,6 +1100,7 @@ public:
 
     glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
     AABox getGlobalBoundingBox() const { return AABox(_globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
+    AABox getDefaultBubbleBox() const;
 
     /**jsdoc
      * @function MyAvatar.getAvatarEntityData
@@ -1191,6 +1192,9 @@ public:
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
     void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
     int getReplicaIndex() { return _replicaIndex; }
+
+    static const float DEFAULT_BUBBLE_SCALE;  /* = 2.4 */
+    AABox computeBubbleBox(float bubbleScale = DEFAULT_BUBBLE_SCALE) const;
 
 signals:
 
@@ -1424,6 +1428,8 @@ protected:
 
     glm::vec3 _globalBoundingBoxDimensions;
     glm::vec3 _globalBoundingBoxOffset;
+
+    AABox _defaultBubbleBox;
 
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar

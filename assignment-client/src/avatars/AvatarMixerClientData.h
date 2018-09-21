@@ -90,7 +90,7 @@ public:
 
     void loadJSONStats(QJsonObject& jsonObject) const;
 
-    glm::vec3 getPosition() const { return _avatar ? _avatar->getWorldPosition() : glm::vec3(0); }
+    glm::vec3 getPosition() const { return _avatar ? _avatar->getClientGlobalPosition() : glm::vec3(0); }
     bool isRadiusIgnoring(const QUuid& other) const;
     void addToRadiusIgnoringSet(const QUuid& other);
     void removeFromRadiusIgnoringSet(const QUuid& other);
