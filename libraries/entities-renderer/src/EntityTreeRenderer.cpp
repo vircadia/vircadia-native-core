@@ -187,6 +187,11 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
         _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverLeaveEntity", event);
     });
+
+    connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
+        EntityItemPointer entity = getTree()->findEntityByID(entityID);
+        entity->setScriptHasFinishedPreload(true);
+    });
 }
 
 void EntityTreeRenderer::clear() {
@@ -516,7 +521,7 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
             // also, don't flag a scripted entity as containing the avatar until the script is loaded,
             // so that the script is awake in time to receive the "entityEntity" call (even if the entity is a zone).
             if ((!hasScript && isZone) ||
-                (hasScript && !entity->shouldPreloadScript())) {
+                (hasScript && entity->isScriptPreloadFinished())) {
                 // now check to see if the point contains our entity, this can be expensive if
                 // the entity has a collision hull
                 if (entity->contains(_avatarPosition)) {
@@ -976,6 +981,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
             entity->scriptHasUnloaded();
         }
         if (shouldLoad) {
+            entity->setScriptHasFinishedPreload(false);
             _entitiesScriptEngine->loadEntityScript(entityID, resolveScriptURL(scriptUrl), reload);
             entity->scriptHasPreloaded();
         }
