@@ -617,11 +617,12 @@
             pose = Controller.getPoseValue(hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
             show = pose.valid;
 
-            // Shouldn't show mini tablet on hand if that hand's trigger is pressed (i.e., laser is searching or grabbing
-            // something) or the other hand's trigger is pressed unless it is pointing at the mini tablet. Allow the triggers 
-            // to be pressed briefly to allow for the grabbing process.
+            // Shouldn't show mini tablet on hand if that hand's trigger or grip are pressed (i.e., laser is searching or hand 
+            // is grabbing something) or the other hand's trigger is pressed unless it is pointing at the mini tablet. Allow 
+            // the triggers to be pressed briefly to allow for the grabbing process.
             if (show) {
-                isLeftTriggerOff = Controller.getValue(Controller.Standard.LT) < TRIGGER_OFF_VALUE;
+                isLeftTriggerOff = Controller.getValue(Controller.Standard.LT) < TRIGGER_OFF_VALUE
+                    && Controller.getValue(Controller.Standard.LeftGrip) < TRIGGER_OFF_VALUE;
                 if (!isLeftTriggerOff) {
                     if (leftTriggerOn === 0) {
                         leftTriggerOn = Date.now();
@@ -631,7 +632,8 @@
                 } else {
                     leftTriggerOn = 0;
                 }
-                isRightTriggerOff = Controller.getValue(Controller.Standard.RT) < TRIGGER_OFF_VALUE;
+                isRightTriggerOff = Controller.getValue(Controller.Standard.RT) < TRIGGER_OFF_VALUE
+                    && Controller.getValue(Controller.Standard.RightGrip) < TRIGGER_OFF_VALUE;
                 if (!isRightTriggerOff) {
                     if (rightTriggerOn === 0) {
                         rightTriggerOn = Date.now();
