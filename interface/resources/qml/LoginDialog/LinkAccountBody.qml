@@ -23,6 +23,7 @@ Item {
     property bool failAfterSignUp: false
 
     function login() {
+        flavorText.visible = false
         mainTextContainer.visible = false
         toggleLoading(true)
         loginDialog.login(usernameField.text, passwordField.text)
@@ -140,6 +141,7 @@ Item {
             focus: true
             placeholderText: "Username or Email"
             activeFocusOnPress: true
+            onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
             ShortcutText {
                 z: 10
@@ -336,6 +338,7 @@ Item {
 
         if (failAfterSignUp) {
             mainTextContainer.text = "Account created successfully."
+            flavorText.visible = true
             mainTextContainer.visible = true
         }
 
@@ -374,6 +377,7 @@ Item {
                 UserActivityLogger.logAction("encourageLoginDialog", data);
                 Settings.setValue("loginDialogPoppedUp", false);
             }
+            flavorText.visible = true
             mainTextContainer.visible = true
             toggleLoading(false)
         }
