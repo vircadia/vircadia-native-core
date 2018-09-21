@@ -31,20 +31,19 @@ public:
     gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
     gpu::TexturePointer getOcclusionBlurredTexture();
 
-    gpu::FramebufferPointer getNormalFramebuffer(int resolutionLevel);
-    gpu::TexturePointer getNormalTexture(int resolutionLevel);
+    gpu::FramebufferPointer getNormalFramebuffer();
     gpu::TexturePointer getNormalTexture();
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
-    bool updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer);
+    bool update(const gpu::TexturePointer& linearDepthBuffer, int resolutionLevel, bool isStereo);
     gpu::TexturePointer getLinearDepthTexture();
     const glm::ivec2& getSourceFrameSize() const { return _frameSize; }
-        
+    bool isStereo() const { return _isStereo; }
+
 protected:
 
     void clear();
     void allocate();
-    void allocate(int resolutionLevel);
     
     gpu::TexturePointer _linearDepthTexture;
     
@@ -60,6 +59,7 @@ protected:
     
     glm::ivec2 _frameSize;
     int _resolutionLevel{ 0 };
+    bool _isStereo{ false };
 };
 
 using AmbientOcclusionFramebufferPointer = std::shared_ptr<AmbientOcclusionFramebuffer>;
@@ -167,6 +167,7 @@ private:
 
     void updateGaussianDistribution();
     void updateBlurParameters();
+    void updateFramebufferSizes();
    
     AOParametersBuffer _aoParametersBuffer;
     FrameParametersBuffer _aoFrameParametersBuffer[SSAO_SPLIT_COUNT];

@@ -11,6 +11,7 @@
 #include "SurfaceGeometryPass.h"
 
 #include <limits>
+#include <MathUtils.h>
 
 #include <gpu/Context.h>
 #include <shaders/Shaders.h>
@@ -28,7 +29,7 @@ namespace ru {
 LinearDepthFramebuffer::LinearDepthFramebuffer() {
 }
 
-void LinearDepthFramebuffer::update(const gpu::TexturePointer& depthBuffer, const gpu::TexturePointer& normalTexture) {
+void LinearDepthFramebuffer::update(const gpu::TexturePointer& depthBuffer, const gpu::TexturePointer& normalTexture, bool isStereo) {
     //If the depth buffer or size changed, we need to delete our FBOs
     bool reset = false;
     if (_primaryDepthTexture != depthBuffer || _normalTexture != normalTexture) {
@@ -38,10 +39,17 @@ void LinearDepthFramebuffer::update(const gpu::TexturePointer& depthBuffer, cons
     }
     if (_primaryDepthTexture) {
         auto newFrameSize = glm::ivec2(_primaryDepthTexture->getDimensions());
-        if (_frameSize != newFrameSize) {
+        if (_frameSize != newFrameSize || _isStereo != isStereo) {
             _frameSize = newFrameSize;
-            _halfFrameSize = newFrameSize >> 1;
-
+            _halfFrameSize = _frameSize;
+            if (isStereo) {
+                _halfFrameSize.x >>= 1;
+            }
+            _halfFrameSize = divideRoundUp(_halfFrameSize, 2);
+            if (isStereo) {
+                _halfFrameSize.x <<= 1;
+            }
+            _isStereo = isStereo;
             reset = true;
         }
     }
@@ -66,7 +74,7 @@ void LinearDepthFramebuffer::allocate() {
 
     // For Linear Depth:
     const uint16_t LINEAR_DEPTH_MAX_MIP_LEVEL = 5;
-    // Point sampling of the depth is need for the AmbientOcclusionEffect in HBAO, as well as the clamp to edge
+    // Point sampling of the depth is needed for the AmbientOcclusionEffect in HBAO, as well as the clamp to edge
     const auto depthSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_POINT, gpu::Sampler::WRAP_CLAMP);
     _linearDepthTexture = gpu::Texture::createRenderBuffer(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED), width, height, LINEAR_DEPTH_MAX_MIP_LEVEL,
         depthSampler);
@@ -153,7 +161,7 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     auto depthBuffer = deferredFramebuffer->getPrimaryDepthTexture();
     auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
 
-    _linearDepthFramebuffer->update(depthBuffer, normalTexture);
+    _linearDepthFramebuffer->update(depthBuffer, normalTexture, args->isStereo());
 
     auto linearDepthFBO = _linearDepthFramebuffer->getLinearDepthFramebuffer();
     auto linearDepthTexture = _linearDepthFramebuffer->getLinearDepthTexture();
@@ -172,7 +180,7 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     auto downsamplePipeline = getDownsamplePipeline(renderContext);
 
     auto depthViewport = args->_viewport;
-    auto halfViewport = depthViewport >> 1;
+    auto halfViewport = divideRoundUp(depthViewport, 2);
     float clearLinearDepth = args->getViewFrustum().getFarClip() * 2.0f;
 
     gpu::doInBatch("LinearDepthPass::run", args->_context, [=](gpu::Batch& batch) {
@@ -195,7 +203,9 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
 
         // Downsample
         batch.setViewportTransform(halfViewport);
-       
+        Transform model;
+        model.setScale( glm::vec3((depthViewport.z >> 1) / float(halfViewport.z), (depthViewport.w >> 1) / float(halfViewport.w), 1.0f) );
+        batch.setModelTransform(model);
         batch.setFramebuffer(downsampleFBO);
         batch.setResourceTexture(ru::Texture::SurfaceGeometryDepth, linearDepthTexture);
         batch.setResourceTexture(ru::Texture::SurfaceGeometryNormal, normalTexture);

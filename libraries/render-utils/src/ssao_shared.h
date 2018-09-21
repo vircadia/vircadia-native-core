@@ -40,6 +40,7 @@ struct AmbientOcclusionParams {
     SSAO_VEC4 _sampleInfo;
     SSAO_VEC4 _blurInfo;
     float _blurFilterTaps[SSAO_BLUR_GAUSSIAN_COEFS_COUNT];
+    SSAO_VEC4 _sideSizes[2];
 };
 
 struct AmbientOcclusionFrameParams {

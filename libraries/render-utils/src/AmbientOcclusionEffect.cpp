@@ -20,6 +20,7 @@
 #include <gpu/Context.h>
 #include <shaders/Shaders.h>
 #include <render/ShapePipeline.h>
+#include <MathUtils.h>
 
 #include "RenderUtilsLogging.h"
 
@@ -40,11 +41,16 @@ gpu::PipelinePointer AmbientOcclusionEffect::_buildNormalsPipeline;
 AmbientOcclusionFramebuffer::AmbientOcclusionFramebuffer() {
 }
 
-bool AmbientOcclusionFramebuffer::updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer) {
+bool AmbientOcclusionFramebuffer::update(const gpu::TexturePointer& linearDepthBuffer, int resolutionLevel, bool isStereo) {
     // If the depth buffer or size changed, we need to delete our FBOs
     bool reset = false;
-    if ((_linearDepthTexture != linearDepthBuffer)) {
+    if (_linearDepthTexture != linearDepthBuffer) {
         _linearDepthTexture = linearDepthBuffer;
+        reset = true;
+    }
+    if (_resolutionLevel != resolutionLevel || isStereo != _isStereo) {
+        _resolutionLevel = resolutionLevel;
+        _isStereo = isStereo;
         reset = true;
     }
     if (_linearDepthTexture) {
@@ -76,17 +82,38 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getLinearDepthTexture() {
 }
 
 void AmbientOcclusionFramebuffer::allocate() {
-    auto width = _frameSize.x;
-    auto height = _frameSize.y;
-    auto format = gpu::Element::COLOR_R_8;
+    //  Full frame
+    {
+        auto width = _frameSize.x;
+        auto height = _frameSize.y;
+        auto format = gpu::Element::COLOR_R_8;
 
-    _occlusionTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
-    _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
-    _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
+        _occlusionTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
+        _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
+        _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
 
-    _occlusionBlurredTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
-    _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusionBlurred"));
-    _occlusionBlurredFramebuffer->setRenderBuffer(0, _occlusionBlurredTexture);
+        _occlusionBlurredTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
+        _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusionBlurred"));
+        _occlusionBlurredFramebuffer->setRenderBuffer(0, _occlusionBlurredTexture);
+    }
+
+    // Lower res frame
+    {
+        auto sideSize = _frameSize;
+        if (_isStereo) {
+            sideSize.x >>= 1;
+        }
+        sideSize = divideRoundUp(sideSize, 1 << _resolutionLevel);
+        if (_isStereo) {
+            sideSize.x <<= 1;
+        }
+        auto width = sideSize.x;
+        auto height = sideSize.y;
+
+        _normalTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
+        _normalFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ssaoNormals"));
+        _normalFramebuffer->setRenderBuffer(0, _normalTexture);
+    }
 }
 
 gpu::FramebufferPointer AmbientOcclusionFramebuffer::getOcclusionFramebuffer() {
@@ -117,31 +144,17 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getOcclusionBlurredTexture() {
     return _occlusionBlurredTexture;
 }
 
-void AmbientOcclusionFramebuffer::allocate(int resolutionLevel) {
-    auto width = _frameSize.x >> resolutionLevel;
-    auto height = _frameSize.y >> resolutionLevel;
-
-    _normalTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_R11G11B10, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
-    _normalFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ssaoNormals"));
-    _normalFramebuffer->setRenderBuffer(0, _normalTexture);
-    _resolutionLevel = resolutionLevel;
-}
-
-gpu::FramebufferPointer AmbientOcclusionFramebuffer::getNormalFramebuffer(int resolutionLevel) {
-    if (!_normalFramebuffer || resolutionLevel != _resolutionLevel) {
-        allocate(resolutionLevel);
+gpu::FramebufferPointer AmbientOcclusionFramebuffer::getNormalFramebuffer() {
+    if (!_normalFramebuffer) {
+        allocate();
     }
     return _normalFramebuffer;
 }
 
-gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture(int resolutionLevel) {
-    if (!_normalTexture || resolutionLevel != _resolutionLevel) {
-        allocate(resolutionLevel);
-    }
-    return _normalTexture;
-}
-
 gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture() {
+    if (!_normalTexture) {
+        allocate();
+    }
     return _normalTexture;
 }
 
@@ -377,6 +390,28 @@ void AmbientOcclusionEffect::updateBlurParameters() {
     vblur.scaleHeight.z = frameSize.y;
 }
 
+void AmbientOcclusionEffect::updateFramebufferSizes() {
+    auto& params = _aoParametersBuffer.edit();
+    const int widthScale = _framebuffer->isStereo() & 1;
+    auto sourceFrameSize = _framebuffer->getSourceFrameSize();
+    const int resolutionLevel = _aoParametersBuffer.get().getResolutionLevel();
+    // Depth is at maximum half depth
+    const int depthResolutionLevel = std::min(1, resolutionLevel);
+
+    sourceFrameSize.x >>= widthScale;
+
+    params._sideSizes[0].x = _framebuffer->getNormalTexture()->getWidth() >> widthScale;
+    params._sideSizes[0].y = _framebuffer->getNormalTexture()->getHeight();
+    params._sideSizes[0].z = resolutionLevel;
+    params._sideSizes[0].w = depthResolutionLevel;
+
+    params._sideSizes[1].x = params._sideSizes[0].x;
+    params._sideSizes[1].y = params._sideSizes[0].y;
+    auto occlusionSplitSize = divideRoundUp(sourceFrameSize, 1 << (resolutionLevel + SSAO_USE_QUAD_SPLIT));
+    params._sideSizes[1].z = occlusionSplitSize.x;
+    params._sideSizes[1].w = occlusionSplitSize.y;
+}
+
 const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
     if (!_occlusionPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeOcclusion);
@@ -466,11 +501,20 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     const auto& frameTransform = inputs.get0();
     const auto& linearDepthFramebuffer = inputs.get2();
     
+    const int resolutionLevel = _aoParametersBuffer->getResolutionLevel();
+    const auto resolutionScale = powf(0.5f, resolutionLevel);
+
     auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
     auto occlusionDepthTexture = linearDepthTexture;
     auto sourceViewport = args->_viewport;
-    auto occlusionViewport = sourceViewport;
+    // divideRoundUp is used two compute the quarter or half resolution render sizes.
+    // We need to take the rounded up resolution.
+    auto occlusionViewport = divideRoundUp(sourceViewport, 1 << resolutionLevel);
     auto firstBlurViewport = sourceViewport;
+#if SSAO_USE_QUAD_SPLIT
+    auto splitViewport = divideRoundUp(sourceViewport, 1 << (resolutionLevel + SSAO_USE_QUAD_SPLIT));
+#endif
+    firstBlurViewport.w = divideRoundUp(firstBlurViewport.w, 1 << resolutionLevel);
 
     if (!_gpuTimer) {
         _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
@@ -480,16 +524,13 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
     }
 
-    const int resolutionLevel = _aoParametersBuffer->getResolutionLevel();
-    const auto resolutionScale = powf(0.5f, resolutionLevel);
     if (resolutionLevel > 0) {
-        occlusionViewport = occlusionViewport >> resolutionLevel;
-        firstBlurViewport.w = firstBlurViewport.w >> resolutionLevel;
         occlusionDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
     }
 
-    if (_framebuffer->updateLinearDepth(linearDepthTexture)) {
+    if (_framebuffer->update(linearDepthTexture, resolutionLevel, args->isStereo())) {
         updateBlurParameters();
+        updateFramebufferSizes();
     }
     
     auto occlusionFBO = _framebuffer->getOcclusionFramebuffer();
@@ -499,7 +540,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     outputs.edit1() = _aoParametersBuffer;
 
     auto framebufferSize = _framebuffer->getSourceFrameSize();
-    
     auto occlusionPipeline = getOcclusionPipeline();
     auto firstHBlurPipeline = getHBlurPipeline();
     auto lastVBlurPipeline = getVBlurPipeline();
@@ -509,8 +549,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 #if SSAO_USE_QUAD_SPLIT
     auto gatherPipeline = getGatherPipeline();
     auto buildNormalsPipeline = getBuildNormalsPipeline();
-    auto occlusionNormalFramebuffer = _framebuffer->getNormalFramebuffer(resolutionLevel);
-    auto occlusionNormalTexture = _framebuffer->getNormalTexture(resolutionLevel);
+    auto occlusionNormalFramebuffer = _framebuffer->getNormalFramebuffer();
+    auto occlusionNormalTexture = _framebuffer->getNormalTexture();
 #endif
 
     // Update sample rotation
@@ -567,7 +607,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 #else
             batch.setFramebuffer(occlusionFBO);
 #endif
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1.0f));
             batch.setPipeline(occlusionPipeline);
             batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, occlusionDepthTexture);
 

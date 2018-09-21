@@ -35,7 +35,7 @@ public:
     gpu::TexturePointer getHalfNormalTexture();
 
     // Update the depth buffer which will drive the allocation of all the other resources according to its size.
-    void update(const gpu::TexturePointer& depthBuffer, const gpu::TexturePointer& normalTexture);
+    void update(const gpu::TexturePointer& depthBuffer, const gpu::TexturePointer& normalTexture, bool isStereo);
     const glm::ivec2& getDepthFrameSize() const { return _frameSize; }
 
     void setResolutionLevel(int level) { _resolutionLevel = std::max(0, level); }
@@ -59,6 +59,7 @@ protected:
     glm::ivec2 _frameSize;
     glm::ivec2 _halfFrameSize;
     int _resolutionLevel{ 0 };
+    bool _isStereo{ false };
 };
 
 using LinearDepthFramebufferPointer = std::shared_ptr<LinearDepthFramebuffer>;

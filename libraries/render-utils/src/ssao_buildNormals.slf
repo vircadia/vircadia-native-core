@@ -18,28 +18,30 @@
 layout(location=0) out vec4 outFragColor;
 
 void main(void) {
-    vec2 sideImageSize = getStereoSideSize(getResolutionLevel());
-    ivec2 renderSize = ivec2(sideImageSize) << ivec2(int(isStereo()) & 1, 0);
-
     // Pixel being shaded
     vec2 fragCoord = gl_FragCoord.xy; 
     ivec2 fragPixelPos = ivec2(fragCoord.xy);
 
-    // Fetch the z under the pixel (stereo or not)
-    ivec2 depthTextureScale = getDepthTextureSize(0) / renderSize;
-    ivec2 depthTexFragPixelPos = fragPixelPos * depthTextureScale;
+    // Fetch the z under the pixel (stereo or not) from full res depth
+    int depthTextureRatio = 1 << getNormalsResolutionLevel();
+    ivec2 depthTexFragPixelPos = fragPixelPos * depthTextureRatio;
     float Zeye = getZEyeAtPixel(depthTexFragPixelPos, 0);
 
-    // Stereo side info
-    ivec4 side = getStereoSideInfo(fragPixelPos.x, getResolutionLevel());
+    // Stereo side info based on the real viewport size of this pass
+    ivec2 sideNormalsSize = ivec2( getNormalsSideSize() );
+    ivec4 side = getStereoSideInfoFromWidth(fragPixelPos.x, sideNormalsSize.x);
 
     // From now on, fragPixelPos is the pixel pos in the side
+    vec2 depthSideSize = getDepthTextureSideSize(0);
+    vec2 sideImageSize = depthSideSize / float(depthTextureRatio);
     fragPixelPos.x -= side.y;
     vec2 fragUVPos = (vec2(fragPixelPos) + vec2(0.5))  / sideImageSize;
 
     // The position and normal of the pixel fragment in Eye space
     vec3 fragPositionES = evalEyePositionFromZeye(side.x, Zeye, fragUVPos);
-    vec3 fragNormalES = buildNormal(side, fragUVPos, depthTexFragPixelPos, fragPositionES, depthTextureScale, sideImageSize);
+    vec3 fragNormalES = buildNormal(side, fragUVPos, depthTexFragPixelPos, fragPositionES, depthSideSize);
+    vec3 absFragNormalES = abs(fragNormalES);
 
+    fragNormalES /= max(absFragNormalES.z, max(absFragNormalES.x, absFragNormalES.y));
     outFragColor = vec4(vec3(fragNormalES)*0.5 + vec3(0.5), 1.0);
 }

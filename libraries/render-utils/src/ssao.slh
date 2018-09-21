@@ -47,9 +47,30 @@ layout(binding=RENDER_UTILS_BUFFER_SSAO_FRAME_PARAMS) uniform ambientOcclusionFr
 float getPerspectiveScale() {
     return (params._resolutionInfo.z);
 }
-int getResolutionLevel() {
-    
+int getResolutionLevel() { 
     return int(params._resolutionInfo.x);
+}
+
+vec2 getNormalsSideSize() {
+    return params._sideSizes[0].xy;
+}
+int getNormalsResolutionLevel() {
+    return int(params._sideSizes[0].z);
+}
+int getDepthResolutionLevel() {
+    return int(params._sideSizes[0].w);
+}
+vec2 getOcclusionSideSize() {
+    return params._sideSizes[1].xy;
+}
+vec2 getOcclusionSplitSideSize() {
+    return params._sideSizes[1].zw;
+}
+
+ivec2 getWidthHeightRoundUp(int resolutionLevel) {
+    ivec2 fullRes = ivec2(getWidthHeight(0));
+    int resolutionDivisor = 1 << resolutionLevel;
+    return (fullRes + resolutionDivisor - 1) / resolutionDivisor;
 }
 
 float getRadius() {
@@ -205,6 +226,26 @@ layout(binding=RENDER_UTILS_TEXTURE_SSAO_NORMAL) uniform sampler2D normalTex;
 ivec2 getDepthTextureSize(int level) {
     return textureSize(depthPyramidTex, level);
 }
+ivec2 getDepthTextureSideSize(int level) {
+    ivec2 size = getDepthTextureSize(level);
+    size.x >>= int(isStereo()) & 1;
+    return size;
+}
+
+ivec2 getNormalTextureSize(int level) {
+    return textureSize(normalTex, level);
+}
+ivec2 getNormalTextureSideSize(int level) {
+    ivec2 size = getNormalTextureSize(level);
+    size.x >>= int(isStereo()) & 1;
+    return size;
+}
+
+vec2 getStereoSideSizeRoundUp(int resolutionLevel) {
+    ivec2 fullRes = ivec2(getStereoSideSize(0));
+    int resolutionDivisor = 1 << resolutionLevel;
+    return vec2((fullRes + resolutionDivisor - 1) / resolutionDivisor);
+}
 
 float getZEyeAtPixel(ivec2 pixel, int level) {
     return -texelFetch(depthPyramidTex, pixel, level).x;
@@ -254,8 +295,8 @@ vec3 getMinDelta(vec3 centralPoint, vec3 offsetPointPos, vec3 offsetPointNeg) {
     return dot(delta0, delta0) < dot(delta1, delta1) ? delta0 : delta1;
 }
 
-vec3 buildNormal(ivec4 side, vec2 fragUVPos, ivec2 depthTexFragPixelPos, vec3 fragPosition, ivec2 depthTextureScale, vec2 sideImageSize) {
-    vec2 uvScale = vec2(1.0) / (sideImageSize * depthTextureScale);
+vec3 buildNormal(ivec4 side, vec2 fragUVPos, ivec2 depthTexFragPixelPos, vec3 fragPosition, vec2 depthTextureSize) {
+    vec2 uvScale = vec2(1.0) / depthTextureSize;
     vec3 fragPositionDxPos = buildPosition(side, fragUVPos, depthTexFragPixelPos, ivec2(1, 0), uvScale);
     vec3 fragPositionDyPos = buildPosition(side, fragUVPos, depthTexFragPixelPos, ivec2(0, 1), uvScale);
     vec3 fragPositionDxNeg = buildPosition(side, fragUVPos, depthTexFragPixelPos, ivec2(-1, 0), uvScale);
@@ -368,7 +409,7 @@ float computeHorizon(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 d
 float evalVisibilityHBAO(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 deltaTap, float diskPixelRadius, 
                          vec3 fragPositionES, vec3 fragNormalES) {
 	vec2 searchVec = deltaTap * diskPixelRadius;
-	float obscurance;
+	float obscurance = 0.0;
 
     // Forward search for h1
     obscurance = computeHorizon(side, shadedPixelPos, sideImageSize, deltaTap, fragPositionES, fragNormalES, searchVec, diskPixelRadius);
@@ -376,7 +417,7 @@ float evalVisibilityHBAO(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, ve
     // Backward search for h2
     obscurance += computeHorizon(side, shadedPixelPos, sideImageSize, deltaTap, fragPositionES, fragNormalES, -searchVec, diskPixelRadius);
 
-	return obscurance * 0.5 / PI;
+	return obscurance;
 }
 
 <@endfunc@>
