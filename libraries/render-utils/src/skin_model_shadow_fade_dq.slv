@@ -17,11 +17,8 @@
 
 <$declareStandardTransform()$>
 
-<@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning(1)$>
-
-<@include Blendshape.slh@>
-<$declareApplyBlendshapeOffsets()$>
+<@include MeshDeformer.slh@>
+<$declareMeshDeformer(_SCRIBE_NULL, _SCRIBE_NULL, 1, 1, 1)$>
 
 <@include render-utils/ShaderConstants.h@>
 
@@ -29,14 +26,11 @@ layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
 
 void main(void) {
     vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
-    applyBlendshapeOffset(gl_VertexID, inPosition, deformedPosition);
-
-    vec4 skinnedPosition = vec4(0.0, 0.0, 0.0, 0.0);
-    skinPosition(inSkinClusterIndex, inSkinClusterWeight, deformedPosition, skinnedPosition);
+    evalMeshDeformer(inPosition, deformedPosition, inSkinClusterIndex, inSkinClusterWeight, gl_VertexID);
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, skinnedPosition, gl_Position)$>
-    <$transformModelToWorldPos(obj, skinnedPosition, _positionWS)$>
+    <$transformModelToClipPos(cam, obj, deformedPosition, gl_Position)$>
+    <$transformModelToWorldPos(obj, deformedPosition, _positionWS)$>
 }

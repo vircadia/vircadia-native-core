@@ -33,7 +33,7 @@ void main(void) {
 
     vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
     vec3 deformedNormal = vec3(0.0, 0.0, 0.0);
-    <$evalMeshDeformer(inPosition, deformedPosition, inNormal.xyz, deformedNormal, _SCRIBE_NULL, _SCRIBE_NULL, inSkinClusterIndex, inSkinClusterWeight, gl_VertexID);
+    evalMeshDeformer(inPosition, deformedPosition, inNormal.xyz, deformedNormal, inSkinClusterIndex, inSkinClusterWeight, gl_VertexID);
 
     // pass along the color
     _color.rgb = color_sRGBToLinear(inColor.rgb);

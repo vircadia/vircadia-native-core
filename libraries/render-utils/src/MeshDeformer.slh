@@ -10,82 +10,101 @@
 <@def MESH_DEFORMER_SLH@>
 //  MeshDeformer.slh
 
-<@include Skinning.slh@>
-<@include Blendshape.slh@>
-
 
 <@func declareMeshDeformer(USE_NORMAL, USE_TANGENT, USE_SKINNING, USE_DUAL_QUATERNION, USE_BLENDSHAPE)@>
 
+<@include LightingModel.slh@>
 
 <@if USE_SKINNING@>
+<@include Skinning.slh@>
 <$declareUseDualQuaternionSkinning($USE_DUAL_QUATERNION$) $>
-
 <@endif@>
-<!
-<@include ender-utils/Blendshape.slh@>
+
+<@if USE_BLENDSHAPE@>
+<@include Blendshape.slh@>
 <$declareApplyBlendshapeOffsets($USE_NORMAL$, $USE_TANGENT$)$>
+<@endif@>
 
-
-
-!>
-
-<@func evalMeshDeformer(inPosition, outPosition, inNormal, outNormal, inTangent, outTangent, inSkinClusterIndex, inSkinClusterWeight, vertexIndex)@>
-
-{
-    <@if USE_BLENDSHAPE@>
-
-            vec4 _deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
-        <@if USE_NORMAL@>
-            vec3 _deformedNormal = vec3(0.0, 0.0, 0.0);
-        <@endif@>
-        <@if USE_TANGENT@>
-            vec3 _deformedTangent = vec3(0.0, 0.0, 0.0);
-        <@endif@>
-
-        <@if USE_TANGENT@>
-            applyBlendshapeOffset(<$vertexIndex$>, <$inPosition$>, _deformedPosition, <$inNormal$>, _deformedNormal, <$inTangent$>, _deformedTangent);
-        <@else@>
-            <@if USE_NORMAL@>
-                applyBlendshapeOffset(<$vertexIndex$>, <$inPosition$>, _deformedPosition, <$inNormal$>, _deformedNormal);
-            <@else@>
-                applyBlendshapeOffset(vertexIndex, <$inPosition$>, _deformedPosition);
-            <@endif@>
-        <@endif@>
-
-    <@else@>
-
-            vec4 _deformedPosition = <$inPosition$>;
-        <@if USE_NORMAL@>
-            vec3 _deformedNormal = <$inNormal$>;
-        <@endif@>
-        <@if USE_TANGENT@>
-            vec3 _deformedTangent = <$inTangent$>;
-        <@endif@>
-
-    <@endif@>
-
-    <@if USE_SKINNING@>
-        <@if USE_TANGENT@>
-            skinPositionNormalTangent(<$inSkinClusterIndex$>, <$inSkinClusterWeight$>, _deformedPosition, _deformedNormal, _deformedTangent, _deformedPosition, _deformedNormal, _deformedTangent);
-        <@else@>
-            <@if USE_NORMAL@>
-                skinPositionNormal(<$inSkinClusterIndex$>, <$inSkinClusterWeight$>, _deformedPosition, _deformedNormal, _deformedPosition, _deformedNormal);
-            <@else@>
-                skinPosition(<$inSkinClusterIndex$>, <$inSkinClusterWeight$>, _deformedPosition, _deformedPosition);
-            <@endif@>
-        <@endif@>
-    <@endif@>
-
-        <$outPosition$> = _deformedPosition;
+void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
     <@if USE_NORMAL@>
-        <$outNormal$> = _deformedNormal;
+        , vec3 inNormal, out vec3 outNormal
     <@endif@>
     <@if USE_TANGENT@>
-        <$outTangent$> = _deformedTangent;
+        , vec3 inTangent, out vec3 outTangent
     <@endif@>
+    <@if USE_SKINNING@>
+        ,ivec4 skinClusterIndex, vec4 skinClusterWeight
+    <@endif@>
+    <@if USE_BLENDSHAPE@>
+        , int vertexIndex
+    <@endif@>
+) {
+
+        vec4 _deformedPosition = inPosition;
+    <@if USE_NORMAL@>
+        vec3 _deformedNormal = inNormal;
+    <@endif@>
+    <@if USE_TANGENT@>
+        vec3 _deformedTangent = inTangent;
+    <@endif@>
+
+<@if USE_BLENDSHAPE@>
+/*
+        vec4 _deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    <@if USE_NORMAL@>
+        vec3 _deformedNormal = vec3(0.0, 0.0, 0.0);
+    <@endif@>
+    <@if USE_TANGENT@>
+        vec3 _deformedTangent = vec3(0.0, 0.0, 0.0);
+    <@endif@>
+*/
+    if (isBlendshapeEnabled()) {
+
+    <@if USE_TANGENT@>
+        applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition, inNormal, _deformedNormal, inTangent, _deformedTangent);
+    <@else@>
+        <@if USE_NORMAL@>
+            applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition, inNormal, _deformedNormal);
+        <@else@>
+            applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition);
+        <@endif@>
+    <@endif@>
+    }/* else {
+        vec4 _deformedPosition = inPosition;
+    <@if USE_NORMAL@>
+        vec3 _deformedNormal = inNormal;
+    <@endif@>
+    <@if USE_TANGENT@>
+        vec3 _deformedTangent = inTangent;
+    <@endif@>
+
+    }*/
+
+<@endif@>
+
+<@if USE_SKINNING@>
+    if (isSkinningEnabled()) {
+    <@if USE_TANGENT@>
+        skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedNormal, _deformedTangent, _deformedPosition, _deformedNormal, _deformedTangent);
+    <@else@>
+        <@if USE_NORMAL@>
+            skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedNormal, _deformedPosition, _deformedNormal);
+        <@else@>
+            skinPosition(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedPosition);
+        <@endif@>
+    <@endif@>
+    }
+<@endif@>
+
+    outPosition = _deformedPosition;
+<@if USE_NORMAL@>
+    outNormal = _deformedNormal;
+<@endif@>
+<@if USE_TANGENT@>
+    outTangent = _deformedTangent;
+<@endif@>
 }
 
 <@endfunc@>
-
 
 <@endif@> // if not MESH_DEFORMER_SLH

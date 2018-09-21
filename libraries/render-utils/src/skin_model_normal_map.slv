@@ -18,11 +18,8 @@
 <@include graphics/MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
-<@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning()$>
-
-<@include Blendshape.slh@>
-<$declareApplyBlendshapeOffsets(1, 1)$>
+<@include MeshDeformer.slh@>
+<$declareMeshDeformer(1, 1, 1, _SCRIBE_NULL, 1)$>
 
 <@include render-utils/ShaderConstants.h@>
 
@@ -37,15 +34,7 @@ void main(void) {
     vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
     vec3 deformedNormal = vec3(0.0, 0.0, 0.0);
     vec3 deformedTangent = vec3(0.0, 0.0, 0.0);
-    applyBlendshapeOffset(gl_VertexID, inPosition, deformedPosition, inNormal.xyz, deformedNormal, inTangent.xyz, deformedTangent);
-
-    vec4 skinnedPosition = vec4(0.0, 0.0, 0.0, 0.0);
-    vec3 skinnedNormal = vec3(0.0, 0.0, 0.0);
-    vec3 skinnedTangent = vec3(0.0, 0.0, 0.0);
-    skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, deformedPosition, deformedNormal, deformedTangent, skinnedPosition, skinnedNormal, skinnedTangent);
-
-//    skinnedNormal = normalize(skinnedNormal);
-//    skinnedTangent = normalize(skinnedTangent);
+    evalMeshDeformer(inPosition, deformedPosition, inNormal.xyz, deformedNormal, inTangent.xyz, deformedTangent, inSkinClusterIndex, inSkinClusterWeight, gl_VertexID);
 
     // pass along the color
     _color.rgb = color_sRGBToLinear(inColor.rgb);
@@ -58,7 +47,7 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToWorldAndEyeAndClipPos(cam, obj, skinnedPosition, _positionWS, _positionES, gl_Position)$>
-    <$transformModelToWorldDir(cam, obj, skinnedNormal, _normalWS.xyz)$>
-    <$transformModelToWorldDir(cam, obj, skinnedTangent, _tangentWS.xyz)$>
+    <$transformModelToWorldAndEyeAndClipPos(cam, obj, deformedPosition, _positionWS, _positionES, gl_Position)$>
+    <$transformModelToWorldDir(cam, obj, deformedNormal, _normalWS.xyz)$>
+    <$transformModelToWorldDir(cam, obj, deformedTangent, _tangentWS.xyz)$>
 }
