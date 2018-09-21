@@ -190,7 +190,9 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
 
     connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
         EntityItemPointer entity = getTree()->findEntityByID(entityID);
-        entity->setScriptHasFinishedPreload(true);
+        if (entity) {
+            entity->setScriptHasFinishedPreload(true);
+        }
     });
 }
 
