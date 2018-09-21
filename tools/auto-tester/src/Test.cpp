@@ -489,7 +489,7 @@ bool Test::createAllFilesSetup() {
         parent += "/";
     }
 
-    _testsRootDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the root folder for the MD files", parent,
+    _testsRootDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the tests root folder", parent,
                                                             QFileDialog::ShowDirsOnly);
 
     // If user cancelled then restore previous selection and return
@@ -569,8 +569,8 @@ bool Test::createMDFile(const QString& directory) {
     QString testName = testScriptLines.title;
     stream << "# " << testName << "\n";
 
-    // Find the relevant part of the path to the test (i.e. from "tests" down
-    QString partialPath = extractPathFromTestsDown(_testDirectory);
+    // Find the relevant part of the path to the test (i.e. from "tests" down)
+    QString partialPath = extractPathFromTestsDown(_testsRootDirectory);
 
     stream << "## Run this script URL: [Manual](./test.js?raw=true)   [Auto](./testAuto.js?raw=true)(from menu/Edit/Open and Run scripts from URL...)."  << "\n\n";
 

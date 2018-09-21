@@ -95,7 +95,7 @@ void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
 }
 
 void AutoTester::on_tabWidget_currentChanged(int index) {
-    if (index == 1 || index == 2) {
+    if (index == 2 || index == 3) {
         _ui.userTextEdit->setDisabled(false);
         _ui.branchTextEdit->setDisabled(false);
     } else {
