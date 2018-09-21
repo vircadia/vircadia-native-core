@@ -44,26 +44,63 @@ ListView.prototype = {
         return this.rowHeight * SCROLL_ROWS;
     },
     
+    getFirstVisibleRowIndex: function() {
+        return this.rowOffset;
+    },
+    
+    getLastVisibleRowIndex: function() {
+        return this.getFirstVisibleRowIndex() + entityList.getNumRows() - 1;
+    },
+    
     resetRowOffset: function() {
         this.rowOffset = 0;
         this.lastRowChangeScrollTop = 0;
     },
     
-    decrementRowOffset: function() {          
-        // increase top buffer height to account for the lost row space
-        let topHeight = parseInt(this.elTopBuffer.getAttribute("height"));       
-        let newTopHeight = topHeight + this.rowHeight;
-        this.elTopBuffer.setAttribute("height", newTopHeight);
+    removeItems: function(removeItems) {
+        let firstVisibleRow = this.getFirstVisibleRowIndex();
+        let lastVisibleRow = this.getLastVisibleRowIndex();
+        let prevRowOffset = this.rowOffset;
+        let prevTopHeight = parseInt(this.elTopBuffer.getAttribute("height"));          
         
-        this.rowOffset--;
+		// remove items from our itemData list that match anything in the removeItems list
+		// if this was a row that was above our current row offset (a hidden top row in the top buffer),
+		// then decrease row offset accordingly
+        let deletedHiddenTopRows = false;
+        let deletedVisibleRows = false;
+        for (let j = this.itemData.length - 1; j >= 0; --j) {
+            let id = this.itemData[j].id;
+            for (let i = 0, length = removeItems.length; i < length; ++i) {
+                if (id === removeItems[i]) {
+                    if (j < firstVisibleRow) {
+                        this.rowOffset--;
+                        deletedHiddenTopRows = true;
+                    } else if (j >= firstVisibleRow && j < lastVisibleRow) {
+                        deletedVisibleRows = true;
+                    }
+                    this.itemData.splice(j, 1);
+                    break;
+                }
+            }
+        }
+        
+		// if we deleted both hidden rows in the top buffer above our row offset as well as rows that are currently being
+		// shown, then we need to adjust the scroll position to compensate unless we are at the bottom of the list
+        let adjustScrollTop = deletedHiddenTopRows && deletedVisibleRows;
+        if (this.rowOffset + this.getNumRows() > this.itemData.length) {
+            this.rowOffset = this.itemData.length - this.getNumRows();
+            adjustScrollTop = false;
+        }
+        
         this.refresh();
-        this.lastRowChangeScrollTop = topHeight;
         
-        return this.rowOffset;
-    },
-    
-    setItemData: function(data) {
-        this.itemData = data;
+		// decrease the last scrolling point to adjust for the amount of row space that was lost from the removed items
+        let newTopHeight = parseInt(this.elTopBuffer.getAttribute("height"));
+        let topHeightChange = prevTopHeight - newTopHeight;
+        this.lastRowChangeScrollTop -= topHeightChange; 
+        if (adjustScrollTop) {
+            this.elTableScroll.scrollTop -= topHeightChange;
+        }
     },
 
     clear: function() {

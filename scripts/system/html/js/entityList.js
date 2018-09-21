@@ -63,11 +63,13 @@ const COMPARE_DESCENDING = function(a, b) {
 var entities = []
 // List of all entities, indexed by Entity ID
 var entitiesByID = {};
-// The filtered and sorted list of entities
+// The filtered and sorted list of entities passed to ListView
 var visibleEntities = [];
-
-var entityList = null;
+// List of all entities that are currently selected
 var selectedEntities = [];
+
+var entityList = null; // ListView
+
 var currentSortColumn = 'type';
 var currentSortOrder = ASCENDING_SORT;
 var isFilterInView = false;
@@ -288,6 +290,8 @@ function loaded() {
                     entitiesByID[entityData.id] = entityData;
                 });
             });
+            
+            refreshEntityList();
         }
         
         function refreshEntityList() {
@@ -312,11 +316,15 @@ function loaded() {
                 });
 
                 PROFILE("update-dom", function() {
-                    entityList.setItemData(visibleEntities);
+                    entityList.itemData = visibleEntities;
+                    if (visibleEntities.length < entityList.rowOffset) {
+                        entityList.resetRowOffset();
+                    }
                     entityList.refresh();
                 });
                 
                 refreshFooter();
+                refreshNoEntitiesMessage();
             });
         }
         
@@ -326,36 +334,37 @@ function loaded() {
                 let id = entities[j].id;
                 for (let i = 0, length = deletedIDs.length; i < length; ++i) {
                     if (id === deletedIDs[i]) {
-                        entities.splice(j, 1);
-                        if (entitiesByID[id].elRow) {
-                            entitiesByID[id].elRow.dataset.entityID = EMPTY_ENTITY_ID;
+                        let elRow = entities[j].elRow;
+                        if (elRow) {
+                            elRow.className = '';
+                            elRow.dataset.entityID = EMPTY_ENTITY_ID;
                         }
+                        entities.splice(j, 1);
                         delete entitiesByID[id];
                         break;
                     }
                 }
             }
-
-            let rowOffset = entityList.rowOffset;
-            for (let j = visibleEntities.length - 1; j >= 0; --j) {
-                let id = visibleEntities[j].id;
+            
+            for (let j = selectedEntities.length - 1; j >= 0; --j) {
+                let id = selectedEntities[j].id;
                 for (let i = 0, length = deletedIDs.length; i < length; ++i) {
                     if (id === deletedIDs[i]) {
-                        if (j < rowOffset) { 
-                            rowOffset = entityList.decrementRowOffset();
-                        }
-                        visibleEntities.splice(j, 1);
+                        selectedEntities.splice(j, 1);
                         break;
                     }
                 }
-            }       
+            }
             
-            entityList.refresh();
+            entityList.removeItems(deletedIDs);
+            
+            refreshFooter();
+            refreshNoEntitiesMessage();
         }
         
         function clearEntities() {
-            let firstVisibleRow = entityList.rowOffset;
-            let lastVisibleRow = firstVisibleRow + entityList.getNumRows() - 1;
+            let firstVisibleRow = entityList.getFirstVisibleRowIndex();
+            let lastVisibleRow = entityList.getLastVisibleRowIndex();
             for (let i = firstVisibleRow; i <= lastVisibleRow && i < visibleEntities.length; i++) {
                 let entity = visibleEntities[i];
                 entity.elRow.dataset.entityID = EMPTY_ENTITY_ID;
@@ -366,11 +375,12 @@ function loaded() {
             visibleEntities = [];
             
             entityList.resetRowOffset();
-            entityList.refresh();
+            entityList.clear();
             
             refreshFooter();
+            refreshNoEntitiesMessage();
         }
-        
+
         var elSortOrder = {
             name: document.querySelector('#entity-name .sort-order'),
             type: document.querySelector('#entity-type .sort-order'),
@@ -394,13 +404,15 @@ function loaded() {
                     currentSortColumn = column;
                     currentSortOrder = ASCENDING_SORT;
                 }
-                elSortOrder[column].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+                refreshSortOrder();
                 refreshEntityList();
             });
         }
+        function refreshSortOrder() {
+            elSortOrder[currentSortColumn].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+        }
         
         function refreshEntities() {
-            clearEntities();
             EventBridge.emitWebEvent(JSON.stringify({ type: 'refresh' }));
         }
         
@@ -416,6 +428,14 @@ function loaded() {
             }
         }
         
+        function refreshNoEntitiesMessage() {
+            if (visibleEntities.length > 0) {
+                elNoEntitiesMessage.style.display = "none";
+            } else {
+                elNoEntitiesMessage.style.display = "block";
+            }
+        }
+        
         function updateSelectedEntities(selectedIDs) {
             let notFound = false;
             
@@ -423,7 +443,9 @@ function loaded() {
                 let entity = entitiesByID[id];
                 if (entity !== undefined) {
                     entity.selected = false;
-                    entity.elRow.className = '';
+                    if (entity.elRow) {
+                        entity.elRow.className = '';
+                    }
                 }
             });
             
@@ -431,8 +453,8 @@ function loaded() {
             
             selectedIDs.forEach(function(id) {
                 selectedEntities.push(id);
-                if (id in entitiesByID) {
-                    let entity = entitiesByID[id];
+                let entity = entitiesByID[id];
+                if (entity !== undefined) {
                     entity.selected = true;
                     if (entity.elRow) {
                         entity.elRow.className = 'selected';
@@ -447,12 +469,16 @@ function loaded() {
             return notFound;
         }
         
+        function isGlyphColumn(columnIndex) {
+            return columnIndex === COLUMN_INDEX.LOCKED || columnIndex === COLUMN_INDEX.VISIBLE || 
+                   columnIndex === COLUMN_INDEX.HAS_TRANSPARENT || columnIndex === COLUMN_INDEX.IS_BAKED;
+        }
+        
         function createRow() {
             let row = document.createElement("tr");
             for (let i = 0; i < NUM_COLUMNS; i++) {
                 let column = document.createElement("td");
-                if (i === COLUMN_INDEX.LOCKED || i === COLUMN_INDEX.VISIBLE || 
-                    i === COLUMN_INDEX.HAS_TRANSPARENT || i === COLUMN_INDEX.IS_BAKED) {
+                if (isGlyphColumn(i)) {
                     column.className = 'glyph';
                 }
                 row.appendChild(column);
@@ -510,7 +536,11 @@ function loaded() {
         function clearRow(elRow) {
             for (let i = 0; i < NUM_COLUMNS; i++) {
                 let cell = elRow.childNodes[i];
-                cell.innerHTML = "";
+                if (isGlyphColumn(i)) {
+                    cell.innerHTML = "";
+                } else {
+                    cell.innerText = "";
+                }
             }
             
             let entityID = elRow.dataset.entityID;
@@ -518,6 +548,7 @@ function loaded() {
                 entitiesByID[entityID].elRow = null;
             }
             
+            elRow.className = '';
             elRow.dataset.entityID = EMPTY_ENTITY_ID;
         }
 
@@ -637,15 +668,13 @@ function loaded() {
                 } else if (data.type === "update" && data.selectedIDs !== undefined) {
                     PROFILE("update", function() {
                         let newEntities = data.entities;
-                        if (newEntities && newEntities.length === 0) {
-                            elNoEntitiesMessage.style.display = "block";
-                            elFooter.firstChild.nodeValue = "0 entities found";
-                            clearEntities();
-                        } else if (newEntities) {
-                            elNoEntitiesMessage.style.display = "none";
-                            updateEntityData(newEntities);
-                            refreshEntityList();
-                            updateSelectedEntities(data.selectedIDs);
+                        if (newEntities) {
+                            if (newEntities.length === 0) {
+                                clearEntities();
+                            } else {
+                                updateEntityData(newEntities);
+                                updateSelectedEntities(data.selectedIDs);
+                            }
                         }
                     });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
@@ -653,13 +682,12 @@ function loaded() {
                     updateSelectedEntities(data.selectedIDs);
                 } else if (data.type === "deleted" && data.ids) {
                     removeEntities(data.ids);
-                    refreshFooter();
                 }
             });
         }
         
         resize();
-        setSortColumn('type');
+        refreshSortOrder();
         refreshEntities();
     });
     
