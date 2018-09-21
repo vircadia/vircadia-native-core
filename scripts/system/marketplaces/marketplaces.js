@@ -909,7 +909,7 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         break;
     case 'purchases_availableUpdatesReceived':
         shouldShowDot = message.numUpdates > 0;
-        ui.messagesWaiting(shouldShowDot);
+        ui.messagesWaiting(shouldShowDot && !ui.isOpen);
         break;
     case 'purchases_updateWearables':
         var currentlyWornWearables = [];
@@ -1035,7 +1035,7 @@ function notificationDataProcessPage(data) {
 var shouldShowDot = false;
 function notificationPollCallback(updatesArray) {
     shouldShowDot = shouldShowDot || updatesArray.length > 0;
-    ui.messagesWaiting(shouldShowDot);
+    ui.messagesWaiting(shouldShowDot && !ui.isOpen);
 
     if (updatesArray.length > 0) {
         var message;

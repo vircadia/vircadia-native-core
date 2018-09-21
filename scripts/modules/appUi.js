@@ -107,7 +107,9 @@ function AppUi(properties) {
     that.notificationPollCaresAboutSince = false;
     that.notificationInitialCallbackMade = false;
     that.notificationDisplayBanner = function (message) {
-        Window.displayAnnouncement(message);
+        if (that.isOpen) {
+            Window.displayAnnouncement(message);
+        }
     };
     //
     // END Notification Handling Defaults
@@ -155,8 +157,8 @@ function AppUi(properties) {
             return;
         }
 
-        // User is "appearing offline", or is offline, or the app is open
-        if (GlobalServices.findableBy === "none" || Account.username === "" || that.isOpen) {
+        // User is "appearing offline" or is offline
+        if (GlobalServices.findableBy === "none" || Account.username === "") {
             that.notificationPollTimeout = Script.setTimeout(that.notificationPoll, that.notificationPollTimeoutMs);
             return;
         }
