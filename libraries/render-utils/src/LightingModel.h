@@ -152,7 +152,6 @@ class MakeLightingModelConfig : public render::Job::Config {
     Q_PROPERTY(bool enableSkinning MEMBER enableSkinning NOTIFY dirty)
     Q_PROPERTY(bool enableBlendshape MEMBER enableBlendshape NOTIFY dirty)
 
-
 public:
     MakeLightingModelConfig() : render::Job::Config() {} // Make Lighting Model is always on
 
@@ -178,7 +177,6 @@ public:
 
     bool enableWireframe { false }; // false by default
     bool enableHaze{ true };
-
     bool enableBloom{ true };
     bool enableSkinning{ true };
     bool enableBlendshape{ true };

@@ -49,37 +49,18 @@ void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
     <@endif@>
 
 <@if USE_BLENDSHAPE@>
-/*
-        vec4 _deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
-    <@if USE_NORMAL@>
-        vec3 _deformedNormal = vec3(0.0, 0.0, 0.0);
-    <@endif@>
-    <@if USE_TANGENT@>
-        vec3 _deformedTangent = vec3(0.0, 0.0, 0.0);
-    <@endif@>
-*/
     if (isBlendshapeEnabled()) {
 
     <@if USE_TANGENT@>
         applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition, inNormal, _deformedNormal, inTangent, _deformedTangent);
     <@else@>
-        <@if USE_NORMAL@>
-            applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition, inNormal, _deformedNormal);
-        <@else@>
-            applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition);
-        <@endif@>
-    <@endif@>
-    }/* else {
-        vec4 _deformedPosition = inPosition;
     <@if USE_NORMAL@>
-        vec3 _deformedNormal = inNormal;
+        applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition, inNormal, _deformedNormal);
+    <@else@>
+        applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition);
     <@endif@>
-    <@if USE_TANGENT@>
-        vec3 _deformedTangent = inTangent;
     <@endif@>
-
-    }*/
-
+    }
 <@endif@>
 
 <@if USE_SKINNING@>
@@ -87,11 +68,11 @@ void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
     <@if USE_TANGENT@>
         skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedNormal, _deformedTangent, _deformedPosition, _deformedNormal, _deformedTangent);
     <@else@>
-        <@if USE_NORMAL@>
-            skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedNormal, _deformedPosition, _deformedNormal);
-        <@else@>
-            skinPosition(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedPosition);
-        <@endif@>
+    <@if USE_NORMAL@>
+        skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedNormal, _deformedPosition, _deformedNormal);
+    <@else@>
+        skinPosition(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedPosition);
+    <@endif@>
     <@endif@>
     }
 <@endif@>
