@@ -561,10 +561,10 @@
             MAX_TRIGGER_ON_TIME = 100,
 
             // Visibility.
-            MIN_HAND_CAMERA_ANGLE = 30,
+            MAX_HAND_CAMERA_ANGLE = 30,
             MAX_CAMERA_HAND_ANGLE = 30,
             DEGREES_180 = 180,
-            MIN_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MIN_HAND_CAMERA_ANGLE / DEGREES_180),
+            MAX_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MAX_HAND_CAMERA_ANGLE / DEGREES_180),
             MAX_CAMERA_HAND_ANGLE_COS = Math.cos(Math.PI * MAX_CAMERA_HAND_ANGLE / DEGREES_180),
             HIDING_DELAY = 1000, // ms
             lastVisible = [0, 0];
@@ -661,8 +661,8 @@
                     Vec3.multiplyQbyV(handOrientation, uiPositionAndOrientation.position)));
                 miniOrientation = Quat.multiply(handOrientation, uiPositionAndOrientation.rotation);
                 miniToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, miniPosition));
-                show = Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MIN_HAND_CAMERA_ANGLE_COS;
-                show = show || (-Vec3.dot(miniToCameraDirection, Quat.getForward(handOrientation)) > MIN_HAND_CAMERA_ANGLE_COS);
+                show = Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MAX_HAND_CAMERA_ANGLE_COS;
+                show = show || (-Vec3.dot(miniToCameraDirection, Quat.getForward(handOrientation)) > MAX_HAND_CAMERA_ANGLE_COS);
                 cameraToHand = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
                 show = show && (cameraToHand > MAX_CAMERA_HAND_ANGLE_COS);
 
