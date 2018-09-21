@@ -108,6 +108,9 @@ AvatarBookmarks::AvatarBookmarks() {
 
         if (!QFile::copy(defaultBookmarksFilename, _bookmarksFilename)) {
             qDebug() << "failed to copy" << defaultBookmarksFilename << "to" << _bookmarksFilename;
+        } else {
+            QFile bookmarksFile(_bookmarksFilename);
+            bookmarksFile.setPermissions(bookmarksFile.permissions() | QFile::WriteUser);
         }
     }
     readFromFile();
