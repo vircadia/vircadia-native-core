@@ -13,6 +13,8 @@
 #define hifi_Android_Helper_h
 
 #include <QObject>
+#include <QNetworkReply>
+#include <QtCore/QEventLoop>
 
 class AndroidHelper : public QObject {
     Q_OBJECT
@@ -33,8 +35,12 @@ public:
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
 
+    void signup(QString email, QString username, QString password);
+
 public slots:
     void showLoginDialog();
+    void signupCompleted(QNetworkReply* reply);
+    void signupFailed(QNetworkReply* reply);
 
 signals:
     void androidActivityRequested(const QString &activityName, const bool backToScene, QList<QString> args = QList<QString>());
@@ -45,9 +51,14 @@ signals:
 
     void hapticFeedbackRequested(int duration);
 
+    void handleSignupCompleted();
+    void handleSignupFailed(QString errorString);
+
 private:
     AndroidHelper();
     ~AndroidHelper();
+
+    QString errorStringFromAPIObject(const QJsonValue& apiObject);
 };
 
 #endif

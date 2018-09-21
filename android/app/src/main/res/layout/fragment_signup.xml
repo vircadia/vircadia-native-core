@@ -19,18 +19,19 @@
 
     <TextView
         android:id="@+id/error"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:fontFamily="@font/raleway"
         android:textColor="@color/colorLoginError"
         android:textSize="12sp"
-        app:layout_constraintBottom_toTopOf="@id/username"
-        app:layout_constraintLeft_toLeftOf="@id/username"
+        app:layout_constraintBottom_toTopOf="@id/email"
+        app:layout_constraintLeft_toLeftOf="@id/email"
+        app:layout_constraintRight_toRightOf="@id/email"
         android:visibility="invisible"/>
 
     <EditText
-        android:id="@+id/username"
+        android:id="@+id/email"
         android:layout_width="match_parent"
         android:layout_height="35dp"
         android:layout_marginLeft="46dp"
@@ -49,7 +50,29 @@
         android:gravity="left|center_vertical"
         app:layout_constraintTop_toBottomOf="@id/header"
         android:layout_marginTop="70dp"
-        android:hint="@string/username_or_email" />
+        android:hint="@string/email" />
+
+    <EditText
+        android:id="@+id/username"
+        android:layout_width="match_parent"
+        android:layout_height="35dp"
+        android:layout_marginLeft="46dp"
+        android:layout_marginRight="46dp"
+        android:background="@drawable/rounded_edit"
+        android:padding="7dp"
+        android:paddingRight="12dp"
+        android:paddingTop="14dp"
+        android:ems="10"
+        android:fontFamily="@font/raleway"
+        android:textSize="17sp"
+        android:inputType="text"
+        android:textStyle="italic"
+        android:textColor="@color/editTextColor"
+        android:textColorHint="@color/editTextColor"
+        android:gravity="left|center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/email"
+        android:layout_marginTop="13dp"
+        android:hint="@string/username" />
 
 
     <android.support.design.widget.TextInputLayout
@@ -88,17 +111,17 @@
     </android.support.design.widget.TextInputLayout>
 
     <Button
-        android:id="@+id/loginButton"
+        android:id="@+id/signupButton"
         android:layout_width="154dp"
         android:layout_height="38dp"
         android:layout_marginTop="16dp"
         android:background="@drawable/rounded_button"
         android:fontFamily="@font/raleway_semibold"
         android:paddingBottom="0dp"
-        android:paddingLeft="55dp"
-        android:paddingRight="55dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
         android:paddingTop="0dp"
-        android:text="@string/login"
+        android:text="@string/signup"
         android:textColor="@color/white_opaque"
         android:textAllCaps="false"
         android:textSize="15sp"
@@ -107,34 +130,17 @@
         app:layout_goneMarginTop="4dp"/>
 
     <TextView
-        android:id="@+id/forgotPassword"
+        android:id="@+id/login"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="@font/raleway_semibold"
         android:textSize="14dp"
-        android:text="@string/forgot_password"
+        android:text="@string/login"
         android:textStyle="italic"
         android:paddingRight="10dp"
         app:layout_constraintLeft_toLeftOf="@id/passwordLayout"
-        app:layout_constraintTop_toTopOf="@id/loginButton"
+        app:layout_constraintTop_toTopOf="@id/signupButton"
         app:layout_constraintRight_toLeftOf="@id/loginButton"
         android:textColor="@color/colorButton1"/>
-
-    <TextView
-        android:id="@+id/signup"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="@font/raleway_semibold"
-        android:textSize="14dp"
-        android:text="@string/signup"
-        android:textStyle="italic"
-        android:paddingRight="10dp"
-        android:layout_marginTop="20dp"
-        app:layout_constraintLeft_toLeftOf="@id/passwordLayout"
-        app:layout_constraintTop_toBottomOf="@id/forgotPassword"
-        app:layout_constraintRight_toLeftOf="@id/loginButton"
-        android:textColor="@color/colorButton1"/>
-
-
 
 </android.support.constraint.ConstraintLayout>

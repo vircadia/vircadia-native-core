@@ -10,6 +10,8 @@
     <string name="popular">POPULAR</string>
     <string name="bookmarks">BOOKMARKS</string>
     <string name="goto_url_hint">Type a domain url</string>
+    <string name="email">Email</string>
+    <string name="username">Username</string>
     <string name="username_or_email">Username or email</string>
     <string name="password">Password</string>
     <string name="login">Login</string>
@@ -23,10 +25,14 @@
     <string name="privacyPolicy">Privacy Policy</string>
     <string name="your_last_location">Your Last Location</string>
     <string name="online">Online</string>
+    <string name="signup">Sign up</string>
+    <string name="creating_account">Creating your High Fidelity account</string>
+    <string name="signup_email_username_or_password_incorrect">Email, username or password incorrect.</string>
 
     <!-- tags -->
     <string name="tagFragmentHome">tagFragmentHome</string>
     <string name="tagFragmentLogin">tagFragmentLogin</string>
+    <string name="tagFragmentSignup">tagFragmentSignup</string>
     <string name="tagFragmentPolicy">tagFragmentPolicy</string>
     <string name="tagFragmentPeople">tagFragmentPeople</string>
 </resources>

@@ -26,6 +26,7 @@
 
 QAndroidJniObject __interfaceActivity;
 QAndroidJniObject __loginCompletedListener;
+QAndroidJniObject __signupCompletedListener;
 QAndroidJniObject __loadCompleteListener;
 QAndroidJniObject __usernameChangedListener;
 void tempMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
@@ -304,6 +305,58 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *en
 
     QMetaObject::invokeMethod(accountManager.data(), "requestAccessToken",
                               Q_ARG(const QString&, username), Q_ARG(const QString&, password));
+}
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeInitAfterAppLoaded(JNIEnv* env, jobject obj) {
+    AndroidHelper::instance().moveToThread(qApp->thread());
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_fragment_SignupFragment_nativeSignup(JNIEnv *env, jobject instance,
+                                                                       jstring email_, jstring username_,
+                                                                       jstring password_) {
+
+    const char *c_email = env->GetStringUTFChars(email_, 0);
+    const char *c_username = env->GetStringUTFChars(username_, 0);
+    const char *c_password = env->GetStringUTFChars(password_, 0);
+    QString email = QString(c_email);
+    QString username = QString(c_username);
+    QString password = QString(c_password);
+    env->ReleaseStringUTFChars(email_, c_email);
+    env->ReleaseStringUTFChars(username_, c_username);
+    env->ReleaseStringUTFChars(password_, c_password);
+
+    __signupCompletedListener = QAndroidJniObject(instance);
+
+    // disconnect any previous callback
+    QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::handleSignupCompleted, nullptr, nullptr);
+    QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::handleSignupFailed, nullptr, nullptr);
+
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::handleSignupCompleted, []() {
+        jboolean jSuccess = (jboolean) true;
+        if (__signupCompletedListener.isValid()) {
+            __signupCompletedListener.callMethod<void>("handleSignupCompleted", "()V", jSuccess);
+        }
+    });
+
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::handleSignupFailed, [](QString errorString) {
+        jboolean jSuccess = (jboolean) false;
+        jstring jError = QAndroidJniObject::fromString(errorString).object<jstring>();
+        if (__signupCompletedListener.isValid()) {
+            QAndroidJniObject string = QAndroidJniObject::fromString(errorString);
+            __signupCompletedListener.callMethod<void>("handleSignupFailed", "(Ljava/lang/String;)V", string.object<jstring>());
+        }
+    });
+
+    AndroidHelper::instance().signup(email, username, password);
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_fragment_SignupFragment_nativeCancelSignup(JNIEnv *env, jobject instance) {
+    QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::handleSignupCompleted, nullptr, nullptr);
+    QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::handleSignupFailed, nullptr, nullptr);
+
+    __signupCompletedListener = nullptr;
 }
 
 JNIEXPORT jboolean JNICALL

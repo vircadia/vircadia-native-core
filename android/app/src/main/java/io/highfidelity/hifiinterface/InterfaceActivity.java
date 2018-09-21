@@ -65,6 +65,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     private native void nativeEnterBackground();
     private native void nativeEnterForeground();
     private native long nativeOnExitVr();
+    private native void nativeInitAfterAppLoaded();
 
     private AssetManager assetManager;
 
@@ -335,6 +336,9 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         if (nativeEnterBackgroundCallEnqueued) {
             nativeEnterBackground();
         }
+        runOnUiThread(() -> {
+            nativeInitAfterAppLoaded();
+        });
     }
 
     public void performHapticFeedback(int duration) {
