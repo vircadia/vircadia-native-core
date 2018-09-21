@@ -500,7 +500,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     }
 
                 } catch (e) {
-                    print("WARNING: handControllerGrab.js -- error parsing Hifi-Hand-RayPick-Blacklist message: " + message);
+                    print("WARNING: handControllerGrab.js -- error parsing message: " + data);
                 }
             }
         };
