@@ -171,6 +171,9 @@ bool SafeLanding::isEntityLoadingComplete() {
 
         bool isVisuallyReady = true;
 
+
+        qDebug() << "EntityTpye" << EntityTypes::getEntityTypeName(entity->getType()) << entity->getEntityItemID();
+
         Settings settings;
         bool enableInterstitial = settings.value("enableIntersitialMode", false).toBool();
 
@@ -188,6 +191,7 @@ bool SafeLanding::isEntityLoadingComplete() {
             entityMapIter++;
         }
     }
+    qDebug() << "EntityList size" << _trackedEntities.size() << "\n";
     return _trackedEntities.empty();
 }
 
