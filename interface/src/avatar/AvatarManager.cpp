@@ -180,7 +180,10 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
     AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getWorldPosition(), _transitConfig);
-    
+    if (status != AvatarTransit::Status::IDLE && status != AvatarTransit::Status::TRANSITING) {
+        QUuid& transitEffectID = _myAvatar->getTransitEffectID();
+        //changeAvatarTransitState(status, _myAvatar->getID(), transitEffectID);
+    }
     if (_transitConfig._playAnimation) {
         playTransitAnimations(status);
     }
@@ -308,7 +311,11 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             }
             // smooth other avatars positions
             {
-                avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
+                auto status = avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
+                if (status != AvatarTransit::Status::IDLE && status != AvatarTransit::Status::TRANSITING) {
+                    QUuid& transitEffectID = avatar->getTransitEffectID();
+                    changeAvatarTransitState(status, avatar->getID(), transitEffectID);
+                }
             }
 
             avatar->simulate(deltaTime, inView);
@@ -906,6 +913,9 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
      result["isDistanceBased"] = _transitConfig._isDistanceBased;
      result["triggerDistance"] = _transitConfig._triggerDistance;
      result["playAnimation"] = _transitConfig._playAnimation;
+     result["easeType"] = (int)_transitConfig._easeType;
+     result["showEffect"] = _transitConfig._showEffect;
+
      return result;
 }
  void AvatarManager::setAvatarTransitData(const QVariantMap& data) {
@@ -923,6 +933,12 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
      }     
      if (data.contains("playAnimation")) {
          _transitConfig._playAnimation = data["playAnimation"].toBool();
+     }
+     if (data.contains("easeType")) {
+         _transitConfig._easeType = (AvatarTransit::EaseType)data["easeType"].toInt();
+     }
+     if (data.contains("showEffect")) {
+         _transitConfig._showEffect = data["showEffect"].toBool();
      }
 }
 
@@ -958,3 +974,110 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
          _transitConfig._endTransitAnimation = getAnimationFromJsonObject(object);
      }
 }
+
+ void AvatarManager::changeAvatarTransitState(AvatarTransit::Status status, const QUuid& avatarID, QUuid& effectID) {
+     
+     if (!_transitConfig._showEffect) {
+         return;
+     }
+     EntityItemProperties props = getAvatarTransitEffectProperties();
+     props.setParentID(avatarID);
+     
+     switch (status) {
+     case AvatarTransit::Status::IDLE:
+     case AvatarTransit::Status::TRANSITING:
+     case AvatarTransit::Status::START_FRAME:
+     case AvatarTransit::Status::END_FRAME:
+         break;
+     case AvatarTransit::Status::START_TRANSIT:
+         effectID = DependencyManager::get<EntityScriptingInterface>()->addEntity(props);
+         break;
+     case AvatarTransit::Status::END_TRANSIT:
+         props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(effectID);
+         props.setIsEmitting(false);
+         auto nid = DependencyManager::get<EntityScriptingInterface>()->editEntity(effectID, props);
+         break;
+     }
+ }
+
+ EntityItemProperties AvatarManager::getAvatarTransitEffectProperties() {
+     EntityItemProperties props;
+     
+     props.setIsEmitting(true);
+     props.setLifetime(5.0f);
+     props.setLifespan(2.7f);
+     props.setMaxParticles(200.0f);
+     props.setEmitRate(200.0);
+     props.setEmitSpeed(2.8f);
+     props.setSpeedSpread(0.2f);
+     props.setLocalPosition(glm::vec3(0.0f, -1.0f, 0.0f));
+     props.setEmitDimensions(glm::vec3(0.0f, 0.0f, 0.0f));
+     props.setEmitOrientation(Quaternions::X_180);
+     props.setEmitterShouldTrail(true);
+     props.setParticleRadius(0.24f);
+     props.setRadiusSpread(0.0f);
+     props.setRadiusStart(0.0f);
+     props.setRadiusFinish(0.21f);
+     props.setColor(xColor(0.0f, 180.0f, 239.0f));
+     props.setColorStart(glm::vec3(200.0f, 200.0f, 200.0f));
+     props.setColorFinish(glm::vec3(0.0f, 0.0f, 0.0f));
+     props.setEmitAcceleration(glm::vec3(0.0f, 0.0f, 0.0f));
+     props.setAlpha(0.15f);
+     props.setAccelerationSpread(glm::vec3(0.5f, 1.0f, 0.5f));
+     props.setAlphaSpread(0.0f);
+     props.setAlphaStart(0.3f);
+     props.setAlphaFinish(0.0f);
+     props.setParticleSpin(4.78f);
+     props.setParentJointIndex(_myAvatar->getJointIndex("neck"));
+     props.setType(EntityTypes::ParticleEffect);
+     props.setTextures("http://hifi-content.s3.amazonaws.com/alexia/Particles/spark.png");
+     props.setSpinSpread(0.0f);
+     props.setSpinStart(-4.57f);
+     props.setSpinFinish(4.67f);
+     props.setRotateWithEntity(false);
+     props.setPolarStart(0.0f);
+     props.setPolarFinish(0.0f);
+     props.setAzimuthStart(-3.1415f);
+     props.setAzimuthFinish(3.1415f);
+     props.setRotateWithEntity(true);
+     props.setUserData("{\"grabbableKey\":{\"grabbable\":false}}");
+     props.setParentJointIndex(_myAvatar->getJointIndex("head"));
+     /*
+     props.setIsEmitting(true);
+     props.setLifespan(0.5);
+     props.setMaxParticles(50);
+     props.setEmitRate(50);
+     props.setEmitSpeed(0.1f);
+     props.setSpeedSpread(0.1f);
+     props.setEmitDimensions(glm::vec3(0, 0, 0));
+     props.setEmitOrientation(Quaternions::IDENTITY);
+     props.setEmitterShouldTrail(true);
+     props.setParticleRadius(0.05f);
+     props.setRadiusSpread(0);
+     props.setRadiusStart(0);
+     props.setRadiusFinish(0.1);
+     props.setColor(xColor(0, 180, 239));
+     props.setColorStart(glm::vec3(200, 200, 200));
+     props.setColorFinish(glm::vec3(0, 0, 0));
+     props.setEmitAcceleration(glm::vec3(0, 0, 0));
+     props.setAlpha(0.3);
+     props.setAccelerationSpread(glm::vec3(0.5, 1, 0.5));
+     props.setAlphaSpread(0.3);
+     props.setAlphaStart(1);
+     props.setAlphaFinish(0);
+     props.setParticleSpin(3.3);
+     props.setParentJointIndex(_myAvatar->getJointIndex("head"));
+     props.setType(EntityTypes::ParticleEffect);
+     props.setTextures("http://hifi-content.s3.amazonaws.com/alexia/Particles/circle.png");
+     props.setSpinSpread(2.53);
+     props.setSpinStart(3.31);
+     props.setSpinFinish(3.31);
+     props.setRotateWithEntity(false);
+     props.setPolarStart(0);
+     props.setPolarFinish(3.1415);
+     props.setAzimuthStart(-3.1415);
+     props.setAzimuthFinish(3.1415);
+     props.setUserData("{\"grabbableKey\":{\"grabbable\":false}}");
+     */
+     return props;
+ }

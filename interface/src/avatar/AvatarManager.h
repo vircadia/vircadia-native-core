@@ -181,6 +181,7 @@ public:
     Q_INVOKABLE QVariantMap getAvatarTransitData();
     Q_INVOKABLE void setAvatarTransitData(const QVariantMap& data);
     Q_INVOKABLE void setAvatarTransitAnimationData(const QVariantMap& data);
+    EntityItemProperties getAvatarTransitEffectProperties();
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
     int getIdentityRequestsSent() const { return _identityRequestsSent; }
@@ -204,6 +205,7 @@ private:
     explicit AvatarManager(const AvatarManager& other);
 
     void simulateAvatarFades(float deltaTime);
+    void changeAvatarTransitState(AvatarTransit::Status status, const QUuid& avatarID, QUuid& effectID);
 
     AvatarSharedPointer newSharedAvatar() override;
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;

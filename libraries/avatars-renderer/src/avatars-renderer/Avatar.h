@@ -61,6 +61,13 @@ public:
         END_FRAME
     };
 
+    enum EaseType {
+        NONE = 0,
+        EASE_IN,
+        EASE_OUT,
+        EASE_IN_OUT
+    };
+
     struct TransitAnimation {
         TransitAnimation() {};
         TransitAnimation(const QString& animationUrl, int firstFrame, int frameCount) :
@@ -76,7 +83,9 @@ public:
         int _framesPerMeter { 0 };
         bool _isDistanceBased { false };
         float _triggerDistance { 0 };
-        bool _playAnimation { false };
+        bool _playAnimation { true };
+        EaseType _easeType;
+        bool _showEffect { true };
         TransitAnimation _startTransitAnimation;
         TransitAnimation _middleTransitAnimation;
         TransitAnimation _endTransitAnimation;
@@ -91,6 +100,7 @@ public:
 private:
     Status updatePosition(float deltaTime);
     void start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const TransitConfig& config);
+    float getEaseValue(AvatarTransit::EaseType type, float value);
     bool _isTransiting{ false };
 
     glm::vec3 _startPosition;
@@ -106,6 +116,8 @@ private:
     float _transitTime { 0.0f };
     float _timeBefore { 0.0f };
     float _timeAfter { 0.0f };
+    EaseType _easeType { EaseType::EASE_OUT };
+
 };
 
 class Avatar : public AvatarData, public scriptable::ModelProvider {
@@ -422,6 +434,8 @@ public:
     std::shared_ptr<AvatarTransit> getTransit() { return std::make_shared<AvatarTransit>(_transit); };
 
     AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
+    QUuid& getTransitEffectID() { return _transitEffectID; };
+
 signals:
     void targetScaleChanged(float targetScale);
 
@@ -605,6 +619,8 @@ protected:
     static const float MYAVATAR_LOADING_PRIORITY;
     static const float OTHERAVATAR_LOADING_PRIORITY;
     static const float ATTACHMENT_LOADING_PRIORITY;
+
+    QUuid _transitEffectID{ QUuid::createUuid() };
 };
 
 #endif // hifi_Avatar_h

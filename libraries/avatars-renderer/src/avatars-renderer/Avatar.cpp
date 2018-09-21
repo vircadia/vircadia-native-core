@@ -130,6 +130,7 @@ void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const
 
     _transitLine = endPosition - startPosition;
     _totalDistance = glm::length(_transitLine);
+    _easeType = config._easeType;
     const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
 
     int framesBefore = config._playAnimation ? config._startTransitAnimation._frameCount : 0;
@@ -142,6 +143,24 @@ void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const
     _totalTime = _transitTime + _timeBefore + _timeAfter;
     _currentTime = 0.0f;
     _isTransiting = true;
+}
+
+float AvatarTransit::getEaseValue(AvatarTransit::EaseType type, float value) {
+    switch (type) {
+    case EaseType::NONE:
+        return value;
+        break;
+    case EaseType::EASE_IN:
+        return value * value;
+        break;
+    case EaseType::EASE_OUT:
+        return value * (2.0f - value);
+        break;
+    case EaseType::EASE_IN_OUT:
+        return (value < 0.5f) ? 2.0f * value * value : -1.0f + (4.0f - 2.0f * value) * value;
+        break;
+    }
+    return value;
 }
 
 AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
@@ -165,9 +184,12 @@ AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
         } else {
             if (_currentTime <= _timeBefore) {
                 status = Status::START_TRANSIT;
+            } else {
+                status = Status::TRANSITING;
             }
             float percentageIntoTransit = (nextTime - _timeBefore) / _transitTime;
-            _currentPosition = _startPosition + percentageIntoTransit * _transitLine;
+            
+            _currentPosition = _startPosition + getEaseValue(_easeType, percentageIntoTransit) * _transitLine;
         } 
         _currentTime = nextTime;
     }
