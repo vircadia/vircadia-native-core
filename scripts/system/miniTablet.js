@@ -236,8 +236,11 @@
 
         function updateMiniTabletID() {
             // Send mini-tablet overlay ID to controllerDispatcher so that it can use a smaller near grab distance.
-            Messages.sendLocalMessage("Hifi-MiniTablet-ID", miniOverlay);
-            // Send mini-tablet UI overlay ID to stylusInput so that it styluses can be used on it.
+            Messages.sendLocalMessage("Hifi-MiniTablet-Details", JSON.stringify({
+                overlay: miniOverlay,
+                hand: uiHand
+            }));
+            // Send mini-tablet UI overlay ID to stylusInput so that styluses can be used on it.
             Messages.sendLocalMessage("Hifi-MiniTablet-UI-ID", miniUIOverlay);
         }
 
@@ -474,8 +477,6 @@
 
             miniOverlayObject = Overlays.getOverlayObject(miniUIOverlay);
             miniOverlayObject.webEventReceived.connect(onWebEventReceived);
-
-            // updateMiniTabletID(); Other scripts relying on this may not be ready yet so do this in show().
         }
 
         function destroy() {
@@ -527,11 +528,10 @@
             MINI_HIDING = 2,
             MINI_SHOWING = 3,
             MINI_VISIBLE = 4,
-            MINI_GRABBED = 5,
-            MINI_EXPANDING = 6,
-            TABLET_OPEN = 7,
-            STATE_STRINGS = ["MINI_DISABLED", "MINI_HIDDEN", "MINI_HIDING", "MINI_SHOWING", "MINI_VISIBLE", "MINI_GRABBED",
-                "MINI_EXPANDING", "TABLET_OPEN"],
+            MINI_EXPANDING = 5,
+            TABLET_OPEN = 6,
+            STATE_STRINGS = ["MINI_DISABLED", "MINI_HIDDEN", "MINI_HIDING", "MINI_SHOWING", "MINI_VISIBLE", "MINI_EXPANDING",
+                "TABLET_OPEN"],
             STATE_MACHINE,
             miniState = MINI_DISABLED,
             miniHand,
@@ -812,18 +812,6 @@
             }
         }
 
-        function updateMiniGrabbed() {
-            // Hide mini tablet if tablet proper has been displayed by other means.
-            if (HMD.showTablet) {
-                setState(MINI_HIDDEN);
-            }
-        }
-
-        function exitMiniGrabbed() {
-            // Explicitly unparent mini tablet in case controller grabbing code has reparented it.
-            ui.release();
-        }
-
         function expandMini() {
             var scaleFactor = (Date.now() - miniExpandStart) / MINI_EXPAND_DURATION;
             if (scaleFactor < 1) {
@@ -913,11 +901,6 @@
                 update: updateMiniVisible,
                 exit: null
             },
-            MINI_GRABBED: { // Mini tablet is grabbed by other hand.
-                enter: null,
-                update: updateMiniGrabbed,
-                exit: exitMiniGrabbed
-            },
             MINI_EXPANDING: { // Mini tablet is expanding before showing tablet proper.
                 enter: enterMiniExpanding,
                 update: updateMiniExanding,
@@ -979,7 +962,6 @@
             MINI_HIDING: MINI_HIDING,
             MINI_SHOWING: MINI_SHOWING,
             MINI_VISIBLE: MINI_VISIBLE,
-            MINI_GRABBED: MINI_GRABBED,
             MINI_EXPANDING: MINI_EXPANDING,
             TABLET_OPEN: TABLET_OPEN,
             updateState: updateState,
@@ -1017,14 +999,6 @@
             // Tablet may have been grabbed after it replaced expanded mini tablet.
             miniState.setState(miniState.MINI_HIDDEN);
         } else if (message.action === "grab" && miniState.getState() === miniState.MINI_VISIBLE) {
-            miniHand = miniState.getHand();
-            hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
-            if (hand === miniHand) {
-                miniState.setState(miniState.MINI_EXPANDING, { hand: hand, goto: false });
-            } else {
-                miniState.setState(miniState.MINI_GRABBED);
-            }
-        } else if (message.action === "release" && miniState.getState() === miniState.MINI_GRABBED) {
             miniHand = miniState.getHand();
             hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
             miniState.setState(miniState.MINI_EXPANDING, { hand: hand, goto: false });
