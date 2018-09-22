@@ -1018,6 +1018,12 @@ public:
     Q_INVOKABLE bool getCollisionsEnabled();
 
     /**jsdoc
+    * @function MyAvatar.getCollisionCapsule
+    * @returns {object}
+    */
+    Q_INVOKABLE QVariantMap getCollisionCapsule() const;
+
+    /**jsdoc
      * @function MyAvatar.setCharacterControllerEnabled
      * @param {boolean} enabled
      * @deprecated
@@ -1182,11 +1188,12 @@ public slots:
      * @param {boolean} [hasOrientation=false] - Set to <code>true</code> to set the orientation of the avatar.
      * @param {Quat} [orientation=Quat.IDENTITY] - The new orientation for the avatar.
      * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from 
+     * @param {boolean} [withSafeLanding=true] - Set to <code>false</code> MyAvatar::safeLanding will not be called (used when teleporting).
      *     the new position and orientate the avatar to face the position.
      */
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
-                      bool shouldFaceLocation = false);
+                      bool shouldFaceLocation = false, bool withSafeLanding = true);
     /**jsdoc
      * @function MyAvatar.goToLocation
      * @param {object} properties
@@ -1500,6 +1507,7 @@ signals:
 
 private slots:
     void leaveDomain();
+    void updateCollisionCapsuleCache();
 
 protected:
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
@@ -1724,6 +1732,7 @@ private:
 
     bool _goToPending { false };
     bool _physicsSafetyPending { false };
+    bool _goToSafe { true };
     glm::vec3 _goToPosition;
     glm::quat _goToOrientation;
 

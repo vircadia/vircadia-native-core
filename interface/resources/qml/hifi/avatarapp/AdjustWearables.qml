@@ -25,7 +25,17 @@ Rectangle {
         modified = false;
     }
 
-    property var jointNames;
+    property var jointNames: []
+    onJointNamesChanged: {
+        jointsModel.clear();
+        for (var i = 0; i < jointNames.length; ++i) {
+            var jointName = jointNames[i];
+            if (jointName !== 'LeftHand' && jointName !== 'RightHand') {
+                jointsModel.append({'text' : jointName, 'jointIndex' : i});
+            }
+        }
+    }
+
     property string avatarName: ''
     property var wearablesModel;
 
@@ -268,20 +278,30 @@ Rectangle {
                 anchors.right: parent.right
                 enabled: getCurrentWearable() !== null &&  !isSoft.checked
                 comboBox.displayText: isSoft.checked ? 'Hips' : comboBox.currentText
+                comboBox.textRole: "text"
 
-                model: jointNames
+                model: ListModel {
+                    id: jointsModel
+                }
                 property bool notify: false
 
                 function set(jointIndex) {
                     notify = false;
-                    currentIndex = jointIndex;
+                    for (var i = 0; i < jointsModel.count; ++i) {
+                        if (jointsModel.get(i).jointIndex === jointIndex) {
+                            currentIndex = i;
+                            break;
+                        }
+                    }
                     notify = true;
                 }
 
                 function notifyJointChanged() {
                     modified = true;
+                    var jointIndex = jointsModel.get(jointsCombobox.currentIndex).jointIndex;
+
                     var properties = {
-                        parentJointIndex: currentIndex,
+                        parentJointIndex: jointIndex,
                         localPosition: {
                             x: positionVector.xvalue,
                             y: positionVector.yvalue,
@@ -294,7 +314,7 @@ Rectangle {
                         }
                     };
 
-                    wearableUpdated(getCurrentWearable().id, wearablesCombobox.currentIndex, properties);
+                    wearableUpdated(getCurrentWearable().id, jointIndex, properties);
                 }
 
                 onCurrentIndexChanged: {

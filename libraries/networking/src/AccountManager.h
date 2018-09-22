@@ -106,7 +106,6 @@ public slots:
     void requestAccessTokenFinished();
     void refreshAccessTokenFinished();
     void requestProfileFinished();
-    void requestAccessTokenError(QNetworkReply::NetworkError error);
     void refreshAccessTokenError(QNetworkReply::NetworkError error);
     void requestProfileError(QNetworkReply::NetworkError error);
     void logout();

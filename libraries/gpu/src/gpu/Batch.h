@@ -119,7 +119,7 @@ public:
     void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
 
     void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
-    BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
+    const BufferPointer& getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
 
     // Input Stage
     // InputFormat
@@ -417,10 +417,7 @@ public:
             }
 
             const Data& get(uint32 offset) const {
-                if (offset >= _items.size()) {
-                    static const Data EMPTY;
-                    return EMPTY;
-                }
+                assert((offset < _items.size()));
                 return (_items.data() + offset)->_data;
             }
 

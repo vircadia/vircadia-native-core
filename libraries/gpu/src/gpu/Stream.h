@@ -152,6 +152,8 @@ public:
 
     BufferStream makeRangedStream(uint32 offset, uint32 count = -1) const;
 
+    BufferStream& operator = (const BufferStream& src) = default;
+
 protected:
     Buffers _buffers;
     Offsets _offsets;

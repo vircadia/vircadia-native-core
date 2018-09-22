@@ -1,3 +1,5 @@
+/* global $, window, MutationObserver */
+
 //
 //  marketplacesInject.js
 //
@@ -11,7 +13,6 @@
 //
 
 (function () {
-
     // Event bridge messages.
     var CLARA_IO_DOWNLOAD = "CLARA.IO DOWNLOAD";
     var CLARA_IO_STATUS = "CLARA.IO STATUS";
@@ -24,7 +25,7 @@
 
     var canWriteAssets = false;
     var xmlHttpRequest = null;
-    var isPreparing = false;  // Explicitly track download request status.
+    var isPreparing = false; // Explicitly track download request status.
 
     var commerceMode = false;
     var userIsLoggedIn = false;
@@ -33,7 +34,6 @@
     var messagesWaiting = false;
 
     function injectCommonCode(isDirectoryPage) {
-
         // Supporting styles from marketplaces.css.
         // Glyph font family, size, and spacing adjusted because HiFi-Glyphs cannot be used cross-domain.
         $("head").append(
@@ -74,7 +74,9 @@
             (document.referrer !== "") ? window.history.back() : window.location = (marketplaceBaseURL + "/marketplace?");
         });
         $("#all-markets").on("click", function () {
-            EventBridge.emitWebEvent(GOTO_DIRECTORY);
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: GOTO_DIRECTORY
+            }));
         });
     }
 
@@ -94,11 +96,11 @@
         });
     }
 
-    emitWalletSetupEvent = function() {
+    var emitWalletSetupEvent = function () {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "WALLET_SETUP"
         }));
-    }
+    };
 
     function maybeAddSetupWalletButton() {
         if (!$('body').hasClass("walletsetup-injected") && userIsLoggedIn && walletNeedsSetup) {
@@ -113,7 +115,7 @@
 
             var span = document.createElement('span');
             span.style = "margin:10px 5px;color:#1b6420;font-size:15px;";
-            span.innerHTML = "<a href='#' onclick='emitWalletSetupEvent(); return false;'>Setup your Wallet</a> to get money and shop in Marketplace.";
+            span.innerHTML = "<a href='#' onclick='emitWalletSetupEvent(); return false;'>Activate your Wallet</a> to get money and shop in Marketplace.";
 
             var xButton = document.createElement('a');
             xButton.id = "xButton";
@@ -285,7 +287,7 @@
             $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
             $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
 
-            var priceElement = $(this).find('.price')
+            var priceElement = $(this).find('.price');
             priceElement.css({
                 "padding": "3px 5px",
                 "height": "40px",
@@ -355,12 +357,12 @@
     function injectAddScrollbarToCategories() {
         $('#categories-dropdown').on('show.bs.dropdown', function () {
             $('body > div.container').css('display', 'none')
-            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': 'auto', 'height': 'calc(100vh - 110px)' })
+            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': 'auto', 'height': 'calc(100vh - 110px)' });
         });
 
         $('#categories-dropdown').on('hide.bs.dropdown', function () {
-            $('body > div.container').css('display', '')
-            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': '', 'height': '' })
+            $('body > div.container').css('display', '');
+            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': '', 'height': '' });
         });
     }
 
@@ -382,7 +384,6 @@
                     mutations.forEach(function (mutation) {
                         injectBuyButtonOnMainPage();
                     });
-                    //observer.disconnect();
                 });
                 var config = { attributes: true, childList: true, characterData: true };
                 observer.observe(target, config);
@@ -451,8 +452,8 @@
                             "itemPage",
                             urlParams.get('edition'),
                             type);
-                        }
-                    });
+                    }
+                });
                 maybeAddPurchasesButton();
             }
         }
@@ -503,127 +504,142 @@
                 $(".top-title .col-sm-4").append(downloadContainer);
                 downloadContainer.append(downloadFBX);
             }
+        }
+    }
 
-            // Automatic download to High Fidelity.
-            function startAutoDownload() {
+    // Automatic download to High Fidelity.
+    function startAutoDownload() {
+        // One file request at a time.
+        if (isPreparing) {
+            console.log("WARNING: Clara.io FBX: Prepare only one download at a time");
+            return;
+        }
 
-                // One file request at a time.
-                if (isPreparing) {
-                    console.log("WARNING: Clara.io FBX: Prepare only one download at a time");
-                    return;
-                }
+        // User must be able to write to Asset Server.
+        if (!canWriteAssets) {
+            console.log("ERROR: Clara.io FBX: File download cancelled because no permissions to write to Asset Server");
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: WARN_USER_NO_PERMISSIONS
+            }));
+            return;
+        }
 
-                // User must be able to write to Asset Server.
-                if (!canWriteAssets) {
-                    console.log("ERROR: Clara.io FBX: File download cancelled because no permissions to write to Asset Server");
-                    EventBridge.emitWebEvent(WARN_USER_NO_PERMISSIONS);
-                    return;
-                }
+        // User must be logged in.
+        var loginButton = $("#topnav a[href='/signup']");
+        if (loginButton.length > 0) {
+            loginButton[0].click();
+            return;
+        }
 
-                // User must be logged in.
-                var loginButton = $("#topnav a[href='/signup']");
-                if (loginButton.length > 0) {
-                    loginButton[0].click();
-                    return;
-                }
+        // Obtain zip file to download for requested asset.
+        // Reference: https://clara.io/learn/sdk/api/export
 
-                // Obtain zip file to download for requested asset.
-                // Reference: https://clara.io/learn/sdk/api/export
+        //var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?zip=true&centerScene=true&alignSceneGround=true&fbxUnit=Meter&fbxVersion=7&fbxEmbedTextures=true&imageFormat=WebGL";
+        // 13 Jan 2017: Specify FBX version 5 and remove some options in order to make Clara.io site more likely to
+        // be successful in generating zip files.
+        var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?fbxUnit=Meter&fbxVersion=5&fbxEmbedTextures=true&imageFormat=WebGL";
 
-                //var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?zip=true&centerScene=true&alignSceneGround=true&fbxUnit=Meter&fbxVersion=7&fbxEmbedTextures=true&imageFormat=WebGL";
-                // 13 Jan 2017: Specify FBX version 5 and remove some options in order to make Clara.io site more likely to
-                // be successful in generating zip files.
-                var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?fbxUnit=Meter&fbxVersion=5&fbxEmbedTextures=true&imageFormat=WebGL";
+        var uuid = location.href.match(/\/view\/([a-z0-9\-]*)/)[1];
+        var url = XMLHTTPREQUEST_URL.replace("{uuid}", uuid);
 
-                var uuid = location.href.match(/\/view\/([a-z0-9\-]*)/)[1];
-                var url = XMLHTTPREQUEST_URL.replace("{uuid}", uuid);
+        xmlHttpRequest = new XMLHttpRequest();
+        var responseTextIndex = 0;
+        var zipFileURL = "";
 
-                xmlHttpRequest = new XMLHttpRequest();
-                var responseTextIndex = 0;
-                var zipFileURL = "";
+        xmlHttpRequest.onreadystatechange = function () {
+            // Messages are appended to responseText; process the new ones.
+            var message = this.responseText.slice(responseTextIndex);
+            var statusMessage = "";
 
-                xmlHttpRequest.onreadystatechange = function () {
-                    // Messages are appended to responseText; process the new ones.
-                    var message = this.responseText.slice(responseTextIndex);
-                    var statusMessage = "";
+            if (isPreparing) {  // Ignore messages in flight after finished/cancelled.
+                var lines = message.split(/[\n\r]+/);
 
-                    if (isPreparing) {  // Ignore messages in flight after finished/cancelled.
-                        var lines = message.split(/[\n\r]+/);
+                for (var i = 0, length = lines.length; i < length; i++) {
+                    if (lines[i].slice(0, 5) === "data:") {
+                        // Parse line.
+                        var data;
+                        try {
+                            data = JSON.parse(lines[i].slice(5));
+                        }
+                        catch (e) {
+                            data = {};
+                        }
 
-                        for (var i = 0, length = lines.length; i < length; i++) {
-                            if (lines[i].slice(0, 5) === "data:") {
-                                // Parse line.
-                                var data;
-                                try {
-                                    data = JSON.parse(lines[i].slice(5));
-                                }
-                                catch (e) {
-                                    data = {};
-                                }
+                        // Extract status message.
+                        if (data.hasOwnProperty("message") && data.message !== null) {
+                            statusMessage = data.message;
+                            console.log("Clara.io FBX: " + statusMessage);
+                        }
 
-                                // Extract status message.
-                                if (data.hasOwnProperty("message") && data.message !== null) {
-                                    statusMessage = data.message;
-                                    console.log("Clara.io FBX: " + statusMessage);
-                                }
-
-                                // Extract zip file URL.
-                                if (data.hasOwnProperty("files") && data.files.length > 0) {
-                                    zipFileURL = data.files[0].url;
-                                    if (zipFileURL.slice(-4) !== ".zip") {
-                                        console.log(JSON.stringify(data));  // Data for debugging.
-                                    }
-                                }
+                        // Extract zip file URL.
+                        if (data.hasOwnProperty("files") && data.files.length > 0) {
+                            zipFileURL = data.files[0].url;
+                            if (zipFileURL.slice(-4) !== ".zip") {
+                                console.log(JSON.stringify(data));  // Data for debugging.
                             }
                         }
-
-                        if (statusMessage !== "") {
-                            // Update the UI with the most recent status message.
-                            EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
-                        }
                     }
-
-                    responseTextIndex = this.responseText.length;
-                };
-
-                // Note: onprogress doesn't have computable total length so can't use it to determine % complete.
-
-                xmlHttpRequest.onload = function () {
-                    var statusMessage = "";
-
-                    if (!isPreparing) {
-                        return;
-                    }
-
-                    isPreparing = false;
-
-                    var HTTP_OK = 200;
-                    if (this.status !== HTTP_OK) {
-                        statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
-                        console.log("ERROR: Clara.io FBX: " + statusMessage);
-                        EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
-                    } else if (zipFileURL.slice(-4) !== ".zip") {
-                        statusMessage = "Error creating zip file for download.";
-                        console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
-                        EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
-                    } else {
-                        EventBridge.emitWebEvent(CLARA_IO_DOWNLOAD + " " + zipFileURL);
-                        console.log("Clara.io FBX: File download initiated for " + zipFileURL);
-                    }
-
-                    xmlHttpRequest = null;
                 }
 
-                isPreparing = true;
-
-                console.log("Clara.io FBX: Request zip file for " + uuid);
-                EventBridge.emitWebEvent(CLARA_IO_STATUS + " Initiating download");
-
-                xmlHttpRequest.open("POST", url, true);
-                xmlHttpRequest.setRequestHeader("Accept", "text/event-stream");
-                xmlHttpRequest.send();
+                if (statusMessage !== "") {
+                    // Update the UI with the most recent status message.
+                    EventBridge.emitWebEvent(JSON.stringify({
+                        type: CLARA_IO_STATUS,
+                        status: statusMessage
+                    }));
+                }
             }
+
+            responseTextIndex = this.responseText.length;
+        };
+
+        // Note: onprogress doesn't have computable total length so can't use it to determine % complete.
+
+        xmlHttpRequest.onload = function () {
+            var statusMessage = "";
+
+            if (!isPreparing) {
+                return;
+            }
+
+            isPreparing = false;
+
+            var HTTP_OK = 200;
+            if (this.status !== HTTP_OK) {
+                statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
+                console.log("ERROR: Clara.io FBX: " + statusMessage);
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: CLARA_IO_STATUS,
+                    status: statusMessage
+                }));
+            } else if (zipFileURL.slice(-4) !== ".zip") {
+                statusMessage = "Error creating zip file for download.";
+                console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: CLARA_IO_STATUS,
+                    status: (statusMessage + ": " + zipFileURL)
+                }));
+            } else {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: CLARA_IO_DOWNLOAD
+                }));
+                console.log("Clara.io FBX: File download initiated for " + zipFileURL);
+            }
+
+            xmlHttpRequest = null;
         }
+
+        isPreparing = true;
+
+        console.log("Clara.io FBX: Request zip file for " + uuid);
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: CLARA_IO_STATUS,
+            status: "Initiating download"
+        }));
+
+        xmlHttpRequest.open("POST", url, true);
+        xmlHttpRequest.setRequestHeader("Accept", "text/event-stream");
+        xmlHttpRequest.send();
     }
 
     function injectClaraCode() {
@@ -663,7 +679,9 @@
             updateClaraCodeInterval = undefined;
         });
 
-        EventBridge.emitWebEvent(QUERY_CAN_WRITE_ASSETS);
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: QUERY_CAN_WRITE_ASSETS
+        }));
     }
 
     function cancelClaraDownload() {
@@ -673,7 +691,9 @@
             xmlHttpRequest.abort();
             xmlHttpRequest = null;
             console.log("Clara.io FBX: File download cancelled");
-            EventBridge.emitWebEvent(CLARA_IO_CANCELLED_DOWNLOAD);
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: CLARA_IO_CANCELLED_DOWNLOAD
+            }));
         }
     }
 
@@ -708,25 +728,22 @@
 
     function onLoad() {
         EventBridge.scriptEventReceived.connect(function (message) {
-            if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
-                canWriteAssets = message.slice(-4) === "true";
-            } else if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
+            message = JSON.parse(message);
+            if (message.type === CAN_WRITE_ASSETS) {
+                canWriteAssets = message.canWriteAssets;
+            } else if (message.type === CLARA_IO_CANCEL_DOWNLOAD) {
                 cancelClaraDownload();
-            } else {
-                var parsedJsonMessage = JSON.parse(message);
-
-                if (parsedJsonMessage.type === "marketplaces") {
-                    if (parsedJsonMessage.action === "commerceSetting") {
-                        commerceMode = !!parsedJsonMessage.data.commerceMode;
-                        userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn;
-                        walletNeedsSetup = !!parsedJsonMessage.data.walletNeedsSetup;
-                        marketplaceBaseURL = parsedJsonMessage.data.metaverseServerURL;
-                        if (marketplaceBaseURL.indexOf('metaverse.') !== -1) {
-                            marketplaceBaseURL = marketplaceBaseURL.replace('metaverse.', '');
-                        }
-                        messagesWaiting = parsedJsonMessage.data.messagesWaiting;
-                        injectCode();
+            } else if (message.type === "marketplaces") {
+                if (message.action === "commerceSetting") {
+                    commerceMode = !!message.data.commerceMode;
+                    userIsLoggedIn = !!message.data.userIsLoggedIn;
+                    walletNeedsSetup = !!message.data.walletNeedsSetup;
+                    marketplaceBaseURL = message.data.metaverseServerURL;
+                    if (marketplaceBaseURL.indexOf('metaverse.') !== -1) {
+                        marketplaceBaseURL = marketplaceBaseURL.replace('metaverse.', '');
                     }
+                    messagesWaiting = message.data.messagesWaiting;
+                    injectCode();
                 }
             }
         });
@@ -739,6 +756,6 @@
     }
 
     // Load / unload.
-    window.addEventListener("load", onLoad);  // More robust to Web site issues than using $(document).ready().
-    window.addEventListener("page:change", onLoad);  // Triggered after Marketplace HTML is changed
+    window.addEventListener("load", onLoad); // More robust to Web site issues than using $(document).ready().
+    window.addEventListener("page:change", onLoad); // Triggered after Marketplace HTML is changed
 }());

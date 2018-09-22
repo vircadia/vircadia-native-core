@@ -36,6 +36,9 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
 
         // Good to go add the brand new pipeline
         _drawCellBoundsPipeline = gpu::Pipeline::create(program, state);
+        _cellBoundsFormat = std::make_shared<gpu::Stream::Format>();
+        _cellBoundsFormat->setAttribute(0, 0, gpu::Element(gpu::VEC4, gpu::INT32, gpu::XYZW), 0, gpu::Stream::PER_INSTANCE);
+        _cellBoundsBuffer = std::make_shared<gpu::Buffer>();
     }
     return _drawCellBoundsPipeline;
 }
@@ -82,8 +85,11 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
 
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawCellBoundsPipeline());
+        batch.setInputFormat(_cellBoundsFormat);
 
-        auto drawCellBounds = [this, &scene, &batch](const std::vector<gpu::Stamp>& cells) {
+        std::vector<ivec4> cellBounds;
+        auto drawCellBounds = [this, &cellBounds, &scene, &batch](const std::vector<gpu::Stamp>& cells) {
+            cellBounds.reserve(cellBounds.size() + cells.size());
             for (const auto& cellID : cells) {
                 auto cell = scene->getSpatialTree().getConcreteCell(cellID);
                 auto cellLoc = cell.getlocation();
@@ -98,14 +104,19 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
                 } else if (!empty && !_showVisibleCells) {
                     continue;
                 }
-
-                batch._glUniform4iv(gpu::slot::uniform::Extra0, 1, ((const int*)(&cellLocation)));
-                batch.draw(gpu::LINES, 24, 0);
+                cellBounds.push_back(cellLocation);
             }
         };
 
         drawCellBounds(inSelection.cellSelection.insideCells);
         drawCellBounds(inSelection.cellSelection.partialCells);
+        auto size = cellBounds.size() * sizeof(ivec4);
+        if (size > _cellBoundsBuffer->getSize()) {
+            _cellBoundsBuffer->resize(size);
+        }
+        _cellBoundsBuffer->setSubData(0, cellBounds);
+        batch.setInputBuffer(0, _cellBoundsBuffer, 0, sizeof(ivec4));
+        batch.drawInstanced((uint32_t)cellBounds.size(), gpu::LINES, 24);
 
         // Draw the LOD Reticle
         {

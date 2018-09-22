@@ -143,6 +143,7 @@ public:
 
     void init();
     void updateAvatarEntities();
+    void removeAvatarEntitiesFromTree();
     void simulate(float deltaTime, bool inView);
     virtual void simulateAttachments(float deltaTime);
 
@@ -176,6 +177,14 @@ public:
 
     virtual bool isMyAvatar() const override { return false; }
     virtual void createOrb() { }
+
+    enum class LoadingStatus {
+        NoModel,
+        LoadModel,
+        LoadSuccess,
+        LoadFailure
+    };
+    virtual void indicateLoadingStatus(LoadingStatus loadingStatus) { _loadingStatus = loadingStatus; }
 
     virtual QVector<glm::quat> getJointRotations() const override;
     using AvatarData::getJointRotation;
@@ -621,6 +630,7 @@ protected:
     static const float ATTACHMENT_LOADING_PRIORITY;
 
     QUuid _transitEffectID{ QUuid::createUuid() };
+    LoadingStatus _loadingStatus { LoadingStatus::NoModel };
 };
 
 #endif // hifi_Avatar_h

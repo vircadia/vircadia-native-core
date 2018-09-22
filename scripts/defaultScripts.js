@@ -38,6 +38,10 @@ var DEFAULT_SCRIPTS_SEPARATE = [
     //"system/chat.js"
 ];
 
+if (Settings.getValue("enableInterstitialMode", false)) {
+    DEFAULT_SCRIPTS_SEPARATE.push("system/interstitialPage.js");
+}
+
 // add a menu item for debugging
 var MENU_CATEGORY = "Developer";
 var MENU_ITEM = "Debug defaultScripts.js";
