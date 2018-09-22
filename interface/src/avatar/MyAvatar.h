@@ -1108,6 +1108,8 @@ public:
     virtual QVariantList getAttachmentsVariant() const override;
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
+    glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); };
+
 public slots:
 
     /**jsdoc
@@ -1784,7 +1786,7 @@ private:
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
 
     void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
-
+    void playTransitAnimations(AvatarTransit::Status status);
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
     ThreadSafeValueCache<float> _walkBackwardSpeed { DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED };

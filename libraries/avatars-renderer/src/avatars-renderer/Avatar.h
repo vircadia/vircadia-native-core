@@ -84,7 +84,7 @@ public:
         bool _isDistanceBased { false };
         float _triggerDistance { 0 };
         bool _playAnimation { true };
-        EaseType _easeType;
+        EaseType _easeType { EaseType::EASE_OUT };
         bool _showEffect { true };
         TransitAnimation _startTransitAnimation;
         TransitAnimation _middleTransitAnimation;

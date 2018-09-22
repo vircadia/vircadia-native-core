@@ -611,7 +611,16 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
     animateScaleChanges(deltaTime);
-
+    if (_transit.isTransiting()) {
+        glm::vec3 nextPosition;
+        if (_transit.getNextPosition(nextPosition)) {
+            _globalPosition = nextPosition;
+            _globalPositionChanged = usecTimestampNow();
+            if (!hasParent()) {
+                setLocalPosition(nextPosition);
+            }
+        }
+    }
     setFlyingEnabled(getFlyingEnabled());
 
     if (_cauterizationNeedsUpdate) {

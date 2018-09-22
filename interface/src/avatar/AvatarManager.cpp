@@ -179,10 +179,10 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
-    AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getWorldPosition(), _transitConfig);
+    AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _transitConfig);
     if (status != AvatarTransit::Status::IDLE && status != AvatarTransit::Status::TRANSITING) {
         QUuid& transitEffectID = _myAvatar->getTransitEffectID();
-        //changeAvatarTransitState(status, _myAvatar->getID(), transitEffectID);
+        changeAvatarTransitState(status, _myAvatar->getID(), transitEffectID);
     }
     if (_transitConfig._playAnimation) {
         playTransitAnimations(status);
@@ -316,6 +316,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                     QUuid& transitEffectID = avatar->getTransitEffectID();
                     changeAvatarTransitState(status, avatar->getID(), transitEffectID);
                 }
+
             }
 
             avatar->simulate(deltaTime, inView);
