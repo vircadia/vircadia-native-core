@@ -538,7 +538,6 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
 
     QNetworkReply* requestReply = networkAccessManager.post(request, postData);
     connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestAccessTokenFinished);
-    connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccessTokenError(QNetworkReply::NetworkError)));
 }
 
 void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
@@ -631,12 +630,6 @@ void AccountManager::requestAccessTokenFinished() {
         qCDebug(networking) <<  "Error in response for password grant -" << rootObject["error_description"].toString();
         emit loginFailed();
     }
-}
-
-void AccountManager::requestAccessTokenError(QNetworkReply::NetworkError error) {
-    // TODO: error handling
-    qCDebug(networking) << "AccountManager: failed to fetch access token - " << error;
-    emit loginFailed();
 }
 
 void AccountManager::refreshAccessTokenFinished() {
