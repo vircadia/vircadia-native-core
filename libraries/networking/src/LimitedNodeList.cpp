@@ -56,13 +56,20 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
     auto port = (socketListenPort != INVALID_PORT) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
     _nodeSocket.bind(QHostAddress::AnyIPv4, port);
-    qCDebug(networking) << "NodeList socket is listening on" << _nodeSocket.localPort();
+    quint16 assignedPort = _nodeSocket.localPort();
+    if (socketListenPort != INVALID_PORT && socketListenPort != 0 && socketListenPort != assignedPort) {
+        qCCritical(networking) << "NodeList is unable to assign requested port of" << socketListenPort;
+    }
+    qCDebug(networking) << "NodeList socket is listening on" << assignedPort;
 
     if (dtlsListenPort != INVALID_PORT) {
         // only create the DTLS socket during constructor if a custom port is passed
         _dtlsSocket = new QUdpSocket(this);
 
         _dtlsSocket->bind(QHostAddress::AnyIPv4, dtlsListenPort);
+        if (dtlsListenPort != 0 && _dtlsSocket->localPort() != dtlsListenPort) {
+            qCDebug(networking) << "NodeList is unable to assign requested DTLS port of" << dtlsListenPort;
+        }
         qCDebug(networking) << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
 

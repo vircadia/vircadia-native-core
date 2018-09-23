@@ -65,6 +65,35 @@ void ParabolaPointer::editRenderStatePath(const std::string& state, const QVaria
     }
 }
 
+QVariantMap ParabolaPointer::toVariantMap() const {
+    QVariantMap qVariantMap;
+
+    QVariantMap qRenderStates;
+    for (auto iter = _renderStates.cbegin(); iter != _renderStates.cend(); iter++) {
+        auto renderState = iter->second;
+        QVariantMap qRenderState;
+        qRenderState["start"] = renderState->getStartID();
+        qRenderState["end"] = renderState->getEndID();
+        qRenderStates[iter->first.c_str()] = qRenderState;
+    }
+    qVariantMap["renderStates"] = qRenderStates;
+
+    QVariantMap qDefaultRenderStates;
+    for (auto iter = _defaultRenderStates.cbegin(); iter != _defaultRenderStates.cend(); iter++) {
+        float distance = iter->second.first;
+        auto defaultRenderState = iter->second.second;
+        QVariantMap qDefaultRenderState;
+
+        qDefaultRenderState["distance"] = distance;
+        qDefaultRenderState["start"] = defaultRenderState->getStartID();
+        qDefaultRenderState["end"] = defaultRenderState->getEndID();
+        qDefaultRenderStates[iter->first.c_str()] = qDefaultRenderState;
+    }
+    qVariantMap["defaultRenderStates"] = qDefaultRenderStates;
+
+    return qVariantMap;
+}
+
 glm::vec3 ParabolaPointer::getPickOrigin(const PickResultPointer& pickResult) const {
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
     return (parabolaPickResult ? vec3FromVariant(parabolaPickResult->pickVariant["origin"]) : glm::vec3(0.0f));
@@ -368,9 +397,8 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::updateBounds() {
 
 const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabolaPipeline() {
     if (!_parabolaPipeline || !_transparentParabolaPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola);
-
         {
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola);
             auto state = std::make_shared<gpu::State>();
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
             state->setBlendFunction(false,
@@ -382,6 +410,7 @@ const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::get
         }
 
         {
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola_translucent);
             auto state = std::make_shared<gpu::State>();
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
             state->setBlendFunction(true,

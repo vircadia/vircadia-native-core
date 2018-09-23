@@ -113,6 +113,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _recentModeReadings(MODE_READINGS_RING_BUFFER_SIZE),
     _bodySensorMatrix(),
     _goToPending(false),
+    _goToSafe(true),
     _goToPosition(),
     _goToOrientation(),
     _prevShouldDrawHead(true),
@@ -148,7 +149,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     });
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
-
+    connect(&_skeletonModel->getRig(), &Rig::onLoadComplete, this, &MyAvatar::updateCollisionCapsuleCache);
+    connect(this, &MyAvatar::sensorToWorldScaleChanged, this, &MyAvatar::updateCollisionCapsuleCache);
     using namespace recording;
     _skeletonModel->flagAsCauterized();
 
@@ -254,6 +256,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     });
 
     connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
+
     _characterController.setDensity(_density);
 }
 
@@ -509,12 +512,18 @@ void MyAvatar::update(float deltaTime) {
     if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) {
         // When needed and ready, arrange to check and fix.
         _physicsSafetyPending = false;
-        safeLanding(_goToPosition); // no-op if already safe
+        if (_goToSafe) {
+            safeLanding(_goToPosition); // no-op if already safe
+        }
     }
 
     Head* head = getHead();
     head->relax(deltaTime);
     updateFromTrackers(deltaTime);
+
+    if (getIsInWalkingState() && glm::length(getControllerPoseInAvatarFrame(controller::Action::HEAD).getVelocity()) < DEFAULT_AVATAR_WALK_SPEED_THRESHOLD) {
+        setIsInWalkingState(false);
+    }
 
     //  Get audio loudness data from audio input device
     // Also get the AudioClient so we can update the avatar bounding box data
@@ -3007,7 +3016,7 @@ void MyAvatar::goToFeetLocation(const glm::vec3& newPosition,
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
                             bool hasOrientation, const glm::quat& newOrientation,
-                            bool shouldFaceLocation) {
+                            bool shouldFaceLocation, bool withSafeLanding) {
 
     // Most cases of going to a place or user go through this now. Some possible improvements to think about in the future:
     // - It would be nice if this used the same teleport steps and smoothing as in the teleport.js script, as long as it
@@ -3027,6 +3036,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 
     _goToPending = true;
     _goToPosition = newPosition;
+    _goToSafe = withSafeLanding;
     _goToOrientation = getWorldOrientation();
     if (hasOrientation) {
         qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
@@ -3297,6 +3307,22 @@ bool MyAvatar::getCollisionsEnabled() {
     // may return 'false' even though the collisionless option was requested
     // because the zone may disallow collisionless avatars
     return _characterController.computeCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
+}
+
+void MyAvatar::updateCollisionCapsuleCache() {
+    glm::vec3 start, end;
+    float radius;
+    getCapsule(start, end, radius);
+    QVariantMap capsule;
+    capsule["start"] = vec3toVariant(start);
+    capsule["end"] = vec3toVariant(end);
+    capsule["radius"] = QVariant(radius);
+    _collisionCapsuleCache.set(capsule);
+}
+
+// thread safe
+QVariantMap MyAvatar::getCollisionCapsule() const {
+    return _collisionCapsuleCache.get();
 }
 
 void MyAvatar::setCharacterControllerEnabled(bool enabled) {
@@ -3678,10 +3704,10 @@ static bool headAngularVelocityBelowThreshold(const controller::Pose& head) {
     return isBelowThreshold;
 }
 
-static bool isWithinThresholdHeightMode(const controller::Pose& head,const float& newMode) {
+static bool isWithinThresholdHeightMode(const controller::Pose& head, const float& newMode, const float& scale) {
     bool isWithinThreshold = true;
     if (head.isValid()) {
-        isWithinThreshold = (head.getTranslation().y - newMode) > DEFAULT_AVATAR_MODE_HEIGHT_STEPPING_THRESHOLD;
+        isWithinThreshold = (head.getTranslation().y - newMode) > (DEFAULT_AVATAR_MODE_HEIGHT_STEPPING_THRESHOLD * scale);
     }
     return isWithinThreshold;
 }
@@ -3802,6 +3828,10 @@ float MyAvatar::getUserEyeHeight() const {
     return userHeight - userHeight * ratio;
 }
 
+bool MyAvatar::getIsInWalkingState() const {
+    return _isInWalkingState;
+}
+
 float MyAvatar::getWalkSpeed() const {
     return _walkSpeed.get() * _walkSpeedScalar;
 }
@@ -3816,6 +3846,10 @@ bool MyAvatar::isReadyForPhysics() const {
 
 void MyAvatar::setSprintMode(bool sprint) {
     _walkSpeedScalar = sprint ? _sprintSpeed.get() : AVATAR_WALK_SPEED_SCALAR;
+}
+
+void MyAvatar::setIsInWalkingState(bool isWalking) {
+    _isInWalkingState = isWalking;
 }
 
 void MyAvatar::setWalkSpeed(float value) {
@@ -3912,7 +3946,6 @@ void MyAvatar::lateUpdatePalms() {
     Avatar::updatePalms();
 }
 
-
 static const float FOLLOW_TIME = 0.5f;
 
 MyAvatar::FollowHelper::FollowHelper() {
@@ -4004,24 +4037,36 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
     controller::Pose currentRightHandPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND);
 
     bool stepDetected = false;
-    if (!withinBaseOfSupport(currentHeadPose) &&
+    float myScale = myAvatar.getAvatarScale();
+
+    if (myAvatar.getIsInWalkingState()) {
+        stepDetected = true;
+    } else {
+        if (!withinBaseOfSupport(currentHeadPose) &&
             headAngularVelocityBelowThreshold(currentHeadPose) &&
-            isWithinThresholdHeightMode(currentHeadPose, myAvatar.getCurrentStandingHeight()) &&
+            isWithinThresholdHeightMode(currentHeadPose, myAvatar.getCurrentStandingHeight(), myScale) &&
             handDirectionMatchesHeadDirection(currentLeftHandPose, currentRightHandPose, currentHeadPose) &&
             handAngularVelocityBelowThreshold(currentLeftHandPose, currentRightHandPose) &&
             headVelocityGreaterThanThreshold(currentHeadPose) &&
             isHeadLevel(currentHeadPose, myAvatar.getAverageHeadRotation())) {
-        // a step is detected
-        stepDetected = true;
-    } else {
-        glm::vec3 defaultHipsPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
-        glm::vec3 defaultHeadPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Head"));
-        glm::vec3 currentHeadPosition = currentHeadPose.getTranslation();
-        float anatomicalHeadToHipsDistance = glm::length(defaultHeadPosition - defaultHipsPosition);
-        if (!isActive(Horizontal) &&
-            (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + (DEFAULT_AVATAR_SPINE_STRETCH_LIMIT * anatomicalHeadToHipsDistance)))) {
-            myAvatar.setResetMode(true);
+            // a step is detected
             stepDetected = true;
+            if (glm::length(currentHeadPose.velocity) > DEFAULT_AVATAR_WALK_SPEED_THRESHOLD) {
+                myAvatar.setIsInWalkingState(true);
+            }
+        } else {
+            glm::vec3 defaultHipsPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
+            glm::vec3 defaultHeadPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Head"));
+            glm::vec3 currentHeadPosition = currentHeadPose.getTranslation();
+            float anatomicalHeadToHipsDistance = glm::length(defaultHeadPosition - defaultHipsPosition);
+            if (!isActive(Horizontal) &&
+                (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + (DEFAULT_AVATAR_SPINE_STRETCH_LIMIT * anatomicalHeadToHipsDistance)))) {
+                myAvatar.setResetMode(true);
+                stepDetected = true;
+                if (glm::length(currentHeadPose.velocity) > DEFAULT_AVATAR_WALK_SPEED_THRESHOLD) {
+                    myAvatar.setIsInWalkingState(true);
+                }
+            }
         }
     }
     return stepDetected;
@@ -4313,7 +4358,8 @@ glm::mat4 MyAvatar::getCenterEyeCalibrationMat() const {
         auto centerEyeRot = Quaternions::Y_180;
         return createMatFromQuatAndPos(centerEyeRot, centerEyePos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_MIDDLE_EYE_ROT, DEFAULT_AVATAR_MIDDLE_EYE_POS / getSensorToWorldScale());
+        glm::mat4 headMat = getHeadCalibrationMat();
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_MIDDLE_EYE_ROT, extractTranslation(headMat) + DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET);
     }
 }
 
@@ -4323,9 +4369,10 @@ glm::mat4 MyAvatar::getHeadCalibrationMat() const {
     if (headIndex >= 0) {
         auto headPos = getAbsoluteDefaultJointTranslationInObjectFrame(headIndex);
         auto headRot = getAbsoluteDefaultJointRotationInObjectFrame(headIndex);
+
         return createMatFromQuatAndPos(headRot, headPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_HEAD_ROT, DEFAULT_AVATAR_HEAD_POS / getSensorToWorldScale());
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_HEAD_ROT, DEFAULT_AVATAR_HEAD_POS);
     }
 }
 
@@ -4337,7 +4384,7 @@ glm::mat4 MyAvatar::getSpine2CalibrationMat() const {
         auto spine2Rot = getAbsoluteDefaultJointRotationInObjectFrame(spine2Index);
         return createMatFromQuatAndPos(spine2Rot, spine2Pos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_SPINE2_ROT, DEFAULT_AVATAR_SPINE2_POS / getSensorToWorldScale());
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_SPINE2_ROT, DEFAULT_AVATAR_SPINE2_POS);
     }
 }
 
@@ -4349,7 +4396,7 @@ glm::mat4 MyAvatar::getHipsCalibrationMat() const {
         auto hipsRot = getAbsoluteDefaultJointRotationInObjectFrame(hipsIndex);
         return createMatFromQuatAndPos(hipsRot, hipsPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_HIPS_ROT, DEFAULT_AVATAR_HIPS_POS / getSensorToWorldScale());
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_HIPS_ROT, DEFAULT_AVATAR_HIPS_POS);
     }
 }
 
@@ -4361,7 +4408,7 @@ glm::mat4 MyAvatar::getLeftFootCalibrationMat() const {
         auto leftFootRot = getAbsoluteDefaultJointRotationInObjectFrame(leftFootIndex);
         return createMatFromQuatAndPos(leftFootRot, leftFootPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTFOOT_ROT, DEFAULT_AVATAR_LEFTFOOT_POS / getSensorToWorldScale());
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTFOOT_ROT, DEFAULT_AVATAR_LEFTFOOT_POS);
     }
 }
 
@@ -4373,10 +4420,9 @@ glm::mat4 MyAvatar::getRightFootCalibrationMat() const {
         auto rightFootRot = getAbsoluteDefaultJointRotationInObjectFrame(rightFootIndex);
         return createMatFromQuatAndPos(rightFootRot, rightFootPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTFOOT_ROT, DEFAULT_AVATAR_RIGHTFOOT_POS / getSensorToWorldScale());
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTFOOT_ROT, DEFAULT_AVATAR_RIGHTFOOT_POS);
     }
 }
-
 
 glm::mat4 MyAvatar::getRightArmCalibrationMat() const {
     int rightArmIndex = _skeletonModel->getRig().indexOfJoint("RightArm");
@@ -4385,7 +4431,7 @@ glm::mat4 MyAvatar::getRightArmCalibrationMat() const {
         auto rightArmRot = getAbsoluteDefaultJointRotationInObjectFrame(rightArmIndex);
         return createMatFromQuatAndPos(rightArmRot, rightArmPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTARM_ROT, DEFAULT_AVATAR_RIGHTARM_POS / getSensorToWorldScale());
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTARM_ROT, DEFAULT_AVATAR_RIGHTARM_POS);
     }
 }
 
@@ -4396,7 +4442,7 @@ glm::mat4 MyAvatar::getLeftArmCalibrationMat() const {
         auto leftArmRot = getAbsoluteDefaultJointRotationInObjectFrame(leftArmIndex);
         return createMatFromQuatAndPos(leftArmRot, leftArmPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_LEFTARM_POS / getSensorToWorldScale());
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_LEFTARM_POS);
     }
 }
 
@@ -4407,7 +4453,7 @@ glm::mat4 MyAvatar::getRightHandCalibrationMat() const {
         auto rightHandRot = getAbsoluteDefaultJointRotationInObjectFrame(rightHandIndex);
         return createMatFromQuatAndPos(rightHandRot, rightHandPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTHAND_ROT, DEFAULT_AVATAR_RIGHTHAND_POS / getSensorToWorldScale());
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTHAND_ROT, DEFAULT_AVATAR_RIGHTHAND_POS);
     }
 }
 
@@ -4418,7 +4464,7 @@ glm::mat4 MyAvatar::getLeftHandCalibrationMat() const {
         auto leftHandRot = getAbsoluteDefaultJointRotationInObjectFrame(leftHandIndex);
         return createMatFromQuatAndPos(leftHandRot, leftHandPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTHAND_ROT, DEFAULT_AVATAR_LEFTHAND_POS / getSensorToWorldScale());
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTHAND_ROT, DEFAULT_AVATAR_LEFTHAND_POS);
     }
 }
 

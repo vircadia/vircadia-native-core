@@ -22,6 +22,7 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
+#include <QWindow>
 #include <QDebug>
 
 #include "ui/Logging.h"
@@ -37,6 +38,18 @@ MainWindow::MainWindow(QWidget* parent) :
 
 MainWindow::~MainWindow() {
     qCDebug(uiLogging) << "Destroying main window";
+}
+
+QWindow* MainWindow::findMainWindow() {
+    auto windows = qApp->topLevelWindows();
+    QWindow* result = nullptr;
+    for (const auto& window : windows) {
+        if (window->objectName().contains("MainWindow")) {
+            result = window;
+            break;
+        }
+    }
+    return result;
 }
 
 void MainWindow::restoreGeometry() {

@@ -57,8 +57,8 @@ bool PickCacheOptimizer<T>::checkAndCompareCachedResults(T& pick, PickCache& cac
 }
 
 template<typename T>
-void PickCacheOptimizer<T>::cacheResult(const bool intersects, const PickResultPointer& resTemp, const PickCacheKey& key, PickResultPointer& res, T& mathPick, PickCache& cache, const std::shared_ptr<Pick<T>> pick) {
-    if (intersects) {
+void PickCacheOptimizer<T>::cacheResult(const bool needToCompareResults, const PickResultPointer& resTemp, const PickCacheKey& key, PickResultPointer& res, T& mathPick, PickCache& cache, const std::shared_ptr<Pick<T>> pick) {
+    if (needToCompareResults) {
         cache[mathPick][key] = resTemp;
         res = res->compareAndProcessNewResult(resTemp);
     } else {

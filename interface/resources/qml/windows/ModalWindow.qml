@@ -19,6 +19,9 @@ ScrollingWindow {
     destroyOnHidden: true
     frame: ModalFrame { }
 
+    property bool closeButtonVisible: false
+    // only applicable for if close button is visible.
+    property bool clickedCloseButton: false
     property int colorScheme: hifi.colorSchemes.light
     property bool draggable: false
 

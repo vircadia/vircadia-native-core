@@ -144,8 +144,7 @@ public:
     bool maybeStartBlender();
 
     /// Sets blended vertices computed in a separate thread.
-    void setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
+    void setBlendedVertices(int blendNumber, const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
@@ -345,6 +344,8 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
+    std::unordered_map<int, QVector<NormalType>> _normalsAndTangents;
+
 public slots:
     void loadURLFinished(bool success);
 
@@ -424,8 +425,9 @@ protected:
     QUrl _url;
 
     std::unordered_map<int, gpu::BufferPointer> _blendedVertexBuffers;
+    bool _blendedVertexBuffersInitialized { false };
 
-    QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
+    QVector<QVector<QSharedPointer<Texture>>> _dilatedTextures;
 
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber;
@@ -492,6 +494,8 @@ protected:
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
+    void initializeBlendshapes(const FBXMesh& mesh, int index);
+
 private:
     float _loadingPriority { 0.0f };
 
@@ -516,8 +520,7 @@ public:
     bool shouldComputeBlendshapes() { return _computeBlendshapes; }
 
 public slots:
-    void setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
+    void setBlendedVertices(ModelPointer model, int blendNumber, QVector<glm::vec3> vertices, QVector<NormalType> normalsAndTangents);
     void setComputeBlendshapes(bool computeBlendshapes) { _computeBlendshapes = computeBlendshapes; }
 
 private:

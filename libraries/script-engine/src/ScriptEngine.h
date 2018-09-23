@@ -461,7 +461,9 @@ public:
      * @returns {boolean}
      */
     Q_INVOKABLE bool isEntityScriptRunning(const EntityItemID& entityID) {
-        return _entityScripts.contains(entityID) && _entityScripts[entityID].status == EntityScriptStatus::RUNNING;
+        QReadLocker locker { &_entityScriptsLock };
+        auto it = _entityScripts.constFind(entityID);
+        return it != _entityScripts.constEnd() && it->status == EntityScriptStatus::RUNNING;
     }
     QVariant cloneEntityScriptDetails(const EntityItemID& entityID);
     QFuture<QVariant> getLocalEntityScriptDetails(const EntityItemID& entityID) override;
@@ -559,6 +561,7 @@ public:
     void clearDebugLogWindow();
     int getNumRunningEntityScripts() const;
     bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;
+    bool hasEntityScriptDetails(const EntityItemID& entityID) const;
 
 public slots:
 
@@ -771,6 +774,7 @@ protected:
     bool _isInitialized { false };
     QHash<QTimer*, CallbackData> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
+    mutable QReadWriteLock _entityScriptsLock { QReadWriteLock::Recursive };
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
     QHash<QString, EntityItemID> _occupiedScriptURLs;
     QList<DeferredLoadEntity> _deferredEntityLoads;

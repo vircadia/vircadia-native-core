@@ -382,6 +382,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
         const auto& views = _viewState->getConicalViews();
         PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(views);
+        sortedRenderables.reserve(_renderablesToUpdate.size());
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
@@ -405,11 +406,14 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
             // process the sorted renderables
             size_t numSorted = sortedRenderables.size();
-            while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
-                const auto renderable = sortedRenderables.top().getRenderer();
+            const auto& sortedRenderablesVector = sortedRenderables.getSortedVector();
+            for (const auto& sortedRenderable : sortedRenderablesVector) {
+                if (usecTimestampNow() > expiry) {
+                    break;
+                }
+                const auto& renderable = sortedRenderable.getRenderer();
                 renderable->updateInScene(scene, transaction);
                 _renderablesToUpdate.erase(renderable->getEntity()->getID());
-                sortedRenderables.pop();
             }
 
             // compute average per-renderable update cost

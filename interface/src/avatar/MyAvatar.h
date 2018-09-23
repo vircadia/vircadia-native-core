@@ -1018,6 +1018,12 @@ public:
     Q_INVOKABLE bool getCollisionsEnabled();
 
     /**jsdoc
+    * @function MyAvatar.getCollisionCapsule
+    * @returns {object}
+    */
+    Q_INVOKABLE QVariantMap getCollisionCapsule() const;
+
+    /**jsdoc
      * @function MyAvatar.setCharacterControllerEnabled
      * @param {boolean} enabled
      * @deprecated
@@ -1034,7 +1040,7 @@ public:
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
-    // all calibration matrices are in absolute avatar space.
+    // all calibration matrices are in absolute sensor space.
     glm::mat4 getCenterEyeCalibrationMat() const;
     glm::mat4 getHeadCalibrationMat() const;
     glm::mat4 getSpine2CalibrationMat() const;
@@ -1086,6 +1092,8 @@ public:
 
     const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
 
+    void setIsInWalkingState(bool isWalking);
+    bool getIsInWalkingState() const;
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
     void setWalkBackwardSpeed(float value);
@@ -1178,11 +1186,12 @@ public slots:
      * @param {boolean} [hasOrientation=false] - Set to <code>true</code> to set the orientation of the avatar.
      * @param {Quat} [orientation=Quat.IDENTITY] - The new orientation for the avatar.
      * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from 
+     * @param {boolean} [withSafeLanding=true] - Set to <code>false</code> MyAvatar::safeLanding will not be called (used when teleporting).
      *     the new position and orientate the avatar to face the position.
      */
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
-                      bool shouldFaceLocation = false);
+                      bool shouldFaceLocation = false, bool withSafeLanding = true);
     /**jsdoc
      * @function MyAvatar.goToLocation
      * @param {object} properties
@@ -1496,6 +1505,7 @@ signals:
 
 private slots:
     void leaveDomain();
+    void updateCollisionCapsuleCache();
 
 protected:
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
@@ -1720,6 +1730,7 @@ private:
 
     bool _goToPending { false };
     bool _physicsSafetyPending { false };
+    bool _goToSafe { true };
     glm::vec3 _goToPosition;
     glm::quat _goToOrientation;
 
@@ -1788,6 +1799,7 @@ private:
     ThreadSafeValueCache<float> _walkBackwardSpeed { DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED };
     ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
+    bool _isInWalkingState { false };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };

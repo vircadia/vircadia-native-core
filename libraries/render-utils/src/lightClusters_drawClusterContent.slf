@@ -42,7 +42,7 @@ void main(void) {
 
     ivec3 cluster = clusterGrid_getCluster(clusterIndex);
     int numLights = cluster.x + cluster.y;
-    float numLightsScale = clamp(numLights * 0.05, 0.01, 1.0);
+    float numLightsScale = clamp(float(numLights) * 0.05, 0.01, 1.0);
 
     int clusterOffset = cluster.z;
 
@@ -90,6 +90,6 @@ void main(void) {
         numLightTouching++;
     }
 
-    _fragColor = vec4(colorRamp(1.0 - (numLightTouching / 12.0f)), (numLightTouching > 0 ? 0.5 + 0.5 * numLightsScale : 0.0));
+    _fragColor = vec4(colorRamp(1.0 - (float(numLightTouching) / 12.0f)), (numLightTouching > 0 ? 0.5 + 0.5 * numLightsScale : 0.0));
 }
 

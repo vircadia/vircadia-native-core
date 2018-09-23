@@ -204,6 +204,14 @@ public:
     Q_INVOKABLE bool isMouse(unsigned int uid) { return DependencyManager::get<PointerManager>()->isMouse(uid); }
 
     /**jsdoc
+     * Returns information about an existing Pointer
+     * @function Pointers.getPointerState
+     * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
+     * @returns {Pointers.LaserPointerProperties|Pointers.StylusPointerProperties|Pointers.ParabolaPointerProperties} The information about the Pointer.
+     * Currently only includes renderStates and defaultRenderStates with associated overlay IDs.
+     */
+    Q_INVOKABLE QVariantMap getPointerProperties(unsigned int uid) const;
+    /**jsdoc
      * Get the IDs of the overlays used by a Pointer.
      * @function Pointers.getOverlayIDs
      * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.

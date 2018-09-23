@@ -84,15 +84,15 @@ void main(void) {
     float keepTapRadius = 1.0;
     int keepedMip = -1;
     bool keep = false;
-
-    for (int i = 0; i < getNumSamples(); ++i) {
+    int sampleCount = int(getNumSamples());
+    for (int i = 0; i < sampleCount; ++i) {
         vec3 tap = getTapLocationClamped(i, randomPatternRotationAngle, ssDiskRadius, cursorPixelPos, imageSize);
 
         // The occluding point in camera space
         vec2 fragToTap = vec2(ssC) + tap.xy - fragCoord.xy;
         if (dot(fragToTap,fragToTap) < keepTapRadius) {
             keep = true;
-            keepedMip = evalMipFromRadius(tap.z * doFetchMips());
+            keepedMip = evalMipFromRadius(tap.z * float(doFetchMips()));
         } 
 
         vec3 tapUVZ = fetchTap(side, ssC, tap, imageSize);
