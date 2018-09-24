@@ -800,6 +800,18 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }, 150);
     }
 
+    function signalNewResourceObjectInTest(resourceObject) {
+        sendToQml({
+            method: "newResourceObjectInTest",
+            resourceObject: resourceObject });
+    }
+
+    var resourceObjectsInTest = [];
+    function storeResourceObjectInTest(resourceObject) {
+        resourceObjectsInTest.push(resourceObject);
+        signalNewResourceObjectInTest(resourceObject);
+    }
+
     // Function Name: fromQml()
     //
     // Description:
@@ -856,8 +868,21 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'checkout_rezClicked':
             case 'purchases_rezClicked':
             case 'tester_rezClicked':
-                print("marketplace.js going to rez");
                 rezEntity(message.itemHref, message.itemType);
+                break;
+            case 'tester_newResourceObject':
+                storeResourceObjectInTest(message.resourceObject);
+                break;
+            case 'tester_updateResourceObjectAssetType':
+                var objectId = message.objectId;
+                for (var i = 0, size = resourceObjectsInTest.length; i < size; ++i) {
+                    if (i in resourceObjectsInTest &&
+                        objectId === resourceObjectsInTest[i]["id"]
+                    ) {
+                        resourceObjectsInTest[i]["assetType"] = message.assetType;
+                        break;
+                    }
+                }
                 break;
             case 'header_marketplaceImageClicked':
             case 'purchases_backClicked':
@@ -1027,6 +1052,22 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
     }
 
+    function pushResourceObjectsInTest() {
+        var isQmlSignaled = false;
+        for (var i = 0, size = resourceObjectsInTest.length; i < size; ++i) {
+            if (i in resourceObjectsInTest) {
+                signalNewResourceObjectInTest(resourceObjectsInTest[i]);
+                isQmlSignaled = true;
+            }
+        }
+        // Be sure that the QML has heard from us, at least so that it
+        // can indicate to the user that all of the resoruce objects in
+        // test have been transmitted to it.
+        if (!isQmlSignaled) {
+            sendToQml({ method: "marketplaceTestBackendIsAlive" });
+        }
+    }
+
     // Function Name: onTabletScreenChanged()
     //
     // Description:
@@ -1070,6 +1111,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
             onMarketplaceItemTesterScreen);
 
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
+            // FIXME: There is a race condition here. The event bridge
+            // may not be up yet. Suggest Script.setTimeout(..., 750) to
+            // help avoid the condition.
             sendToQml({
                 method: 'updatePurchases',
                 referrerURL: referrerURL,
@@ -1102,6 +1146,12 @@ var selectionDisplay = null; // for gridTool.js to ignore
             sendToQml({
                 method: 'inspectionCertificate_resetCert'
             });
+        }
+
+        if (onMarketplaceItemTesterScreen) {
+            // Why? The QML event bridge, wired above, needs time to
+            // come up.
+            Script.setTimeout(pushResourceObjectsInTest, 750);
         }
     }
 

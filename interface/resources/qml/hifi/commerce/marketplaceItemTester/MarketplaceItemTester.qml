@@ -29,9 +29,34 @@ Rectangle {
     signal sendToScript(var message)
 
     HifiStylesUit.HifiConstants { id: hifi }
-    ListModel { id: resourceListModel }
+    ListModel {
+        id: resourceListModel
+        property var nextId: 0
+    }
 
     color: hifi.colors.white
+
+    AnimatedImage {
+        id: spinner;
+        source: "spinner.gif"
+        width: 74;
+        height: width;
+        anchors.verticalCenter: parent.verticalCenter;
+        anchors.horizontalCenter: parent.horizontalCenter;
+    }
+
+    function fromScript(message) {
+        switch (message.method) {
+            case "newResourceObjectInTest":
+                var resourceObject = message.resourceObject;
+                resourceListModel.append(resourceObject);
+                spinner.visible = false;
+                break;
+            case "marketplaceTestBackendIsAlive":
+                spinner.visible = false;
+                break;
+        }
+    }
 
     function buildResourceObj(resource) {
         resource = resource.trim();
@@ -40,14 +65,14 @@ Rectangle {
                          resource.match(/\.json\.gz$/) ? "content set" :
                          resource.match(/\.json$/) ? "entity or wearable" :
                          "unknown");
-        return { "resource": resource, "assetType": assetType };
+        return { "id": resourceListModel.nextId++,
+                 "resource": resource,
+                 "assetType": assetType };
     }
 
     function installResourceObj(resourceObj) {
         if ("application" == resourceObj["assetType"]) {
             Commerce.installApp(resourceObj["resource"]);
-        } else {
-            print("Cannot install resource object type " + resourceObj["assetType"]);
         }
     }
 
@@ -70,11 +95,6 @@ Rectangle {
             method: 'tester_rezClicked',
             itemHref: toUrl(resource),
             itemType: entityType});
-    }
-
-    Component.onCompleted: {
-        // On startup, list includes all tester-installed assets.
-        addAllInstalledAppsToList();
     }
 
     ListView {
@@ -157,7 +177,13 @@ Rectangle {
                 currentIndex: ("entity or wearable" == assetType) ? model.indexOf("unknown") : model.indexOf(assetType)
 
                 Component.onCompleted: {
-                    onActivated.connect(function() { assetType = currentText; });
+                    onCurrentIndexChanged.connect(function() {
+                        assetType = model[currentIndex];
+                        sendToScript({
+                            method: 'tester_updateResourceObjectAssetType',
+                            objectId: resourceListModel.get(index)["id"],
+                            assetType: assetType });
+                    });
                 }
             }
 
@@ -220,17 +246,17 @@ Rectangle {
                 // ahead as though we are sure the present signal is one
                 // we expect.
                 if ("load file" == currentAction) {
-                    print("disconnecting load file");
                     Window.browseChanged.disconnect(onResourceSelected);
                 } else if ("load url" == currentAction) {
-                    print("disconnecting load url");
                     Window.promptTextChanged.disconnect(onResourceSelected);
                 }
                 if (resource) {
                     var resourceObj = buildResourceObj(resource);
                     installResourceObj(resourceObj);
-                    resourceListModel.append(resourceObj);
-                }
+                    sendToScript({
+                        method: 'tester_newResourceObject',
+                        resourceObject: resourceObj });
+                    }
             }
 
             Repeater {
