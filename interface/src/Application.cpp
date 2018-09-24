@@ -3431,7 +3431,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         if (url.scheme() == URL_SCHEME_HIFIAPP) {
             Setting::Handle<QVariant>("startUpApp").set(url.path());
         } else {
-            addressLookupString = url;
+            addressLookupString = url.toString();
         }
     }
 
