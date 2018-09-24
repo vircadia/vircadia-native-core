@@ -49,7 +49,7 @@ void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
     <@endif@>
 
 <@if USE_BLENDSHAPE@>
-    if (isBlendshapeEnabled()) {
+    if (bool(isBlendshapeEnabled())) {
 
     <@if USE_TANGENT@>
         applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition, inNormal, _deformedNormal, inTangent, _deformedTangent);
@@ -64,7 +64,7 @@ void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
 <@endif@>
 
 <@if USE_SKINNING@>
-    if (isSkinningEnabled()) {
+    if (bool(isSkinningEnabled())) {
     <@if USE_TANGENT@>
         skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedNormal, _deformedTangent, _deformedPosition, _deformedNormal, _deformedTangent);
     <@else@>

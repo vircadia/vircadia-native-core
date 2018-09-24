@@ -11,8 +11,10 @@
 <@if not MODEL_MATERIAL_TEXTURES_SLH@>
 <@def MODEL_MATERIAL_TEXTURES_SLH@>
 
-<@include graphics/ShaderConstants.h@>
+<!<@include graphics/ShaderConstants.h@>!>
+<@include graphics/Material.slh@>
 
+<!
 <@func declareMaterialTexMapArrayBuffer()@>
 
 const int MAX_TEXCOORDS = 2;
@@ -45,7 +47,7 @@ TexMapArray getTexMapArray() {
 <@endfunc@>
 
 <@endfunc@>
-
+!>
 
 <@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion, withScattering)@>
 

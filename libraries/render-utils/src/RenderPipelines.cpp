@@ -404,7 +404,7 @@ void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gp
     auto textureCache = DependencyManager::get<TextureCache>();
 
     batch.setUniformBuffer(gr::Buffer::Material, material->getSchemaBuffer());
-    batch.setUniformBuffer(gr::Buffer::TexMapArray, material->getTexMapArrayBuffer());
+   // batch.setUniformBuffer(gr::Buffer::TexMapArray, material->getTexMapArrayBuffer());
 
     const auto& materialKey = material->getKey();
     const auto& textureMaps = material->getTextureMaps();
