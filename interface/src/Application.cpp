@@ -3429,8 +3429,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     if (urlIndex != -1) {
         QUrl url(arguments().value(urlIndex + 1));
         if (url.scheme() == URL_SCHEME_HIFIAPP) {
-            QmlCommerce commerce;
-            commerce.openSystemApp(url.path());
+            Setting::Handle<QVariant>("startUpApp").set(url.path());
         } else {
             addressLookupString = arguments().value(urlIndex + 1);
         }

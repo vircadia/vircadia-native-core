@@ -324,5 +324,11 @@ function AppUi(properties) {
     that.button.clicked.connect(that.onClicked);
     Script.scriptEnding.connect(that.onScriptEnding);
     GlobalServices.findableByChanged.connect(availabilityChanged);
+    if (that.buttonName == Settings.getValue("startUpApp")) {
+        Settings.setValue("startUpApp", "");
+        Script.setTimeout(function () {
+            that.open();
+        }, 1000);
+    }
 }
 module.exports = AppUi;

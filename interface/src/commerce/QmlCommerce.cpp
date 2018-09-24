@@ -47,11 +47,49 @@ QmlCommerce::QmlCommerce() {
     _appsPath = PathUtils::getAppDataPath() + "Apps/";
 }
 
-void QmlCommerce::openSystemApp(const QString& appPath) {
+
+
+
+void QmlCommerce::openSystemApp(const QString& appName) {
+    static QMap<QString, QString> systemApps {
+        {"GOTO",        "hifi/tablet/TabletAddressDialog.qml"},
+        {"PEOPLE",      "hifi/Pal.qml"},
+        {"WALLET",      "hifi/commerce/wallet/Wallet.qml"},
+        {"MARKET",      "/marketplace.html"}
+    };
+
+    static QMap<QString, QString> systemInject{
+        {"MARKET",      "/scripts/system/html/js/marketplacesInject.js"}
+    };
+
 
     auto tablet = dynamic_cast<TabletProxy*>(
         DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
-    tablet->loadQMLSource(appPath);
+
+    QMap<QString, QString>::const_iterator appPathIter = systemApps.find(appName);
+    if (appPathIter != systemApps.end()) {
+        if (appPathIter->contains(".qml", Qt::CaseInsensitive)) {
+            tablet->loadQMLSource(*appPathIter);
+        }
+        else if (appPathIter->contains(".html", Qt::CaseInsensitive)) {
+            QMap<QString, QString>::const_iterator injectIter = systemInject.find(appName);
+            if (appPathIter == systemInject.end()) {
+                tablet->gotoWebScreen(NetworkingConstants::METAVERSE_SERVER_URL().toString() + *appPathIter);
+            }
+            else {
+                QString inject = "file:///" + qApp->applicationDirPath() + *injectIter;
+                tablet->gotoWebScreen(NetworkingConstants::METAVERSE_SERVER_URL().toString() + *appPathIter, inject);
+            }
+        }
+        else {
+            qCDebug(commerce) << "Attempted to open unknown type of URL!";
+            return;
+        }
+    }
+    else {
+        qCDebug(commerce) << "Attempted to open unknown APP!";
+        return;
+    }
 
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
 }

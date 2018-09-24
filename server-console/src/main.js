@@ -392,8 +392,8 @@ var labels = {
         label: 'Version - ' + buildInfo.buildIdentifier,
         enabled: false
     },
-    enableNotifications: {
-        label: 'Enable Notifications',
+    showNotifications: {
+        label: 'Show Notifications',
         type: 'checkbox',
         checked: true,
         click: function() {
@@ -402,9 +402,9 @@ var labels = {
         }
     },
     goto: {
-        label: 'Goto',
+        label: 'GoTo',
         click: function() {
-            StartInterface("hifiapp:hifi/tablet/TabletAddressDialog.qml");
+            StartInterface("hifiapp:GOTO");
             pendingNotifications[HifiNotificationType.GOTO] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
@@ -412,7 +412,7 @@ var labels = {
     people: {
         label: 'People',
         click: function() {
-            StartInterface("hifiapp:hifi/Pal.qml");
+            StartInterface("hifiapp:PEOPLE");
             pendingNotifications[HifiNotificationType.PEOPLE] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
@@ -420,7 +420,7 @@ var labels = {
     wallet: {
         label: 'Wallet',
         click: function() {
-            StartInterface("hifiapp:hifi/commerce/wallet/Wallet.qml");
+            StartInterface("hifiapp:WALLET");
             pendingNotifications[HifiNotificationType.WALLET] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
@@ -428,7 +428,7 @@ var labels = {
     marketplace: {
         label: 'Market',
         click: function() {
-            StartInterface("hifiapp:hifi/commerce/purchases/Purchases.qml");
+            StartInterface("hifiapp:MARKET");
             pendingNotifications[HifiNotificationType.MARKETPLACE] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
@@ -502,14 +502,6 @@ function buildMenuArray(serverState) {
             menuArray.push(labels.version);
             menuArray.push(separator);
         }
-        if(isInterfaceInstalled()) {
-            menuArray.push(labels.enableNotifications);
-            menuArray.push(labels.goto);
-            menuArray.push(labels.people);
-            menuArray.push(labels.wallet);
-            menuArray.push(labels.marketplace);
-            menuArray.push(separator);
-        }
         if(isServerInstalled() && isInterfaceInstalled()) {
             menuArray.push(labels.goHome);
             menuArray.push(separator);
@@ -523,9 +515,17 @@ function buildMenuArray(serverState) {
         }
         menuArray.push(labels.share);
         menuArray.push(separator);
+        if(isInterfaceInstalled()) {
+            menuArray.push(labels.goto);
+            menuArray.push(labels.people);
+            menuArray.push(labels.wallet);
+            menuArray.push(labels.marketplace);
+            menuArray.push(separator);
+            menuArray.push(labels.showNotifications);
+            menuArray.push(separator);
+        }
         menuArray.push(labels.quit);
     }
-
 
     return menuArray;
 
@@ -551,7 +551,7 @@ function updateLabels(serverState) {
         labels.restart.enabled = false;
     }
 
-    labels.enableNotifications.checked = trayNotifications.enabled();
+    labels.showNotifications.checked = trayNotifications.enabled();
     labels.people.visible = trayNotifications.enabled();
     labels.goto.visible = trayNotifications.enabled();
     labels.wallet.visible = trayNotifications.enabled();

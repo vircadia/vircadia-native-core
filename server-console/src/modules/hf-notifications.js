@@ -33,7 +33,7 @@ const NotificationType = {
     MARKETPLACE: 'marketplace'
 };
 
-function HifiNotification(notificationType, notificationData) {
+function HifiNotification(notificationType, notificationData, menuNotificationCallback) {
     this.type = notificationType;
     this.data = notificationData;
 }
@@ -54,7 +54,7 @@ HifiNotification.prototype = {
                         text = "You have " + this.data + " event invitations pending."
                     }
                     message = "Click to open GOTO.";
-                    url="hifiapp:hifi/tablet/TabletAddressDialog.qml"
+                    url="hifiapp:GOTO"
                 }
                 else {
                     text = this.data.username + " " + this.data.action_string + " in " + this.data.place_name + ".";
@@ -72,7 +72,7 @@ HifiNotification.prototype = {
                         text = this.data + " of your connections are online."
                     }
                     message = "Click to open PEOPLE.";
-                    url="hifiapp:hifi/Pal.qml"
+                    url="hifiapp:PEOPLE"
                 }
                 else {
                     text = this.data.username + " is available in " + this.data.location.root.name + ".";
@@ -95,7 +95,7 @@ HifiNotification.prototype = {
                 }
                 text = this.data.message.replace(/<\/?[^>]+(>|$)/g, "");
                 message = "Click to open WALLET.";
-                url = "hifiapp:hifi/commerce/wallet/Wallet.qml";
+                url = "hifiapp:WALLET";
                 break;
 
             case NotificationType.MARKETPLACE:
@@ -111,7 +111,7 @@ HifiNotification.prototype = {
                     text = "Update available for " + this.data.base_item_title + ".";
                 }
                 message = "Click to open MARKET.";
-                url = "hifiapp:hifi/commerce/purchases/Purchases.qml";
+                url = "hifiapp:MARKET";
                 break;
         }
         notifier.notify({
@@ -136,8 +136,11 @@ function HifiNotifications(config, menuNotificationCallback) {
     this.marketplaceSince = new Date(this.config.get("marketplaceNotifySince", "1970-01-01T00:00:00.000Z"));  
 
     this.enable(this.enabled());
+
+    var _menuNotificationCallback = menuNotificationCallback;
     notifier.on('click', function(notifierObject, options) {
         StartInterface(options.url);
+        _menuNotificationCallback(options.notificationType, false);
     });
 }
 
@@ -175,8 +178,8 @@ HifiNotifications.prototype = {
             MARKETPLACE_NOTIFICATION_POLL_TIME_MS);
         }
         else {
-            if(this.storiesTimer) {
-                clearInterval(this.storiesTimer);
+            if(this.storiesPollTimer) {
+                clearInterval(this.storiesPollTimer);
             }
             if(this.peoplePollTimer) {
                 clearInterval(this.peoplePollTimer);
@@ -205,13 +208,11 @@ HifiNotifications.prototype = {
             console.log("Error: unable to get " + url);
             return false;
         }
-        console.log(data.body);
         var content = JSON.parse(data.body);
         if(!content || content.status != 'success') {
             console.log("Error: unable to get " + url);
             return false;
         }
-        console.log(content);
         if(!content.total_entries) {
             this.menuNotificationCallback(notifyType, false);
         }
@@ -298,7 +299,7 @@ HifiNotifications.prototype = {
         var url = METAVERSE_SERVER_URL + STORIES_URL + '?' + options.join('&');
         console.log(url);
 
-        _this._pollCommon(NotificationType.STORIES, 
+        _this._pollCommon(NotificationType.GOTO,
             url, 
             since,
             function (success, token) {
@@ -425,6 +426,7 @@ HifiNotifications.prototype = {
                     'page=1',
                     'per_page=1'
                 ];
+                var url = METAVERSE_SERVER_URL + UPDATES_URL + '?' + options.join('&');
                 request.get({
                         uri: url,
                         'auth': {
