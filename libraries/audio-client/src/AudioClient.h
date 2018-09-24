@@ -432,7 +432,9 @@ private:
     bool _shouldRestartInputSetup { true }; // Should we restart the input device because of an unintended stop?
 #endif
     
+    Mutex _checkDevicesMutex;
     QTimer* _checkDevicesTimer { nullptr };
+    Mutex _checkPeakValuesMutex;
     QTimer* _checkPeakValuesTimer { nullptr };
 
     bool _isRecording { false };

@@ -101,6 +101,13 @@ QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
 
 // now called from a background thread, to keep blocking operations off the audio thread
 void AudioClient::checkDevices() {
+    // Make sure we're not shutting down
+    Lock timerMutex(_checkDevicesMutex);
+    // If we HAVE shut down after we were queued, but prior to execution, early exit
+    if (nullptr == _checkDevicesTimer) {
+        return;
+    }
+
     auto inputDevices = getAvailableDevices(QAudio::AudioInput);
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput);
 
@@ -278,8 +285,8 @@ void AudioClient::customDeleter() {
     _shouldRestartInputSetup = false;
 #endif
     stop();
-    _checkDevicesTimer->stop();
-    _checkPeakValuesTimer->stop();
+    //_checkDevicesTimer->stop();
+    //_checkPeakValuesTimer->stop();
 
     deleteLater();
 }
@@ -648,12 +655,26 @@ void AudioClient::start() {
 }
 
 void AudioClient::stop() {
-
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchInputToAudioDevice() to shut down";
     switchInputToAudioDevice(QAudioDeviceInfo(), true);
 
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchOutputToAudioDevice() to shut down";
     switchOutputToAudioDevice(QAudioDeviceInfo(), true);
+
+    // Stop triggering the checks
+    QObject::disconnect(_checkPeakValuesTimer, &QTimer::timeout, nullptr, nullptr);
+    QObject::disconnect(_checkDevicesTimer, &QTimer::timeout, nullptr, nullptr);
+
+    // Destruction of the pointers will occur when the parent object (this) is destroyed)
+    {
+        Lock lock(_checkDevicesMutex);
+        _checkDevicesTimer = nullptr;
+    }
+    {
+        Lock lock(_checkPeakValuesMutex);
+        _checkPeakValuesTimer = nullptr;
+    }
+
 #if defined(Q_OS_ANDROID)
     _checkInputTimer.stop();
     disconnect(&_checkInputTimer, &QTimer::timeout, 0, 0);
