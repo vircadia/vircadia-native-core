@@ -45,7 +45,7 @@ struct HighlightParameters {
     vec2 outlineWidth;
 };
 
-layout(binding=0) uniform parametersBuffer {
+layout(std140, binding=0) uniform parametersBuffer {
     HighlightParameters _parameters;
 };
 
