@@ -325,6 +325,14 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
         // skip over header, appendFlag, and num stats packed
         message.seek(sizeof(quint8) + sizeof(quint16));
 
+        if (message.getBytesLeftToRead() != sizeof(AudioStreamStats)) {
+            qWarning() << "Received AudioStreamStats of wrong size" << message.getBytesLeftToRead()
+                << "instead of" << sizeof(AudioStreamStats) << "from"
+                << message.getSourceID() << "at" << message.getSenderSockAddr();
+            
+            return message.getPosition();
+        }
+
         // read the downstream audio stream stats
         message.readPrimitive(&_downstreamAudioStreamStats);
 
