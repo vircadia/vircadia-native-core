@@ -21,6 +21,8 @@
 #include "DeferredFramebuffer.h"
 #include "SurfaceGeometryPass.h"
 
+#include "ssao_shared.h"
+
 class AmbientOcclusionFramebuffer {
 public:
     AmbientOcclusionFramebuffer();
@@ -33,6 +35,11 @@ public:
 
     gpu::FramebufferPointer getNormalFramebuffer();
     gpu::TexturePointer getNormalTexture();
+
+#if SSAO_USE_QUAD_SPLIT
+    gpu::FramebufferPointer getOcclusionSplitFramebuffer(int index);
+    gpu::TexturePointer getOcclusionSplitTexture();
+#endif
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
     bool update(const gpu::TexturePointer& linearDepthBuffer, int resolutionLevel, bool isStereo);
@@ -56,7 +63,11 @@ protected:
     gpu::FramebufferPointer _normalFramebuffer;
     gpu::TexturePointer _normalTexture;
 
-    
+#if SSAO_USE_QUAD_SPLIT
+    gpu::FramebufferPointer _occlusionSplitFramebuffers[SSAO_SPLIT_COUNT];
+    gpu::TexturePointer _occlusionSplitTexture;
+#endif
+
     glm::ivec2 _frameSize;
     int _resolutionLevel{ 0 };
     bool _isStereo{ false };
@@ -125,8 +136,6 @@ public:
 
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
-
-#include "ssao_shared.h"
 
     // Class describing the uniform buffer with all the parameters common to the AO shaders
     class AOParameters : public AmbientOcclusionParams {

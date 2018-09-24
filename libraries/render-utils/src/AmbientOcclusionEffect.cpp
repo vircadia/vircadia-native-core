@@ -103,7 +103,7 @@ void AmbientOcclusionFramebuffer::allocate() {
         if (_isStereo) {
             sideSize.x >>= 1;
         }
-        sideSize = divideRoundUp(sideSize, 1 << _resolutionLevel);
+        sideSize = divideRoundUp(sideSize, 1 << std::min(1, _resolutionLevel));
         if (_isStereo) {
             sideSize.x <<= 1;
         }
@@ -114,7 +114,47 @@ void AmbientOcclusionFramebuffer::allocate() {
         _normalFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ssaoNormals"));
         _normalFramebuffer->setRenderBuffer(0, _normalTexture);
     }
+
+#if SSAO_USE_QUAD_SPLIT
+    {
+        auto splitSize = glm::ivec2(_normalFramebuffer->getSize());
+        if (_isStereo) {
+            splitSize.x >>= 1;
+        }
+        splitSize = divideRoundUp(splitSize, 2);
+        if (_isStereo) {
+            splitSize.x <<= 1;
+        }
+        auto width = splitSize.x;
+        auto height = splitSize.y;
+        auto format = gpu::Element::COLOR_R_8;
+
+        _occlusionSplitTexture = gpu::Texture::createRenderBufferArray(format, width, height, SSAO_SPLIT_COUNT, gpu::Texture::SINGLE_MIP, 
+                                                                       gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
+        for (int i = 0; i < SSAO_SPLIT_COUNT; i++) {
+            _occlusionSplitFramebuffers[i] = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
+            _occlusionSplitFramebuffers[i]->setRenderBuffer(0, _occlusionSplitTexture, i);
+        }
+    }
+#endif
 }
+
+#if SSAO_USE_QUAD_SPLIT
+gpu::FramebufferPointer AmbientOcclusionFramebuffer::getOcclusionSplitFramebuffer(int index) {
+    assert(index < SSAO_SPLIT_COUNT);
+    if (!_occlusionSplitFramebuffers[index]) {
+        allocate();
+    }
+    return _occlusionSplitFramebuffers[index];
+}
+
+gpu::TexturePointer AmbientOcclusionFramebuffer::getOcclusionSplitTexture() {
+    if (!_occlusionSplitTexture) {
+        allocate();
+    }
+    return _occlusionSplitTexture;
+}
+#endif
 
 gpu::FramebufferPointer AmbientOcclusionFramebuffer::getOcclusionFramebuffer() {
     if (!_occlusionFramebuffer) {
@@ -340,13 +380,6 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         auto& current = _aoParametersBuffer.edit()._resolutionInfo;
         current.x = (float)config.resolutionLevel;
         shouldUpdateBlurs = true;
-
-        _aoFrameParametersBuffer[0].edit()._pixelOffsets = { 0, 0, 0, 0 };
-#if SSAO_USE_QUAD_SPLIT
-        _aoFrameParametersBuffer[1].edit()._pixelOffsets = { 1, 0, 0, 0 };
-        _aoFrameParametersBuffer[2].edit()._pixelOffsets = { 1, 1, 0, 0 };
-        _aoFrameParametersBuffer[3].edit()._pixelOffsets = { 0, 1, 0, 0 };
-#endif
     }
  
     if (config.blurRadius != _aoParametersBuffer.get().getBlurRadius()) {
@@ -395,13 +428,19 @@ void AmbientOcclusionEffect::updateFramebufferSizes() {
     const int widthScale = _framebuffer->isStereo() & 1;
     auto sourceFrameSize = _framebuffer->getSourceFrameSize();
     const int resolutionLevel = _aoParametersBuffer.get().getResolutionLevel();
+    const float resolutionScale = powf(0.5f, resolutionLevel);
     // Depth is at maximum half depth
     const int depthResolutionLevel = std::min(1, resolutionLevel);
+    const float depthResolutionScale = powf(2.0f, depthResolutionLevel);
+    auto normalTextureSize = _framebuffer->getNormalTexture()->getDimensions();
+    auto occlusionDepthFrameSize = divideRoundUp(sourceFrameSize, depthResolutionLevel);
 
     sourceFrameSize.x >>= widthScale;
+    normalTextureSize.x >>= widthScale;
+    occlusionDepthFrameSize.x >>= widthScale;
 
-    params._sideSizes[0].x = _framebuffer->getNormalTexture()->getWidth() >> widthScale;
-    params._sideSizes[0].y = _framebuffer->getNormalTexture()->getHeight();
+    params._sideSizes[0].x = normalTextureSize.x;
+    params._sideSizes[0].y = normalTextureSize.y;
     params._sideSizes[0].z = resolutionLevel;
     params._sideSizes[0].w = depthResolutionLevel;
 
@@ -512,7 +551,11 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto occlusionViewport = divideRoundUp(sourceViewport, 1 << resolutionLevel);
     auto firstBlurViewport = sourceViewport;
 #if SSAO_USE_QUAD_SPLIT
-    auto splitViewport = divideRoundUp(sourceViewport, 1 << (resolutionLevel + SSAO_USE_QUAD_SPLIT));
+    auto splitViewport = glm::ivec4{ 0, 0, _framebuffer->getOcclusionSplitTexture()->getWidth(), _framebuffer->getOcclusionSplitTexture()->getHeight() };
+    auto depthSideSize = glm::ivec2(linearDepthTexture->getDimensions());
+    if (args->isStereo()) {
+        depthSideSize.x >>= 1;
+    }
 #endif
     firstBlurViewport.w = divideRoundUp(firstBlurViewport.w, 1 << resolutionLevel);
 
@@ -551,7 +594,15 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto buildNormalsPipeline = getBuildNormalsPipeline();
     auto occlusionNormalFramebuffer = _framebuffer->getNormalFramebuffer();
     auto occlusionNormalTexture = _framebuffer->getNormalTexture();
+    auto normalViewport = glm::ivec4{ 0, 0, occlusionNormalFramebuffer->getWidth(), occlusionNormalFramebuffer->getHeight() };
 #endif
+    auto occlusionDepthSideSize = glm::ivec2(occlusionDepthTexture->getDimensions());
+    if (args->isStereo()) {
+        occlusionDepthSideSize.x >>= 1;
+    }
+
+    const auto depthResolutionLevel = std::min(1, resolutionLevel);
+    const auto depthResolutionScale = powf(2.0f, depthResolutionLevel);
 
     // Update sample rotation
     const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / SSAO_SPLIT_COUNT);
@@ -585,12 +636,11 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
 #if SSAO_USE_QUAD_SPLIT
         batch.pushProfileRange("Normal Generation");
-        auto depthTextureSize = linearDepthTexture->getDimensions();
-        model.setScale( glm::vec3(occlusionViewport.z / (depthTextureSize.x * resolutionScale), occlusionViewport.w / (depthTextureSize.y * resolutionScale), 1.0f) );
+        model.setScale( glm::vec3((normalViewport.z * depthResolutionScale) / depthSideSize.x, (normalViewport.w * depthResolutionScale) / depthSideSize.y, 1.0f) );
         batch.setModelTransform(model);
 
         // Build face normals pass
-        batch.setViewportTransform(occlusionViewport);
+        batch.setViewportTransform(normalViewport);
         batch.setPipeline(buildNormalsPipeline);
         batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
         batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, nullptr);
@@ -617,28 +667,43 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 #if SSAO_USE_QUAD_SPLIT
         batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, occlusionNormalTexture);
         {
-            auto splitViewport = occlusionViewport >> SSAO_USE_QUAD_SPLIT;
+            const auto scale = glm::vec3(
+                (splitViewport.z * 2.0f) / occlusionDepthSideSize.x,
+                (splitViewport.w * 2.0f) / occlusionDepthSideSize.y,
+                1.0f);
+            const auto pixelUV = glm::vec2(1.0f) / (glm::vec2(occlusionDepthSideSize) * glm::vec2(scale.x, scale.y));
 
             batch.setViewportTransform(splitViewport);
+
+            model.setScale(scale);
+            model.setTranslation(glm::vec3(0.0f, 0.0f, 0.0f));
+            batch.setModelTransform(model);
+            batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(0));
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-            splitViewport.x += splitViewport.z;
-            batch.setViewportTransform(splitViewport);
+            model.setTranslation(glm::vec3(pixelUV.x, 0.0f, 0.0f));
+            batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(1));
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[1]);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-            splitViewport.y += splitViewport.w;
-            batch.setViewportTransform(splitViewport);
+            model.setTranslation(glm::vec3(pixelUV.x, pixelUV.y, 0.0f));
+            batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(3));
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[2]);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-            splitViewport.x = 0;
-            batch.setViewportTransform(splitViewport);
+            model.setTranslation(glm::vec3(0.0f, pixelUV.y, 0.0f));
+            batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(2));
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[3]);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
 #else
+        const auto scale = glm::vec3(
+            (occlusionViewport.z / (depthSideSize.x * resolutionScale)) * fullDepthToHalfDepthSizeRatio.x,
+            (occlusionViewport.w / (depthSideSize.y * resolutionScale)) * fullDepthToHalfDepthSizeRatio.y,
+            1.0f);
+        model.setScale(scale);
+        batch.setViewportTransform(occlusionViewport);
         batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 #endif
@@ -648,11 +713,12 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 #if SSAO_USE_QUAD_SPLIT
         // Gather back the four separate renders into one interleaved one
         batch.pushProfileRange("Gather");
-            batch.setViewportTransform(occlusionViewport);
-            batch.setFramebuffer(occlusionFBO);
-            batch.setPipeline(gatherPipeline);
-            batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionBlurredFBO->getRenderBuffer(0));
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        batch.setViewportTransform(occlusionViewport);
+        batch.setModelTransform(Transform());
+        batch.setFramebuffer(occlusionFBO);
+        batch.setPipeline(gatherPipeline);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, _framebuffer->getOcclusionSplitTexture());
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.popProfileRange();
 #endif
 

@@ -15,7 +15,10 @@
 
 // Hack comment
 
-<$declareGatherPass()$>
+<$declareAmbientOcclusion()$>
+
+// the source occlusion texture
+layout(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2DArray occlusionMaps;
 
 layout(location=0) in vec4 varTexCoord0;
 
@@ -27,8 +30,10 @@ void main(void) {
     ivec2 destPixelCoord = ivec2(gl_FragCoord.xy);
     ivec2 sourcePixelCoord = destPixelCoord / 2;
     ivec2 splitImageSize = getWidthHeightRoundUp(getResolutionLevel()+1);
-
+    int occlusionMapIndex = (destPixelCoord.x & 1) + ((destPixelCoord.y) & 1)*2;
+    vec2 sourceUV = (sourcePixelCoord + vec2(0.5)) / splitImageSize;
+    
     sourcePixelCoord += (destPixelCoord & ivec2(1)) * splitImageSize;
 
-    outFragColor = texelFetch(occlusionMap, sourcePixelCoord, 0);
+    outFragColor = texture(occlusionMaps, vec3(sourceUV, occlusionMapIndex));
 }

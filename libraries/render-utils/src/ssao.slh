@@ -148,10 +148,6 @@ float getAngleDithering(in ivec2 pixelPos) {
 #endif
 }
 
-ivec2 getPixelOffset() {
-    return frameParams._pixelOffsets.xy;
-}
-
 float evalDiskRadius(float Zeye, vec2 sideImageSize) {
     // Choose the screen-space sample radius
     // proportional to the projected area of the sphere
@@ -269,17 +265,16 @@ int evalMipFromRadius(float radius) {
     return clamp(findMSB(int(radius)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
 }
 
-vec4 fetchTap(ivec4 side, vec2 tapSidePixelPos, float tapRadius, vec2 sideImageSize) {
+vec2 fetchTap(ivec4 side, vec2 tapUV, float tapRadius) {
     int mipLevel = evalMipFromRadius(tapRadius * float(doFetchMips()));
 
-    vec2 tapUV = (tapSidePixelPos + vec2(0.5)) / sideImageSize;
-    vec2 fetchUV = mix(tapUV, vec2((tapUV.x + getStereoSide(side)) * 0.5, tapUV.y), isStereo());
+    vec2 fetchUV = clamp(tapUV, vec2(0), vec2(1));
+    fetchUV = mix(fetchUV, vec2((fetchUV.x + getStereoSide(side)) * 0.5, fetchUV.y), isStereo());
 
-    vec4 P;
-    P.xy = tapUV;
-    P.w = float(mipLevel);
-    P.z = -textureLod(depthPyramidTex, fetchUV, P.w).x;
-   return P;
+    vec2 P;
+    P.x = float(mipLevel);
+    P.y = -textureLod(depthPyramidTex, fetchUV, P.x).x;
+    return P;
 }
 
 vec3 buildPosition(ivec4 side, vec2 fragUVPos) {
@@ -348,13 +343,13 @@ float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNo
 }
 
 <@func computeHorizon()@>
-        vec2 tapSidePixelPos = tapPixelOffset + shadedPixelPos;
-        if (tapSidePixelPos.x<0 || tapSidePixelPos.y<0 || tapSidePixelPos.x>=sideImageSize.x || tapSidePixelPos.y>=sideImageSize.y) {
+        vec2 tapSideUVPos = tapUVOffset + fragUVPos;
+        if (tapSideUVPos.x<0 || tapSideUVPos.y<0 || tapSideUVPos.x>=1.0 || tapSideUVPos.y>=1.0) {
             // Early exit because we've hit the borders of the frame
             break;
         }
-        vec4 tapUVZ_mip = fetchTap(side, tapSidePixelPos, radius, sideImageSize);
-        vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapUVZ_mip.z, tapUVZ_mip.xy);
+        vec2 tapMipZ = fetchTap(side, tapSideUVPos, radius);
+        vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapMipZ.y, tapSideUVPos);
         float tapCosHorizonAngle = computeHorizonFromTap(tapPositionES, fragPositionES, fragNormalES);
 
         cosHorizonAngle = max(cosHorizonAngle, tapCosHorizonAngle);
@@ -363,23 +358,22 @@ float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNo
 
 #define HBAO_HORIZON_SEARCH_CONSTANT_STEP 0
 
-float computeHorizon(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 deltaTap, 
-                    vec3 fragPositionES, vec3 fragNormalES, vec2 searchVec, float searchRadius) {
+float computeHorizon(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, vec3 fragNormalES, vec2 searchVec, float searchRadius) {
     vec2 absSearchVec = abs(searchVec);
-    int stepCount = int(ceil(max(absSearchVec.x, absSearchVec.y)));
+    int stepCount = int(ceil(searchRadius));
     float cosHorizonAngle = 0.0;
 
     if (stepCount>0) {
-        vec2 deltaPixelTap = searchVec / float(stepCount);
+        vec2 deltaTapUV = searchVec / float(stepCount);
         float deltaRadius = searchRadius / float(stepCount);
-        vec2 tapPixelOffset = vec2(0);
+        vec2 tapUVOffset = vec2(0);
 
 #if HBAO_HORIZON_SEARCH_CONSTANT_STEP
         float radius = 0.0;
         int stepIndex;
 
         for (stepIndex=0 ; stepIndex<stepCount ; stepIndex++) {
-            tapPixelOffset += deltaPixelTap;
+            tapUVOffset += deltaTapUV;
             radius += deltaRadius;
 
             <$computeHorizon()$>
@@ -390,14 +384,14 @@ float computeHorizon(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 d
         float mipLevel = evalMipFromRadius(radius * float(doFetchMips()));
 
         while (radius<=searchRadius) {
-            tapPixelOffset += deltaPixelTap;
+            tapUVOffset += deltaTapUV;
 
             <$computeHorizon()$>
 
-            if (tapUVZ_mip.w != mipLevel) {
-                mipLevel = tapUVZ_mip.w;
+            if (tapMipZ.x != mipLevel) {
+                mipLevel = tapMipZ.x;
                 deltaRadius *= 2;
-                deltaPixelTap *= 2;
+                deltaTapUV *= 2;
             }
             radius += deltaRadius;
         }
@@ -407,29 +401,22 @@ float computeHorizon(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 d
     return cosHorizonAngle;
 }
 
-float evalVisibilityHBAO(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 deltaTap, float diskPixelRadius, 
+float evalVisibilityHBAO(ivec4 side, vec2 fragUVPos, vec2 invSideImageSize, vec2 deltaTap, float diskPixelRadius, 
                          vec3 fragPositionES, vec3 fragNormalES) {
-	vec2 searchVec = deltaTap * diskPixelRadius;
+	vec2 searchVec = (deltaTap * diskPixelRadius) * invSideImageSize;
 	float obscurance = 0.0;
 
     // Forward search for h1
-    obscurance = computeHorizon(side, shadedPixelPos, sideImageSize, deltaTap, fragPositionES, fragNormalES, searchVec, diskPixelRadius);
+    obscurance = computeHorizon(side, fragUVPos, fragPositionES, fragNormalES, searchVec, diskPixelRadius);
 
     // Backward search for h2
-    obscurance += computeHorizon(side, shadedPixelPos, sideImageSize, deltaTap, fragPositionES, fragNormalES, -searchVec, diskPixelRadius);
+    obscurance += computeHorizon(side, fragUVPos, fragPositionES, fragNormalES, -searchVec, diskPixelRadius);
 
 	return obscurance;
 }
 
 <@endfunc@>
 
-<@func declareGatherPass()@>
-<$declareAmbientOcclusion()$>
-
-// the source occlusion texture
-layout(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2D occlusionMap;
-
-<@endfunc@>
 
 <@func declareBlurPass(axis)@>
 

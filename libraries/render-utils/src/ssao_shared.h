@@ -45,7 +45,6 @@ struct AmbientOcclusionParams {
 
 struct AmbientOcclusionFrameParams {
     SSAO_VEC4 _angleInfo;
-    SSAO_IVEC4 _pixelOffsets;
 };
 
 #endif // RENDER_UTILS_SHADER_CONSTANTS_H
