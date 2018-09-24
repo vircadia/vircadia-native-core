@@ -173,7 +173,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.PLAY_AREA_FADE_DELTA = this.PLAY_AREA_FADE_INTERVAL / this.PLAY_AREA_FADE_DURATION;
 
         this.TELEPORT_SCALE_DURATION = 130;
-        this.TELEPORT_SCALE_TIMEOUT = 20;
+        this.TELEPORT_SCALE_TIMEOUT = 25;
         this.isTeleportVisible = false;
         this.teleportScaleTimer = null;
         this.teleportScaleStart = 0;
@@ -777,7 +777,7 @@ Script.include("/~/system/libraries/controllers.js");
                 pointerID = _this.teleportParabolaHandVisuals;
             }
             this.setPlayAreaVisible(visible, Pointers.getEndOverlayID(pointerID, "teleport"), true);
-            this.setTeleportVisible(visible);
+            this.setTeleportVisible(visible, mode);
         };
 
         this.setIgnoreEntities = function(entitiesToIgnore) {
