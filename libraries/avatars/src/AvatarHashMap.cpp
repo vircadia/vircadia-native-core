@@ -73,7 +73,7 @@ std::vector<AvatarSharedPointer> AvatarReplicas::takeReplicas(const QUuid& paren
 
     if (it != _replicasMap.end()) {
         // take a copy of the replica shared pointers for this parent
-        replicas = it->second;
+        replicas.swap(it->second);
 
         // erase the replicas for this parent from our map
         _replicasMap.erase(it);

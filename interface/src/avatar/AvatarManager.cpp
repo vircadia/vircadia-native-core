@@ -464,6 +464,8 @@ void AvatarManager::clearOtherAvatars() {
     {
         QWriteLocker locker(&_hashLock);
 
+        removedAvatars.reserve(_avatarHash.size());
+
         auto avatarIterator =  _avatarHash.begin();
         while (avatarIterator != _avatarHash.end()) {
             auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
@@ -484,7 +486,7 @@ void AvatarManager::clearOtherAvatars() {
 void AvatarManager::deleteAllAvatars() {
     assert(_avatarsToChangeInPhysics.empty());
 
-    QReadLocker locker(&_hashLock);
+    QWriteLocker locker(&_hashLock);
     AvatarHash::iterator avatarIterator =  _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
         auto avatar = std::static_pointer_cast<OtherAvatar>(avatarIterator.value());
