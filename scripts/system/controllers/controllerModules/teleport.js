@@ -159,7 +159,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1198 };
         this.PLAY_AREA_SENSOR_OVERLAY_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 });
         this.playAreaSensorPositions = [];
-        this.playAreaSensorPositionOverlays = [];
         this.playArea = { x: 0, y: 0 };
         this.playAreaCenterOffset = this.PLAY_AREA_OVERLAY_OFFSET;
         this.isPlayAreaVisible = false;
@@ -225,12 +224,14 @@ Script.include("/~/system/libraries/controllers.js");
             for (var i = 0; i < _this.playAreaSensorPositionOverlays.length; i++) {
                 Overlays.deleteOverlay(_this.playAreaSensorPositionOverlays[i]);
             }
+            _this.playAreaSensorPositionOverlays = [];
         };
 
         this.initPointers = function() {
             if (_this.init) {
                 _this.cleanup();
             }
+
             _this.teleportParabolaHandVisuals = Pointers.createPointer(PickType.Parabola, {
                 joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
                 dirOffset: { x: 0, y: 1, z: 0.1 },
@@ -289,6 +290,12 @@ Script.include("/~/system/libraries/controllers.js");
                 maxDistance: 8.0
             });
 
+            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHandVisuals));
+            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHandCollisions));
+            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHeadVisuals));
+            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHeadCollisions));
+
+
             var capsuleData = MyAvatar.getCollisionCapsule();
 
             var sensorToWorldScale = MyAvatar.getSensorToWorldScale();
@@ -330,6 +337,7 @@ Script.include("/~/system/libraries/controllers.js");
                 threshold: _this.capsuleThreshold
             });
 
+
             _this.playAreaOverlay = Overlays.addOverlay("model", {
                 url: _this.PLAY_AREA_OVERLAY_MODEL,
                 drawInFront: false,
@@ -342,41 +350,42 @@ Script.include("/~/system/libraries/controllers.js");
                 visible: false
             });
 
-            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHandVisuals));
-            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHandCollisions));
-            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHeadVisuals));
-            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHeadCollisions));
-
             Selection.addToSelectedItemsList(_this.teleporterSelectionName, "overlay", _this.playAreaOverlay);
             Selection.addToSelectedItemsList(_this.teleporterSelectionName, "overlay", _this.teleportedTargetOverlay);
-            Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", this.playAreaOverlay);
+
+
+            _this.playArea = HMD.playArea;
+            _this.isPlayAreaAvailable = HMD.active && _this.playArea.width !== 0 && _this.playArea.height !== 0;
+            if (_this.isPlayAreaAvailable) {
+                _this.playAreaCenterOffset = Vec3.sum({ x: _this.playArea.x, y: 0, z: _this.playArea.y },
+                    _this.PLAY_AREA_OVERLAY_OFFSET);
+
+                _this.playAreaSensorPositions = HMD.sensorPositions;
+                for (var i = 0; i < _this.playAreaSensorPositions.length; i++) {
+                    if (i > _this.playAreaSensorPositionOverlays.length - 1) {
+                        var overlay = Overlays.addOverlay("model", {
+                            url: _this.PLAY_AREA_SENSOR_OVERLAY_MODEL,
+                            dimensions: _this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS,
+                            parentID: _this.playAreaOverlay,
+                            localRotation: _this.PLAY_AREA_SENSOR_OVERLAY_ROTATION,
+                            solid: true,
+                            drawInFront: false,
+                            visible: false
+                        });
+                        _this.playAreaSensorPositionOverlays.push(overlay);
+                        Selection.addToSelectedItemsList(_this.teleporterSelectionName, "overlay", overlay);
+                    }
+                }
+
+                _this.setPlayAreaDimensions();
+            }
+
 
             _this.init = true;
         };
         
         _this.initPointers();
 
-
-        this.addPlayAreaSensorPositionOverlay = function () {
-            var overlay = Overlays.addOverlay("model", {
-                url: this.PLAY_AREA_SENSOR_OVERLAY_MODEL,
-                dimensions: this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS,
-                parentID: this.playAreaOverlay,
-                localRotation: this.PLAY_AREA_SENSOR_OVERLAY_ROTATION,
-                solid: true,
-                drawInFront: false,
-                visible: false
-            });
-            this.playAreaSensorPositionOverlays.push(overlay);
-            Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", overlay);
-        };
-
-        this.deletePlayAreaSensorPositionOverlay = function (index) {
-            var overlay = this.playAreaSensorPositionOverlays[index];
-            Selection.removeFromSelectedItemsList(this.teleporterSelectionName, "overlay", overlay);
-            Overlays.deleteOverlay(overlay);
-            this.playAreaSensorPositionOverlays.splice(index, 1);
-        };
 
         this.setPlayAreaDimensions = function () {
             var avatarScale = MyAvatar.scale;
@@ -508,35 +517,6 @@ Script.include("/~/system/libraries/controllers.js");
                 _this.playAreaFadeTimer = Script.setTimeout(this.fadePlayArea, this.PLAY_AREA_FADE_DELAY);
             }
         };
-
-        this.setPlayAreaAvailable = function () {
-            this.playArea = HMD.playArea;
-            this.isPlayAreaAvailable = HMD.active && this.playArea.width !== 0 && this.playArea.height !== 0;
-            if (this.isPlayAreaAvailable) {
-                this.playAreaCenterOffset = Vec3.sum({ x: this.playArea.x, y: 0, z: this.playArea.y },
-                    this.PLAY_AREA_OVERLAY_OFFSET);
-
-                this.playAreaSensorPositions = HMD.sensorPositions;
-                for (var i = 0; i < this.playAreaSensorPositions.length; i++) {
-                    if (i > this.playAreaSensorPositionOverlays.length - 1) {
-                        this.addPlayAreaSensorPositionOverlay();
-                    }
-                }
-
-                for (i = this.playAreaSensorPositionOverlays.length; i > this.playAreaSensorPositions.length; i--) {
-                    this.deletePlayAreaSensorPositionOverlay(i);
-                }
-
-                this.setPlayAreaDimensions();
-            } else {
-                Overlays.editOverlay(this.playAreaOverlay, { visible: false });
-                for (i = 0; i < this.playAreaSensorPositionOverlays.length; i++) {
-                    Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], { visible: false });
-                }
-            }
-        };
-
-        this.setPlayAreaAvailable();
 
         this.updatePlayArea = function (position) {
             var sensorToWorldMatrix = MyAvatar.sensorToWorldMatrix;
@@ -1006,8 +986,6 @@ Script.include("/~/system/libraries/controllers.js");
         Script.setTimeout(function () {
             leftTeleporter.initPointers();
             rightTeleporter.initPointers();
-            leftTeleporter.setPlayAreaAvailable();
-            rightTeleporter.setPlayAreaAvailable();
         }, 500);
     });
     
@@ -1015,11 +993,6 @@ Script.include("/~/system/libraries/controllers.js");
     Messages.subscribe('Hifi-Teleport-Ignore-Add');
     Messages.subscribe('Hifi-Teleport-Ignore-Remove');
     Messages.messageReceived.connect(handleTeleportMessages);
-
-    //HMD.displayModeChanged.connect(function () {
-    //    leftTeleporter.setPlayAreaAvailable();
-    //    rightTeleporter.setPlayAreaAvailable();
-    //});
 
     MyAvatar.scaleChanged.connect(function () {
         leftTeleporter.updatePlayAreaScale();
