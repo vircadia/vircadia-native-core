@@ -417,8 +417,8 @@ Script.include("/~/system/libraries/controllers.js");
             if (_this.isPlayAreaAvailable) {
                 _this.playAreaCenterOffset = Vec3.sum({ x: _this.playArea.x, y: 0, z: _this.playArea.y },
                     _this.PLAY_AREA_OVERLAY_OFFSET);
-
                 _this.playAreaSensorPositions = HMD.sensorPositions;
+
                 for (var i = 0; i < _this.playAreaSensorPositions.length; i++) {
                     if (i > _this.playAreaSensorPositionOverlays.length - 1) {
                         var overlay = Overlays.addOverlay("model", {
@@ -437,7 +437,6 @@ Script.include("/~/system/libraries/controllers.js");
 
                 _this.setPlayAreaDimensions();
             }
-
 
             _this.init = true;
         };
