@@ -398,6 +398,7 @@ var labels = {
         checked: true,
         click: function () {
             trayNotifications.enable(!trayNotifications.enabled(), notificationCallback);
+            userConfig.save(configPath);
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
     },
