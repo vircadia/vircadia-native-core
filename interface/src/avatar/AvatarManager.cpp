@@ -234,11 +234,13 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         const SortableAvatar& sortData = *it;
         const auto avatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
 
-        // TODO: to help us scale to more avatars it would be nice to not have to poll orb state here
-        // if the geometry is loaded then turn off the orb
+        // TODO: to help us scale to more avatars it would be nice to not have to poll this stuff every update
         if (avatar->getSkeletonModel()->isLoaded()) {
             // remove the orb if it is there
             avatar->removeOrb();
+            if (avatar->needsPhysicsShapeUpdate()) {
+                _avatarsToChangeInPhysics.insert(avatar);
+            }
         } else {
             avatar->updateOrbPosition();
         }

@@ -119,6 +119,10 @@ bool OtherAvatar::shouldBeInPhysicsSimulation() const {
     return (_workloadRegion < workload::Region::R3 && !isDead());
 }
 
+bool OtherAvatar::needsPhysicsShapeUpdate() const {
+    return (_motionState && (_motionState->getIncomingDirtyFlags() & (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS)));
+}
+
 void OtherAvatar::rebuildCollisionShape() {
     if (_motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
