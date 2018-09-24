@@ -148,10 +148,69 @@ Script.include("/~/system/libraries/controllers.js");
         this.teleportParabolaHandCollisions;
         this.teleportParabolaHeadVisuals;
         this.teleportParabolaHeadCollisions;
-        this.teleporterSelectionName;
-        this.teleportedTargetOverlay;
-        this.playAreaOverlay;
+
+
+        this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev2.fbx");
+        this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 2, y: 0.2, z: 2 };
+        this.PLAY_AREA_FLOAT_ABOVE_FLOOR = 0;
+        this.PLAY_AREA_OVERLAY_OFFSET = // Offset from floor.
+            { x: 0, y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2 + this.PLAY_AREA_FLOAT_ABOVE_FLOOR, z: 0 };
+        this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensorv2.fbx");
+        this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1198 };
+        this.PLAY_AREA_SENSOR_OVERLAY_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 });
+        this.playAreaSensorPositions = [];
         this.playAreaSensorPositionOverlays = [];
+        this.playArea = { x: 0, y: 0 };
+        this.playAreaCenterOffset = this.PLAY_AREA_OVERLAY_OFFSET;
+        this.isPlayAreaVisible = false;
+        this.isPlayAreaAvailable = false;
+        this.targetOverlayID = null;
+
+        this.PLAY_AREA_FADE_DELAY = 900;
+        this.PLAY_AREA_FADE_DURATION = 200;
+        this.PLAY_AREA_FADE_INTERVAL = 25;
+        this.PLAY_AREA_BOX_ALPHA = 1.0;
+        this.PLAY_AREA_SENSOR_ALPHA = 0.8;
+        this.PLAY_AREA_FADE_DELTA = this.PLAY_AREA_FADE_INTERVAL / this.PLAY_AREA_FADE_DURATION;
+
+        this.TELEPORT_SCALE_DURATION = 130;
+        this.TELEPORT_SCALE_TIMEOUT = 20;
+        this.isTeleportVisible = false;
+        this.teleportScaleTimer = null;
+        this.teleportScaleStart = 0;
+        this.teleportScaleFactor = 0;
+        this.teleportScaleMode = "head";
+
+        this.playAreaOverlay = null;
+        this.playAreaSensorPositionOverlays = [];
+        this.teleportedTargetOverlay = null;
+
+        this.teleportedPosition = Vec3.ZERO;
+        this.TELEPORTED_TARGET_ALPHA = 1.0;
+        this.TELEPORTED_TARGET_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 });
+        this.teleportedTargetOverlay = null;
+
+
+        this.teleporterSelectionName = "teleporterSelection" + hand.toString();
+        this.TELEPORTER_SELECTION_STYLE = {
+            outlineUnoccludedColor: { red: 0, green: 0, blue: 0 },
+            outlineUnoccludedAlpha: 0,
+            outlineOccludedColor: { red: 0, green: 0, blue: 0 },
+            outlineOccludedAlpha: 0,
+            fillUnoccludedColor: { red: 0, green: 0, blue: 0 },
+            fillUnoccludedAlpha: 0,
+            fillOccludedColor: { red: 0, green: 0, blue: 255 },
+            fillOccludedAlpha: 0.84,
+            outlineWidth: 0,
+            isOutlineSmooth: false
+        };
+
+        this.addToSelectedItemsList = function (overlays) {
+            for (var i = 0, length = overlays.length; i < length; i++) {
+                Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", overlays[i]);
+            }
+        };
+
 
         this.cleanup = function() {
             Selection.removeListFromMap(_this.teleporterSelectionName);
@@ -161,14 +220,14 @@ Script.include("/~/system/libraries/controllers.js");
             Pointers.removePointer(_this.teleportParabolaHeadCollisions);
             Picks.removePick(_this.teleportHandCollisionPick);
             Picks.removePick(_this.teleportHeadCollisionPick);
-            Overlays.deleteOverlay(this.teleportedTargetOverlay);
+            Overlays.deleteOverlay(_this.teleportedTargetOverlay);
             Overlays.deleteOverlay(_this.playAreaOverlay);
             for (var i = 0; i < _this.playAreaSensorPositionOverlays.length; i++) {
                 Overlays.deleteOverlay(_this.playAreaSensorPositionOverlays[i]);
             }
         };
 
-        this.initPointers = function () {
+        this.initPointers = function() {
             if (_this.init) {
                 _this.cleanup();
             }
@@ -270,85 +329,33 @@ Script.include("/~/system/libraries/controllers.js");
                 position: { x: 0, y: offset + height * 0.5, z: 0 },
                 threshold: _this.capsuleThreshold
             });
+
+            _this.playAreaOverlay = Overlays.addOverlay("model", {
+                url: _this.PLAY_AREA_OVERLAY_MODEL,
+                drawInFront: false,
+                visible: false
+            });
+
+            _this.teleportedTargetOverlay = Overlays.addOverlay("model", {
+                url: TARGET_MODEL_URL,
+                alpha: _this.TELEPORTED_TARGET_ALPHA,
+                visible: false
+            });
+
+            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHandVisuals));
+            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHandCollisions));
+            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHeadVisuals));
+            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHeadCollisions));
+
+            Selection.addToSelectedItemsList(_this.teleporterSelectionName, "overlay", _this.playAreaOverlay);
+            Selection.addToSelectedItemsList(_this.teleporterSelectionName, "overlay", _this.teleportedTargetOverlay);
+            Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", this.playAreaOverlay);
+
             _this.init = true;
-        }
+        };
         
         _this.initPointers();
 
-
-        this.teleporterSelectionName = "teleporterSelection" + hand.toString();
-        this.TELEPORTER_SELECTION_STYLE = {
-            outlineUnoccludedColor: { red: 0, green: 0, blue: 0 },
-            outlineUnoccludedAlpha: 0,
-            outlineOccludedColor: { red: 0, green: 0, blue: 0 },
-            outlineOccludedAlpha: 0,
-            fillUnoccludedColor: { red: 0, green: 0, blue: 0 },
-            fillUnoccludedAlpha: 0,
-            fillOccludedColor: { red: 0, green: 0, blue: 255 },
-            fillOccludedAlpha: 0.84,
-            outlineWidth: 0,
-            isOutlineSmooth: false
-        };
-
-        this.addToSelectedItemsList = function (overlays) {
-            for (var i = 0, length = overlays.length; i < length; i++) {
-                Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", overlays[i]);
-            }
-        };
-
-        this.addToSelectedItemsList(Pointers.getOverlayIDs(this.teleportParabolaHandVisible));
-        this.addToSelectedItemsList(Pointers.getOverlayIDs(this.teleportParabolaHandInvisible));
-        this.addToSelectedItemsList(Pointers.getOverlayIDs(this.teleportParabolaHeadVisible));
-        this.addToSelectedItemsList(Pointers.getOverlayIDs(this.teleportParabolaHeadInvisible));
-
-
-        this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev2.fbx");
-        this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 2, y: 0.2, z: 2 };
-        this.PLAY_AREA_FLOAT_ABOVE_FLOOR = 0;
-        this.PLAY_AREA_OVERLAY_OFFSET = // Offset from floor.
-            { x: 0, y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2 + this.PLAY_AREA_FLOAT_ABOVE_FLOOR, z: 0 };
-        this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensorv2.fbx");
-        this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1198 };
-        this.PLAY_AREA_SENSOR_OVERLAY_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 });
-        this.playAreaSensorPositions = [];
-        this.playAreaSensorPositionOverlays = [];
-        this.playArea = { x: 0, y: 0 };
-        this.playAreaCenterOffset = this.PLAY_AREA_OVERLAY_OFFSET;
-        this.isPlayAreaVisible = false;
-        this.isPlayAreaAvailable = false;
-        this.targetOverlayID = null;
-
-        this.PLAY_AREA_FADE_DELAY = 900;
-        this.PLAY_AREA_FADE_DURATION = 200;
-        this.PLAY_AREA_FADE_INTERVAL = 25;
-        this.PLAY_AREA_BOX_ALPHA = 1.0;
-        this.PLAY_AREA_SENSOR_ALPHA = 0.8;
-        this.PLAY_AREA_FADE_DELTA = this.PLAY_AREA_FADE_INTERVAL / this.PLAY_AREA_FADE_DURATION;
-
-        this.TELEPORT_SCALE_DURATION = 130;
-        this.TELEPORT_SCALE_TIMEOUT = 20;
-        this.isTeleportVisible = false;
-        this.teleportScaleTimer = null;
-        this.teleportScaleStart = 0;
-        this.teleportScaleFactor = 0;
-        this.teleportScaleMode = "head";
-
-        this.playAreaOverlay = Overlays.addOverlay("model", {
-            url: this.PLAY_AREA_OVERLAY_MODEL,
-            drawInFront: false,
-            visible: false
-        });
-        Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", this.playAreaOverlay);
-
-        this.teleportedPosition = Vec3.ZERO;
-        this.TELEPORTED_TARGET_ALPHA = 1.0;
-        this.TELEPORTED_TARGET_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 });
-        this.teleportedTargetOverlay = Overlays.addOverlay("model", {
-            url: TARGET_MODEL_URL,
-            alpha: this.TELEPORTED_TARGET_ALPHA,
-            visible: false
-        });
-        Selection.addToSelectedItemsList(this.teleportedTargetOverlay, "overlay", this.playAreaOverlay);
 
         this.addPlayAreaSensorPositionOverlay = function () {
             var overlay = Overlays.addOverlay("model", {
@@ -572,7 +579,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.scaleInTeleport = function () {
             _this.teleportScaleFactor = Math.min((Date.now() - _this.teleportScaleStart) / _this.TELEPORT_SCALE_DURATION, 1);
             Pointers.editRenderState(
-                _this.teleportScaleMode === "head" ? _this.teleportParabolaHeadVisible : _this.teleportParabolaHandVisible,
+                _this.teleportScaleMode === "head" ? _this.teleportParabolaHeadVisuals : _this.teleportParabolaHandVisuals,
                 "teleport",
                 {
                     path: teleportPath, // Teleport beam disappears if not included.
@@ -596,7 +603,7 @@ Script.include("/~/system/libraries/controllers.js");
             if (visible) {
                 this.teleportScaleMode = mode;
                 Pointers.editRenderState(
-                    mode === "head" ? _this.teleportParabolaHeadVisible : _this.teleportParabolaHandVisible,
+                    mode === "head" ? _this.teleportParabolaHeadVisuals : _this.teleportParabolaHandVisuals,
                     "teleport",
                     {
                         path: teleportPath, // Teleport beam disappears if not included.
@@ -783,11 +790,11 @@ Script.include("/~/system/libraries/controllers.js");
             if (mode === 'head') {
                 Pointers.setRenderState(_this.teleportParabolaHeadVisuals, visibleState);
                 Pointers.setRenderState(_this.teleportParabolaHeadCollisions, invisibleState);
-                pointerID = _this.teleportParabolaHeadVisible;
+                pointerID = _this.teleportParabolaHeadVisuals;
             } else {
                 Pointers.setRenderState(_this.teleportParabolaHandVisuals, visibleState);
                 Pointers.setRenderState(_this.teleportParabolaHandCollisions, invisibleState);
-                pointerID = _this.teleportParabolaHandVisible;
+                pointerID = _this.teleportParabolaHandVisuals;
             }
             this.setPlayAreaVisible(visible, Pointers.getEndOverlayID(pointerID, "teleport"), true);
             this.setTeleportVisible(visible);
@@ -999,6 +1006,8 @@ Script.include("/~/system/libraries/controllers.js");
         Script.setTimeout(function () {
             leftTeleporter.initPointers();
             rightTeleporter.initPointers();
+            leftTeleporter.setPlayAreaAvailable();
+            rightTeleporter.setPlayAreaAvailable();
         }, 500);
     });
     
@@ -1007,10 +1016,10 @@ Script.include("/~/system/libraries/controllers.js");
     Messages.subscribe('Hifi-Teleport-Ignore-Remove');
     Messages.messageReceived.connect(handleTeleportMessages);
 
-    HMD.displayModeChanged.connect(function () {
-        leftTeleporter.setPlayAreaAvailable();
-        rightTeleporter.setPlayAreaAvailable();
-    });
+    //HMD.displayModeChanged.connect(function () {
+    //    leftTeleporter.setPlayAreaAvailable();
+    //    rightTeleporter.setPlayAreaAvailable();
+    //});
 
     MyAvatar.scaleChanged.connect(function () {
         leftTeleporter.updatePlayAreaScale();
