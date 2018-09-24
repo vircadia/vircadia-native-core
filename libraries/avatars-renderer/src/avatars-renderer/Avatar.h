@@ -83,9 +83,9 @@ public:
         int _framesPerMeter { 0 };
         bool _isDistanceBased { false };
         float _triggerDistance { 0 };
-        bool _playAnimation { true };
+        bool _showAnimation { false };
         EaseType _easeType { EaseType::EASE_OUT };
-        bool _showEffect { true };
+        bool _showParticles { false };
         TransitAnimation _startTransitAnimation;
         TransitAnimation _middleTransitAnimation;
         TransitAnimation _endTransitAnimation;
@@ -93,15 +93,17 @@ public:
 
     AvatarTransit() {};
     Status update(float deltaTime, const glm::vec3& avatarPosition, const TransitConfig& config);
-    bool isTransiting() { return _isTransiting; };
-    glm::vec3 getCurrentPosition() { return _currentPosition; };
+    Status getStatus() { return _status; }
+    bool isTransiting() { return _isTransiting; }
+    glm::vec3 getCurrentPosition() { return _currentPosition; }
     bool getNextPosition(glm::vec3& nextPosition);
+    glm::vec3 getEndPosition() { return _endPosition; }
 
 private:
     Status updatePosition(float deltaTime);
     void start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const TransitConfig& config);
     float getEaseValue(AvatarTransit::EaseType type, float value);
-    bool _isTransiting{ false };
+    bool _isTransiting { false };
 
     glm::vec3 _startPosition;
     glm::vec3 _endPosition;
@@ -117,7 +119,9 @@ private:
     float _timeBefore { 0.0f };
     float _timeAfter { 0.0f };
     EaseType _easeType { EaseType::EASE_OUT };
-
+    Status _status { Status::IDLE };
+    bool _showAnimation { false };
+    bool _showParticles { false };
 };
 
 class Avatar : public AvatarData, public scriptable::ModelProvider {
@@ -444,6 +448,7 @@ public:
 
     AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
     QUuid& getTransitEffectID() { return _transitEffectID; };
+    void overrideNextPackagePositionData(const glm::vec3& position);
 
 signals:
     void targetScaleChanged(float targetScale);

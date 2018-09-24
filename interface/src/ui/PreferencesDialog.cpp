@@ -249,6 +249,15 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [myAvatar]()->int { return myAvatar->getShowTransit() ? 0 : 1; };
+        auto setter = [myAvatar](int value) { myAvatar->setShowTransit(value == 0); };
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Show transit / Hide transit", getter, setter);
+        QStringList items;
+        items << "Show transit" << "Hide Transit";
+        preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
         auto getter = [=]()->float { return myAvatar->getUserHeight(); };
         auto setter = [=](float value) { myAvatar->setUserHeight(value); };
         auto preference = new SpinnerPreference(VR_MOVEMENT, "User real-world height (meters)", getter, setter);

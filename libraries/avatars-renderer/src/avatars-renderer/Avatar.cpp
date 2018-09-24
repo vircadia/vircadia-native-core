@@ -121,7 +121,8 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
         start(deltaTime, _lastPosition, currentPosition, config);
     }
     _lastPosition = currentPosition;
-    return updatePosition(deltaTime);
+    _status = updatePosition(deltaTime);
+    return _status;
 }
 
 void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const AvatarTransit::TransitConfig& config) {
@@ -131,10 +132,12 @@ void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const
     _transitLine = endPosition - startPosition;
     _totalDistance = glm::length(_transitLine);
     _easeType = config._easeType;
+    _showAnimation = config._showAnimation;
+    _showParticles = config._showParticles;
     const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
 
-    int framesBefore = config._playAnimation ? config._startTransitAnimation._frameCount : 0;
-    int framesAfter = config._playAnimation ? config._endTransitAnimation._frameCount : 0;
+    int framesBefore = _showAnimation ? config._startTransitAnimation._frameCount : 0;
+    int framesAfter = _showAnimation ? config._endTransitAnimation._frameCount : 0;
     _timeBefore = (float)framesBefore / REFERENCE_FRAMES_PER_SECOND;
     _timeAfter = (float)framesAfter / REFERENCE_FRAMES_PER_SECOND;
         
@@ -537,7 +540,7 @@ void Avatar::relayJointDataToChildren() {
 
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
-
+    
     if (_transit.isTransiting()) {
         glm::vec3 nextPosition;
         if (_transit.getNextPosition(nextPosition)) {
@@ -548,7 +551,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             }
         }
     }
-
+    
     _simulationRate.increment();
     if (inView) {
         _simulationInViewRate.increment();
@@ -1983,6 +1986,12 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
 AvatarTransit::Status Avatar::updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
     std::lock_guard<std::mutex> lock(_transitLock);
     return _transit.update(deltaTime, avatarPosition, config);
+}
+
+void Avatar::overrideNextPackagePositionData(const glm::vec3& position) {
+    std::lock_guard<std::mutex> lock(_transitLock);
+    _overrideGlobalPosition = true;
+    _globalPositionOverride = position;
 }
 
 void Avatar::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {

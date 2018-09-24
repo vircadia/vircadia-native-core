@@ -616,7 +616,9 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
     animateScaleChanges(deltaTime);
-    if (_transit.isTransiting()) {
+    // CameraMode mode = qApp->getCamera().getMode();
+    // bool shouldTransit = (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT);
+    if (_transit.isTransiting() && _showTransit) {
         glm::vec3 nextPosition;
         if (_transit.getNextPosition(nextPosition)) {
             _globalPosition = nextPosition;
@@ -626,6 +628,7 @@ void MyAvatar::simulate(float deltaTime) {
             }
         }
     }
+    
     setFlyingEnabled(getFlyingEnabled());
 
     if (_cauterizationNeedsUpdate) {

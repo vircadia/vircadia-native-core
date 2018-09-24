@@ -94,8 +94,7 @@ AvatarManager::AvatarManager(QObject* parent) :
     
     _transitConfig._startTransitAnimation = AvatarTransit::TransitAnimation(START_ANIMATION_URL, 0, 14);
     _transitConfig._middleTransitAnimation = AvatarTransit::TransitAnimation(MIDDLE_ANIMATION_URL, 15, 0);
-    _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 16, 38);
-    
+    _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 16, 38);    
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -180,14 +179,21 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
     AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _transitConfig);
-    if (status != AvatarTransit::Status::IDLE && status != AvatarTransit::Status::TRANSITING) {
-        QUuid& transitEffectID = _myAvatar->getTransitEffectID();
-        changeAvatarTransitState(status, _myAvatar->getID(), transitEffectID);
-    }
-    if (_transitConfig._playAnimation) {
-        playTransitAnimations(status);
-    }
+    bool sendFirstTransitPackage = (status == AvatarTransit::Status::START_TRANSIT);
+    bool sendAllTransitPackages = (status == AvatarTransit::Status::TRANSITING && _transitConfig._showAnimation);
+    bool blockTransitData = (status == AvatarTransit::Status::TRANSITING && !_transitConfig._showAnimation);
     
+    if (status != AvatarTransit::Status::IDLE) {
+        if (_transitConfig._showAnimation) {
+            blockTransitData = false;
+            playTransitAnimations(status);
+        }
+        if (status != AvatarTransit::Status::TRANSITING) {
+            QUuid& transitEffectID = _myAvatar->getTransitEffectID();
+            changeAvatarTransitState(status, _myAvatar->getID(), transitEffectID);
+        }
+    }
+
     _myAvatar->update(deltaTime);
     render::Transaction transaction;
     _myAvatar->updateRenderItem(transaction);
@@ -196,9 +202,15 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
 
-    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused) {
+
+    if (sendFirstTransitPackage || (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused && !blockTransitData)) {
         // send head/hand data to the avatar mixer and voxel server
         PerformanceTimer perfTimer("send");
+        if (sendFirstTransitPackage) {
+            _myAvatar->overrideNextPackagePositionData(_myAvatar->getTransit()->getEndPosition());
+        } else if (sendAllTransitPackages) {
+            _myAvatar->overrideNextPackagePositionData(_myAvatar->getTransit()->getCurrentPosition());
+        }        
         _myAvatar->sendAvatarDataPacket();
         _lastSendAvatarDataTime = now;
         _myAvatarSendRate.increment();
@@ -315,6 +327,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             if (inView && avatar->hasNewJointData()) {
                 numAvatarsUpdated++;
             }
+
+            
             // smooth other avatars positions
             {
                 auto status = avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
@@ -324,6 +338,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 }
 
             }
+            
 
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(renderTransaction);
@@ -924,9 +939,9 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
      result["framesPerMeter"] = _transitConfig._framesPerMeter;
      result["isDistanceBased"] = _transitConfig._isDistanceBased;
      result["triggerDistance"] = _transitConfig._triggerDistance;
-     result["playAnimation"] = _transitConfig._playAnimation;
+     result["showAnimation"] = _transitConfig._showAnimation;
      result["easeType"] = (int)_transitConfig._easeType;
-     result["showEffect"] = _transitConfig._showEffect;
+     result["showParticles"] = _transitConfig._showParticles;
 
      return result;
 }
@@ -943,14 +958,14 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
      if (data.contains("triggerDistance")) {
          _transitConfig._triggerDistance = data["triggerDistance"].toDouble();
      }     
-     if (data.contains("playAnimation")) {
-         _transitConfig._playAnimation = data["playAnimation"].toBool();
+     if (data.contains("showAnimation")) {
+         _transitConfig._showAnimation = data["showAnimation"].toBool();
      }
      if (data.contains("easeType")) {
          _transitConfig._easeType = (AvatarTransit::EaseType)data["easeType"].toInt();
      }
-     if (data.contains("showEffect")) {
-         _transitConfig._showEffect = data["showEffect"].toBool();
+     if (data.contains("showParticles")) {
+         _transitConfig._showParticles = data["showParticles"].toBool();
      }
 }
 
@@ -989,7 +1004,7 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
 
  void AvatarManager::changeAvatarTransitState(AvatarTransit::Status status, const QUuid& avatarID, QUuid& effectID) {
      
-     if (!_transitConfig._showEffect) {
+     if (!_transitConfig._showParticles) {
          return;
      }
      EntityItemProperties props = getAvatarTransitEffectProperties();
