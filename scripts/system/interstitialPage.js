@@ -14,7 +14,7 @@
 
 (function() {
     Script.include("/~/system/libraries/Xform.js");
-    var DEBUG = true;
+    var DEBUG = false;
     var MIN_LOADING_PROGRESS = 3.6;
     var TOTAL_LOADING_PROGRESS = 3.8;
     var EPSILON = 0.01;
@@ -385,7 +385,6 @@
         lastInterval = thisInterval;
 
         var domainLoadingProgressPercentage = Window.domainLoadingProgress();
-
         var progress = ((TOTAL_LOADING_PROGRESS * 0.4) * domainLoadingProgressPercentage);
         if (progress >= target) {
             target = progress;
@@ -408,10 +407,7 @@
                 if (textureResourceGPUMemSize > 0) {
                     print((texturePopulatedGPUMemSize / textureResourceGPUMemSize));
                     var gpuPercantage = (TOTAL_LOADING_PROGRESS * 0.6) * (texturePopulatedGPUMemSize / textureResourceGPUMemSize);
-                    print("---> gpu: " + gpuPercantage);
-                    print("----> current: " + progress);
                     var totalProgress = progress + gpuPercantage;
-                    print("------> totalProgress: " + totalProgress + "\n");
                     if (totalProgress >= target) {
                         target = totalProgress;
                     }

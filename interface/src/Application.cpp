@@ -6570,8 +6570,7 @@ bool Application::gpuTextureMemSizeStable() {
     }
     _gpuTextureMemSizeAtLastCheck = textureResourceGPUMemSize;
 
-    const uint32_t MINIMUM_GPU_TEXTURE_MEM_SIZE_STABILITY_COUNT = 10;
-    if (_gpuTextureMemSizeStabilityCount >= MINIMUM_GPU_TEXTURE_MEM_SIZE_STABILITY_COUNT) {
+    if (_gpuTextureMemSizeStabilityCount >= _minimumGPUTextureMemSizeStabilityCount) {
         return (textureResourceGPUMemSize == texturePopulatedGPUMemSize);
     }
     return false;

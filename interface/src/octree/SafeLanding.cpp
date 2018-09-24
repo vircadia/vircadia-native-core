@@ -10,6 +10,9 @@
 //
 
 #include "SafeLanding.h"
+
+#include <SharedUtil.h>
+
 #include "EntityTreeRenderer.h"
 #include "ModelEntityItem.h"
 #include "InterfaceLogging.h"
@@ -39,6 +42,7 @@ void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityT
         _entityTree = entityTree;
         _trackedEntities.clear();
         _trackingEntities = true;
+        _maxTrackedEntityCount = 0;
         connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
             &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
         connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
@@ -47,6 +51,7 @@ void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityT
         _sequenceNumbers.clear();
         _initialStart = INVALID_SEQUENCE;
         _initialEnd = INVALID_SEQUENCE;
+        _startTime = usecTimestampNow();
         EntityTreeRenderer::setEntityLoadingPriorityFunction(&ElevatedPriority);
     }
 }
@@ -55,6 +60,7 @@ void SafeLanding::stopEntitySequence() {
     Locker lock(_lock);
     _trackingEntities = false;
     _maxTrackedEntityCount = 0;
+    _trackedEntityStabilityCount = 0;
     _initialStart = INVALID_SEQUENCE;
     _initialEnd = INVALID_SEQUENCE;
     _trackedEntities.clear();
@@ -66,13 +72,14 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
         Locker lock(_lock);
         EntityItemPointer entity = _entityTree->findEntityByID(entityID);
 
-        if (entity) {
+        if (entity && entity->getCreated() < _startTime) {
 
             _trackedEntities.emplace(entityID, entity);
             int trackedEntityCount = (int)_trackedEntities.size();
 
             if (trackedEntityCount > _maxTrackedEntityCount) {
                 _maxTrackedEntityCount = trackedEntityCount;
+                _trackedEntityStabilityCount = 0;
             }
             qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
         }
@@ -116,11 +123,19 @@ bool SafeLanding::isLoadSequenceComplete() {
 
 float SafeLanding::loadingProgressPercentage() {
     Locker lock(_lock);
+
+    static const int MINIMUM_TRACKED_ENTITY_STABILITY_COUNT = 15;
+
+    float percentage = 0.0f;
     if (_maxTrackedEntityCount > 0) {
-        return ((_maxTrackedEntityCount - _trackedEntities.size()) / (float)_maxTrackedEntityCount);
+        percentage = ((_maxTrackedEntityCount - _trackedEntities.size()) / (float)_maxTrackedEntityCount);
     }
 
-    return 0.0f;
+    if (_trackedEntityStabilityCount < MINIMUM_TRACKED_ENTITY_STABILITY_COUNT) {
+        percentage *= 0.20f;
+    }
+
+    return percentage;
 }
 
 bool SafeLanding::isSequenceNumbersComplete() {
@@ -166,19 +181,18 @@ bool SafeLanding::isEntityLoadingComplete() {
     auto entityTree = qApp->getEntities();
     auto entityMapIter = _trackedEntities.begin();
 
+    Settings settings;
+    bool enableInterstitial = settings.value("enableIntersitialMode", false).toBool();
+
     while (entityMapIter != _trackedEntities.end()) {
         auto entity = entityMapIter->second;
 
         bool isVisuallyReady = true;
 
-
-        qDebug() << "EntityTpye" << EntityTypes::getEntityTypeName(entity->getType()) << entity->getEntityItemID();
-
-        Settings settings;
-        bool enableInterstitial = settings.value("enableIntersitialMode", false).toBool();
-
         if (enableInterstitial) {
             isVisuallyReady = (entity->isVisuallyReady() || !entityTree->renderableForEntityId(entityMapIter->first));
+
+            qDebug() << "EntityTpye" << EntityTypes::getEntityTypeName(entity->getType()) << entity->getEntityItemID() << isVisuallyReady;
         }
 
         if (isEntityPhysicsReady(entity) && isVisuallyReady) {
@@ -191,7 +205,13 @@ bool SafeLanding::isEntityLoadingComplete() {
             entityMapIter++;
         }
     }
-    qDebug() << "EntityList size" << _trackedEntities.size() << "\n";
+
+    if (enableInterstitial) {
+        _trackedEntityStabilityCount++;
+        qDebug() << "EntityList size" << _trackedEntities.size() << "\n";
+    }
+
+
     return _trackedEntities.empty();
 }
 

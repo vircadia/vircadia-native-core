@@ -233,6 +233,8 @@ public:
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
 
+     Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
+
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
@@ -584,6 +586,8 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     QElapsedTimer _lastTimeRendered;
+
+    int _minimumGPUTextureMemSizeStabilityCount { 15 };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulationPointer _entitySimulation;
