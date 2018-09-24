@@ -154,28 +154,3 @@ bool PointerManager::isMouse(unsigned int uid) {
     }
     return false;
 }
-
-QVector<QUuid> PointerManager::getOverlayIDs(unsigned int uid) {
-    auto pointer = find(uid);
-    if (pointer) {
-        return pointer->getOverlayIDs();
-    }
-    QVector<QUuid> empty;
-    return empty;
-}
-
-QUuid PointerManager::getStartOverlayID(unsigned int uid, const QString& state) {
-    auto pointer = find(uid);
-    if (pointer) {
-        return pointer->getStartOverlayID(state);
-    }
-    return QUuid();
-}
-
-QUuid PointerManager::getEndOverlayID(unsigned int uid, const QString& state) {
-    auto pointer = find(uid);
-    if (pointer) {
-        return pointer->getEndOverlayID(state);
-    }
-    return QUuid();
-}

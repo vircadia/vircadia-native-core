@@ -52,10 +52,6 @@ public:
     
     virtual QVariantMap toVariantMap() const = 0;
 
-    virtual QVector<QUuid> getOverlayIDs() = 0;
-    virtual QUuid getStartOverlayID(const QString& state) = 0;
-    virtual QUuid getEndOverlayID(const QString& state) = 0;
-
     virtual void setPrecisionPicking(bool precisionPicking);
     virtual void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     virtual void setIncludeItems(const QVector<QUuid>& includeItems) const;

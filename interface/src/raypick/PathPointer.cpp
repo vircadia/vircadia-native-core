@@ -360,32 +360,3 @@ glm::vec2 PathPointer::findPos2D(const PickedObject& pickedObject, const glm::ve
         return glm::vec2(NAN);
     }
 }
-
-QVector<QUuid> PathPointer::getOverlayIDs() {
-    QVector<QUuid> result;
-    for (auto& state : _renderStates) {
-        QUuid uuid = state.second->getStartID();
-        if (!uuid.isNull()) {
-            result.append(uuid);
-        }
-        uuid = state.second->getEndID();
-        if (!uuid.isNull()) {
-            result.append(uuid);
-        }
-    }
-    return result;
-}
-
-QUuid PathPointer::getStartOverlayID(const QString& state) {
-    if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
-        return _renderStates[_currentRenderState]->getStartID();
-    }
-    return QUuid();
-}
-
-QUuid PathPointer::getEndOverlayID(const QString& state) {
-    if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
-        return _renderStates[_currentRenderState]->getEndID();
-    }
-    return QUuid();
-}

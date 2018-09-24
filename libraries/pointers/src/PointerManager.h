@@ -45,10 +45,6 @@ public:
     bool isRightHand(unsigned int uid);
     bool isMouse(unsigned int uid);
 
-    QVector<QUuid> getOverlayIDs(unsigned int uid);
-    QUuid getStartOverlayID(unsigned int uid, const QString& state);
-    QUuid getEndOverlayID(unsigned int uid, const QString& state);
-
     static const unsigned int MOUSE_POINTER_ID { PointerEvent::INVALID_POINTER_ID + 1 };
 
 private:

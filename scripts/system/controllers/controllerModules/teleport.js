@@ -259,9 +259,12 @@ Script.include("/~/system/libraries/controllers.js");
             isOutlineSmooth: false
         };
 
-        this.addToSelectedItemsList = function (overlays) {
-            for (var i = 0, length = overlays.length; i < length; i++) {
-                Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", overlays[i]);
+        this.addToSelectedItemsList = function (properties) {
+            for (var i = 0, length = teleportRenderStates.length; i < length; i++) {
+                var state = properties.renderStates[teleportRenderStates[i].name];
+                if (state && state.end) {
+                    Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", state.end);
+                }
             }
         };
 
@@ -345,10 +348,10 @@ Script.include("/~/system/libraries/controllers.js");
                 maxDistance: 8.0
             });
 
-            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHandVisuals));
-            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHandCollisions));
-            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHeadVisuals));
-            _this.addToSelectedItemsList(Pointers.getOverlayIDs(_this.teleportParabolaHeadCollisions));
+            _this.addToSelectedItemsList(Pointers.getPointerProperties(_this.teleportParabolaHandVisuals));
+            _this.addToSelectedItemsList(Pointers.getPointerProperties(_this.teleportParabolaHandCollisions));
+            _this.addToSelectedItemsList(Pointers.getPointerProperties(_this.teleportParabolaHeadVisuals));
+            _this.addToSelectedItemsList(Pointers.getPointerProperties(_this.teleportParabolaHeadCollisions));
 
 
             var capsuleData = MyAvatar.getCollisionCapsule();
@@ -776,7 +779,7 @@ Script.include("/~/system/libraries/controllers.js");
                 Pointers.setRenderState(_this.teleportParabolaHandCollisions, invisibleState);
                 pointerID = _this.teleportParabolaHandVisuals;
             }
-            this.setPlayAreaVisible(visible, Pointers.getEndOverlayID(pointerID, "teleport"), true);
+            this.setPlayAreaVisible(visible, Pointers.getPointerProperties(pointerID).renderStates.teleport.end, true);
             this.setTeleportVisible(visible, mode);
         };
 
