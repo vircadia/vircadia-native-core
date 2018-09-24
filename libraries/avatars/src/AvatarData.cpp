@@ -592,10 +592,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         jointData = _jointData;
     }
     const int numJoints = jointData.size();
+    assert(numJoints <= 255);
     const int jointBitVectorSize = calcBitVectorSize(numJoints);
+    const int cappedNumJoints = std::min(numJoints, AvatarDataPacket::MAX_NUM_JOINTS);
 
     // Check against full size or minimum size: count + two bit-vectors + two controllers
-    const size_t approxJointSpace = sendAll ? AvatarDataPacket::maxJointDataSize(numJoints, true) :
+    const size_t approxJointSpace = sendAll ? AvatarDataPacket::maxJointDataSize(cappedNumJoints, false) :
         1 + 2 * jointBitVectorSize + 2 * (sizeof(AvatarDataPacket::SixByteQuat) + sizeof(AvatarDataPacket::SixByteTrans));
 
     IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, approxJointSpace) {
@@ -605,6 +607,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         *destinationBuffer++ = (uint8_t)numJoints;
 
         unsigned char* validityPosition = destinationBuffer;
+        memset(validityPosition, 0, jointBitVectorSize);
         unsigned char validity = 0;
         int validityBit = 0;
 
@@ -622,7 +625,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
         float minRotationDOT = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinRotationDOT(viewerPosition) : AVATAR_MIN_ROTATION_DOT;
 
-        for (int i = 0; i < jointData.size(); i++) {
+        for (int i = 0; i < cappedNumJoints; i++) {
             const JointData& data = jointData[i];
             const JointData& last = lastSentJointData[i];
 
@@ -666,12 +669,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         unsigned char* beforeTranslations = destinationBuffer;
 #endif
 
+        memset(destinationBuffer, 0, jointBitVectorSize);
         destinationBuffer += jointBitVectorSize; // Move pointer past the validity bytes
 
         float minTranslation = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinTranslationDistance(viewerPosition) : AVATAR_MIN_TRANSLATION;
 
         float maxTranslationDimension = 0.0;
-        for (int i = 0; i < jointData.size(); i++) {
+        for (int i = 0; i < cappedNumJoints; i++) {
             const JointData& data = jointData[i];
             const JointData& last = lastSentJointData[i];
 
