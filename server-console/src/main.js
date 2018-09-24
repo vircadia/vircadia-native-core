@@ -155,7 +155,7 @@ function shutdownCallback(idx) {
             logWindow.close();
         }
 
-        if(isServerInstalled()) {
+        if (isServerInstalled()) {
             if (homeServer) {
                 log.debug("Stoping home server");
                 homeServer.stop();
@@ -396,14 +396,14 @@ var labels = {
         label: 'Show Notifications',
         type: 'checkbox',
         checked: true,
-        click: function() {
+        click: function () {
             trayNotifications.enable(!trayNotifications.enabled(), notificationCallback);
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
     },
     goto: {
         label: 'GoTo',
-        click: function() {
+        click: function () {
             StartInterface("hifiapp:GOTO");
             pendingNotifications[HifiNotificationType.GOTO] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
@@ -411,7 +411,7 @@ var labels = {
     },
     people: {
         label: 'People',
-        click: function() {
+        click: function () {
             StartInterface("hifiapp:PEOPLE");
             pendingNotifications[HifiNotificationType.PEOPLE] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
@@ -419,7 +419,7 @@ var labels = {
     },
     wallet: {
         label: 'Wallet',
-        click: function() {
+        click: function () {
             StartInterface("hifiapp:WALLET");
             pendingNotifications[HifiNotificationType.WALLET] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
@@ -427,7 +427,7 @@ var labels = {
     },
     marketplace: {
         label: 'Market',
-        click: function() {
+        click: function () {
             StartInterface("hifiapp:MARKET");
             pendingNotifications[HifiNotificationType.MARKETPLACE] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
@@ -497,16 +497,16 @@ function buildMenuArray(serverState) {
     if (isShuttingDown) {
         menuArray.push(labels.shuttingDown);
     } else {
-        if(isServerInstalled()) {
+        if (isServerInstalled()) {
             menuArray.push(labels.serverState);
             menuArray.push(labels.version);
             menuArray.push(separator);
         }
-        if(isServerInstalled() && isInterfaceInstalled()) {
+        if (isServerInstalled() && isInterfaceInstalled()) {
             menuArray.push(labels.goHome);
             menuArray.push(separator);
         }
-        if(isServerInstalled()) {
+        if (isServerInstalled()) {
             menuArray.push(labels.restart);
             menuArray.push(labels.stopServer);
             menuArray.push(labels.settings);
@@ -515,7 +515,7 @@ function buildMenuArray(serverState) {
         }
         menuArray.push(labels.share);
         menuArray.push(separator);
-        if(isInterfaceInstalled()) {
+        if (isInterfaceInstalled()) {
             menuArray.push(labels.goto);
             menuArray.push(labels.people);
             menuArray.push(labels.wallet);

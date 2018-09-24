@@ -9,10 +9,10 @@ const GetBuildInfo = hfApp.getBuildInfo;
 const buildInfo = GetBuildInfo();
 
 const notificationIcon = path.join(__dirname, '../../resources/console-notification.png');
-const STORIES_NOTIFICATION_POLL_TIME_MS = 15 * 1000;
-const PEOPLE_NOTIFICATION_POLL_TIME_MS = 15 * 1000;
-const WALLET_NOTIFICATION_POLL_TIME_MS = 15 * 1000;
-const MARKETPLACE_NOTIFICATION_POLL_TIME_MS = 15 * 1000;
+const STORIES_NOTIFICATION_POLL_TIME_MS = 15 * 1000;     // 120 * 1000;
+const PEOPLE_NOTIFICATION_POLL_TIME_MS = 15 * 1000;      // 120 * 1000;
+const WALLET_NOTIFICATION_POLL_TIME_MS = 15 * 1000;      // 600 * 1000;
+const MARKETPLACE_NOTIFICATION_POLL_TIME_MS = 15 * 1000; // 600 * 1000;
 
 const METAVERSE_SERVER_URL= process.env.HIFI_METAVERSE_URL ? process.env.HIFI_METAVERSE_URL : 'https://metaverse.highfidelity.com'
 const STORIES_URL= '/api/v1/user_stories';
@@ -39,24 +39,22 @@ function HifiNotification(notificationType, notificationData, menuNotificationCa
 }
 
 HifiNotification.prototype = {
-    show: function() {
+    show: function () {
         var text = "";
         var message = "";
         var url = null;
         var app = null;
-        switch(this.type) {
+        switch (this.type) {
             case NotificationType.GOTO:
-                if(typeof(this.data) == "number") {
+                if (typeof(this.data) == "number") {
                     if (this.data == 1) {
                         text = "You have " + this.data + " event invitation pending."
-                    }
-                    else {
+                    } else {
                         text = "You have " + this.data + " event invitations pending."
                     }
                     message = "Click to open GOTO.";
                     url="hifiapp:GOTO"
-                }
-                else {
+                } else {
                     text = this.data.username + " " + this.data.action_string + " in " + this.data.place_name + ".";
                     message = "Click to go to " + this.data.place_name + ".";
                     url = "hifi://" + this.data.place_name + this.data.path;
@@ -64,17 +62,15 @@ HifiNotification.prototype = {
                 break;
 
             case NotificationType.PEOPLE:
-                if(typeof(this.data) == "number") {
+                if (typeof(this.data) == "number") {
                     if (this.data == 1) {
                         text = this.data + " of your connections is online."
-                    }
-                    else {
+                    } else {
                         text = this.data + " of your connections are online."
                     }
                     message = "Click to open PEOPLE.";
                     url="hifiapp:PEOPLE"
-                }
-                else {
+                } else {
                     text = this.data.username + " is available in " + this.data.location.root.name + ".";
                     message = "Click to join them.";
                     url="hifi://" + this.data.location.root.name + this.data.location.path;
@@ -82,11 +78,10 @@ HifiNotification.prototype = {
                 break;
 
             case NotificationType.WALLET:
-                if(typeof(this.data) == "number") {
+                if (typeof(this.data) == "number") {
                     if (this.data == 1) {
                         text = "You have " + this.data + " unread Wallet transaction.";
-                    }
-                    else {
+                    } else {
                         text = "You have " + this.data + " unread Wallet transactions.";
                     }
                     message = "Click to open WALLET."
@@ -99,15 +94,13 @@ HifiNotification.prototype = {
                 break;
 
             case NotificationType.MARKETPLACE:
-                if(typeof(this.data) == "number") {
+                if (typeof(this.data) == "number") {
                     if (this.data == 1) {
                         text = this.data + " of your purchased items has an update available.";
-                    }
-                    else {  
+                    } else {  
                         text = this.data + " of your purchased items have updates available.";
                     }
-                }
-                else {
+                } else {
                     text = "Update available for " + this.data.base_item_title + ".";
                 }
                 message = "Click to open MARKET.";
@@ -138,64 +131,63 @@ function HifiNotifications(config, menuNotificationCallback) {
     this.enable(this.enabled());
 
     var _menuNotificationCallback = menuNotificationCallback;
-    notifier.on('click', function(notifierObject, options) {
+    notifier.on('click', function (notifierObject, options) {
         StartInterface(options.url);
         _menuNotificationCallback(options.notificationType, false);
     });
 }
 
 HifiNotifications.prototype = {
-    enable: function(enabled) {
+    enable: function (enabled) {
         this.config.set("enableTrayNotifications", enabled);
-        if(enabled) {
+        if (enabled) {
             var _this = this;
-            this.storiesPollTimer = setInterval(function() {
+            this.storiesPollTimer = setInterval(function () {
                 var _since = _this.storiesSince;
                 _this.storiesSince = new Date();
                 _this.pollForStories(_since);
             },
             STORIES_NOTIFICATION_POLL_TIME_MS);
 
-            this.peoplePollTimer = setInterval(function() {
+            this.peoplePollTimer = setInterval(function () {
                 var _since = _this.peopleSince;
                 _this.peopleSince = new Date();
                 _this.pollForConnections(_since);
             },
             PEOPLE_NOTIFICATION_POLL_TIME_MS);
 
-            this.walletPollTimer = setInterval(function() {
+            this.walletPollTimer = setInterval(function () {
                 var _since = _this.walletSince;
                 _this.walletSince = new Date();
                 _this.pollForEconomicActivity(_since);
             },
             WALLET_NOTIFICATION_POLL_TIME_MS);
 
-            this.marketplacePollTimer = setInterval(function() {
+            this.marketplacePollTimer = setInterval(function () {
                 var _since = _this.marketplaceSince;
                 _this.marketplaceSince = new Date();
                 _this.pollForMarketplaceUpdates(_since);
             },
             MARKETPLACE_NOTIFICATION_POLL_TIME_MS);
-        }
-        else {
-            if(this.storiesPollTimer) {
+        } else {
+            if (this.storiesPollTimer) {
                 clearInterval(this.storiesPollTimer);
             }
-            if(this.peoplePollTimer) {
+            if (this.peoplePollTimer) {
                 clearInterval(this.peoplePollTimer);
             }
-            if(this.walletPollTimer) {
+            if (this.walletPollTimer) {
                 clearInterval(this.walletPollTimer);
             }
-            if(this.marketplacePollTimer) {
+            if (this.marketplacePollTimer) {
                 clearInterval(this.marketplacePollTimer);
             }
         }
     },
-    enabled: function() {
+    enabled: function () {
         return this.config.get("enableTrayNotifications", true);
     },
-    stopPolling: function() {
+    stopPolling: function () {
         this.config.set("storiesNotifySince", this.storiesSince.toISOString());
         this.config.set("peopleNotifySince", this.peopleSince.toISOString());
         this.config.set("walletNotifySince", this.walletSince.toISOString());
@@ -203,31 +195,31 @@ HifiNotifications.prototype = {
 
         this.enable(false);
     },
-    _pollToDisableHighlight: function(notifyType, error, data) {
+    _pollToDisableHighlight: function (notifyType, error, data) {
         if (error || !data.body) {
             console.log("Error: unable to get " + url);
             return false;
         }
         var content = JSON.parse(data.body);
-        if(!content || content.status != 'success') {
+        if (!content || content.status != 'success') {
             console.log("Error: unable to get " + url);
             return false;
         }
-        if(!content.total_entries) {
+        if (!content.total_entries) {
             this.menuNotificationCallback(notifyType, false);
         }
     },
-    _pollCommon: function(notifyType, url, since, finished) {
+    _pollCommon: function (notifyType, url, since, finished) {
 
         var _this = this;
-        IsInterfaceRunning(function(running) {
-            if(running) {
+        IsInterfaceRunning(function (running) {
+            if (running) {
                 finished(false);
                 return;
             }
             var acctInfo = new AccountInfo();
             var token = acctInfo.accessToken(METAVERSE_SERVER_URL);
-            if(!token) {
+            if (!token) {
                 return;
             }
             request.get({
@@ -244,24 +236,23 @@ HifiNotifications.prototype = {
                     return;
                 }
                 var content = JSON.parse(data.body);
-                if(!content || content.status != 'success') {
+                if (!content || content.status != 'success') {
                     console.log("Error: unable to get " + url);
                     finished(false);
                     return;
                 }
                 console.log(content);
-                if(!content.total_entries) {
+                if (!content.total_entries) {
                     finished(true, token);
                     return;
                 }
                 _this.menuNotificationCallback(notifyType, true);
-                if(content.total_entries >= maxNotificationItemCount) {
+                if (content.total_entries >= maxNotificationItemCount) {
                     var notification = new HifiNotification(notifyType, content.total_entries);
                     notification.show();   
-                }
-                else {
+                } else {
                     var notifyData = []
-                    switch(notifyType) {
+                    switch (notifyType) {
                         case NotificationType.GOTO:
                             notifyData = content.user_stories;
                             break;
@@ -276,7 +267,7 @@ HifiNotifications.prototype = {
                             break;
                     }
 
-                    notifyData.forEach(function(notifyDataEntry) {
+                    notifyData.forEach(function (notifyDataEntry) {
                         var notification = new HifiNotification(notifyType, notifyDataEntry);
                         notification.show();
                     });
@@ -285,7 +276,7 @@ HifiNotifications.prototype = {
             });
         });
     },
-    pollForStories: function(since) {
+    pollForStories: function (since) {
         var _this = this;
         var actions = 'announcement';
         var options = [
@@ -303,7 +294,7 @@ HifiNotifications.prototype = {
             url, 
             since,
             function (success, token) {
-                if(success) {
+                if (success) {
                     var options = [
                         'now=' + new Date().toISOString(),
                         'include_actions=announcement',
@@ -319,17 +310,17 @@ HifiNotifications.prototype = {
                         'auth': {
                             'bearer': token
                           }
-                        }, function(error, data) {
+                        }, function (error, data) {
                             _this._pollToDisableHighlight(NotificationType.GOTO, error, data);
                     });
                 }
         });
     },
-    pollForConnections: function(since) {
+    pollForConnections: function (since) {
         var _this = this;
         var _since = since;
-        IsInterfaceRunning(function(running) {
-            if(running) {
+        IsInterfaceRunning(function (running) {
+            if (running) {
                 return;
             }
             var options = [
@@ -343,7 +334,7 @@ HifiNotifications.prototype = {
             console.log(url);
             var acctInfo = new AccountInfo();
             var token = acctInfo.accessToken(METAVERSE_SERVER_URL);
-            if(!token) {
+            if (!token) {
                 return;
             }
             request.get({
@@ -359,12 +350,12 @@ HifiNotifications.prototype = {
                     return false;
                 }
                 var content = JSON.parse(data.body);
-                if(!content || content.status != 'success') {
+                if (!content || content.status != 'success') {
                     console.log("Error: unable to get " + url);
                     return false;
                 }
                 console.log(content);
-                if(!content.total_entries) {
+                if (!content.total_entries) {
                     _this.menuNotificationCallback(NotificationType.PEOPLE, false);
                     _this.onlineUsers = new Set([]);
                     return;
@@ -372,31 +363,31 @@ HifiNotifications.prototype = {
 
                 var currentUsers = new Set([]);
                 var newUsers = new Set([]);
-                content.data.users.forEach(function(user) {
+                content.data.users.forEach(function (user) {
                     currentUsers.add(user.username);
-                    if(!_this.onlineUsers.has(user.username)) {
+                    if (!_this.onlineUsers.has(user.username)) {
                         newUsers.add(user);
                         _this.onlineUsers.add(user.username);     
                     }
                 });
                 _this.onlineUsers = currentUsers;
-                if(newUsers.size) {
+                if (newUsers.size) {
                     _this.menuNotificationCallback(NotificationType.PEOPLE, true);
                 }
 
-                if(newUsers.size >= maxNotificationItemCount) {
+                if (newUsers.size >= maxNotificationItemCount) {
                     var notification = new HifiNotification(NotificationType.PEOPLE, newUsers.size);
                     notification.show();
                     return;
                 }
-                newUsers.forEach(function(user) {
+                newUsers.forEach(function (user) {
                     var notification = new HifiNotification(NotificationType.PEOPLE, user);
                     notification.show();
                 });
             });
         });
     },
-    pollForEconomicActivity: function(since) {
+    pollForEconomicActivity: function (since) {
         var _this = this;
         var options = [
             'since=' + since.getTime() / 1000,
@@ -410,7 +401,7 @@ HifiNotifications.prototype = {
         console.log(url);
         _this._pollCommon(NotificationType.WALLET, url, since, function () {});
     },
-    pollForMarketplaceUpdates: function(since) {
+    pollForMarketplaceUpdates: function (since) {
         var _this = this;
         var options = [
             'since=' + since.getTime() / 1000,
@@ -421,7 +412,7 @@ HifiNotifications.prototype = {
         var url = METAVERSE_SERVER_URL + UPDATES_URL + '?' + options.join('&');
         console.log(url);
         _this._pollCommon(NotificationType.MARKETPLACE, url, since, function (success, token) {
-            if(success) {
+            if (success) {
                 var options = [
                     'page=1',
                     'per_page=1'
@@ -432,7 +423,7 @@ HifiNotifications.prototype = {
                         'auth': {
                             'bearer': token
                         }
-                    }, function(error, data) {
+                    }, function (error, data) {
                         _this._pollToDisableHighlight(NotificationType.MARKETPLACE, error, data);
                 });
             }

@@ -401,7 +401,7 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     // Read from the file to know what .html or .qml document to open
     QFile appFile(_appsPath + "/" + appHref.fileName());
     if (!appFile.open(QIODevice::ReadOnly)) {
-        qCDebug(commerce) << "Couldn't open local .app.json file:" << _appsPath << "/" << appHref.fileName();
+        qCDebug(commerce) << "Couldn't open local .app.json file:" << appFile;
         return false;
     }
     QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
