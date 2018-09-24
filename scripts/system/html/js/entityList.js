@@ -20,7 +20,7 @@ const IMAGE_MODEL_NAME = 'default-image-model.fbx';
 const COLLAPSE_EXTRA_INFO = "E";
 const EXPAND_EXTRA_INFO = "D";
 const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
-const WINDOW_NONVARIABLE_HEIGHT = 206;
+const WINDOW_NONVARIABLE_HEIGHT = 207;
 const NUM_COLUMNS = 12;
 const EMPTY_ENTITY_ID = "0";
 const DELETE = 46; // Key code for the delete key.
@@ -68,7 +68,7 @@ var visibleEntities = [];
 // List of all entities that are currently selected
 var selectedEntities = [];
 
-var entityList = null; // ListView
+var entityList = null; // The ListView
 
 var currentSortColumn = 'type';
 var currentSortOrder = ASCENDING_SORT;
@@ -178,11 +178,11 @@ function loaded() {
         elInView.onclick = toggleFilterInView;
         elRadius.onchange = onRadiusChange;
         elInfoToggle.onclick = toggleInfo;
-        window.onresize = resize;
         
         elNoEntitiesInView.style.display = "none";
         
-        entityList = new ListView("entity-table", "entity-table-body", "entity-table-scroll", createRow, updateRow, clearRow);
+        entityList = new ListView("entity-table", "entity-table-body", "entity-table-scroll", 
+                                  createRow, updateRow, clearRow, resize, WINDOW_NONVARIABLE_HEIGHT);
         
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
@@ -257,7 +257,7 @@ function loaded() {
         function updateEntityData(entityData) {
             entities = [];
             entitiesByID = {};
-            visibleEntities = [];
+            visibleEntities.length = 0; // maintains itemData reference in ListView
             
             PROFILE("map-data", function() {
                 entityData.forEach(function(entity) {
@@ -282,7 +282,7 @@ function loaded() {
                         isBaked: entity.isBaked ? BAKED_GLYPH : null,
                         drawCalls: displayIfNonZero(entity.drawCalls),
                         hasScript: entity.hasScript ? SCRIPT_GLYPH : null,
-                        elRow: null,
+                        elRow: null, // if this entity has a row element assigned to it
                         selected: false
                     }
                     
@@ -317,9 +317,6 @@ function loaded() {
 
                 PROFILE("update-dom", function() {
                     entityList.itemData = visibleEntities;
-                    if (visibleEntities.length < entityList.rowOffset) {
-                        entityList.resetRowOffset();
-                    }
                     entityList.refresh();
                 });
                 
@@ -330,6 +327,9 @@ function loaded() {
         
         function removeEntities(deletedIDs) {
             // Loop from the back so we can pop items off while iterating
+            
+            // delete any entities matching deletedIDs list from entities and entitiesByID lists
+            // if the entity had an associated row element then ensure row is unselected and clear it's entity
             for (let j = entities.length - 1; j >= 0; --j) {
                 let id = entities[j].id;
                 for (let i = 0, length = deletedIDs.length; i < length; ++i) {
@@ -346,6 +346,7 @@ function loaded() {
                 }
             }
             
+            // delete any entities matching deletedIDs list from selectedEntities list
             for (let j = selectedEntities.length - 1; j >= 0; --j) {
                 let id = selectedEntities[j].id;
                 for (let i = 0, length = deletedIDs.length; i < length; ++i) {
@@ -355,14 +356,32 @@ function loaded() {
                     }
                 }
             }
+
+            // delete any entities matching deletedIDs list from visibleEntities list
+            // if this was a row that was above our current row offset (a hidden top row in the top buffer),
+            // then decrease row offset accordingly
+            let firstVisibleRow = entityList.getFirstVisibleRowIndex();
+            for (let j = visibleEntities.length - 1; j >= 0; --j) {
+                let id = visibleEntities[j].id;
+                for (let i = 0, length = deletedIDs.length; i < length; ++i) {
+                    if (id === deletedIDs[i]) {
+                        if (j < firstVisibleRow && entityList.rowOffset > 0) {
+                            entityList.rowOffset--;
+                        }
+                        visibleEntities.splice(j, 1);
+                        break;
+                    }
+                }
+            }
             
-            entityList.removeItems(deletedIDs);
+            entityList.refresh();
             
             refreshFooter();
             refreshNoEntitiesMessage();
         }
         
         function clearEntities() {
+            // clear the associated entity ID from all visible row elements
             let firstVisibleRow = entityList.getFirstVisibleRowIndex();
             let lastVisibleRow = entityList.getLastVisibleRowIndex();
             for (let i = firstVisibleRow; i <= lastVisibleRow && i < visibleEntities.length; i++) {
@@ -372,9 +391,9 @@ function loaded() {
             
             entities = [];
             entitiesByID = {};
-            visibleEntities = [];
+            visibleEntities.length = 0; // maintains itemData reference in ListView
             
-            entityList.resetRowOffset();
+            entityList.resetToTop();
             entityList.clear();
             
             refreshFooter();
@@ -439,6 +458,7 @@ function loaded() {
         function updateSelectedEntities(selectedIDs) {
             let notFound = false;
             
+            // reset all currently selected entities and their rows first
             selectedEntities.forEach(function(id) {
                 let entity = entitiesByID[id];
                 if (entity !== undefined) {
@@ -449,8 +469,8 @@ function loaded() {
                 }
             });
             
+            // then reset selected entities list with newly selected entities and set them selected
             selectedEntities = [];
-            
             selectedIDs.forEach(function(id) {
                 selectedEntities.push(id);
                 let entity = entitiesByID[id];
@@ -489,6 +509,7 @@ function loaded() {
         }
         
         function updateRow(elRow, itemData) {
+            // update all column texts and glyphs to this entity's data
             let typeCell = elRow.childNodes[COLUMN_INDEX.TYPE];
             typeCell.innerText = itemData.type;
             let nameCell = elRow.childNodes[COLUMN_INDEX.NAME];
@@ -514,12 +535,16 @@ function loaded() {
             let hasScriptCell = elRow.childNodes[COLUMN_INDEX.HAS_SCRIPT];
             hasScriptCell.innerText = itemData.hasScript;
             
+            // if this entity was previously selected flag it's row as selected
             if (itemData.selected) {
                 elRow.className = 'selected';
             } else {
                 elRow.className = '';
             }
-            
+
+            // if this row previously had an associated entity ID that wasn't the new entity ID then clear
+            // the ID from the row and the row element from the previous entity's data, then set the new 
+            // entity ID to the row and the row element to the new entity's data
             let prevEntityID = elRow.dataset.entityID;
             let newEntityID = itemData.id;
             let validPrevItemID = prevEntityID !== undefined && prevEntityID !== EMPTY_ENTITY_ID;
@@ -534,6 +559,7 @@ function loaded() {
         }
         
         function clearRow(elRow) {
+            // reset all texts and glyphs for each of the row's column
             for (let i = 0; i < NUM_COLUMNS; i++) {
                 let cell = elRow.childNodes[i];
                 if (isGlyphColumn(i)) {
@@ -543,22 +569,18 @@ function loaded() {
                 }
             }
             
+            // clear the row from any associated entity
             let entityID = elRow.dataset.entityID;
             if (entityID && entitiesByID[entityID]) {
                 entitiesByID[entityID].elRow = null;
             }
             
+            // reset the row to hidden and clear the entity from the row
             elRow.className = '';
             elRow.dataset.entityID = EMPTY_ENTITY_ID;
         }
 
         function resize() {
-            // Store current scroll position
-            let prevScrollTop = elEntityTableScroll.scrollTop;
-            
-            // Take up available window space
-            elEntityTableScroll.style.height = window.innerHeight - 207;
-            
             let SCROLLABAR_WIDTH = 21;
             let tds = document.querySelectorAll("#entity-table-body tr:first-child td");
             let ths = document.querySelectorAll("#entity-table thead th");
@@ -589,15 +611,8 @@ function loaded() {
                     ths[3].width = 0.08 * tableWidth;
                     ths[4].width = 0.08 * tableWidth;
                 }
-            }
-            
-            // Reinitialize rows according to new table height and refresh row data
-            entityList.resetRows(window.innerHeight - WINDOW_NONVARIABLE_HEIGHT);
-            entityList.refresh();
-            
-            // Restore scrolling to previous scroll position before resetting rows
-            elEntityTableScroll.scrollTop = prevScrollTop;
-        };
+            } 
+        }
         
         function toggleFilterInView() {
             isFilterInView = !isFilterInView;
@@ -614,14 +629,15 @@ function loaded() {
         
         function onFilterChange() {
             refreshEntityList();
-            resize();
+            entityList.resize();
         }
         
         function onRadiusChange() {
             elRadius.value = Math.max(elRadius.value, 0);
+            elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
+            elNoEntitiesMessage.style.display = "none";
             EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));
             refreshEntities();
-            elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
         }
 
         function toggleInfo(event) {
@@ -633,7 +649,7 @@ function loaded() {
                 elEntityTable.className = "";
                 elInfoToggleGlyph.innerHTML = EXPAND_EXTRA_INFO;
             }
-            resize();
+            entityList.resize();
             event.stopPropagation();
         }
 
@@ -644,7 +660,6 @@ function loaded() {
             let keyCode = keyDownEvent.keyCode;
             if (keyCode === DELETE) {
                 EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
-                refreshEntities();
             }
             if (keyDownEvent.keyCode === KEY_P && keyDownEvent.ctrlKey) {
                 if (keyDownEvent.shiftKey) {
@@ -686,7 +701,6 @@ function loaded() {
             });
         }
         
-        resize();
         refreshSortOrder();
         refreshEntities();
     });
