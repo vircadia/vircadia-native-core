@@ -408,9 +408,7 @@ Rectangle {
 
         Connections {
             onSendSignalToWallet: {
-                if (msg.method === 'walletReset' || msg.method === 'passphraseReset') {
-                    sendToScript(msg);
-                } else if (msg.method === 'walletSecurity_changeSecurityImage') {
+                if (msg.method === 'walletSecurity_changeSecurityImage') {
                     securityImageChange.initModel();
                     root.activeView = "securityImageChange";
                 }
