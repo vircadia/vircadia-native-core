@@ -450,7 +450,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.fadePlayArea = function () {
             var i, length;
             _this.PlayAreaFadeFactor = _this.PlayAreaFadeFactor - _this.PLAY_AREA_FADE_DELTA;
-            if (_this.PlayAreaFadeFactor > 0) {
+            if (_this.PlayAreaFadeFactor > 0 && !_this.isTeleportVisible) {
                 // Fade.
                 Overlays.editOverlay(_this.teleportedTargetOverlay, {
                     alpha: _this.PlayAreaFadeFactor * _this.TELEPORTED_TARGET_ALPHA
