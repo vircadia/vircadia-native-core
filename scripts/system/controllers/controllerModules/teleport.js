@@ -189,6 +189,61 @@ Script.include("/~/system/libraries/controllers.js");
         this.TELEPORTED_TARGET_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 });
         this.teleportedTargetOverlay = null;
 
+        this.setPlayAreaDimensions = function () {
+            var avatarScale = MyAvatar.scale;
+
+            var playAreaOverlayProperties = {
+                dimensions:
+                    Vec3.multiply(this.teleportScaleFactor * avatarScale, {
+                        x: this.playArea.width,
+                        y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y,
+                        z: this.playArea.height
+                    })
+            };
+
+            if (this.teleportScaleFactor < 1) {
+                // Adjust position of playAreOverlay so that its base is at correct height.
+                // Always parenting to teleport target is good enough for this.
+                var sensorToWorldMatrix = MyAvatar.sensorToWorldMatrix;
+                var sensorToWorldRotation = Mat4.extractRotation(MyAvatar.sensorToWorldMatrix);
+                var worldToSensorMatrix = Mat4.inverse(sensorToWorldMatrix);
+                var avatarSensorPosition = Mat4.transformPoint(worldToSensorMatrix, MyAvatar.position);
+                avatarSensorPosition.y = 0;
+
+                var targetRotation = Overlays.getProperty(this.targetOverlayID, "rotation");
+                var relativePlayAreaCenterOffset =
+                    Vec3.sum(this.playAreaCenterOffset, { x: 0, y: -TARGET_MODEL_DIMENSIONS.y / 2, z: 0 });
+                var localPosition = Vec3.multiplyQbyV(Quat.inverse(targetRotation),
+                    Vec3.multiplyQbyV(sensorToWorldRotation,
+                        Vec3.multiply(MyAvatar.scale, Vec3.subtract(relativePlayAreaCenterOffset, avatarSensorPosition))));
+                localPosition.y = this.teleportScaleFactor * localPosition.y;
+
+                playAreaOverlayProperties.parentID = this.targetOverlayID;
+                playAreaOverlayProperties.localPosition = localPosition;
+            }
+
+            Overlays.editOverlay(this.playAreaOverlay, playAreaOverlayProperties);
+
+            for (var i = 0; i < this.playAreaSensorPositionOverlays.length; i++) {
+                localPosition = this.playAreaSensorPositions[i];
+                localPosition = Vec3.multiply(avatarScale, localPosition);
+                // Position relative to the play area.
+                localPosition.y = avatarScale * (this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2
+                    - this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2);
+                Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], {
+                    dimensions: Vec3.multiply(this.teleportScaleFactor * avatarScale, this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS),
+                    parentID: this.playAreaOverlay,
+                    localPosition: localPosition
+                });
+            }
+        };
+
+        this.updatePlayAreaScale = function () {
+            if (this.isPlayAreaAvailable) {
+                this.setPlayAreaDimensions();
+            }
+        };
+
 
         this.teleporterSelectionName = "teleporterSelection" + hand.toString();
         this.TELEPORTER_SELECTION_STYLE = {
@@ -386,61 +441,6 @@ Script.include("/~/system/libraries/controllers.js");
         
         _this.initPointers();
 
-
-        this.setPlayAreaDimensions = function () {
-            var avatarScale = MyAvatar.scale;
-
-            var playAreaOverlayProperties = {
-                dimensions:
-                    Vec3.multiply(this.teleportScaleFactor * avatarScale, {
-                        x: this.playArea.width,
-                        y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y,
-                        z: this.playArea.height
-                    })
-            };
-
-            if (this.teleportScaleFactor < 1) {
-                // Adjust position of playAreOverlay so that its base is at correct height.
-                // Always parenting to teleport target is good enough for this.
-                var sensorToWorldMatrix = MyAvatar.sensorToWorldMatrix;
-                var sensorToWorldRotation = Mat4.extractRotation(MyAvatar.sensorToWorldMatrix);
-                var worldToSensorMatrix = Mat4.inverse(sensorToWorldMatrix);
-                var avatarSensorPosition = Mat4.transformPoint(worldToSensorMatrix, MyAvatar.position);
-                avatarSensorPosition.y = 0;
-
-                var targetRotation = Overlays.getProperty(this.targetOverlayID, "rotation");
-                var relativePlayAreaCenterOffset =
-                    Vec3.sum(this.playAreaCenterOffset, { x: 0, y: -TARGET_MODEL_DIMENSIONS.y / 2, z: 0 });
-                var localPosition = Vec3.multiplyQbyV(Quat.inverse(targetRotation),
-                    Vec3.multiplyQbyV(sensorToWorldRotation,
-                        Vec3.multiply(MyAvatar.scale, Vec3.subtract(relativePlayAreaCenterOffset, avatarSensorPosition))));
-                localPosition.y = this.teleportScaleFactor * localPosition.y;
-
-                playAreaOverlayProperties.parentID = this.targetOverlayID;
-                playAreaOverlayProperties.localPosition = localPosition;
-            }
-
-            Overlays.editOverlay(this.playAreaOverlay, playAreaOverlayProperties);
-
-            for (var i = 0; i < this.playAreaSensorPositionOverlays.length; i++) {
-                localPosition = this.playAreaSensorPositions[i];
-                localPosition = Vec3.multiply(avatarScale, localPosition);
-                // Position relative to the play area.
-                localPosition.y = avatarScale * (this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2
-                    - this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2);
-                Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], {
-                    dimensions: Vec3.multiply(this.teleportScaleFactor * avatarScale, this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS),
-                    parentID: this.playAreaOverlay,
-                    localPosition: localPosition
-                });
-            }
-        };
-
-        this.updatePlayAreaScale = function () {
-            if (this.isPlayAreaAvailable) {
-                this.setPlayAreaDimensions();
-            }
-        };
 
         this.playAreaFadeTimer = null;
         this.PlayAreaFadeFactor = 1.0;
