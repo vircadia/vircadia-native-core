@@ -51,9 +51,10 @@ void main(void) {
     vec2 fragUVPos = (vec2(fragPixelPos) + vec2(0.5))  / sideImageSize;
 
     // The position and normal of the pixel fragment in Eye space
-    vec3 fragPositionES = evalEyePositionFromZeye(side.x, Zeye, fragUVPos);
+    vec3 fragPositionES = buildPosition(side, fragUVPos);
 #if !SSAO_USE_QUAD_SPLIT
-    vec3 fragNormalES = buildNormal(side, fragUVPos, depthTexFragPixelPos, fragPositionES, depthSideSize);
+    vec2 deltaDepthUV = vec2(1.0) / depthSideSize;
+    vec3 fragNormalES = buildNormal(side, fragUVPos, fragPositionES, deltaDepthUV);
 #endif
 
     // Choose the screen-space sample radius

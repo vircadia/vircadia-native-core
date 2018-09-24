@@ -109,8 +109,8 @@ void AmbientOcclusionFramebuffer::allocate() {
         }
         auto width = sideSize.x;
         auto height = sideSize.y;
-
-        _normalTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
+        auto format = gpu::Element::COLOR_RGBA_32;
+        _normalTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
         _normalFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ssaoNormals"));
         _normalFramebuffer->setRenderBuffer(0, _normalTexture);
     }
@@ -561,8 +561,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     }
     // _frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
 
-    gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {
-		PROFILE_RANGE_BATCH(batch, "AmbientOcclusion");
+    gpu::doInBatch("AmbientOcclusionEffect::Depth mip creation", args->_context, [=](gpu::Batch& batch) {
+		PROFILE_RANGE_BATCH(batch, "AO::Depth mip creation");
 		batch.enableStereo(false);
 
         _gpuTimer->begin(batch);
@@ -574,28 +574,56 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setModelTransform(model);
 
 		// We need this with the mips levels
-		batch.pushProfileRange("Depth mip creation");
 #if SSAO_USE_HORIZON_BASED
-            batch.setPipeline(mipCreationPipeline);
-            batch.generateTextureMipsWithPipeline(occlusionDepthTexture);
+        batch.setPipeline(mipCreationPipeline);
+        batch.generateTextureMipsWithPipeline(occlusionDepthTexture);
 #else
-            batch.generateTextureMips(occlusionDepthTexture);
+        batch.generateTextureMips(occlusionDepthTexture);
 #endif
-		batch.popProfileRange();
+
+        _gpuTimer->end(batch);
+    });
 
 #if SSAO_USE_QUAD_SPLIT
+    gpu::doInBatch("AmbientOcclusionEffect::Build Normals", args->_context, [=](gpu::Batch& batch) {
+        PROFILE_RANGE_BATCH(batch, "AO::Build Normals");
+        batch.enableStereo(false);
+
+        _gpuTimer->begin(batch);
+
+        batch.resetViewTransform();
+
+        batch.setProjectionTransform(glm::mat4());
+        Transform model;
+        auto depthTextureSize = linearDepthTexture->getDimensions();
+        model.setScale( glm::vec3(occlusionViewport.z / (depthTextureSize.x * resolutionScale), occlusionViewport.w / (depthTextureSize.y * resolutionScale), 1.0f) );
+        batch.setModelTransform(model);
+
         // Build face normals pass
-        batch.pushProfileRange("Build Normals");
-            batch.setViewportTransform(occlusionViewport);
-            batch.setPipeline(buildNormalsPipeline);
-            batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
-            batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, nullptr);
-            batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
-            batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
-            batch.setFramebuffer(occlusionNormalFramebuffer);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-        batch.popProfileRange();
+        batch.setViewportTransform(occlusionViewport);
+        batch.setPipeline(buildNormalsPipeline);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, nullptr);
+        batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
+        batch.setFramebuffer(occlusionNormalFramebuffer);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        _gpuTimer->end(batch);
+    });
 #endif
+
+    gpu::doInBatch("AmbientOcclusionEffect::Occlusion", args->_context, [=](gpu::Batch& batch) {
+        PROFILE_RANGE_BATCH(batch, "AO::Occlusion");
+        batch.enableStereo(false);
+
+        _gpuTimer->begin(batch);
+
+        batch.resetViewTransform();
+
+        Transform model;
+        batch.setProjectionTransform(glm::mat4());
+        batch.setModelTransform(model);
 
         // Occlusion pass
         batch.pushProfileRange("Occlusion");

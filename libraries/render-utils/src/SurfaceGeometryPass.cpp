@@ -73,19 +73,20 @@ void LinearDepthFramebuffer::allocate() {
     auto height = _frameSize.y;
 
     // For Linear Depth:
-    const uint16_t LINEAR_DEPTH_MAX_MIP_LEVEL = 5;
-    // Point sampling of the depth is needed for the AmbientOcclusionEffect in HBAO, as well as the clamp to edge
-    const auto depthSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_POINT, gpu::Sampler::WRAP_CLAMP);
+    const uint16_t LINEAR_DEPTH_MAX_MIP_LEVEL = 1;
+    const auto depthSamplerFull = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP);
     _linearDepthTexture = gpu::Texture::createRenderBuffer(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED), width, height, LINEAR_DEPTH_MAX_MIP_LEVEL,
-        depthSampler);
+        depthSamplerFull);
     _linearDepthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("linearDepth"));
     _linearDepthFramebuffer->setRenderBuffer(0, _linearDepthTexture);
     _linearDepthFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, _primaryDepthTexture->getTexelFormat());
 
     // For Downsampling:
-    const uint16_t HALF_LINEAR_DEPTH_MAX_MIP_LEVEL = LINEAR_DEPTH_MAX_MIP_LEVEL;
+    const uint16_t HALF_LINEAR_DEPTH_MAX_MIP_LEVEL = 5;
+    // Point sampling of the depth, as well as the clamp to edge, are needed for the AmbientOcclusionEffect with HBAO
+    const auto depthSamplerHalf = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_POINT, gpu::Sampler::WRAP_CLAMP);
     _halfLinearDepthTexture = gpu::Texture::createRenderBuffer(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED), _halfFrameSize.x, _halfFrameSize.y, HALF_LINEAR_DEPTH_MAX_MIP_LEVEL,
-        depthSampler);
+        depthSamplerHalf);
 
     _halfNormalTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _halfFrameSize.x, _halfFrameSize.y, gpu::Texture::SINGLE_MIP,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT));
@@ -183,35 +184,47 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     auto halfViewport = divideRoundUp(depthViewport, 2);
     float clearLinearDepth = args->getViewFrustum().getFarClip() * 2.0f;
 
-    gpu::doInBatch("LinearDepthPass::run", args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("LinearDepthPass::ZtoLinearDepth", args->_context, [=](gpu::Batch& batch) {
+        PROFILE_RANGE_BATCH(batch, "ZtoLinearDepth");
         _gpuTimer->begin(batch);
         batch.enableStereo(false);
 
-        batch.setViewportTransform(depthViewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
-        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_linearDepthFramebuffer->getDepthFrameSize(), depthViewport));
 
         batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
 
         // LinearDepth
+        batch.setViewportTransform(depthViewport);
         batch.setFramebuffer(linearDepthFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(clearLinearDepth, 0.0f, 0.0f, 0.0f));
         batch.setPipeline(linearDepthPipeline);
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_linearDepthFramebuffer->getDepthFrameSize(), depthViewport));
         batch.setResourceTexture(ru::Texture::SurfaceGeometryDepth, depthBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
+        _gpuTimer->end(batch);
+    });
+
+    gpu::doInBatch("LinearDepthPass::halfDepth", args->_context, [=](gpu::Batch& batch) {
+        PROFILE_RANGE_BATCH(batch, "LinearDepthDownsample");
+        _gpuTimer->begin(batch);
+        batch.enableStereo(false);
+
+        batch.setProjectionTransform(glm::mat4());
+        batch.resetViewTransform();
+
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+
         // Downsample
         batch.setViewportTransform(halfViewport);
-        Transform model;
-        model.setScale( glm::vec3((depthViewport.z >> 1) / float(halfViewport.z), (depthViewport.w >> 1) / float(halfViewport.w), 1.0f) );
-        batch.setModelTransform(model);
         batch.setFramebuffer(downsampleFBO);
         batch.setResourceTexture(ru::Texture::SurfaceGeometryDepth, linearDepthTexture);
         batch.setResourceTexture(ru::Texture::SurfaceGeometryNormal, normalTexture);
         batch.setPipeline(downsamplePipeline);
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_linearDepthFramebuffer->getDepthFrameSize() >> 1, halfViewport));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-        
+
         _gpuTimer->end(batch);
     });
 
