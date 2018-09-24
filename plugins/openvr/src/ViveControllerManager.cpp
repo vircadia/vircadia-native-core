@@ -568,6 +568,7 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
         return;
     }
 
+    // Compute the defaultToRefrenceMat, this will take inputCalibration default poses into the reference frame. (sensor space)
     glm::mat4 defaultToReferenceMat = glm::mat4();
     if (_headConfig == HeadConfig::HMD) {
         defaultToReferenceMat = calculateDefaultToReferenceForHmd(inputCalibration);
@@ -1025,17 +1026,15 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
 
 void ViveControllerManager::InputDevice::calibrateLeftHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
     controller::Pose& handPose = handPair.second;
-    glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
-    glm::vec3 handPoseTranslation = extractTranslation(handPoseAvatarMat);
-    glm::vec3 handPoseZAxis = glmExtractRotation(handPoseAvatarMat) * glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 avatarHandYAxis = transformVectorFast(inputCalibration.defaultLeftHand, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 handPoseZAxis = handPose.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 defaultHandYAxis = transformVectorFast(defaultToReferenceMat * inputCalibration.defaultLeftHand, glm::vec3(0.0f, 1.0f, 0.0f));
     const float EPSILON = 1.0e-4f;
-    if (fabsf(fabsf(glm::dot(glm::normalize(avatarHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
+    if (fabsf(fabsf(glm::dot(glm::normalize(defaultHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
         handPoseZAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
     glm::vec3 zPrime = handPoseZAxis;
-    glm::vec3 xPrime = glm::normalize(glm::cross(avatarHandYAxis, handPoseZAxis));
+    glm::vec3 xPrime = glm::normalize(glm::cross(defaultHandYAxis, handPoseZAxis));
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
 
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
@@ -1043,7 +1042,7 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(const glm::mat4& defa
 
 
     glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
-    glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
+    glm::quat initialRotation = handPose.getRotation();
     glm::quat finalRotation = glmExtractRotation(newHandMat);
 
     glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
@@ -1056,17 +1055,15 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(const glm::mat4& defa
 
 void ViveControllerManager::InputDevice::calibrateRightHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
     controller::Pose& handPose = handPair.second;
-    glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
-    glm::vec3 handPoseTranslation = extractTranslation(handPoseAvatarMat);
-    glm::vec3 handPoseZAxis = glmExtractRotation(handPoseAvatarMat) * glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 avatarHandYAxis = transformVectorFast(inputCalibration.defaultRightHand, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 handPoseZAxis = handPose.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 defaultHandYAxis = transformVectorFast(defaultToReferenceMat * inputCalibration.defaultRightHand, glm::vec3(0.0f, 1.0f, 0.0f));
     const float EPSILON = 1.0e-4f;
-    if (fabsf(fabsf(glm::dot(glm::normalize(avatarHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
+    if (fabsf(fabsf(glm::dot(glm::normalize(defaultHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
         handPoseZAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
     glm::vec3 zPrime = handPoseZAxis;
-    glm::vec3 xPrime = glm::normalize(glm::cross(avatarHandYAxis, handPoseZAxis));
+    glm::vec3 xPrime = glm::normalize(glm::cross(defaultHandYAxis, handPoseZAxis));
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
@@ -1074,7 +1071,7 @@ void ViveControllerManager::InputDevice::calibrateRightHand(const glm::mat4& def
 
 
     glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
-    glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
+    glm::quat initialRotation = handPose.getRotation();
     glm::quat finalRotation = glmExtractRotation(newHandMat);
 
     glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
@@ -1105,15 +1102,15 @@ void ViveControllerManager::InputDevice::calibrateFeet(const glm::mat4& defaultT
 
 void ViveControllerManager::InputDevice::calibrateFoot(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot){
     controller::Pose footPose = footPair.second;
-    glm::mat4 puckPoseAvatarMat = createMatFromQuatAndPos(footPose.getRotation(), footPose.getTranslation());
+    glm::mat4 puckPoseMat = createMatFromQuatAndPos(footPose.getRotation(), footPose.getTranslation());
     glm::mat4 defaultFoot = isLeftFoot ? inputCalibration.defaultLeftFoot : inputCalibration.defaultRightFoot;
     glm::mat4 footOffset = computeOffset(defaultToReferenceMat, defaultFoot, footPose);
 
     glm::quat rotationOffset = glmExtractRotation(footOffset);
     glm::vec3 translationOffset = extractTranslation(footOffset);
-    glm::vec3 avatarXAxisInPuckFrame = glm::normalize(transformVectorFast(glm::inverse(puckPoseAvatarMat), glm::vec3(-1.0f, 0.0f, 0.0f)));
-    float distance = glm::dot(translationOffset, avatarXAxisInPuckFrame);
-    glm::vec3 finalTranslation =  translationOffset - (distance * avatarXAxisInPuckFrame);
+    glm::vec3 localXAxisInPuckFrame = glm::normalize(transformVectorFast(glm::inverse(puckPoseMat) * defaultToReferenceMat, glm::vec3(-1.0f, 0.0f, 0.0f)));
+    float distance = glm::dot(translationOffset, localXAxisInPuckFrame);
+    glm::vec3 finalTranslation =  translationOffset - (distance * localXAxisInPuckFrame);
     glm::mat4 finalOffset = createMatFromQuatAndPos(rotationOffset, finalTranslation);
 
     if (isLeftFoot) {
