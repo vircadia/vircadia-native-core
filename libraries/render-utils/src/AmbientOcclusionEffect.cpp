@@ -561,8 +561,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     }
     // _frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
 
-    gpu::doInBatch("AmbientOcclusionEffect::Depth mip creation", args->_context, [=](gpu::Batch& batch) {
-		PROFILE_RANGE_BATCH(batch, "AO::Depth mip creation");
+    gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {
+		PROFILE_RANGE_BATCH(batch, "AmbientOcclusion");
 		batch.enableStereo(false);
 
         _gpuTimer->begin(batch);
@@ -573,28 +573,18 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setProjectionTransform(glm::mat4());
         batch.setModelTransform(model);
 
-		// We need this with the mips levels
+        batch.pushProfileRange("Depth Mip Generation");
+        // We need this with the mips levels
 #if SSAO_USE_HORIZON_BASED
         batch.setPipeline(mipCreationPipeline);
         batch.generateTextureMipsWithPipeline(occlusionDepthTexture);
 #else
         batch.generateTextureMips(occlusionDepthTexture);
 #endif
-
-        _gpuTimer->end(batch);
-    });
+        batch.popProfileRange();
 
 #if SSAO_USE_QUAD_SPLIT
-    gpu::doInBatch("AmbientOcclusionEffect::Build Normals", args->_context, [=](gpu::Batch& batch) {
-        PROFILE_RANGE_BATCH(batch, "AO::Build Normals");
-        batch.enableStereo(false);
-
-        _gpuTimer->begin(batch);
-
-        batch.resetViewTransform();
-
-        batch.setProjectionTransform(glm::mat4());
-        Transform model;
+        batch.pushProfileRange("Normal Generation");
         auto depthTextureSize = linearDepthTexture->getDimensions();
         model.setScale( glm::vec3(occlusionViewport.z / (depthTextureSize.x * resolutionScale), occlusionViewport.w / (depthTextureSize.y * resolutionScale), 1.0f) );
         batch.setModelTransform(model);
@@ -608,63 +598,49 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
         batch.setFramebuffer(occlusionNormalFramebuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-        _gpuTimer->end(batch);
-    });
+        batch.popProfileRange();
 #endif
-
-    gpu::doInBatch("AmbientOcclusionEffect::Occlusion", args->_context, [=](gpu::Batch& batch) {
-        PROFILE_RANGE_BATCH(batch, "AO::Occlusion");
-        batch.enableStereo(false);
-
-        _gpuTimer->begin(batch);
-
-        batch.resetViewTransform();
-
-        Transform model;
-        batch.setProjectionTransform(glm::mat4());
-        batch.setModelTransform(model);
 
         // Occlusion pass
         batch.pushProfileRange("Occlusion");
 
-            batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
-            batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
+        batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
 #if SSAO_USE_QUAD_SPLIT
-            batch.setFramebuffer(occlusionBlurredFBO);
+        batch.setFramebuffer(occlusionBlurredFBO);
 #else
-            batch.setFramebuffer(occlusionFBO);
+        batch.setFramebuffer(occlusionFBO);
 #endif
-            batch.setPipeline(occlusionPipeline);
-            batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, occlusionDepthTexture);
+        batch.setPipeline(occlusionPipeline);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, occlusionDepthTexture);
 
 #if SSAO_USE_QUAD_SPLIT
-            batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, occlusionNormalTexture);
-            {
-                auto splitViewport = occlusionViewport >> SSAO_USE_QUAD_SPLIT;
+        batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, occlusionNormalTexture);
+        {
+            auto splitViewport = occlusionViewport >> SSAO_USE_QUAD_SPLIT;
 
-                batch.setViewportTransform(splitViewport);
-                batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-                splitViewport.x += splitViewport.z;
-                batch.setViewportTransform(splitViewport);
-                batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[1]);
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-                splitViewport.y += splitViewport.w;
-                batch.setViewportTransform(splitViewport);
-                batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[2]);
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-                splitViewport.x = 0;
-                batch.setViewportTransform(splitViewport);
-                batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[3]);
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
-            }
-#else
+            batch.setViewportTransform(splitViewport);
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+            splitViewport.x += splitViewport.z;
+            batch.setViewportTransform(splitViewport);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[1]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+            splitViewport.y += splitViewport.w;
+            batch.setViewportTransform(splitViewport);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[2]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+            splitViewport.x = 0;
+            batch.setViewportTransform(splitViewport);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[3]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        }
+#else
+        batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
 #endif
 
         batch.popProfileRange();

@@ -184,9 +184,10 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     auto halfViewport = divideRoundUp(depthViewport, 2);
     float clearLinearDepth = args->getViewFrustum().getFarClip() * 2.0f;
 
-    gpu::doInBatch("LinearDepthPass::ZtoLinearDepth", args->_context, [=](gpu::Batch& batch) {
-        PROFILE_RANGE_BATCH(batch, "ZtoLinearDepth");
+    gpu::doInBatch("LinearDepthPass::run", args->_context, [=](gpu::Batch& batch) {
+        PROFILE_RANGE_BATCH(batch, "LinearDepthPass");
         _gpuTimer->begin(batch);
+
         batch.enableStereo(false);
 
         batch.setProjectionTransform(glm::mat4());
@@ -202,19 +203,6 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_linearDepthFramebuffer->getDepthFrameSize(), depthViewport));
         batch.setResourceTexture(ru::Texture::SurfaceGeometryDepth, depthBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-        _gpuTimer->end(batch);
-    });
-
-    gpu::doInBatch("LinearDepthPass::halfDepth", args->_context, [=](gpu::Batch& batch) {
-        PROFILE_RANGE_BATCH(batch, "LinearDepthDownsample");
-        _gpuTimer->begin(batch);
-        batch.enableStereo(false);
-
-        batch.setProjectionTransform(glm::mat4());
-        batch.resetViewTransform();
-
-        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
 
         // Downsample
         batch.setViewportTransform(halfViewport);
