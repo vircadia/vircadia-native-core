@@ -113,6 +113,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _recentModeReadings(MODE_READINGS_RING_BUFFER_SIZE),
     _bodySensorMatrix(),
     _goToPending(false),
+    _goToSafe(true),
     _goToPosition(),
     _goToOrientation(),
     _prevShouldDrawHead(true),
@@ -148,7 +149,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     });
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
-
+    connect(&_skeletonModel->getRig(), &Rig::onLoadComplete, this, &MyAvatar::updateCollisionCapsuleCache);
+    connect(this, &MyAvatar::sensorToWorldScaleChanged, this, &MyAvatar::updateCollisionCapsuleCache);
     using namespace recording;
     _skeletonModel->flagAsCauterized();
 
@@ -254,6 +256,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     });
 
     connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
+
     _characterController.setDensity(_density);
 }
 
@@ -509,7 +512,9 @@ void MyAvatar::update(float deltaTime) {
     if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) {
         // When needed and ready, arrange to check and fix.
         _physicsSafetyPending = false;
-        safeLanding(_goToPosition); // no-op if already safe
+        if (_goToSafe) {
+            safeLanding(_goToPosition); // no-op if already safe
+        }
     }
 
     Head* head = getHead();
@@ -3011,7 +3016,7 @@ void MyAvatar::goToFeetLocation(const glm::vec3& newPosition,
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
                             bool hasOrientation, const glm::quat& newOrientation,
-                            bool shouldFaceLocation) {
+                            bool shouldFaceLocation, bool withSafeLanding) {
 
     // Most cases of going to a place or user go through this now. Some possible improvements to think about in the future:
     // - It would be nice if this used the same teleport steps and smoothing as in the teleport.js script, as long as it
@@ -3031,6 +3036,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 
     _goToPending = true;
     _goToPosition = newPosition;
+    _goToSafe = withSafeLanding;
     _goToOrientation = getWorldOrientation();
     if (hasOrientation) {
         qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
@@ -3301,6 +3307,22 @@ bool MyAvatar::getCollisionsEnabled() {
     // may return 'false' even though the collisionless option was requested
     // because the zone may disallow collisionless avatars
     return _characterController.computeCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
+}
+
+void MyAvatar::updateCollisionCapsuleCache() {
+    glm::vec3 start, end;
+    float radius;
+    getCapsule(start, end, radius);
+    QVariantMap capsule;
+    capsule["start"] = vec3toVariant(start);
+    capsule["end"] = vec3toVariant(end);
+    capsule["radius"] = QVariant(radius);
+    _collisionCapsuleCache.set(capsule);
+}
+
+// thread safe
+QVariantMap MyAvatar::getCollisionCapsule() const {
+    return _collisionCapsuleCache.get();
 }
 
 void MyAvatar::setCharacterControllerEnabled(bool enabled) {
