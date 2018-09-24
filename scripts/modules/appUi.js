@@ -107,7 +107,7 @@ function AppUi(properties) {
     that.notificationPollCaresAboutSince = false;
     that.notificationInitialCallbackMade = false;
     that.notificationDisplayBanner = function (message) {
-        if (that.isOpen) {
+        if (!that.isOpen) {
             Window.displayAnnouncement(message);
         }
     };
@@ -120,6 +120,7 @@ function AppUi(properties) {
         // Set isOpen, wireEventBridge, set buttonActive as appropriate,
         // and finally call onOpened() or onClosed() IFF defined.
         that.setCurrentVisibleScreenMetadata(type, url);
+
         if (that.checkIsOpen(type, url)) {
             that.wireEventBridge(true);
             if (!that.isOpen) {

@@ -576,9 +576,7 @@ function isReturnedDataEmpty(data) {
     return historyArray.length === 0;
 }
 
-//
-// Manage the connection between the button and the window.
-//
+
 var BUTTON_NAME = "WALLET";
 var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
 var ui;

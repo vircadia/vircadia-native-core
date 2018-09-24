@@ -1040,15 +1040,16 @@ function notificationPollCallback(updatesArray) {
     if (updatesArray.length > 0) {
         var message;
         if (!ui.notificationInitialCallbackMade) {
-            message = updatesArray.length + " of your purchased items have updates available. " +
-                "Open MARKET to update.";
+            message = updatesArray.length + " of your purchased items " +
+                (updatesArray.length === 1 ? "has an update " : "have updates ") +
+                "available. Open MARKET to update.";
             ui.notificationDisplayBanner(message);
 
             ui.notificationPollCaresAboutSince = true;
         } else {
             for (var i = 0; i < updatesArray.length; i++) {
                 message = "Update available for \"" +
-                    updatesArray[i].marketplace_item_name + "\"." +
+                    updatesArray[i].base_item_title + "\"." +
                     "Open MARKET to update.";
                 ui.notificationDisplayBanner(message);
             }
@@ -1061,9 +1062,7 @@ function isReturnedDataEmpty(data) {
     return historyArray.length === 0;
 }
 
-//
-// Manage the connection between the button and the window.
-//
+
 var BUTTON_NAME = "MARKET";
 var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
 var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?"; // Append "?" to signal injected script that it's the initial page.

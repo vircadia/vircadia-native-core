@@ -91,7 +91,7 @@ function notificationPollCallback(userStoriesArray) {
     ui.messagesWaiting(shouldShowDot && !ui.isOpen);
 
     if (totalStories > 0 && !ui.isOpen && !ui.notificationInitialCallbackMade) {
-        message = "There " + (totalStories === 1 ? "is " : "are ") + totalStories + "event" +
+        message = "There " + (totalStories === 1 ? "is " : "are ") + totalStories + " event" +
             (totalStories === 1 ? "" : "s") + " to know about. " +
             "Open GOTO to see " + (totalStories === 1 ? "it" : "them") + ".";
         ui.notificationDisplayBanner(message);
