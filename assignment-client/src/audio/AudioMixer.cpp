@@ -393,11 +393,9 @@ void AudioMixer::start() {
         if (_startFrameTimestamp.time_since_epoch().count() == 0) {
             _startFrameTimestamp = _idealFrameTimestamp = p_high_resolution_clock::now();
         } else {
-            {
-                auto timer = _checkTimeTiming.timer();
-                auto frameDuration = timeFrame();
-                throttle(frameDuration, frame);
-            }
+            auto timer = _checkTimeTiming.timer();
+            auto frameDuration = timeFrame();
+            throttle(frameDuration, frame);
         }
 
         auto frameTimer = _frameTiming.timer();
