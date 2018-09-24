@@ -48,35 +48,11 @@ Item {
                     spacing: 4; x: 4; y: 4;
 
                     StatText {
-                        text: "State Machines:---------------------------------------------------------------------------"
+                        text: root.positionText
                     }
-                    ListView {
-                        width: firstCol.width
-                        height: root.animStateMachines.length * 15
-                        visible: root.animStateMchines.length > 0;
-                        model: root.animStateMachines
-                        delegate: StatText {
-                            text: {
-                                return modelData;
-                            }
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                width: secondCol.width + 8
-                height: secondCol.height + 8
-                color: root.bgColor;
-
-                Column {
-                    id: secondCol
-                    spacing: 4; x: 4; y: 4;
-
                     StatText {
                         text: "Anim Vars:--------------------------------------------------------------------------------"
                     }
-
                     ListView {
                         width: secondCol.width
                         height: root.animVars.length * 15
@@ -105,6 +81,36 @@ Item {
             }
 
             Rectangle {
+                width: secondCol.width + 8
+                height: secondCol.height + 8
+                color: root.bgColor;
+
+                Column {
+                    id: secondCol
+                    spacing: 4; x: 4; y: 4;
+
+                    StatText {
+                        text: root.rotationText
+                    }
+                    StatText {
+                        text: "State Machines:---------------------------------------------------------------------------"
+                    }
+                    ListView {
+                        width: firstCol.width
+                        height: root.animStateMachines.length * 15
+                        visible: root.animStateMachines.length > 0;
+                        model: root.animStateMachines
+                        delegate: StatText {
+                            text: {
+                                return modelData;
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            Rectangle {
                 width: thirdCol.width + 8
                 height: thirdCol.height + 8
                 color: root.bgColor;
@@ -114,9 +120,11 @@ Item {
                     spacing: 4; x: 4; y: 4;
 
                     StatText {
+                        text: root.velocityText
+                    }
+                    StatText {
                         text: "Alpha Values:--------------------------------------------------------------------------"
                     }
-
                     ListView {
                         width: thirdCol.width
                         height: root.animAlphaValues.length * 15
