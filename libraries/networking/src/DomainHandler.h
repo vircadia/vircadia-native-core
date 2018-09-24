@@ -19,6 +19,7 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
+#include <shared/ReadWriteLockable.h>
 #include <SettingHandle.h>
 
 #include "HifiSockAddr.h"
@@ -85,6 +86,8 @@ public:
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
+    bool getInterstitialModeEnabled() const;
+    void setInterstitialModeEnabled(bool enableInterstitialMode);
 
     void connectedToServerless(std::map<QString, QString> namedPaths);
 
@@ -173,7 +176,7 @@ public slots:
     void processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
     // sets domain handler in error state.
-    void setRedirectErrorState(QUrl errorUrl, int reasonCode);
+    void setRedirectErrorState(QUrl errorUrl, QString reasonMessage = "", int reason = -1, const QString& extraInfo = "");
 
     bool isInErrorState() { return _isInErrorState; }
 
@@ -223,10 +226,11 @@ private:
     NetworkPeer _icePeer;
     bool _isConnected { false };
     bool _isInErrorState { false };
-    Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", false };
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;
+    mutable ReadWriteLockable _interstitialModeSettingLock;
+    Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", false };
 
     QSet<QString> _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };
