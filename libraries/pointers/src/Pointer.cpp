@@ -68,7 +68,7 @@ void Pointer::update(unsigned int pointerID) {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
         auto pickResult = getPrevPickResult();
-        auto visualPickResult = getVisualPickResult(pickResult);
+        auto visualPickResult = getVisualPickResult(std::make_shared<PickResult>(*pickResult.get()));
         updateVisuals(visualPickResult);
         generatePointerEvents(pointerID, visualPickResult);
     });
