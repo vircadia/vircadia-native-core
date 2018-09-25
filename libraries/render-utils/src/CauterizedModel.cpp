@@ -86,9 +86,8 @@ void CauterizedModel::createRenderItemSet() {
             // Create the render payloads
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                if (_blendshapeBuffers.find(i) == _blendshapeBuffers.end()) {
-                    initializeBlendshapes(fbxGeometry.meshes[i], i);
-                }
+                initializeBlendshapes(fbxGeometry.meshes[i], i);
+
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
                 auto material = getGeometry()->getShapeMaterial(shapeID);
