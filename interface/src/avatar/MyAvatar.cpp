@@ -1027,7 +1027,7 @@ glm::vec3 MyAvatar::worldToJointPoint(const glm::vec3& position, const int joint
         if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPos)) {
             _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot);
         } else {
-            //qWarning() << "Invalid joint index specified: " << jointIndex;
+            qWarning() << "Invalid joint index specified: " << jointIndex;
         }
     }
     glm::vec3 modelOffset = position - jointPos;
@@ -1049,7 +1049,7 @@ glm::vec3 MyAvatar::worldToJointDirection(const glm::vec3& worldDir, const int j
 glm::quat MyAvatar::worldToJointRotation(const glm::quat& worldRot, const int jointIndex) const {
     glm::quat jointRot = getWorldOrientation();//default value if no or invalid joint specified
     if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
-        //qWarning() << "Invalid joint index specified: " << jointIndex;
+        qWarning() << "Invalid joint index specified: " << jointIndex;
     }
     glm::quat jointSpaceRot = glm::inverse(jointRot) * worldRot;
     return jointSpaceRot;
@@ -1063,7 +1063,7 @@ glm::vec3 MyAvatar::jointToWorldPoint(const glm::vec3& jointSpacePos, const int 
         if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPos)) {
             _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot);
         } else {
-            //qWarning() << "Invalid joint index specified: " << jointIndex;
+            qWarning() << "Invalid joint index specified: " << jointIndex;
         }
     }
 
@@ -1076,7 +1076,7 @@ glm::vec3 MyAvatar::jointToWorldPoint(const glm::vec3& jointSpacePos, const int 
 glm::vec3 MyAvatar::jointToWorldDirection(const glm::vec3& jointSpaceDir, const int jointIndex) const {
     glm::quat jointRot = getWorldOrientation();//default value if no or invalid joint specified
     if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
-        //qWarning() << "Invalid joint index specified: " << jointIndex;
+        qWarning() << "Invalid joint index specified: " << jointIndex;
     }
     glm::vec3 worldDir = jointRot * jointSpaceDir;
     return worldDir;
@@ -1085,7 +1085,7 @@ glm::vec3 MyAvatar::jointToWorldDirection(const glm::vec3& jointSpaceDir, const 
 glm::quat MyAvatar::jointToWorldRotation(const glm::quat& jointSpaceRot, const int jointIndex) const {
     glm::quat jointRot = getWorldOrientation();//default value if no or invalid joint specified
     if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
-        //qWarning() << "Invalid joint index specified: " << jointIndex;
+        qWarning() << "Invalid joint index specified: " << jointIndex;
     }
     glm::quat worldRot = jointRot * jointSpaceRot;
     return worldRot;
@@ -1223,6 +1223,7 @@ void MyAvatar::saveData() {
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
+    settings.setValue("showTransit", _showTransit);
     settings.setValue("userHeight", getUserHeight());
     settings.setValue("flyingHMD", getFlyingHMDPref());
 
@@ -1381,6 +1382,7 @@ void MyAvatar::loadData() {
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
+    setShowTransit(settings.value("showTransit", _showTransit).toBool());
     setDominantHand(settings.value("dominantHand", _dominantHand).toString().toLower());
     setUserHeight(settings.value("userHeight", DEFAULT_AVATAR_HEIGHT).toDouble());
     settings.endGroup();

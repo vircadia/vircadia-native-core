@@ -249,8 +249,8 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [myAvatar]()->int { return myAvatar->getShowTransit() ? 0 : 1; };
-        auto setter = [myAvatar](int value) { myAvatar->setShowTransit(value == 0); };
+        auto getter = [myAvatar]()->int { return myAvatar->getShowTransit() ? 1 : 0; };
+        auto setter = [myAvatar](int value) { myAvatar->setShowTransit(value == 1); };
         auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Snap teleport / Smooth teleport", getter, setter);
         QStringList items;
         items << "Snap teleport" << "Smooth teleport";
