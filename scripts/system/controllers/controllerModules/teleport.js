@@ -165,12 +165,16 @@ Script.include("/~/system/libraries/controllers.js");
         this.isPlayAreaAvailable = false;
         this.targetOverlayID = null;
 
-        this.PLAY_AREA_FADE_DELAY = 900;
+        this.PLAY_AREA_FADE_DELAY_DURATION = 900;
         this.PLAY_AREA_FADE_DURATION = 200;
         this.PLAY_AREA_FADE_INTERVAL = 25;
         this.PLAY_AREA_BOX_ALPHA = 1.0;
         this.PLAY_AREA_SENSOR_ALPHA = 0.8;
+        this.PLAY_AREA_FADE_DELAY_DELTA = this.PLAY_AREA_FADE_INTERVAL / this.PLAY_AREA_FADE_DELAY_DURATION;
         this.PLAY_AREA_FADE_DELTA = this.PLAY_AREA_FADE_INTERVAL / this.PLAY_AREA_FADE_DURATION;
+        this.playAreaFadeTimer = null;
+        this.playAreaFadeDelayFactor = 0;
+        this.PlayAreaFadeFactor = 0;
 
         this.TELEPORT_SCALE_DURATION = 130;
         this.TELEPORT_SCALE_TIMEOUT = 25;
@@ -442,14 +446,25 @@ Script.include("/~/system/libraries/controllers.js");
         _this.initPointers();
 
 
-        this.playAreaFadeTimer = null;
-        this.PlayAreaFadeFactor = 1.0;
+        this.translateXAction = Controller.findAction("TranslateX");
+        this.translateYAction = Controller.findAction("TranslateY");
+        this.translateZAction = Controller.findAction("TranslateZ");
 
         this.fadePlayArea = function () {
-            var i, length;
-            _this.PlayAreaFadeFactor = _this.PlayAreaFadeFactor - _this.PLAY_AREA_FADE_DELTA;
-            if (_this.PlayAreaFadeFactor > 0 && !_this.isTeleportVisible) {
+            var isAvatarMoving,
+                i, length;
+
+            isAvatarMoving = Controller.getActionValue(_this.translateXAction) !== 0
+                || Controller.getActionValue(_this.translateYAction) !== 0
+                || Controller.getActionValue(_this.translateZAction) !== 0;
+
+            if (_this.playAreaFadeDelayFactor > 0 && !_this.isTeleportVisible && !isAvatarMoving) {
+                // Delay fade.
+                _this.playAreaFadeDelayFactor = _this.playAreaFadeDelayFactor - _this.PLAY_AREA_FADE_DELAY_DELTA;
+                _this.playAreaFadeTimer = Script.setTimeout(_this.fadePlayArea, _this.PLAY_AREA_FADE_INTERVAL);
+            } else if (_this.PlayAreaFadeFactor > 0 && !_this.isTeleportVisible && !isAvatarMoving) {
                 // Fade.
+                _this.PlayAreaFadeFactor = _this.PlayAreaFadeFactor - _this.PLAY_AREA_FADE_DELTA;
                 Overlays.editOverlay(_this.teleportedTargetOverlay, {
                     alpha: _this.PlayAreaFadeFactor * _this.TELEPORTED_TARGET_ALPHA
                 });
@@ -470,7 +485,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.setPlayAreaVisible = function (visible, targetOverlayID, noFade) {
+        this.setPlayAreaVisible = function (visible, targetOverlayID, fade) {
             if (!this.isPlayAreaAvailable || this.isPlayAreaVisible === visible) {
                 return;
             }
@@ -482,7 +497,7 @@ Script.include("/~/system/libraries/controllers.js");
                 Script.clearTimeout(this.playAreaFadeTimer);
                 this.playAreaFadeTimer = null;
             }
-            if (visible || noFade) {
+            if (visible || !fade) {
                 // Immediately make visible or invisible.
                 this.isPlayAreaVisible = visible;
                 Overlays.editOverlay(this.playAreaOverlay, {
@@ -513,8 +528,9 @@ Script.include("/~/system/libraries/controllers.js");
                 });
 
                 // Fade out over time.
+                this.playAreaFadeDelayFactor = 1.0;
                 this.PlayAreaFadeFactor = 1.0;
-                _this.playAreaFadeTimer = Script.setTimeout(this.fadePlayArea, this.PLAY_AREA_FADE_DELAY);
+                this.playAreaFadeTimer = Script.setTimeout(this.fadePlayArea, this.PLAY_AREA_FADE_DELAY);
             }
         };
 
@@ -749,7 +765,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.disableLasers = function() {
-            this.setPlayAreaVisible(false);
+            this.setPlayAreaVisible(false, null, true);
+            this.setTeleportVisible(false);
             Selection.disableListHighlight(this.teleporterSelectionName);
             Pointers.disablePointer(_this.teleportParabolaHandVisuals);
             Pointers.disablePointer(_this.teleportParabolaHandCollisions);
@@ -776,7 +793,7 @@ Script.include("/~/system/libraries/controllers.js");
                 Pointers.setRenderState(_this.teleportParabolaHandCollisions, invisibleState);
                 pointerID = _this.teleportParabolaHandVisuals;
             }
-            this.setPlayAreaVisible(visible, Pointers.getPointerProperties(pointerID).renderStates.teleport.end, true);
+            this.setPlayAreaVisible(visible, Pointers.getPointerProperties(pointerID).renderStates.teleport.end, false);
             this.setTeleportVisible(visible, mode);
         };
 
