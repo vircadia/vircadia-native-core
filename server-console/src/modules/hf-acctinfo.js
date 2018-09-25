@@ -35,8 +35,8 @@ function AccountInfo() {
 
 AccountInfo.prototype = {
 
-    accessToken: function(metaverseUrl) {
-        if(this.data && this.data[metaverseUrl] && this.data[metaverseUrl]["accessToken"]) {
+    accessToken: function (metaverseUrl) {
+        if (this.data && this.data[metaverseUrl] && this.data[metaverseUrl]["accessToken"]) {
             return this.data[metaverseUrl]["accessToken"]["token"];
         }
         return null;
@@ -49,24 +49,24 @@ AccountInfo.prototype = {
         this.parseOffset += 4;
         return result;
     },
-    _parseMap: function() {
+    _parseMap: function () {
         var result = {};
         var n = this._parseUInt32();
-        for(var i = 0; i < n; i++) {
+        for (var i = 0; i < n; i++) {
             var key = this._parseQString();
             result[key] = this._parseVariant();
         }
         return result;
     },
-    _parseVariant: function() {
+    _parseVariant: function () {
         var varType = this._parseUInt32();
         var isNull = this.rawData[this.parseOffset++];
 
-        switch(varType) {
+        switch (varType) {
             case VariantTypes.USER_TYPE:
               //user type
               var userTypeName = this._parseByteArray().toString('ascii').slice(0,-1);
-              if(userTypeName == "DataServerAccountInfo") {
+              if (userTypeName == "DataServerAccountInfo") {
                   return this._parseDataServerAccountInfo();
               }
               else {
@@ -75,7 +75,7 @@ AccountInfo.prototype = {
               break;
         }
     },
-    _parseByteArray: function() {
+    _parseByteArray: function () {
         var length = this._parseUInt32();
         if (length == 0xffffffff) {
             return null;
@@ -85,17 +85,17 @@ AccountInfo.prototype = {
         return result;
 
     },
-    _parseQString: function() {
+    _parseQString: function () {
         if (!this.rawData || (this.rawData.length <= this.parseOffset)) {
             throw "Expected QString";
         }
         // length in bytes;
         var length = this._parseUInt32();
-        if(length == 0xFFFFFFFF) {
+        if (length == 0xFFFFFFFF) {
             return null;
         }
 
-        if(this.rawData.length - this.parseOffset < length) {
+        if (this.rawData.length - this.parseOffset < length) {
             throw "Insufficient buffer length for QString parsing";
         }
 
@@ -106,7 +106,7 @@ AccountInfo.prototype = {
         this.parseOffset += length;
         return result;
     },
-    _parseDataServerAccountInfo: function() {
+    _parseDataServerAccountInfo: function () {
         return {
             accessToken: this._parseOAuthAccessToken(),
             username: this._parseQString(),
@@ -120,7 +120,7 @@ AccountInfo.prototype = {
 
         }
     },
-    _parseOAuthAccessToken: function() {
+    _parseOAuthAccessToken: function () {
         return  {
             token: this._parseQString(),
             timestampHigh: this._parseUInt32(),
@@ -129,7 +129,7 @@ AccountInfo.prototype = {
             refreshToken: this._parseQString()
         }
     },
-    _parseUUID: function() {
+    _parseUUID: function () {
         this.parseOffset += 16;
         return null;
     }

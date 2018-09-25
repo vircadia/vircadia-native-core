@@ -259,12 +259,12 @@ Process.prototype = extend(Process.prototype, {
         };
         return logs;
     },
-    isRunning: function(done) {
+    isRunning: function (done) {
         var _command = this.command;
         if (os.type == 'Windows_NT') {
-            childProcess.exec('tasklist /FO CSV', function(err, stdout, stderr) {
+            childProcess.exec('tasklist /FO CSV', function (err, stdout, stderr) {
                 var running = false;
-                stdout.split("\n").forEach(function(line) {
+                stdout.split("\n").forEach(function (line) {
                     var exeData = line.split(",");
                     var executable = exeData[0].replace(/\"/g, "").toLowerCase();
                     if(executable == _command) {
