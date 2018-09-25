@@ -69,7 +69,7 @@ void Pointer::update(unsigned int pointerID) {
     withReadLock([&] {
         auto pickResult = getPrevPickResult();
         // Pointer needs its own PickResult object so it doesn't modify the cached pick result
-        auto visualPickResult = getVisualPickResult(std::make_shared<PickResult>(*pickResult.get()));
+        auto visualPickResult = getVisualPickResult(getPickResultCopy(pickResult));
         updateVisuals(visualPickResult);
         generatePointerEvents(pointerID, visualPickResult);
     });
