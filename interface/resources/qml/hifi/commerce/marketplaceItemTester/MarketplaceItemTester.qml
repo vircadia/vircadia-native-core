@@ -70,7 +70,7 @@ Rectangle {
     }
 
     function installResourceObj(resourceObj) {
-        if ("application" == resourceObj.assetType) {
+        if ("application" === resourceObj.assetType) {
             Commerce.installApp(resourceObj.resource);
         }
     }
@@ -257,10 +257,13 @@ Rectangle {
                 // Alas, there is nothing we can do about that so charge
                 // ahead as though we are sure the present signal is one
                 // we expect.
-                if ("load file" === currentAction) {
-                    Window.browseChanged.disconnect(onResourceSelected);
-                } else if ("load url" == currentAction) {
-                    Window.promptTextChanged.disconnect(onResourceSelected);
+                switch(currentAction) {
+                    case "load file":
+                        Window.browseChanged.disconnect(onResourceSelected);
+                        break
+                    case "load url":
+                        Window.promptTextChanged.disconnect(onResourceSelected);
+                        break;
                 }
                 if (resource) {
                     var resourceObj = buildResourceObj(resource);
