@@ -770,16 +770,11 @@ function maybeEnableHMDPreview() {
     }, UI_FADE_TIMEOUT_MS);
 }
 
+var resourceObjectsInTest = [];
 function signalNewResourceObjectInTest(resourceObject) {
     ui.tablet.sendToQml({
         method: "newResourceObjectInTest",
         resourceObject: resourceObject });
-}
-
-var resourceObjectsInTest = [];
-function storeResourceObjectInTest(resourceObject) {
-    resourceObjectsInTest.push(resourceObject);
-    signalNewResourceObjectInTest(resourceObject);
 }
 
 var onQmlMessageReceived = function onQmlMessageReceived(message) {
@@ -835,18 +830,15 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         rezEntity(message.itemHref, message.itemType);
         break;
     case 'tester_newResourceObject':
-        storeResourceObjectInTest(message.resourceObject);
+        var resourceObject = message.resourceObject;
+        resourceObjectsInTest[resourceObject.id] = resourceObject;
+        signalNewResourceObjectInTest(resourceObject);
         break;
     case 'tester_updateResourceObjectAssetType':
-        var objectId = message.objectId;
-        for (var i = 0, size = resourceObjectsInTest.length; i < size; ++i) {
-            if (i in resourceObjectsInTest &&
-                objectId === resourceObjectsInTest[i]["id"]
-            ) {
-                resourceObjectsInTest[i]["assetType"] = message.assetType;
-                break;
-            }
-        }
+        resourceObjectsInTest[message.objectId].assetType = message.assetType;
+        break;
+    case 'tester_deleteResourceObject':
+        delete resourceObjectsInTest[message.objectId];
         break;
     case 'header_marketplaceImageClicked':
     case 'purchases_backClicked':

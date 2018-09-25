@@ -136,6 +136,9 @@ Rectangle {
                     if ("application" == assetType) {
                         Commerce.uninstallApp(resource);
                     }
+                    sendToScript({
+                        method: "tester_deleteResourceObject",
+                        objectId: resourceListModel.get(index).id});
                     resourceListModel.remove(index);
                 }
             }
@@ -174,13 +177,14 @@ Rectangle {
                     "unknown"
                 ]
 
-                currentIndex: ("entity or wearable" == assetType) ? model.indexOf("unknown") : model.indexOf(assetType)
+                currentIndex: (("entity or wearable" == assetType) ?
+                    model.indexOf("unknown") : model.indexOf(assetType))
 
                 Component.onCompleted: {
                     onCurrentIndexChanged.connect(function() {
                         assetType = model[currentIndex];
                         sendToScript({
-                            method: 'tester_updateResourceObjectAssetType',
+                            method: "tester_updateResourceObjectAssetType",
                             objectId: resourceListModel.get(index)["id"],
                             assetType: assetType });
                     });
