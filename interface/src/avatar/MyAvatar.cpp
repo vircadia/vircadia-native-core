@@ -463,6 +463,7 @@ void MyAvatar::update(float deltaTime) {
     if ((acosHead > 0.98f) && !getIsInSittingState() && (sensorHeadPoseDebug.getTranslation().y < -0.5f)) {
         qCDebug(interfaceapp) << "we are going to sitting state because it looks like we should" << sensorHeadPoseDebug.getTranslation().y;
     }
+    
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
     if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid()) {
@@ -3601,9 +3602,9 @@ glm::vec3 MyAvatar::computeCounterBalance() {
     } else if (counterBalancedCg.y < sitSquatThreshold) {
         // do a height reset
         setResetMode(true);
-        _follow.activate(FollowHelper::Vertical);
+        //_follow.activate(FollowHelper::Vertical);
         // disable cg behaviour in this case.
-        setIsInSittingState(true);
+        //setIsInSittingState(true);
     }
     return counterBalancedCg;
 }
@@ -4059,12 +4060,6 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
     bool stepDetected = false;
     float myScale = myAvatar.getAvatarScale();
 
-
-    // debug head hips angle
-    //glm::vec3 hipsPos = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
-    //glm::vec3 headHipsBody = currentHeadPose.getTranslation() - hipsPos;
-    //qCDebug(interfaceapp) << "head in sensor space " << withinBaseOfSupport(currentHeadPose);
-
     if (myAvatar.getIsInWalkingState()) {
         stepDetected = true;
     } else if (myAvatar.getIsInSittingState()) {
@@ -4137,6 +4132,20 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 
     if (myAvatar.getHMDLeanRecenterEnabled() &&
         qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
+
+        // debug head hips angle
+        glm::vec3 headDefaultPos = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Head"));
+        if (myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y < (headDefaultPos.y - 0.05f)) {
+            _squatCount++;
+            if ((_squatCount > 300) && !isActive(Vertical) && !isActive(Horizontal)) {
+                activate(Horizontal);
+                activate(Vertical);
+                _squatCount = 0;
+            }
+        } else {
+            _squatCount = 0;
+        }
+        
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
             myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
