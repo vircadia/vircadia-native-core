@@ -26,13 +26,11 @@ Rectangle {
     id: root
 
     property string installedApps
+    property var nextResourceObjectId: 0
     signal sendToScript(var message)
 
     HifiStylesUit.HifiConstants { id: hifi }
-    ListModel {
-        id: resourceListModel
-        property var nextId: 0
-    }
+    ListModel { id: resourceListModel }
 
     color: hifi.colors.white
 
@@ -52,7 +50,8 @@ Rectangle {
                 resourceListModel.append(resourceObject);
                 spinner.visible = false;
                 break;
-            case "marketplaceTestBackendIsAlive":
+            case "nextObjectIdInTest":
+                nextResourceObjectId = message.id;
                 spinner.visible = false;
                 break;
         }
@@ -65,14 +64,14 @@ Rectangle {
                          resource.match(/\.json\.gz$/) ? "content set" :
                          resource.match(/\.json$/) ? "entity or wearable" :
                          "unknown");
-        return { "id": resourceListModel.nextId++,
+        return { "id": nextResourceObjectId++,
                  "resource": resource,
                  "assetType": assetType };
     }
 
     function installResourceObj(resourceObj) {
-        if ("application" == resourceObj["assetType"]) {
-            Commerce.installApp(resourceObj["resource"]);
+        if ("application" == resourceObj.assetType) {
+            Commerce.installApp(resourceObj.resource);
         }
     }
 
@@ -269,7 +268,7 @@ Rectangle {
                     sendToScript({
                         method: 'tester_newResourceObject',
                         resourceObject: resourceObj });
-                    }
+                }
             }
 
             Repeater {

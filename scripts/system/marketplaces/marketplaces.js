@@ -980,19 +980,16 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
 };
 
 function pushResourceObjectsInTest() {
-    var isQmlSignaled = false;
-    for (var i = 0, size = resourceObjectsInTest.length; i < size; ++i) {
-        if (i in resourceObjectsInTest) {
-            signalNewResourceObjectInTest(resourceObjectsInTest[i]);
-            isQmlSignaled = true;
-        }
+    var maxObjectId = -1;
+    for (var objectId in resourceObjectsInTest) {
+        signalNewResourceObjectInTest(resourceObjectsInTest[objectId]);
+        maxObjectId = (maxObjectId < objectId) ? parseInt(objectId) : maxObjectId;
     }
-    // Be sure that the QML has heard from us, at least so that it
-    // can indicate to the user that all of the resoruce objects in
-    // test have been transmitted to it.
-    if (!isQmlSignaled) {
-        ui.tablet.sendToQml({ method: "marketplaceTestBackendIsAlive" });
-    }
+    // N.B. Thinking about removing the following sendToQml? Be sure
+    // that the marketplace item tester QML has heard from us, at least
+    // so that it can indicate to the user that all of the resoruce
+    // objects in test have been transmitted to it.
+    ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: maxObjectId + 1 });
 }
 
 // Function Name: onTabletScreenChanged()
