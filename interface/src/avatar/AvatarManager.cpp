@@ -273,13 +273,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             if (inView && avatar->hasNewJointData()) {
                 numAvatarsUpdated++;
             }
-
-            
-            // smooth other avatars positions
-            {
-                auto status = avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
-            }
-            
+            avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(renderTransaction);
             avatar->updateSpaceProxy(workloadTransaction);
