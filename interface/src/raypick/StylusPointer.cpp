@@ -148,10 +148,10 @@ bool StylusPointer::shouldTrigger(const PickResultPointer& pickResult) {
 }
 
 PickResultPointer StylusPointer::getPickResultCopy(const PickResultPointer& pickResult) const {
-    if (!pickResult) {
+    auto stylusPickResult = std::dynamic_pointer_cast<StylusPickResult>(pickResult);
+    if (!stylusPickResult) {
         std::make_shared<StylusPickResult>();
     }
-    auto stylusPickResult = std::static_pointer_cast<StylusPickResult>(pickResult);
     return std::make_shared<StylusPickResult>(*stylusPickResult.get());
 }
 
