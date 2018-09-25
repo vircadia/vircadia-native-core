@@ -16,9 +16,14 @@
 
 <$declareStandardTransform()$>
 
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
+
 void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    <$transformModelToWorldPos(obj, inPosition, _positionWS)$>
 }

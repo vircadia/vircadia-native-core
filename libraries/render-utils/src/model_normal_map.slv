@@ -20,7 +20,6 @@
 
 <$declareMaterialTexMapArrayBuffer()$>
 
-
 layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;

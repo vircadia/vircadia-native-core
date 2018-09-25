@@ -20,6 +20,8 @@
 
 <@include render-utils/ShaderConstants.h@>
 
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
+
 void main(void) {
     vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
     evalMeshDeformer(inPosition, deformedPosition, 
@@ -30,4 +32,5 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, deformedPosition, gl_Position)$>
+    <$transformModelToWorldPos(obj, deformedPosition, _positionWS)$>
 }

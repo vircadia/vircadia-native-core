@@ -19,7 +19,7 @@
 <$declareMaterialTexMapArrayBuffer()$>
 
 <@include MeshDeformer.slh@>
-<$declareMeshDeformer(1, _SCRIBE_NULL, 1, 0, 1)$>
+<$declareMeshDeformer(1, _SCRIBE_NULL, 1, _SCRIBE_NULL, 1)$>
 <$declareMeshDeformerActivation(1, 1)$>
 
 <@include LightingModel.slh@>
