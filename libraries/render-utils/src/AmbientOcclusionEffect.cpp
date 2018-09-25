@@ -111,7 +111,7 @@ void AmbientOcclusionFramebuffer::allocate() {
         auto width = sideSize.x;
         auto height = sideSize.y;
         auto format = gpu::Element::COLOR_RGBA_32;
-        _normalTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
+        _normalTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
         _normalFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ssaoNormals"));
         _normalFramebuffer->setRenderBuffer(0, _normalTexture);
     }
@@ -131,7 +131,7 @@ void AmbientOcclusionFramebuffer::allocate() {
         auto format = gpu::Element::COLOR_R_8;
 
         _occlusionSplitTexture = gpu::Texture::createRenderBufferArray(format, width, height, SSAO_SPLIT_COUNT, gpu::Texture::SINGLE_MIP, 
-                                                                       gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
+                                                                       gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
         for (int i = 0; i < SSAO_SPLIT_COUNT; i++) {
             _occlusionSplitFramebuffers[i] = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
             _occlusionSplitFramebuffers[i]->setRenderBuffer(0, _occlusionSplitTexture, i);

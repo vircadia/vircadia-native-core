@@ -31,20 +31,21 @@ void main(void) {
     ivec2 fragPixelPos = ivec2(fragCoord.xy);
     vec2 fragUVPos = varTexCoord0;
 
+#if SSAO_USE_QUAD_SPLIT
+    vec3 fragNormalES = getNormalEyeAtUV(fragUVPos, 0);
+#endif
+
     // Stereo side info based on the real viewport size of this pass
     vec2 sideDepthSize = getDepthTextureSideSize(0);
-    ivec2 sideOcclusionSize = ivec2( getOcclusionSideSize() );
+    ivec2 sideOcclusionSize = ivec2( getOcclusionSplitSideSize() );
     ivec4 side = getStereoSideInfoFromWidth(fragPixelPos.x, sideOcclusionSize.x);
-
     // From now on, fragUVPos is the UV pos in the side
     fragUVPos.x = mix(fragUVPos.x, fragUVPos.x * 2.0 - getStereoSide(side), isStereo());
 
     // The position and normal of the pixel fragment in Eye space
     vec2 deltaDepthUV = vec2(1.0) / sideDepthSize;
     vec3 fragPositionES = buildPosition(side, fragUVPos);
-#if SSAO_USE_QUAD_SPLIT
-    vec3 fragNormalES = getNormalEyeAtUV(fragUVPos, 0);
-#else
+#if !SSAO_USE_QUAD_SPLIT
     vec3 fragNormalES = buildNormal(side, fragUVPos, fragPositionES, deltaDepthUV);
 #endif
 
