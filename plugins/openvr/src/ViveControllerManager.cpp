@@ -310,7 +310,7 @@ void ViveControllerManager::loadSettings() {
         if (_inputDevice) {
             const double DEFAULT_ARM_CIRCUMFERENCE = 0.33;
             const double DEFAULT_SHOULDER_WIDTH = 0.48;
-            const QString DEFAULT_OUT_OF_RANGE_STRATEGY = "None";
+            const QString DEFAULT_OUT_OF_RANGE_STRATEGY = "Drop";
             _inputDevice->_armCircumference = settings.value("armCircumference", QVariant(DEFAULT_ARM_CIRCUMFERENCE)).toDouble();
             _inputDevice->_shoulderWidth = settings.value("shoulderWidth", QVariant(DEFAULT_SHOULDER_WIDTH)).toDouble();
             _inputDevice->_outOfRangeDataStrategy = stringToOutOfRangeDataStrategy(settings.value("outOfRangeDataStrategy", QVariant(DEFAULT_OUT_OF_RANGE_STRATEGY)).toString());

@@ -169,7 +169,7 @@ private:
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
         std::string _headsetName {""};
-        OutOfRangeDataStrategy _outOfRangeDataStrategy { OutOfRangeDataStrategy::None };
+        OutOfRangeDataStrategy _outOfRangeDataStrategy { OutOfRangeDataStrategy::Drop };
 
         std::vector<PuckPosePair> _validTrackedObjects;
         std::map<uint32_t, glm::mat4> _pucksPostOffset;
