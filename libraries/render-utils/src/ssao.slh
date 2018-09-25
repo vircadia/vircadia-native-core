@@ -275,7 +275,7 @@ vec2 fetchTap(ivec4 side, vec2 tapUV, float tapRadius) {
 
 vec3 buildPosition(ivec4 side, vec2 fragUVPos) {
     vec2 fetchUV = clamp(fragUVPos, vec2(0), vec2(1));
-    fetchUV = mix(fetchUV, vec2((fetchUV.x + getStereoSide(side)) * 0.5, fetchUV.y), isStereo());
+    fetchUV.x = mix(fetchUV.x, (fetchUV.x + getStereoSide(side)) * 0.5, isStereo());
     float Zeye = getZEyeAtUV(fetchUV, 0);
     return evalEyePositionFromZeye(side.x, Zeye, fragUVPos);
 }
@@ -354,9 +354,9 @@ float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNo
 
 #define HBAO_HORIZON_SEARCH_CONSTANT_STEP 0
 
-float computeHorizon(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, vec3 fragNormalES, vec2 searchVec, float searchRadius) {
+float computeHorizon(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, vec3 fragNormalES, vec2 searchVec, vec2 pixelSearchVec, float searchRadius) {
     vec2 absSearchVec = abs(searchVec);
-    int stepCount = int(ceil(searchRadius));
+    int stepCount = int(ceil(max(pixelSearchVec.x, pixelSearchVec.y)));
     float cosHorizonAngle = 0.0;
 
     if (stepCount>0) {
@@ -399,14 +399,15 @@ float computeHorizon(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, vec3 fragN
 
 float evalVisibilityHBAO(ivec4 side, vec2 fragUVPos, vec2 invSideImageSize, vec2 deltaTap, float diskPixelRadius, 
                          vec3 fragPositionES, vec3 fragNormalES) {
-	vec2 searchVec = (deltaTap * diskPixelRadius) * invSideImageSize;
+    vec2 pixelSearchVec = deltaTap * diskPixelRadius;
+	vec2 searchVec = pixelSearchVec * invSideImageSize;
 	float obscurance = 0.0;
 
     // Forward search for h1
-    obscurance = computeHorizon(side, fragUVPos, fragPositionES, fragNormalES, searchVec, diskPixelRadius);
+    obscurance = computeHorizon(side, fragUVPos, fragPositionES, fragNormalES, searchVec, pixelSearchVec, diskPixelRadius);
 
     // Backward search for h2
-    obscurance += computeHorizon(side, fragUVPos, fragPositionES, fragNormalES, -searchVec, diskPixelRadius);
+    obscurance += computeHorizon(side, fragUVPos, fragPositionES, fragNormalES, -searchVec, pixelSearchVec, diskPixelRadius);
 
 	return obscurance;
 }

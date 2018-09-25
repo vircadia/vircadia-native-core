@@ -89,6 +89,8 @@ void AmbientOcclusionFramebuffer::allocate() {
         auto height = _frameSize.y;
         auto format = gpu::Element::COLOR_R_8;
 
+        //TEMPO OP
+        format = gpu::Element::VEC4F_COLOR_RGBA;
         _occlusionTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
         _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
         _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
@@ -111,7 +113,8 @@ void AmbientOcclusionFramebuffer::allocate() {
         auto width = sideSize.x;
         auto height = sideSize.y;
         auto format = gpu::Element::COLOR_RGBA_32;
-        _normalTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
+        _normalTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, 
+                                                          gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
         _normalFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ssaoNormals"));
         _normalFramebuffer->setRenderBuffer(0, _normalTexture);
     }
@@ -221,7 +224,7 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
 #else
     numSamples{ 16 },
 #endif
-    resolutionLevel{ 2 },
+    resolutionLevel{ 1 },
     blurRadius{ 4 },
     ditheringEnabled{ true },
     borderingEnabled{ true },
@@ -395,7 +398,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeOcclusion);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        state->setColorWriteMask(true, true, true, false);
+        state->setColorWriteMask(true, true, true, true);
 
         // Good to go add the brand new pipeline
         _occlusionPipeline = gpu::Pipeline::create(program, state);
@@ -585,18 +588,13 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
         batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
-#if SSAO_USE_QUAD_SPLIT
-        batch.setFramebuffer(occlusionBlurredFBO);
-#else
-        batch.setFramebuffer(occlusionFBO);
-#endif
         batch.setPipeline(occlusionPipeline);
         batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, occlusionDepthTexture);
 
 #if SSAO_USE_QUAD_SPLIT
         batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, occlusionNormalTexture);
         {
-            const auto scale = glm::vec3(
+            const auto uvScale = glm::vec3(
                 (splitSize.x * 2.0f * depthResolutionScale) / (occlusionDepthSize.x * resolutionScale),
                 (splitSize.y * 2.0f * depthResolutionScale) / (occlusionDepthSize.y * resolutionScale),
                 1.0f);
@@ -604,7 +602,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
             batch.setViewportTransform(splitViewport);
 
-            model.setScale(scale);
+            model.setScale(uvScale);
             model.setTranslation(glm::vec3(-pixelOffset.x, -pixelOffset.y, 0.0f));
             batch.setModelTransform(model);
             batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(0));
@@ -612,27 +610,34 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
             model.setTranslation(glm::vec3(pixelOffset.x, -pixelOffset.y, 0.0f));
+            batch.setModelTransform(model);
             batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(1));
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[1]);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
             model.setTranslation(glm::vec3(pixelOffset.x, pixelOffset.y, 0.0f));
+            batch.setModelTransform(model);
             batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(3));
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[2]);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
             model.setTranslation(glm::vec3(-pixelOffset.x, pixelOffset.y, 0.0f));
+            batch.setModelTransform(model);
             batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(2));
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[3]);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
 #else
-        const auto scale = glm::vec3(
-            occlusionViewport.z / (framebufferSize.x * resolutionScale),
-            occlusionViewport.w / (framebufferSize.y * resolutionScale),
-            1.0f);
-        model.setScale(scale);
         batch.setViewportTransform(occlusionViewport);
+        {
+            const auto uvScale = glm::vec3(
+                (occlusionViewport.z * depthResolutionScale) / (occlusionDepthSize.x * resolutionScale),
+                (occlusionViewport.w * depthResolutionScale) / (occlusionDepthSize.y * resolutionScale),
+                1.0f);
+            model.setScale(uvScale);
+        }
+        batch.setModelTransform(model);
+        batch.setFramebuffer(occlusionFBO);
         batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 #endif
@@ -655,34 +660,35 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
             PROFILE_RANGE_BATCH(batch, "Bilateral Blur");
             // Blur 1st pass
             batch.pushProfileRange("Horizontal");
-                model.setScale(resolutionScale);
-                batch.setModelTransform(model);
-                batch.setViewportTransform(firstBlurViewport);
-                batch.setFramebuffer(occlusionBlurredFBO);
-                // Use full resolution depth and normal for bilateral upscaling and blur
-                batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
-                batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _hblurParametersBuffer);
-                batch.setPipeline(firstHBlurPipeline);
-                batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionFBO->getRenderBuffer(0));
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            model.setScale(resolutionScale);
+            batch.setModelTransform(model);
+            batch.setViewportTransform(firstBlurViewport);
+            batch.setFramebuffer(occlusionBlurredFBO);
+            // Use full resolution depth and normal for bilateral upscaling and blur
+            batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _hblurParametersBuffer);
+            batch.setPipeline(firstHBlurPipeline);
+            batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionFBO->getRenderBuffer(0));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
             batch.popProfileRange();
 
             // Blur 2nd pass
             batch.pushProfileRange("Vertical");
-                model.setScale(glm::vec3(1.0f, resolutionScale, 1.0f));
-                batch.setModelTransform(model);
-                batch.setViewportTransform(sourceViewport);
-                batch.setFramebuffer(occlusionFBO);
-                batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _vblurParametersBuffer);
-                batch.setPipeline(lastVBlurPipeline);
-                batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionBlurredFBO->getRenderBuffer(0));
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            model.setScale(glm::vec3(1.0f, resolutionScale, 1.0f));
+            batch.setModelTransform(model);
+            batch.setViewportTransform(sourceViewport);
+            batch.setFramebuffer(occlusionFBO);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _vblurParametersBuffer);
+            batch.setPipeline(lastVBlurPipeline);
+            batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionBlurredFBO->getRenderBuffer(0));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
             batch.popProfileRange();
         }
 
         batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, nullptr);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, nullptr);
         batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, nullptr);
-        
+
         _gpuTimer->end(batch);
     });
 
