@@ -19,6 +19,7 @@
 
 <@include MeshDeformer.slh@>
 <$declareMeshDeformer(_SCRIBE_NULL, _SCRIBE_NULL, 1, _SCRIBE_NULL, 1)$>
+<$declareMeshDeformerActivation(1, 1, 1)$>
 
 <@include render-utils/ShaderConstants.h@>
 
@@ -26,7 +27,9 @@ layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
 
 void main(void) {
     vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
-    evalMeshDeformer(inPosition, deformedPosition, inSkinClusterIndex, inSkinClusterWeight, gl_VertexID);
+    evalMeshDeformer(inPosition, deformedPosition, 
+                    meshDeformer_doSkinning(_drawcallInfo.y), inSkinClusterIndex, inSkinClusterWeight,
+                    meshDeformer_doBlendshape(_drawcallInfo.y), gl_VertexID);
 
     // standard transform
     TransformCamera cam = getTransformCamera();

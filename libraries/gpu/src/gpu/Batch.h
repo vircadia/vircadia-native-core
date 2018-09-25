@@ -48,6 +48,7 @@ public:
         using Index = uint16_t;
 
         DrawCallInfo(Index idx) : index(idx) {}
+        DrawCallInfo(Index idx, Index user) : index(idx), unused(user) {}
 
         Index index { 0 };
         uint16_t unused { 0 }; // Reserved space for later
@@ -110,6 +111,9 @@ public:
     // without the pre-translation of the view.  
     void enableSkybox(bool enable = true);
     bool isSkyboxEnabled() const;
+
+    // Push user Drawcall info
+    void setDrawcallInfo(uint16 user);
 
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
@@ -498,6 +502,8 @@ public:
     StringCaches _names;
 
     NamedBatchDataMap _namedData;
+
+    uint16_t _drawcallUserInfo{ 0 };
 
     glm::vec2 _projectionJitter{ 0.0f, 0.0f };
     bool _enableStereo{ true };

@@ -98,6 +98,7 @@ void Batch::clear() {
     _name = nullptr;
     _invalidModel = true;
     _currentModel = Transform();
+    _drawcallUserInfo = 0;
     _projectionJitter = glm::vec2(0.0f);
     _enableStereo = true;
     _enableSkybox = false;
@@ -110,6 +111,10 @@ size_t Batch::cacheData(size_t size, const void* data) {
     memcpy(_data.data() + offset, data, size);
 
     return offset;
+}
+
+void Batch::setDrawcallInfo(uint16_t user) {
+    _drawcallUserInfo = user;
 }
 
 void Batch::draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex) {
@@ -545,7 +550,8 @@ void Batch::captureDrawCallInfoImpl() {
     }
 
     auto& drawCallInfos = getDrawCallInfoBuffer();
-    drawCallInfos.emplace_back((uint16)_objects.size() - 1);
+    drawCallInfos.emplace_back((uint16)_objects.size() - 1, _drawcallUserInfo);
+    _drawcallUserInfo = 0;
 }
 
 void Batch::captureDrawCallInfo() {

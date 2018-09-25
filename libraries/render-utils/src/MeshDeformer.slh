@@ -10,10 +10,7 @@
 <@def MESH_DEFORMER_SLH@>
 //  MeshDeformer.slh
 
-
 <@func declareMeshDeformer(USE_NORMAL, USE_TANGENT, USE_SKINNING, USE_DUAL_QUATERNION, USE_BLENDSHAPE)@>
-
-<@include LightingModel.slh@>
 
 <@if USE_SKINNING@>
 <@include Skinning.slh@>
@@ -33,10 +30,10 @@ void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
         , vec3 inTangent, out vec3 outTangent
     <@endif@>
     <@if USE_SKINNING@>
-        ,ivec4 skinClusterIndex, vec4 skinClusterWeight
+        , bool isSkinningEnabled, ivec4 skinClusterIndex, vec4 skinClusterWeight
     <@endif@>
     <@if USE_BLENDSHAPE@>
-        , int vertexIndex
+        , bool isBlendshapeEnabled, int vertexIndex
     <@endif@>
 ) {
 
@@ -49,7 +46,7 @@ void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
     <@endif@>
 
 <@if USE_BLENDSHAPE@>
-    if (bool(isBlendshapeEnabled())) {
+    if (isBlendshapeEnabled) {
 
     <@if USE_TANGENT@>
         applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition, inNormal, _deformedNormal, inTangent, _deformedTangent);
@@ -64,7 +61,7 @@ void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
 <@endif@>
 
 <@if USE_SKINNING@>
-    if (bool(isSkinningEnabled())) {
+    if (isSkinningEnabled) {
     <@if USE_TANGENT@>
         skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedNormal, _deformedTangent, _deformedPosition, _deformedNormal, _deformedTangent);
     <@else@>
@@ -87,5 +84,37 @@ void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
 }
 
 <@endfunc@>
+
+<@func declareMeshDeformerActivation(USE_SKINNING, USE_BLENDSHAPE, USE_LIGHTING_MODEL)@>
+
+const BITFIELD MESH_DEFORMER_BLENDSHAPE_BIT              = 0x00000001;
+const BITFIELD MESH_DEFORMER_SKINNING_BIT                = 0x00000002;
+
+<@if USE_LIGHTING_MODEL@>
+<@include LightingModel.slh@>
+<@endif@>
+
+<@if USE_BLENDSHAPE@>
+bool meshDeformer_doBlendshape(int meshKey) { 
+    <@if USE_LIGHTING_MODEL@>
+    return ((meshKey & MESH_DEFORMER_BLENDSHAPE_BIT) != 0) & bool(isBlendshapeEnabled());
+    <@else@>
+    return ((meshKey & MESH_DEFORMER_BLENDSHAPE_BIT) != 0);
+    <@endif@>
+}
+<@endif@>
+
+<@if USE_SKINNING@>
+bool meshDeformer_doSkinning(int meshKey) { 
+    <@if USE_LIGHTING_MODEL@>
+    return ((meshKey & MESH_DEFORMER_SKINNING_BIT) != 0) & bool(isSkinningEnabled());
+    <@else@>
+    return ((meshKey & MESH_DEFORMER_SKINNING_BIT) != 0);
+    <@endif@>
+}
+<@endif@>
+
+<@endfunc@>
+
 
 <@endif@> // if not MESH_DEFORMER_SLH

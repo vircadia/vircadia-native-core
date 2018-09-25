@@ -424,6 +424,11 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
 
+    auto drawcallInfo = (uint16_t) ((_isBlendShaped << 0) | (_isSkinned << 1));
+    if (drawcallInfo) {
+        batch.setDrawcallInfo(drawcallInfo);
+    }
+
     // apply material properties
     if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
         RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);

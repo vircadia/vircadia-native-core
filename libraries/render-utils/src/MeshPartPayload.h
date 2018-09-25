@@ -26,6 +26,12 @@ class Model;
 
 class MeshPartPayload {
 public:
+
+    struct DrawcallInfo {
+        uint32_t    _geometryKey { 0 };
+        uint32_t    _spare[3];
+    };
+
     MeshPartPayload() {}
     MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material);
 
