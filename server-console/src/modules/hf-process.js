@@ -267,7 +267,7 @@ Process.prototype = extend(Process.prototype, {
                 stdout.split("\n").forEach(function (line) {
                     var exeData = line.split(",");
                     var executable = exeData[0].replace(/\"/g, "").toLowerCase();
-                    if(executable == _command) {
+                    if (executable == _command) {
                         running = true;
                     }
                 });
