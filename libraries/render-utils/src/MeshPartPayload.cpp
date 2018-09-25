@@ -243,10 +243,6 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
         if (buffer != model->_blendshapeBuffers.end()) {
             _blendshapeBuffer = buffer->second;
         }
-
-        if (!_isSkinned) {
-            qWarning() << "MeshPArt Payload is blendshape but not skinned";
-        }
     }
 }
 
@@ -356,7 +352,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     bool hasLightmap = drawMaterialKey.isLightmapMap();
     bool isUnlit = drawMaterialKey.isUnlit();
 
-    bool isSkinned = _isSkinned;
+    bool isSkinned = _isBlendShaped || _isSkinned;
 
     if (isWireframe) {
         isTranslucent = hasTangents = hasLightmap = isSkinned = false;
@@ -424,7 +420,8 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
 
-    auto drawcallInfo = (uint16_t) ((_isBlendShaped << 0) | (_isSkinned << 1));
+    // IF deformed pass the mesh key
+    auto drawcallInfo = (uint16_t) (((_isBlendShaped && args->_enableBlendshape) << 0) | ((_isSkinned && args->_enableSkinning) << 1));
     if (drawcallInfo) {
         batch.setDrawcallInfo(drawcallInfo);
     }

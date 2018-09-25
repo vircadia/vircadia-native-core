@@ -121,7 +121,9 @@ namespace render {
 
         uint32_t _globalShapeKey{ 0 };
         uint32_t _itemShapeKey{ 0 };
-        bool _enableTexturing { true };
+        bool _enableTexturing{ true };
+        bool _enableBlendshape{ true };
+        bool _enableSkinning{ true };
 
         bool _enableFade{ false };
 

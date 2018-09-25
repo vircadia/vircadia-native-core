@@ -226,4 +226,6 @@ void MakeLightingModel::run(const render::RenderContextPointer& renderContext, L
 
     // make sure the enableTexturing flag of the render ARgs is in sync
     renderContext->args->_enableTexturing = _lightingModel->isMaterialTexturingEnabled();
+    renderContext->args->_enableBlendshape = _lightingModel->isBlendshapeEnabled();
+    renderContext->args->_enableSkinning = _lightingModel->isSkinningEnabled();
 }
