@@ -349,9 +349,7 @@ Script.include("/~/system/libraries/controllers.js");
             });
 
             _this.addToSelectedItemsList(Pointers.getPointerProperties(_this.teleportParabolaHandVisuals));
-            _this.addToSelectedItemsList(Pointers.getPointerProperties(_this.teleportParabolaHandCollisions));
             _this.addToSelectedItemsList(Pointers.getPointerProperties(_this.teleportParabolaHeadVisuals));
-            _this.addToSelectedItemsList(Pointers.getPointerProperties(_this.teleportParabolaHeadCollisions));
 
 
             var capsuleData = MyAvatar.getCollisionCapsule();
