@@ -1111,7 +1111,7 @@ void ViveControllerManager::InputDevice::calibrateFoot(const glm::mat4& defaultT
     glm::vec3 localXAxisInPuckFrame = glm::normalize(transformVectorFast(glm::inverse(puckPoseMat) * defaultToReferenceMat, glm::vec3(-1.0f, 0.0f, 0.0f)));
     float distance = glm::dot(translationOffset, localXAxisInPuckFrame);
 
-    // We ensure the offset vector lies in the sagital plane of the avatar.
+    // We ensure the offset vector lies in the sagittal plane of the avatar.
     // This helps prevent wide or narrow stances due to the user not matching the t-pose perfectly.
     glm::vec3 finalTranslation =  translationOffset - (distance * localXAxisInPuckFrame);
     glm::mat4 finalOffset = createMatFromQuatAndPos(rotationOffset, finalTranslation);
