@@ -132,7 +132,7 @@ Rectangle {
                     }
                 },
                 "trash": function(){
-                    if ("application" == assetType) {
+                    if ("application" === assetType) {
                         Commerce.uninstallApp(resource);
                     }
                     sendToScript({
@@ -176,7 +176,7 @@ Rectangle {
                     "unknown"
                 ]
 
-                currentIndex: (("entity or wearable" == assetType) ?
+                currentIndex: (("entity or wearable" === assetType) ?
                     model.indexOf("unknown") : model.indexOf(assetType))
 
                 Component.onCompleted: {
@@ -203,10 +203,10 @@ Rectangle {
                         "unknown": hifi.glyphs.circleSlash,
                         "wearable": hifi.glyphs.hat,
                     }
-                    text: (("trash" == modelData) ?
+                    text: (("trash" === modelData) ?
                         glyphs.trash :
                         glyphs[comboBox.model[comboBox.currentIndex]])
-                    size: ("trash" == modelData) ? 22 : 30
+                    size: ("trash" === modelData) ? 22 : 30
                     color: hifi.colors.black
                     horizontalAlignment: Text.AlignHCenter
                     MouseArea {
@@ -257,7 +257,7 @@ Rectangle {
                 // Alas, there is nothing we can do about that so charge
                 // ahead as though we are sure the present signal is one
                 // we expect.
-                if ("load file" == currentAction) {
+                if ("load file" === currentAction) {
                     Window.browseChanged.disconnect(onResourceSelected);
                 } else if ("load url" == currentAction) {
                     Window.promptTextChanged.disconnect(onResourceSelected);
