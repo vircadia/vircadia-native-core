@@ -245,6 +245,7 @@ void setupPreferences() {
         auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Snap turn / Smooth turn", getter, setter);
         QStringList items;
         items << "Snap turn" << "Smooth turn";
+        preference->setHeading("Rotation mode");
         preference->setItems(items);
         preferences->addPreference(preference);
     }
