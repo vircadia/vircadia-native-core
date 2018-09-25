@@ -285,9 +285,6 @@ void AudioClient::customDeleter() {
     _shouldRestartInputSetup = false;
 #endif
     stop();
-    //_checkDevicesTimer->stop();
-    //_checkPeakValuesTimer->stop();
-
     deleteLater();
 }
 
