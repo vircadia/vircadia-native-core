@@ -175,7 +175,6 @@ private:
 
     using FrameParametersBuffer = gpu::StructBuffer< AmbientOcclusionFrameParams>;
 
-    void updateGaussianDistribution();
     void updateBlurParameters();
     void updateFramebufferSizes();
 

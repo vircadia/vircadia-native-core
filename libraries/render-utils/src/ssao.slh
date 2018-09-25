@@ -123,10 +123,6 @@ int getBlurRadius() {
     return int(params._blurInfo.y);
 }
 
-float getBlurCoef(int c) {
-    return params._blurFilterTaps[c];
-}
-
 <@endfunc@>
 
 <@func declareSamplingDisk()@>
@@ -454,7 +450,12 @@ float fetchOcclusion(vec2 coords) {
 
 const float BLUR_EDGE_DISTANCE_SCALE = 1000.0;
 
-vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 destPixelCoord, vec2 scaledTexCoord, vec2 fullTexCoord, float fragDepth) {
+float evalBlurCoefficient(vec2 blurScales, float radialDistance, float zDistance) {
+    vec2 distances = vec2(radialDistance, zDistance);
+    return exp2(dot(blurScales, distances*distances));
+}
+
+vec2 evalTapWeightedValue(vec2 blurScales, ivec3 side, int r, ivec2 destPixelCoord, vec2 scaledTexCoord, vec2 fullTexCoord, float fragDepth) {
     ivec2 tapOffset = <$axis$> * r;
     ivec2 tapPixelCoord = destPixelCoord + ivec2(tapOffset);
 
@@ -467,11 +468,10 @@ vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 destPixelCoord, vec2 scaledTe
 
     tapTexCoord = fullTexCoord + tapOffset * getDepthBlurScale();
     float tapDepth = getZEyeAtUV(tapTexCoord, 0);
-    float weight = getBlurCoef(abs(r));
 
     // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
     float zDistance = tapDepth - fragDepth;
-    weight *= exp(-getBlurEdgeSharpness() * (zDistance * zDistance * BLUR_EDGE_DISTANCE_SCALE));
+    float weight = evalBlurCoefficient(blurScales, abs(r), zDistance);
     
     return vec2(tapOcclusion * weight, weight);
 }
@@ -485,20 +485,23 @@ vec3 getBlurredOcclusion(ivec2 destPixelCoord, vec2 scaledTexCoord, vec2 fullTex
     
     // Accumulate weighted contributions along the bluring axis in the [-radius, radius] range
     int blurRadius = getBlurRadius();
+    float blurRadialSigma = float(blurRadius) * 0.5;
+    float blurRadialScale = 1.0 / (2.0*blurRadialSigma*blurRadialSigma);
+    vec2 blurScales = -vec2(blurRadialScale, BLUR_EDGE_DISTANCE_SCALE) * getBlurEdgeSharpness();
 
     // negative side first
     for (int r = -blurRadius; r <= -1; ++r) {
-        weightedSums += evalTapWeightedValue(side.xyz, r, destPixelCoord, scaledTexCoord, fullTexCoord, fragDepth);
+        weightedSums += evalTapWeightedValue(blurScales, side.xyz, r, destPixelCoord, scaledTexCoord, fullTexCoord, fragDepth);
     }
     
     // Central pixel contribution
-    float mainWeight = getBlurCoef(0);
+    float mainWeight = 1.0;
     float pixelOcclusion = fetchOcclusion(scaledTexCoord);
     weightedSums += vec2(pixelOcclusion * mainWeight, mainWeight);
 
     // then positive side
     for (int r = 1; r <= blurRadius; ++r) {
-        weightedSums += evalTapWeightedValue(side.xyz, r, destPixelCoord, scaledTexCoord, fullTexCoord, fragDepth);
+        weightedSums += evalTapWeightedValue(blurScales, side.xyz, r, destPixelCoord, scaledTexCoord, fullTexCoord, fragDepth);
     }
 
     // Final normalization

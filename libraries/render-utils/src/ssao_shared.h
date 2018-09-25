@@ -16,7 +16,6 @@
 
 #define SSAO_USE_HORIZON_BASED	1
 #define SSAO_USE_QUAD_SPLIT	1
-#define SSAO_BLUR_GAUSSIAN_COEFS_COUNT  16
 
 #if SSAO_USE_QUAD_SPLIT
 #define SSAO_SPLIT_COUNT  4
@@ -39,7 +38,6 @@ struct AmbientOcclusionParams {
     SSAO_VEC4 _ditheringInfo;
     SSAO_VEC4 _sampleInfo;
     SSAO_VEC4 _blurInfo;
-    float _blurFilterTaps[SSAO_BLUR_GAUSSIAN_COEFS_COUNT];
     SSAO_VEC4 _sideSizes[2];
 };
 

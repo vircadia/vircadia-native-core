@@ -199,61 +199,6 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture() {
     return _normalTexture;
 }
 
-class GaussianDistribution {
-public:
-    
-    static double integral(float x, float deviation) {
-        return 0.5 * erf((double)x / ((double)deviation * sqrt(2.0)));
-    }
-    
-    static double rangeIntegral(float x0, float x1, float deviation) {
-        return integral(x1, deviation) - integral(x0, deviation);
-    }
-    
-    static std::vector<float> evalSampling(int samplingRadius, float deviation) {
-        std::vector<float> coefs(samplingRadius + 1, 0.0f);
-        
-        // corner case when radius is 0 or under
-        if (samplingRadius <= 0) {
-            coefs[0] = 1.0f;
-            return coefs;
-        }
-        
-        // Evaluate all the samples range integral of width 1 from center until the penultimate one
-        float halfWidth = 0.5f;
-        double sum = 0.0;
-        for (int i = 0; i < samplingRadius; i++) {
-            float x = (float) i;
-            double sample = rangeIntegral(x - halfWidth, x + halfWidth, deviation);
-            coefs[i] = sample;
-            sum += sample;
-        }
-        
-        // last sample goes to infinity
-        float lastSampleX0 = (float) samplingRadius - halfWidth;
-        float largeEnough = lastSampleX0 + 1000.0f * deviation;
-        double sample = rangeIntegral(lastSampleX0, largeEnough, deviation);
-        coefs[samplingRadius] = sample;
-        sum += sample;
-        
-        return coefs;
-    }
-    
-    static void evalSampling(float* coefs, unsigned int coefsLength, int samplingRadius, float deviation) {
-        auto coefsVector = evalSampling(samplingRadius, deviation);
-        if (coefsLength> coefsVector.size() + 1) {
-            unsigned int coefsNum = 0;
-            for (auto s : coefsVector) {
-                coefs[coefsNum] = s;
-                coefsNum++;
-            }
-            for (;coefsNum < coefsLength; coefsNum++) {
-                coefs[coefsNum] = 0.0f;
-            }
-        }
-    }
-};
-
 AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false),
 #if SSAO_USE_HORIZON_BASED
@@ -298,7 +243,6 @@ AmbientOcclusionEffect::AmbientOcclusionEffect() {
 void AmbientOcclusionEffect::configure(const Config& config) {
     DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(config.enabled);
 
-    bool shouldUpdateGaussian = false;
     bool shouldUpdateBlurs = false;
 
     const double RADIUS_POWER = 6.0;
@@ -332,7 +276,6 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     if (config.blurDeviation != _aoParametersBuffer->getBlurDeviation()) {
         auto& current = _aoParametersBuffer.edit()._blurInfo;
         current.z = config.blurDeviation;
-        shouldUpdateGaussian = true;
     }
 
     if (config.numSpiralTurns != _aoParametersBuffer->getNumSpiralTurns()) {
@@ -386,7 +329,6 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     if (config.blurRadius != _aoParametersBuffer.get().getBlurRadius()) {
         auto& current = _aoParametersBuffer.edit()._blurInfo;
         current.y = (float)config.blurRadius;
-        shouldUpdateGaussian = true;
     }
 
     if (config.ditheringEnabled != _aoParametersBuffer->isDitheringEnabled()) {
@@ -397,10 +339,6 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     if (config.borderingEnabled != _aoParametersBuffer->isBorderingEnabled()) {
         auto& current = _aoParametersBuffer.edit()._ditheringInfo;
         current.w = (float)config.borderingEnabled;
-    }
-
-    if (shouldUpdateGaussian) {
-        updateGaussianDistribution();
     }
 
     if (shouldUpdateBlurs) {
@@ -523,13 +461,6 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getBuildNormalsPipeline() {
         _buildNormalsPipeline = gpu::Pipeline::create(program, state);
     }
     return _buildNormalsPipeline;
-}
-
-void AmbientOcclusionEffect::updateGaussianDistribution() {
-    auto filterTaps = _aoParametersBuffer.edit()._blurFilterTaps;
-    auto blurRadius = _aoParametersBuffer.get().getBlurRadius();
-
-    GaussianDistribution::evalSampling(filterTaps, SSAO_BLUR_GAUSSIAN_COEFS_COUNT, blurRadius, _aoParametersBuffer->getBlurDeviation());
 }
 
 int AmbientOcclusionEffect::getDepthResolutionLevel() const {
