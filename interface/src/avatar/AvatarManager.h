@@ -24,7 +24,6 @@
 #include <SimpleMovingAverage.h>
 #include <shared/RateCounter.h>
 #include <avatars-renderer/ScriptAvatar.h>
-#include <EntityItemProperties.h>
 #include <AudioInjector.h>
 #include <workload/Space.h>
 
@@ -236,7 +235,6 @@ private:
 
     // Other avatars smooth transit global configuration
     AvatarTransit::TransitConfig  _transitConfig;
-    EntityItemProperties _transitEffectProperties;
 };
 
 #endif // hifi_AvatarManager_h
