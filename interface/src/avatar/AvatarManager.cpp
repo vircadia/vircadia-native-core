@@ -83,20 +83,10 @@ AvatarManager::AvatarManager(QObject* parent) :
     const int AVATAR_TRANSIT_FRAME_COUNT = 11; // Based on testing
     const int AVATAR_TRANSIT_FRAMES_PER_METER = 1; // Based on testing
 
-    const QString START_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
-    const QString MIDDLE_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
-    const QString END_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
-
     _transitConfig._totalFrames = AVATAR_TRANSIT_FRAME_COUNT;
     _transitConfig._triggerDistance = AVATAR_TRANSIT_TRIGGER_DISTANCE;
     _transitConfig._framesPerMeter = AVATAR_TRANSIT_FRAMES_PER_METER;
     _transitConfig._isDistanceBased = true;
-    
-    _transitConfig._startTransitAnimation = AvatarTransit::TransitAnimation(START_ANIMATION_URL, 0, 14);
-    _transitConfig._middleTransitAnimation = AvatarTransit::TransitAnimation(MIDDLE_ANIMATION_URL, 15, 0);
-    _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 16, 38);    
-    
-    setAvatarTransitEffectDefaultProperties();
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -144,57 +134,13 @@ void AvatarManager::setSpace(workload::SpacePointer& space ) {
     _space = space;
 }
 
-void AvatarManager::playTransitAnimations(AvatarTransit::Status status) {
-    auto startAnimation = _transitConfig._startTransitAnimation;
-    auto middleAnimation = _transitConfig._middleTransitAnimation;
-    auto endAnimation = _transitConfig._endTransitAnimation;
-    
-    const float REFERENCE_FPS = 30.0f;
-
-    switch (status) {
-    case AvatarTransit::Status::START_FRAME:
-        qDebug() << "START_FRAME";
-        _myAvatar->overrideAnimation(startAnimation._animationUrl, REFERENCE_FPS, false, startAnimation._firstFrame, startAnimation._firstFrame + startAnimation._frameCount);
-        break;
-    case AvatarTransit::Status::START_TRANSIT:
-        qDebug() << "START_TRANSIT";
-        _myAvatar->overrideAnimation(middleAnimation._animationUrl, REFERENCE_FPS, false, middleAnimation._firstFrame, middleAnimation._firstFrame + middleAnimation._frameCount);
-        break;
-    case AvatarTransit::Status::END_TRANSIT:
-        qDebug() << "END_TRANSIT";
-        _myAvatar->overrideAnimation(endAnimation._animationUrl, REFERENCE_FPS, false, endAnimation._firstFrame, endAnimation._firstFrame + endAnimation._frameCount);
-        break;
-    case AvatarTransit::Status::END_FRAME:
-        qDebug() << "END_FRAME";
-        _myAvatar->restoreAnimation();
-        break;
-    case AvatarTransit::Status::IDLE:
-        break;
-    case AvatarTransit::Status::TRANSITING:
-        break;
-    }
-
-}
-
 void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
     AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _transitConfig);
     bool sendFirstTransitPackage = (status == AvatarTransit::Status::START_TRANSIT);
-    bool sendAllTransitPackages = (status == AvatarTransit::Status::TRANSITING && _transitConfig._showAnimation);
-    bool blockTransitData = (status == AvatarTransit::Status::TRANSITING && !_transitConfig._showAnimation);
-    
-    if (status != AvatarTransit::Status::IDLE) {
-        if (_transitConfig._showAnimation) {
-            blockTransitData = false;
-            playTransitAnimations(status);
-        }
-        if (status != AvatarTransit::Status::TRANSITING) {
-            QUuid& transitEffectID = _myAvatar->getTransitEffectID();
-            changeAvatarTransitState(status, _myAvatar->getID(), transitEffectID);
-        }
-    }
+    bool blockTransitData = (status == AvatarTransit::Status::TRANSITING);
 
     _myAvatar->update(deltaTime);
     render::Transaction transaction;
@@ -210,9 +156,7 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
         PerformanceTimer perfTimer("send");
         if (sendFirstTransitPackage) {
             _myAvatar->overrideNextPackagePositionData(_myAvatar->getTransit()->getEndPosition());
-        } else if (sendAllTransitPackages) {
-            _myAvatar->overrideNextPackagePositionData(_myAvatar->getTransit()->getCurrentPosition());
-        }        
+        }       
         _myAvatar->sendAvatarDataPacket();
         _lastSendAvatarDataTime = now;
         _myAvatarSendRate.increment();
@@ -334,11 +278,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             // smooth other avatars positions
             {
                 auto status = avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
-                if (status != AvatarTransit::Status::IDLE && status != AvatarTransit::Status::TRANSITING) {
-                    QUuid& transitEffectID = avatar->getTransitEffectID();
-                    changeAvatarTransitState(status, avatar->getID(), transitEffectID);
-                }
-
             }
             
             avatar->simulate(deltaTime, inView);
@@ -940,9 +879,7 @@ QVariantMap AvatarManager::getAvatarTransitData() {
     result["framesPerMeter"] = _transitConfig._framesPerMeter;
     result["isDistanceBased"] = _transitConfig._isDistanceBased;
     result["triggerDistance"] = _transitConfig._triggerDistance;
-    result["showAnimation"] = _transitConfig._showAnimation;
     result["easeType"] = (int)_transitConfig._easeType;
-    result["showParticles"] = _transitConfig._showParticles;
 
     return result;
 }
@@ -960,251 +897,7 @@ void AvatarManager::setAvatarTransitData(const QVariantMap& data) {
     if (data.contains("triggerDistance")) {
         _transitConfig._triggerDistance = data["triggerDistance"].toDouble();
     }
-    if (data.contains("showAnimation")) {
-        _transitConfig._showAnimation = data["showAnimation"].toBool();
-    }
     if (data.contains("easeType")) {
         _transitConfig._easeType = (AvatarTransit::EaseType)data["easeType"].toInt();
     }
-    if (data.contains("showParticles")) {
-        _transitConfig._showParticles = data["showParticles"].toBool();
-    }
-}
-
-AvatarTransit::TransitAnimation AvatarManager::getAnimationFromJsonObject(const QJsonObject& object) {
-    QString animationUrl;
-    int firstFrame = 0;
-    int frameCount = 0;
-    if (object.contains("animationUrl")) {
-        animationUrl = object["animationUrl"].toString();
-    }
-    if (object.contains("firstFrame")) {
-        firstFrame = object["firstFrame"].toInt();
-    }
-    if (object.contains("frameCount")) {
-        frameCount = object["frameCount"].toInt();
-    }
-    return AvatarTransit::TransitAnimation(animationUrl, firstFrame, frameCount);
-}
-
-void AvatarManager::setAvatarTransitAnimationData(const QVariantMap& data) {
-    AvatarTransit::TransitAnimation startAnimation, middleAnimation, endAnimation;
-
-    if (data.contains("startAnimation")) {
-        QJsonObject object = data["startAnimation"].toJsonObject();
-        _transitConfig._startTransitAnimation = getAnimationFromJsonObject(object);
-    }
-    if (data.contains("middleAnimation")) {
-        QJsonObject object = data["middleAnimation"].toJsonObject();
-        _transitConfig._middleTransitAnimation = getAnimationFromJsonObject(object);
-    }
-    if (data.contains("endAnimation")) {
-        QJsonObject object = data["endAnimation"].toJsonObject();
-        _transitConfig._endTransitAnimation = getAnimationFromJsonObject(object);
-    }
-}
-
-void AvatarManager::changeAvatarTransitState(AvatarTransit::Status status, const QUuid& avatarID, QUuid& effectID) {
-
-    if (!_transitConfig._showParticles) {
-        return;
-    }
-    _transitEffectProperties.setParentID(avatarID);
-    std::shared_ptr<Avatar> avatar;
-    avatar = (avatarID != _myAvatar->getID()) ? std::static_pointer_cast<Avatar>(getAvatarBySessionID(avatarID)) : _myAvatar;
-
-    _transitEffectProperties.setLifetime(_transitEffectProperties.getLifespan() + avatar->getTransit()->getTransitTime());
-    float feetOffset = glm::length(avatar->getWorldPosition() - avatar->getWorldFeetPosition());        
-    _transitEffectProperties.setLocalPosition(glm::vec3(0.0f, -feetOffset, 0.0f));
-
-    EntityItemProperties props;
-    switch (status) {
-    case AvatarTransit::Status::IDLE:
-    case AvatarTransit::Status::TRANSITING:
-    case AvatarTransit::Status::START_FRAME:
-    case AvatarTransit::Status::END_FRAME:
-        break;
-    case AvatarTransit::Status::START_TRANSIT:
-        effectID = DependencyManager::get<EntityScriptingInterface>()->addEntity(_transitEffectProperties);
-        break;
-    case AvatarTransit::Status::END_TRANSIT:
-        props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(effectID);
-        props.setIsEmitting(false);
-        auto nid = DependencyManager::get<EntityScriptingInterface>()->editEntity(effectID, props);
-        break;
-    }
-}
-
-void AvatarManager::setAvatarTransitEffectData(const QVariantMap& data) {
-    auto jsonToVector = [](const QJsonObject& object) {
-        if (object.contains("x") && object.contains("y") && object.contains("z")) {
-            float x = (float)object["x"].toDouble();
-            float y = (float)object["y"].toDouble();
-            float z = (float)object["z"].toDouble();
-            return glm::vec3(x, y, z);
-        }
-        return glm::vec3(0.0f, 0.0f, 0.0f);
-    };
-    
-    auto jsonToQuat = [jsonToVector](const QJsonObject& object) {
-        glm::vec3 components = jsonToVector(object);
-        if (object.contains("w")) {
-            float w = (float)object["w"].toDouble();
-            return glm::quat(components.x, components.y, components.z, w);
-        }
-        return Quaternions::IDENTITY;
-    };
-
-    auto jsonToColor = [jsonToVector](const QJsonObject& object) {
-        glm::vec3 components = jsonToVector(object);
-        return xColor(components.x, components.y, components.z);
-    };
-        
-    _transitEffectProperties.setType(EntityTypes::ParticleEffect);
-
-    if (data.contains("isEmitting")) {
-        _transitEffectProperties.setIsEmitting(data["isEmitting"].toBool());
-    }
-    if (data.contains("lifetime")) {
-        _transitEffectProperties.setLifetime(data["lifetime"].toFloat());
-    }
-    if (data.contains("lifespan")) {
-        _transitEffectProperties.setLifespan(data["lifespan"].toFloat());
-    }
-    if (data.contains("maxParticles")) {
-        _transitEffectProperties.setMaxParticles(data["maxParticles"].toFloat());
-    }
-    if (data.contains("emitRate")) {
-        _transitEffectProperties.setEmitRate(data["emitRate"].toFloat());
-    }
-    if (data.contains("emitSpeed")) {
-        _transitEffectProperties.setEmitSpeed(data["emitSpeed"].toFloat());
-    }
-    if (data.contains("speedSpread")) {
-        _transitEffectProperties.setSpeedSpread(data["speedSpread"].toFloat());
-    }
-    if (data.contains("localPosition")) {
-        _transitEffectProperties.setLocalPosition(jsonToVector(data["localPosition"].toJsonObject()));
-    }
-    if (data.contains("emitDimensions")) {
-        _transitEffectProperties.setEmitDimensions(jsonToVector(data["emitDimensions"].toJsonObject()));
-    }
-    if (data.contains("emitOrientation")) {
-        _transitEffectProperties.setEmitOrientation(jsonToQuat(data["emitOrientation"].toJsonObject()));
-    }
-    if (data.contains("emitterShouldTrail")) {
-        _transitEffectProperties.setEmitterShouldTrail(data["emitterShouldTrail"].toBool());
-    }
-    if (data.contains("particleRadius")) {
-        _transitEffectProperties.setParticleRadius(data["particleRadius"].toFloat());
-    }
-    if (data.contains("radiusSpread")) {
-        _transitEffectProperties.setRadiusSpread(data["radiusSpread"].toFloat());
-    }
-    if (data.contains("radiusStart")) {
-        _transitEffectProperties.setRadiusStart(data["radiusStart"].toFloat());
-    }
-    if (data.contains("radiusFinish")) {
-        _transitEffectProperties.setRadiusFinish(data["radiusFinish"].toFloat());
-    }
-    if (data.contains("color")) {
-        _transitEffectProperties.setColor(jsonToColor(data["color"].toJsonObject()));
-    }
-    if (data.contains("colorStart")) {
-        _transitEffectProperties.setColorStart(jsonToVector(data["colorStart"].toJsonObject()));
-    }
-    if (data.contains("colorFinish")) {
-        _transitEffectProperties.setColorFinish(jsonToVector(data["colorFinish"].toJsonObject()));
-    }
-    if (data.contains("emitAcceleration")) {
-        _transitEffectProperties.setEmitAcceleration(jsonToVector(data["emitAcceleration"].toJsonObject()));
-    }
-    if (data.contains("alpha")) {
-        _transitEffectProperties.setAlpha(data["alpha"].toFloat());
-    }
-    if (data.contains("accelerationSpread")) {
-        _transitEffectProperties.setAccelerationSpread(jsonToVector(data["accelerationSpread"].toJsonObject()));
-    }
-    if (data.contains("alphaSpread")) {
-        _transitEffectProperties.setAlphaSpread(data["alphaSpread"].toFloat());
-    }
-    if (data.contains("alphaStart")) {
-        _transitEffectProperties.setAlphaStart(data["alphaStart"].toFloat());
-    }
-    if (data.contains("alphaFinish")) {
-        _transitEffectProperties.setAlphaFinish(data["alphaFinish"].toFloat());
-    }
-    if (data.contains("particleSpin")) {
-        _transitEffectProperties.setParticleSpin(data["particleSpin"].toFloat());
-    }
-    if (data.contains("textures")) {
-        _transitEffectProperties.setTextures(data["textures"].toString());
-    }
-    if (data.contains("spinSpread")) {
-        _transitEffectProperties.setSpinSpread(data["spinSpread"].toFloat());
-    }
-    if (data.contains("spinStart")) {
-        _transitEffectProperties.setSpinStart(data["spinStart"].toFloat());
-    }
-    if (data.contains("spinFinish")) {
-        _transitEffectProperties.setSpinFinish(data["spinFinish"].toFloat());
-    }
-    if (data.contains("rotateWithEntity")) {
-        _transitEffectProperties.setRotateWithEntity(data["rotateWithEntity"].toBool());
-    }
-    if (data.contains("polarStart")) {
-        _transitEffectProperties.setPolarStart(data["polarStart"].toFloat());
-    }
-    if (data.contains("polarFinish")) {
-        _transitEffectProperties.setPolarFinish(data["polarFinish"].toFloat());
-    }
-    if (data.contains("azimuthStart")) {
-        _transitEffectProperties.setAzimuthStart(data["azimuthStart"].toFloat());
-    }
-    if (data.contains("azimuthFinish")) {
-        _transitEffectProperties.setAzimuthFinish(data["azimuthFinish"].toFloat());
-    }
-    if (data.contains("userData")) {
-        _transitEffectProperties.setUserData(data["userData"].toString());
-    } else {
-        _transitEffectProperties.setUserData("{\"grabbableKey\":{\"grabbable\":false}}");
-    }
-}
-
-void AvatarManager::setAvatarTransitEffectDefaultProperties() {
-    _transitEffectProperties.setIsEmitting(true);
-    _transitEffectProperties.setLifespan(2.7f);
-    _transitEffectProperties.setMaxParticles(200.0f);
-    _transitEffectProperties.setEmitRate(200.0);
-    _transitEffectProperties.setEmitSpeed(2.8f);
-    _transitEffectProperties.setSpeedSpread(0.2f);
-    _transitEffectProperties.setEmitDimensions(glm::vec3(0.0f, 0.0f, 0.0f));
-    _transitEffectProperties.setEmitOrientation(Quaternions::X_180);
-    _transitEffectProperties.setEmitterShouldTrail(true);
-    _transitEffectProperties.setParticleRadius(0.24f);
-    _transitEffectProperties.setRadiusSpread(0.0f);
-    _transitEffectProperties.setRadiusStart(0.0f);
-    _transitEffectProperties.setRadiusFinish(0.21f);
-    _transitEffectProperties.setColor(xColor(0.0f, 180.0f, 239.0f));
-    _transitEffectProperties.setColorStart(glm::vec3(200.0f, 200.0f, 200.0f));
-    _transitEffectProperties.setColorFinish(glm::vec3(0.0f, 0.0f, 0.0f));
-    _transitEffectProperties.setEmitAcceleration(glm::vec3(0.0f, 0.0f, 0.0f));
-    _transitEffectProperties.setAlpha(0.15f);
-    _transitEffectProperties.setAccelerationSpread(glm::vec3(0.5f, 1.0f, 0.5f));
-    _transitEffectProperties.setAlphaSpread(0.0f);
-    _transitEffectProperties.setAlphaStart(0.3f);
-    _transitEffectProperties.setAlphaFinish(0.0f);
-    _transitEffectProperties.setParticleSpin(4.78f);
-    _transitEffectProperties.setType(EntityTypes::ParticleEffect);
-    _transitEffectProperties.setTextures("http://hifi-content.s3.amazonaws.com/alexia/Particles/spark.png");
-    _transitEffectProperties.setSpinSpread(0.0f);
-    _transitEffectProperties.setSpinStart(-4.57f);
-    _transitEffectProperties.setSpinFinish(4.67f);
-    _transitEffectProperties.setRotateWithEntity(false);
-    _transitEffectProperties.setPolarStart(0.0f);
-    _transitEffectProperties.setPolarFinish(0.0f);
-    _transitEffectProperties.setAzimuthStart(-3.1415f);
-    _transitEffectProperties.setAzimuthFinish(3.1415f);
-    _transitEffectProperties.setRotateWithEntity(true);
-    _transitEffectProperties.setUserData("{\"grabbableKey\":{\"grabbable\":false}}");
 }

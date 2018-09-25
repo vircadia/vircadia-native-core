@@ -1797,7 +1797,6 @@ private:
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
 
     void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
-    void playTransitAnimations(AvatarTransit::Status status);
 
     bool _showTransit { false };
     // max unscaled forward movement speed

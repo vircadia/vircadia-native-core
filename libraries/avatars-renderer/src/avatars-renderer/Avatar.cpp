@@ -133,18 +133,10 @@ void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const
     _transitLine = endPosition - startPosition;
     _totalDistance = glm::length(_transitLine);
     _easeType = config._easeType;
-    _showAnimation = config._showAnimation;
-    _showParticles = config._showParticles;
     const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
-
-    int framesBefore = _showAnimation ? config._startTransitAnimation._frameCount : 0;
-    int framesAfter = _showAnimation ? config._endTransitAnimation._frameCount : 0;
-    _timeBefore = (float)framesBefore / REFERENCE_FRAMES_PER_SECOND;
-    _timeAfter = (float)framesAfter / REFERENCE_FRAMES_PER_SECOND;
         
     int transitFrames = (!config._isDistanceBased) ? config._totalFrames : config._framesPerMeter * _totalDistance;
-    _transitTime = (float)transitFrames / REFERENCE_FRAMES_PER_SECOND;
-    _totalTime = _transitTime + _timeBefore + _timeAfter;
+    _totalTime = (float)transitFrames / REFERENCE_FRAMES_PER_SECOND;
     _currentTime = 0.0f;
     _isTransiting = true;
 }
@@ -172,29 +164,19 @@ AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
     if (_isTransiting) {
         float nextTime = _currentTime + deltaTime;
         glm::vec3 newPosition;
-        if (nextTime < _timeBefore) {
-            _currentPosition = _startPosition;
-            if (_currentTime == 0) {
-                status = Status::START_FRAME;
-            }
-        } else if (nextTime >= _totalTime - _timeAfter) {
-            if (_currentTime < _totalTime - _timeAfter) {
-                status = Status::END_TRANSIT;
-            } else if (nextTime >= _totalTime) {
-                status = Status::END_FRAME;
-                _isTransiting = false;
-            }
+        if (nextTime >= _totalTime) {
             _currentPosition = _endPosition;
+            _isTransiting = false;
+            status = Status::END_TRANSIT;
         } else {
-            if (_currentTime <= _timeBefore) {
+            if (_currentTime == 0) {
                 status = Status::START_TRANSIT;
             } else {
                 status = Status::TRANSITING;
             }
-            float percentageIntoTransit = (nextTime - _timeBefore) / _transitTime;
-            
+            float percentageIntoTransit = nextTime / _totalTime;
             _currentPosition = _startPosition + getEaseValue(_easeType, percentageIntoTransit) * _transitLine;
-        } 
+        }
         _currentTime = nextTime;
     }
     return status;

@@ -54,11 +54,9 @@ class AvatarTransit {
 public:
     enum Status {
         IDLE = 0,
-        START_FRAME,
         START_TRANSIT,
         TRANSITING,
-        END_TRANSIT,
-        END_FRAME
+        END_TRANSIT
     };
 
     enum EaseType {
@@ -68,27 +66,13 @@ public:
         EASE_IN_OUT
     };
 
-    struct TransitAnimation {
-        TransitAnimation() {};
-        TransitAnimation(const QString& animationUrl, int firstFrame, int frameCount) :
-            _firstFrame(firstFrame), _frameCount(frameCount), _animationUrl(animationUrl) {};
-        int _firstFrame;
-        int _frameCount;
-        QString _animationUrl;
-    };
-
     struct TransitConfig {
         TransitConfig() {};
         int _totalFrames { 0 };
         int _framesPerMeter { 0 };
         bool _isDistanceBased { false };
         float _triggerDistance { 0 };
-        bool _showAnimation { false };
         EaseType _easeType { EaseType::EASE_OUT };
-        bool _showParticles { false };
-        TransitAnimation _startTransitAnimation;
-        TransitAnimation _middleTransitAnimation;
-        TransitAnimation _endTransitAnimation;
     };
 
     AvatarTransit() {};
@@ -117,13 +101,8 @@ private:
     float _totalDistance { 0.0f };
     float _totalTime { 0.0f };
     float _currentTime { 0.0f };
-    float _transitTime { 0.0f };
-    float _timeBefore { 0.0f };
-    float _timeAfter { 0.0f };
     EaseType _easeType { EaseType::EASE_OUT };
     Status _status { Status::IDLE };
-    bool _showAnimation { false };
-    bool _showParticles { false };
     float _scale { 1.0f };
 };
 
@@ -452,7 +431,6 @@ public:
     AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
     void setTransitScale(float scale);
 
-    QUuid& getTransitEffectID() { return _transitEffectID; };
     void overrideNextPackagePositionData(const glm::vec3& position);
 
 signals:
@@ -639,7 +617,6 @@ protected:
     static const float OTHERAVATAR_LOADING_PRIORITY;
     static const float ATTACHMENT_LOADING_PRIORITY;
 
-    QUuid _transitEffectID{ QUuid::createUuid() };
     LoadingStatus _loadingStatus { LoadingStatus::NoModel };
 };
 
