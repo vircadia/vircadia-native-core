@@ -550,6 +550,7 @@ public:
     float getHMDRollControlRate() const { return _hmdRollControlRate; }
 
     // get/set avatar data
+    void resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex);
     void saveData();
     void loadData();
 
@@ -1806,6 +1807,23 @@ private:
 
     bool _haveReceivedHeightLimitsFromDomain { false };
     int _disableHandTouchCount { 0 };
+
+    Setting::Handle<QString> _dominantHandSetting;
+    Setting::Handle<float> _headPitchSetting;
+    Setting::Handle<float> _scaleSetting;
+    Setting::Handle<float> _yawSpeedSetting;
+    Setting::Handle<float> _pitchSpeedSetting;
+    Setting::Handle<QUrl> _fullAvatarURLSetting;
+    Setting::Handle<QUrl> _fullAvatarModelNameSetting;
+    Setting::Handle<QUrl> _animGraphURLSetting;
+    Setting::Handle<QString> _displayNameSetting;
+    Setting::Handle<QUrl> _collisionSoundURLSetting;
+    Setting::Handle<bool> _useSnapTurnSetting;
+    Setting::Handle<float> _userHeightSetting;
+    Setting::Handle<bool> _flyingHMDSetting;
+    Setting::Handle<int> _avatarEntityCountSetting;
+    std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
+    std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
