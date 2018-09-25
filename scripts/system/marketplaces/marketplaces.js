@@ -23,7 +23,6 @@ Script.include("/~/system/libraries/connectionUtils.js");
 var MARKETPLACE_CHECKOUT_QML_PATH = "hifi/commerce/checkout/Checkout.qml";
 var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
 var MARKETPLACE_ITEM_TESTER_QML_PATH = "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml";
-var MARKETPLACE_ITEM_TESTER_QML_PATH = "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml";
 var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
 var MARKETPLACE_WALLET_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
