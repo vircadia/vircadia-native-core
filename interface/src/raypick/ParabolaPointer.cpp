@@ -33,7 +33,7 @@ ParabolaPointer::ParabolaPointer(const QVariant& rayProps, const RenderStateMap&
 PickResultPointer ParabolaPointer::getPickResultCopy(const PickResultPointer& pickResult) const {
     auto parabolaPickResult = std::dynamic_pointer_cast<ParabolaPickResult>(pickResult);
     if (!parabolaPickResult) {
-        std::make_shared<ParabolaPickResult>();
+        return std::make_shared<ParabolaPickResult>();
     }
     return std::make_shared<ParabolaPickResult>(*parabolaPickResult.get());
 }
