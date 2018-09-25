@@ -36,6 +36,9 @@ void LaserPointer::editRenderStatePath(const std::string& state, const QVariant&
 }
 
 PickResultPointer LaserPointer::getPickResultCopy(const PickResultPointer& pickResult) const {
+    if (!pickResult) {
+        std::make_shared<RayPickResult>();
+    }
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
     return std::make_shared<RayPickResult>(*rayPickResult.get());
 }
