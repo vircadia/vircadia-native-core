@@ -42,7 +42,7 @@ public:
 #endif
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
-    bool update(const gpu::TexturePointer& linearDepthBuffer, int resolutionLevel, bool isStereo);
+    bool update(const gpu::TexturePointer& linearDepthBuffer, int resolutionLevel, int depthResolutionLevel, bool isStereo);
     gpu::TexturePointer getLinearDepthTexture();
     const glm::ivec2& getSourceFrameSize() const { return _frameSize; }
     bool isStereo() const { return _isStereo; }
@@ -70,6 +70,7 @@ protected:
 
     glm::ivec2 _frameSize;
     int _resolutionLevel{ 0 };
+    int _depthResolutionLevel{ 0 };
     bool _isStereo{ false };
 };
 
@@ -177,6 +178,8 @@ private:
     void updateGaussianDistribution();
     void updateBlurParameters();
     void updateFramebufferSizes();
+
+    int getDepthResolutionLevel() const;
    
     AOParametersBuffer _aoParametersBuffer;
     FrameParametersBuffer _aoFrameParametersBuffer[SSAO_SPLIT_COUNT];

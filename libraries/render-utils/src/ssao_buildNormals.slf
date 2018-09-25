@@ -29,10 +29,10 @@ void main(void) {
     ivec2 sideNormalsSize = ivec2( getNormalsSideSize() );
     ivec4 side = getStereoSideInfoFromWidth(fragPixelPos.x, sideNormalsSize.x);
 
-    // From now on, fragUVPos is the UV pos in the side
-    fragUVPos.x = mix(fragUVPos.x, fragUVPos.x - getStereoSide(side) * 0.5, isStereo());
-
     vec2 deltaDepthUV = vec2(1.0) / vec2(getDepthTextureSideSize(0));
+
+    // From now on, fragUVPos is the UV pos in the side
+    fragUVPos.x = mix(fragUVPos.x, fragUVPos.x * 2.0 - getStereoSide(side), isStereo());
 
     // The position and normal of the pixel fragment in Eye space
     vec3 fragPositionES = buildPosition(side, fragUVPos);

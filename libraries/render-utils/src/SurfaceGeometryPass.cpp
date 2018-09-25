@@ -73,8 +73,9 @@ void LinearDepthFramebuffer::allocate() {
     auto height = _frameSize.y;
 
     // For Linear Depth:
-    const uint16_t LINEAR_DEPTH_MAX_MIP_LEVEL = 1;
-    const auto depthSamplerFull = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP);
+    const uint16_t LINEAR_DEPTH_MAX_MIP_LEVEL = 5;
+    // Point sampling of the depth, as well as the clamp to edge, are needed for the AmbientOcclusionEffect with HBAO
+    const auto depthSamplerFull = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_POINT, gpu::Sampler::WRAP_CLAMP);
     _linearDepthTexture = gpu::Texture::createRenderBuffer(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED), width, height, LINEAR_DEPTH_MAX_MIP_LEVEL,
         depthSamplerFull);
     _linearDepthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("linearDepth"));
