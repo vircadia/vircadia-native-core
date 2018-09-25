@@ -188,13 +188,22 @@ Rectangle {
             }
 
             Repeater {
-                model: [
-                    { "name": "forward", "glyph": hifi.glyphs.forward, "size": 30 },
-                    { "name": "trash", "glyph": hifi.glyphs.trash, "size": 22}
-                ]
+                model: [ "forward", "trash" ]
+
                 HifiStylesUit.HiFiGlyphs {
-                    text: modelData.glyph
-                    size: modelData.size
+                    property var glyphs: {
+                        "application": hifi.glyphs.install,
+                        "avatar": hifi.glyphs.avatar,
+                        "content set": hifi.glyphs.globe,
+                        "entity": hifi.glyphs.wand,
+                        "trash": hifi.glyphs.trash,
+                        "unknown": hifi.glyphs.circleSlash,
+                        "wearable": hifi.glyphs.hat,
+                    }
+                    text: (("trash" == modelData) ?
+                        glyphs.trash :
+                        glyphs[comboBox.model[comboBox.currentIndex]])
+                    size: ("trash" == modelData) ? 22 : 30
                     color: hifi.colors.black
                     horizontalAlignment: Text.AlignHCenter
                     MouseArea {
