@@ -15,7 +15,7 @@
 
 <@include Highlight_shared.slh@>
 
-layout(binding=RENDER_UTILS_BUFFER_HIGHLIGHT_PARAMS) uniform highlightParamsBuffer {
+layout(std140, binding=RENDER_UTILS_BUFFER_HIGHLIGHT_PARAMS) uniform highlightParamsBuffer {
     HighlightParameters params;
 };
 
