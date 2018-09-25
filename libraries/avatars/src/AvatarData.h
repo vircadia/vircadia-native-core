@@ -302,7 +302,7 @@ namespace AvatarDataPacket {
 
     struct SendStatus {
         HasFlags itemFlags { 0 };
-        int rotationsSent { 0 };
+        int rotationsSent { 0 };  // ie: index of next unsent joint
         int translationsSent { 0 };
         operator bool() { return itemFlags == 0; }
     };

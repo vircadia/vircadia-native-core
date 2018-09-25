@@ -245,13 +245,17 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     lazyInitHeadData();
     ASSERT(maxDataSize == 0 || (size_t)maxDataSize >= AvatarDataPacket::MIN_BULK_PACKET_SIZE);
 
+    // Leading flags, to indicate how much data is actually included in the packet...
+    AvatarDataPacket::HasFlags wantedFlags = 0;
+    AvatarDataPacket::HasFlags includedFlags = 0;
+    AvatarDataPacket::HasFlags extraReturnedFlags = 0;  // For partial joint data.
+
     // special case, if we were asked for no data, then just include the flags all set to nothing
     if (dataDetail == NoData) {
-        AvatarDataPacket::HasFlags packetStateFlags = 0;
-        sendStatus.itemFlags = packetStateFlags;
+        sendStatus.itemFlags = wantedFlags;
 
-        QByteArray avatarDataByteArray(getSessionUUID().toRfc4122().data(), NUM_BYTES_RFC4122_UUID + sizeof(packetStateFlags));
-        avatarDataByteArray.append((char*) &packetStateFlags, sizeof packetStateFlags);
+        QByteArray avatarDataByteArray(getSessionUUID().toRfc4122().data(), NUM_BYTES_RFC4122_UUID + sizeof wantedFlags);
+        avatarDataByteArray.append((char*) &wantedFlags, sizeof wantedFlags);
         return avatarDataByteArray;
     }
 
@@ -280,10 +284,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     glm::mat4 rightFarGrabMatrix;
     glm::mat4 mouseFarGrabMatrix;
 
-    // Leading flags, to indicate how much data is actually included in the packet...
-    AvatarDataPacket::HasFlags packetStateFlags = 0;
-
     if (sendStatus.itemFlags == 0) {
+        // New avatar ...
         bool hasAvatarGlobalPosition = true; // always include global position
         bool hasAvatarOrientation = false;
         bool hasAvatarBoundingBox = false;
@@ -324,7 +326,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             hasJointDefaultPoseFlags = hasJointData;
         }
 
-        packetStateFlags =
+        wantedFlags =
             (hasAvatarGlobalPosition ? AvatarDataPacket::PACKET_HAS_AVATAR_GLOBAL_POSITION : 0)
             | (hasAvatarBoundingBox ? AvatarDataPacket::PACKET_HAS_AVATAR_BOUNDING_BOX : 0)
             | (hasAvatarOrientation ? AvatarDataPacket::PACKET_HAS_AVATAR_ORIENTATION : 0)
@@ -340,17 +342,18 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             | (hasJointDefaultPoseFlags ? AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS : 0)
             | (hasJointData ? AvatarDataPacket::PACKET_HAS_GRAB_JOINTS : 0);
 
-            sendStatus.itemFlags = packetStateFlags;
+            sendStatus.itemFlags = wantedFlags;
             sendStatus.rotationsSent = 0;
             sendStatus.translationsSent = 0;
-    } else {
-        packetStateFlags = sendStatus.itemFlags;
-        if (packetStateFlags & AvatarDataPacket::PACKET_HAS_GRAB_JOINTS) {
-            packetStateFlags |= AvatarDataPacket::PACKET_HAS_JOINT_DATA;
+    } else {  // Continuing avatar ...
+        wantedFlags = sendStatus.itemFlags;
+        if (wantedFlags & AvatarDataPacket::PACKET_HAS_GRAB_JOINTS) {
+            // Must send joints for grab joints -
+            wantedFlags |= AvatarDataPacket::PACKET_HAS_JOINT_DATA;
         }
     }
 
-    if (packetStateFlags & AvatarDataPacket::PACKET_HAS_GRAB_JOINTS) {
+    if (wantedFlags & AvatarDataPacket::PACKET_HAS_GRAB_JOINTS) {
         bool leftValid;
         leftFarGrabMatrix = _farGrabLeftMatrixCache.get(leftValid);
         if (!leftValid) {
@@ -367,10 +370,10 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             mouseFarGrabMatrix = glm::mat4();
         }
         if (!(leftValid || rightValid || mouseValid)) {
-            packetStateFlags &= ~AvatarDataPacket::PACKET_HAS_GRAB_JOINTS;
+            wantedFlags &= ~AvatarDataPacket::PACKET_HAS_GRAB_JOINTS;
         }
     }
-    if (packetStateFlags & (AvatarDataPacket::PACKET_HAS_ADDITIONAL_FLAGS | AvatarDataPacket::PACKET_HAS_PARENT_INFO)) {
+    if (wantedFlags & (AvatarDataPacket::PACKET_HAS_ADDITIONAL_FLAGS | AvatarDataPacket::PACKET_HAS_PARENT_INFO)) {
         parentID = getParentID();
     }
 
@@ -388,24 +391,22 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     const unsigned char* const startPosition = destinationBuffer;
     const unsigned char* const packetEnd = destinationBuffer + maxDataSize;
 
-    AvatarDataPacket::HasFlags includedFlags = 0;
-    AvatarDataPacket::HasFlags extraReturnedFlags = 0;
-
     // Packets always have UUID.
     memcpy(destinationBuffer, getSessionUUID().toRfc4122(), NUM_BYTES_RFC4122_UUID);
     destinationBuffer += NUM_BYTES_RFC4122_UUID;
 
     unsigned char * packetFlagsLocation = destinationBuffer;
-    destinationBuffer += sizeof(packetStateFlags);
+    destinationBuffer += sizeof(wantedFlags);
 
 #define AVATAR_MEMCPY(src)                          \
     memcpy(destinationBuffer, &(src), sizeof(src)); \
     destinationBuffer += sizeof(src);
 
 // If we want an item and there's sufficient space:
-#define IF_AVATAR_SPACE(flag, space)                                                             \
-    if ((packetStateFlags & AvatarDataPacket::flag) && (size_t)(packetEnd - destinationBuffer) >= (size_t)(space)  \
-    && (includedFlags |= AvatarDataPacket::flag))
+#define IF_AVATAR_SPACE(flag, space)                                   \
+    if ((wantedFlags & AvatarDataPacket::flag)                         \
+        && (size_t)(packetEnd - destinationBuffer) >= (size_t)(space)  \
+        && (includedFlags |= AvatarDataPacket::flag))
 
     IF_AVATAR_SPACE(PACKET_HAS_AVATAR_GLOBAL_POSITION, sizeof _globalPosition) {
         auto startSection = destinationBuffer;
@@ -589,7 +590,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     }
 
     QVector<JointData> jointData;
-    if (packetStateFlags & (AvatarDataPacket::PACKET_HAS_JOINT_DATA | AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS)) {
+    if (wantedFlags & (AvatarDataPacket::PACKET_HAS_JOINT_DATA | AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS)) {
         QReadLocker readLock(&_jointDataLock);
         jointData = _jointData;
     }
@@ -802,7 +803,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     memcpy(packetFlagsLocation, &includedFlags, sizeof(includedFlags));
     // Return dropped items.
-    sendStatus.itemFlags = (packetStateFlags & ~includedFlags) | extraReturnedFlags;
+    sendStatus.itemFlags = (wantedFlags & ~includedFlags) | extraReturnedFlags;
 
     int avatarDataSize = destinationBuffer - startPosition;
 

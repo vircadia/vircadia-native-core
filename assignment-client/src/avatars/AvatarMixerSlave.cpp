@@ -244,7 +244,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // reset the internal state for correct random number distribution
     distribution.reset();
 
-    // Estimate number to sort on number sent last frame.
+    // Estimate number to sort on number sent last frame (with min. of 20).
     const int numToSendEst = std::max(nodeData->getNumAvatarsSentLastFrame() * 2, 20);
 
     // reset the number of sent avatars
@@ -464,7 +464,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             avatarPacket->write(bytes);
             avatarSpaceAvailable -= bytes.size();
             numAvatarDataBytes += bytes.size();
-            if (sendStatus.itemFlags != 0 || avatarSpaceAvailable < (int)AvatarDataPacket::MIN_BULK_PACKET_SIZE) {
+            if (!sendStatus || avatarSpaceAvailable < (int)AvatarDataPacket::MIN_BULK_PACKET_SIZE) {
                 // Weren't able to fit everything.
                 nodeList->sendPacket(std::move(avatarPacket), *destinationNode);
                 ++numPacketsSent;
