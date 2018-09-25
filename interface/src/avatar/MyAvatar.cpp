@@ -916,6 +916,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
     
     if (hasSensorToWorldScaleChanged) {
+        setTransitScale(sensorToWorldScale);
         emit sensorToWorldScaleChanged(sensorToWorldScale);
     }
     

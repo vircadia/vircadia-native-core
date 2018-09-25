@@ -24,12 +24,14 @@
 #include <SimpleMovingAverage.h>
 #include <shared/RateCounter.h>
 #include <avatars-renderer/ScriptAvatar.h>
+#include <EntityItemProperties.h>
 #include <AudioInjector.h>
 #include <workload/Space.h>
 
 #include "AvatarMotionState.h"
 #include "MyAvatar.h"
 #include "OtherAvatar.h"
+
 
 using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
 
@@ -183,7 +185,7 @@ public:
     Q_INVOKABLE QVariantMap getAvatarTransitData();
     Q_INVOKABLE void setAvatarTransitData(const QVariantMap& data);
     Q_INVOKABLE void setAvatarTransitAnimationData(const QVariantMap& data);
-    EntityItemProperties getAvatarTransitEffectProperties();
+    Q_INVOKABLE void setAvatarTransitEffectData(const QVariantMap& data);
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
     int getIdentityRequestsSent() const { return _identityRequestsSent; }
@@ -214,6 +216,7 @@ private:
     void playTransitAnimations(AvatarTransit::Status status);
 
     AvatarTransit::TransitAnimation getAnimationFromJsonObject(const QJsonObject& object);
+    void AvatarManager::setAvatarTransitEffectDefaultProperties();
 
     QVector<AvatarSharedPointer> _avatarsToFade;
     QVector<AvatarSharedPointer> _avatarsToCopy;
@@ -239,8 +242,8 @@ private:
     std::vector<int32_t> _spaceProxiesToDelete;
 
     // Other avatars smooth transit global configuration
-
     AvatarTransit::TransitConfig  _transitConfig;
+    EntityItemProperties _transitEffectProperties;
 };
 
 #endif // hifi_AvatarManager_h

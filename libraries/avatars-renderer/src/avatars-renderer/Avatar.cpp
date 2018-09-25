@@ -116,8 +116,9 @@ void Avatar::setShowNamesAboveHeads(bool show) {
 AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
     glm::vec3 currentPosition = _isTransiting ? _currentPosition : avatarPosition;
     float oneFrameDistance = glm::length(currentPosition - _lastPosition);
-    const float MAX_TRANSIT_DISTANCE = 20.0f;
-    if (oneFrameDistance > config._triggerDistance && oneFrameDistance < MAX_TRANSIT_DISTANCE && !_isTransiting) {
+    const float MAX_TRANSIT_DISTANCE = 30.0f;
+    float scaledMaxTransitDistance = MAX_TRANSIT_DISTANCE * _scale;
+    if (oneFrameDistance > config._triggerDistance && oneFrameDistance < scaledMaxTransitDistance && !_isTransiting) {
         start(deltaTime, _lastPosition, currentPosition, config);
     }
     _lastPosition = currentPosition;
@@ -1986,6 +1987,11 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
 AvatarTransit::Status Avatar::updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
     std::lock_guard<std::mutex> lock(_transitLock);
     return _transit.update(deltaTime, avatarPosition, config);
+}
+
+void Avatar::setTransitScale(float scale) {
+    std::lock_guard<std::mutex> lock(_transitLock);
+    return _transit.setScale(scale);
 }
 
 void Avatar::overrideNextPackagePositionData(const glm::vec3& position) {

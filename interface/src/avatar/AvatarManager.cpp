@@ -81,7 +81,7 @@ AvatarManager::AvatarManager(QObject* parent) :
 
     const float AVATAR_TRANSIT_TRIGGER_DISTANCE = 1.0f;
     const int AVATAR_TRANSIT_FRAME_COUNT = 11; // Based on testing
-    const int AVATAR_TRANSIT_FRAMES_PER_METER = 3; // Based on testing
+    const int AVATAR_TRANSIT_FRAMES_PER_METER = 1; // Based on testing
 
     const QString START_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
     const QString MIDDLE_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
@@ -95,6 +95,8 @@ AvatarManager::AvatarManager(QObject* parent) :
     _transitConfig._startTransitAnimation = AvatarTransit::TransitAnimation(START_ANIMATION_URL, 0, 14);
     _transitConfig._middleTransitAnimation = AvatarTransit::TransitAnimation(MIDDLE_ANIMATION_URL, 15, 0);
     _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 16, 38);    
+    
+    setAvatarTransitEffectDefaultProperties();
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -339,7 +341,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
             }
             
-
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(renderTransaction);
             avatar->updateSpaceProxy(workloadTransaction);
@@ -887,7 +888,7 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
- QVariantMap AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers) {
+QVariantMap AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers) {
     QJsonArray palData;
 
     auto avatarMap = getHashCopy();
@@ -933,178 +934,277 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     return doc.toVariantMap();
 }
 
- QVariantMap AvatarManager::getAvatarTransitData() {
-     QVariantMap result;
-     result["frameCount"] = _transitConfig._totalFrames;
-     result["framesPerMeter"] = _transitConfig._framesPerMeter;
-     result["isDistanceBased"] = _transitConfig._isDistanceBased;
-     result["triggerDistance"] = _transitConfig._triggerDistance;
-     result["showAnimation"] = _transitConfig._showAnimation;
-     result["easeType"] = (int)_transitConfig._easeType;
-     result["showParticles"] = _transitConfig._showParticles;
+QVariantMap AvatarManager::getAvatarTransitData() {
+    QVariantMap result;
+    result["frameCount"] = _transitConfig._totalFrames;
+    result["framesPerMeter"] = _transitConfig._framesPerMeter;
+    result["isDistanceBased"] = _transitConfig._isDistanceBased;
+    result["triggerDistance"] = _transitConfig._triggerDistance;
+    result["showAnimation"] = _transitConfig._showAnimation;
+    result["easeType"] = (int)_transitConfig._easeType;
+    result["showParticles"] = _transitConfig._showParticles;
 
-     return result;
-}
- void AvatarManager::setAvatarTransitData(const QVariantMap& data) {
-     if (data.contains("frameCount")) {
-         _transitConfig._totalFrames = data["frameCount"].toInt();
-     }
-     if (data.contains("framesPerMeter")) {
-         _transitConfig._framesPerMeter = data["framesPerMeter"].toInt();
-     }     
-     if (data.contains("isDistanceBased")) {
-         _transitConfig._isDistanceBased = data["isDistanceBased"].toBool();
-     }     
-     if (data.contains("triggerDistance")) {
-         _transitConfig._triggerDistance = data["triggerDistance"].toDouble();
-     }     
-     if (data.contains("showAnimation")) {
-         _transitConfig._showAnimation = data["showAnimation"].toBool();
-     }
-     if (data.contains("easeType")) {
-         _transitConfig._easeType = (AvatarTransit::EaseType)data["easeType"].toInt();
-     }
-     if (data.contains("showParticles")) {
-         _transitConfig._showParticles = data["showParticles"].toBool();
-     }
+    return result;
 }
 
- AvatarTransit::TransitAnimation AvatarManager::getAnimationFromJsonObject(const QJsonObject& object) {
-     QString animationUrl;
-     int firstFrame = 0;
-     int frameCount = 0;
-     if (object.contains("animationUrl")) {
-         animationUrl = object["animationUrl"].toString();
-     }
-     if (object.contains("firstFrame")) {
-         firstFrame = object["firstFrame"].toInt();
-     }
-     if (object.contains("frameCount")) {
-         frameCount = object["frameCount"].toInt();
-     }
-     return AvatarTransit::TransitAnimation(animationUrl, firstFrame, frameCount);
- }
-
- void AvatarManager::setAvatarTransitAnimationData(const QVariantMap& data) {
-     AvatarTransit::TransitAnimation startAnimation, middleAnimation, endAnimation;
-
-     if (data.contains("startAnimation")) {
-         QJsonObject object = data["startAnimation"].toJsonObject();
-         _transitConfig._startTransitAnimation = getAnimationFromJsonObject(object);
-     }
-     if (data.contains("middleAnimation")) {
-         QJsonObject object = data["middleAnimation"].toJsonObject();
-         _transitConfig._middleTransitAnimation = getAnimationFromJsonObject(object);
-     }
-     if (data.contains("endAnimation")) {
-         QJsonObject object = data["endAnimation"].toJsonObject();
-         _transitConfig._endTransitAnimation = getAnimationFromJsonObject(object);
-     }
+void AvatarManager::setAvatarTransitData(const QVariantMap& data) {
+    if (data.contains("frameCount")) {
+        _transitConfig._totalFrames = data["frameCount"].toInt();
+    }
+    if (data.contains("framesPerMeter")) {
+        _transitConfig._framesPerMeter = data["framesPerMeter"].toInt();
+    }
+    if (data.contains("isDistanceBased")) {
+        _transitConfig._isDistanceBased = data["isDistanceBased"].toBool();
+    }
+    if (data.contains("triggerDistance")) {
+        _transitConfig._triggerDistance = data["triggerDistance"].toDouble();
+    }
+    if (data.contains("showAnimation")) {
+        _transitConfig._showAnimation = data["showAnimation"].toBool();
+    }
+    if (data.contains("easeType")) {
+        _transitConfig._easeType = (AvatarTransit::EaseType)data["easeType"].toInt();
+    }
+    if (data.contains("showParticles")) {
+        _transitConfig._showParticles = data["showParticles"].toBool();
+    }
 }
 
- void AvatarManager::changeAvatarTransitState(AvatarTransit::Status status, const QUuid& avatarID, QUuid& effectID) {
-     
-     if (!_transitConfig._showParticles) {
-         return;
-     }
-     EntityItemProperties props = getAvatarTransitEffectProperties();
-     props.setParentID(avatarID);
-     
-     switch (status) {
-     case AvatarTransit::Status::IDLE:
-     case AvatarTransit::Status::TRANSITING:
-     case AvatarTransit::Status::START_FRAME:
-     case AvatarTransit::Status::END_FRAME:
-         break;
-     case AvatarTransit::Status::START_TRANSIT:
-         effectID = DependencyManager::get<EntityScriptingInterface>()->addEntity(props);
-         break;
-     case AvatarTransit::Status::END_TRANSIT:
-         props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(effectID);
-         props.setIsEmitting(false);
-         auto nid = DependencyManager::get<EntityScriptingInterface>()->editEntity(effectID, props);
-         break;
-     }
- }
+AvatarTransit::TransitAnimation AvatarManager::getAnimationFromJsonObject(const QJsonObject& object) {
+    QString animationUrl;
+    int firstFrame = 0;
+    int frameCount = 0;
+    if (object.contains("animationUrl")) {
+        animationUrl = object["animationUrl"].toString();
+    }
+    if (object.contains("firstFrame")) {
+        firstFrame = object["firstFrame"].toInt();
+    }
+    if (object.contains("frameCount")) {
+        frameCount = object["frameCount"].toInt();
+    }
+    return AvatarTransit::TransitAnimation(animationUrl, firstFrame, frameCount);
+}
 
- EntityItemProperties AvatarManager::getAvatarTransitEffectProperties() {
-     EntityItemProperties props;
-     
-     props.setIsEmitting(true);
-     props.setLifetime(5.0f);
-     props.setLifespan(2.7f);
-     props.setMaxParticles(200.0f);
-     props.setEmitRate(200.0);
-     props.setEmitSpeed(2.8f);
-     props.setSpeedSpread(0.2f);
-     props.setLocalPosition(glm::vec3(0.0f, -1.0f, 0.0f));
-     props.setEmitDimensions(glm::vec3(0.0f, 0.0f, 0.0f));
-     props.setEmitOrientation(Quaternions::X_180);
-     props.setEmitterShouldTrail(true);
-     props.setParticleRadius(0.24f);
-     props.setRadiusSpread(0.0f);
-     props.setRadiusStart(0.0f);
-     props.setRadiusFinish(0.21f);
-     props.setColor(xColor(0.0f, 180.0f, 239.0f));
-     props.setColorStart(glm::vec3(200.0f, 200.0f, 200.0f));
-     props.setColorFinish(glm::vec3(0.0f, 0.0f, 0.0f));
-     props.setEmitAcceleration(glm::vec3(0.0f, 0.0f, 0.0f));
-     props.setAlpha(0.15f);
-     props.setAccelerationSpread(glm::vec3(0.5f, 1.0f, 0.5f));
-     props.setAlphaSpread(0.0f);
-     props.setAlphaStart(0.3f);
-     props.setAlphaFinish(0.0f);
-     props.setParticleSpin(4.78f);
-     props.setParentJointIndex(_myAvatar->getJointIndex("neck"));
-     props.setType(EntityTypes::ParticleEffect);
-     props.setTextures("http://hifi-content.s3.amazonaws.com/alexia/Particles/spark.png");
-     props.setSpinSpread(0.0f);
-     props.setSpinStart(-4.57f);
-     props.setSpinFinish(4.67f);
-     props.setRotateWithEntity(false);
-     props.setPolarStart(0.0f);
-     props.setPolarFinish(0.0f);
-     props.setAzimuthStart(-3.1415f);
-     props.setAzimuthFinish(3.1415f);
-     props.setRotateWithEntity(true);
-     props.setUserData("{\"grabbableKey\":{\"grabbable\":false}}");
-     props.setParentJointIndex(_myAvatar->getJointIndex("head"));
-     /*
-     props.setIsEmitting(true);
-     props.setLifespan(0.5);
-     props.setMaxParticles(50);
-     props.setEmitRate(50);
-     props.setEmitSpeed(0.1f);
-     props.setSpeedSpread(0.1f);
-     props.setEmitDimensions(glm::vec3(0, 0, 0));
-     props.setEmitOrientation(Quaternions::IDENTITY);
-     props.setEmitterShouldTrail(true);
-     props.setParticleRadius(0.05f);
-     props.setRadiusSpread(0);
-     props.setRadiusStart(0);
-     props.setRadiusFinish(0.1);
-     props.setColor(xColor(0, 180, 239));
-     props.setColorStart(glm::vec3(200, 200, 200));
-     props.setColorFinish(glm::vec3(0, 0, 0));
-     props.setEmitAcceleration(glm::vec3(0, 0, 0));
-     props.setAlpha(0.3);
-     props.setAccelerationSpread(glm::vec3(0.5, 1, 0.5));
-     props.setAlphaSpread(0.3);
-     props.setAlphaStart(1);
-     props.setAlphaFinish(0);
-     props.setParticleSpin(3.3);
-     props.setParentJointIndex(_myAvatar->getJointIndex("head"));
-     props.setType(EntityTypes::ParticleEffect);
-     props.setTextures("http://hifi-content.s3.amazonaws.com/alexia/Particles/circle.png");
-     props.setSpinSpread(2.53);
-     props.setSpinStart(3.31);
-     props.setSpinFinish(3.31);
-     props.setRotateWithEntity(false);
-     props.setPolarStart(0);
-     props.setPolarFinish(3.1415);
-     props.setAzimuthStart(-3.1415);
-     props.setAzimuthFinish(3.1415);
-     props.setUserData("{\"grabbableKey\":{\"grabbable\":false}}");
-     */
-     return props;
- }
+void AvatarManager::setAvatarTransitAnimationData(const QVariantMap& data) {
+    AvatarTransit::TransitAnimation startAnimation, middleAnimation, endAnimation;
+
+    if (data.contains("startAnimation")) {
+        QJsonObject object = data["startAnimation"].toJsonObject();
+        _transitConfig._startTransitAnimation = getAnimationFromJsonObject(object);
+    }
+    if (data.contains("middleAnimation")) {
+        QJsonObject object = data["middleAnimation"].toJsonObject();
+        _transitConfig._middleTransitAnimation = getAnimationFromJsonObject(object);
+    }
+    if (data.contains("endAnimation")) {
+        QJsonObject object = data["endAnimation"].toJsonObject();
+        _transitConfig._endTransitAnimation = getAnimationFromJsonObject(object);
+    }
+}
+
+void AvatarManager::changeAvatarTransitState(AvatarTransit::Status status, const QUuid& avatarID, QUuid& effectID) {
+
+    if (!_transitConfig._showParticles) {
+        return;
+    }
+    _transitEffectProperties.setParentID(avatarID);
+    std::shared_ptr<Avatar> avatar;
+    avatar = (avatarID != _myAvatar->getID()) ? std::static_pointer_cast<Avatar>(getAvatarBySessionID(avatarID)) : _myAvatar;
+
+    _transitEffectProperties.setLifetime(_transitEffectProperties.getLifespan() + avatar->getTransit()->getTransitTime());
+    float feetOffset = glm::length(avatar->getWorldPosition() - avatar->getWorldFeetPosition());        
+    _transitEffectProperties.setLocalPosition(glm::vec3(0.0f, -feetOffset, 0.0f));
+
+    EntityItemProperties props;
+    switch (status) {
+    case AvatarTransit::Status::IDLE:
+    case AvatarTransit::Status::TRANSITING:
+    case AvatarTransit::Status::START_FRAME:
+    case AvatarTransit::Status::END_FRAME:
+        break;
+    case AvatarTransit::Status::START_TRANSIT:
+        effectID = DependencyManager::get<EntityScriptingInterface>()->addEntity(_transitEffectProperties);
+        break;
+    case AvatarTransit::Status::END_TRANSIT:
+        props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(effectID);
+        props.setIsEmitting(false);
+        auto nid = DependencyManager::get<EntityScriptingInterface>()->editEntity(effectID, props);
+        break;
+    }
+}
+
+void AvatarManager::setAvatarTransitEffectData(const QVariantMap& data) {
+    auto jsonToVector = [](const QJsonObject& object) {
+        if (object.contains("x") && object.contains("y") && object.contains("z")) {
+            float x = (float)object["x"].toDouble();
+            float y = (float)object["y"].toDouble();
+            float z = (float)object["z"].toDouble();
+            return glm::vec3(x, y, z);
+        }
+        return glm::vec3(0.0f, 0.0f, 0.0f);
+    };
+    
+    auto jsonToQuat = [jsonToVector](const QJsonObject& object) {
+        glm::vec3 components = jsonToVector(object);
+        if (object.contains("w")) {
+            float w = (float)object["w"].toDouble();
+            return glm::quat(components.x, components.y, components.z, w);
+        }
+        return Quaternions::IDENTITY;
+    };
+
+    auto jsonToColor = [jsonToVector](const QJsonObject& object) {
+        glm::vec3 components = jsonToVector(object);
+        return xColor(components.x, components.y, components.z);
+    };
+        
+    _transitEffectProperties.setType(EntityTypes::ParticleEffect);
+
+    if (data.contains("isEmitting")) {
+        _transitEffectProperties.setIsEmitting(data["isEmitting"].toBool());
+    }
+    if (data.contains("lifetime")) {
+        _transitEffectProperties.setLifetime(data["lifetime"].toFloat());
+    }
+    if (data.contains("lifespan")) {
+        _transitEffectProperties.setLifespan(data["lifespan"].toFloat());
+    }
+    if (data.contains("maxParticles")) {
+        _transitEffectProperties.setMaxParticles(data["maxParticles"].toFloat());
+    }
+    if (data.contains("emitRate")) {
+        _transitEffectProperties.setEmitRate(data["emitRate"].toFloat());
+    }
+    if (data.contains("emitSpeed")) {
+        _transitEffectProperties.setEmitSpeed(data["emitSpeed"].toFloat());
+    }
+    if (data.contains("speedSpread")) {
+        _transitEffectProperties.setSpeedSpread(data["speedSpread"].toFloat());
+    }
+    if (data.contains("localPosition")) {
+        _transitEffectProperties.setLocalPosition(jsonToVector(data["localPosition"].toJsonObject()));
+    }
+    if (data.contains("emitDimensions")) {
+        _transitEffectProperties.setEmitDimensions(jsonToVector(data["emitDimensions"].toJsonObject()));
+    }
+    if (data.contains("emitOrientation")) {
+        _transitEffectProperties.setEmitOrientation(jsonToQuat(data["emitOrientation"].toJsonObject()));
+    }
+    if (data.contains("emitterShouldTrail")) {
+        _transitEffectProperties.setEmitterShouldTrail(data["emitterShouldTrail"].toBool());
+    }
+    if (data.contains("particleRadius")) {
+        _transitEffectProperties.setParticleRadius(data["particleRadius"].toFloat());
+    }
+    if (data.contains("radiusSpread")) {
+        _transitEffectProperties.setRadiusSpread(data["radiusSpread"].toFloat());
+    }
+    if (data.contains("radiusStart")) {
+        _transitEffectProperties.setRadiusStart(data["radiusStart"].toFloat());
+    }
+    if (data.contains("radiusFinish")) {
+        _transitEffectProperties.setRadiusFinish(data["radiusFinish"].toFloat());
+    }
+    if (data.contains("color")) {
+        _transitEffectProperties.setColor(jsonToColor(data["color"].toJsonObject()));
+    }
+    if (data.contains("colorStart")) {
+        _transitEffectProperties.setColorStart(jsonToVector(data["colorStart"].toJsonObject()));
+    }
+    if (data.contains("colorFinish")) {
+        _transitEffectProperties.setColorFinish(jsonToVector(data["colorFinish"].toJsonObject()));
+    }
+    if (data.contains("emitAcceleration")) {
+        _transitEffectProperties.setEmitAcceleration(jsonToVector(data["emitAcceleration"].toJsonObject()));
+    }
+    if (data.contains("alpha")) {
+        _transitEffectProperties.setAlpha(data["alpha"].toFloat());
+    }
+    if (data.contains("accelerationSpread")) {
+        _transitEffectProperties.setAccelerationSpread(jsonToVector(data["accelerationSpread"].toJsonObject()));
+    }
+    if (data.contains("alphaSpread")) {
+        _transitEffectProperties.setAlphaSpread(data["alphaSpread"].toFloat());
+    }
+    if (data.contains("alphaStart")) {
+        _transitEffectProperties.setAlphaStart(data["alphaStart"].toFloat());
+    }
+    if (data.contains("alphaFinish")) {
+        _transitEffectProperties.setAlphaFinish(data["alphaFinish"].toFloat());
+    }
+    if (data.contains("particleSpin")) {
+        _transitEffectProperties.setParticleSpin(data["particleSpin"].toFloat());
+    }
+    if (data.contains("textures")) {
+        _transitEffectProperties.setTextures(data["textures"].toString());
+    }
+    if (data.contains("spinSpread")) {
+        _transitEffectProperties.setSpinSpread(data["spinSpread"].toFloat());
+    }
+    if (data.contains("spinStart")) {
+        _transitEffectProperties.setSpinStart(data["spinStart"].toFloat());
+    }
+    if (data.contains("spinFinish")) {
+        _transitEffectProperties.setSpinFinish(data["spinFinish"].toFloat());
+    }
+    if (data.contains("rotateWithEntity")) {
+        _transitEffectProperties.setRotateWithEntity(data["rotateWithEntity"].toBool());
+    }
+    if (data.contains("polarStart")) {
+        _transitEffectProperties.setPolarStart(data["polarStart"].toFloat());
+    }
+    if (data.contains("polarFinish")) {
+        _transitEffectProperties.setPolarFinish(data["polarFinish"].toFloat());
+    }
+    if (data.contains("azimuthStart")) {
+        _transitEffectProperties.setAzimuthStart(data["azimuthStart"].toFloat());
+    }
+    if (data.contains("azimuthFinish")) {
+        _transitEffectProperties.setAzimuthFinish(data["azimuthFinish"].toFloat());
+    }
+    if (data.contains("userData")) {
+        _transitEffectProperties.setUserData(data["userData"].toString());
+    } else {
+        _transitEffectProperties.setUserData("{\"grabbableKey\":{\"grabbable\":false}}");
+    }
+}
+
+void AvatarManager::setAvatarTransitEffectDefaultProperties() {
+    _transitEffectProperties.setIsEmitting(true);
+    _transitEffectProperties.setLifespan(2.7f);
+    _transitEffectProperties.setMaxParticles(200.0f);
+    _transitEffectProperties.setEmitRate(200.0);
+    _transitEffectProperties.setEmitSpeed(2.8f);
+    _transitEffectProperties.setSpeedSpread(0.2f);
+    _transitEffectProperties.setEmitDimensions(glm::vec3(0.0f, 0.0f, 0.0f));
+    _transitEffectProperties.setEmitOrientation(Quaternions::X_180);
+    _transitEffectProperties.setEmitterShouldTrail(true);
+    _transitEffectProperties.setParticleRadius(0.24f);
+    _transitEffectProperties.setRadiusSpread(0.0f);
+    _transitEffectProperties.setRadiusStart(0.0f);
+    _transitEffectProperties.setRadiusFinish(0.21f);
+    _transitEffectProperties.setColor(xColor(0.0f, 180.0f, 239.0f));
+    _transitEffectProperties.setColorStart(glm::vec3(200.0f, 200.0f, 200.0f));
+    _transitEffectProperties.setColorFinish(glm::vec3(0.0f, 0.0f, 0.0f));
+    _transitEffectProperties.setEmitAcceleration(glm::vec3(0.0f, 0.0f, 0.0f));
+    _transitEffectProperties.setAlpha(0.15f);
+    _transitEffectProperties.setAccelerationSpread(glm::vec3(0.5f, 1.0f, 0.5f));
+    _transitEffectProperties.setAlphaSpread(0.0f);
+    _transitEffectProperties.setAlphaStart(0.3f);
+    _transitEffectProperties.setAlphaFinish(0.0f);
+    _transitEffectProperties.setParticleSpin(4.78f);
+    _transitEffectProperties.setType(EntityTypes::ParticleEffect);
+    _transitEffectProperties.setTextures("http://hifi-content.s3.amazonaws.com/alexia/Particles/spark.png");
+    _transitEffectProperties.setSpinSpread(0.0f);
+    _transitEffectProperties.setSpinStart(-4.57f);
+    _transitEffectProperties.setSpinFinish(4.67f);
+    _transitEffectProperties.setRotateWithEntity(false);
+    _transitEffectProperties.setPolarStart(0.0f);
+    _transitEffectProperties.setPolarFinish(0.0f);
+    _transitEffectProperties.setAzimuthStart(-3.1415f);
+    _transitEffectProperties.setAzimuthFinish(3.1415f);
+    _transitEffectProperties.setRotateWithEntity(true);
+    _transitEffectProperties.setUserData("{\"grabbableKey\":{\"grabbable\":false}}");
+}

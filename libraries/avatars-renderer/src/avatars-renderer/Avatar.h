@@ -98,6 +98,8 @@ public:
     glm::vec3 getCurrentPosition() { return _currentPosition; }
     bool getNextPosition(glm::vec3& nextPosition);
     glm::vec3 getEndPosition() { return _endPosition; }
+    float getTransitTime() { return _totalTime; }
+    void setScale(float scale) { _scale = scale; }
 
 private:
     Status updatePosition(float deltaTime);
@@ -122,6 +124,7 @@ private:
     Status _status { Status::IDLE };
     bool _showAnimation { false };
     bool _showParticles { false };
+    float _scale { 1.0f };
 };
 
 class Avatar : public AvatarData, public scriptable::ModelProvider {
@@ -447,6 +450,8 @@ public:
     std::shared_ptr<AvatarTransit> getTransit() { return std::make_shared<AvatarTransit>(_transit); };
 
     AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
+    void setTransitScale(float scale);
+
     QUuid& getTransitEffectID() { return _transitEffectID; };
     void overrideNextPackagePositionData(const glm::vec3& position);
 
