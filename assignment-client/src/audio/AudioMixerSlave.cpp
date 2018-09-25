@@ -132,6 +132,77 @@ bool containsNodeID(const V& vector, QUuid nodeID) {
     });
 }
 
+void AudioMixerSlave::addStreams(Node& listener, AudioMixerClientData& listenerData) {
+    auto& ignoredNodeIDs = listener.getIgnoredNodeIDs();
+    auto& ignoringNodeIDs = listenerData.getIgnoringNodeIDs();
+
+    auto& mixableStreams = listenerData.getMixableStreams();
+
+    // add data for newly created streams to our vector
+    if (!listenerData.getHasReceivedFirstMix()) {
+        // when this listener is new, we need to fill its added streams object with all available streams
+        std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
+            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+            if (nodeData) {
+                for (auto& stream : nodeData->getAudioStreams()) {
+                    mixableStreams.emplace_back(node->getUUID(), node->getLocalID(),
+                                                stream->getStreamIdentifier(), &(*stream));
+
+                    // pre-populate ignored and ignoring flags for this stream
+                    mixableStreams.back().ignoredByListener = containsNodeID(ignoredNodeIDs, node->getUUID());
+                    mixableStreams.back().ignoringListener = containsNodeID(ignoringNodeIDs, node->getUUID());
+                }
+            }
+        });
+
+        // flag this listener as having received their first mix so we know we don't need to enumerate all nodes again
+        listenerData.setHasReceivedFirstMix(true);
+    } else {
+        for (const auto& newStream : _sharedData.addedStreams) {
+            mixableStreams.emplace_back(newStream.nodeIDStreamID, newStream.positionalStream);
+
+            // pre-populate ignored and ignoring flags for this stream
+            mixableStreams.back().ignoredByListener = containsNodeID(ignoredNodeIDs, newStream.nodeIDStreamID.nodeID);
+            mixableStreams.back().ignoringListener = containsNodeID(ignoringNodeIDs, newStream.nodeIDStreamID.nodeID);
+        }
+    }
+}
+
+void AudioMixerSlave::removeStreams(AudioMixerClientData::MixableStreamsVector& mixableStreams) {
+    if (_sharedData.removedNodes.size() > 0) {
+        // enumerate the available streams
+        auto it = mixableStreams.begin();
+        auto end = mixableStreams.end();
+
+        while (it != end) {
+            // check if this node (and therefore all of the node's streams) has been removed
+            auto& nodeIDStreamID = it->nodeStreamID;
+            auto matchedRemovedNode = std::find(_sharedData.removedNodes.cbegin(), _sharedData.removedNodes.cend(),
+                                                nodeIDStreamID.nodeLocalID);
+            bool streamRemoved = matchedRemovedNode != _sharedData.removedNodes.cend();
+
+            // if the node wasn't removed, check if this stream was specifically removed
+            if (!streamRemoved) {
+                auto matchedRemovedStream = std::find(_sharedData.removedStreams.cbegin(), _sharedData.removedStreams.cend(),
+                                                      nodeIDStreamID);
+                streamRemoved = matchedRemovedStream != _sharedData.removedStreams.cend();
+            }
+
+            if (streamRemoved) {
+                // this stream was removed, so swap it with the last item and decrease the end iterator
+                --end;
+                std::swap(*it, *end);
+
+                // process the it element (which is now the element that was the last item before the swap)
+                continue;
+            }
+        }
+
+        // erase any removed streams that were swapped to the end
+        mixableStreams.erase(end, mixableStreams.end());
+    }
+}
+
 bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     AvatarAudioStream* listenerAudioStream = static_cast<AudioMixerClientData*>(listener->getLinkedData())->getAvatarAudioStream();
     AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
@@ -143,42 +214,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-#ifdef HIFI_AUDIO_MIXER_DEBUG
-    auto mixStart = p_high_resolution_clock::now();
-#endif
-
     auto& mixableStreams = listenerData->getMixableStreams();
-    auto& ignoredNodeIDs = listener->getIgnoredNodeIDs();
-    auto& ignoringNodeIDs = listenerData->getIgnoringNodeIDs();
-
-    // add data for newly created streams to our vector
-    if (!listenerData->getHasReceivedFirstMix()) {
-        // when this listener is new, we need to fill its added streams object with all available streams
-        std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
-            AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
-            if (nodeData) {
-                for (auto& stream : nodeData->getAudioStreams()) {
-                    mixableStreams.emplace_back(node->getUUID(), node->getLocalID(),
-                                                stream->getStreamIdentifier(), &(*stream));
-                    
-                    // pre-populate ignored and ignoring flags for this stream
-                    mixableStreams.back().ignoredByListener = containsNodeID(ignoredNodeIDs, node->getUUID());
-                    mixableStreams.back().ignoringListener = containsNodeID(ignoringNodeIDs, node->getUUID());
-                }
-            }
-        });
-
-        // flag this listener as having received their first mix so we know we don't need to enumerate all nodes again
-        listenerData->setHasReceivedFirstMix(true);
-    } else {
-        for (const auto& newStream : _sharedData.addedStreams) {
-            mixableStreams.emplace_back(newStream.nodeIDStreamID, newStream.positionalStream);
-
-            // pre-populate ignored and ignoring flags for this stream
-            mixableStreams.back().ignoredByListener = containsNodeID(ignoredNodeIDs, newStream.nodeIDStreamID.nodeID);
-            mixableStreams.back().ignoringListener = containsNodeID(ignoringNodeIDs, newStream.nodeIDStreamID.nodeID);
-        }
-    }
 
     // grab the unprocessed ignores and unignores from and for this listener
     const auto& nodesIgnoredByListener = listenerData->getNewIgnoredNodeIDs();
@@ -186,32 +222,14 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     const auto& nodesIgnoringListener = listenerData->getNewIgnoringNodeIDs();
     const auto& nodesUnignoringListener = listenerData->getNewUnignoringNodeIDs();
 
+    removeStreams(mixableStreams);
+    addStreams(*listener, *listenerData);
+
     // enumerate the available streams
     auto it = mixableStreams.begin();
-    auto end = mixableStreams.end();
-    while (it != end) {
+    while (it != mixableStreams.end()) {
 
-        // check if this node (and therefore all of the node's streams) has been removed
         auto& nodeIDStreamID = it->nodeStreamID;
-        auto matchedRemovedNode = std::find(_sharedData.removedNodes.cbegin(), _sharedData.removedNodes.cend(),
-                                            nodeIDStreamID.nodeLocalID);
-        bool streamRemoved = matchedRemovedNode != _sharedData.removedNodes.cend();
-
-        // if the node wasn't removed, check if this stream was specifically removed
-        if (!streamRemoved) {
-            auto matchedRemovedStream = std::find(_sharedData.removedStreams.cbegin(), _sharedData.removedStreams.cend(),
-                                                  nodeIDStreamID);
-            streamRemoved = matchedRemovedStream != _sharedData.removedStreams.cend();
-        }
-
-        if (streamRemoved) {
-            // this stream was removed, so swap it with the last item and decrease the end iterator
-            --end;
-            std::swap(*it, *end);
-
-            // process the it element (which is now the element that was the last item before the swap)
-            continue;
-        }
 
         if (it->nodeStreamID.nodeLocalID == listener->getLocalID()) {
             // streams from this node should be skipped unless loopback is specifically requested
@@ -296,9 +314,6 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
 
         ++it;
     }
-
-    // erase any removed streams that were swapped to the end
-    mixableStreams.erase(end, mixableStreams.end());
 
     if (isThrottling) {
         // since we're throttling, we need to partition the mixable into throttled and unthrottled streams

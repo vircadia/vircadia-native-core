@@ -58,6 +58,9 @@ private:
     void addStream(AudioMixerClientData::MixableStream& mixableStream, AvatarAudioStream& listeningNodeStream,
                    float masterListenerGain, bool throttle);
 
+    void removeStreams(AudioMixerClientData::MixableStreamsVector& mixableStreams);
+    void addStreams(Node& listener, AudioMixerClientData& listenerData);
+
     // mixing buffers
     float _mixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _bufferSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
