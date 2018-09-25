@@ -14,22 +14,28 @@
 #ifndef hifi_EntityPsuedoPropertyFlag_h
 #define hifi_EntityPsuedoPropertyFlag_h
 
-enum class EntityPsuedoPropertyFlag {
-    none = 0,
-    flagsActive = 1 << 0,
-    id = 1 << 1,
-    type = 1 << 2,
-    created = 1 << 3,
-    age = 1 << 4,
-    ageAsText = 1 << 5,
-    lastEdited = 1 << 6,
-    boundingBox = 1 << 7,
-    originalTextures = 1 << 8,
-    renderInfo = 1 << 9,
-    clientOnly = 1 << 10,
-    owningAvatarID = 1 << 11,
-    all = (1 << 12) - 1
-};
-Q_DECLARE_FLAGS(EntityPsuedoPropertyFlags, EntityPsuedoPropertyFlag)
+#include <bitset>
+#include <type_traits>
+
+namespace EntityPsuedoPropertyFlag {
+    enum {
+        None = 0,
+        FlagsActive,
+        ID,
+        Type,
+        Created,
+        Age,
+        AgeAsText,
+        LastEdited,
+        BoundingBox,
+        OriginalTextures,
+        RenderInfo,
+        ClientOnly,
+        OwningAvatarID,
+
+        NumFlags
+    };
+}
+typedef std::bitset<EntityPsuedoPropertyFlag::NumFlags> EntityPsuedoPropertyFlags;
 
 #endif // hifi_EntityPsuedoPropertyFlag_h

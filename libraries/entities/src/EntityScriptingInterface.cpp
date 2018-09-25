@@ -427,51 +427,51 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
     EntityPsuedoPropertyFlags psuedoPropertyFlags;
     const auto readExtendedPropertyStringValue = [&](QScriptValue extendedProperty) {
         const auto extendedPropertyString = extendedProperty.toString();
-        if (extendedPropertyString == QString("id")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::id;
-        } else if (extendedPropertyString == QString("type")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::type;
-        } else if (extendedPropertyString == QString("created")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::created;
-        } else if (extendedPropertyString == QString("age")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::age;
-        } else if (extendedPropertyString == QString("ageAsText")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::ageAsText;
-        } else if (extendedPropertyString == QString("lastEdited")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::lastEdited;
-        } else if (extendedPropertyString == QString("boundingBox")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::boundingBox;
-        } else if (extendedPropertyString == QString("originalTextures")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::originalTextures;
-        } else if (extendedPropertyString == QString("renderInfo")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::renderInfo;
-        } else if (extendedPropertyString == QString("clientOnly")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::clientOnly;
-        } else if (extendedPropertyString == QString("owningAvatarID")) {
-            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::owningAvatarID;
+        if (extendedPropertyString == "id") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::ID);
+        } else if (extendedPropertyString == "type") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::Type);
+        } else if (extendedPropertyString == "created") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::Created);
+        } else if (extendedPropertyString == "age") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::Age);
+        } else if (extendedPropertyString == "ageAsText") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::AgeAsText);
+        } else if (extendedPropertyString == "lastEdited") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::LastEdited);
+        } else if (extendedPropertyString == "boundingBox") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::BoundingBox);
+        } else if (extendedPropertyString == "originalTextures") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::OriginalTextures);
+        } else if (extendedPropertyString == "renderInfo") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::RenderInfo);
+        } else if (extendedPropertyString == "clientOnly") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::ClientOnly);
+        } else if (extendedPropertyString == "owningAvatarID") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::OwningAvatarID);
         }
     };
 
     if (extendedDesiredProperties.isString()) {
         readExtendedPropertyStringValue(extendedDesiredProperties);
-        psuedoPropertyFlags |= EntityPsuedoPropertyFlag::flagsActive;
+        psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::FlagsActive);
     } else if (extendedDesiredProperties.isArray()) {
         const quint32 length = extendedDesiredProperties.property("length").toInt32();
         for (quint32 i = 0; i < length; i++) {
             readExtendedPropertyStringValue(extendedDesiredProperties.property(i));
         }
-        psuedoPropertyFlags |= EntityPsuedoPropertyFlag::flagsActive;
+        psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::FlagsActive);
     }
 
     EntityPropertyFlags desiredProperties = qScriptValueToValue<EntityPropertyFlags>(extendedDesiredProperties);
-    bool needsScriptSymantics = desiredProperties.getHasProperty(PROP_POSITION) ||
+    bool needsScriptSemantics = desiredProperties.getHasProperty(PROP_POSITION) ||
         desiredProperties.getHasProperty(PROP_ROTATION) ||
         desiredProperties.getHasProperty(PROP_LOCAL_POSITION) ||
         desiredProperties.getHasProperty(PROP_LOCAL_ROTATION) ||
         desiredProperties.getHasProperty(PROP_LOCAL_VELOCITY) ||
         desiredProperties.getHasProperty(PROP_LOCAL_ANGULAR_VELOCITY) ||
         desiredProperties.getHasProperty(PROP_LOCAL_DIMENSIONS);
-    if (needsScriptSymantics) {
+    if (needsScriptSemantics) {
         // if we are explicitly getting position or rotation, we need parent information to make sense of them.
         desiredProperties.setHasProperty(PROP_PARENT_ID);
         desiredProperties.setHasProperty(PROP_PARENT_JOINT_INDEX);
@@ -488,7 +488,7 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
                     const auto& entityID = entityIDs.at(i);
                     const EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
                     if (entity) {
-                        if (!psuedoPropertyFlags && desiredProperties.isEmpty()) {
+                        if (psuedoPropertyFlags.none() && desiredProperties.isEmpty()) {
                             // these are left out of EntityItem::getEntityProperties so that localPosition and localRotation
                             // don't end up in json saves, etc.  We still want them here, though.
                             EncodeBitstreamParams params; // unknown
@@ -498,8 +498,8 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
                             desiredProperties.setHasProperty(PROP_LOCAL_VELOCITY);
                             desiredProperties.setHasProperty(PROP_LOCAL_ANGULAR_VELOCITY);
                             desiredProperties.setHasProperty(PROP_LOCAL_DIMENSIONS);
-                            psuedoPropertyFlags = EntityPsuedoPropertyFlag::all;
-                            needsScriptSymantics = true;
+                            psuedoPropertyFlags.set();
+                            needsScriptSemantics = true;
                         }
 
                         auto properties = entity->getProperties(desiredProperties, true);
@@ -512,18 +512,16 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
     }
     QScriptValue finalResult = engine->newArray(resultProperties.size());
     quint32 i = 0;
-    {
-        if (needsScriptSymantics) {
-            PROFILE_RANGE(script_entities, "EntityScriptingInterface::getMultipleEntityProperties>Script Semantics");
-            foreach(auto result, resultProperties) {
-                finalResult.setProperty(i++, convertPropertiesToScriptSemantics(result.properties, result.scalesWithParent)
-                    .copyToScriptValue(engine, false, false, false, psuedoPropertyFlags));
-            }
-        } else {
-            PROFILE_RANGE(script_entities, "EntityScriptingInterface::getMultipleEntityProperties>Skip Script Semantics");
-            foreach(auto result, resultProperties) {
-                finalResult.setProperty(i++, result.properties.copyToScriptValue(engine, false, false, false, psuedoPropertyFlags));
-            }
+    if (needsScriptSemantics) {
+        PROFILE_RANGE(script_entities, "EntityScriptingInterface::getMultipleEntityProperties>Script Semantics");
+        foreach(const auto& result, resultProperties) {
+            finalResult.setProperty(i++, convertPropertiesToScriptSemantics(result.properties, result.scalesWithParent)
+                .copyToScriptValue(engine, false, false, false, psuedoPropertyFlags));
+        }
+    } else {
+        PROFILE_RANGE(script_entities, "EntityScriptingInterface::getMultipleEntityProperties>Skip Script Semantics");
+        foreach(const auto& result, resultProperties) {
+            finalResult.setProperty(i++, result.properties.copyToScriptValue(engine, false, false, false, psuedoPropertyFlags));
         }
     }
     return finalResult;
