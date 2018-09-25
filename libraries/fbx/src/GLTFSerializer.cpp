@@ -261,6 +261,41 @@ bool GLTFSerializer::setAsset(const QJsonObject& object) {
     return isAssetDefined;
 }
 
+GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseIndices GLTFSerializer::createAccessorSparseIndices(const QJsonObject& object) {
+    GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseIndices accessorSparseIndices;
+
+    getIntVal(object, "bufferView", accessorSparseIndices.bufferView, accessorSparseIndices.defined);
+    getIntVal(object, "byteOffset", accessorSparseIndices.byteOffset, accessorSparseIndices.defined);
+    getIntVal(object, "componentType", accessorSparseIndices.componentType, accessorSparseIndices.defined);
+
+    return accessorSparseIndices;
+}
+
+GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseValues GLTFSerializer::createAccessorSparseValues(const QJsonObject& object) {
+    GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseValues accessorSparseValues;
+
+    getIntVal(object, "bufferView", accessorSparseValues.bufferView, accessorSparseValues.defined);
+    getIntVal(object, "byteOffset", accessorSparseValues.byteOffset, accessorSparseValues.defined);
+
+    return accessorSparseValues;
+}
+
+GLTFAccessor::GLTFAccessorSparse GLTFSerializer::createAccessorSparse(const QJsonObject& object) {
+    GLTFAccessor::GLTFAccessorSparse accessorSparse;
+
+    getIntVal(object, "count", accessorSparse.count, accessorSparse.defined);
+    QJsonObject sparseIndicesObject;
+    if (getObjectVal(object, "indices", sparseIndicesObject, accessorSparse.defined)) {
+        accessorSparse.indices = createAccessorSparseIndices(sparseIndicesObject);
+    }
+    QJsonObject sparseValuesObject;
+    if (getObjectVal(object, "values", sparseValuesObject, accessorSparse.defined)) {
+        accessorSparse.values = createAccessorSparseValues(sparseValuesObject);
+    }
+
+    return accessorSparse;
+}
+
 bool GLTFSerializer::addAccessor(const QJsonObject& object) {
     GLTFAccessor accessor;
     
@@ -273,6 +308,12 @@ bool GLTFSerializer::addAccessor(const QJsonObject& object) {
     if (getStringVal(object, "type", type, accessor.defined)) {
         accessor.type = getAccessorType(type);
     }
+
+    QJsonObject sparseObject;
+    if (getObjectVal(object, "sparse", sparseObject, accessor.defined)) {
+        accessor.sparse = createAccessorSparse(sparseObject);
+    }
+
     getDoubleArrayVal(object, "max", accessor.max, accessor.defined);
     getDoubleArrayVal(object, "min", accessor.min, accessor.defined);
 
@@ -783,7 +824,7 @@ void GLTFSerializer::generateTargetData(int index, float weight, QVector<glm::ve
 bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& url) {
     int numNodes = _file.nodes.size();
 
-    // Build dependencies
+    //Build dependencies
     QVector<int> parents;
     QVector<int> sortedNodes;
     parents.fill(-1, numNodes);
@@ -802,18 +843,18 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     nodecount = 0;
     foreach(auto &node, _file.nodes) {
         // collect node transform
-        _file.nodes[nodecount].transforms.push_back(getModelTransform(node));
+        _file.nodes[nodecount].transforms.push_back(getModelTransform(node)); 
         int parentIndex = parents[nodecount];
         while (parentIndex != -1) {
             const auto& parentNode = _file.nodes[parentIndex];
             // collect transforms for a node's parents, grandparents, etc.
             _file.nodes[nodecount].transforms.push_back(getModelTransform(parentNode));
             parentIndex = parents[parentIndex];
-        }
+            }
         nodecount++;
     }
 
- 
+
     // since parent indices must exist in the sorted list before any of their children, sortedNodes might not be initialized in the correct order
     // therefore we need to re-initialize the order in which nodes will be parsed
     QVector<bool> hasBeenSorted;
@@ -837,10 +878,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     sortedNodes[j] = currentNode;
                     i++;
                     currentNode = sortedNodes[i];
-                }
+    }
                 j++;
-            }
-        }
+    }
+    }
     }
 
 
@@ -868,7 +909,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         joint.translation = extractTranslation(joint.transform);
         joint.rotation = glmExtractRotation(joint.transform);
         glm::vec3 scale = extractScale(joint.transform);
-        joint.postTransform = glm::scale(glm::mat4(), scale);  
+        joint.postTransform = glm::scale(glm::mat4(), scale);        
 
         joint.name = node.name;
         joint.isSkeletonJoint = false;
@@ -914,12 +955,18 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     }
 
 
-    // Build materials
+    //Build materials
     QVector<QString> materialIDs;
     QString unknown = "Default";
     int ukcount = 0;
     foreach(auto material, _file.materials) {
-        QString mid = (material.defined["name"]) ? material.name : unknown + ukcount++;
+        if (!(material.defined["name"])) {
+            QString name = unknown + QString::number(ukcount++);
+            material.name = name;
+            material.defined.insert("name", true);
+        }
+
+        QString mid = material.name;
         materialIDs.push_back(mid);
     }
 
@@ -928,6 +975,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         hfmModel.materials[matid] = HFMMaterial();
         HFMMaterial& hfmMaterial = hfmModel.materials[matid];
         hfmMaterial._material = std::make_shared<graphics::Material>();
+		hfmMaterial.name = hfmMaterial.materialID = matid;
         setHFMMaterial(hfmMaterial, _file.materials[i]);
     }
 
@@ -938,30 +986,31 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         auto& node = _file.nodes[nodeIndex];
 
         if (node.defined["mesh"]) {
-            foreach(auto &primitive, _file.meshes[node.mesh].primitives) {
-                hfmModel.meshes.append(HFMMesh());
-                HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
-                if (!hfmModel.hasSkeletonJoints) { 
-                    HFMCluster cluster;
-                    cluster.jointIndex = nodecount;
-                    cluster.inverseBindMatrix = glm::mat4();
-                    cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
-                    mesh.clusters.append(cluster);
+
+            hfmModel.meshes.append(HFMMesh());
+            HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
+            if (!hfmModel.hasSkeletonJoints) { 
+                HFMCluster cluster;
+                cluster.jointIndex = nodecount;
+                cluster.inverseBindMatrix = glm::mat4();
+                cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
+                mesh.clusters.append(cluster);
                 } else { // skinned model
                     for (int j = 0; j < numNodes; j++) {
-                        HFMCluster cluster;
-                        cluster.jointIndex = j;
-                        cluster.inverseBindMatrix = jointInverseBindTransforms[j];
-                        cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
-                        mesh.clusters.append(cluster);
-                    }
+                    HFMCluster cluster;
+                    cluster.jointIndex = j;
+                    cluster.inverseBindMatrix = jointInverseBindTransforms[j];
+                    cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
+                    mesh.clusters.append(cluster);
                 }
-                HFMCluster root; 
-                root.jointIndex = 0;
-                root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
-                root.inverseBindTransform = Transform(root.inverseBindMatrix);
-                mesh.clusters.append(root);
+            }
+            HFMCluster root; 
+            root.jointIndex = 0;
+            root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
+            root.inverseBindTransform = Transform(root.inverseBindMatrix);
+            mesh.clusters.append(root);
 
+            foreach(auto &primitive, _file.meshes[node.mesh].primitives) {
                 HFMMeshPart part = HFMMeshPart();
 
                 int indicesAccessorIdx = primitive.indices;
@@ -971,10 +1020,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 GLTFBuffer& indicesBuffer = _file.buffers[indicesBufferview.buffer];
 
                 int indicesAccBoffset = indicesAccessor.defined["byteOffset"] ? indicesAccessor.byteOffset : 0;
-
-                QVector<int> raw_indices;
-                QVector<glm::vec3> raw_vertices;
-                QVector<glm::vec3> raw_normals;
 
                 bool success = addArrayOfType(indicesBuffer.blob, 
                     indicesBufferview.byteOffset + indicesAccBoffset, 
@@ -986,6 +1031,14 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 if (!success) {
                     qWarning(modelformat) << "There was a problem reading glTF INDICES data for model " << _url;
                     continue;
+                }
+
+                // Increment the triangle indices by the current mesh vertex count so each mesh part can all reference the same buffers within the mesh
+                int prevMeshVerticesCount = mesh.vertices.count();
+                if (prevMeshVerticesCount > 0) {
+                    for (int i = 0; i < part.triangleIndices.count(); i++) {
+                        part.triangleIndices[i] += prevMeshVerticesCount;
+                    }
                 }
 
                 QList<QString> keys = primitive.attributes.values.keys();
@@ -1028,22 +1081,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         }
                         for (int n = 0; n < normals.size(); n = n + 3) {
                             mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
-                        }
-                    } else if (key == "COLOR_0") {
-                        QVector<float> colors;
-                        success = addArrayOfType(buffer.blob, 
-                            bufferview.byteOffset + accBoffset, 
-                            accessor.count, 
-                            colors,
-                            accessor.type, 
-                            accessor.componentType);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
-                            continue;
-                        }
-                        int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
-                        for (int n = 0; n < colors.size() - 3; n += stride) {
-                            mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
                         }
                     } else if (key == "TANGENT") {
                         QVector<float> tangents;
@@ -1093,7 +1130,23 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         for (int n = 0; n < texcoords.size(); n = n + 2) {
                             mesh.texCoords1.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
                         }
-                    } else if (key == "JOINTS_0") {
+                    } else if (key == "COLOR_0") {
+                        QVector<float> colors;
+                        success = addArrayOfType(buffer.blob,
+                            bufferview.byteOffset + accBoffset,
+                            accessor.count,
+                            colors,
+                            accessor.type,
+                            accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
+                            continue;
+                        }
+                        int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
+                        for (int n = 0; n < colors.size() - 3; n += stride) {
+                            mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
+                        }
+					} else if (key == "JOINTS_0") {
                         QVector<uint16_t> joints;
                         success = addArrayOfType(buffer.blob,
                             bufferview.byteOffset + accBoffset,
@@ -1251,6 +1304,14 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                
                 mesh.meshIndex = hfmModel.meshes.size();
             }
+
+            mesh.meshExtents.reset();
+            foreach(const glm::vec3& vertex, mesh.vertices) {
+                mesh.meshExtents.addPoint(vertex);
+                hfmModel.meshExtents.addPoint(vertex);
+            }
+           
+            mesh.meshIndex = hfmModel.meshes.size();
         }
         nodecount++;
     }
@@ -1404,10 +1465,6 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
 void GLTFSerializer::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material) {
 
 
-    if (material.defined["name"]) {
-        fbxmat.name = fbxmat.materialID = material.name;
-    }
-    
     if (material.defined["emissiveFactor"] && material.emissiveFactor.size() == 3) {
         glm::vec3 emissive = glm::vec3(material.emissiveFactor[0], 
                                        material.emissiveFactor[1], 

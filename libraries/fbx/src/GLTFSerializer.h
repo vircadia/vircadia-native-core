@@ -481,6 +481,49 @@ namespace GLTFAccessorComponentType {
     };
 }
 struct GLTFAccessor {
+    struct GLTFAccessorSparse {
+        struct GLTFAccessorSparseIndices {
+            int bufferView;
+            int byteOffset{ 0 };
+            int componentType;
+
+            QMap<QString, bool> defined;
+            void dump() {
+                if (defined["bufferView"]) {
+                    qCDebug(modelformat) << "bufferView: " << bufferView;
+                }
+                if (defined["byteOffset"]) {
+                    qCDebug(modelformat) << "byteOffset: " << byteOffset;
+                }
+                if (defined["componentType"]) {
+                    qCDebug(modelformat) << "componentType: " << componentType;
+                }
+            }
+        };
+        struct GLTFAccessorSparseValues {
+            int bufferView;
+            int byteOffset{ 0 };
+
+            QMap<QString, bool> defined;
+            void dump() {
+                if (defined["bufferView"]) {
+                    qCDebug(modelformat) << "bufferView: " << bufferView;
+                }
+                if (defined["byteOffset"]) {
+                    qCDebug(modelformat) << "byteOffset: " << byteOffset;
+                }
+            }
+        };
+
+        int count;
+        GLTFAccessorSparseIndices indices;
+        GLTFAccessorSparseValues values;
+
+        QMap<QString, bool> defined;
+        void dump() {
+        
+        }
+    };
     int bufferView;
     int byteOffset { 0 };
     int componentType; //required
@@ -489,6 +532,7 @@ struct GLTFAccessor {
     bool normalized{ false };
     QVector<double> max;
     QVector<double> min;
+    GLTFAccessorSparse sparse;
     QMap<QString, bool> defined;
     void dump() {
         if (defined["bufferView"]) {
@@ -520,6 +564,10 @@ struct GLTFAccessor {
             foreach(float m, min) {
                 qCDebug(modelformat) << m;
             }
+        }
+        if (defined["sparse"]) {
+            qCDebug(modelformat) << "sparse: ";
+            sparse.dump();
         }
     }
 };
@@ -763,6 +811,11 @@ private:
                             int& outidx, QMap<QString, bool>& defined);
 
     bool setAsset(const QJsonObject& object);
+
+    GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseIndices createAccessorSparseIndices(const QJsonObject& object);
+    GLTFAccessor::GLTFAccessorSparse::GLTFAccessorSparseValues createAccessorSparseValues(const QJsonObject& object);
+    GLTFAccessor::GLTFAccessorSparse createAccessorSparse(const QJsonObject& object);
+
     bool addAccessor(const QJsonObject& object);
     bool addAnimation(const QJsonObject& object);
     bool addBufferView(const QJsonObject& object);
@@ -782,7 +835,7 @@ private:
     template<typename T, typename L>
     bool readArray(const hifi::ByteArray& bin, int byteOffset, int count,
                    QVector<L>& outarray, int accessorType);
-    
+
     template<typename T>
     bool addArrayOfType(const hifi::ByteArray& bin, int byteOffset, int count,
                         QVector<T>& outarray, int accessorType, int componentType);
