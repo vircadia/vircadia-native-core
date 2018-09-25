@@ -170,7 +170,7 @@ function AppUi(properties) {
         var currentTimestamp = new Date().getTime();
         var lastPollTimestamp = Settings.getValue(settingsKey, currentTimestamp);
         if (that.notificationPollCaresAboutSince) {
-            url = url + "&since=" + lastPollTimestamp;
+            url = url + "&since=" + lastPollTimestamp/1000;
         }
         Settings.setValue(settingsKey, currentTimestamp);
 

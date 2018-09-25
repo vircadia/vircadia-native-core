@@ -18,7 +18,8 @@
 var AppUi = Script.require('appUi');
 
 function gotoOpened() {
-    ui.messagesWaiting(false);
+    shouldShowDot = false;
+    ui.messagesWaiting(shouldShowDot);
 }
 
 function notificationDataProcessPage(data) {
