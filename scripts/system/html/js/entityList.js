@@ -27,8 +27,11 @@ const COMPARE_ASCENDING = function(a, b) {
         return -1;
     }  else if (va > vb) {
         return 1;
+    } else if (a.id < b.id) {
+        return -1;
     }
-    return 0;
+
+    return 1;
 }
 const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
@@ -161,7 +164,10 @@ function loaded() {
 
             selectedEntities.forEach(function(entityID) {
                 if (selection.indexOf(entityID) === -1) {
-                    entitiesByID[entityID].el.className = '';
+                    let entity = entitiesByID[entityID];
+                    if (entity !== undefined) {
+                        entity.el.className = '';
+                    }
                 }
             });
 
@@ -223,15 +229,15 @@ function loaded() {
                         type: type,
                         url: filename,
                         fullUrl: entity.url,
-                        locked: entity.locked ? LOCKED_GLYPH : null,
-                        visible: entity.visible ? VISIBLE_GLYPH : null,
-                        verticesCount: displayIfNonZero(entity.verticesCount),
-                        texturesCount: displayIfNonZero(entity.texturesCount),
-                        texturesSize: decimalMegabytes(entity.texturesSize),
-                        hasTransparent: entity.hasTransparent ? TRANSPARENCY_GLYPH : null,
-                        isBaked: entity.isBaked ? BAKED_GLYPH : null,
-                        drawCalls: displayIfNonZero(entity.drawCalls),
-                        hasScript: entity.hasScript ? SCRIPT_GLYPH : null,
+                        locked: entity.locked,
+                        visible: entity.visible,
+                        verticesCount: entity.verticesCount,
+                        texturesCount: entity.texturesCount,
+                        texturesSize: entity.texturesSize,
+                        hasTransparent: entity.hasTransparent,
+                        isBaked: entity.isBaked,
+                        drawCalls: entity.drawCalls,
+                        hasScript: entity.hasScript,
                     }
 
                     entities.push(entityData);
@@ -259,15 +265,15 @@ function loaded() {
                     addColumn('type', entity.type);
                     addColumn('name', entity.name);
                     addColumn('url', entity.url);
-                    addColumnHTML('locked glyph', entity.locked);
-                    addColumnHTML('visible glyph', entity.visible);
-                    addColumn('verticesCount', entity.verticesCount);
-                    addColumn('texturesCount', entity.texturesCount);
-                    addColumn('texturesSize', entity.texturesSize);
-                    addColumnHTML('hasTransparent glyph', entity.hasTransparent);
-                    addColumnHTML('isBaked glyph', entity.isBaked);
-                    addColumn('drawCalls', entity.drawCalls);
-                    addColumn('hasScript glyph', entity.hasScript);
+                    addColumnHTML('locked glyph', entity.locked ? LOCKED_GLYPH : null);
+                    addColumnHTML('visible glyph', entity.visible ? VISIBLE_GLYPH : null);
+                    addColumn('verticesCount', displayIfNonZero(entity.verticesCount));
+                    addColumn('texturesCount', displayIfNonZero(entity.texturesCount));
+                    addColumn('texturesSize', decimalMegabytes(entity.texturesSize));
+                    addColumnHTML('hasTransparent glyph', entity.hasTransparent ? TRANSPARENCY_GLYPH : null);
+                    addColumnHTML('isBaked glyph', entity.isBaked ? BAKED_GLYPH : null);
+                    addColumn('drawCalls', displayIfNonZero(entity.drawCalls));
+                    addColumn('hasScript glyph', entity.hasScript ? SCRIPT_GLYPH : null);
                     row.addEventListener('click', onRowClicked);
                     row.addEventListener('dblclick', onRowDoubleClicked);
 
@@ -282,14 +288,15 @@ function loaded() {
         function refreshEntityList() {
             PROFILE("refresh-entity-list", function() {
                 PROFILE("filter", function() {
-                    let searchTerm = elFilter.value;
+                    let searchTerm = elFilter.value.toLowerCase();
                     if (searchTerm === '') {
                         visibleEntities = entities.slice(0);
                     } else {
                         visibleEntities = entities.filter(function(e) {
-                            return e.name.indexOf(searchTerm) > -1
-                                || e.type.indexOf(searchTerm) > -1
-                                || e.fullUrl.indexOf(searchTerm) > -1;
+                            return e.name.toLowerCase().indexOf(searchTerm) > -1
+                                || e.type.toLowerCase().indexOf(searchTerm) > -1
+                                || e.fullUrl.toLowerCase().indexOf(searchTerm) > -1
+                                || e.id.toLowerCase().indexOf(searchTerm) > -1;
                         });
                     }
                 });
@@ -384,15 +391,18 @@ function loaded() {
             let notFound = false;
 
             selectedEntities.forEach(function(id) {
-                entitiesByID[id].el.className = '';
+                let entity = entitiesByID[id];
+                if (entity !== undefined) {
+                    entity.el.className = '';
+                }
             });
 
             selectedEntities = [];
             for (let i = 0; i < selectedIDs.length; i++) {
                 let id = selectedIDs[i];
                 selectedEntities.push(id);
-                if (id in entitiesByID) {
-                    let entity = entitiesByID[id];
+                let entity = entitiesByID[id];
+                if (entity !== undefined) {
                     entity.el.className = 'selected';
                 } else {
                     notFound = true;

@@ -209,7 +209,7 @@ Rectangle {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            actions[modelData.name](resource, comboBox.currentText);
+                            actions[modelData](resource, comboBox.currentText);
                         }
                     }
                 }

@@ -94,8 +94,6 @@ private:
 
     bool _isInMarketplaceInspectionMode { false };
 
-    void openInspectionCertificate();
-    void openMarketplace();
     void enableEntityHighlight(const EntityItemID& entityItemID);
     void disableEntityHighlight(const EntityItemID& entityItemID);
 
