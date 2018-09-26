@@ -21,7 +21,7 @@ Script.include("/~/system/libraries/controllers.js");
 
 (function() { // BEGIN LOCAL_SCOPE
 
-    var TARGET_MODEL_URL = Script.resolvePath("../../assets/models/teleportationSpotBasev5.fbx");
+    var TARGET_MODEL_URL = Script.resolvePath("../../assets/models/teleportationSpotBasev8.fbx");
     var SEAT_MODEL_URL = Script.resolvePath("../../assets/models/teleport-seat.fbx");
 
     var TARGET_MODEL_DIMENSIONS = { x: 0.6552, y: 0.3063, z: 0.6552 };
@@ -150,13 +150,13 @@ Script.include("/~/system/libraries/controllers.js");
         this.teleportParabolaHeadCollisions;
 
 
-        this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev2.fbx");
-        this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 2, y: 0.2, z: 2 };
+        this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev9.fbx");
+        this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 1.969, y: 0.001, z: 1.969 };
         this.PLAY_AREA_FLOAT_ABOVE_FLOOR = 0;
         this.PLAY_AREA_OVERLAY_OFFSET = // Offset from floor.
             { x: 0, y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2 + this.PLAY_AREA_FLOAT_ABOVE_FLOOR, z: 0 };
-        this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensorv2.fbx");
-        this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1198 };
+        this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensorv4.fbx");
+        this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1199 };
         this.PLAY_AREA_SENSOR_OVERLAY_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 });
         this.playAreaSensorPositions = [];
         this.playArea = { x: 0, y: 0 };
@@ -400,6 +400,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             _this.playAreaOverlay = Overlays.addOverlay("model", {
                 url: _this.PLAY_AREA_OVERLAY_MODEL,
+                textures: { "Map #264": Math.random().toString() }, // Work around model displaying black.
                 drawInFront: false,
                 visible: false
             });
