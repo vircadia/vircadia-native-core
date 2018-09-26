@@ -123,6 +123,7 @@ void DomainHandler::hardReset() {
 
     softReset();
     _isInErrorState = false;
+    emit redirectErrorStateChanged(_isInErrorState);
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
     _pendingDomainID = QUuid();
@@ -362,6 +363,7 @@ void DomainHandler::setRedirectErrorState(QUrl errorUrl, QString reasonMessage, 
     if (getInterstitialModeEnabled()) {
         _errorDomainURL = errorUrl;
         _isInErrorState = true;
+        emit redirectErrorStateChanged(_isInErrorState);
         emit redirectToErrorDomainURL(_errorDomainURL);
     } else {
         emit domainConnectionRefused(reasonMessage, reasonCode, extraInfo);

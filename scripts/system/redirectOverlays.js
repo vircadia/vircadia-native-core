@@ -13,11 +13,10 @@
     var TIMEOUT = 5;
     var hardRefusalErrors = [PROTOCOL_VERSION_MISMATCH,
         NOT_AUTHORIZED, TIMEOUT];
-    var error = -1;
     var timer = null;
 
     function getOopsText() {
-        error = Window.getLastDomainConnectionError();
+        var error = Window.getLastDomainConnectionError();
         var errorMessageMapIndex = hardRefusalErrors.indexOf(error);
         if (errorMessageMapIndex >= 0) {
             return ERROR_MESSAGE_MAP[errorMessageMapIndex];
@@ -29,58 +28,68 @@
 
     var redirectOopsText = Overlays.addOverlay("text3d", {
         name: "oopsText",
-        localPosition: {x: 0.5691902160644531, y: 0.6403706073760986, z: 6.68358039855957},
+        localPosition: {x: 0.2691902160644531, y: 0.6403706073760986, z: 3.18358039855957},
+        localRotation: Quat.fromPitchYawRollDegrees(0.0, 180.0, 0.0),
         text: getOopsText(),
         textAlpha: 1,
         backgroundAlpha: 0,
+        color: {x: 255, y: 255, z: 255},
         lineHeight: 0.10,
+        leftMargin: 0.538373570564886,
         visible: false,
         emissive: true,
         ignoreRayIntersection: false,
-        drawInFront: true,
+        dimensions: {x: 4.2, y: 1},
         grabbable: false,
-        orientation: {x: 0.0, y: 0.5, z: 0.0, w: 0.87},
         parentID: MyAvatar.SELF_ID,
         parentJointIndex: MyAvatar.getJointIndex("Head")
     });
 
     var tryAgainImage = Overlays.addOverlay("image3d", {
         name: "tryAgainImage",
-        localPosition: {x: -0.15, y: -0.4, z: 0.0},
+        localPosition: {x: -0.6, y: -0.4, z: 0.0},
         url: Script.resourcesPath() + "images/interstitialPage/button_tryAgain.png",
         alpha: 1,
         visible: false,
         emissive: true,
         ignoreRayIntersection: false,
-        drawInFront: true,
         grabbable: false,
-        orientation: {x: 0.0, y: 0.5, z: 0, w: 0.87},
+        orientation: Overlays.getProperty(redirectOopsText, "orientation"),
         parentID: redirectOopsText
     });
 
     var backImage = Overlays.addOverlay("image3d", {
         name: "backImage",
-        localPosition: {x: 1.0, y: -0.4, z: 0.0},
+        localPosition: {x: 0.6, y: -0.4, z: 0.0},
         url: Script.resourcesPath() + "images/interstitialPage/button_back.png",
         alpha: 1,
         visible: false,
         emissive: true,
         ignoreRayIntersection: false,
-        drawInFront: true,
         grabbable: false,
-        orientation: {x: 0.0, y: 0.5, z: 0, w: 0.87},
+        orientation: Overlays.getProperty(redirectOopsText, "orientation"),
         parentID: redirectOopsText
     });
 
     var TARGET_UPDATE_HZ = 60;
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
 
-    function toggleOverlays() {
+    function toggleOverlays(isInErrorState) {
+        if (!isInErrorState) {
+            var properties = {
+                visible: false
+            };
+
+            Overlays.editOverlay(redirectOopsText, properties);
+            Overlays.editOverlay(tryAgainImage, properties);
+            Overlays.editOverlay(backImage, properties);
+            return;
+        }
         var overlaysVisible = false;
-        error = Window.getLastDomainConnectionError();
+        var error = Window.getLastDomainConnectionError();
         var errorMessageMapIndex = hardRefusalErrors.indexOf(error);
         var oopsText = "";
-        if (error === -1 || !Window.isPhysicsEnabled() || location.isConnected) {
+        if (error === -1) {
             overlaysVisible = false;
         } else if (errorMessageMapIndex >= 0) {
             overlaysVisible = true;
@@ -93,28 +102,27 @@
             visible: overlaysVisible
         };
 
+        var textWidth = Overlays.textSize(redirectOopsText, oopsText).width;
+        var textOverlayWidth = Overlays.getProperty(redirectOopsText, "dimensions").x;
+
         var oopsTextProperties = {
             visible: overlaysVisible,
-            text: oopsText
+            text: oopsText,
+            leftMargin: (textOverlayWidth - textWidth) / 2
         };
 
         Overlays.editOverlay(redirectOopsText, oopsTextProperties);
         Overlays.editOverlay(tryAgainImage, properties);
         Overlays.editOverlay(backImage, properties);
+
     }
 
     function clickedOnOverlay(overlayID, event) {
-        var properties = {
-            visible: false
-        };
         if (tryAgainImage === overlayID) {
             location.goToLastAddress();
         } else if (backImage === overlayID) {
             location.goBack();
         }
-        Overlays.editOverlay(redirectOopsText, properties);
-        Overlays.editOverlay(tryAgainImage, properties);
-        Overlays.editOverlay(backImage, properties);
     }
 
     function cleanup() {
@@ -124,6 +132,8 @@
         Overlays.deleteOverlay(tryAgainImage);
         Overlays.deleteOverlay(backImage);
     }
+
+    toggleOverlays(true);
 
     var whiteColor = {red: 255, green: 255, blue: 255};
     var greyColor = {red: 125, green: 125, blue: 125};
@@ -140,8 +150,7 @@
         }
     });
 
-    timer = Script.setInterval(toggleOverlays, 500);
-    // Script.update.connect(toggleOverlays);
+    Window.redirectErrorStateChanged.connect(toggleOverlays);
 
     Script.scriptEnding.connect(cleanup);
 }());

@@ -37,6 +37,8 @@
     var tablet = null;
     var button = null;
 
+    var errorConnectingToDomain = false;
+
     // Tips have a character limit of 69
     var userTips = [
         "Tip: Visit TheSpot to explore featured domains!",
@@ -188,6 +190,16 @@
 
     var connectionToDomainFailed = false;
 
+    function getOopsText() {
+        var error = Window.getLastDomainConnectionError();
+        var errorMessageMapIndex = hardRefusalErrors.indexOf(error);
+        if (errorMessageMapIndex >= 0) {
+            return ERROR_MESSAGE_MAP[errorMessageMapIndex];
+        } else {
+            // some other text.
+            return ERROR_MESSAGE_MAP[4];
+        }
+    }
 
     function getAnchorLocalYOffset() {
         var loadingSpherePosition = Overlays.getProperty(loadingSphereID, "position");
@@ -232,6 +244,13 @@
             previousCameraMode = Camera.mode;
             Camera.mode = "first person";
             timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
+        }
+    }
+
+    function toggleInterstitialPage(isInErrorState) {
+        errorConnectingToDomain = isInErrorState;
+        if (!errorConnectingToDomain) {
+            domainChanged(location);
         }
     }
 
@@ -347,9 +366,11 @@
         Overlays.editOverlay(loadingBarPlacard, properties);
         Overlays.editOverlay(loadingBarProgress, loadingBarProperties);
 
-        Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
-        if (!HMD.active) {
-            toolbar.writeProperty("visible", physicsEnabled);
+        if (errorConnectingToDomain) {
+            Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
+            if (!HMD.active) {
+                toolbar.writeProperty("visible", physicsEnabled);
+            }
         }
 
         resetValues();
@@ -358,7 +379,6 @@
             Camera.mode = previousCameraMode;
         }
     }
-
 
     function scaleInterstitialPage(sensorToWorldScale) {
         var yOffset = getAnchorLocalYOffset();
@@ -399,14 +419,19 @@
 
         Overlays.editOverlay(loadingBarProgress, properties);
 
-        if ((physicsEnabled && (currentProgress >= (TOTAL_LOADING_PROGRESS - EPSILON)))) {
+        if (errorConnectingToDomain) {
+            updateOverlays(errorConnectingToDomain);
+            endAudio();
+            currentDomain = "no domain";
+            timer = null;
+            return;
+        } else if ((physicsEnabled && (currentProgress >= (TOTAL_LOADING_PROGRESS - EPSILON)))) {
             updateOverlays((physicsEnabled || connectionToDomainFailed));
             endAudio();
             currentDomain = "no domain";
             timer = null;
             return;
         }
-
         timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
     }
     var whiteColor = {red: 255, green: 255, blue: 255};
@@ -430,6 +455,7 @@
             connectionToDomainFailed = !location.isConnected;
         }, 1200);
     });
+    Window.redirectErrorStateChanged.connect(toggleInterstitialPage);
 
     MyAvatar.sensorToWorldScaleChanged.connect(scaleInterstitialPage);
     MyAvatar.sessionUUIDChanged.connect(function() {

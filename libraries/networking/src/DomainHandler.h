@@ -187,8 +187,6 @@ private slots:
 signals:
     void domainURLChanged(QUrl domainURL);
 
-    void domainConnectionErrorChanged(int reasonCode);
-
     // NOTE: the emission of completedSocketDiscovery does not mean a connection to DS is established
     // It means that, either from DNS lookup or ICE, we think we have a socket we can talk to DS on
     void completedSocketDiscovery();
@@ -205,6 +203,7 @@ signals:
 
     void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
     void redirectToErrorDomainURL(QUrl errorDomainURL);
+    void redirectErrorStateChanged(bool isInErrorState);
 
     void limitOfSilentDomainCheckInsReached();
 
