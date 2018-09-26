@@ -226,13 +226,15 @@ void setupPreferences() {
 
     static const QString VR_MOVEMENT{ "VR Movement" };
     {
-
-        static const QString movementsControlChannel = QStringLiteral("Hifi-Advanced-Movement-Disabler");
-        auto getter = [myAvatar]()->bool { return myAvatar->useAdvancedMovementControls(); };
-        auto setter = [myAvatar](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
-        preferences->addPreference(new CheckPreference(VR_MOVEMENT,
-                                                       QStringLiteral("Advanced movement in VR (Teleport movement when unchecked)"),
-                                                       getter, setter));
+        auto getter = [myAvatar]()->int { return myAvatar->useAdvancedMovementControls() ? 1 : 0; };
+        auto setter = [myAvatar](int value) { myAvatar->setUseAdvancedMovementControls(value == 1); };
+        auto preference = 
+            new RadioButtonsPreference(VR_MOVEMENT, "Teleporting only / Walking and teleporting", getter, setter);
+        QStringList items;
+        items << "Teleporting only" << "Walking and teleporting";
+        preference->setHeading("Movement mode");
+        preference->setItems(items);
+        preferences->addPreference(preference);
     }
     {
         auto getter = [myAvatar]()->bool { return myAvatar->getFlyingHMDPref(); };
