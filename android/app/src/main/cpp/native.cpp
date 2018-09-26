@@ -355,5 +355,51 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_WebViewActivity_nativeProcessU
     AndroidHelper::instance().processURL(QString::fromUtf8(nativeString));
 }
 
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_fragment_SettingsFragment_updateHifiSetting(JNIEnv *env,
+                                                                               jobject instance,
+                                                                               jstring group_,
+                                                                               jstring key_,
+                                                                               jboolean value_) {
+    const char *c_group = env->GetStringUTFChars(group_, 0);
+    const char *c_key = env->GetStringUTFChars(key_, 0);
+
+    const QString group = QString::fromUtf8(c_group);
+    const QString key = QString::fromUtf8(c_key);
+
+    env->ReleaseStringUTFChars(group_, c_group);
+    env->ReleaseStringUTFChars(key_, c_key);
+
+    bool value = value_;
+
+    Setting::Handle<bool> setting { QStringList() << group << key , !value };
+    setting.set(value);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_io_highfidelity_hifiinterface_fragment_SettingsFragment_getHifiSettingBoolean(JNIEnv *env,
+                                                                                   jobject instance,
+                                                                                   jstring group_,
+                                                                                   jstring key_,
+                                                                                   jboolean defaultValue) {
+    const char *c_group = env->GetStringUTFChars(group_, 0);
+    const char *c_key = env->GetStringUTFChars(key_, 0);
+
+    const QString group = QString::fromUtf8(c_group);
+    const QString key = QString::fromUtf8(c_key);
+
+    env->ReleaseStringUTFChars(group_, c_group);
+    env->ReleaseStringUTFChars(key_, c_key);
+
+    Setting::Handle<bool> setting { QStringList() << group << key , defaultValue};
+    return setting.get();
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_receiver_HeadsetStateReceiver_notifyHeadsetOn(JNIEnv *env,
+                                                                                 jobject instance,
+                                                                                 jboolean pluggedIn) {
+    AndroidHelper::instance().notifyHeadsetOn(pluggedIn);
+}
 
 }

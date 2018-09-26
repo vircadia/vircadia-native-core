@@ -66,7 +66,9 @@ EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredP
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslationsSet, getJointTranslationsSet);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslations, getJointTranslations);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(relayParentJoints, getRelayParentJoints);
-    _animationProperties.getProperties(properties);
+    withReadLock([&] {
+        _animationProperties.getProperties(properties);
+    });
     return properties;
 }
 
@@ -123,15 +125,18 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     // grab a local copy of _animationProperties to avoid multiple locks
     int bytesFromAnimation;
+    AnimationPropertyGroup animationProperties;
     withReadLock([&] {
-        AnimationPropertyGroup animationProperties = _animationProperties;
+        animationProperties = _animationProperties;
         bytesFromAnimation = animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData, animationPropertiesChanged);
-        if (animationPropertiesChanged) {
-            applyNewAnimationProperties(animationProperties);
-            somethingChanged = true;
-        }
     });
+    if (animationPropertiesChanged) {
+        withWriteLock([&] {
+            applyNewAnimationProperties(animationProperties);
+        });
+        somethingChanged = true;
+    }
 
     bytesRead += bytesFromAnimation;
     dataAt += bytesFromAnimation;
@@ -305,69 +310,77 @@ void ModelEntityItem::setAnimationURL(const QString& url) {
 void ModelEntityItem::setAnimationSettings(const QString& value) {
     // NOTE: this method only called for old bitstream format
 
+    AnimationPropertyGroup animationProperties;
+    withReadLock([&] {
+        animationProperties = _animationProperties;
+    });
+
+    // the animations setting is a JSON string that may contain various animation settings.
+    // if it includes fps, currentFrame, or running, those values will be parsed out and
+    // will over ride the regular animation settings
+    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+    QJsonObject settingsAsJsonObject = settingsAsJson.object();
+    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+    if (settingsMap.contains("fps")) {
+        float fps = settingsMap["fps"].toFloat();
+        animationProperties.setFPS(fps);
+    }
+
+    // old settings used frameIndex
+    if (settingsMap.contains("frameIndex")) {
+        float currentFrame = settingsMap["frameIndex"].toFloat();
+        animationProperties.setCurrentFrame(currentFrame);
+    }
+
+    if (settingsMap.contains("running")) {
+        bool running = settingsMap["running"].toBool();
+        if (running != animationProperties.getRunning()) {
+            animationProperties.setRunning(running);
+        }
+    }
+
+    if (settingsMap.contains("firstFrame")) {
+        float firstFrame = settingsMap["firstFrame"].toFloat();
+        animationProperties.setFirstFrame(firstFrame);
+    }
+
+    if (settingsMap.contains("lastFrame")) {
+        float lastFrame = settingsMap["lastFrame"].toFloat();
+        animationProperties.setLastFrame(lastFrame);
+    }
+
+    if (settingsMap.contains("loop")) {
+        bool loop = settingsMap["loop"].toBool();
+        animationProperties.setLoop(loop);
+    }
+
+    if (settingsMap.contains("hold")) {
+        bool hold = settingsMap["hold"].toBool();
+        animationProperties.setHold(hold);
+    }
+
+    if (settingsMap.contains("allowTranslation")) {
+        bool allowTranslation = settingsMap["allowTranslation"].toBool();
+        animationProperties.setAllowTranslation(allowTranslation);
+    }
+
     withWriteLock([&] {
-        auto animationProperties = _animationProperties;
-
-        // the animations setting is a JSON string that may contain various animation settings.
-        // if it includes fps, currentFrame, or running, those values will be parsed out and
-        // will over ride the regular animation settings
-        QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-        QJsonObject settingsAsJsonObject = settingsAsJson.object();
-        QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-        if (settingsMap.contains("fps")) {
-            float fps = settingsMap["fps"].toFloat();
-            animationProperties.setFPS(fps);
-        }
-
-        // old settings used frameIndex
-        if (settingsMap.contains("frameIndex")) {
-            float currentFrame = settingsMap["frameIndex"].toFloat();
-            animationProperties.setCurrentFrame(currentFrame);
-        }
-
-        if (settingsMap.contains("running")) {
-            bool running = settingsMap["running"].toBool();
-            if (running != animationProperties.getRunning()) {
-                animationProperties.setRunning(running);
-            }
-        }
-
-        if (settingsMap.contains("firstFrame")) {
-            float firstFrame = settingsMap["firstFrame"].toFloat();
-            animationProperties.setFirstFrame(firstFrame);
-        }
-
-        if (settingsMap.contains("lastFrame")) {
-            float lastFrame = settingsMap["lastFrame"].toFloat();
-            animationProperties.setLastFrame(lastFrame);
-        }
-
-        if (settingsMap.contains("loop")) {
-            bool loop = settingsMap["loop"].toBool();
-            animationProperties.setLoop(loop);
-        }
-
-        if (settingsMap.contains("hold")) {
-            bool hold = settingsMap["hold"].toBool();
-            animationProperties.setHold(hold);
-        }
-
-        if (settingsMap.contains("allowTranslation")) {
-            bool allowTranslation = settingsMap["allowTranslation"].toBool();
-            animationProperties.setAllowTranslation(allowTranslation);
-        }
         applyNewAnimationProperties(animationProperties);
     });
 }
 
 void ModelEntityItem::setAnimationIsPlaying(bool value) {
     _flags |= Simulation::DIRTY_UPDATEABLE;
-    _animationProperties.setRunning(value);
+    withWriteLock([&] {
+        _animationProperties.setRunning(value);
+    });
 }
 
 void ModelEntityItem::setAnimationFPS(float value) {
     _flags |= Simulation::DIRTY_UPDATEABLE;
-    _animationProperties.setFPS(value);
+    withWriteLock([&] {
+        _animationProperties.setFPS(value);
+    });
 }
 
 // virtual
@@ -557,11 +570,9 @@ void ModelEntityItem::setColor(const xColor& value) {
 
 // Animation related items...
 AnimationPropertyGroup ModelEntityItem::getAnimationProperties() const { 
-    AnimationPropertyGroup result;
-    withReadLock([&] {
-        result = _animationProperties;
+    return resultWithReadLock<AnimationPropertyGroup>([&] {
+        return _animationProperties;
     });
-    return result; 
 }
 
 bool ModelEntityItem::hasAnimation() const { 
@@ -579,6 +590,18 @@ QString ModelEntityItem::getAnimationURL() const {
 void ModelEntityItem::setAnimationCurrentFrame(float value) {
     withWriteLock([&] {
         _animationProperties.setCurrentFrame(value);
+    });
+}
+
+void ModelEntityItem::setAnimationAllowTranslation(bool value) {
+    withWriteLock([&] {
+        _animationProperties.setAllowTranslation(value);
+    });
+}
+
+bool ModelEntityItem::getAnimationAllowTranslation() const {
+    return resultWithReadLock<bool>([&] {
+        return _animationProperties.getAllowTranslation();
     });
 }
 
