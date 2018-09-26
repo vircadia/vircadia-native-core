@@ -89,8 +89,6 @@ void AmbientOcclusionFramebuffer::allocate() {
         auto height = _frameSize.y;
         auto format = gpu::Element::COLOR_R_8;
 
-        //TEMPO OP
-        format = gpu::Element::VEC4F_COLOR_RGBA;
         _occlusionTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
         _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
         _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
@@ -125,7 +123,7 @@ void AmbientOcclusionFramebuffer::allocate() {
         if (_isStereo) {
             splitSize.x >>= 1;
         }
-        splitSize = divideRoundUp(splitSize, 2 << _resolutionLevel);
+        splitSize = divideRoundUp(splitSize, SSAO_SPLIT_COUNT << _resolutionLevel);
         if (_isStereo) {
             splitSize.x <<= 1;
         }
@@ -133,9 +131,9 @@ void AmbientOcclusionFramebuffer::allocate() {
         auto height = splitSize.y;
         auto format = gpu::Element::COLOR_R_8;
 
-        _occlusionSplitTexture = gpu::Texture::createRenderBufferArray(format, width, height, SSAO_SPLIT_COUNT, gpu::Texture::SINGLE_MIP, 
-                                                                       gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
-        for (int i = 0; i < SSAO_SPLIT_COUNT; i++) {
+        _occlusionSplitTexture = gpu::Texture::createRenderBufferArray(format, width, height, SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT, gpu::Texture::SINGLE_MIP, 
+                                                                       gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
+        for (int i = 0; i < SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT; i++) {
             _occlusionSplitFramebuffers[i] = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
             _occlusionSplitFramebuffers[i]->setRenderBuffer(0, _occlusionSplitTexture, i);
         }
@@ -145,7 +143,7 @@ void AmbientOcclusionFramebuffer::allocate() {
 
 #if SSAO_USE_QUAD_SPLIT
 gpu::FramebufferPointer AmbientOcclusionFramebuffer::getOcclusionSplitFramebuffer(int index) {
-    assert(index < SSAO_SPLIT_COUNT);
+    assert(index < SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT);
     if (!_occlusionSplitFramebuffers[index]) {
         allocate();
     }
@@ -220,7 +218,7 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     blurDeviation{ 2.5f },
     numSpiralTurns{ 7.0f },
 #if SSAO_USE_HORIZON_BASED
-    numSamples{ 3 },
+    numSamples{ 1 },
 #else
     numSamples{ 16 },
 #endif
@@ -305,7 +303,7 @@ void AmbientOcclusionEffect::configure(const Config& config) {
                 r = r + f * (float)(index % B);
                 index = index / B;
             }
-            _randomSamples[i] = r * M_PI / config.numSamples;
+            _randomSamples[i] = r * 2.0f * M_PI / config.numSamples;
         }
     }
 
@@ -445,7 +443,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getGatherPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_gather);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        state->setColorWriteMask(true, true, true, false);
+        state->setColorWriteMask(true, true, true, true);
 
         // Good to go add the brand new pipeline
         _gatherPipeline = gpu::Pipeline::create(program, state);
@@ -458,7 +456,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getBuildNormalsPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_buildNormals);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        state->setColorWriteMask(true, true, true, false);
+        state->setColorWriteMask(true, true, true, true);
 
         // Good to go add the brand new pipeline
         _buildNormalsPipeline = gpu::Pipeline::create(program, state);
@@ -537,8 +535,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto occlusionDepthSize = glm::ivec2(occlusionDepthTexture->getDimensions());
 
     // Update sample rotation
-    const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / SSAO_SPLIT_COUNT);
-    for (int splitId=0 ; splitId < SSAO_SPLIT_COUNT ; splitId++) {
+    const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / (SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT));
+    for (int splitId=0 ; splitId < SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT ; splitId++) {
         auto& sample = _aoFrameParametersBuffer[splitId].edit();
         sample._angleInfo.x = _randomSamples[splitId + SSAO_RANDOM_SAMPLE_COUNT * _frameId];
     }
@@ -568,7 +566,22 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
 #if SSAO_USE_QUAD_SPLIT
         batch.pushProfileRange("Normal Generation");
-        model.setScale(glm::vec3(normalViewport.z / (sourceViewport.z * depthResolutionScale), normalViewport.w / (sourceViewport.w * depthResolutionScale), 1.0f));
+        {
+            const auto uvScale = glm::vec3(
+                normalViewport.z / (sourceViewport.z * depthResolutionScale),
+                normalViewport.w / (sourceViewport.w * depthResolutionScale),
+                1.0f);
+            const auto postPixelOffset = glm::vec2(0.5f) / glm::vec2(occlusionDepthSize);
+            const auto prePixelOffset = glm::vec2(0.5f * uvScale.x, 0.5f * uvScale.y) / glm::vec2(normalViewport.z, normalViewport.w);
+            const auto uvTranslate = glm::vec3(
+                postPixelOffset.x - prePixelOffset.x,
+                postPixelOffset.y - prePixelOffset.y,
+                0.0f
+            );
+
+            model.setScale(uvScale);
+            model.setTranslation(uvTranslate);
+        }
         batch.setModelTransform(model);
 
         // Build face normals pass
@@ -595,37 +608,30 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, occlusionNormalTexture);
         {
             const auto uvScale = glm::vec3(
-                (splitSize.x * 2.0f * depthResolutionScale) / (occlusionDepthSize.x * resolutionScale),
-                (splitSize.y * 2.0f * depthResolutionScale) / (occlusionDepthSize.y * resolutionScale),
+                (splitSize.x * SSAO_SPLIT_COUNT * depthResolutionScale) / (occlusionDepthSize.x * resolutionScale),
+                (splitSize.y * SSAO_SPLIT_COUNT * depthResolutionScale) / (occlusionDepthSize.y * resolutionScale),
                 1.0f);
-            const auto pixelOffset = glm::vec2(0.5f) / glm::vec2(occlusionDepthSize);
+            const auto postPixelOffset = glm::vec2(0.5f) / glm::vec2(occlusionDepthSize);
+            const auto prePixelOffset = glm::vec2(0.5f * uvScale.x, 0.5f * uvScale.y) / glm::vec2(splitSize.x, splitSize.y);
 
             batch.setViewportTransform(splitViewport);
 
             model.setScale(uvScale);
-            model.setTranslation(glm::vec3(-pixelOffset.x, -pixelOffset.y, 0.0f));
-            batch.setModelTransform(model);
-            batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(0));
-            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-            model.setTranslation(glm::vec3(pixelOffset.x, -pixelOffset.y, 0.0f));
-            batch.setModelTransform(model);
-            batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(1));
-            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[1]);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-            model.setTranslation(glm::vec3(pixelOffset.x, pixelOffset.y, 0.0f));
-            batch.setModelTransform(model);
-            batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(3));
-            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[2]);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-            model.setTranslation(glm::vec3(-pixelOffset.x, pixelOffset.y, 0.0f));
-            batch.setModelTransform(model);
-            batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(2));
-            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[3]);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
+            for (int y = 0; y < SSAO_SPLIT_COUNT; y++) {
+                for (int x = 0; x < SSAO_SPLIT_COUNT; x++) {
+                    const int splitIndex = x + y * SSAO_SPLIT_COUNT;
+                    const auto uvTranslate = glm::vec3(
+                        postPixelOffset.x * (2 * x + 1) - prePixelOffset.x,
+                        postPixelOffset.y * (2 * y + 1) - prePixelOffset.y,
+                        0.0f
+                        );
+                    model.setTranslation(uvTranslate);
+                    batch.setModelTransform(model);
+                    batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(splitIndex));
+                    batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[splitIndex]);
+                    batch.draw(gpu::TRIANGLE_STRIP, 4);
+                }
+            }
         }
 #else
         batch.setViewportTransform(occlusionViewport);

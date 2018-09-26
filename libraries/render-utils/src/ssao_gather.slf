@@ -28,12 +28,11 @@ void main(void) {
     // Gather the four splits of the occlusion result back into an interleaved full size
     // result (at the resolution level, of course)
     ivec2 destPixelCoord = ivec2(gl_FragCoord.xy);
-    ivec2 sourcePixelCoord = destPixelCoord / 2;
-    ivec2 splitImageSize = getWidthHeightRoundUp(getResolutionLevel()+1);
-    int occlusionMapIndex = (destPixelCoord.x & 1) + ((destPixelCoord.y) & 1)*2;
+    ivec2 sourcePixelCoord = destPixelCoord / SSAO_SPLIT_COUNT;
+    ivec2 splitImageSize = getWidthHeightRoundUp(getResolutionLevel()+SSAO_SPLIT_LOG2_COUNT);
+    ivec2 modPixelCoord = destPixelCoord % ivec2(SSAO_SPLIT_COUNT);
+    int occlusionMapIndex = modPixelCoord.x + modPixelCoord.y*SSAO_SPLIT_COUNT;
     vec2 sourceUV = (sourcePixelCoord + vec2(0.5)) / splitImageSize;
-    
-    sourcePixelCoord += (destPixelCoord & ivec2(1)) * splitImageSize;
 
     outFragColor = texture(occlusionMaps, vec3(sourceUV, occlusionMapIndex));
 }

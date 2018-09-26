@@ -18,10 +18,11 @@
 #define SSAO_USE_QUAD_SPLIT	1
 
 #if SSAO_USE_QUAD_SPLIT
-#define SSAO_SPLIT_COUNT  4
+#define SSAO_SPLIT_LOG2_COUNT  2
 #else
-#define SSAO_SPLIT_COUNT  1
+#define SSAO_SPLIT_LOG2_COUNT  0
 #endif
+#define SSAO_SPLIT_COUNT  (1 << SSAO_SPLIT_LOG2_COUNT)
 
 // glsl / C++ compatible source as interface for ambient occlusion
 #ifdef __cplusplus

@@ -64,7 +64,7 @@ protected:
     gpu::TexturePointer _normalTexture;
 
 #if SSAO_USE_QUAD_SPLIT
-    gpu::FramebufferPointer _occlusionSplitFramebuffers[SSAO_SPLIT_COUNT];
+    gpu::FramebufferPointer _occlusionSplitFramebuffers[SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT];
     gpu::TexturePointer _occlusionSplitTexture;
 #endif
 
@@ -181,7 +181,7 @@ private:
     int getDepthResolutionLevel() const;
    
     AOParametersBuffer _aoParametersBuffer;
-    FrameParametersBuffer _aoFrameParametersBuffer[SSAO_SPLIT_COUNT];
+    FrameParametersBuffer _aoFrameParametersBuffer[SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT];
     BlurParametersBuffer _vblurParametersBuffer;
     BlurParametersBuffer _hblurParametersBuffer;
 
@@ -200,7 +200,7 @@ private:
     static gpu::PipelinePointer _buildNormalsPipeline;
 
     AmbientOcclusionFramebufferPointer _framebuffer;
-    std::array<float, 16 * SSAO_SPLIT_COUNT> _randomSamples;
+    std::array<float, 3 * SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT> _randomSamples;
     int _frameId{ 0 };
     
     gpu::RangeTimerPointer _gpuTimer;
