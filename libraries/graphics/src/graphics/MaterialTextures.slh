@@ -226,16 +226,6 @@ vec3 fetchLightmapMap(vec2 uv) {
 }
 <@endfunc@>
 
-<@func evalMaterialNormal(fetchedNormal, interpolatedNormal, interpolatedTangent, normal)@>
-{
-    vec3 normalizedNormal = normalize(<$interpolatedNormal$>.xyz);
-    vec3 normalizedTangent = normalize(<$interpolatedTangent$>.xyz);
-    vec3 normalizedBitangent = cross(normalizedNormal, normalizedTangent);
-    vec3 localNormal = <$fetchedNormal$>;
-    <$normal$> = vec3(normalizedBitangent * localNormal.x + normalizedNormal * localNormal.y + normalizedTangent * localNormal.z);
-}
-<@endfunc@>
-
 <@func evalMaterialNormalLOD(fragPosES, fetchedNormal, interpolatedNormal, interpolatedTangent, normal)@>
 {
     vec3 normalizedNormal = normalize(<$interpolatedNormal$>.xyz);

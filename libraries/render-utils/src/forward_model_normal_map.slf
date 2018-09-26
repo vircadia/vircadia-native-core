@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  forward_model_normal_map.frag
-//  fragment shader
 //
 //  Created by Sam Gateau on 2/15/2016.
 //  Copyright 2014 High Fidelity, Inc.
@@ -12,13 +10,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Transform.slh@>
+<@include DefaultMaterials.slh@>
 <@include graphics/Material.slh@>
 <@include graphics/MaterialTextures.slh@>
 <@include render-utils/ShaderConstants.h@>
+
 <@include ForwardGlobalLight.slh@>
 
 <$declareEvalSkyboxGlobalColor()$>
+
+<@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, METALLIC, EMISSIVE, OCCLUSION)$>
@@ -55,18 +56,22 @@ void main(void) {
 
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
+
     vec3 fresnel = getFresnelF0(metallic, albedo);
+
+    float occlusion = DEFAULT_OCCLUSION;
+    <$evalMaterialOcclusion(occlusionTex, matKey, occlusion)$>;
 
     vec3 fragPosition = _positionES.xyz;
     vec3 fragNormal;
-    <$evalMaterialNormal(normalTex, _normalWS, _tangentWS, fragNormal)$>
+    <$evalMaterialNormalLOD(fragPosition, normalTex, _normalWS, _tangentWS, fragNormal)$>
 
     TransformCamera cam = getTransformCamera();
 
     vec4 color = vec4(evalSkyboxGlobalColor(
         cam._viewInverse,
         1.0,
-        occlusionTex,
+        occlusion,
         fragPosition,
         fragNormal,
         albedo,
@@ -74,7 +79,6 @@ void main(void) {
         metallic,
         roughness),
         opacity);
-
     color.rgb += emissive * isEmissiveEnabled();
 
     _fragColor0 = color;

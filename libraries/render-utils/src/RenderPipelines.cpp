@@ -254,7 +254,7 @@ void initForwardPipelines(ShapePlumber& plumber) {
     // Opaques
     addPipeline(Key::Builder().withMaterial(), forward_model);
     addPipeline(Key::Builder().withMaterial().withUnlit(), forward_model_unlit);
-    addPipeline(Key::Builder().withMaterial().withTangents(), forward_model_translucent);
+    addPipeline(Key::Builder().withMaterial().withTangents(), forward_model_normal_map);
  
     // Skinned Opaques
     addPipeline(Key::Builder().withMaterial().withSkinned(), forward_skin_model);
@@ -271,6 +271,8 @@ void initForwardPipelines(ShapePlumber& plumber) {
     addPipeline(Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents(), forward_skin_translucent_normal_map);
     addPipeline(Key::Builder().withMaterial().withSkinned().withTranslucent().withDualQuatSkinned(), forward_skin_translucent_dq);
     addPipeline(Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withDualQuatSkinned(), forward_skin_translucent_normal_map_dq);
+
+    // FIXME: incorrent pipelines for normal mapped + translucent models
 
     forceLightBatchSetter = false;
 }
