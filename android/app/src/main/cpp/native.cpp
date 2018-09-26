@@ -267,6 +267,14 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeCancelLogin(JNIE
 }
 
 JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_fragment_SignupFragment_nativeCancelLogin(JNIEnv *env,
+                                                                             jobject instance) {
+
+    Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeCancelLogin(env, instance);
+}
+
+
+JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *env, jobject instance,
                                                             jstring username_, jstring password_,
                                                             jobject usernameChangedListener) {
@@ -305,6 +313,15 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *en
 
     QMetaObject::invokeMethod(accountManager.data(), "requestAccessToken",
                               Q_ARG(const QString&, username), Q_ARG(const QString&, password));
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_fragment_SignupFragment_nativeLogin(JNIEnv *env,
+                                                                       jobject instance,
+                                                                       jstring username_,
+                                                                       jstring password_,
+                                                                       jobject usernameChangedListener) {
+    Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(env, instance, username_, password_, usernameChangedListener);
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeInitAfterAppLoaded(JNIEnv* env, jobject obj) {

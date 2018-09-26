@@ -1,5 +1,6 @@
 package io.highfidelity.hifiinterface.fragment;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -26,7 +27,7 @@ public class SignupFragment extends Fragment {
     private EditText mUsername;
     private EditText mPassword;
     private TextView mError;
-    private TextView mLogin;
+    private TextView mCancelButton;
 
     private Button mSignupButton;
 
@@ -34,6 +35,8 @@ public class SignupFragment extends Fragment {
 
     public native void nativeSignup(String email, String username, String password); // move to SignupFragment
     public native void nativeCancelSignup();
+    public native void nativeLogin(String username, String password, Activity usernameChangedListener);
+    public native void nativeCancelLogin();
 
     private SignupFragment.OnSignupInteractionListener mListener;
 
@@ -56,10 +59,10 @@ public class SignupFragment extends Fragment {
         mPassword = rootView.findViewById(R.id.password);
         mError = rootView.findViewById(R.id.error);
         mSignupButton = rootView.findViewById(R.id.signupButton);
-        mLogin = rootView.findViewById(R.id.login);
+        mCancelButton = rootView.findViewById(R.id.cancelButton);
 
         mSignupButton.setOnClickListener(view -> signup());
-        mLogin.setOnClickListener(view -> login());
+        mCancelButton.setOnClickListener(view -> login());
         mPassword.setOnEditorActionListener(
                 (textView, actionId, keyEvent) -> {
                     if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -168,14 +171,19 @@ public class SignupFragment extends Fragment {
     }
 
     public void handleSignupCompleted() {
-        getActivity().runOnUiThread(() -> {
-            mSignupButton.setEnabled(true);
+        String username = mUsername.getText().toString().trim();
+        String password = mPassword.getText().toString();
+        mDialog.setMessage(getString(R.string.logging_in));
+        mDialog.setCancelable(true);
+        mDialog.setOnCancelListener(dialogInterface -> {
+            nativeCancelLogin();
             cancelActivityIndicator();
             if (mListener != null) {
-                mListener.onSignupCompleted();
+                mListener.onLoginRequested();
             }
-            mError.setText("handleSignupCompleted");
         });
+        mDialog.show();
+        nativeLogin(username, password, getActivity());
     }
 
     public void handleSignupFailed(String error) {
@@ -186,5 +194,24 @@ public class SignupFragment extends Fragment {
             mError.setVisibility(View.VISIBLE);
         });
     }
+
+    public void handleLoginCompleted(boolean success) {
+        getActivity().runOnUiThread(() -> {
+            mSignupButton.setEnabled(true);
+            cancelActivityIndicator();
+
+            if (success) {
+                if (mListener != null) {
+                    mListener.onSignupCompleted();
+                }
+            } else {
+                // Registration was successful but login failed.
+                // Let the user to login manually
+                mListener.onLoginRequested();
+            }
+        });
+    }
+
+
 
 }

@@ -25,7 +25,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
@@ -34,6 +33,7 @@ import io.highfidelity.hifiinterface.fragment.FriendsFragment;
 import io.highfidelity.hifiinterface.fragment.HomeFragment;
 import io.highfidelity.hifiinterface.fragment.LoginFragment;
 import io.highfidelity.hifiinterface.fragment.PolicyFragment;
+import io.highfidelity.hifiinterface.fragment.SignedInFragment;
 import io.highfidelity.hifiinterface.fragment.SignupFragment;
 import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
 
@@ -41,7 +41,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                                 LoginFragment.OnLoginInteractionListener,
                                                                 HomeFragment.OnHomeInteractionListener,
                                                                 FriendsFragment.OnHomeInteractionListener,
-                                                                SignupFragment.OnSignupInteractionListener {
+                                                                SignupFragment.OnSignupInteractionListener,
+                                                                SignedInFragment.OnSignedInInteractionListener {
 
     private static final int PROFILE_PICTURE_PLACEHOLDER = R.drawable.default_profile_avatar;
     public static final String DEFAULT_FRAGMENT = "Home";
@@ -138,8 +139,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void loadLoginFragment() {
         Fragment fragment = LoginFragment.newInstance();
-
         loadFragment(fragment, getString(R.string.login), getString(R.string.tagFragmentLogin), true);
+    }
+
+    private void loadSignedInFragment() {
+        Fragment fragment = SignedInFragment.newInstance();
+        loadFragment(fragment, getString(R.string.welcome), getString(R.string.tagFragmentSignedIn), true);
     }
 
     private void loadSignupFragment() {
@@ -317,6 +322,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
+    public void onGettingStarted() {
+        loadHomeFragment(false);
+        if (backToScene) {
+            backToScene = false;
+            goToLastLocation();
+        }
+    }
+
+    @Override
     public void onLoginRequested() {
         loadLoginFragment();
     }
@@ -328,8 +342,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onSignupCompleted() {
-        Toast.makeText(this, "Sign up succeeded", Toast.LENGTH_SHORT).show();
-        loadLoginFragment();
+        loadSignedInFragment();
+        updateLoginMenu();
     }
 
     public void handleUsernameChanged(String username) {
