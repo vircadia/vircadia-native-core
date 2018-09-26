@@ -242,13 +242,12 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     _activityTracking.addedEntityCount++;
 
     auto nodeList = DependencyManager::get<NodeList>();
-    auto sessionID = nodeList->getSessionUUID();
+    const auto sessionID = nodeList->getSessionUUID();
 
     EntityItemProperties propertiesWithSimID = properties;
     if (clientOnly) {
-        const QUuid myNodeID = sessionID;
         propertiesWithSimID.setClientOnly(clientOnly);
-        propertiesWithSimID.setOwningAvatarID(myNodeID);
+        propertiesWithSimID.setOwningAvatarID(sessionID);
     }
 
     propertiesWithSimID.setLastEditedBy(sessionID);
@@ -530,8 +529,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     _activityTracking.editedEntityCount++;
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    auto sessionID = nodeList->getSessionUUID();
+    const auto sessionID = DependencyManager::get<NodeList>()->getSessionUUID();
 
     EntityItemProperties properties = scriptSideProperties;
     properties.setLastEditedBy(sessionID);
@@ -550,7 +548,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             return;
         }
 
-        if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
+        if (entity->getClientOnly() && entity->getOwningAvatarID() != sessionID) {
             // don't edit other avatar's avatarEntities
             return;
         }
@@ -600,10 +598,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             bool hasTransformOrVelocityChanges = properties.hasTransformOrVelocityChanges();
             bool hasPhysicsChanges = properties.hasMiscPhysicsChanges() || hasTransformOrVelocityChanges;
             if (_bidOnSimulationOwnership && hasPhysicsChanges) {
-                auto nodeList = DependencyManager::get<NodeList>();
-                const QUuid myNodeID = nodeList->getSessionUUID();
-
-                if (entity->getSimulatorID() == myNodeID) {
+                if (entity->getSimulatorID() == sessionID) {
                     // we think we already own the simulation, so make sure to send the full transform and all velocities
                     if (hasTransformOrVelocityChanges) {
                         entity->getTransformAndVelocityProperties(properties);
@@ -618,11 +613,11 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
                     if (entity->getSimulationPriority() < SCRIPT_POKE_SIMULATION_PRIORITY) {
                         // we re-assert our simulation ownership at a higher priority
-                        properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
+                        properties.setSimulationOwner(sessionID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     }
                 } else {
                     // we make a bid for simulation ownership
-                    properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
+                    properties.setSimulationOwner(sessionID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     entity->setScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
                 }
             }
