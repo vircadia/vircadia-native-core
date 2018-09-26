@@ -57,7 +57,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.cloneAllowed = true;
 
         this.parameters = makeDispatcherModuleParameters(
-            140,
+            500,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);
