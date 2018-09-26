@@ -26,10 +26,12 @@
         }
     };
 
+    var oopsDimensions = {x: 4.2, y: 1};
+
     var redirectOopsText = Overlays.addOverlay("text3d", {
         name: "oopsText",
-        localPosition: {x: 0.2691902160644531, y: 0.6403706073760986, z: 3.18358039855957},
-        localRotation: Quat.fromPitchYawRollDegrees(0.0, 180.0, 0.0),
+        position: {x: 0, y: 1.6763916015625, z: 1.45927095413208},
+        rotation: {x: -4.57763671875e-05, y: 0.4957197904586792, z: -7.62939453125e-05, w: 0.8684672117233276},
         text: getOopsText(),
         textAlpha: 1,
         backgroundAlpha: 0,
@@ -39,15 +41,13 @@
         visible: false,
         emissive: true,
         ignoreRayIntersection: false,
-        dimensions: {x: 4.2, y: 1},
+        dimensions: oopsDimensions,
         grabbable: false,
-        parentID: MyAvatar.SELF_ID,
-        parentJointIndex: MyAvatar.getJointIndex("Head")
     });
 
     var tryAgainImage = Overlays.addOverlay("image3d", {
         name: "tryAgainImage",
-        localPosition: {x: -0.6, y: -0.4, z: 0.0},
+        localPosition: {x: -0.6, y: -0.6, z: 0.0},
         url: Script.resourcesPath() + "images/interstitialPage/button_tryAgain.png",
         alpha: 1,
         visible: false,
@@ -60,7 +60,7 @@
 
     var backImage = Overlays.addOverlay("image3d", {
         name: "backImage",
-        localPosition: {x: 0.6, y: -0.4, z: 0.0},
+        localPosition: {x: 0.6, y: -0.6, z: 0.0},
         url: Script.resourcesPath() + "images/interstitialPage/button_back.png",
         alpha: 1,
         visible: false,
@@ -103,7 +103,7 @@
         };
 
         var textWidth = Overlays.textSize(redirectOopsText, oopsText).width;
-        var textOverlayWidth = Overlays.getProperty(redirectOopsText, "dimensions").x;
+        var textOverlayWidth = oopsDimensions.x;
 
         var oopsTextProperties = {
             visible: overlaysVisible,

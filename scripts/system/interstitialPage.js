@@ -38,6 +38,7 @@
     var button = null;
 
     var errorConnectingToDomain = false;
+    var resettingError = false;
 
     // Tips have a character limit of 69
     var userTips = [
@@ -189,17 +190,6 @@
     var target = 0;
 
     var connectionToDomainFailed = false;
-
-    function getOopsText() {
-        var error = Window.getLastDomainConnectionError();
-        var errorMessageMapIndex = hardRefusalErrors.indexOf(error);
-        if (errorMessageMapIndex >= 0) {
-            return ERROR_MESSAGE_MAP[errorMessageMapIndex];
-        } else {
-            // some other text.
-            return ERROR_MESSAGE_MAP[4];
-        }
-    }
 
     function getAnchorLocalYOffset() {
         var loadingSpherePosition = Overlays.getProperty(loadingSphereID, "position");
@@ -366,11 +356,10 @@
         Overlays.editOverlay(loadingBarPlacard, properties);
         Overlays.editOverlay(loadingBarProgress, loadingBarProperties);
 
-        if (errorConnectingToDomain) {
-            Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
-            if (!HMD.active) {
-                toolbar.writeProperty("visible", physicsEnabled);
-            }
+        Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
+        if (!HMD.active) {
+            print("Show toolbar: " + physicsEnabled);
+            toolbar.writeProperty("visible", physicsEnabled);
         }
 
         resetValues();
@@ -389,6 +378,15 @@
         };
 
         Overlays.editOverlay(anchorOverlay, { localPosition: localPosition });
+    }
+
+    function sleep(milliseconds) {
+        var start = new Date().getTime();
+        for (var i = 0; i < 1e7; i++) {
+            if ((new Date().getTime() - start) > milliseconds){
+                break;
+            }
+        }
     }
 
     function update() {
@@ -424,6 +422,8 @@
             endAudio();
             currentDomain = "no domain";
             timer = null;
+            sleep(300);
+            toolbar.writeProperty("visible", true);
             return;
         } else if ((physicsEnabled && (currentProgress >= (TOTAL_LOADING_PROGRESS - EPSILON)))) {
             updateOverlays((physicsEnabled || connectionToDomainFailed));
