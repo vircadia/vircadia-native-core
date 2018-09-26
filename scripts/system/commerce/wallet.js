@@ -488,7 +488,8 @@ function walletOpened() {
     Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
     triggerMapping.enable();
     triggerPressMapping.enable();
-    ui.messagesWaiting(false);
+    shouldShowDot = false;
+    ui.messagesWaiting(shouldShowDot);
 }
 
 function walletClosed() {
