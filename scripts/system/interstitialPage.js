@@ -422,8 +422,14 @@
             endAudio();
             currentDomain = "no domain";
             timer = null;
+            // The toolbar doesn't become visible in time to match the speed of
+            // the signal handling of redirectErrorStateChanged in both this script
+            // and the redirectOverlays.js script.  Use a sleep function to ensure
+            // the toolbar becomes visible again.
             sleep(300);
-            toolbar.writeProperty("visible", true);
+            if (!HMD.active) {
+                toolbar.writeProperty("visible", true);
+            }
             return;
         } else if ((physicsEnabled && (currentProgress >= (TOTAL_LOADING_PROGRESS - EPSILON)))) {
             updateOverlays((physicsEnabled || connectionToDomainFailed));
