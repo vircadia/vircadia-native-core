@@ -521,6 +521,14 @@ function installMarketplaceItemTester() {
     });
 }
 
+function uninstallMarketplaceItemTester() {
+    if (Menu.menuExists(DEVELOPER_MENU) &&
+        Menu.menuItemExists(DEVELOPER_MENU, MARKETPLACE_ITEM_TESTER_LABEL)
+    ) {
+        Menu.removeMenuItem(DEVELOPER_MENU, MARKETPLACE_ITEM_TESTER_LABEL);
+    }
+}
+
 var BUTTON_NAME = "WALLET";
 var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
 var ui;
@@ -555,6 +563,7 @@ function off() {
 function shutdown() {
     GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
     deleteSendMoneyParticleEffect();
+    uninstallMarketplaceItemTester();
     off();
 }
 
