@@ -111,10 +111,10 @@ public:
 
     const ConicalViewFrustums& getViewFrustums() const { return _currentViewFrustums; }
 
-    uint64_t getLastOtherAvatarEncodeTime(QUuid otherAvatar) const;
-    void setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time);
+    uint64_t getLastOtherAvatarEncodeTime(NLPacket::LocalID otherAvatar) const;
+    void setLastOtherAvatarEncodeTime(NLPacket::LocalID otherAvatar, uint64_t time);
 
-    QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) { return _lastOtherAvatarSentJoints[otherAvatar]; }
+    QVector<JointData>& getLastOtherAvatarSentJoints(NLPacket::LocalID otherAvatar) { return _lastOtherAvatarSentJoints[otherAvatar]; }
 
     void queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
     int processPackets(const SlaveSharedData& slaveSharedData); // returns number of packets processed
@@ -152,8 +152,8 @@ private:
 
     // this is a map of the last time we encoded an "other" avatar for
     // sending to "this" node
-    std::unordered_map<QUuid, uint64_t> _lastOtherAvatarEncodeTime;
-    std::unordered_map<QUuid, QVector<JointData>> _lastOtherAvatarSentJoints;
+    std::unordered_map<NLPacket::LocalID, uint64_t> _lastOtherAvatarEncodeTime;
+    std::unordered_map<NLPacket::LocalID, QVector<JointData>> _lastOtherAvatarSentJoints;
 
     uint64_t _identityChangeTimestamp;
     bool _avatarSessionDisplayNameMustChange{ true };

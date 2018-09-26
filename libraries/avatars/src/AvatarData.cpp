@@ -222,7 +222,6 @@ float AvatarData::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPositio
 
 // we want to track outbound data in this case...
 QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
-    AvatarDataPacket::HasFlags hasFlagsOut = 0;
     auto lastSentTime = _lastToByteArray;
     _lastToByteArray = usecTimestampNow();
     AvatarDataPacket::SendStatus sendStatus;

@@ -382,7 +382,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         if (!shouldIgnore) {
             // sort this one for later
             const AvatarData* avatarNodeData = avatarClientNodeData->getConstAvatarData();
-            auto lastEncodeTime = nodeData->getLastOtherAvatarEncodeTime(avatarNodeData->getSessionUUID());
+            auto lastEncodeTime = nodeData->getLastOtherAvatarEncodeTime(avatarNode->getLocalID());
 
             sortedAvatars.push(SortableAvatar(avatarNodeData, avatarNode, lastEncodeTime));
         }
@@ -446,7 +446,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             nodeData->incrementAvatarInView();
         }
 
-        QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
+        QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getLocalID());
 
         const bool distanceAdjust = true;
         const bool dropFaceTracking = false;
@@ -482,7 +482,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             // set the last sent sequence number for this sender on the receiver
             nodeData->setLastBroadcastSequenceNumber(otherNode->getLocalID(),
                 otherNodeData->getLastReceivedSequenceNumber());
-            nodeData->setLastOtherAvatarEncodeTime(otherNode->getUUID(), usecTimestampNow());
+            nodeData->setLastOtherAvatarEncodeTime(otherNode->getLocalID(), usecTimestampNow());
         }
 
         auto endAvatarDataPacking = chrono::high_resolution_clock::now();

@@ -26,20 +26,20 @@ AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID 
     _avatar->setID(nodeID);
 }
 
-uint64_t AvatarMixerClientData::getLastOtherAvatarEncodeTime(QUuid otherAvatar) const {
-    std::unordered_map<QUuid, uint64_t>::const_iterator itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
+uint64_t AvatarMixerClientData::getLastOtherAvatarEncodeTime(NLPacket::LocalID otherAvatar) const {
+    const auto itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
     if (itr != _lastOtherAvatarEncodeTime.end()) {
         return itr->second;
     }
     return 0;
 }
 
-void AvatarMixerClientData::setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time) {
-    std::unordered_map<QUuid, uint64_t>::iterator itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
+void AvatarMixerClientData::setLastOtherAvatarEncodeTime(NLPacket::LocalID otherAvatar, uint64_t time) {
+    auto itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
     if (itr != _lastOtherAvatarEncodeTime.end()) {
         itr->second = time;
     } else {
-        _lastOtherAvatarEncodeTime.emplace(std::pair<QUuid, uint64_t>(otherAvatar, time));
+        _lastOtherAvatarEncodeTime.emplace(std::pair<NLPacket::LocalID, uint64_t>(otherAvatar, time));
     }
 }
 
