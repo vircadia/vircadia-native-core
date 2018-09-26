@@ -509,11 +509,13 @@ function buildMenuArray(serverState) {
         menuArray.push(labels.share);
         menuArray.push(separator);
         if (isInterfaceInstalled()) {
-            menuArray.push(labels.goto);
-            menuArray.push(labels.people);
-            menuArray.push(labels.wallet);
-            menuArray.push(labels.marketplace);
-            menuArray.push(separator);
+            if(trayNotifications.enabled()) {
+                menuArray.push(labels.goto);
+                menuArray.push(labels.people);
+                menuArray.push(labels.wallet);
+                menuArray.push(labels.marketplace);
+                menuArray.push(separator);
+            }
             menuArray.push(labels.showNotifications);
             menuArray.push(separator);
         }
@@ -545,10 +547,6 @@ function updateLabels(serverState) {
     }
 
     labels.showNotifications.checked = trayNotifications.enabled();
-    labels.people.visible = trayNotifications.enabled();
-    labels.goto.visible = trayNotifications.enabled();
-    labels.wallet.visible = trayNotifications.enabled();
-    labels.marketplace.visible = trayNotifications.enabled();
     labels.goto.icon = pendingNotifications[HifiNotificationType.GOTO] ? menuNotificationIcon : null;
     labels.people.icon = pendingNotifications[HifiNotificationType.PEOPLE] ? menuNotificationIcon : null;
     labels.wallet.icon = pendingNotifications[HifiNotificationType.WALLET] ? menuNotificationIcon : null;
