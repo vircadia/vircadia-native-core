@@ -24,8 +24,12 @@
 
 static const int DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS = 5;
 
-AssetResourceRequest::AssetResourceRequest(const QUrl& url) :
-    ResourceRequest(url)
+AssetResourceRequest::AssetResourceRequest(
+    const QUrl& url,
+    const bool isObservable,
+    const qint64 callerId,
+    const QString& extra) :
+    ResourceRequest(url, isObservable, callerId, extra)
 {
     _lastProgressDebug = p_high_resolution_clock::now() - std::chrono::seconds(DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS);
 }
@@ -35,7 +39,7 @@ AssetResourceRequest::~AssetResourceRequest() {
         if (_assetMappingRequest) {
             _assetMappingRequest->deleteLater();
         }
-        
+
         if (_assetRequest) {
             _assetRequest->deleteLater();
         }
@@ -78,7 +82,7 @@ void AssetResourceRequest::requestMappingForPath(const AssetUtils::AssetPath& pa
     // make sure we'll hear about the result of the get mapping request
     connect(_assetMappingRequest, &GetMappingRequest::finished, this, [this, path](GetMappingRequest* request){
         auto statTracker = DependencyManager::get<StatTracker>();
-        
+
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(request == _assetMappingRequest);
 

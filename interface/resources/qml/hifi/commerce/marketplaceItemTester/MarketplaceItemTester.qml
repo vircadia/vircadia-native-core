@@ -4,7 +4,7 @@
 //
 //  Load items not in the marketplace for testing purposes
 //
-//  Created by Zach Fox on 2018-09-05
+//  Created by Kerry Ivan Kurian on 2018-09-05
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -26,7 +26,9 @@ Rectangle {
     id: root
 
     property string installedApps
+    property string resourceAccessEventText
     property var nextResourceObjectId: 0
+    property var startDate
     signal sendToScript(var message)
 
     HifiStylesUit.HifiConstants { id: hifi }
@@ -51,8 +53,27 @@ Rectangle {
                 spinner.visible = false;
                 break;
             case "nextObjectIdInTest":
+                print("!!!! message from script! " + JSON.stringify(message));
                 nextResourceObjectId = message.id;
                 spinner.visible = false;
+                break;
+            case "resourceRequestEvent":
+                try {
+                    var date = new Date(JSON.parse(message.data.date));
+                } catch(err) {
+                    print("!!!!! Date conversion failed: " + JSON.stringify(message.data));
+                }
+                // XXX Eventually this date check goes away b/c we will
+                // be able to match up resouce access events to resource
+                // object ids, ignoring those that have -1 resource
+                // object ids.
+                if (date >= startDate) {
+                    resourceAccessEventText += (
+                        message.data.callerId + " " + message.data.extra +
+                        " " + message.data.url +
+                        " [" + date.toISOString() + "]\n"
+                    );
+                }
                 break;
         }
     }
@@ -64,7 +85,7 @@ Rectangle {
                          resource.match(/\.json\.gz$/) ? "content set" :
                          resource.match(/\.json$/) ? "entity or wearable" :
                          "unknown");
-        return { "id": nextResourceObjectId++,
+        return { "resourceObjectId": nextResourceObjectId++,
                  "resource": resource,
                  "assetType": assetType };
     }
@@ -89,153 +110,240 @@ Rectangle {
         return httpPattern.test(resource) ? resource : "file:///" + resource;
     }
 
-    function rezEntity(resource, entityType) {
+    function rezEntity(resource, entityType, resourceObjectId) {
+        print("!!!! tester_rezClicked");
         sendToScript({
             method: 'tester_rezClicked',
             itemHref: toUrl(resource),
-            itemType: entityType});
+            itemType: entityType,
+            itemId:   resourceObjectId });
     }
 
-    ListView {
-        anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.bottomMargin: 40
-        anchors.rightMargin: 12
-        model: resourceListModel
-        spacing: 5
-        interactive: false
+    Component.onCompleted: startDate = new Date()
 
-        delegate: RowLayout {
+    ColumnLayout {
+        id: rootColumn
+        spacing: 30
+
+        HifiStylesUit.RalewayRegular {
+            id: rootHeader
+            text: "Marketplace Item Tester"
+            height: 40
+            width: paintedWidth
+            size: 22
+            color: hifi.colors.black
+            anchors.top: parent.top
+            anchors.topMargin: 20
             anchors.left: parent.left
-            width: parent.width
-            spacing: 5
+            anchors.leftMargin: 12
+        }
 
-            property var actions: {
-                "forward": function(resource, assetType){
-                    switch(assetType) {
-                        case "application":
-                            Commerce.openApp(resource);
-                            break;
-                        case "avatar":
-                            MyAvatar.useFullAvatarURL(resource);
-                            break;
-                        case "content set":
-                            urlHandler.handleUrl("hifi://localhost/0,0,0");
-                            Commerce.replaceContentSet(toUrl(resource), "");
-                            break;
-                        case "entity":
-                        case "wearable":
-                            rezEntity(resource, assetType);
-                            break;
-                        default:
-                            print("Marketplace item tester unsupported assetType " + assetType);
-                    }
-                },
-                "trash": function(resource, assetType){
-                    if ("application" === assetType) {
-                        Commerce.uninstallApp(resource);
-                    }
-                    sendToScript({
-                        method: "tester_deleteResourceObject",
-                        objectId: resourceListModel.get(index).id});
-                    resourceListModel.remove(index);
-                }
-            }
+        Rectangle {
+            height: root.height - 100
+            width: root.width
+            anchors.left: parent.left
 
-            Column {
-                Layout.preferredWidth: root.width * .6
-                spacing: 5
-                Text {
-                    text: {
-                        var match = resource.match(/\/([^/]*)$/);
-                        return match ? match[1] : resource;
-                    }
-                    font.pointSize: 12
-                    horizontalAlignment: Text.AlignBottom
-                }
-                Text {
-                    text: resource
-                    font.pointSize: 8
-                    width: root.width * .6
-                    horizontalAlignment: Text.AlignBottom
-                    wrapMode: Text.WrapAnywhere
-                }
-            }
+            ScrollView {
+                id: scrollView
+                anchors.fill: parent
+                anchors.rightMargin: 12
+                anchors.bottom: parent.top
+                anchors.bottomMargin: 20
+                anchors.leftMargin: 12
+                verticalScrollBarPolicy: Qt.ScrollBarAlwaysOn
 
-            ComboBox {
-                id: comboBox
+                frameVisible: false
 
-                Layout.preferredWidth: root.width * .2
+                contentItem: ListView {
+                    spacing: 20
+                    height: 200
+                    model: resourceListModel
+                    interactive: false
 
-                model: [
-                    "application",
-                    "avatar",
-                    "content set",
-                    "entity",
-                    "wearable",
-                    "unknown"
-                ]
+                    delegate: Column {
+                        spacing: 8
 
-                currentIndex: (("entity or wearable" === assetType) ?
-                    model.indexOf("unknown") : model.indexOf(assetType))
+                        RowLayout {
+                            id: listRow
+                            width: scrollView.width - 20
+                            anchors.rightMargin: scrollView.rightMargin
+                            spacing: 5
 
-                Component.onCompleted: {
-                    onCurrentIndexChanged.connect(function() {
-                        assetType = model[currentIndex];
-                        sendToScript({
-                            method: "tester_updateResourceObjectAssetType",
-                            objectId: resourceListModel.get(index)["id"],
-                            assetType: assetType });
-                    });
-                }
-            }
+                            property var actions: {
+                                "forward": function(resource, assetType, resourceObjectId){
+                                    switch(assetType) {
+                                        case "application":
+                                            Commerce.openApp(resource);
+                                            break;
+                                        case "avatar":
+                                            MyAvatar.useFullAvatarURL(resource);
+                                            break;
+                                        case "content set":
+                                            urlHandler.handleUrl("hifi://localhost/0,0,0");
+                                            Commerce.replaceContentSet(toUrl(resource), "");
+                                            break;
+                                        case "entity":
+                                        case "wearable":
+                                            rezEntity(resource, assetType, resourceObjectId);
+                                            break;
+                                        default:
+                                            print("Marketplace item tester unsupported assetType " + assetType);
+                                    }
+                                },
+                                "trash": function(resource, assetType){
+                                    if ("application" === assetType) {
+                                        Commerce.uninstallApp(resource);
+                                    }
+                                    sendToScript({
+                                        method: "tester_deleteResourceObject",
+                                        objectId: resourceListModel.get(index).id});
+                                    resourceListModel.remove(index);
+                                }
+                            }
 
-            Repeater {
-                model: [ "forward", "trash" ]
+                            Column {
+                                Layout.preferredWidth: scrollView.width * .6
+                                spacing: 5
+                                Text {
+                                    width: listRow.width * .6
+                                    text: {
+                                        var match = resource.match(/\/([^/]*)$/);
+                                        return match ? match[1] : resource;
+                                    }
+                                    font.pointSize: 12
+                                    horizontalAlignment: Text.AlignBottom
+                                    wrapMode: Text.WrapAnywhere
+                                }
+                                Text {
+                                    width: listRow.width * .6
+                                    text: resource
+                                    font.pointSize: 8
+                                    horizontalAlignment: Text.AlignBottom
+                                    wrapMode: Text.WrapAnywhere
+                                }
+                            }
 
-                HifiStylesUit.HiFiGlyphs {
-                    property var glyphs: {
-                        "application": hifi.glyphs.install,
-                        "avatar": hifi.glyphs.avatar,
-                        "content set": hifi.glyphs.globe,
-                        "entity": hifi.glyphs.wand,
-                        "trash": hifi.glyphs.trash,
-                        "unknown": hifi.glyphs.circleSlash,
-                        "wearable": hifi.glyphs.hat,
-                    }
-                    text: (("trash" === modelData) ?
-                        glyphs.trash :
-                        glyphs[comboBox.model[comboBox.currentIndex]])
-                    size: ("trash" === modelData) ? 22 : 30
-                    color: hifi.colors.black
-                    horizontalAlignment: Text.AlignHCenter
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            actions[modelData](resource, comboBox.currentText);
+                            ComboBox {
+                                id: comboBox
+
+                                Layout.preferredWidth: listRow.width * .2
+
+                                model: [
+                                    "application",
+                                    "avatar",
+                                    "content set",
+                                    "entity",
+                                    "wearable",
+                                    "unknown"
+                                ]
+
+                                currentIndex: (("entity or wearable" === assetType) ?
+                                    model.indexOf("unknown") : model.indexOf(assetType))
+
+                                Component.onCompleted: {
+                                    onCurrentIndexChanged.connect(function() {
+                                        assetType = model[currentIndex];
+                                        sendToScript({
+                                            method: "tester_updateResourceObjectAssetType",
+                                            objectId: resourceListModel.get(index)["resourceObjectId"],
+                                            assetType: assetType });
+                                    });
+                                }
+                            }
+
+                            Repeater {
+                                model: [ "forward", "trash" ]
+
+                                HifiStylesUit.HiFiGlyphs {
+                                    property var glyphs: {
+                                        "application": hifi.glyphs.install,
+                                        "avatar": hifi.glyphs.avatar,
+                                        "content set": hifi.glyphs.globe,
+                                        "entity": hifi.glyphs.wand,
+                                        "trash": hifi.glyphs.trash,
+                                        "unknown": hifi.glyphs.circleSlash,
+                                        "wearable": hifi.glyphs.hat,
+                                    }
+                                    text: (("trash" === modelData) ?
+                                        glyphs.trash :
+                                        glyphs[comboBox.model[comboBox.currentIndex]])
+                                    size: ("trash" === modelData) ? 22 : 30
+                                    color: hifi.colors.black
+                                    horizontalAlignment: Text.AlignHCenter
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            listRow.actions[modelData](resource, comboBox.currentText, resourceObjectId);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            id: detailsContainer
+
+                            width: scrollView.width - 20
+                            height: resourceDetails.isOpen ? 300 : 20
+                            anchors.left: parent.left
+
+                            HifiStylesUit.HiFiGlyphs {
+                                id: detailsToggle
+                                anchors.top: parent.top
+                                text: resourceDetails.isOpen ? hifi.glyphs.minimize : hifi.glyphs.maximize
+                                color: hifi.colors.black
+                                size: 22
+                                verticalAlignment: Text.AlignBottom
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: resourceDetails.isOpen = !resourceDetails.isOpen
+                                }
+                            }
+
+                            TextArea {
+                                id: resourceDetails
+
+                                property var isOpen: false
+
+                                width: detailsContainer.width - 20
+                                height: detailsContainer.height
+                                anchors.top: parent.top
+                                anchors.left: detailsToggle.left
+                                anchors.leftMargin: 20
+                                verticalScrollBarPolicy: isOpen ? Qt.ScrollBarAsNeeded : Qt.ScrollBarAlwaysOff
+                                frameVisible: isOpen
+                                readOnly: true
+
+                                text: {
+                                    if (isOpen) {
+                                        return resourceAccessEventText
+                                    } else {
+                                        return (resourceAccessEventText.split("\n").length - 1).toString() + " resources loaded..."
+                                    }
+                                }
+                                font: Qt.font({ family: "Courier", pointSize: 8, weight: Font.Normal })
+                                wrapMode: TextEdit.NoWrap
+                            }
+                        }
+
+                        Rectangle {
+                            width: listRow.width
+                            height: 1
+                            color: hifi.colors.black
                         }
                     }
                 }
             }
         }
 
-        headerPositioning: ListView.OverlayHeader
-        header: HifiStylesUit.RalewayRegular {
-            id: rootHeader
-            text: "Marketplace Item Tester"
-            height: 80
-            width: paintedWidth
-            size: 22
-            color: hifi.colors.black
-            anchors.left: parent.left
-            anchors.leftMargin: 12
-        }
-
-        footerPositioning: ListView.OverlayFooter
-        footer: Row {
+        Row {
             id: rootActions
             spacing: 20
-            anchors.horizontalCenter: parent.horizontalCenter
+
+            anchors.left: parent.left
+            anchors.leftMargin: root.width / 6 - 10
+            anchors.bottomMargin: 40
+            anchors.bottom: parent.bottom
 
             property string currentAction
             property var actions: {
@@ -257,6 +365,7 @@ Rectangle {
                 // Alas, there is nothing we can do about that so charge
                 // ahead as though we are sure the present signal is one
                 // we expect.
+                print("!!!! resource selected");
                 switch(currentAction) {
                     case "load file":
                         Window.browseChanged.disconnect(onResourceSelected);
@@ -266,8 +375,11 @@ Rectangle {
                         break;
                 }
                 if (resource) {
+                    print("!!!! building resource object");
                     var resourceObj = buildResourceObj(resource);
+                    print("!!!! installing resource object");
                     installResourceObj(resourceObj);
+                    print("!!!! notifying script of resource object");
                     sendToScript({
                         method: 'tester_newResourceObject',
                         resourceObject: resourceObj });
@@ -282,7 +394,7 @@ Rectangle {
                     text: modelData
                     width: root.width / 3
                     height: 40
-                    onClicked: actions[text]()
+                    onClicked: rootActions.actions[text]()
                 }
             }
         }

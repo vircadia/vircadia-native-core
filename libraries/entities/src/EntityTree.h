@@ -22,6 +22,8 @@
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
 #include "MovingEntitiesOperator.h"
+#include "QUrlAncestry.h"
+
 
 class EntityTree;
 using EntityTreePointer = std::shared_ptr<EntityTree>;
@@ -94,7 +96,7 @@ public:
 
     virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
-        bool visibleOnly, bool collidableOnly, bool precisionPicking, 
+        bool visibleOnly, bool collidableOnly, bool precisionPicking,
         OctreeElementPointer& element, float& distance,
         BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
         Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
@@ -170,7 +172,7 @@ public:
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
 
-    bool hasAnyDeletedEntities() const { 
+    bool hasAnyDeletedEntities() const {
         QReadLocker locker(&_recentlyDeletedEntitiesLock);
         return _recentlyDeletedEntityItemIDs.size() > 0;
     }
@@ -178,7 +180,7 @@ public:
     bool hasEntitiesDeletedSince(quint64 sinceTime);
     static quint64 getAdjustedConsiderSince(quint64 sinceTime);
 
-    QMultiMap<quint64, QUuid> getRecentlyDeletedEntityIDs() const { 
+    QMultiMap<quint64, QUuid> getRecentlyDeletedEntityIDs() const {
         QReadLocker locker(&_recentlyDeletedEntitiesLock);
         return _recentlyDeletedEntityItemIDs;
     }
@@ -223,7 +225,7 @@ public:
 
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) override;
-    virtual bool readFromMap(QVariantMap& entityDescription) override;
+    virtual bool readFromMap(QVariantMap& entityDescription, const QUrlAncestry& ancestry = {}) override;
 
     glm::vec3 getContentsDimensions();
     float getContentsLargestDimension();

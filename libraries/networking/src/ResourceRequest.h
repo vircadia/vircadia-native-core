@@ -18,6 +18,8 @@
 #include <cstdint>
 
 #include "ByteRange.h"
+#include "QUrlAncestry.h"
+
 
 const QString STAT_ATP_REQUEST_STARTED = "StartedATPRequest";
 const QString STAT_HTTP_REQUEST_STARTED = "StartedHTTPRequest";
@@ -40,7 +42,21 @@ const QString STAT_FILE_RESOURCE_TOTAL_BYTES = "FILEBytesDownloaded";
 class ResourceRequest : public QObject {
     Q_OBJECT
 public:
-    ResourceRequest(const QUrl& url);
+    static const bool IS_OBSERVABLE = true;
+    static const bool IS_NOT_OBSERVABLE = false;
+
+    ResourceRequest(
+        const QUrlAncestry& urlAncestry,
+        const bool isObservable = IS_OBSERVABLE,
+        const qint64 callerId = -1,
+        const QString& extra = ""
+    ) : _urlAncestry(urlAncestry),
+        _isObservable(isObservable),
+        _callerId(callerId),
+        _extra(extra),
+        _url(urlAncestry.last())
+    { }
+
     virtual ~ResourceRequest() = default;
 
     enum State {
@@ -87,6 +103,7 @@ protected:
     virtual void doSend() = 0;
     void recordBytesDownloadedInStats(const QString& statName, int64_t bytesReceived);
 
+
     QUrl _url;
     QUrl _relativePathURL;
     State _state { NotStarted };
@@ -99,6 +116,10 @@ protected:
     bool _rangeRequestSuccessful { false };
     uint64_t _totalSizeOfResource { 0 };
     int64_t _lastRecordedBytesDownloaded { 0 };
+    bool _isObservable;
+    qint64 _callerId;
+    QString _extra;
+    QUrlAncestry _urlAncestry;
 };
 
 #endif

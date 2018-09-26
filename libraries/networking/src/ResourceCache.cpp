@@ -10,6 +10,7 @@
 //
 
 #include "ResourceCache.h"
+#include "ResourceRequestObserver.h"
 
 #include <cfloat>
 #include <cmath>
@@ -319,7 +320,7 @@ QVariantList ResourceCache::getResourceList() {
 
     return list;
 }
- 
+
 void ResourceCache::setRequestLimit(uint32_t limit) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->setRequestLimit(limit);
@@ -336,30 +337,33 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         QReadLocker locker(&_resourcesLock);
         resource = _resources.value(url).lock();
     }
+
     if (resource) {
         removeUnusedResource(resource);
-        return resource;
     }
 
-    if (!url.isValid() && !url.isEmpty() && fallback.isValid()) {
-        return getResource(fallback, QUrl());
+    if (!resource && !url.isValid() && !url.isEmpty() && fallback.isValid()) {
+        resource = getResource(fallback, QUrl());
     }
 
-    resource = createResource(
-        url,
-        fallback.isValid() ?  getResource(fallback, QUrl()) : QSharedPointer<Resource>(),
-        extra);
-    resource->setSelf(resource);
-    resource->setCache(this);
-    resource->moveToThread(qApp->thread());
-    connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
-    {
-        QWriteLocker locker(&_resourcesLock);
-        _resources.insert(url, resource);
+    if (!resource) {
+        resource = createResource(
+            url,
+            fallback.isValid() ?  getResource(fallback, QUrl()) : QSharedPointer<Resource>(),
+            extra);        resource->setSelf(resource);
+        resource->setCache(this);
+        resource->moveToThread(qApp->thread());
+        connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
+        {
+            QWriteLocker locker(&_resourcesLock);
+            _resources.insert(url, resource);
+        }
+        removeUnusedResource(resource);
+        resource->ensureLoading();
     }
-    removeUnusedResource(resource);
-    resource->ensureLoading();
 
+    DependencyManager::get<ResourceRequestObserver>()->update(
+        resource->getURL(), -1, "ResourceCache::getResource");
     return resource;
 }
 
@@ -378,7 +382,7 @@ void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) 
         return;
     }
     reserveUnusedResource(resource->getBytes());
-    
+
     resource->setLRUKey(++_lastLRUKey);
 
     {
@@ -407,7 +411,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
            _unusedResourcesSize + resourceSize > _unusedResourcesMaxSize) {
         // unload the oldest resource
         QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
-        
+
         it.value()->setCache(nullptr);
         auto size = it.value()->getBytes();
 
@@ -473,7 +477,7 @@ void ResourceCache::updateTotalSize(const qint64& deltaSize) {
 
     emit dirty();
 }
- 
+
 QList<QSharedPointer<Resource>> ResourceCache::getLoadingRequests() {
     return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests();
 }
@@ -494,7 +498,15 @@ bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
         resource->makeRequest();
         return true;
     }
+<<<<<<< HEAD
     return false;
+=======
+
+    ++_requestsActive;
+    sharedItems->appendActiveRequest(resource);
+    resource->makeRequest();
+    return true;
+>>>>>>> ac26e68e78... Display resource-access events in marketplace item tester
 }
 
 void ResourceCache::requestCompleted(QWeakPointer<Resource> resource) {
@@ -588,7 +600,7 @@ void Resource::refresh() {
         _request = nullptr;
         ResourceCache::requestCompleted(_self);
     }
-    
+
     _activeUrl = _url;
     init();
     ensureLoading();
@@ -602,8 +614,13 @@ void Resource::allReferencesCleared() {
     }
 
     if (_cache && isCacheable()) {
-        // create and reinsert new shared pointer 
+<<<<<<< HEAD
+        // create and reinsert new shared pointer
         QSharedPointer<Resource> self(this, &Resource::deleter);
+=======
+        // create and reinsert new shared pointer
+        QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);
+>>>>>>> ac26e68e78... Display resource-access events in marketplace item tester
         setSelf(self);
         reinsert();
 
@@ -627,10 +644,10 @@ void Resource::init(bool resetLoaded) {
         _loaded = false;
     }
     _attempts = 0;
-    
+
     if (_url.isEmpty()) {
         _startedLoading = _loaded = true;
-        
+
     } else if (!(_url.isValid())) {
         _startedLoading = _failedToLoad = true;
     }
@@ -682,7 +699,8 @@ void Resource::makeRequest() {
 
     PROFILE_ASYNC_BEGIN(resource, "Resource:" + getType(), QString::number(_requestID), { { "url", _url.toString() }, { "activeURL", _activeUrl.toString() } });
 
-    _request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, _activeUrl);
+    _request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, _activeUrl, true, -1, "Resource::makeRequest");
 
     if (!_request) {
         qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
@@ -751,7 +769,7 @@ void Resource::handleReplyFinished() {
     } else {
         handleFailedRequest(result);
     }
-    
+
     _request->disconnect(this);
     _request->deleteLater();
     _request = nullptr;

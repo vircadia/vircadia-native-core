@@ -170,6 +170,7 @@
 #include "ModelPackager.h"
 #include "scripting/Audio.h"
 #include "networking/CloseEventSender.h"
+#include "QUrlAncestry.h"
 #include "scripting/TestScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
@@ -226,6 +227,7 @@
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
+#include "ResourceRequestObserver.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
@@ -945,8 +947,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
     DependencyManager::set<WalletScriptingInterface>();
-
     DependencyManager::set<FadeEffect>();
+    DependencyManager::set<ResourceRequestObserver>();
 
     return previousSessionCrashed;
 }
@@ -1781,7 +1783,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
-        // This needs to run on the settings thread, so we need to pass the `settingsTimer` as the 
+        // This needs to run on the settings thread, so we need to pass the `settingsTimer` as the
         // receiver object, otherwise it will run on the application thread and trigger a warning
         // about trying to kill the timer on the main thread.
         connect(qApp, &Application::beforeAboutToQuit, settingsTimer, [this, settingsTimer]{
@@ -3129,6 +3131,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+    surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -5021,12 +5024,11 @@ void Application::saveSettings() const {
     PluginManager::getInstance()->saveSettings();
 }
 
-bool Application::importEntities(const QString& urlOrFilename) {
+bool Application::importEntities(const QString& urlOrFilename, const bool isObservable, const qint64 callerId) {
     bool success = false;
     _entityClipboard->withWriteLock([&] {
         _entityClipboard->eraseAllOctreeElements();
-
-        success = _entityClipboard->readFromURL(urlOrFilename);
+        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId, QUrlAncestry());
         if (success) {
             _entityClipboard->reaverageOctreeElements();
         }
@@ -6810,6 +6812,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
+    scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
@@ -7196,7 +7199,8 @@ void Application::addAssetToWorldFromURL(QString url) {
 
     addAssetToWorldInfo(filename, "Downloading model file " + filename + ".");
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, QUrl(url));
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        nullptr, QUrl(url), true, -1, "Application::addAssetToWorldFromURL");
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
 }

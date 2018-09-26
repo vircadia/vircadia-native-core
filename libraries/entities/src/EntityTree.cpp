@@ -38,6 +38,8 @@
 #include "LogHandler.h"
 #include "EntityEditFilters.h"
 #include "EntityDynamicFactoryInterface.h"
+#include "QUrlAncestry.h"
+
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
@@ -98,7 +100,7 @@ EntityTree::~EntityTree() {
     eraseAllOctreeElements(false);
 }
 
-void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
+void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) {
     _entityScriptSourceWhitelist = entityScriptSourceWhitelist.split(',', QString::SkipEmptyParts);
 }
 
@@ -860,7 +862,7 @@ float findRayIntersectionSortingOp(const OctreeElementPointer& element, void* ex
 
 EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
-                                    bool visibleOnly, bool collidableOnly, bool precisionPicking, 
+                                    bool visibleOnly, bool collidableOnly, bool precisionPicking,
                                     OctreeElementPointer& element, float& distance,
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
@@ -1351,7 +1353,7 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, Entity
         key = sent.second;
     }
 
-    QString annotatedKey = "-----BEGIN PUBLIC KEY-----\n" + key.insert(64, "\n") + "\n-----END PUBLIC KEY-----\n"; 
+    QString annotatedKey = "-----BEGIN PUBLIC KEY-----\n" + key.insert(64, "\n") + "\n-----END PUBLIC KEY-----\n";
     QByteArray hashedActualNonce = QCryptographicHash::hash(QByteArray(actualNonce.toUtf8()), QCryptographicHash::Sha256);
     bool verificationSuccess = EntityItemProperties::verifySignature(annotatedKey.toUtf8(), hashedActualNonce, QByteArray::fromBase64(nonce.toUtf8()));
 
@@ -1795,7 +1797,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);
-                            
+
                             startLogging = usecTimestampNow();
                             if (wantEditLogging()) {
                                 qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:"
@@ -1820,7 +1822,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     }
                 } else {
                     HIFI_FCDEBUG(entities(), "Edit failed. [" << message.getType() <<"] " <<
-                            "entity id:" << entityItemID << 
+                            "entity id:" << entityItemID <<
                             "existingEntity pointer:" << existingEntity.get());
                 }
             }
@@ -2041,7 +2043,7 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
     if (hasSomethingNewer) {
         int elapsed = usecTimestampNow() - considerEntitiesSince;
         int difference = considerEntitiesSince - sinceTime;
-        qCDebug(entities) << "EntityTree::hasEntitiesDeletedSince() sinceTime:" << sinceTime 
+        qCDebug(entities) << "EntityTree::hasEntitiesDeletedSince() sinceTime:" << sinceTime
                     << "considerEntitiesSince:" << considerEntitiesSince << "elapsed:" << elapsed << "difference:" << difference;
     }
 #endif
@@ -2493,7 +2495,7 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
     return true;
 }
 
-bool EntityTree::readFromMap(QVariantMap& map) {
+bool EntityTree::readFromMap(QVariantMap& map, const QUrlAncestry& ancestry) {
     // These are needed to deal with older content (before adding inheritance modes)
     int contentVersion = map["Version"].toInt();
     bool needsConversion = (contentVersion < (int)EntityVersion::ZoneLightInheritModes);

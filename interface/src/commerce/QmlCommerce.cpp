@@ -325,7 +325,8 @@ bool QmlCommerce::installApp(const QString& itemHref) {
 
     QUrl appHref(itemHref);
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, appHref, true, -1, "QmlCommerce::installApp");
 
     if (!request) {
         qCDebug(commerce) << "Couldn't create resource request for app.";

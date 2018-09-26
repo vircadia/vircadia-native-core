@@ -15,7 +15,7 @@
 #include "OBJReader.h"
 
 #include <ctype.h>  // .obj files are not locale-specific. The C/ASCII charset applies.
-#include <sstream> 
+#include <sstream>
 
 #include <QtCore/QBuffer>
 #include <QtCore/QIODevice>
@@ -263,16 +263,16 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             default:
                 materials[matName] = currentMaterial;
                 #ifdef WANT_DEBUG
-                qCDebug(modelformat) << 
+                qCDebug(modelformat) <<
                                      "OBJ Reader Last material illumination model:" << currentMaterial.illuminationModel <<
-                                     " shininess:" << currentMaterial.shininess << 
+                                     " shininess:" << currentMaterial.shininess <<
                                      " opacity:" << currentMaterial.opacity <<
-                                     " diffuse color:" << currentMaterial.diffuseColor << 
-                                     " specular color:" << currentMaterial.specularColor << 
-                                     " emissive color:" << currentMaterial.emissiveColor << 
-                                     " diffuse texture:" << currentMaterial.diffuseTextureFilename << 
-                                     " specular texture:" << currentMaterial.specularTextureFilename << 
-                                     " emissive texture:" << currentMaterial.emissiveTextureFilename << 
+                                     " diffuse color:" << currentMaterial.diffuseColor <<
+                                     " specular color:" << currentMaterial.specularColor <<
+                                     " emissive color:" << currentMaterial.emissiveColor <<
+                                     " diffuse texture:" << currentMaterial.diffuseTextureFilename <<
+                                     " specular texture:" << currentMaterial.specularTextureFilename <<
+                                     " emissive texture:" << currentMaterial.emissiveTextureFilename <<
                                      " bump texture:" << currentMaterial.bumpTextureFilename <<
                                      " opacity texture:" << currentMaterial.opacityTextureFilename;
 #endif
@@ -352,7 +352,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             }
         }
     }
-} 
+}
 
 void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions) {
     // Texture options reference http://paulbourke.net/dataformats/mtl/
@@ -443,7 +443,8 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
 }
 
 std::tuple<bool, QByteArray> requestData(QUrl& url) {
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        nullptr, url, true, -1, "(OBJReader) requestData");
 
     if (!request) {
         return std::make_tuple(false, QByteArray());
@@ -793,7 +794,7 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
                     n0 = checked_at(normals, face.normalIndices[0]);
                     n1 = checked_at(normals, face.normalIndices[1]);
                     n2 = checked_at(normals, face.normalIndices[2]);
-                } else { 
+                } else {
                     // generate normals from triangle plane if not provided
                     n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
                 }
@@ -923,7 +924,7 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         bool applyNonMetallic = false;
         bool fresnelOn = false;
 
-        // Illumination model reference http://paulbourke.net/dataformats/mtl/ 
+        // Illumination model reference http://paulbourke.net/dataformats/mtl/
         switch (objMaterial.illuminationModel) {
             case 0: // Color on and Ambient off
                 // We don't support ambient = do nothing?
@@ -967,7 +968,7 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
             case 10: // Casts shadows onto invisible surfaces
                 // Do nothing?
                 break;
-        }      
+        }
 
         if (applyTransparency) {
             fbxMaterial.opacity = std::max(fbxMaterial.opacity, ILLUMINATION_MODEL_MIN_OPACITY);

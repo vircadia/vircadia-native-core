@@ -258,24 +258,29 @@ void OffscreenSurface::setMaxFps(uint8_t maxFps) {
 }
 
 void OffscreenSurface::load(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback) {
+    qDebug() << "Here 1";
     loadInternal(qmlSource, false, parent, [callback](QQmlContext* context, QQuickItem* newItem) {
         QJSValue(callback).call(QJSValueList() << context->engine()->newQObject(newItem));
     });
 }
 
 void OffscreenSurface::load(const QUrl& qmlSource, bool createNewContext, const QmlContextObjectCallback& callback) {
+    qDebug() << "Here 2";
     loadInternal(qmlSource, createNewContext, nullptr, callback);
 }
 
 void OffscreenSurface::loadInNewContext(const QUrl& qmlSource, const QmlContextObjectCallback& callback, const QmlContextCallback& contextCallback) {
+    qDebug() << "Here 3";
     loadInternal(qmlSource, true, nullptr, callback, contextCallback);
 }
 
 void OffscreenSurface::load(const QUrl& qmlSource, const QmlContextObjectCallback& callback) {
+    qDebug() << "Here 4";
     load(qmlSource, false, callback);
 }
 
 void OffscreenSurface::load(const QString& qmlSourceFile, const QmlContextObjectCallback& callback) {
+    qDebug() << "Here 5";
     return load(QUrl(qmlSourceFile), callback);
 }
 

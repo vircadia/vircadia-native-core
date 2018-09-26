@@ -29,6 +29,7 @@
 #include "OctreePacketData.h"
 #include "OctreeSceneStats.h"
 #include "OctreeUtils.h"
+#include "QUrlAncestry.h"
 
 class ReadBitstreamToTreeParams;
 class Octree;
@@ -209,13 +210,13 @@ public:
                             bool skipThoseWithBadParents) = 0;
 
     // Octree importers
-    bool readFromFile(const char* filename);
-    bool readFromURL(const QString& url); // will support file urls as well...
-    bool readFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="");
+    bool readFromFile(const char* filename, const QUrlAncestry& urlAncestry = {});
+    bool readFromURL(const QString& url, const bool isObservable = true, const qint64 callerId = -1, const QUrlAncestry& urlAncestry = {}); // will support file urls as well...
+    bool readFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="", const QUrlAncestry& urlAncestry = {});
     bool readSVOFromStream(uint64_t streamLength, QDataStream& inputStream);
-    bool readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="");
+    bool readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="", const QUrlAncestry& urlAncestry = {});
     bool readJSONFromGzippedFile(QString qFileName);
-    virtual bool readFromMap(QVariantMap& entityDescription) = 0;
+    virtual bool readFromMap(QVariantMap& entityDescription, const QUrlAncestry& urlAncestry = {}) = 0;
 
     uint64_t getOctreeElementsCount();
 

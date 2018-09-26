@@ -12,14 +12,19 @@
 #ifndef hifi_FileResourceRequest_h
 #define hifi_FileResourceRequest_h
 
-#include <QUrl>
-
 #include "ResourceRequest.h"
+#include "QUrlAncestry.h"
+
 
 class FileResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
-    FileResourceRequest(const QUrl& url) : ResourceRequest(url) { }
+    FileResourceRequest(
+        const QUrlAncestry& urlAncestry,
+        const bool isObservable = true,
+        const qint64 callerId = -1,
+        const QString& extra = ""
+    ) : ResourceRequest(urlAncestry, isObservable, callerId, extra) { }
 
 protected:
     virtual void doSend() override;

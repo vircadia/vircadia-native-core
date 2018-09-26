@@ -222,7 +222,8 @@ void Agent::requestScript() {
         return;
     }
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, scriptURL);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, scriptURL, true, -1, "Agent::requestScript");
 
     if (!request) {
         qWarning() << "Could not create ResourceRequest for Agent script at" << scriptURL.toString();
@@ -896,7 +897,7 @@ void Agent::aboutToFinish() {
     {
         DependencyManager::get<ScriptEngines>()->shutdownScripting();
     }
-    
+
     DependencyManager::destroy<ScriptEngines>();
 
     DependencyManager::destroy<AssignmentDynamicFactory>();
