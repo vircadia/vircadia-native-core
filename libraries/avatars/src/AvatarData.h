@@ -298,7 +298,7 @@ namespace AvatarDataPacket {
     static_assert(sizeof(FarGrabJoints) == FAR_GRAB_JOINTS_SIZE, "AvatarDataPacket::FarGrabJoints size doesn't match.");
 
     static const size_t MIN_BULK_PACKET_SIZE = NUM_BYTES_RFC4122_UUID + HEADER_SIZE;
-    static const size_t FAUX_JOINT_SIZE = 2 * (sizeof(SixByteQuat) + sizeof(SixByteTrans));
+    static const size_t FAUX_JOINTS_SIZE = 2 * (sizeof(SixByteQuat) + sizeof(SixByteTrans));
 
     struct SendStatus {
         HasFlags itemFlags { 0 };
