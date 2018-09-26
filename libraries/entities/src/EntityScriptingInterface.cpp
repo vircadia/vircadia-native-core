@@ -541,8 +541,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     }
     // If we have a local entity tree set, then also update it.
 
-    bool updatedEntity = false;
-    _entityTree->withWriteLock([&] {
+    _entityTree->withReadLock([&] {
         EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
         if (!entity) {
             return;
@@ -575,7 +574,14 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
         properties.setClientOnly(entity->getClientOnly());
         properties.setOwningAvatarID(entity->getOwningAvatarID());
-        properties = convertPropertiesFromScriptSemantics(properties, properties.getScalesWithParent());
+    });
+    properties = convertPropertiesFromScriptSemantics(properties, properties.getScalesWithParent());
+
+    // TODO: avoid setting properties not allowed to be changed according to simulation ownership rules
+
+    // done reading, start write
+    bool updatedEntity = false;
+    _entityTree->withWriteLock([&] {
         updatedEntity = _entityTree->updateEntity(entityID, properties);
     });
 
@@ -588,6 +594,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     //     return QUuid();
     // }
 
+    // done writing, send update
     bool entityFound { false };
     _entityTree->withReadLock([&] {
         EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
@@ -641,7 +648,10 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     }
                 }
             });
-        } else {
+        }
+    });
+    if (!entityFound) {
+        {
             // Sometimes ESS don't have the entity they are trying to edit in their local tree.  In this case,
             // convertPropertiesFromScriptSemantics doesn't get called and local* edits will get dropped.
             // This is because, on the script side, "position" is in world frame, but in the network
@@ -663,8 +673,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 properties.setDimensions(properties.getLocalDimensions());
             }
         }
-    });
-    if (!entityFound) {
         // we've made an edit to an entity we don't know about, or to a non-entity.  If it's a known non-entity,
         // print a warning and don't send an edit packet to the entity-server.
         QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
