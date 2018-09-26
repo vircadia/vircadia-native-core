@@ -275,6 +275,9 @@ Process.prototype = extend(Process.prototype, {
             });
         } else if (os.type == 'Darwin') {
             console.log("TODO IsRunning Darwin");
+            childProcess.exec('ps cax | grep interface', function (err, stdout, stderr) {
+                done(stdout.length > 0);
+            });
         }
     },
 
