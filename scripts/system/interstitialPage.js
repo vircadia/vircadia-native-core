@@ -358,7 +358,6 @@
 
         Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
         if (!HMD.active) {
-            print("Show toolbar: " + physicsEnabled);
             toolbar.writeProperty("visible", physicsEnabled);
         }
 
