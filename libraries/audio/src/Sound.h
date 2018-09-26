@@ -105,11 +105,11 @@ class SoundScriptingInterface : public QObject {
     Q_PROPERTY(float duration READ getDuration)
 
 public:
-    SoundScriptingInterface(SharedSoundPointer sound);
-    SharedSoundPointer getSound() { return _sound; }
+    SoundScriptingInterface(const SharedSoundPointer& sound);
+    const SharedSoundPointer& getSound() { return _sound; }
 
-    bool isReady() const { return _sound->isReady(); }
-    float getDuration() { return _sound->getDuration(); }
+    bool isReady() const { return _sound ? _sound->isReady() : false; }
+    float getDuration() { return _sound ? _sound->getDuration() : 0.0f; }
 
 /**jsdoc
  * Triggered when the sound has been downloaded and is ready to be played.
