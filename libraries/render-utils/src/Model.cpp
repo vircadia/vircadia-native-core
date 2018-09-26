@@ -1279,75 +1279,6 @@ QStringList Model::getJointNames() const {
     return isActive() ? getFBXGeometry().getJointNames() : QStringList();
 }
 
-class Blender : public QRunnable {
-public:
-
-    Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, const QVector<float>& blendshapeCoefficients);
-
-    virtual void run() override;
-
-private:
-
-    ModelPointer _model;
-    int _blendNumber;
-    Geometry::WeakPointer _geometry;
-    QVector<float> _blendshapeCoefficients;
-};
-
-Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, const QVector<float>& blendshapeCoefficients) :
-    _model(model),
-    _blendNumber(blendNumber),
-    _geometry(geometry),
-    _blendshapeCoefficients(blendshapeCoefficients) {
-}
-
-void Blender::run() {
-    QVector<BlendshapeOffset> blendshapeOffsets;
-    if (_model && _model->isLoaded()) {
-        DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
-        int offset = 0;
-        auto meshes = _model->getFBXGeometry().meshes;
-        int meshIndex = 0;
-        foreach (const FBXMesh& mesh, meshes) {
-            auto modelMeshBlendshapeOffsets = _model->_blendshapeOffsets.find(meshIndex++);
-            if (mesh.blendshapes.isEmpty() || modelMeshBlendshapeOffsets == _model->_blendshapeOffsets.end()) {
-                continue;
-            }
-
-            blendshapeOffsets += modelMeshBlendshapeOffsets->second;
-            BlendshapeOffset* meshBlendshapeOffsets = blendshapeOffsets.data() + offset;
-            offset += modelMeshBlendshapeOffsets->second.size();
-            const float NORMAL_COEFFICIENT_SCALE = 0.01f;
-            for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
-                float vertexCoefficient = _blendshapeCoefficients.at(i);
-                const float EPSILON = 0.0001f;
-                if (vertexCoefficient < EPSILON) {
-                    continue;
-                }
-                float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
-                const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
-                tbb::parallel_for(tbb::blocked_range<int>(0, blendshape.indices.size()), [&](const tbb::blocked_range<int>& range) {
-                    for (auto j = range.begin(); j < range.end(); j++) {
-                        int index = blendshape.indices.at(j);
-                        auto& currentBlendshapeOffset = meshBlendshapeOffsets[index];
-                        currentBlendshapeOffset.positionOffsetAndSpare += glm::vec4(blendshape.vertices.at(j) * vertexCoefficient, 0.0f);
-
-                        currentBlendshapeOffset.normalOffsetAndSpare += glm::vec4(blendshape.normals.at(j) * normalCoefficient, 0.0f);
-                        if (index < mesh.tangents.size()) {
-                            if ((int)j < blendshape.tangents.size()) {
-                                currentBlendshapeOffset.tangentOffsetAndSpare += glm::vec4(blendshape.tangents.at(j) * normalCoefficient, 0.0f);
-                            }
-                        }
-                    }
-                });
-            }
-        }
-    }
-    // post the result to the ModelBlender, which will dispatch to the model if still alive
-    QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
-        Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber), Q_ARG(QVector<BlendshapeOffset>, blendshapeOffsets));
-}
-
 void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale) {
     if (forceRescale || _scaleToFit != scaleToFit || _scaleToFitDimensions != dimensions) {
         _scaleToFit = scaleToFit;
@@ -1512,39 +1443,6 @@ void Model::updateClusterMatrices() {
     }
 }
 
-bool Model::maybeStartBlender() {
-    if (isLoaded()) {
-        const FBXGeometry& fbxGeometry = getFBXGeometry();
-        if (fbxGeometry.hasBlendedMeshes()) {
-            QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _renderGeometry, _blendshapeCoefficients));
-            return true;
-        }
-    }
-    return false;
-}
-
-void Model::setBlendedVertices(int blendNumber, const QVector<BlendshapeOffset>& blendshapeOffsets) {
-    if (!isLoaded() || blendNumber < _appliedBlendNumber || !_blendshapeBuffersInitialized) {
-        return;
-    }
-    _appliedBlendNumber = blendNumber;
-    const FBXGeometry& fbxGeometry = getFBXGeometry();
-    int index = 0;
-    for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
-        const FBXMesh& mesh = fbxGeometry.meshes.at(i);
-        auto meshBlendshapeOffsets = _blendshapeOffsets.find(i);
-        const auto& buffer = _blendshapeBuffers.find(i);
-        if (mesh.blendshapes.isEmpty() || meshBlendshapeOffsets == _blendshapeOffsets.end() || buffer == _blendshapeBuffers.end()) {
-            continue;
-        }
-
-        const auto blendshapeOffsetSize = meshBlendshapeOffsets->second.size() * sizeof(BlendshapeOffset);
-        buffer->second->setData(blendshapeOffsetSize, (gpu::Byte*) blendshapeOffsets.constData() + index * sizeof(BlendshapeOffset));
-
-        index += meshBlendshapeOffsets->second.size();
-    }
-}
-
 void Model::deleteGeometry() {
     _deleteGeometryCounter++;
     _blendshapeBuffers.clear();
@@ -1579,25 +1477,6 @@ AABox Model::getRenderableMeshBound() const {
 
 const render::ItemIDs& Model::fetchRenderItemIDs() const {
     return _modelMeshRenderItemIDs;
-}
-
-void Model::initializeBlendshapes(const FBXMesh& mesh, int index) {
-    if (mesh.blendshapes.empty()) {
-        // mesh doesn't have blendshape, did we allocate one though ?
-        if (_blendshapeBuffers.find(index) != _blendshapeBuffers.end()) {
-            qWarning() << "Mesh does not have Blendshape yet a blendshapeOffset buffer is allocated ?";
-        }
-        return;
-    }
-    // Mesh has blendshape, let s allocate the local buffer if not done yet
-    if (_blendshapeBuffers.find(index) == _blendshapeBuffers.end()) {
-        _blendshapeBuffers[index] = std::make_shared<gpu::Buffer>();
-        QVector<BlendshapeOffset> blendshapeOffset;
-        blendshapeOffset.fill(BlendshapeOffset(), 3 * mesh.vertices.size());
-        const auto blendshapeOffsetsSize = blendshapeOffset.size() * sizeof(BlendshapeOffset);
-        _blendshapeBuffers[index]->setData(blendshapeOffsetsSize, (const gpu::Byte*) blendshapeOffset.constData());
-        _blendshapeOffsets[index] = blendshapeOffset;
-    }
 }
 
 void Model::createRenderItemSet() {
@@ -1731,6 +1610,133 @@ public:
     }
 };
 
+class Blender : public QRunnable {
+public:
+
+    Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, const QVector<float>& blendshapeCoefficients);
+
+    virtual void run() override;
+
+private:
+
+    ModelPointer _model;
+    int _blendNumber;
+    Geometry::WeakPointer _geometry;
+    QVector<float> _blendshapeCoefficients;
+};
+
+Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, const QVector<float>& blendshapeCoefficients) :
+    _model(model),
+    _blendNumber(blendNumber),
+    _geometry(geometry),
+    _blendshapeCoefficients(blendshapeCoefficients) {
+}
+
+void Blender::run() {
+    QVector<BlendshapeOffset> blendshapeOffsets;
+    if (_model && _model->isLoaded()) {
+        DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
+        int offset = 0;
+        auto meshes = _model->getFBXGeometry().meshes;
+        int meshIndex = 0;
+        foreach(const FBXMesh& mesh, meshes) {
+            auto modelMeshBlendshapeOffsets = _model->_blendshapeOffsets.find(meshIndex++);
+            if (mesh.blendshapes.isEmpty() || modelMeshBlendshapeOffsets == _model->_blendshapeOffsets.end()) {
+                continue;
+            }
+
+            blendshapeOffsets += modelMeshBlendshapeOffsets->second;
+            BlendshapeOffset* meshBlendshapeOffsets = blendshapeOffsets.data() + offset;
+            offset += modelMeshBlendshapeOffsets->second.size();
+            const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+            for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
+                float vertexCoefficient = _blendshapeCoefficients.at(i);
+                const float EPSILON = 0.0001f;
+                if (vertexCoefficient < EPSILON) {
+                    continue;
+                }
+                float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
+                const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
+                tbb::parallel_for(tbb::blocked_range<int>(0, blendshape.indices.size()), [&](const tbb::blocked_range<int>& range) {
+                    for (auto j = range.begin(); j < range.end(); j++) {
+                        int index = blendshape.indices.at(j);
+                        auto& currentBlendshapeOffset = meshBlendshapeOffsets[index];
+                        currentBlendshapeOffset.positionOffsetAndSpare += glm::vec4(blendshape.vertices.at(j) * vertexCoefficient, 0.0f);
+
+                        currentBlendshapeOffset.normalOffsetAndSpare += glm::vec4(blendshape.normals.at(j) * normalCoefficient, 0.0f);
+                        if (index < mesh.tangents.size()) {
+                            if ((int)j < blendshape.tangents.size()) {
+                                currentBlendshapeOffset.tangentOffsetAndSpare += glm::vec4(blendshape.tangents.at(j) * normalCoefficient, 0.0f);
+                            }
+                        }
+/*#if FBX_PACK_NORMALS
+                        glm::uint32 finalNormal;
+                        glm::uint32 finalTangent;
+                        buffer_helpers::packNormalAndTangent(normal, tangent, finalNormal, finalTangent);
+#else
+                        const auto& finalNormal = normal;
+                        const auto& finalTangent = tangent;
+#endif*/
+
+                    }
+                });
+            }
+        }
+    }
+    // post the result to the ModelBlender, which will dispatch to the model if still alive
+    QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
+        Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber), Q_ARG(QVector<BlendshapeOffset>, blendshapeOffsets));
+}
+
+bool Model::maybeStartBlender() {
+    if (isLoaded()) {
+        QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _renderGeometry, _blendshapeCoefficients));
+        return true;
+    }
+    return false;
+}
+
+void Model::setBlendedVertices(int blendNumber, const QVector<BlendshapeOffset>& blendshapeOffsets) {
+    if (!isLoaded() || blendNumber < _appliedBlendNumber || !_blendshapeBuffersInitialized) {
+        return;
+    }
+    _appliedBlendNumber = blendNumber;
+    const FBXGeometry& fbxGeometry = getFBXGeometry();
+    int index = 0;
+    for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
+        const FBXMesh& mesh = fbxGeometry.meshes.at(i);
+        auto meshBlendshapeOffsets = _blendshapeOffsets.find(i);
+        const auto& buffer = _blendshapeBuffers.find(i);
+        if (mesh.blendshapes.isEmpty() || meshBlendshapeOffsets == _blendshapeOffsets.end() || buffer == _blendshapeBuffers.end()) {
+            continue;
+        }
+
+        const auto blendshapeOffsetSize = meshBlendshapeOffsets->second.size() * sizeof(BlendshapeOffset);
+        buffer->second->setData(blendshapeOffsetSize, (gpu::Byte*) blendshapeOffsets.constData() + index * sizeof(BlendshapeOffset));
+
+        index += meshBlendshapeOffsets->second.size();
+    }
+}
+
+void Model::initializeBlendshapes(const FBXMesh& mesh, int index) {
+    if (mesh.blendshapes.empty()) {
+        // mesh doesn't have blendshape, did we allocate one though ?
+        if (_blendshapeBuffers.find(index) != _blendshapeBuffers.end()) {
+            qWarning() << "Mesh does not have Blendshape yet a blendshapeOffset buffer is allocated ?";
+        }
+        return;
+    }
+    // Mesh has blendshape, let s allocate the local buffer if not done yet
+    if (_blendshapeBuffers.find(index) == _blendshapeBuffers.end()) {
+        _blendshapeBuffers[index] = std::make_shared<gpu::Buffer>();
+        QVector<BlendshapeOffset> blendshapeOffset;
+        blendshapeOffset.fill(BlendshapeOffset(), 3 * mesh.vertices.size());
+        const auto blendshapeOffsetsSize = blendshapeOffset.size() * sizeof(BlendshapeOffset);
+        _blendshapeBuffers[index]->setData(blendshapeOffsetsSize, (const gpu::Byte*) blendshapeOffset.constData());
+        _blendshapeOffsets[index] = blendshapeOffset;
+    }
+}
+
 ModelBlender::ModelBlender() :
     _pendingBlenders(0) {
 }
@@ -1740,14 +1746,23 @@ ModelBlender::~ModelBlender() {
 
 void ModelBlender::noteRequiresBlend(ModelPointer model) {
     Lock lock(_mutex);
-    if (_pendingBlenders < QThread::idealThreadCount()) {
-        if (model->maybeStartBlender()) {
-            _pendingBlenders++;
-            return;
-        }
+    if (_modelsRequiringBlendsSet.find(model) == _modelsRequiringBlendsSet.end()) {
+        _modelsRequiringBlendsQueue.push(model);
+        _modelsRequiringBlendsSet.insert(model);
     }
 
-    _modelsRequiringBlends.insert(model);
+    if (_pendingBlenders < QThread::idealThreadCount()) {
+        while (!_modelsRequiringBlendsQueue.empty()) {
+            auto weakPtr = _modelsRequiringBlendsQueue.front();
+            _modelsRequiringBlendsQueue.pop();
+            _modelsRequiringBlendsSet.erase(weakPtr);
+            ModelPointer nextModel = weakPtr.lock();
+            if (nextModel && nextModel->maybeStartBlender()) {
+                _pendingBlenders++;
+                return;
+            }
+        }
+    }
 }
 
 void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, QVector<BlendshapeOffset> blendshapeOffsets) {
@@ -1757,20 +1772,15 @@ void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, QVect
     {
         Lock lock(_mutex);
         _pendingBlenders--;
-        _modelsRequiringBlends.erase(model);
-        std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> modelsToErase;
-        for (auto i = _modelsRequiringBlends.begin(); i != _modelsRequiringBlends.end(); i++) {
-            auto weakPtr = *i;
+        while (!_modelsRequiringBlendsQueue.empty()) {
+            auto weakPtr = _modelsRequiringBlendsQueue.front();
+            _modelsRequiringBlendsQueue.pop();
+            _modelsRequiringBlendsSet.erase(weakPtr);
             ModelPointer nextModel = weakPtr.lock();
             if (nextModel && nextModel->maybeStartBlender()) {
                 _pendingBlenders++;
                 break;
-            } else {
-                modelsToErase.insert(weakPtr);
             }
-        }
-        for (auto& weakPtr : modelsToErase) {
-            _modelsRequiringBlends.erase(weakPtr);
         }
     }
 }
