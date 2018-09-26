@@ -156,7 +156,7 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCrea
     JavaVM* jvm;
     env->GetJavaVM(&jvm);
 
-    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested, [jvm](const QString& a, const bool backToScene, QList<QString> args) {
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested, [jvm](const QString& a, const bool backToScene, QMap<QString, QString> args) {
         JNIEnv* myNewEnv;
         JavaVMAttachArgs jvmArgs;
         jvmArgs.version = JNI_VERSION_1_6; // choose your JNI version
@@ -182,9 +182,11 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCrea
         jmethodID mapClassConstructor =  myNewEnv->GetMethodID(hashMapClass, "<init>", "()V");
         jobject hashmap = myNewEnv->NewObject(hashMapClass, mapClassConstructor);
         jmethodID mapClassPut = myNewEnv->GetMethodID(hashMapClass, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
-        for (const QString& arg: args) {
-            QAndroidJniObject jArg = QAndroidJniObject::fromString(arg);
-            myNewEnv->CallObjectMethod(hashmap, mapClassPut, QAndroidJniObject::fromString("url").object<jstring>(), jArg.object<jstring>());
+        QMap<QString, QString>::iterator i;
+        for (i = args.begin(); i != args.end(); ++i) {
+            QAndroidJniObject jKey = QAndroidJniObject::fromString(i.key());
+            QAndroidJniObject jValue = QAndroidJniObject::fromString(i.value());
+            myNewEnv->CallObjectMethod(hashmap, mapClassPut, jKey.object<jstring>(), jValue.object<jstring>());
         }
         __interfaceActivity.callMethod<void>("openAndroidActivity", "(Ljava/lang/String;ZLjava/util/HashMap;)V", string.object<jstring>(), jBackToScene, hashmap);
         if (attachedHere) {
