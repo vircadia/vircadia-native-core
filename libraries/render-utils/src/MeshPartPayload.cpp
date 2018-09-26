@@ -352,10 +352,10 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     bool hasLightmap = drawMaterialKey.isLightmapMap();
     bool isUnlit = drawMaterialKey.isUnlit();
 
-    bool isSkinned = _isBlendShaped || _isSkinned;
+    bool isDeformed = _isBlendShaped || _isSkinned;
 
     if (isWireframe) {
-        isTranslucent = hasTangents = hasLightmap = isSkinned = false;
+        isTranslucent = hasTangents = hasLightmap = isDeformed = false;
     }
 
     ShapeKey::Builder builder;
@@ -373,13 +373,13 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     if (isUnlit) {
         builder.withUnlit();
     }
-    if (isSkinned) {
-        builder.withSkinned();
+    if (isDeformed) {
+        builder.withDeformed();
     }
     if (isWireframe) {
         builder.withWireframe();
     }
-    if (isSkinned && useDualQuaternionSkinning) {
+    if (isDeformed && useDualQuaternionSkinning) {
         builder.withDualQuatSkinned();
     }
 

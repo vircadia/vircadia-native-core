@@ -20,15 +20,11 @@ using namespace gpu;
 Material::Material() :
     _key(0),
     _schemaBuffer(),
- //   _texMapArrayBuffer(),
     _textureMaps()
 {
     // created from nothing: create the Buffer to store the properties
     Schema schema;
     _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
-
-//    TexMapArraySchema TexMapArraySchema;
-//    _texMapArrayBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(TexMapArraySchema), (const gpu::Byte*) &TexMapArraySchema));
 }
 
 Material::Material(const Material& material) :
@@ -40,10 +36,6 @@ Material::Material(const Material& material) :
     Schema schema;
     _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
     _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
-
- //   TexMapArraySchema texMapArraySchema;
- //   _texMapArrayBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(TexMapArraySchema), (const gpu::Byte*) &texMapArraySchema));
- //   _texMapArrayBuffer.edit<TexMapArraySchema>() = material._texMapArrayBuffer.get<TexMapArraySchema>();
 }
 
 Material& Material::operator= (const Material& material) {
@@ -59,10 +51,6 @@ Material& Material::operator= (const Material& material) {
     Schema schema;
     _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
     _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
-
-//    TexMapArraySchema texMapArraySchema;
- //   _texMapArrayBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(TexMapArraySchema), (const gpu::Byte*) &texMapArraySchema));
- //   _texMapArrayBuffer.edit<TexMapArraySchema>() = material._texMapArrayBuffer.get<TexMapArraySchema>();
 
     return (*this);
 }
