@@ -118,6 +118,10 @@
     }
 
     function clickedOnOverlay(overlayID, event) {
+        if (event.isRightButton) {
+            // don't allow right-clicks.
+            return;
+        }
         if (tryAgainImage === overlayID) {
             location.goToLastAddress();
         } else if (backImage === overlayID) {
