@@ -29,53 +29,49 @@
 
     var redirectOopsText = Overlays.addOverlay("text3d", {
         name: "oopsText",
-        // position: { x: 0.2656, y: 1.6764, z: 1.4593},
-        position: { x: 0.0, y: 1.6764, z: 1.4593},
+        localPosition: {x: 0.5691902160644531, y: 0.6403706073760986, z: 6.68358039855957},
         text: getOopsText(),
         textAlpha: 1,
         backgroundAlpha: 0,
         lineHeight: 0.13,
-        // dimensions: {x: 2.58, y: 2.58},
         visible: false,
         emissive: true,
         ignoreRayIntersection: false,
         drawInFront: true,
         grabbable: false,
-        orientation: {x: 0.0, y: 0.5, z: 0, w: 0.87},
+        orientation: {x: 0.0, y: 0.5, z: 0.0, w: 0.87},
         parentID: MyAvatar.SELF_ID
     });
     print("redirect oops text = " + redirectOopsText);
 
     var tryAgainImage = Overlays.addOverlay("image3d", {
         name: "tryAgainImage",
-        position: { x: 0.0, y: 1.0695, z: 1.9094},
+        localPosition: { x: -0.15, y: -0.4, z: 0.0},
         url: Script.resourcesPath() + "images/interstitialPage/button_tryAgain.png",
         alpha: 1,
-        // dimensions: {x: 0.9, y: 0.4},
         visible: false,
         emissive: true,
         ignoreRayIntersection: false,
         drawInFront: true,
         grabbable: false,
         orientation: {x: 0.0, y: 0.5, z: 0, w: 0.87},
-        parentID: MyAvatar.SELF_ID
+        parentID: redirectOopsText
     });
     print("try again image = " + tryAgainImage);
+    Window.copyToClipboard(redirectOopsText);
 
     var backImage = Overlays.addOverlay("image3d", {
         name: "backImage",
-        position: { x: 0.525, y: 1.0695, z: 1.0186},
+        localPosition: { x: 1.0, y: -0.4, z: 0.0},
         url: Script.resourcesPath() + "images/interstitialPage/button_back.png",
         alpha: 1,
-        //  dimensions: {x: 0.9, y: 0.4},
         visible: false,
         emissive: true,
         ignoreRayIntersection: false,
         drawInFront: true,
         grabbable: false,
-        localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 180.0, z: 0.0 }),
         orientation: {x: 0.0, y: 0.5, z: 0, w: 0.87},
-        parentID: MyAvatar.SELF_ID
+        parentID: redirectOopsText
     });
     print("back image = " + backImage);
 
@@ -106,15 +102,21 @@
 
         Overlays.editOverlay(redirectOopsText, oopsTextProperties);
         Overlays.editOverlay(tryAgainImage, properties);
-        Overlays.editOverlay(backImage, properties)
+        Overlays.editOverlay(backImage, properties);
     }
 
     function clickedOnOverlay(overlayID, event) {
+        var properties = {
+            visible: false
+        };
         if (tryAgainImage === overlayID) {
             location.goToLastAddress();
         } else if (backImage === overlayID) {
             location.goBack();
         }
+        Overlays.editOverlay(redirectOopsText, properties);
+        Overlays.editOverlay(tryAgainImage, properties);
+        Overlays.editOverlay(backImage, properties);
     }
 
     function cleanup() {
