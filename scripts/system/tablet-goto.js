@@ -57,16 +57,16 @@ function notificationPollCallback(userStoriesArray) {
             storedAnnouncements[story.id] = story;
 
             if (shouldNotifyIndividually) {
-                message = storedAnnouncements[key].username + " says something is happening in " +
-                    storedAnnouncements[key].place_name + ". Open GOTO to join them.";
+                message = story.username + " says something is happening in " +
+                    story.place_name + ". Open GOTO to join them.";
                 ui.notificationDisplayBanner(message);
             }
         } else if (story.audience === "for_feed") {
             storedFeaturedStories[story.id] = story;
 
             if (shouldNotifyIndividually) {
-                message = storedFeaturedStories[key].username + " invites you to an event in " +
-                    storedFeaturedStories[key].place_name + ". Open GOTO to join them.";
+                message = story.username + " invites you to an event in " +
+                    story.place_name + ". Open GOTO to join them.";
                 ui.notificationDisplayBanner(message);
             }
         }
