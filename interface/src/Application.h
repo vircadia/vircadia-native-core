@@ -434,7 +434,7 @@ public slots:
 
     void setIsServerlessMode(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL, bool errorDomain = false);
-    void setIsInterstitialMode(bool interstialMode);
+    void setIsInterstitialMode(bool interstitialMode);
 
     void updateVerboseLogging();
 

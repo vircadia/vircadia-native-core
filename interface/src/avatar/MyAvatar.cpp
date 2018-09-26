@@ -91,6 +91,8 @@ const float MIN_SCALE_CHANGED_DELTA = 0.001f;
 const int MODE_READINGS_RING_BUFFER_SIZE = 500;
 const float CENTIMETERS_PER_METER = 100.0f;
 
+const QString AVATAR_SETTINGS_GROUP_NAME { "Avatar" };
+
 MyAvatar::MyAvatar(QThread* thread) :
     Avatar(thread),
     _yawSpeed(YAW_SPEED_DEFAULT),
@@ -118,7 +120,22 @@ MyAvatar::MyAvatar(QThread* thread) :
     _goToOrientation(),
     _prevShouldDrawHead(true),
     _audioListenerMode(FROM_HEAD),
-    _hmdAtRestDetector(glm::vec3(0), glm::quat())
+    _hmdAtRestDetector(glm::vec3(0), glm::quat()),
+    _dominantHandSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "dominantHand", DOMINANT_RIGHT_HAND),
+    _headPitchSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "", 0.0f),
+    _scaleSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "scale", _targetScale),
+    _yawSpeedSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "yawSpeed", _yawSpeed),
+    _pitchSpeedSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "pitchSpeed", _pitchSpeed),
+    _fullAvatarURLSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "fullAvatarURL",
+                          AvatarData::defaultFullAvatarModelUrl()),
+    _fullAvatarModelNameSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "fullAvatarModelName", _fullAvatarModelName),
+    _animGraphURLSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "animGraphURL", QUrl("")),
+    _displayNameSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "displayName", ""),
+    _collisionSoundURLSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "collisionSoundURL", QUrl(_collisionSoundURL)),
+    _useSnapTurnSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "useSnapTurn", _useSnapTurn),
+    _userHeightSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userHeight", DEFAULT_AVATAR_HEIGHT),
+    _flyingHMDSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "flyingHMD", _flyingPrefHMD),
+    _avatarEntityCountSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData" << "size", _flyingPrefHMD)
 {
     _clientTraitsHandler = std::unique_ptr<ClientTraitsHandler>(new ClientTraitsHandler(this));
 
@@ -1135,88 +1152,80 @@ void MyAvatar::restoreRoleAnimation(const QString& role) {
 }
 
 void MyAvatar::saveAvatarUrl() {
-    Settings settings;
-    settings.beginGroup("Avatar");
-    if (qApp->getSaveAvatarOverrideUrl() || !qApp->getAvatarOverrideUrl().isValid() ) {
-        settings.setValue("fullAvatarURL",
-                          _fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
-                          "" :
-                          _fullAvatarURLFromPreferences.toString());
+    if (qApp->getSaveAvatarOverrideUrl() || !qApp->getAvatarOverrideUrl().isValid()) {
+        _fullAvatarURLSetting.set(_fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
+                                  "" :
+                                  _fullAvatarURLFromPreferences.toString());
     }
-    settings.endGroup();
+}
+
+void MyAvatar::resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex) {
+    // The original Settings interface saved avatar-entity array data like this:
+    // Avatar/avatarEntityData/size: 5
+    // Avatar/avatarEntityData/1/id: ...
+    // Avatar/avatarEntityData/1/properties: ...
+    // ...
+    // Avatar/avatarEntityData/5/id: ...
+    // Avatar/avatarEntityData/5/properties: ...
+    //
+    // Create Setting::Handles to mimic this.
+
+    while (_avatarEntityIDSettings.size() <= avatarEntityIndex) {
+        Setting::Handle<QUuid> idHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
+                                        << QString::number(avatarEntityIndex + 1) << "id", QUuid());
+        _avatarEntityIDSettings.push_back(idHandle);
+        Setting::Handle<QByteArray> dataHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
+                                               << QString::number(avatarEntityIndex + 1) << "properties", QByteArray());
+        _avatarEntityDataSettings.push_back(dataHandle);
+    }
 }
 
 void MyAvatar::saveData() {
-    Settings settings;
-    settings.beginGroup("Avatar");
-
-    settings.setValue("dominantHand", _dominantHand);
-    settings.setValue("headPitch", getHead()->getBasePitch());
-
-    settings.setValue("scale", _targetScale);
-
-    settings.setValue("yawSpeed", _yawSpeed);
-    settings.setValue("pitchSpeed", _pitchSpeed);
+    _dominantHandSetting.set(_dominantHand);
+    _headPitchSetting.set(getHead()->getBasePitch());
+    _scaleSetting.set(_targetScale);
+    _yawSpeedSetting.set(_yawSpeed);
+    _pitchSpeedSetting.set(_pitchSpeed);
 
     // only save the fullAvatarURL if it has not been overwritten on command line
     // (so the overrideURL is not valid), or it was overridden _and_ we specified
     // --replaceAvatarURL (so _saveAvatarOverrideUrl is true)
     if (qApp->getSaveAvatarOverrideUrl() || !qApp->getAvatarOverrideUrl().isValid() ) {
-        settings.setValue("fullAvatarURL",
-                      _fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
-                      "" :
-                      _fullAvatarURLFromPreferences.toString());
+        _fullAvatarURLSetting.set(_fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
+                                  "" :
+                                  _fullAvatarURLFromPreferences.toString());
     }
 
-    settings.setValue("fullAvatarModelName", _fullAvatarModelName);
-
+    _fullAvatarModelNameSetting.set(_fullAvatarModelName);
     QUrl animGraphUrl = _prefOverrideAnimGraphUrl.get();
-    settings.setValue("animGraphURL", animGraphUrl);
+    _animGraphURLSetting.set(animGraphUrl);
+    _displayNameSetting.set(_displayName);
+    _collisionSoundURLSetting.set(_collisionSoundURL);
+    _useSnapTurnSetting.set(_useSnapTurn);
+    _userHeightSetting.set(getUserHeight());
+    _flyingHMDSetting.set(getFlyingHMDPref());
 
-    settings.beginWriteArray("attachmentData");
-    for (int i = 0; i < _attachmentData.size(); i++) {
-        settings.setArrayIndex(i);
-        const AttachmentData& attachment = _attachmentData.at(i);
-        settings.setValue("modelURL", attachment.modelURL);
-        settings.setValue("jointName", attachment.jointName);
-        settings.setValue("translation_x", attachment.translation.x);
-        settings.setValue("translation_y", attachment.translation.y);
-        settings.setValue("translation_z", attachment.translation.z);
-        glm::vec3 eulers = safeEulerAngles(attachment.rotation);
-        settings.setValue("rotation_x", eulers.x);
-        settings.setValue("rotation_y", eulers.y);
-        settings.setValue("rotation_z", eulers.z);
-        settings.setValue("scale", attachment.scale);
-        settings.setValue("isSoft", attachment.isSoft);
-    }
-    settings.endArray();
-
-    settings.remove("avatarEntityData");
-    settings.beginWriteArray("avatarEntityData");
-    int avatarEntityIndex = 0;
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     _avatarEntitiesLock.withReadLock([&] {
-        for (auto entityID : _avatarEntityData.keys()) {
-            if (hmdInterface->getCurrentTabletFrameID() == entityID) {
-                // don't persist the tablet between domains / sessions
-                continue;
-            }
+        QList<QUuid> avatarEntityIDs = _avatarEntityData.keys();
+        unsigned int avatarEntityCount = avatarEntityIDs.size();
+        unsigned int previousAvatarEntityCount = _avatarEntityCountSetting.get(0);
+        resizeAvatarEntitySettingHandles(std::max<unsigned int>(avatarEntityCount, previousAvatarEntityCount));
+        _avatarEntityCountSetting.set(avatarEntityCount);
 
-            settings.setArrayIndex(avatarEntityIndex);
-            settings.setValue("id", entityID);
-            settings.setValue("properties", _avatarEntityData.value(entityID));
+        unsigned int avatarEntityIndex = 0;
+        for (auto entityID : avatarEntityIDs) {
+            _avatarEntityIDSettings[avatarEntityIndex].set(entityID);
+            _avatarEntityDataSettings[avatarEntityIndex].set(_avatarEntityData.value(entityID));
             avatarEntityIndex++;
         }
+
+        // clean up any left-over (due to the list shrinking) slots
+        for (; avatarEntityIndex < previousAvatarEntityCount; avatarEntityIndex++) {
+            _avatarEntityIDSettings[avatarEntityIndex].remove();
+            _avatarEntityDataSettings[avatarEntityIndex].remove();
+        }
     });
-    settings.endArray();
-
-    settings.setValue("displayName", _displayName);
-    settings.setValue("collisionSoundURL", _collisionSoundURL);
-    settings.setValue("useSnapTurn", _useSnapTurn);
-    settings.setValue("userHeight", getUserHeight());
-    settings.setValue("flyingHMD", getFlyingHMDPref());
-
-    settings.endGroup();
 }
 
 float loadSetting(Settings& settings, const QString& name, float defaultValue) {
@@ -1314,66 +1323,36 @@ void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
 }
 
 void MyAvatar::loadData() {
-    Settings settings;
-    settings.beginGroup("Avatar");
+    getHead()->setBasePitch(_headPitchSetting.get());
 
-    getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
+    _yawSpeed = _yawSpeedSetting.get(_yawSpeed);
+    _pitchSpeed = _pitchSpeedSetting.get(_pitchSpeed);
 
-    _yawSpeed = loadSetting(settings, "yawSpeed", _yawSpeed);
-    _pitchSpeed = loadSetting(settings, "pitchSpeed", _pitchSpeed);
-
-    _prefOverrideAnimGraphUrl.set(QUrl(settings.value("animGraphURL", "").toString()));
-    _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
-    _fullAvatarModelName = settings.value("fullAvatarModelName", DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
+    _prefOverrideAnimGraphUrl.set(_prefOverrideAnimGraphUrl.get().toString());
+    _fullAvatarURLFromPreferences = _fullAvatarURLSetting.get(QUrl(AvatarData::defaultFullAvatarModelUrl()));
+    _fullAvatarModelName = _fullAvatarModelNameSetting.get(DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
 
     useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
 
-    int attachmentCount = settings.beginReadArray("attachmentData");
-    for (int i = 0; i < attachmentCount; i++) {
-        settings.setArrayIndex(i);
-        AttachmentData attachment;
-        attachment.modelURL = settings.value("modelURL").toUrl();
-        attachment.jointName = settings.value("jointName").toString();
-        attachment.translation.x = loadSetting(settings, "translation_x", 0.0f);
-        attachment.translation.y = loadSetting(settings, "translation_y", 0.0f);
-        attachment.translation.z = loadSetting(settings, "translation_z", 0.0f);
-        glm::vec3 eulers;
-        eulers.x = loadSetting(settings, "rotation_x", 0.0f);
-        eulers.y = loadSetting(settings, "rotation_y", 0.0f);
-        eulers.z = loadSetting(settings, "rotation_z", 0.0f);
-        attachment.rotation = glm::quat(eulers);
-        attachment.scale = loadSetting(settings, "scale", 1.0f);
-        attachment.isSoft = settings.value("isSoft").toBool();
-        // old attachments are stored and loaded/converted later when rig is ready
-        _oldAttachmentData.append(attachment);
-    }
-    settings.endArray();
-
-    int avatarEntityCount = settings.beginReadArray("avatarEntityData");
+    int avatarEntityCount = _avatarEntityCountSetting.get(0);
     for (int i = 0; i < avatarEntityCount; i++) {
-        settings.setArrayIndex(i);
-        QUuid entityID = settings.value("id").toUuid();
+        resizeAvatarEntitySettingHandles(i);
         // QUuid entityID = QUuid::createUuid(); // generate a new ID
-        QByteArray properties = settings.value("properties").toByteArray();
+        QUuid entityID = _avatarEntityIDSettings[i].get(QUuid());
+        QByteArray properties = _avatarEntityDataSettings[i].get();
         updateAvatarEntity(entityID, properties);
-    }
-    settings.endArray();
-    if (avatarEntityCount == 0) {
-        // HACK: manually remove empty 'avatarEntityData' else legacy data may persist in settings file
-        settings.remove("avatarEntityData");
     }
 
     // Flying preferences must be loaded before calling setFlyingEnabled()
     Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
-    setFlyingHMDPref(firstRunVal.get() ? false : settings.value("flyingHMD").toBool());
+    setFlyingHMDPref(firstRunVal.get() ? false : _flyingHMDSetting.get());
     setFlyingEnabled(getFlyingEnabled());
 
-    setDisplayName(settings.value("displayName").toString());
-    setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
-    setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
-    setDominantHand(settings.value("dominantHand", _dominantHand).toString().toLower());
-    setUserHeight(settings.value("userHeight", DEFAULT_AVATAR_HEIGHT).toDouble());
-    settings.endGroup();
+    setDisplayName(_displayNameSetting.get());
+    setCollisionSoundURL(_collisionSoundURLSetting.get(QUrl(DEFAULT_AVATAR_COLLISION_SOUND_URL)).toString());
+    setSnapTurn(_useSnapTurnSetting.get());
+    setDominantHand(_dominantHandSetting.get(DOMINANT_RIGHT_HAND).toLower());
+    setUserHeight(_userHeightSetting.get(DEFAULT_AVATAR_HEIGHT));
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
     _follow.setToggleHipsFollowing (Menu::getInstance()->isOptionChecked(MenuOption::ToggleHipsFollowing));
@@ -1441,6 +1420,7 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
 
     return attachment;
 }
+
 
 int MyAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     qCDebug(interfaceapp) << "Error: ignoring update packet for MyAvatar"
@@ -2899,10 +2879,7 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
     }
 
     // Set avatar current scale
-    Settings settings;
-    settings.beginGroup("Avatar");
-    _targetScale = loadSetting(settings, "scale", 1.0f);
-
+    _targetScale = _scaleSetting.get();
     // clamp the desired _targetScale by the domain limits NOW, don't try to gracefully animate.  Because
     // this might cause our avatar to become embedded in the terrain.
     _targetScale = getDomainLimitedScale();
@@ -2914,7 +2891,6 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
 
     setModelScale(_targetScale);
     rebuildCollisionShape();
-    settings.endGroup();
 
     _haveReceivedHeightLimitsFromDomain = true;
 }
@@ -2925,10 +2901,7 @@ void MyAvatar::leaveDomain() {
 }
 
 void MyAvatar::saveAvatarScale() {
-    Settings settings;
-    settings.beginGroup("Avatar");
-    settings.setValue("scale", _targetScale);
-    settings.endGroup();
+    _scaleSetting.set(_targetScale);
 }
 
 void MyAvatar::clearScaleRestriction() {

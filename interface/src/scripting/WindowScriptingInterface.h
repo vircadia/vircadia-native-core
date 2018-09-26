@@ -49,6 +49,7 @@ class WindowScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int innerHeight READ getInnerHeight)
     Q_PROPERTY(int x READ getX)
     Q_PROPERTY(int y READ getY)
+    Q_PROPERTY(bool interstitialModeEnabled READ getInterstitialModeEnabled WRITE setInterstitialModeEnabled)
 
 public:
     WindowScriptingInterface();
@@ -759,6 +760,9 @@ private:
 
     QString getPreviousBrowseAssetLocation() const;
     void setPreviousBrowseAssetLocation(const QString& location);
+
+    bool getInterstitialModeEnabled() const;
+    void setInterstitialModeEnabled(bool enableInterstitialMode);
 
     void ensureReticleVisible() const;
 

@@ -33,6 +33,7 @@ import io.highfidelity.hifiinterface.fragment.FriendsFragment;
 import io.highfidelity.hifiinterface.fragment.HomeFragment;
 import io.highfidelity.hifiinterface.fragment.LoginFragment;
 import io.highfidelity.hifiinterface.fragment.PolicyFragment;
+import io.highfidelity.hifiinterface.fragment.SettingsFragment;
 import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
@@ -80,6 +81,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         mPeopleMenuItem = mNavigationView.getMenu().findItem(R.id.action_people);
 
+        updateDebugMenu(mNavigationView.getMenu());
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitleTextAppearance(this, R.style.HomeActionBarTitleStyle);
         setSupportActionBar(toolbar);
@@ -104,6 +107,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             if (getIntent().hasExtra(EXTRA_BACK_TO_SCENE)) {
                 backToScene = getIntent().getBooleanExtra(EXTRA_BACK_TO_SCENE, false);
+            }
+        }
+    }
+
+    private void updateDebugMenu(Menu menu) {
+        if (BuildConfig.DEBUG) {
+            for (int i=0; i < menu.size(); i++) {
+                if (menu.getItem(i).getItemId() == R.id.action_debug_settings) {
+                    menu.getItem(i).setVisible(true);
+                }
             }
         }
     }
@@ -150,6 +163,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         loadFragment(fragment, getString(R.string.people), getString(R.string.tagFragmentPeople), true);
     }
+
+    private void loadSettingsFragment() {
+        SettingsFragment fragment = SettingsFragment.newInstance();
+
+        loadFragment(fragment, getString(R.string.settings), getString(R.string.tagSettings), true);
+    }
+
 
     private void loadFragment(Fragment fragment, String title, String tag, boolean addToBackStack) {
         FragmentManager fragmentManager = getFragmentManager();
@@ -240,6 +260,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 return true;
             case R.id.action_people:
                 loadPeopleFragment();
+                return true;
+            case R.id.action_debug_settings:
+                loadSettingsFragment();
                 return true;
         }
         return false;
