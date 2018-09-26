@@ -349,7 +349,7 @@ public:
 
     void setCreated(QDateTime& v);
 
-    bool hasTerseUpdateChanges() const;
+    bool hasTransformOrVelocityChanges() const;
     bool hasMiscPhysicsChanges() const;
 
     void clearSimulationOwner();

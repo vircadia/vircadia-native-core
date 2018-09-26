@@ -673,7 +673,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
 
-    // pack SimulationOwner and terse update properties near each other
+    // pack SimulationOwner, transform, and velocity properties near each other
     // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
     // even when we would otherwise ignore the rest of the packet.
 
@@ -1358,8 +1358,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     return properties;
 }
 
-void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) const {
-    // a TerseUpdate includes the transform and its derivatives
+void EntityItem::getTransformAndVelocityProperties(EntityItemProperties& properties) const {
     if (!properties._positionChanged) {
         properties._position = getLocalPosition();
     }
@@ -1419,7 +1418,7 @@ bool EntityItem::stillWaitingToTakeOwnership(uint64_t timestamp) const {
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
-    // these affect TerseUpdate properties
+    // these affect transform and velocity properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPosition);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);

@@ -420,7 +420,7 @@ public:
     quint64 getLastEditedFromRemote() const { return _lastEditedFromRemote; }
     void updateLastEditedFromRemote() { _lastEditedFromRemote = usecTimestampNow(); }
 
-    void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
+    void getTransformAndVelocityProperties(EntityItemProperties& properties) const;
 
     void flagForMotionStateChange() { _flags |= Simulation::DIRTY_MOTION_TYPE; }
 
