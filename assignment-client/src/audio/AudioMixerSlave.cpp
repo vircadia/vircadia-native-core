@@ -36,7 +36,10 @@
 #include "InjectedAudioStream.h"
 #include "AudioHelpers.h"
 
+using namespace std;
 using AudioStreamVector = AudioMixerClientData::AudioStreamVector;
+using MixableStream = AudioMixerClientData::MixableStream;
+using MixableStreamsVector = AudioMixerClientData::MixableStreamsVector;
 
 // packet helpers
 std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec);
@@ -60,11 +63,11 @@ void AudioMixerSlave::processPackets(const SharedNodePointer& node) {
     }
 }
 
-void AudioMixerSlave::configureMix(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
+void AudioMixerSlave::configureMix(ConstIter begin, ConstIter end, unsigned int frame, int numToRetain) {
     _begin = begin;
     _end = end;
     _frame = frame;
-    _throttlingRatio = throttlingRatio;
+    _numToRetain = numToRetain;
 }
 
 void AudioMixerSlave::mix(const SharedNodePointer& node) {
@@ -125,18 +128,61 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
     }
 }
 
-template<typename V>
-bool containsNodeID(const V& vector, QUuid nodeID) {
-    return std::any_of(std::begin(vector), std::end(vector), [&nodeID](const QUuid& vectorID){
-        return vectorID == nodeID;
+
+template <class Container, class Predicate>
+void erase_if(Container& cont, Predicate&& pred) {
+    auto it = remove_if(begin(cont), end(cont), std::forward<Predicate>(pred));
+    cont.erase(it, end(cont));
+}
+
+template <class Container>
+bool contains(const Container& cont, typename Container::value_type value) {
+    return std::any_of(begin(cont), end(cont), [&value](const auto& element) {
+        return value == element;
     });
 }
+
+// This class lets you do an erase if in several segments
+// that use different predicates
+template <class Container>
+class SegmentedEraseIf {
+public:
+    using iterator = typename Container::iterator;
+
+    SegmentedEraseIf(Container& cont) : _cont(cont) {
+        _first = begin(_cont);
+        _it = _first;
+    }
+    ~SegmentedEraseIf() {
+        assert(_it == end(_cont));
+        _cont.erase(_first, _it);
+    }
+
+    template <class Predicate>
+    void iterateTo(iterator last, Predicate pred) {
+        while (_it != last) {
+            if (!pred(*_it)) {
+                if (_first != _it) {
+                    *_first = move(*_it);
+                }
+                ++_first;
+            }
+            ++_it;
+        }
+    }
+
+private:
+    iterator _first;
+    iterator _it;
+    Container& _cont;
+};
+
 
 void AudioMixerSlave::addStreams(Node& listener, AudioMixerClientData& listenerData) {
     auto& ignoredNodeIDs = listener.getIgnoredNodeIDs();
     auto& ignoringNodeIDs = listenerData.getIgnoringNodeIDs();
 
-    auto& mixableStreams = listenerData.getMixableStreams();
+    auto& streams = listenerData.getStreams();
 
     // add data for newly created streams to our vector
     if (!listenerData.getHasReceivedFirstMix()) {
@@ -145,12 +191,20 @@ void AudioMixerSlave::addStreams(Node& listener, AudioMixerClientData& listenerD
             AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
             if (nodeData) {
                 for (auto& stream : nodeData->getAudioStreams()) {
-                    mixableStreams.emplace_back(node->getUUID(), node->getLocalID(),
-                                                stream->getStreamIdentifier(), &(*stream));
+                    bool ignoredByListener = contains(ignoredNodeIDs, node->getUUID());
+                    bool ignoringListener = contains(ignoringNodeIDs, node->getUUID());
 
-                    // pre-populate ignored and ignoring flags for this stream
-                    mixableStreams.back().ignoredByListener = containsNodeID(ignoredNodeIDs, node->getUUID());
-                    mixableStreams.back().ignoringListener = containsNodeID(ignoringNodeIDs, node->getUUID());
+                    if (ignoredByListener || ignoringListener) {
+                        streams.skipped.emplace_back(node->getUUID(), node->getLocalID(),
+                                                    stream->getStreamIdentifier(), stream.get());
+
+                        // pre-populate ignored and ignoring flags for this stream
+                        streams.skipped.back().ignoredByListener = ignoredByListener;
+                        streams.skipped.back().ignoringListener = ignoringListener;
+                    } else {
+                        streams.active.emplace_back(node->getUUID(), node->getLocalID(),
+                                                     stream->getStreamIdentifier(), stream.get());
+                    }
                 }
             }
         });
@@ -159,49 +213,94 @@ void AudioMixerSlave::addStreams(Node& listener, AudioMixerClientData& listenerD
         listenerData.setHasReceivedFirstMix(true);
     } else {
         for (const auto& newStream : _sharedData.addedStreams) {
-            mixableStreams.emplace_back(newStream.nodeIDStreamID, newStream.positionalStream);
+            bool ignoredByListener = contains(ignoredNodeIDs, newStream.nodeIDStreamID.nodeID);
+            bool ignoringListener = contains(ignoringNodeIDs, newStream.nodeIDStreamID.nodeID);
 
-            // pre-populate ignored and ignoring flags for this stream
-            mixableStreams.back().ignoredByListener = containsNodeID(ignoredNodeIDs, newStream.nodeIDStreamID.nodeID);
-            mixableStreams.back().ignoringListener = containsNodeID(ignoringNodeIDs, newStream.nodeIDStreamID.nodeID);
+            if (ignoredByListener || ignoringListener) {
+                streams.skipped.emplace_back(newStream.nodeIDStreamID, newStream.positionalStream);
+
+                // pre-populate ignored and ignoring flags for this stream
+                streams.skipped.back().ignoredByListener = ignoredByListener;
+                streams.skipped.back().ignoringListener = ignoringListener;
+            } else {
+                streams.active.emplace_back(newStream.nodeIDStreamID, newStream.positionalStream);
+            }
         }
     }
 }
 
-void AudioMixerSlave::removeStreams(AudioMixerClientData::MixableStreamsVector& mixableStreams) {
-    if (_sharedData.removedNodes.size() > 0) {
-        // enumerate the available streams
-        auto it = mixableStreams.begin();
-        auto end = mixableStreams.end();
+bool shouldBeRemoved(const MixableStream& stream, const AudioMixerSlave::SharedData& sharedData) {
+    return (contains(sharedData.removedNodes, stream.nodeStreamID.nodeLocalID) ||
+            contains(sharedData.removedStreams, stream.nodeStreamID));
+};
 
-        while (it != end) {
-            // check if this node (and therefore all of the node's streams) has been removed
-            auto& nodeIDStreamID = it->nodeStreamID;
-            auto matchedRemovedNode = std::find(_sharedData.removedNodes.cbegin(), _sharedData.removedNodes.cend(),
-                                                nodeIDStreamID.nodeLocalID);
-            bool streamRemoved = matchedRemovedNode != _sharedData.removedNodes.cend();
+bool shouldBeInactive(MixableStream& stream) {
+    return (!stream.positionalStream->lastPopSucceeded() ||
+            stream.positionalStream->getLastPopOutputLoudness() == 0.0f);
+};
 
-            // if the node wasn't removed, check if this stream was specifically removed
-            if (!streamRemoved) {
-                auto matchedRemovedStream = std::find(_sharedData.removedStreams.cbegin(), _sharedData.removedStreams.cend(),
-                                                      nodeIDStreamID);
-                streamRemoved = matchedRemovedStream != _sharedData.removedStreams.cend();
-            }
+bool shouldBeSkipped(MixableStream& stream, const Node& listener,
+                     const AvatarAudioStream& listenerAudioStream,
+                     const AudioMixerClientData& listenerData) {
 
-            if (streamRemoved) {
-                // this stream was removed, so swap it with the last item and decrease the end iterator
-                --end;
-                std::swap(*it, *end);
-
-                // process the it element (which is now the element that was the last item before the swap)
-                continue;
-            }
-        }
-
-        // erase any removed streams that were swapped to the end
-        mixableStreams.erase(end, mixableStreams.end());
+    if (stream.nodeStreamID.nodeLocalID == listener.getLocalID()) {
+        return !stream.positionalStream->shouldLoopbackForNode();
     }
-}
+
+    // grab the unprocessed ignores and unignores from and for this listener
+    const auto& nodesIgnoredByListener = listenerData.getNewIgnoredNodeIDs();
+    const auto& nodesUnignoredByListener = listenerData.getNewUnignoredNodeIDs();
+    const auto& nodesIgnoringListener = listenerData.getNewIgnoringNodeIDs();
+    const auto& nodesUnignoringListener = listenerData.getNewUnignoringNodeIDs();
+
+    // this stream was previously not ignored by the listener and we have some newly ignored streams
+    // check now if it is one of the ignored streams and flag it as such
+    if (stream.ignoredByListener) {
+        stream.ignoredByListener = !contains(nodesUnignoredByListener, stream.nodeStreamID.nodeID);
+    } else {
+        stream.ignoredByListener = contains(nodesIgnoredByListener, stream.nodeStreamID.nodeID);
+    }
+
+    if (stream.ignoringListener) {
+        stream.ignoringListener = !contains(nodesUnignoringListener, stream.nodeStreamID.nodeID);
+    } else {
+        stream.ignoringListener = contains(nodesIgnoringListener, stream.nodeStreamID.nodeID);
+    }
+
+    bool listenerIsAdmin = listenerData.getRequestsDomainListData() && listener.getCanKick();
+    if (stream.ignoredByListener || (stream.ignoringListener && !listenerIsAdmin)) {
+        return true;
+    }
+
+    bool shouldCheckIgnoreBox = (listenerAudioStream.isIgnoreBoxEnabled() ||
+                                 stream.positionalStream->isIgnoreBoxEnabled());
+    if (shouldCheckIgnoreBox &&
+        listenerAudioStream.getIgnoreBox().touches(stream.positionalStream->getIgnoreBox())) {
+        return true;
+    }
+
+    return false;
+};
+
+float approximateVolume(const MixableStream& stream, const AvatarAudioStream* listenerAudioStream) {
+    if (stream.positionalStream->getLastPopOutputTrailingLoudness() == 0.0f) {
+        return 0.0f;
+    }
+
+    if (stream.positionalStream == listenerAudioStream) {
+        return 1.0f;
+    }
+
+    // approximate the gain
+    float gain = approximateGain(*listenerAudioStream, *(stream.positionalStream));
+
+    // for avatar streams, modify by the set gain adjustment
+    if (stream.nodeStreamID.streamID.isNull()) {
+        gain *= stream.hrtf->getGainAdjustment();
+    }
+
+    return stream.positionalStream->getLastPopOutputTrailingLoudness() * gain;
+};
 
 bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     AvatarAudioStream* listenerAudioStream = static_cast<AudioMixerClientData*>(listener->getLinkedData())->getAvatarAudioStream();
@@ -210,127 +309,153 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     // zero out the mix for this listener
     memset(_mixSamples, 0, sizeof(_mixSamples));
 
-    bool isThrottling = _throttlingRatio > 0.0f;
+    bool isThrottling = _numToRetain != -1;
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto& streams = listenerData->getStreams();
 
-    auto& mixableStreams = listenerData->getMixableStreams();
-
-    // grab the unprocessed ignores and unignores from and for this listener
-    const auto& nodesIgnoredByListener = listenerData->getNewIgnoredNodeIDs();
-    const auto& nodesUnignoredByListener = listenerData->getNewUnignoredNodeIDs();
-    const auto& nodesIgnoringListener = listenerData->getNewIgnoringNodeIDs();
-    const auto& nodesUnignoringListener = listenerData->getNewUnignoringNodeIDs();
-
-    removeStreams(mixableStreams);
     addStreams(*listener, *listenerData);
 
-    // enumerate the available streams
-    auto it = mixableStreams.begin();
-    while (it != mixableStreams.end()) {
+    // Process skipped streams
+    erase_if(streams.skipped, [&](MixableStream& stream) {
+        if (shouldBeRemoved(stream, _sharedData)) {
+            return true;
+        }
 
-        auto& nodeIDStreamID = it->nodeStreamID;
-
-        if (it->nodeStreamID.nodeLocalID == listener->getLocalID()) {
-            // streams from this node should be skipped unless loopback is specifically requested
-            if (it->positionalStream->shouldLoopbackForNode()) {
-                it->skippedStream = false;
+        if (!shouldBeSkipped(stream, *listener, *listenerAudioStream, *listenerData)) {
+            if (shouldBeInactive(stream)) {
+                streams.inactive.push_back(move(stream));
+                ++stats.skippedToInactive;
             } else {
-                it->approximateVolume = 0.0f;
-                it->skippedStream = true;
-                it->completedSilentRender = true;
-
-                // if we know we're skipping this stream, no more processing is required
-                // since we don't do silent HRTF renders for echo streams
-                ++it;
-                continue;
+                streams.active.push_back(move(stream));
+                ++stats.skippedToActive;
             }
-        } else {
-            if (it->ignoredByListener && nodesUnignoredByListener.size() > 0) {
-                // this stream was previously ignored by the listener and we have some unignored streams
-                // check now if it is one of the unignored streams and flag it as such
-                it->ignoredByListener = !containsNodeID(nodesUnignoredByListener, nodeIDStreamID.nodeID);
-
-            } else if (!it->ignoredByListener && nodesIgnoredByListener.size() > 0) {
-                // this stream was previously not ignored by the listener and we have some newly ignored streams
-                // check now if it is one of the ignored streams and flag it as such
-                it->ignoredByListener = containsNodeID(nodesIgnoredByListener, nodeIDStreamID.nodeID);
-            }
-
-            if (it->ignoringListener && nodesUnignoringListener.size() > 0) {
-                // this stream was previously ignoring the listener and we have some new un-ignoring nodes
-                // check now if it is one of the unignoring streams and flag it as such
-                it->ignoringListener = !containsNodeID(nodesUnignoringListener, nodeIDStreamID.nodeID);
-            } else if (!it->ignoringListener && nodesIgnoringListener.size() > 0) {
-                it->ignoringListener = containsNodeID(nodesIgnoringListener, nodeIDStreamID.nodeID);
-            }
-
-            if (it->ignoredByListener
-                || (it->ignoringListener && !(listenerData->getRequestsDomainListData() && listener->getCanKick()))) {
-                // this is a stream ignoring by the listener
-                // or ignoring the listener (and the listener is not an admin asking for (the poorly named) "domain list" data)
-                // mark it skipped and move on
-                it->skippedStream = true;
-            } else {
-                it->skippedStream = false;
-            }
-
-            if (!it->skippedStream) {
-                if ((listenerAudioStream->isIgnoreBoxEnabled() || it->positionalStream->isIgnoreBoxEnabled())
-                    && listenerAudioStream->getIgnoreBox().touches(it->positionalStream->getIgnoreBox())) {
-                    // the listener is ignoring audio sources within a radius, and this source is in that radius
-                    // so we mark it skipped
-                    it->skippedStream = true;
-                } else {
-                    it->skippedStream = false;
-                }
-            }
+            return true;
         }
 
         if (!isThrottling) {
-            // we aren't throttling, so we already know that we can add this stream to the mix
-            addStream(*it, *listenerAudioStream, listenerData->getMasterAvatarGain(), false);
-        } else {
+            updateHRTFParameters(stream, *listenerAudioStream,
+                                 listenerData->getMasterAvatarGain());
+        }
+        return false;
+    });
+
+    // Process inactive streams
+    erase_if(streams.inactive, [&](MixableStream& stream) {
+        if (shouldBeRemoved(stream, _sharedData)) {
+            return true;
+        }
+
+        if (shouldBeSkipped(stream, *listener, *listenerAudioStream, *listenerData)) {
+            streams.skipped.push_back(move(stream));
+            ++stats.inactiveToSkipped;
+            return true;
+        }
+
+        if (!shouldBeInactive(stream)) {
+            streams.active.push_back(move(stream));
+            ++stats.inactiveToActive;
+            return true;
+        }
+
+        if (!isThrottling) {
+            updateHRTFParameters(stream, *listenerAudioStream,
+                                 listenerData->getMasterAvatarGain());
+        }
+        return false;
+    });
+
+    // Process active streams
+    erase_if(streams.active, [&](MixableStream& stream) {
+        if (shouldBeRemoved(stream, _sharedData)) {
+            return true;
+        }
+
+        if (isThrottling) {
             // we're throttling, so we need to update the approximate volume for any un-skipped streams
             // unless this is simply for an echo (in which case the approx volume is 1.0)
-            if (!it->skippedStream && it->positionalStream->getLastPopOutputTrailingLoudness() > 0.0f) {
-                if (it->positionalStream != listenerAudioStream) {
-                    // approximate the gain
-                    float gain = approximateGain(*listenerAudioStream, *(it->positionalStream));
+            stream.approximateVolume = approximateVolume(stream, listenerAudioStream);
+        } else {
+            if (shouldBeSkipped(stream, *listener, *listenerAudioStream, *listenerData)) {
+                addStream(stream, *listenerAudioStream, 0.0f);
+                streams.skipped.push_back(move(stream));
+                ++stats.activeToSkipped;
+                return true;
+            }
 
-                    // for avatar streams, modify by the set gain adjustment
-                    if (nodeIDStreamID.streamID.isNull()) {
-                        gain *= it->hrtf->getGainAdjustment();
-                    }
+            addStream(stream, *listenerAudioStream, listenerData->getMasterAvatarGain());
 
-                    it->approximateVolume = it->positionalStream->getLastPopOutputTrailingLoudness() * gain;
-                } else {
-                    it->approximateVolume = 1.0f;
-                }
-            } else {
-                it->approximateVolume = 0.0f;
+            if (shouldBeInactive(stream)) {
+                // To reduce artifacts we still call render to flush the HRTF for every silent
+                // sources on the first frame where the source becomes silent
+                // this ensures the correct tail from last mixed block
+                streams.inactive.push_back(move(stream));
+                ++stats.activeToInactive;
+                return true;
             }
         }
 
-        ++it;
-    }
+        return false;
+    });
 
     if (isThrottling) {
         // since we're throttling, we need to partition the mixable into throttled and unthrottled streams
-        auto numToRetain = std::distance(_begin, _end) * (1 - _throttlingRatio);
-        auto throttlePoint = mixableStreams.begin() + numToRetain;
+        int numToRetain = min(_numToRetain, (int)streams.active.size()); // Make sure we don't overflow
+        auto throttlePoint = begin(streams.active) + numToRetain;
 
-        std::nth_element(mixableStreams.begin(), throttlePoint, mixableStreams.end(),
+        std::nth_element(streams.active.begin(), throttlePoint, streams.active.end(),
                          [](const auto& a, const auto& b)
-        {
-            return a.approximateVolume > b.approximateVolume;
-        });
+                         {
+                             return a.approximateVolume > b.approximateVolume;
+                         });
 
-        for (auto it = mixableStreams.begin(); it != mixableStreams.end(); ++it) {
-            // add this stream, it is throttled if it is at or past the throttle iterator in the vector
-            addStream(*it, *listenerAudioStream, listenerData->getMasterAvatarGain(), it >= throttlePoint);
-        }
+        SegmentedEraseIf<MixableStreamsVector> erase(streams.active);
+        erase.iterateTo(throttlePoint, [&](MixableStream& stream) {
+            if (shouldBeSkipped(stream, *listener, *listenerAudioStream, *listenerData)) {
+                resetHRTFState(stream);
+                streams.skipped.push_back(move(stream));
+                ++stats.activeToSkipped;
+                return true;
+            }
+
+            addStream(stream, *listenerAudioStream, listenerData->getMasterAvatarGain());
+
+            if (shouldBeInactive(stream)) {
+                // To reduce artifacts we still call render to flush the HRTF for every silent
+                // sources on the first frame where the source becomes silent
+                // this ensures the correct tail from last mixed block
+                streams.inactive.push_back(move(stream));
+                ++stats.activeToInactive;
+                return true;
+            }
+
+            return false;
+        });
+        erase.iterateTo(end(streams.active), [&](MixableStream& stream) {
+            // To reduce artifacts we reset the HRTF state for every throttled
+            // sources on the first frame where the source becomes throttled
+            // this ensures at least remove the tail from last mixed block
+            // preventing excessive artifacts on the next first block
+            resetHRTFState(stream);
+
+            if (shouldBeSkipped(stream, *listener, *listenerAudioStream, *listenerData)) {
+                streams.skipped.push_back(move(stream));
+                ++stats.activeToSkipped;
+                return true;
+            }
+
+            if (shouldBeInactive(stream)) {
+                streams.inactive.push_back(move(stream));
+                ++stats.activeToInactive;
+                return true;
+            }
+
+            return false;
+        });
     }
+
+    stats.skipped += streams.skipped.size();
+    stats.inactive += streams.inactive.size();
+    stats.active += streams.active.size();
 
     // clear the newly ignored, un-ignored, ignoring, and un-ignoring streams now that we've processed them
     listenerData->clearStagedIgnoreChanges();
@@ -357,40 +482,12 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     return hasAudio;
 }
 
-void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStream, AvatarAudioStream& listeningNodeStream,
-                                float masterListenerGain, bool throttle) {
-
-    if (mixableStream.skippedStream) {
-        // any skipped stream gets no processing and no silent render - early return
-        ++stats.skippedOther;
-        return;
-    }
-
+void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStream,
+                                AvatarAudioStream& listeningNodeStream,
+                                float masterListenerGain) {
     ++stats.totalMixes;
 
     auto streamToAdd = mixableStream.positionalStream;
-
-    // to reduce artifacts we still call the HRTF functor for every silent or throttled source
-    // for the first frame where the source becomes throttled or silent
-    // this ensures the correct tail from last mixed block and the correct spatialization of next first block
-    if (throttle || streamToAdd->getLastPopOutputLoudness() == 0.0f) {
-        if (mixableStream.completedSilentRender) {
-
-            if (streamToAdd->getLastPopOutputLoudness() == 0.0f) {
-                ++stats.skippedSilent;
-            } else {
-                ++stats.skippedThrottle;
-            }
-
-            return;
-        } else {
-            mixableStream.completedSilentRender = true;
-        }
-    } else if (mixableStream.completedSilentRender) {
-        // a stream that is no longer throttled or silent should have its silent render flag reset to false
-        // so that we complete a silent render for the stream next time it is throttled or otherwise goes silent
-        mixableStream.completedSilentRender = false;
-    }
 
     // check if this is a server echo of a source back to itself
     bool isEcho = (streamToAdd == &listeningNodeStream);
@@ -400,6 +497,7 @@ void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStre
     float distance = glm::max(glm::length(relativePosition), EPSILON);
     float gain = computeGain(masterListenerGain, listeningNodeStream, *streamToAdd, relativePosition, distance, isEcho);
     float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
+
     const int HRTF_DATASET_INDEX = 1;
 
     if (!streamToAdd->lastPopSucceeded()) {
@@ -426,10 +524,10 @@ void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStre
             // (this is not done for stereo streams since they do not go through the HRTF)
             if (!streamToAdd->isStereo() && !isEcho) {
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
-                mixableStream.hrtf->renderSilent(silentMonoBlock, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
-                                                 AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                mixableStream.hrtf->render(silentMonoBlock, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
+                                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-                ++stats.hrtfSilentRenders;
+                ++stats.hrtfRenders;
             }
 
             return;
@@ -453,11 +551,8 @@ void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStre
         }
 
         ++stats.manualStereoMixes;
-        return;
-    }
-
-    // echo sources are not passed through HRTF
-    if (isEcho) {
+    } else if (isEcho) {
+        // echo sources are not passed through HRTF
 
         const float scale = 1/32768.0f; // int16_t to float
 
@@ -468,34 +563,38 @@ void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStre
         }
 
         ++stats.manualEchoMixes;
-        return;
+    } else {
+        streamPopOutput.readSamples(_bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+        mixableStream.hrtf->render(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
+                                   AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+        ++stats.hrtfRenders;
     }
+}
 
+void AudioMixerSlave::updateHRTFParameters(AudioMixerClientData::MixableStream& mixableStream,
+                                      AvatarAudioStream& listeningNodeStream,
+                                      float masterListenerGain) {
+    auto streamToAdd = mixableStream.positionalStream;
 
-    streamPopOutput.readSamples(_bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    // check if this is a server echo of a source back to itself
+    bool isEcho = (streamToAdd == &listeningNodeStream);
 
-    if (streamToAdd->getLastPopOutputLoudness() == 0.0f) {
-        // call renderSilent to reduce artifacts
-        mixableStream.hrtf->renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
-                                         AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream.getPosition();
 
-        ++stats.hrtfSilentRenders;
-        return;
-    }
+    float distance = glm::max(glm::length(relativePosition), EPSILON);
+    float gain = computeGain(masterListenerGain, listeningNodeStream, *streamToAdd, relativePosition, distance, isEcho);
+    float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
 
-    if (throttle) {
-        // call renderSilent with actual frame data and a gain of 0.0f to reduce artifacts
-        mixableStream.hrtf->renderSilent(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, 0.0f,
-                                         AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    mixableStream.hrtf->setParameterHistory(azimuth, distance, gain);
 
-        ++stats.hrtfThrottleRenders;
-        return;
-    }
+    ++stats.hrtfUpdates;
+}
 
-    mixableStream.hrtf->render(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
-                AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
-    ++stats.hrtfRenders;
+void AudioMixerSlave::resetHRTFState(AudioMixerClientData::MixableStream& mixableStream) {
+     mixableStream.hrtf->reset();
+    ++stats.hrtfResets;
 }
 
 std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec) {

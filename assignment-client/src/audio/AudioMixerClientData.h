@@ -105,7 +105,7 @@ public:
     bool shouldMuteClient() { return _shouldMuteClient; }
     void setShouldMuteClient(bool shouldMuteClient) { _shouldMuteClient = shouldMuteClient; }
     glm::vec3 getPosition() { return getAvatarAudioStream() ? getAvatarAudioStream()->getPosition() : glm::vec3(0); }
-    bool getRequestsDomainListData() { return _requestsDomainListData; }
+    bool getRequestsDomainListData() const { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
     void setupCodecForReplicatedAgent(QSharedPointer<ReceivedMessage> message);
@@ -117,8 +117,6 @@ public:
         PositionalAudioStream* positionalStream;
         bool ignoredByListener { false };
         bool ignoringListener { false };
-        bool completedSilentRender { false };
-        bool skippedStream { false };
 
         MixableStream(NodeIDStreamID nodeIDStreamID, PositionalAudioStream* positionalStream) :
             nodeStreamID(nodeIDStreamID), hrtf(new AudioHRTF), positionalStream(positionalStream) {};
@@ -127,8 +125,13 @@ public:
     };
 
     using MixableStreamsVector = std::vector<MixableStream>;
+    struct Streams {
+        MixableStreamsVector active;
+        MixableStreamsVector inactive;
+        MixableStreamsVector skipped;
+    };
 
-    MixableStreamsVector& getMixableStreams() { return _mixableStreams; }
+    Streams& getStreams() { return _streams; }
 
     // thread-safe, called from AudioMixerSlave(s) while processing ignore packets for other nodes
     void ignoredByNode(QUuid nodeID);
@@ -173,7 +176,7 @@ private:
 
     bool containsValidPosition(ReceivedMessage& message) const;
 
-    MixableStreamsVector _mixableStreams;
+    Streams _streams;
 
     quint16 _outgoingMixedAudioSequenceNumber;
 

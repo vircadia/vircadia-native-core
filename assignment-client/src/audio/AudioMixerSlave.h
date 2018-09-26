@@ -44,7 +44,7 @@ public:
     void processPackets(const SharedNodePointer& node);
 
     // configure a round of mixing
-    void configureMix(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio);
+    void configureMix(ConstIter begin, ConstIter end, unsigned int frame, int numToRetain);
 
     // mix and broadcast non-ignored streams to the node (requires configuration using configureMix, above)
     // returns true if a mixed packet was sent to the node
@@ -55,10 +55,14 @@ public:
 private:
     // create mix, returns true if mix has audio
     bool prepareMix(const SharedNodePointer& listener);
-    void addStream(AudioMixerClientData::MixableStream& mixableStream, AvatarAudioStream& listeningNodeStream,
-                   float masterListenerGain, bool throttle);
+    void addStream(AudioMixerClientData::MixableStream& mixableStream,
+                   AvatarAudioStream& listeningNodeStream,
+                   float masterListenerGain);
+    void updateHRTFParameters(AudioMixerClientData::MixableStream& mixableStream,
+                              AvatarAudioStream& listeningNodeStream,
+                              float masterListenerGain);
+    void resetHRTFState(AudioMixerClientData::MixableStream& mixableStream);
 
-    void removeStreams(AudioMixerClientData::MixableStreamsVector& mixableStreams);
     void addStreams(Node& listener, AudioMixerClientData& listenerData);
 
     // mixing buffers
@@ -69,7 +73,7 @@ private:
     ConstIter _begin;
     ConstIter _end;
     unsigned int _frame { 0 };
-    float _throttlingRatio { 0.0f };
+    int _numToRetain { -1 };
 
     SharedData& _sharedData;
 };

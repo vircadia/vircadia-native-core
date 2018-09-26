@@ -301,13 +301,23 @@ void AudioMixer::sendStatsPacket() {
     QJsonObject mixStats;
 
     mixStats["%_hrtf_mixes"] = percentageForMixStats(_stats.hrtfRenders);
-    mixStats["%_hrtf_silent_mixes"] = percentageForMixStats(_stats.hrtfSilentRenders);
-    mixStats["%_hrtf_throttle_mixes"] = percentageForMixStats(_stats.hrtfThrottleRenders);
-    mixStats["%_skipped_throttle_mixes"] = percentageForMixStats(_stats.skippedThrottle);
-    mixStats["%_skipped_silent_mixes"] = percentageForMixStats(_stats.skippedSilent);
-    mixStats["%_skipped_other_mixes"] = percentageForMixStats(_stats.skippedOther);
     mixStats["%_manual_stereo_mixes"] = percentageForMixStats(_stats.manualStereoMixes);
     mixStats["%_manual_echo_mixes"] = percentageForMixStats(_stats.manualEchoMixes);
+
+    mixStats["1_hrtf_renders"] = (int)(_stats.hrtfRenders / (float)_numStatFrames);
+    mixStats["1_hrtf_resets"] = (int)(_stats.hrtfResets / (float)_numStatFrames);
+    mixStats["1_hrtf_updates"] = (int)(_stats.hrtfUpdates / (float)_numStatFrames);
+
+    mixStats["2_skipped_streams"] = (int)(_stats.skipped / (float)_numStatFrames);
+    mixStats["2_inactive_streams"] = (int)(_stats.inactive / (float)_numStatFrames);
+    mixStats["2_active_streams"] = (int)(_stats.active / (float)_numStatFrames);
+
+    mixStats["3_skippped_to_active"] = (int)(_stats.skippedToActive / (float)_numStatFrames);
+    mixStats["3_skippped_to_inactive"] = (int)(_stats.skippedToInactive / (float)_numStatFrames);
+    mixStats["3_inactive_to_skippped"] = (int)(_stats.inactiveToSkipped / (float)_numStatFrames);
+    mixStats["3_inactive_to_active"] = (int)(_stats.inactiveToActive / (float)_numStatFrames);
+    mixStats["3_active_to_skippped"] = (int)(_stats.activeToSkipped / (float)_numStatFrames);
+    mixStats["3_active_to_inactive"] = (int)(_stats.activeToInactive / (float)_numStatFrames);
 
     mixStats["total_mixes"] = _stats.totalMixes;
     mixStats["avg_mixes_per_block"] = _stats.totalMixes / _numStatFrames;
@@ -424,12 +434,11 @@ void AudioMixer::start() {
             QCoreApplication::processEvents();
         }
 
+        int numToRetain = nodeList->size() * (1 - _throttlingRatio);
         nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
             // mix across slave threads
-            {
-                auto mixTimer = _mixTiming.timer();
-                _slavePool.mix(cbegin, cend, frame, _throttlingRatio);
-            }
+            auto mixTimer = _mixTiming.timer();
+            _slavePool.mix(cbegin, cend, frame, numToRetain);
         });
 
         // gather stats
