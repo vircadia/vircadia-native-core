@@ -529,6 +529,35 @@ function isReturnedDataEmpty(data) {
     return historyArray.length === 0;
 }
 
+var DEVELOPER_MENU = "Developer";
+var MARKETPLACE_ITEM_TESTER_LABEL = "Marketplace Item Tester";
+var MARKETPLACE_ITEM_TESTER_QML_SOURCE = "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml";
+function installMarketplaceItemTester() {
+    if (!Menu.menuExists(DEVELOPER_MENU)) {
+        Menu.addMenu(DEVELOPER_MENU);
+    }
+    if (!Menu.menuItemExists(DEVELOPER_MENU, MARKETPLACE_ITEM_TESTER_LABEL)) {
+        Menu.addMenuItem({
+            menuName: DEVELOPER_MENU,
+            menuItemName: MARKETPLACE_ITEM_TESTER_LABEL,
+            isCheckable: false
+        });
+    }
+
+    Menu.menuItemEvent.connect(function (menuItem) {
+        if (menuItem === MARKETPLACE_ITEM_TESTER_LABEL) {
+            ui.open(MARKETPLACE_ITEM_TESTER_QML_SOURCE);
+        }
+    });
+}
+
+function uninstallMarketplaceItemTester() {
+    if (Menu.menuExists(DEVELOPER_MENU) &&
+        Menu.menuItemExists(DEVELOPER_MENU, MARKETPLACE_ITEM_TESTER_LABEL)
+    ) {
+        Menu.removeMenuItem(DEVELOPER_MENU, MARKETPLACE_ITEM_TESTER_LABEL);
+    }
+}
 
 var BUTTON_NAME = "WALLET";
 var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
@@ -549,7 +578,9 @@ function startup() {
         notificationPollCaresAboutSince: true
     });
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
+    installMarketplaceItemTester();
 }
+
 var isUpdateOverlaysWired = false;
 function off() {
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
@@ -564,9 +595,11 @@ function off() {
     }
     removeOverlays();
 }
+
 function shutdown() {
     GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
     deleteSendMoneyParticleEffect();
+    uninstallMarketplaceItemTester();
     off();
 }
 

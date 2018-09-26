@@ -26,7 +26,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.hapticTargetID = null;
 
         this.parameters = makeDispatcherModuleParameters(
-            140,
+            500,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);

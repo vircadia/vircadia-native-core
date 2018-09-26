@@ -1553,14 +1553,13 @@ void Model::setBlendedVertices(int blendNumber, const QVector<glm::vec3>& vertic
     for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         auto meshNormalsAndTangents = _normalsAndTangents.find(i);
-        if (mesh.blendshapes.isEmpty() || meshNormalsAndTangents == _normalsAndTangents.end()) {
+        const auto& buffer = _blendedVertexBuffers.find(i);
+        if (mesh.blendshapes.isEmpty() || meshNormalsAndTangents == _normalsAndTangents.end() || buffer == _blendedVertexBuffers.end()) {
             continue;
         }
 
         const auto vertexCount = mesh.vertices.size();
         const auto verticesSize = vertexCount * sizeof(glm::vec3);
-        const auto& buffer = _blendedVertexBuffers.find(i);
-        assert(buffer != _blendedVertexBuffers.end());
         buffer->second->resize(mesh.vertices.size() * sizeof(glm::vec3) + meshNormalsAndTangents->second.size() * sizeof(NormalType));
         buffer->second->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + index * sizeof(glm::vec3));
         buffer->second->setSubData(verticesSize, meshNormalsAndTangents->second.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data() + normalAndTangentIndex * sizeof(NormalType));
