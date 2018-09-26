@@ -75,14 +75,12 @@ void main(void) {
                 normal,
                 _color.a,
                 specular+fadeEmissive,
-                DEFAULT_FRESNEL,
                 DEFAULT_ROUGHNESS);
         } else {
             packDeferredFragmentTranslucent(
                 normal,
                 _color.a,
                 diffuse+fadeEmissive,
-                DEFAULT_FRESNEL,
                 DEFAULT_ROUGHNESS);
         }
     } else {
@@ -93,7 +91,6 @@ void main(void) {
                 diffuse+fadeEmissive,
                 max(0.0, 1.0 - shininess / 128.0),
                 DEFAULT_METALLIC,
-                specular,
                 specular);
         } else {
             packDeferredFragment(

@@ -981,7 +981,7 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
             modelMaterial->setMetallic(ILLUMINATION_MODEL_APPLY_NON_METALLIC);
         }
         if (fresnelOn) {
-            modelMaterial->setFresnel(glm::vec3(1.0f));
+            // TODO: how to turn fresnel on?
         }
 
         modelMaterial->setOpacity(fbxMaterial.opacity);

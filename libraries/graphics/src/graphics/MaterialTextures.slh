@@ -204,12 +204,12 @@ float fetchScatteringMap(vec2 uv) {
 <@endif@>
 <@endfunc@>
 
-<@func fetchMaterialTexturesCoord1(matKey, texcoord1, occlusion, lightmapVal)@>
+<@func fetchMaterialTexturesCoord1(matKey, texcoord1, occlusion, lightmap)@>
 <@if occlusion@>
     float <$occlusion$> = (((<$matKey$> & OCCLUSION_MAP_BIT) != 0) ? fetchOcclusionMap(<$texcoord1$>) : 1.0);
 <@endif@>
 <@if lightmapVal@>
-    vec3 <$lightmapVal$> = fetchLightmapMap(<$texcoord1$>);
+    vec3 <$lightmap$> = fetchLightmapMap(<$texcoord1$>);
 <@endif@>
 <@endfunc@>
 
