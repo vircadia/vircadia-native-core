@@ -122,6 +122,7 @@
 #include <RecordingScriptingInterface.h>
 #include <UpdateSceneTask.h>
 #include <RenderViewTask.h>
+#include <render/EngineStats.h>
 #include <SecondaryCamera.h>
 #include <ResourceCache.h>
 #include <ResourceRequest.h>
@@ -5349,8 +5350,8 @@ void Application::resetPhysicsReadyInformation() {
     // collision information of nearby entities to make running bullet be safe.
     _fullSceneReceivedCounter = 0;
     _fullSceneCounterAtLastPhysicsCheck = 0;
-    _nearbyEntitiesCountAtLastPhysicsCheck = 0;
-    _nearbyEntitiesStabilityCount = 0;
+    _gpuTextureMemSizeStabilityCount = 0;
+    _gpuTextureMemSizeAtLastCheck = 0;
     _physicsEnabled = false;
     _octreeProcessor.startEntitySequence();
 }
@@ -5589,18 +5590,20 @@ void Application::update(float deltaTime) {
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
         if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
-            // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
-            _lastPhysicsCheckTime = now;
-            _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
-            _lastQueriedViews.clear();  // Force new view.
+            if (gpuTextureMemSizeStable()) {
+                // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
+                _lastPhysicsCheckTime = now;
+                _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
+                _lastQueriedViews.clear();  // Force new view.
 
-            // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
-            // We keep physics disabled until we've received a full scene and everything near the avatar in that
-            // scene is ready to compute its collision shape.
-            if (getMyAvatar()->isReadyForPhysics()) {
-                _physicsEnabled = true;
-                setIsInterstitialMode(false);
-                getMyAvatar()->updateMotionBehaviorFromMenu();
+                // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
+                // We keep physics disabled until we've received a full scene and everything near the avatar in that
+                // scene is ready to compute its collision shape.
+                if (getMyAvatar()->isReadyForPhysics()) {
+                    _physicsEnabled = true;
+                    setIsInterstitialMode(false);
+                    getMyAvatar()->updateMotionBehaviorFromMenu();
+                }
             }
         }
     } else if (domainLoadingInProgress) {
@@ -6237,9 +6240,19 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
     const bool isModifiedQuery = !_physicsEnabled;
     if (isModifiedQuery) {
         // Create modified view that is a simple sphere.
+        bool interstitialModeEnabled = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+
         ConicalViewFrustum sphericalView;
         sphericalView.setSimpleRadius(INITIAL_QUERY_RADIUS);
-        _octreeQuery.setConicalViews({ sphericalView });
+
+        if (interstitialModeEnabled) {
+            ConicalViewFrustum farView;
+            farView.set(_viewFrustum);
+            _octreeQuery.setConicalViews({ sphericalView, farView });
+        } else {
+            _octreeQuery.setConicalViews({ sphericalView });
+        }
+
         _octreeQuery.setOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE);
         static constexpr float MIN_LOD_ADJUST = -20.0f;
         _octreeQuery.setBoundaryLevelAdjust(MIN_LOD_ADJUST);
@@ -6551,69 +6564,22 @@ void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNode
     }
 }
 
-bool Application::nearbyEntitiesAreReadyForPhysics() {
-    // this is used to avoid the following scenario:
-    // A table has some items sitting on top of it.  The items are at rest, meaning they aren't active in bullet.
-    // Someone logs in close to the table.  They receive information about the items on the table before they
-    // receive information about the table.  The items are very close to the avatar's capsule, so they become
-    // activated in bullet.  This causes them to fall to the floor, because the table's shape isn't yet in bullet.
-    EntityTreePointer entityTree = getEntities()->getTree();
-    if (!entityTree) {
-        return false;
-    }
+bool Application::gpuTextureMemSizeStable() {
+    auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+    auto renderStats = renderConfig->getConfig<render::EngineStats>("Stats");
 
-    // We don't want to use EntityTree::findEntities(AABox, ...) method because that scan will snarf parented entities
-    // whose bounding boxes cannot be computed (it is too loose for our purposes here).  Instead we manufacture
-    // custom filters and use the general-purpose EntityTree::findEntities(filter, ...)
-    QVector<EntityItemPointer> entities;
-    AABox avatarBox(getMyAvatar()->getWorldPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
-    // create two functions that use avatarBox (entityScan and elementScan), the second calls the first
-    std::function<bool (EntityItemPointer&)> entityScan = [=](EntityItemPointer& entity) {
-        if (entity->shouldBePhysical()) {
-            bool success = false;
-            AABox entityBox = entity->getAABox(success);
-            // important: bail for entities that cannot supply a valid AABox
-            return success && avatarBox.touches(entityBox);
-        }
-        return false;
-    };
-    std::function<bool(const OctreeElementPointer&, void*)> elementScan = [&](const OctreeElementPointer& element, void* unused) {
-        if (element->getAACube().touches(avatarBox)) {
-            EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-            entityTreeElement->getEntities(entityScan, entities);
-            return true;
-        }
-        return false;
-    };
+    quint64 textureResourceGPUMemSize = renderStats->textureResourceGPUMemSize;
+    quint64 texturePopulatedGPUMemSize = renderStats->textureResourcePopulatedGPUMemSize;
 
-    entityTree->withReadLock([&] {
-        // Pass the second function to the general-purpose EntityTree::findEntities()
-        // which will traverse the tree, apply the two filter functions (to element, then to entities)
-        // as it traverses.  The end result will be a list of entities that match.
-        entityTree->findEntities(elementScan, entities);
-    });
-
-    uint32_t nearbyCount = entities.size();
-    if (nearbyCount == _nearbyEntitiesCountAtLastPhysicsCheck) {
-        _nearbyEntitiesStabilityCount++;
+    if (_gpuTextureMemSizeAtLastCheck == textureResourceGPUMemSize) {
+        _gpuTextureMemSizeStabilityCount++;
     } else {
-        _nearbyEntitiesStabilityCount = 0;
+        _gpuTextureMemSizeStabilityCount = 0;
     }
-    _nearbyEntitiesCountAtLastPhysicsCheck = nearbyCount;
+    _gpuTextureMemSizeAtLastCheck = textureResourceGPUMemSize;
 
-    const uint32_t MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT = 3;
-    if (_nearbyEntitiesStabilityCount >= MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT) {
-        // We've seen the same number of nearby entities for several stats packets in a row.  assume we've got all
-        // the local entities.
-        bool result = true;
-        foreach (EntityItemPointer entity, entities) {
-            if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
-                HIFI_FCDEBUG(interfaceapp(), "Physics disabled until entity loads: " << entity->getID() << entity->getName());
-                // don't break here because we want all the relevant entities to start their downloads
-                result = false;
-            }
-        }
-        return result;
+    if (_gpuTextureMemSizeStabilityCount >= _minimumGPUTextureMemSizeStabilityCount) {
+        return (textureResourceGPUMemSize == texturePopulatedGPUMemSize);
     }
     return false;
 }

@@ -571,6 +571,8 @@ public slots:
 
     float domainLoadingProgress();
 
+    void setMinimumGPUTextureMemSizeStabilityCount(int stabilityCount);
+
 private slots:
     void onWindowGeometryChanged(const QRect& geometry);
     void onMessageBoxSelected(int button);

@@ -188,6 +188,8 @@
     var currentDomain = "no domain";
     var timer = null;
     var target = 0;
+    var textureMemSizeStabilityCount = 0;
+    var textureMemSizeAtLastCheck = 0;
 
     var connectionToDomainFailed = false;
 
@@ -229,6 +231,8 @@
             updateOverlays(false);
             startAudio();
             target = 0;
+            textureMemSizeStabilityCount = 0;
+            textureMemSizeAtLastCheck = 0;
             currentProgress = 0.1;
             connectionToDomainFailed = false;
             previousCameraMode = Camera.mode;
@@ -356,9 +360,11 @@
         Overlays.editOverlay(loadingBarPlacard, properties);
         Overlays.editOverlay(loadingBarProgress, loadingBarProperties);
 
-        Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
-        if (!HMD.active) {
-            toolbar.writeProperty("visible", physicsEnabled);
+        if (!DEBUG) {
+            Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
+            if (!HMD.active) {
+                toolbar.writeProperty("visible", physicsEnabled);
+            }
         }
 
         resetValues();
@@ -389,16 +395,41 @@
     }
 
     function update() {
+        var renderStats = Render.getConfig("Stats");
         var physicsEnabled = Window.isPhysicsEnabled();
         var thisInterval = Date.now();
         var deltaTime = (thisInterval - lastInterval);
         lastInterval = thisInterval;
 
         var domainLoadingProgressPercentage = Window.domainLoadingProgress();
-
-        var progress = MIN_LOADING_PROGRESS * domainLoadingProgressPercentage;
+        var progress = ((TOTAL_LOADING_PROGRESS * 0.4) * domainLoadingProgressPercentage);
         if (progress >= target) {
             target = progress;
+        }
+
+        if (currentProgress >= (TOTAL_LOADING_PROGRESS * 0.4)) {
+            var textureResourceGPUMemSize = renderStats.textureResourceGPUMemSize;
+            var texturePopulatedGPUMemSize = renderStats.textureResourcePopulatedGPUMemSize;
+
+            if (textureMemSizeAtLastCheck === textureResourceGPUMemSize) {
+                textureMemSizeStabilityCount++;
+            } else {
+                textureMemSizeStabilityCount = 0;
+            }
+
+            textureMemSizeAtLastCheck = textureResourceGPUMemSize;
+
+            if (textureMemSizeStabilityCount >= 15) {
+
+                if (textureResourceGPUMemSize > 0) {
+                    print((texturePopulatedGPUMemSize / textureResourceGPUMemSize));
+                    var gpuPercantage = (TOTAL_LOADING_PROGRESS * 0.6) * (texturePopulatedGPUMemSize / textureResourceGPUMemSize);
+                    var totalProgress = progress + gpuPercantage;
+                    if (totalProgress >= target) {
+                        target = totalProgress;
+                    }
+                }
+            }
         }
 
         if ((physicsEnabled && (currentProgress < TOTAL_LOADING_PROGRESS))) {
