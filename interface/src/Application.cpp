@@ -6240,14 +6240,19 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
     const bool isModifiedQuery = !_physicsEnabled;
     if (isModifiedQuery) {
         // Create modified view that is a simple sphere.
+        bool interstitialModeEnabled = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
 
         ConicalViewFrustum sphericalView;
-        ConicalViewFrustum farView;
-
-        farView.set(_viewFrustum);
-
         sphericalView.setSimpleRadius(INITIAL_QUERY_RADIUS);
-        _octreeQuery.setConicalViews({ sphericalView, farView });
+
+        if (interstitialModeEnabled) {
+            ConicalViewFrustum farView;
+            farView.set(_viewFrustum);
+            _octreeQuery.setConicalViews({ sphericalView, farView });
+        } else {
+            _octreeQuery.setConicalViews({ sphericalView });
+        }
+
         _octreeQuery.setOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE);
         static constexpr float MIN_LOD_ADJUST = -20.0f;
         _octreeQuery.setBoundaryLevelAdjust(MIN_LOD_ADJUST);

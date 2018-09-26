@@ -38,7 +38,7 @@ var DEFAULT_SCRIPTS_SEPARATE = [
     //"system/chat.js"
 ];
 
-if (Settings.getValue("enableInterstitialMode", false)) {
+if (Window.interstitialModeEnabled) {
     DEFAULT_SCRIPTS_SEPARATE.push("system/interstitialPage.js");
 }
 

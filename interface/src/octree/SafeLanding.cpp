@@ -181,8 +181,7 @@ bool SafeLanding::isEntityLoadingComplete() {
     auto entityTree = qApp->getEntities();
     auto entityMapIter = _trackedEntities.begin();
 
-    Settings settings;
-    bool enableInterstitial = settings.value("enableIntersitialMode", false).toBool();
+    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
 
     while (entityMapIter != _trackedEntities.end()) {
         auto entity = entityMapIter->second;
