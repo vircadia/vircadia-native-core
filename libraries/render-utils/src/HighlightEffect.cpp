@@ -556,8 +556,8 @@ void DrawHighlightTask::initMaskPipelines(render::ShapePlumber& shapePlumber, gp
         ShapeKey::Filter::Builder().withoutSkinned(),
         modelProgram, state);
 
-    gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(shader::render_utils::program::skin_model_shadow);
+    gpu::ShaderPointer deformedProgram = gpu::Shader::createProgram(shader::render_utils::program::deformed_model_shadow);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned(),
-        skinProgram, state);
+        deformedProgram, state);
 }
