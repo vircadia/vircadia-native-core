@@ -40,7 +40,8 @@
         drawInFront: true,
         grabbable: false,
         orientation: {x: 0.0, y: 0.5, z: 0.0, w: 0.87},
-        parentID: MyAvatar.SELF_ID
+        parentID: MyAvatar.SELF_ID,
+        parentJointIndex: MyAvatar.getJointIndex("Head")
     });
     print("redirect oops text = " + redirectOopsText);
 
