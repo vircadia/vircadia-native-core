@@ -139,7 +139,7 @@ function HifiNotifications(config, menuNotificationCallback) {
 
 HifiNotifications.prototype = {
     enable: function (enabled) {
-        this.config.set("enableTrayNotifications", enabled);
+        this.config.set("disableTrayNotifications", !enabled);
         if (enabled) {
             var _this = this;
             this.storiesPollTimer = setInterval(function () {
@@ -185,7 +185,7 @@ HifiNotifications.prototype = {
         }
     },
     enabled: function () {
-        return this.config.get("enableTrayNotifications", true);
+        return !this.config.get("disableTrayNotifications", false);
     },
     stopPolling: function () {
         this.config.set("storiesNotifySince", this.storiesSince.toISOString());

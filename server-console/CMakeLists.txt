@@ -19,7 +19,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Server Console")
 set_target_properties(${TARGET_NAME}-npm-install PROPERTIES FOLDER "hidden/Server Console")
 
 # add a dependency from the package target to the server components
-add_dependencies(${TARGET_NAME} assignment-client domain-server)
+add_dependencies(${TARGET_NAME} assignment-client domain-server interface)
 
 # set the packaged console folder depending on platform, so we can copy it
 if (APPLE)
@@ -37,6 +37,11 @@ if (APPLE)
     DESTINATION ${CONSOLE_INSTALL_DIR}
     COMPONENT ${SERVER_COMPONENT}
   )
+  install(
+    PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}"
+    DESTINATION ${CONSOLE_INSTALL_DIR}
+    COMPONENT ${CLIENT_COMPONENT}
+  )
 elseif (WIN32)
   set(CONSOLE_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}")
 
@@ -44,6 +49,11 @@ elseif (WIN32)
     DIRECTORY "${CONSOLE_DESTINATION}/"
     DESTINATION ${CONSOLE_INSTALL_DIR}
     COMPONENT ${SERVER_COMPONENT}
+  )
+  install(
+    DIRECTORY "${CONSOLE_DESTINATION}/"
+    DESTINATION ${CONSOLE_INSTALL_DIR}
+    COMPONENT ${CLIENT_COMPONENT}
   )
 
   # sign the copied server console executable after install
