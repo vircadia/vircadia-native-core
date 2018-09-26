@@ -18,8 +18,9 @@
 
     function getOopsText() {
         error = Window.getLastDomainConnectionError();
-        if (hardRefusalErrors.indexOf(error) >= 0) {
-            return ERROR_MESSAGE_MAP[error];
+        var errorMessageMapIndex = hardRefusalErrors.indexOf(error);
+        if (errorMessageMapIndex >= 0) {
+            return ERROR_MESSAGE_MAP[errorMessageMapIndex];
         } else {
             // some other text.
             return ERROR_MESSAGE_MAP[4];
@@ -84,12 +85,13 @@
     function toggleOverlays() {
         var overlaysVisible = false;
         error = Window.getLastDomainConnectionError();
+        var errorMessageMapIndex = hardRefusalErrors.indexOf(error);
         var oopsText = "";
         if (error === -1) {
             overlaysVisible = false;
-        } else if (hardRefusalErrors.indexOf(error) >= 0) {
+        } else if (errorMessageMapIndex >= 0) {
             overlaysVisible = true;
-            oopsText = ERROR_MESSAGE_MAP[error];
+            oopsText = ERROR_MESSAGE_MAP[errorMessageMapIndex];
         } else {
             overlaysVisible = true;
             oopsText = ERROR_MESSAGE_MAP[4];
