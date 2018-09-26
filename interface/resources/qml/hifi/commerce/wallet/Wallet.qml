@@ -776,6 +776,9 @@ Rectangle {
             case 'updateWalletReferrer':
                 walletSetup.referrer = message.referrer;
                 walletChoice.referrer = message.referrer;
+                if (Commerce.walletStatus !== 1) { // Already set up. Do it now!
+                   followReferrer({ referrer: walletSetup.referrer });
+                } // Otherwise we'll followReferrer later.
             break;
             case 'inspectionCertificate_resetCert':
                 // NOP
@@ -837,7 +840,7 @@ Rectangle {
     }
 
     function followReferrer(msg) {
-        if (msg.referrer === '' || msg.referrer === 'marketplace cta') {
+        if (msg.referrer === '') {
             root.activeView = "initialize";
             Commerce.getWalletStatus();
         } else if (msg.referrer === 'purchases') {
