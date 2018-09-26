@@ -42,7 +42,7 @@ function AppUi(properties) {
     that.additionalAppScreens = [];
     that.checkIsOpen = function checkIsOpen(type, tabletUrl) { // Are we active? Value used to set isOpen.
         // Actual url may have prefix or suffix.
-        return (type === that.currentVisibleScreenType) &&
+        return
             that.currentVisibleUrl &&
             ((that.home.indexOf(that.currentVisibleUrl) > -1) ||
             (that.additionalAppScreens.indexOf(that.currentVisibleUrl) > -1));
