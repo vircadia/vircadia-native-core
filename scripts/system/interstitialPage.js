@@ -178,7 +178,7 @@
         localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 180.0, z: 0.0 }),
         parentID: anchorOverlay
     });
-    
+
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
     var lastInterval = Date.now();
@@ -399,17 +399,6 @@
 
         Overlays.editOverlay(loadingBarProgress, properties);
 
-
-        var hardRefusalErrorsIdx = hardRefusalErrors.indexOf(Window.getLastDomainConnectionError());
-
-        var redirectProperties = {
-            visible: (hardRefusalErrorsIdx >= 0)
-        };
-
-        Overlays.editOverlay(redirectOopsText, redirectProperties);
-        Overlays.editOverlay(tryAgainImage, redirectProperties);
-        Overlays.editOverlay(backImage, redirectProperties);
-
         if ((physicsEnabled && (currentProgress >= (TOTAL_LOADING_PROGRESS - EPSILON)))) {
             updateOverlays((physicsEnabled || connectionToDomainFailed));
             endAudio();
@@ -468,9 +457,6 @@
         Overlays.deleteOverlay(loadingBarPlacard);
         Overlays.deleteOverlay(loadingBarProgress);
         Overlays.deleteOverlay(anchorOverlay);
-        Overlays.deleteOverlay(redirectOopsText);
-        Overlays.deleteOverlay(tryAgainImage);
-        Overlays.deleteOverlay(backImage);
 
         if (DEBUG) {
             tablet.removeButton(button);

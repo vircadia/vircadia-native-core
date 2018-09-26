@@ -33,7 +33,7 @@
         text: getOopsText(),
         textAlpha: 1,
         backgroundAlpha: 0,
-        lineHeight: 0.13,
+        lineHeight: 0.10,
         visible: false,
         emissive: true,
         ignoreRayIntersection: false,
@@ -43,11 +43,10 @@
         parentID: MyAvatar.SELF_ID,
         parentJointIndex: MyAvatar.getJointIndex("Head")
     });
-    print("redirect oops text = " + redirectOopsText);
 
     var tryAgainImage = Overlays.addOverlay("image3d", {
         name: "tryAgainImage",
-        localPosition: { x: -0.15, y: -0.4, z: 0.0},
+        localPosition: {x: -0.15, y: -0.4, z: 0.0},
         url: Script.resourcesPath() + "images/interstitialPage/button_tryAgain.png",
         alpha: 1,
         visible: false,
@@ -58,12 +57,10 @@
         orientation: {x: 0.0, y: 0.5, z: 0, w: 0.87},
         parentID: redirectOopsText
     });
-    print("try again image = " + tryAgainImage);
-    Window.copyToClipboard(redirectOopsText);
 
     var backImage = Overlays.addOverlay("image3d", {
         name: "backImage",
-        localPosition: { x: 1.0, y: -0.4, z: 0.0},
+        localPosition: {x: 1.0, y: -0.4, z: 0.0},
         url: Script.resourcesPath() + "images/interstitialPage/button_back.png",
         alpha: 1,
         visible: false,
@@ -74,7 +71,6 @@
         orientation: {x: 0.0, y: 0.5, z: 0, w: 0.87},
         parentID: redirectOopsText
     });
-    print("back image = " + backImage);
 
     var TARGET_UPDATE_HZ = 60;
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
@@ -84,7 +80,7 @@
         error = Window.getLastDomainConnectionError();
         var errorMessageMapIndex = hardRefusalErrors.indexOf(error);
         var oopsText = "";
-        if (error === -1) {
+        if (error === -1 || !Window.isPhysicsEnabled() || location.isConnected) {
             overlaysVisible = false;
         } else if (errorMessageMapIndex >= 0) {
             overlaysVisible = true;
@@ -96,6 +92,7 @@
         var properties = {
             visible: overlaysVisible
         };
+
         var oopsTextProperties = {
             visible: overlaysVisible,
             text: oopsText
@@ -121,6 +118,7 @@
     }
 
     function cleanup() {
+        Script.clearInterval(timer);
         timer = null;
         Overlays.deleteOverlay(redirectOopsText);
         Overlays.deleteOverlay(tryAgainImage);
@@ -142,8 +140,8 @@
         }
     });
 
-    // timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
-    Script.update.connect(toggleOverlays);
+    timer = Script.setInterval(toggleOverlays, 500);
+    // Script.update.connect(toggleOverlays);
 
     Script.scriptEnding.connect(cleanup);
 }());
