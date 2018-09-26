@@ -3500,13 +3500,14 @@ bool Application::isServerlessMode() const {
 }
 
 void Application::setIsInterstitialMode(bool interstitialMode) {
-    Settings settings;
-    bool enableInterstitial = settings.value("enableIntersitialMode", false).toBool();
-    if (_interstitialMode != interstitialMode && enableInterstitial) {
-        _interstitialMode = interstitialMode;
+    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+    if (enableInterstitial) {
+        if (_interstitialMode != interstitialMode) {
+            _interstitialMode = interstitialMode;
 
-        DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
-        DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
+            DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
+            DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
+        }
     }
 }
 
