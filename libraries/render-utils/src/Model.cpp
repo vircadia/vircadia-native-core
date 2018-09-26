@@ -1533,11 +1533,11 @@ void Model::setBlendedVertices(int blendNumber, const QVector<BlendshapeOffset>&
     for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         auto meshBlendshapeOffsets = _blendshapeOffsets.find(i);
-        if (mesh.blendshapes.isEmpty() || meshBlendshapeOffsets == _blendshapeOffsets.end() || meshBlendshapeOffsets == _blendshapeOffsets.end()) {
+        const auto& buffer = _blendshapeBuffers.find(i);
+        if (mesh.blendshapes.isEmpty() || meshBlendshapeOffsets == _blendshapeOffsets.end() || buffer == _blendshapeBuffers.end()) {
             continue;
         }
 
-        const auto& buffer = _blendshapeBuffers.find(i);
         const auto blendshapeOffsetSize = meshBlendshapeOffsets->second.size() * sizeof(BlendshapeOffset);
         buffer->second->setData(blendshapeOffsetSize, (gpu::Byte*) blendshapeOffsets.constData() + index * sizeof(BlendshapeOffset));
 
