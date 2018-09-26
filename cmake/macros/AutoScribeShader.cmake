@@ -9,7 +9,6 @@
 #
 
 macro(AUTOSCRIBE_SHADER)
-    message(STATUS "Processing shader ${SHADER_FILE}")
     unset(SHADER_INCLUDE_FILES)
     # Grab include files
     foreach(includeFile  ${ARGN})

@@ -42,8 +42,9 @@
 using namespace std;
 
 int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
-int weakGeometryResourceBridgePointerTypeId = qRegisterMetaType<Geometry::WeakPointer >();
-int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
+int weakGeometryResourceBridgePointerTypeId = qRegisterMetaType<Geometry::WeakPointer>();
+int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3>>();
+int normalTypeVecTypeId = qRegisterMetaType<QVector<NormalType>>("QVector<NormalType>");
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
@@ -301,45 +302,22 @@ bool Model::updateGeometry() {
         assert(_meshStates.empty());
 
         const FBXGeometry& fbxGeometry = getFBXGeometry();
+        int i = 0;
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterDualQuaternions.resize(mesh.clusters.size());
             state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.push_back(state);
-
-            // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
-            // later in ModelMeshPayload, however the vast majority of meshes will not have them.
-            // TODO? make _blendedVertexBuffers a map instead of vector and only add for meshes with blendshapes?
-            auto buffer = std::make_shared<gpu::Buffer>();
-            if (!mesh.blendshapes.isEmpty()) {
-                std::vector<NormalType> normalsAndTangents;
-                normalsAndTangents.reserve(mesh.normals.size() + mesh.tangents.size());
-
-                for (auto normalIt = mesh.normals.begin(), tangentIt = mesh.tangents.begin();
-                     normalIt != mesh.normals.end();
-                     ++normalIt, ++tangentIt) {
-#if FBX_PACK_NORMALS
-                    glm::uint32 finalNormal;
-                    glm::uint32 finalTangent;
-                    buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
-#else
-                    const auto finalNormal = *normalIt;
-                    const auto finalTangent = *tangentIt;
-#endif
-                    normalsAndTangents.push_back(finalNormal);
-                    normalsAndTangents.push_back(finalTangent);
-                }
-
-                buffer->resize(mesh.vertices.size() * (sizeof(glm::vec3) + 2 * sizeof(NormalType)));
-                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (const gpu::Byte*) mesh.vertices.constData());
-                buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-                                   mesh.normals.size() * 2 * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
+            if (!mesh.blendshapes.empty() && _blendedVertexBuffers.find(i) == _blendedVertexBuffers.end()) {
+                initializeBlendshapes(mesh, i);
             }
-            _blendedVertexBuffers.push_back(buffer);
+            i++;
         }
+        _blendedVertexBuffersInitialized = true;
         needFullUpdate = true;
         emit rigReady();
     }
+
     return needFullUpdate;
 }
 
@@ -376,17 +354,20 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
     // we can use the AABox's intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
-    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
+    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, 1.0f / modelFrameDirection, distance, face, surfaceNormal)) {
         QMutexLocker locker(&_mutex);
 
-        float bestDistance = std::numeric_limits<float>::max();
+        float bestDistance = FLT_MAX;
+        BoxFace bestFace;
         Triangle bestModelTriangle;
         Triangle bestWorldTriangle;
+        glm::vec3 bestWorldIntersectionPoint;
+        glm::vec3 bestMeshIntersectionPoint;
+        int bestPartIndex = 0;
+        int bestShapeID = 0;
         int bestSubMeshIndex = 0;
 
-        int subMeshIndex = 0;
         const FBXGeometry& geometry = getFBXGeometry();
-
         if (!_triangleSetsValid) {
             calculateTriangleSets(geometry);
         }
@@ -397,31 +378,30 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
         glm::vec3 meshFrameDirection = glm::vec3(worldToMeshMatrix * glm::vec4(direction, 0.0f));
+        glm::vec3 meshFrameInvDirection = 1.0f / meshFrameDirection;
 
         int shapeID = 0;
+        int subMeshIndex = 0;
+
+        std::vector<SortedTriangleSet> sortedTriangleSets;
         for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
             int partIndex = 0;
-            for (auto &partTriangleSet : meshTriangleSets) {
-                float triangleSetDistance;
-                BoxFace triangleSetFace;
-                Triangle triangleSetTriangle;
-                if (partTriangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
-                    glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
-                    glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
-                    float worldDistance = glm::distance(origin, worldIntersectionPoint);
-
-                    if (worldDistance < bestDistance) {
-                        bestDistance = worldDistance;
-                        intersectedSomething = true;
-                        face = triangleSetFace;
-                        bestModelTriangle = triangleSetTriangle;
-                        bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
-                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
-                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
-                        extraInfo["partIndex"] = partIndex;
-                        extraInfo["shapeID"] = shapeID;
-                        bestSubMeshIndex = subMeshIndex;
+            for (auto& partTriangleSet : meshTriangleSets) {
+                float priority = FLT_MAX;
+                if (partTriangleSet.getBounds().contains(meshFrameOrigin)) {
+                    priority = 0.0f;
+                } else {
+                    float partBoundDistance = FLT_MAX;
+                    BoxFace partBoundFace;
+                    glm::vec3 partBoundNormal;
+                    if (partTriangleSet.getBounds().findRayIntersection(meshFrameOrigin, meshFrameDirection, meshFrameInvDirection,
+                                                                        partBoundDistance, partBoundFace, partBoundNormal)) {
+                        priority = partBoundDistance;
                     }
+                }
+
+                if (priority < FLT_MAX) {
+                    sortedTriangleSets.emplace_back(priority, &partTriangleSet, partIndex, shapeID, subMeshIndex);
                 }
                 partIndex++;
                 shapeID++;
@@ -429,9 +409,47 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             subMeshIndex++;
         }
 
+        if (sortedTriangleSets.size() > 1) {
+            static auto comparator = [](const SortedTriangleSet& left, const SortedTriangleSet& right) { return left.distance < right.distance; };
+            std::sort(sortedTriangleSets.begin(), sortedTriangleSets.end(), comparator);
+        }
+
+        for (auto it = sortedTriangleSets.begin(); it != sortedTriangleSets.end(); ++it) {
+            const SortedTriangleSet& sortedTriangleSet = *it;
+            // We can exit once triangleSetDistance > bestDistance
+            if (sortedTriangleSet.distance > bestDistance) {
+                break;
+            }
+            float triangleSetDistance = FLT_MAX;
+            BoxFace triangleSetFace;
+            Triangle triangleSetTriangle;
+            if (sortedTriangleSet.triangleSet->findRayIntersection(meshFrameOrigin, meshFrameDirection, meshFrameInvDirection, triangleSetDistance, triangleSetFace,
+                                                                   triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
+                if (triangleSetDistance < bestDistance) {
+                    bestDistance = triangleSetDistance;
+                    intersectedSomething = true;
+                    bestFace = triangleSetFace;
+                    bestModelTriangle = triangleSetTriangle;
+                    bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                    glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
+                    glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
+                    bestWorldIntersectionPoint = worldIntersectionPoint;
+                    bestMeshIntersectionPoint = meshIntersectionPoint;
+                    bestPartIndex = sortedTriangleSet.partIndex;
+                    bestShapeID = sortedTriangleSet.shapeID;
+                    bestSubMeshIndex = sortedTriangleSet.subMeshIndex;
+                }
+            }
+        }
+
         if (intersectedSomething) {
             distance = bestDistance;
+            face = bestFace;
             surfaceNormal = bestWorldTriangle.getNormal();
+            extraInfo["worldIntersectionPoint"] = vec3toVariant(bestWorldIntersectionPoint);
+            extraInfo["meshIntersectionPoint"] = vec3toVariant(bestMeshIntersectionPoint);
+            extraInfo["partIndex"] = bestPartIndex;
+            extraInfo["shapeID"] = bestShapeID;
             if (pickAgainstTriangles) {
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
                 extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
@@ -483,13 +501,16 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
         QMutexLocker locker(&_mutex);
 
         float bestDistance = FLT_MAX;
+        BoxFace bestFace;
         Triangle bestModelTriangle;
         Triangle bestWorldTriangle;
+        glm::vec3 bestWorldIntersectionPoint;
+        glm::vec3 bestMeshIntersectionPoint;
+        int bestPartIndex = 0;
+        int bestShapeID = 0;
         int bestSubMeshIndex = 0;
 
-        int subMeshIndex = 0;
         const FBXGeometry& geometry = getFBXGeometry();
-
         if (!_triangleSetsValid) {
             calculateTriangleSets(geometry);
         }
@@ -503,30 +524,27 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
         glm::vec3 meshFrameAcceleration = glm::vec3(worldToMeshMatrix * glm::vec4(acceleration, 0.0f));
 
         int shapeID = 0;
+        int subMeshIndex = 0;
+
+        std::vector<SortedTriangleSet> sortedTriangleSets;
         for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
             int partIndex = 0;
-            for (auto &partTriangleSet : meshTriangleSets) {
-                float triangleSetDistance;
-                BoxFace triangleSetFace;
-                Triangle triangleSetTriangle;
-                if (partTriangleSet.findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
-                    triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
-                    if (triangleSetDistance < bestDistance) {
-                        bestDistance = triangleSetDistance;
-                        intersectedSomething = true;
-                        face = triangleSetFace;
-                        bestModelTriangle = triangleSetTriangle;
-                        bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
-                        glm::vec3 meshIntersectionPoint = meshFrameOrigin + meshFrameVelocity * triangleSetDistance +
-                            0.5f * meshFrameAcceleration * triangleSetDistance * triangleSetDistance;
-                        glm::vec3 worldIntersectionPoint = origin + velocity * triangleSetDistance +
-                            0.5f * acceleration * triangleSetDistance * triangleSetDistance;
-                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
-                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
-                        extraInfo["partIndex"] = partIndex;
-                        extraInfo["shapeID"] = shapeID;
-                        bestSubMeshIndex = subMeshIndex;
+            for (auto& partTriangleSet : meshTriangleSets) {
+                float priority = FLT_MAX;
+                if (partTriangleSet.getBounds().contains(meshFrameOrigin)) {
+                    priority = 0.0f;
+                } else {
+                    float partBoundDistance = FLT_MAX;
+                    BoxFace partBoundFace;
+                    glm::vec3 partBoundNormal;
+                    if (partTriangleSet.getBounds().findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
+                                                                             partBoundDistance, partBoundFace, partBoundNormal)) {
+                        priority = partBoundDistance;
                     }
+                }
+
+                if (priority < FLT_MAX) {
+                    sortedTriangleSets.emplace_back(priority, &partTriangleSet, partIndex, shapeID, subMeshIndex);
                 }
                 partIndex++;
                 shapeID++;
@@ -534,9 +552,51 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
             subMeshIndex++;
         }
 
+        if (sortedTriangleSets.size() > 1) {
+            static auto comparator = [](const SortedTriangleSet& left, const SortedTriangleSet& right) { return left.distance < right.distance; };
+            std::sort(sortedTriangleSets.begin(), sortedTriangleSets.end(), comparator);
+        }
+
+        for (auto it = sortedTriangleSets.begin(); it != sortedTriangleSets.end(); ++it) {
+            const SortedTriangleSet& sortedTriangleSet = *it;
+            // We can exit once triangleSetDistance > bestDistance
+            if (sortedTriangleSet.distance > bestDistance) {
+                break;
+            }
+            float triangleSetDistance = FLT_MAX;
+            BoxFace triangleSetFace;
+            Triangle triangleSetTriangle;
+            if (sortedTriangleSet.triangleSet->findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
+                                                                        triangleSetDistance, triangleSetFace, triangleSetTriangle,
+                                                                        pickAgainstTriangles, allowBackface)) {
+                if (triangleSetDistance < bestDistance) {
+                    bestDistance = triangleSetDistance;
+                    intersectedSomething = true;
+                    bestFace = triangleSetFace;
+                    bestModelTriangle = triangleSetTriangle;
+                    bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                    glm::vec3 meshIntersectionPoint = meshFrameOrigin + meshFrameVelocity * triangleSetDistance +
+                        0.5f * meshFrameAcceleration * triangleSetDistance * triangleSetDistance;
+                    glm::vec3 worldIntersectionPoint = origin + velocity * triangleSetDistance +
+                        0.5f * acceleration * triangleSetDistance * triangleSetDistance;
+                    bestWorldIntersectionPoint = worldIntersectionPoint;
+                    bestMeshIntersectionPoint = meshIntersectionPoint;
+                    bestPartIndex = sortedTriangleSet.partIndex;
+                    bestShapeID = sortedTriangleSet.shapeID;
+                    bestSubMeshIndex = sortedTriangleSet.subMeshIndex;
+                    // These sets can overlap, so we can't exit early if we find something
+                }
+            }
+        }
+
         if (intersectedSomething) {
             parabolicDistance = bestDistance;
+            face = bestFace;
             surfaceNormal = bestWorldTriangle.getNormal();
+            extraInfo["worldIntersectionPoint"] = vec3toVariant(bestWorldIntersectionPoint);
+            extraInfo["meshIntersectionPoint"] = vec3toVariant(bestMeshIntersectionPoint);
+            extraInfo["partIndex"] = bestPartIndex;
+            extraInfo["shapeID"] = bestShapeID;
             if (pickAgainstTriangles) {
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
                 extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
@@ -974,6 +1034,10 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
 
+    _blendedVertexBuffers.clear();
+    _normalsAndTangents.clear();
+    _blendedVertexBuffersInitialized = false;
+
     _addedToScene = false;
 
     _renderInfoVertexCount = 0;
@@ -1220,8 +1284,7 @@ QStringList Model::getJointNames() const {
 class Blender : public QRunnable {
 public:
 
-    Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients);
+    Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, const QVector<float>& blendshapeCoefficients);
 
     virtual void run() override;
 
@@ -1230,35 +1293,37 @@ private:
     ModelPointer _model;
     int _blendNumber;
     Geometry::WeakPointer _geometry;
-    QVector<FBXMesh> _meshes;
     QVector<float> _blendshapeCoefficients;
 };
 
-Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients) :
+Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, const QVector<float>& blendshapeCoefficients) :
     _model(model),
     _blendNumber(blendNumber),
     _geometry(geometry),
-    _meshes(meshes),
     _blendshapeCoefficients(blendshapeCoefficients) {
 }
 
 void Blender::run() {
-    DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
-    QVector<glm::vec3> vertices, normals, tangents;
-    if (_model) {
+    QVector<glm::vec3> vertices;
+    QVector<NormalType> normalsAndTangents;
+    if (_model && _model->isLoaded()) {
+        DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
         int offset = 0;
-        foreach (const FBXMesh& mesh, _meshes) {
-            if (mesh.blendshapes.isEmpty()) {
+        int normalsAndTangentsOffset = 0;
+        auto meshes = _model->getFBXGeometry().meshes;
+        int meshIndex = 0;
+        foreach (const FBXMesh& mesh, meshes) {
+            auto modelMeshNormalsAndTangents = _model->_normalsAndTangents.find(meshIndex++);
+            if (mesh.blendshapes.isEmpty() || modelMeshNormalsAndTangents == _model->_normalsAndTangents.end()) {
                 continue;
             }
+
             vertices += mesh.vertices;
-            normals += mesh.normals;
-            tangents += mesh.tangents;
+            normalsAndTangents += modelMeshNormalsAndTangents->second;
             glm::vec3* meshVertices = vertices.data() + offset;
-            glm::vec3* meshNormals = normals.data() + offset;
-            glm::vec3* meshTangents = tangents.data() + offset;
+            NormalType* meshNormalsAndTangents = normalsAndTangents.data() + normalsAndTangentsOffset;
             offset += mesh.vertices.size();
+            normalsAndTangentsOffset += modelMeshNormalsAndTangents->second.size();
             const float NORMAL_COEFFICIENT_SCALE = 0.01f;
             for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
                 float vertexCoefficient = _blendshapeCoefficients.at(i);
@@ -1268,22 +1333,38 @@ void Blender::run() {
                 }
                 float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
                 const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
-                for (int j = 0; j < blendshape.indices.size(); j++) {
-                    int index = blendshape.indices.at(j);
-                    meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
-                    meshNormals[index] += blendshape.normals.at(j) * normalCoefficient;
-                    if (blendshape.tangents.size() > j) {
-                        meshTangents[index] += blendshape.tangents.at(j) * normalCoefficient;
+                tbb::parallel_for(tbb::blocked_range<int>(0, blendshape.indices.size()), [&](const tbb::blocked_range<int>& range) {
+                    for (auto j = range.begin(); j < range.end(); j++) {
+                        int index = blendshape.indices.at(j);
+                        meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
+
+                        glm::vec3 normal = mesh.normals.at(index) + blendshape.normals.at(j) * normalCoefficient;
+                        glm::vec3 tangent;
+                        if (index < mesh.tangents.size()) {
+                            tangent = mesh.tangents.at(index);
+                            if ((int)j < blendshape.tangents.size()) {
+                                tangent += blendshape.tangents.at(j) * normalCoefficient;
+                            }
+                        }
+#if FBX_PACK_NORMALS
+                        glm::uint32 finalNormal;
+                        glm::uint32 finalTangent;
+                        buffer_helpers::packNormalAndTangent(normal, tangent, finalNormal, finalTangent);
+#else
+                        const auto& finalNormal = normal;
+                        const auto& finalTangent = tangent;
+#endif
+                        meshNormalsAndTangents[2 * index] = finalNormal;
+                        meshNormalsAndTangents[2 * index + 1] = finalTangent;
                     }
-                }
+                });
             }
         }
     }
-    // post the result to the geometry cache, which will dispatch to the model if still alive
+    // post the result to the ModelBlender, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
-        Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber),
-        Q_ARG(const Geometry::WeakPointer&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
-        Q_ARG(const QVector<glm::vec3>&, normals), Q_ARG(const QVector<glm::vec3>&, tangents));
+                              Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber), Q_ARG(QVector<glm::vec3>, vertices),
+                              Q_ARG(QVector<NormalType>, normalsAndTangents));
 }
 
 void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale) {
@@ -1443,9 +1524,10 @@ void Model::updateClusterMatrices() {
     }
 
     // post the blender if we're not currently waiting for one to finish
-    if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    auto modelBlender = DependencyManager::get<ModelBlender>();
+    if (_blendedVertexBuffersInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        DependencyManager::get<ModelBlender>()->noteRequiresBlend(getThisPointer());
+        modelBlender->noteRequiresBlend(getThisPointer());
     }
 }
 
@@ -1453,98 +1535,45 @@ bool Model::maybeStartBlender() {
     if (isLoaded()) {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         if (fbxGeometry.hasBlendedMeshes()) {
-            QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _renderGeometry,
-                fbxGeometry.meshes, _blendshapeCoefficients));
+            QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _renderGeometry, _blendshapeCoefficients));
             return true;
         }
     }
     return false;
 }
 
-void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents) {
-    auto geometryRef = geometry.lock();
-    if (!geometryRef || _renderGeometry != geometryRef || _blendedVertexBuffers.empty() || blendNumber < _appliedBlendNumber) {
+void Model::setBlendedVertices(int blendNumber, const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents) {
+    if (!isLoaded() || blendNumber < _appliedBlendNumber || !_blendedVertexBuffersInitialized) {
         return;
     }
     _appliedBlendNumber = blendNumber;
     const FBXGeometry& fbxGeometry = getFBXGeometry();
     int index = 0;
-    std::vector<NormalType> normalsAndTangents;
+    int normalAndTangentIndex = 0;
     for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
-        if (mesh.blendshapes.isEmpty()) {
+        auto meshNormalsAndTangents = _normalsAndTangents.find(i);
+        const auto& buffer = _blendedVertexBuffers.find(i);
+        if (mesh.blendshapes.isEmpty() || meshNormalsAndTangents == _normalsAndTangents.end() || buffer == _blendedVertexBuffers.end()) {
             continue;
         }
 
-        gpu::BufferPointer& buffer = _blendedVertexBuffers[i];
         const auto vertexCount = mesh.vertices.size();
         const auto verticesSize = vertexCount * sizeof(glm::vec3);
-        const auto offset = index * sizeof(glm::vec3);
-
-        normalsAndTangents.clear();
-        normalsAndTangents.resize(normals.size()+tangents.size());
-//        assert(normalsAndTangents.size() == 2 * vertexCount);
-
-        // Interleave normals and tangents
-#if 0
-        // Sequential version for debugging
-        auto normalsRange = std::make_pair(normals.begin() + index, normals.begin() + index + vertexCount);
-        auto tangentsRange = std::make_pair(tangents.begin() + index, tangents.begin() + index + vertexCount);
-        auto normalsAndTangentsIt = normalsAndTangents.begin();
-
-        for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
-             normalIt != normalsRange.second;
-             ++normalIt, ++tangentIt) {
-#if FBX_PACK_NORMALS
-            glm::uint32 finalNormal;
-            glm::uint32 finalTangent;
-            buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
-#else
-            const auto finalNormal = *normalIt;
-            const auto finalTangent = *tangentIt;
-#endif
-            *normalsAndTangentsIt = finalNormal;
-            ++normalsAndTangentsIt;
-            *normalsAndTangentsIt = finalTangent;
-            ++normalsAndTangentsIt;
-        }
-#else
-        // Parallel version for performance
-        tbb::parallel_for(tbb::blocked_range<size_t>(index, index+vertexCount), [&](const tbb::blocked_range<size_t>& range) {
-            auto normalsRange = std::make_pair(normals.begin() + range.begin(), normals.begin() + range.end());
-            auto tangentsRange = std::make_pair(tangents.begin() + range.begin(), tangents.begin() + range.end());
-            auto normalsAndTangentsIt = normalsAndTangents.begin() + (range.begin()-index)*2;
-
-            for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
-                 normalIt != normalsRange.second;
-                 ++normalIt, ++tangentIt) {
-#if FBX_PACK_NORMALS
-                glm::uint32 finalNormal;
-                glm::uint32 finalTangent;
-                buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
-#else
-                const auto finalNormal = *normalIt;
-                const auto finalTangent = *tangentIt;
-#endif
-                *normalsAndTangentsIt = finalNormal;
-                ++normalsAndTangentsIt;
-                *normalsAndTangentsIt = finalTangent;
-                ++normalsAndTangentsIt;
-            }
-        });
-#endif
-
-        buffer->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + offset);
-        buffer->setSubData(verticesSize, 2 * vertexCount * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
+        buffer->second->resize(mesh.vertices.size() * sizeof(glm::vec3) + meshNormalsAndTangents->second.size() * sizeof(NormalType));
+        buffer->second->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + index * sizeof(glm::vec3));
+        buffer->second->setSubData(verticesSize, meshNormalsAndTangents->second.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data() + normalAndTangentIndex * sizeof(NormalType));
 
         index += vertexCount;
+        normalAndTangentIndex += meshNormalsAndTangents->second.size();
     }
 }
 
 void Model::deleteGeometry() {
     _deleteGeometryCounter++;
     _blendedVertexBuffers.clear();
+    _normalsAndTangents.clear();
+    _blendedVertexBuffersInitialized = false;
     _meshStates.clear();
     _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
@@ -1576,6 +1605,42 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
     return _modelMeshRenderItemIDs;
 }
 
+void Model::initializeBlendshapes(const FBXMesh& mesh, int index) {
+    _blendedVertexBuffers[index] = std::make_shared<gpu::Buffer>();
+    QVector<NormalType> normalsAndTangents;
+    normalsAndTangents.resize(2 * mesh.normals.size());
+
+    // Interleave normals and tangents
+    // Parallel version for performance
+    tbb::parallel_for(tbb::blocked_range<int>(0, mesh.normals.size()), [&](const tbb::blocked_range<int>& range) {
+        auto normalsRange = std::make_pair(mesh.normals.begin() + range.begin(), mesh.normals.begin() + range.end());
+        auto tangentsRange = std::make_pair(mesh.tangents.begin() + range.begin(), mesh.tangents.begin() + range.end());
+        auto normalsAndTangentsIt = normalsAndTangents.begin() + 2 * range.begin();
+
+        for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
+            normalIt != normalsRange.second;
+            ++normalIt, ++tangentIt) {
+#if FBX_PACK_NORMALS
+            glm::uint32 finalNormal;
+            glm::uint32 finalTangent;
+            buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+#else
+            const auto& finalNormal = *normalIt;
+            const auto& finalTangent = *tangentIt;
+#endif
+            *normalsAndTangentsIt = finalNormal;
+            ++normalsAndTangentsIt;
+            *normalsAndTangentsIt = finalTangent;
+            ++normalsAndTangentsIt;
+        }
+    });
+    const auto verticesSize = mesh.vertices.size() * sizeof(glm::vec3);
+    _blendedVertexBuffers[index]->resize(mesh.vertices.size() * sizeof(glm::vec3) + normalsAndTangents.size() * sizeof(NormalType));
+    _blendedVertexBuffers[index]->setSubData(0, verticesSize, (const gpu::Byte*) mesh.vertices.constData());
+    _blendedVertexBuffers[index]->setSubData(verticesSize, normalsAndTangents.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
+    _normalsAndTangents[index] = normalsAndTangents;
+}
+
 void Model::createRenderItemSet() {
     assert(isLoaded());
     const auto& meshes = _renderGeometry->getMeshes();
@@ -1604,6 +1669,7 @@ void Model::createRenderItemSet() {
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     uint32_t numMeshes = (uint32_t)meshes.size();
+    auto& fbxGeometry = getFBXGeometry();
     for (uint32_t i = 0; i < numMeshes; i++) {
         const auto& mesh = meshes.at(i);
         if (!mesh) {
@@ -1613,6 +1679,9 @@ void Model::createRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
+            if (!fbxGeometry.meshes[i].blendshapes.empty() && _blendedVertexBuffers.find(i) == _blendedVertexBuffers.end()) {
+                initializeBlendshapes(fbxGeometry.meshes[i], i);
+            }
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
             auto material = getGeometry()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
@@ -1620,6 +1689,7 @@ void Model::createRenderItemSet() {
             shapeID++;
         }
     }
+    _blendedVertexBuffersInitialized = true;
 }
 
 bool Model::isRenderable() const {
@@ -1712,37 +1782,38 @@ ModelBlender::~ModelBlender() {
 }
 
 void ModelBlender::noteRequiresBlend(ModelPointer model) {
+    Lock lock(_mutex);
     if (_pendingBlenders < QThread::idealThreadCount()) {
         if (model->maybeStartBlender()) {
             _pendingBlenders++;
+            return;
         }
-        return;
     }
 
-    {
-        Lock lock(_mutex);
-        _modelsRequiringBlends.insert(model);
-    }
+    _modelsRequiringBlends.insert(model);
 }
 
-void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, 
-                                      const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, 
-                                      const QVector<glm::vec3>& tangents) {
+void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, QVector<glm::vec3> vertices, QVector<NormalType> normalsAndTangents) {
     if (model) {
-        model->setBlendedVertices(blendNumber, geometry, vertices, normals, tangents);
+        model->setBlendedVertices(blendNumber, vertices, normalsAndTangents);
     }
-    _pendingBlenders--;
     {
         Lock lock(_mutex);
-        for (auto i = _modelsRequiringBlends.begin(); i != _modelsRequiringBlends.end();) {
+        _pendingBlenders--;
+        _modelsRequiringBlends.erase(model);
+        std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> modelsToErase;
+        for (auto i = _modelsRequiringBlends.begin(); i != _modelsRequiringBlends.end(); i++) {
             auto weakPtr = *i;
-            _modelsRequiringBlends.erase(i++); // remove front of the set
             ModelPointer nextModel = weakPtr.lock();
             if (nextModel && nextModel->maybeStartBlender()) {
                 _pendingBlenders++;
-                return;
+                break;
+            } else {
+                modelsToErase.insert(weakPtr);
             }
+        }
+        for (auto& weakPtr : modelsToErase) {
+            _modelsRequiringBlends.erase(weakPtr);
         }
     }
 }
-

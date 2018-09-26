@@ -10,6 +10,7 @@
 //
 #include "AndroidHelper.h"
 #include <QDebug>
+#include <AudioClient.h>
 #include "Application.h"
 
 #if defined(qApp)
@@ -18,6 +19,7 @@
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
 AndroidHelper::AndroidHelper() {
+    qRegisterMetaType<QAudio::Mode>("QAudio::Mode");
 }
 
 AndroidHelper::~AndroidHelper() {
@@ -55,4 +57,13 @@ void AndroidHelper::processURL(const QString &url) {
     if (qApp->canAcceptURL(url)) {
         qApp->acceptURL(url);
     }
+}
+
+void AndroidHelper::notifyHeadsetOn(bool pluggedIn) {
+#if defined (Q_OS_ANDROID)
+    auto audioClient = DependencyManager::get<AudioClient>();
+    if (audioClient) {
+        QMetaObject::invokeMethod(audioClient.data(), "setHeadsetPluggedIn", Q_ARG(bool, pluggedIn));
+    }
+#endif
 }

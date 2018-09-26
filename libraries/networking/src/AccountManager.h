@@ -96,6 +96,8 @@ public:
 
     QUrl getMetaverseServerURL() { return NetworkingConstants::METAVERSE_SERVER_URL(); }
 
+    void removeAccountFromFile();
+
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
     void requestAccessTokenWithSteam(QByteArray authSessionTicket);
@@ -104,7 +106,6 @@ public slots:
     void requestAccessTokenFinished();
     void refreshAccessTokenFinished();
     void requestProfileFinished();
-    void requestAccessTokenError(QNetworkReply::NetworkError error);
     void refreshAccessTokenError(QNetworkReply::NetworkError error);
     void requestProfileError(QNetworkReply::NetworkError error);
     void logout();
@@ -133,7 +134,6 @@ private:
     void operator=(AccountManager const& other) = delete;
 
     void persistAccountToFile();
-    void removeAccountFromFile();
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);

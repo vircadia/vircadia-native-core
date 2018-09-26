@@ -66,7 +66,7 @@ GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePointer) {
 }
 
 void GLBackend::do_generateTextureMips(const Batch& batch, size_t paramOffset) {
-    TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
+    const auto& resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
     if (!resourceTexture) {
         return;
     }

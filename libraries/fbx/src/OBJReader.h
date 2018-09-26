@@ -66,6 +66,8 @@ public:
     QByteArray specularTextureFilename;
     QByteArray emissiveTextureFilename;
     QByteArray bumpTextureFilename;
+    QByteArray opacityTextureFilename;
+
     OBJMaterialTextureOptions bumpTextureOptions;
     int illuminationModel;
     bool used { false };

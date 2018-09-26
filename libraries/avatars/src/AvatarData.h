@@ -337,6 +337,7 @@ enum KillAvatarReason : uint8_t {
     TheirAvatarEnteredYourBubble,
     YourAvatarEnteredTheirBubble
 };
+
 Q_DECLARE_METATYPE(KillAvatarReason);
 
 class QDataStream;
@@ -963,6 +964,8 @@ public:
     qint64 packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID,
                              ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
 
+    void prepareResetTraitInstances();
+
     void processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
     void processTraitInstance(AvatarTraits::TraitType traitType,
                               AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
@@ -1094,7 +1097,7 @@ public:
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
     glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
-    glm::vec3 getGlobalBoundingBoxCorner() const { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
+    AABox getGlobalBoundingBox() const { return AABox(_globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
 
     /**jsdoc
      * @function MyAvatar.getAvatarEntityData
@@ -1166,8 +1169,6 @@ public:
     // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
     virtual glm::quat getOrientationOutbound() const;
 
-    static const float OUT_OF_VIEW_PENALTY;
-
     // TODO: remove this HACK once we settle on optimal sort coefficients
     // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
     static float _avatarSortCoefficientSize;
@@ -1186,6 +1187,8 @@ public:
 
     virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
+    void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
+    int getReplicaIndex() { return _replicaIndex; }
 
 signals:
 
@@ -1435,6 +1438,8 @@ protected:
     ThreadSafeValueCache<glm::mat4> _farGrabLeftMatrixCache { glm::mat4() };
     ThreadSafeValueCache<glm::mat4> _farGrabMouseMatrixCache { glm::mat4() };
 
+    ThreadSafeValueCache<QVariantMap> _collisionCapsuleCache{ QVariantMap() };
+
     int getFauxJointIndex(const QString& name) const;
 
     float _audioLoudness { 0.0f };
@@ -1445,6 +1450,7 @@ protected:
     udt::SequenceNumber _identitySequenceNumber { 0 };
     bool _hasProcessedFirstIdentity { false };
     float _density;
+    int _replicaIndex { 0 };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;
@@ -1561,7 +1567,7 @@ class RayToAvatarIntersectionResult {
 public:
     bool intersects { false };
     QUuid avatarID;
-    float distance { 0.0f };
+    float distance { FLT_MAX };
     BoxFace face;
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;

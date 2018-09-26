@@ -13,6 +13,7 @@
 #include "avatar/AvatarManager.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "DependencyManager.h"
+#include "PickManager.h"
 
 ParabolaPick::ParabolaPick(const glm::vec3& position, const glm::vec3& direction, float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, bool rotateAccelerationWithParent, bool scaleWithParent, const PickFilter& filter, float maxDistance, bool enabled) :
     Pick(filter, maxDistance, enabled),
@@ -53,8 +54,9 @@ PickParabola ParabolaPick::getMathematicalPick() const {
 
 PickResultPointer ParabolaPick::getEntityIntersection(const PickParabola& pick) {
     if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
+        bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
         ParabolaToEntityIntersectionResult entityRes =
-            DependencyManager::get<EntityScriptingInterface>()->findParabolaIntersectionVector(pick, !getFilter().doesPickCoarse(),
+            DependencyManager::get<EntityScriptingInterface>()->findParabolaIntersectionVector(pick, precisionPicking,
                 getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
         if (entityRes.intersects) {
             return std::make_shared<ParabolaPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.parabolicDistance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
@@ -65,8 +67,9 @@ PickResultPointer ParabolaPick::getEntityIntersection(const PickParabola& pick) 
 
 PickResultPointer ParabolaPick::getOverlayIntersection(const PickParabola& pick) {
     if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
+        bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
         ParabolaToOverlayIntersectionResult overlayRes =
-            qApp->getOverlays().findParabolaIntersectionVector(pick, !getFilter().doesPickCoarse(),
+            qApp->getOverlays().findParabolaIntersectionVector(pick, precisionPicking,
                 getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
         if (overlayRes.intersects) {
             return std::make_shared<ParabolaPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.parabolicDistance, overlayRes.intersection, pick, overlayRes.surfaceNormal, overlayRes.extraInfo);

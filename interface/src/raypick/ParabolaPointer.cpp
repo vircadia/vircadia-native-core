@@ -96,6 +96,9 @@ glm::vec3 ParabolaPointer::getPickOrigin(const PickResultPointer& pickResult) co
 
 glm::vec3 ParabolaPointer::getPickEnd(const PickResultPointer& pickResult, float distance) const {
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
+    if (!parabolaPickResult) {
+        return glm::vec3(0.0f);
+    }
     if (distance > 0.0f) {
         PickParabola pick = PickParabola(parabolaPickResult->pickVariant);
         return pick.origin + pick.velocity * distance + 0.5f * pick.acceleration * distance * distance;
@@ -379,9 +382,8 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::updateBounds() {
 
 const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabolaPipeline() {
     if (!_parabolaPipeline || !_transparentParabolaPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola);
-
         {
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola);
             auto state = std::make_shared<gpu::State>();
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
             state->setBlendFunction(false,
@@ -393,6 +395,7 @@ const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::get
         }
 
         {
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola_translucent);
             auto state = std::make_shared<gpu::State>();
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
             state->setBlendFunction(true,

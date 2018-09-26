@@ -180,6 +180,14 @@ void WindowScriptingInterface::setPreviousBrowseAssetLocation(const QString& loc
     Setting::Handle<QVariant>(LAST_BROWSE_ASSETS_LOCATION_SETTING).set(location);
 }
 
+bool WindowScriptingInterface::getInterstitialModeEnabled() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+}
+
+void WindowScriptingInterface::setInterstitialModeEnabled(bool enableInterstitialMode) {
+    DependencyManager::get<NodeList>()->getDomainHandler().setInterstitialModeEnabled(enableInterstitialMode);
+}
+
 bool  WindowScriptingInterface::isPointOnDesktopWindow(QVariant point) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->isPointOnDesktopWindow(point);
@@ -409,6 +417,10 @@ glm::vec2 WindowScriptingInterface::getDeviceSize() const {
     return qApp->getDeviceSize();
 }
 
+int WindowScriptingInterface::getLastDomainConnectionError() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getLastDomainConnectionError();
+}
+
 int WindowScriptingInterface::getX() {
     return qApp->getWindow()->geometry().x();
 }
@@ -583,4 +595,9 @@ void WindowScriptingInterface::onMessageBoxSelected(int button) {
         messageBox->deleteLater();
         _messageBoxes.remove(id);
     }
+}
+
+
+float WindowScriptingInterface::domainLoadingProgress() {
+    return qApp->getOctreePacketProcessor().domainLoadingProgress();
 }

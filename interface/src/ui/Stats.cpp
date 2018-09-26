@@ -26,6 +26,7 @@
 #include <OffscreenUi.h>
 #include <PerfStat.h>
 #include <plugins/DisplayPlugin.h>
+#include <PickManager.h>
 
 #include <gl/Context.h>
 
@@ -105,6 +106,10 @@ extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
 extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
+
+    if (qApp->isInterstitialMode()) {
+        return;
+    }
     QQuickItem* parent = parentItem();
     if (!force) {
         if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
@@ -146,6 +151,20 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(presentdroprate, -1);
     }
     STAT_UPDATE(gameLoopRate, (int)qApp->getGameLoopRate());
+
+    auto pickManager = DependencyManager::get<PickManager>();
+    if (pickManager && (_expanded || force)) {
+        std::vector<int> totalPicks = pickManager->getTotalPickCounts();
+        STAT_UPDATE(stylusPicksCount, totalPicks[PickQuery::Stylus]);
+        STAT_UPDATE(rayPicksCount, totalPicks[PickQuery::Ray]);
+        STAT_UPDATE(parabolaPicksCount, totalPicks[PickQuery::Parabola]);
+        STAT_UPDATE(collisionPicksCount, totalPicks[PickQuery::Collision]);
+        std::vector<QVector4D> updatedPicks = pickManager->getUpdatedPickCounts();
+        STAT_UPDATE(stylusPicksUpdated, updatedPicks[PickQuery::Stylus]);
+        STAT_UPDATE(rayPicksUpdated, updatedPicks[PickQuery::Ray]);
+        STAT_UPDATE(parabolaPicksUpdated, updatedPicks[PickQuery::Parabola]);
+        STAT_UPDATE(collisionPicksUpdated, updatedPicks[PickQuery::Collision]);
+    }
 
     auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     STAT_UPDATE(packetInCount, (int)bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond());
@@ -192,14 +211,6 @@ void Stats::updateStats(bool force) {
 
     // Third column, avatar stats
     auto myAvatar = avatarManager->getMyAvatar();
-    auto animStack = myAvatar->getSkeletonModel()->getRig().getAnimStack();
-
-    _animStackNames.clear();
-    for (auto animStackIterator = animStack.begin(); animStackIterator != animStack.end(); ++animStackIterator) {
-        _animStackNames << animStackIterator->first + ":   " +  QString::number(animStackIterator->second,'f',3);
-    }
-    emit animStackNamesChanged();
-
     glm::vec3 avatarPos = myAvatar->getWorldPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
     STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getWorldVelocity()), 0.01f);
@@ -286,7 +297,7 @@ void Stats::updateStats(bool force) {
         //    downloads << (int)(resource->getProgress() * 100.0f) << "% ";
         //}
         //downloads << "(" <<  << " pending)";
-    } // expanded avatar column
+    }
 
     // Fourth column, octree stats
     int serverCount = 0;
@@ -355,27 +366,35 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(engineFrameTime, (float) config->getCPURunTime());
     STAT_UPDATE(avatarSimulationTime, (float)avatarManager->getAvatarSimulationTime());
 
-    STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
-    STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemSize()));
-    STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
+    if (_expanded) {
+        STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
+        STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemSize()));
+        STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
 
-    STAT_UPDATE(glContextSwapchainMemory, (int)BYTES_TO_MB(gl::Context::getSwapchainMemoryUsage()));
+        STAT_UPDATE(glContextSwapchainMemory, (int)BYTES_TO_MB(gl::Context::getSwapchainMemoryUsage()));
 
-    STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
-    STAT_UPDATE(texturePendingTransfers, (int)BYTES_TO_MB(gpu::Context::getTexturePendingGPUTransferMemSize()));
-    STAT_UPDATE(gpuTextureMemory, (int)BYTES_TO_MB(gpu::Context::getTextureGPUMemSize()));
-    STAT_UPDATE(gpuTextureResidentMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResidentGPUMemSize()));
-    STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Context::getTextureFramebufferGPUMemSize()));
-    STAT_UPDATE(gpuTextureResourceMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceGPUMemSize()));
-    STAT_UPDATE(gpuTextureResourceIdealMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceIdealGPUMemSize()));
-    STAT_UPDATE(gpuTextureResourcePopulatedMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourcePopulatedGPUMemSize()));
-    STAT_UPDATE(gpuTextureExternalMemory, (int)BYTES_TO_MB(gpu::Context::getTextureExternalGPUMemSize()));
+        STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
+        STAT_UPDATE(texturePendingTransfers, (int)BYTES_TO_MB(gpu::Context::getTexturePendingGPUTransferMemSize()));
+        STAT_UPDATE(gpuTextureMemory, (int)BYTES_TO_MB(gpu::Context::getTextureGPUMemSize()));
+        STAT_UPDATE(gpuTextureResidentMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResidentGPUMemSize()));
+        STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Context::getTextureFramebufferGPUMemSize()));
+        STAT_UPDATE(gpuTextureResourceMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceGPUMemSize()));
+        STAT_UPDATE(gpuTextureResourceIdealMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceIdealGPUMemSize()));
+        STAT_UPDATE(gpuTextureResourcePopulatedMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourcePopulatedGPUMemSize()));
+        STAT_UPDATE(gpuTextureExternalMemory, (int)BYTES_TO_MB(gpu::Context::getTextureExternalGPUMemSize()));
 #if !defined(Q_OS_ANDROID)
-    STAT_UPDATE(gpuTextureMemoryPressureState, getTextureMemoryPressureModeString());
+        STAT_UPDATE(gpuTextureMemoryPressureState, getTextureMemoryPressureModeString());
 #endif
-    STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemSize()));
-    STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
-    STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
+        STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemSize()));
+        STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
+        STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
+    }
+
+    gpu::ContextStats gpuFrameStats;
+    gpuContext->getFrameStats(gpuFrameStats);
+
+    STAT_UPDATE(drawcalls, gpuFrameStats._DSNumDrawcalls);
+
 
     // Incoming packets
     QLocale locale(QLocale::English);

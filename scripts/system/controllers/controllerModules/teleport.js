@@ -62,39 +62,50 @@ Script.include("/~/system/libraries/controllers.js");
         alpha: 1,
         width: 0.025
     };
+    
     var teleportPath = {
         color: COLORS_TELEPORT_CAN_TELEPORT,
         alpha: 1,
         width: 0.025
     };
+    
     var seatPath = {
         color: COLORS_TELEPORT_SEAT,
         alpha: 1,
         width: 0.025
     };
+    
     var teleportEnd = {
         type: "model",
         url: TARGET_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
         ignorePickIntersection: true
     };
+    
     var seatEnd = {
         type: "model",
         url: SEAT_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
         ignorePickIntersection: true
     };
-
-
+    
+    var collisionEnd = {
+        type: "shape",
+        shape: "box",
+        dimensions: { x: 1.0, y: 0.001, z: 1.0 },
+        alpha: 0.0,
+        ignorePickIntersection: true
+    };
+    
     var teleportRenderStates = [{name: "cancel", path: cancelPath},
         {name: "teleport", path: teleportPath, end: teleportEnd},
-        {name: "seat", path: seatPath, end: seatEnd}];
+        {name: "seat", path: seatPath, end: seatEnd},
+        {name: "collision", end: collisionEnd}];
 
     var DEFAULT_DISTANCE = 8.0;
     var teleportDefaultRenderStates = [{name: "cancel", distance: DEFAULT_DISTANCE, path: cancelPath}];
 
     var ignoredEntities = [];
-
 
     var TELEPORTER_STATES = {
         IDLE: 'idle',
@@ -104,8 +115,9 @@ Script.include("/~/system/libraries/controllers.js");
 
     var TARGET = {
         NONE: 'none', // Not currently targetting anything
-        INVISIBLE: 'invisible', // The current target is an invvsible surface
         INVALID: 'invalid', // The current target is invalid (wall, ceiling, etc.)
+        COLLIDES: 'collides', // Insufficient space to accommodate the avatar capsule
+        DISCREPANCY: 'discrepancy', // We are not 100% sure the avatar will fit so we trigger safe landing
         SURFACE: 'surface', // The current target is a valid surface
         SEAT: 'seat' // The current target is a seat
     };
@@ -115,6 +127,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     function Teleporter(hand) {
         var _this = this;
+        this.init = false;
         this.hand = hand;
         this.buttonValue = 0;
         this.disabled = false; // used by the 'Hifi-Teleport-Disabler' message handler
@@ -122,73 +135,137 @@ Script.include("/~/system/libraries/controllers.js");
         this.state = TELEPORTER_STATES.IDLE;
         this.currentTarget = TARGET.INVALID;
         this.currentResult = null;
+        this.capsuleThreshold = 0.05;
+        this.pickHeightOffset = 0.05;
 
         this.getOtherModule = function() {
             var otherModule = this.hand === RIGHT_HAND ? leftTeleporter : rightTeleporter;
             return otherModule;
         };
 
-        this.teleportParabolaHandVisible = Pointers.createPointer(PickType.Parabola, {
-            joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
-            dirOffset: { x: 0, y: 1, z: 0.1 },
-            posOffset: { x: (_this.hand === RIGHT_HAND) ? 0.03 : -0.03, y: 0.2, z: 0.02 },
-            filter: Picks.PICK_ENTITIES,
-            faceAvatar: true,
-            scaleWithAvatar: true,
-            centerEndY: false,
-            speed: speed,
-            accelerationAxis: accelerationAxis,
-            rotateAccelerationWithAvatar: true,
-            renderStates: teleportRenderStates,
-            defaultRenderStates: teleportDefaultRenderStates,
-            maxDistance: 8.0
-        });
-        this.teleportParabolaHandInvisible = Pointers.createPointer(PickType.Parabola, {
-            joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
-            dirOffset: { x: 0, y: 1, z: 0.1 },
-            posOffset: { x: (_this.hand === RIGHT_HAND) ? 0.03 : -0.03, y: 0.2, z: 0.02 },
-            filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
-            faceAvatar: true,
-            scaleWithAvatar: true,
-            centerEndY: false,
-            speed: speed,
-            accelerationAxis: accelerationAxis,
-            rotateAccelerationWithAvatar: true,
-            renderStates: teleportRenderStates,
-            maxDistance: 8.0
-        });
-        this.teleportParabolaHeadVisible = Pointers.createPointer(PickType.Parabola, {
-            joint: "Avatar",
-            filter: Picks.PICK_ENTITIES,
-            faceAvatar: true,
-            scaleWithAvatar: true,
-            centerEndY: false,
-            speed: speed,
-            accelerationAxis: accelerationAxis,
-            rotateAccelerationWithAvatar: true,
-            renderStates: teleportRenderStates,
-            defaultRenderStates: teleportDefaultRenderStates,
-            maxDistance: 8.0
-        });
-        this.teleportParabolaHeadInvisible = Pointers.createPointer(PickType.Parabola, {
-            joint: "Avatar",
-            filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
-            faceAvatar: true,
-            scaleWithAvatar: true,
-            centerEndY: false,
-            speed: speed,
-            accelerationAxis: accelerationAxis,
-            rotateAccelerationWithAvatar: true,
-            renderStates: teleportRenderStates,
-            maxDistance: 8.0
-        });
+        this.teleportHeadCollisionPick;
+        this.teleportHandCollisionPick;
+        this.teleportParabolaHandVisuals;
+        this.teleportParabolaHandCollisions;
+        this.teleportParabolaHeadVisuals;
+        this.teleportParabolaHeadCollisions;
 
         this.cleanup = function() {
-            Pointers.removePointer(this.teleportParabolaHandVisible);
-            Pointers.removePointer(this.teleportParabolaHandInvisible);
-            Pointers.removePointer(this.teleportParabolaHeadVisible);
-            Pointers.removePointer(this.teleportParabolaHeadInvisible);
+            Pointers.removePointer(_this.teleportParabolaHandVisuals);
+            Pointers.removePointer(_this.teleportParabolaHandCollisions);
+            Pointers.removePointer(_this.teleportParabolaHeadVisuals);
+            Pointers.removePointer(_this.teleportParabolaHeadCollisions);
+            Picks.removePick(_this.teleportHandCollisionPick);
+            Picks.removePick(_this.teleportHeadCollisionPick);
         };
+
+        this.initPointers = function () {
+            if (_this.init) {
+                _this.cleanup();
+            }
+            _this.teleportParabolaHandVisuals = Pointers.createPointer(PickType.Parabola, {
+                joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
+                dirOffset: { x: 0, y: 1, z: 0.1 },
+                posOffset: { x: (_this.hand === RIGHT_HAND) ? 0.03 : -0.03, y: 0.2, z: 0.02 },
+                filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
+                faceAvatar: true,
+                scaleWithAvatar: true,
+                centerEndY: false,
+                speed: speed,
+                accelerationAxis: accelerationAxis,
+                rotateAccelerationWithAvatar: true,
+                renderStates: teleportRenderStates,
+                defaultRenderStates: teleportDefaultRenderStates,
+                maxDistance: 8.0
+            });
+
+            _this.teleportParabolaHandCollisions = Pointers.createPointer(PickType.Parabola, {
+                joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
+                dirOffset: { x: 0, y: 1, z: 0.1 },
+                posOffset: { x: (_this.hand === RIGHT_HAND) ? 0.03 : -0.03, y: 0.2, z: 0.02 },
+                filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
+                faceAvatar: true,
+                scaleWithAvatar: true,
+                centerEndY: false,
+                speed: speed,
+                accelerationAxis: accelerationAxis,
+                rotateAccelerationWithAvatar: true,
+                renderStates: teleportRenderStates,
+                maxDistance: 8.0
+            });
+
+            _this.teleportParabolaHeadVisuals = Pointers.createPointer(PickType.Parabola, {
+                joint: "Avatar",
+                filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
+                faceAvatar: true,
+                scaleWithAvatar: true,
+                centerEndY: false,
+                speed: speed,
+                accelerationAxis: accelerationAxis,
+                rotateAccelerationWithAvatar: true,
+                renderStates: teleportRenderStates,
+                defaultRenderStates: teleportDefaultRenderStates,
+                maxDistance: 8.0
+            });
+
+            _this.teleportParabolaHeadCollisions = Pointers.createPointer(PickType.Parabola, {
+                joint: "Avatar",
+                filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
+                faceAvatar: true,
+                scaleWithAvatar: true,
+                centerEndY: false,
+                speed: speed,
+                accelerationAxis: accelerationAxis,
+                rotateAccelerationWithAvatar: true,
+                renderStates: teleportRenderStates,
+                maxDistance: 8.0
+            });
+
+
+            var capsuleData = MyAvatar.getCollisionCapsule();
+
+            var sensorToWorldScale = MyAvatar.getSensorToWorldScale();
+
+            var radius = capsuleData.radius / sensorToWorldScale;
+            var height = (Vec3.distance(capsuleData.start, capsuleData.end) + (capsuleData.radius * 2.0)) / sensorToWorldScale;
+            var capsuleRatio = 10.0 * radius / height;
+            var offset = _this.pickHeightOffset * capsuleRatio;
+
+            _this.teleportHandCollisionPick = Picks.createPick(PickType.Collision, {
+                enabled: true,
+                parentID: Pointers.getPointerProperties(_this.teleportParabolaHandCollisions).renderStates["collision"].end,
+                filter: Picks.PICK_ENTITIES | Picks.PICK_AVATARS,
+                shape: {
+                    shapeType: "capsule-y",
+                    dimensions: {
+                        x: radius * 2.0,
+                        y: height - (radius * 2.0),
+                        z: radius * 2.0
+                    }
+                },
+                position: { x: 0, y: offset + height * 0.5, z: 0 },
+                threshold: _this.capsuleThreshold
+            });
+
+            _this.teleportHeadCollisionPick = Picks.createPick(PickType.Collision, {
+                enabled: true,
+                parentID: Pointers.getPointerProperties(_this.teleportParabolaHeadCollisions).renderStates["collision"].end,
+                filter: Picks.PICK_ENTITIES | Picks.PICK_AVATARS,
+                shape: {
+                    shapeType: "capsule-y",
+                    dimensions: {
+                        x: radius * 2.0,
+                        y: height - (radius * 2.0),
+                        z: radius * 2.0
+                    }
+                },
+                position: { x: 0, y: offset + height * 0.5, z: 0 },
+                threshold: _this.capsuleThreshold
+            });
+            _this.init = true;
+        }
+        
+        _this.initPointers();
 
         this.axisButtonStateX = 0; // Left/right axis button pressed.
         this.axisButtonStateY = 0; // Up/down axis button pressed.
@@ -254,52 +331,56 @@ Script.include("/~/system/libraries/controllers.js");
             var pose = Controller.getPoseValue(handInfo[(_this.hand === RIGHT_HAND) ? 'right' : 'left'].controllerInput);
             var mode = pose.valid ? _this.hand : 'head';
             if (!pose.valid) {
-                Pointers.disablePointer(_this.teleportParabolaHandVisible);
-                Pointers.disablePointer(_this.teleportParabolaHandInvisible);
-                Pointers.enablePointer(_this.teleportParabolaHeadVisible);
-                Pointers.enablePointer(_this.teleportParabolaHeadInvisible);
+                Pointers.disablePointer(_this.teleportParabolaHandVisuals);
+                Pointers.disablePointer(_this.teleportParabolaHandCollisions);
+                Picks.disablePick(_this.teleportHandCollisionPick);
+                Pointers.enablePointer(_this.teleportParabolaHeadVisuals);
+                Pointers.enablePointer(_this.teleportParabolaHeadCollisions);
+                Picks.enablePick(_this.teleportHeadCollisionPick);
             } else {
-                Pointers.enablePointer(_this.teleportParabolaHandVisible);
-                Pointers.enablePointer(_this.teleportParabolaHandInvisible);
-                Pointers.disablePointer(_this.teleportParabolaHeadVisible);
-                Pointers.disablePointer(_this.teleportParabolaHeadInvisible);
+                Pointers.enablePointer(_this.teleportParabolaHandVisuals);
+                Pointers.enablePointer(_this.teleportParabolaHandCollisions);
+                Picks.enablePick(_this.teleportHandCollisionPick);
+                Pointers.disablePointer(_this.teleportParabolaHeadVisuals);
+                Pointers.disablePointer(_this.teleportParabolaHeadCollisions);
+                Picks.disablePick(_this.teleportHeadCollisionPick);
             }
 
             // We do up to 2 picks to find a teleport location.
             // There are 2 types of teleport locations we are interested in:
-            //   1. A visible floor. This can be any entity surface that points within some degree of "up"
+            //
+            //   1. A visible floor. This can be any entity surface that points within some degree of "up" 
+            //      and where the avatar capsule can be positioned without colliding
+            //
             //   2. A seat. The seat can be visible or invisible.
             //
-            //  * In the first pass we pick against visible and invisible entities so that we can find invisible seats.
-            //    We might hit an invisible entity that is not a seat, so we need to do a second pass.
-            //  * In the second pass we pick against visible entities only.
+            //  The Collision Pick is currently parented to the end overlay on teleportParabolaXXXXCollisions
             //
-            var result;
+            //  TODO 
+            //  Parent the collision Pick directly to the teleportParabolaXXXXVisuals and get rid of teleportParabolaXXXXCollisions
+            //
+            var result, collisionResult;
             if (mode === 'head') {
-                result = Pointers.getPrevPickResult(_this.teleportParabolaHeadInvisible);
+                result = Pointers.getPrevPickResult(_this.teleportParabolaHeadCollisions);
+                collisionResult = Picks.getPrevPickResult(_this.teleportHeadCollisionPick);
             } else {
-                result = Pointers.getPrevPickResult(_this.teleportParabolaHandInvisible);
+                result = Pointers.getPrevPickResult(_this.teleportParabolaHandCollisions);
+                collisionResult = Picks.getPrevPickResult(_this.teleportHandCollisionPick);
             }
-
-            var teleportLocationType = getTeleportTargetType(result);
-            if (teleportLocationType === TARGET.INVISIBLE) {
-                if (mode === 'head') {
-                    result = Pointers.getPrevPickResult(_this.teleportParabolaHeadVisible);
-                } else {
-                    result = Pointers.getPrevPickResult(_this.teleportParabolaHandVisible);
-                }
-                teleportLocationType = getTeleportTargetType(result);
-            }
+           
+            var teleportLocationType = getTeleportTargetType(result, collisionResult);
 
             if (teleportLocationType === TARGET.NONE) {
                 // Use the cancel default state
                 this.setTeleportState(mode, "cancel", "");
-            } else if (teleportLocationType === TARGET.INVALID || teleportLocationType === TARGET.INVISIBLE) {
+            } else if (teleportLocationType === TARGET.INVALID) {
                 this.setTeleportState(mode, "", "cancel");
-            } else if (teleportLocationType === TARGET.SURFACE) {
-                this.setTeleportState(mode, "teleport", "");
+            } else if (teleportLocationType === TARGET.COLLIDES) {
+                this.setTeleportState(mode, "cancel", "collision");
+            } else if (teleportLocationType === TARGET.SURFACE || teleportLocationType === TARGET.DISCREPANCY) {
+                this.setTeleportState(mode, "teleport", "collision");
             } else if (teleportLocationType === TARGET.SEAT) {
-                this.setTeleportState(mode, "", "seat");
+                this.setTeleportState(mode, "collision", "seat");
             }
             return this.teleport(result, teleportLocationType);
         };
@@ -314,10 +395,11 @@ Script.include("/~/system/libraries/controllers.js");
                 // Do nothing
             } else if (target === TARGET.SEAT) {
                 Entities.callEntityMethod(result.objectID, 'sit');
-            } else if (target === TARGET.SURFACE) {
+            } else if (target === TARGET.SURFACE || target === TARGET.DISCREPANCY) {
                 var offset = getAvatarFootOffset();
                 result.intersection.y += offset;
-                MyAvatar.goToLocation(result.intersection, true, HMD.orientation, false);
+                var shouldLandSafe = target === TARGET.DISCREPANCY;
+                MyAvatar.goToLocation(result.intersection, true, HMD.orientation, false, shouldLandSafe);
                 HMD.centerUI();
                 MyAvatar.centerBody();
             }
@@ -328,33 +410,38 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.disableLasers = function() {
-            Pointers.disablePointer(_this.teleportParabolaHandVisible);
-            Pointers.disablePointer(_this.teleportParabolaHandInvisible);
-            Pointers.disablePointer(_this.teleportParabolaHeadVisible);
-            Pointers.disablePointer(_this.teleportParabolaHeadInvisible);
+            Pointers.disablePointer(_this.teleportParabolaHandVisuals);
+            Pointers.disablePointer(_this.teleportParabolaHandCollisions);
+            Pointers.disablePointer(_this.teleportParabolaHeadVisuals);
+            Pointers.disablePointer(_this.teleportParabolaHeadCollisions);
+            Picks.disablePick(_this.teleportHeadCollisionPick);
+            Picks.disablePick(_this.teleportHandCollisionPick);
         };
 
         this.setTeleportState = function(mode, visibleState, invisibleState) {
             if (mode === 'head') {
-                Pointers.setRenderState(_this.teleportParabolaHeadVisible, visibleState);
-                Pointers.setRenderState(_this.teleportParabolaHeadInvisible, invisibleState);
+                Pointers.setRenderState(_this.teleportParabolaHeadVisuals, visibleState);
+                Pointers.setRenderState(_this.teleportParabolaHeadCollisions, invisibleState);
             } else {
-                Pointers.setRenderState(_this.teleportParabolaHandVisible, visibleState);
-                Pointers.setRenderState(_this.teleportParabolaHandInvisible, invisibleState);
+                Pointers.setRenderState(_this.teleportParabolaHandVisuals, visibleState);
+                Pointers.setRenderState(_this.teleportParabolaHandCollisions, invisibleState);
             }
         };
 
         this.setIgnoreEntities = function(entitiesToIgnore) {
-            Pointers.setIgnoreItems(this.teleportParabolaHandVisible, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportParabolaHandInvisible, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportParabolaHeadVisible, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportParabolaHeadInvisible, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHandVisuals, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHandCollisions, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHeadVisuals, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHeadCollisions, entitiesToIgnore);
+            Picks.setIgnoreItems(_this.teleportHeadCollisionPick, entitiesToIgnore);
+            Picks.setIgnoreItems(_this.teleportHandCollisionPick, entitiesToIgnore);
         };
     }
 
     // related to repositioning the avatar after you teleport
     var FOOT_JOINT_NAMES = ["RightToe_End", "RightToeBase", "RightFoot"];
     var DEFAULT_ROOT_TO_FOOT_OFFSET = 0.5;
+    
     function getAvatarFootOffset() {
 
         // find a valid foot jointIndex
@@ -395,7 +482,29 @@ Script.include("/~/system/libraries/controllers.js");
     // than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from your avatar's up, then
     // you can't teleport there.
     var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
-    function getTeleportTargetType(result) {
+    var MAX_DISCREPANCY_DISTANCE = 1.0;
+    var MAX_DOT_SIGN = -0.6;
+
+    function checkForMeshDiscrepancy(result, collisionResult) {
+        var intersectingObjects = collisionResult.intersectingObjects;
+        if (intersectingObjects.length > 0 && intersectingObjects.length < 3) {
+            for (var j = 0; j < collisionResult.intersectingObjects.length; j++) {
+                var intersectingObject = collisionResult.intersectingObjects[j];
+                for (var i = 0; i < intersectingObject.collisionContacts.length; i++) {
+                    var normal = intersectingObject.collisionContacts[i].normalOnPick;
+                    var distanceToPick = Vec3.distance(intersectingObject.collisionContacts[i].pointOnPick, result.intersection);
+                    var normalSign = Vec3.dot(normal, Quat.getUp(MyAvatar.orientation));
+                    if ((distanceToPick > MAX_DISCREPANCY_DISTANCE) || (normalSign > MAX_DOT_SIGN)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+    
+    function getTeleportTargetType(result, collisionResult) {
         if (result.type === Picks.INTERSECTED_NONE) {
             return TARGET.NONE;
         }
@@ -410,9 +519,14 @@ Script.include("/~/system/libraries/controllers.js");
                 return TARGET.INVALID;
             }
         }
-
-        if (!props.visible) {
-            return TARGET.INVISIBLE;
+        var isDiscrepancy = false;
+        if (collisionResult.collisionRegion != undefined) {
+            if (collisionResult.intersects) {
+                isDiscrepancy = checkForMeshDiscrepancy(result, collisionResult);
+                if (!isDiscrepancy) {
+                    return TARGET.COLLIDES;
+                } 
+            }
         }
 
         var surfaceNormal = result.surfaceNormal;
@@ -420,6 +534,8 @@ Script.include("/~/system/libraries/controllers.js");
 
         if (angle > MAX_ANGLE_FROM_UP_TO_TELEPORT) {
             return TARGET.INVALID;
+        } else if (isDiscrepancy) {
+            return TARGET.DISCREPANCY;
         } else {
             return TARGET.SURFACE;
         }
@@ -513,7 +629,14 @@ Script.include("/~/system/libraries/controllers.js");
             }
         }
     };
-
+    
+    MyAvatar.onLoadComplete.connect(function () {
+        Script.setTimeout(function () {
+            leftTeleporter.initPointers();
+            rightTeleporter.initPointers();
+        }, 500);
+    });
+    
     Messages.subscribe('Hifi-Teleport-Disabler');
     Messages.subscribe('Hifi-Teleport-Ignore-Add');
     Messages.subscribe('Hifi-Teleport-Ignore-Remove');

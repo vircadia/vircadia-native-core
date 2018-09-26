@@ -1,6 +1,9 @@
 "use strict";
-/*jslint vars:true, plusplus:true, forin:true*/
-/*global Tablet, Settings, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, HMD, Controller, Account, UserActivityLogger, Messages, Window, XMLHttpRequest, print, location, getControllerWorldLocation*/
+/* jslint vars:true, plusplus:true, forin:true */
+/* global Tablet, Settings, Script, AvatarList, Users, Entities,
+    MyAvatar, Camera, Overlays, Vec3, Quat, HMD, Controller, Account,
+    UserActivityLogger, Messages, Window, XMLHttpRequest, print, location, getControllerWorldLocation
+*/
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // pal.js
@@ -20,7 +23,7 @@ var AppUi = Script.require('appUi');
 var populateNearbyUserList, color, textures, removeOverlays,
     controllerComputePickRay, off,
     receiveMessage, avatarDisconnected, clearLocalQMLDataAndClosePAL,
-    CHANNEL, getConnectionData, findableByChanged,
+    CHANNEL, getConnectionData,
     avatarAdded, avatarRemoved, avatarSessionChanged; // forward references;
 
 // hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed
@@ -318,6 +321,10 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'http.request':
         break; // Handled by request-service.
+    case 'hideNotificationDot':
+        shouldShowDot = false;
+        ui.messagesWaiting(shouldShowDot);
+        break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
@@ -361,8 +368,8 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
     });
 }
 var SAFETY_LIMIT = 400;
-function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
-    var url = METAVERSE_BASE + '/api/v1/users?per_page=' + SAFETY_LIMIT + '&';
+function getAvailableConnections(domain, callback, numResultsPerPage) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
+    var url = METAVERSE_BASE + '/api/v1/users?per_page=' + (numResultsPerPage || SAFETY_LIMIT) + '&';
     if (domain) {
         url += 'status=' + domain.slice(1, -1); // without curly braces
     } else {
@@ -713,7 +720,7 @@ function tabletVisibilityChanged() {
     if (!ui.tablet.tabletShown && ui.isOpen) {
         ui.close();
     }
-    }
+}
 
 var UPDATE_INTERVAL_MS = 100;
 var updateInterval;
@@ -725,10 +732,14 @@ function createUpdateInterval() {
 
 var previousContextOverlay = ContextOverlay.enabled;
 var previousRequestsDomainListData = Users.requestsDomainListData;
-function on() {
+function palOpened() {
+    ui.sendMessage({
+        method: 'changeConnectionsDotStatus',
+        shouldShowDot: shouldShowDot
+    });
 
     previousContextOverlay = ContextOverlay.enabled;
-    previousRequestsDomainListData = Users.requestsDomainListData
+    previousRequestsDomainListData = Users.requestsDomainListData;
     ContextOverlay.enabled = false;
     Users.requestsDomainListData = true;
 
@@ -807,14 +818,98 @@ function avatarSessionChanged(avatarID) {
     sendToQml({ method: 'palIsStale', params: [avatarID, 'avatarSessionChanged'] });
 }
 
+function notificationDataProcessPage(data) {
+    return data.data.users;
+}
+
+var shouldShowDot = false;
+var storedOnlineUsersArray = [];
+function notificationPollCallback(connectionsArray) {
+    //
+    // START logic for handling online/offline user changes
+    //
+    var i, j;
+    var newlyOnlineConnectionsArray = [];
+    for (i = 0; i < connectionsArray.length; i++) {
+        var currentUser = connectionsArray[i];
+
+        if (connectionsArray[i].online) {
+            var indexOfStoredOnlineUser = -1;
+            for (j = 0; j < storedOnlineUsersArray.length; j++) {
+                if (currentUser.username === storedOnlineUsersArray[j].username) {
+                    indexOfStoredOnlineUser = j;
+                    break;
+                }
+            }
+            // If the user record isn't already presesnt inside `storedOnlineUsersArray`...
+            if (indexOfStoredOnlineUser < 0) {
+                storedOnlineUsersArray.push(currentUser);
+                newlyOnlineConnectionsArray.push(currentUser);
+            }
+        } else {
+            var indexOfOfflineUser = -1;
+            for (j = 0; j < storedOnlineUsersArray.length; j++) {
+                if (currentUser.username === storedOnlineUsersArray[j].username) {
+                    indexOfOfflineUser = j;
+                    break;
+                }
+            }
+            if (indexOfOfflineUser >= 0) {
+                storedOnlineUsersArray.splice(indexOfOfflineUser);
+            }
+        }
+    }
+    // If there's new data, the light should turn on.
+    // If the light is already on and you have connections online, the light should stay on.
+    // In all other cases, the light should turn off or stay off.
+    shouldShowDot = newlyOnlineConnectionsArray.length > 0 || (storedOnlineUsersArray.length > 0 && shouldShowDot);
+    //
+    // END logic for handling online/offline user changes
+    //
+
+    if (!ui.isOpen) {
+        ui.messagesWaiting(shouldShowDot);
+        ui.sendMessage({
+            method: 'changeConnectionsDotStatus',
+            shouldShowDot: shouldShowDot
+        });
+
+        if (newlyOnlineConnectionsArray.length > 0) {
+            var message;
+            if (!ui.notificationInitialCallbackMade) {
+                message = newlyOnlineConnectionsArray.length + " of your connections " +
+                    (newlyOnlineConnectionsArray.length === 1 ? "is" : "are") + " online. Open PEOPLE to join them!";
+                ui.notificationDisplayBanner(message);
+            } else {
+                for (i = 0; i < newlyOnlineConnectionsArray.length; i++) {
+                    message = newlyOnlineConnectionsArray[i].username + " is available in " +
+                        newlyOnlineConnectionsArray[i].location.root.name + ". Open PEOPLE to join them!";
+                    ui.notificationDisplayBanner(message);
+                }
+            }
+        }
+    }
+}
+
+function isReturnedDataEmpty(data) {
+    var usersArray = data.data.users;
+    return usersArray.length === 0;
+}
+
 function startup() {
     ui = new AppUi({
         buttonName: "PEOPLE",
         sortOrder: 7,
         home: "hifi/Pal.qml",
-        onOpened: on,
+        onOpened: palOpened,
         onClosed: off,
-        onMessage: fromQml
+        onMessage: fromQml,
+        notificationPollEndpoint: "/api/v1/users?filter=connections&per_page=10",
+        notificationPollTimeoutMs: 60000,
+        notificationDataProcessPage: notificationDataProcessPage,
+        notificationPollCallback: notificationPollCallback,
+        notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
+        notificationPollCaresAboutSince: false
     });
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);

@@ -34,7 +34,7 @@ const float DEFAULT_HANDS_ANGULAR_VELOCITY_STEPPING_THRESHOLD = 3.3f;
 const float DEFAULT_HEAD_VELOCITY_STEPPING_THRESHOLD = 0.18f;
 const float DEFAULT_HEAD_PITCH_STEPPING_TOLERANCE = 7.0f;
 const float DEFAULT_HEAD_ROLL_STEPPING_TOLERANCE = 7.0f;
-const float DEFAULT_AVATAR_SPINE_STRETCH_LIMIT = 0.07f;
+const float DEFAULT_AVATAR_SPINE_STRETCH_LIMIT = 0.04f;
 const float DEFAULT_AVATAR_FORWARD_DAMPENING_FACTOR = 0.5f;
 const float DEFAULT_AVATAR_LATERAL_DAMPENING_FACTOR = 2.0f;
 const float DEFAULT_AVATAR_HIPS_MASS = 40.0f;
@@ -44,7 +44,7 @@ const float DEFAULT_AVATAR_RIGHTHAND_MASS = 2.0f;
 
 // Used when avatar is missing joints... (avatar space)
 const glm::quat DEFAULT_AVATAR_MIDDLE_EYE_ROT { Quaternions::Y_180 };
-const glm::vec3 DEFAULT_AVATAR_MIDDLE_EYE_POS { 0.0f, 0.6f, 0.0f };
+const glm::vec3 DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET = { 0.0f, 0.06f, -0.09f };
 const glm::vec3 DEFAULT_AVATAR_HEAD_POS { 0.0f, 0.53f, 0.0f };
 const glm::quat DEFAULT_AVATAR_HEAD_ROT { Quaternions::Y_180 };
 const glm::vec3 DEFAULT_AVATAR_RIGHTARM_POS { -0.134824f, 0.396348f, -0.0515777f };
@@ -68,6 +68,7 @@ const glm::quat DEFAULT_AVATAR_RIGHTFOOT_ROT { -0.4016716778278351f, 0.915461599
 const float DEFAULT_AVATAR_MAX_WALKING_SPEED = 2.6f; // meters / second
 const float DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED = 2.2f; // meters / second
 const float DEFAULT_AVATAR_MAX_FLYING_SPEED = 30.0f; // meters / second
+const float DEFAULT_AVATAR_WALK_SPEED_THRESHOLD = 0.15f;
 
 const float DEFAULT_AVATAR_GRAVITY = -5.0f; // meters / second^2
 const float DEFAULT_AVATAR_JUMP_SPEED = 3.5f; // meters / second

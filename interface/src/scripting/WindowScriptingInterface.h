@@ -49,6 +49,7 @@ class WindowScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int innerHeight READ getInnerHeight)
     Q_PROPERTY(int x READ getX)
     Q_PROPERTY(int y READ getY)
+    Q_PROPERTY(bool interstitialModeEnabled READ getInterstitialModeEnabled WRITE setInterstitialModeEnabled)
 
 public:
     WindowScriptingInterface();
@@ -492,6 +493,13 @@ public slots:
     glm::vec2 getDeviceSize() const;
 
     /**jsdoc
+     * Gets the last domain connection error when a connection is refused.
+     * @function Window.getLastDomainConnectionError
+     * @returns {Window.ConnectionRefusedReason} Integer number that enumerates the last domain connection refused.
+     */
+    int getLastDomainConnectionError() const;
+
+    /**jsdoc
      * Open a non-modal message box that can have a variety of button combinations. See also, 
      * {@link Window.updateMessageBox|updateMessageBox} and {@link Window.closeMessageBox|closeMessageBox}.
      * @function Window.openMessageBox
@@ -560,6 +568,8 @@ public slots:
      * @param {number} id - The ID of the message box.
      */
     void closeMessageBox(int id);
+
+    float domainLoadingProgress();
 
 private slots:
     void onWindowGeometryChanged(const QRect& geometry);
@@ -748,6 +758,9 @@ private:
 
     QString getPreviousBrowseAssetLocation() const;
     void setPreviousBrowseAssetLocation(const QString& location);
+
+    bool getInterstitialModeEnabled() const;
+    void setInterstitialModeEnabled(bool enableInterstitialMode);
 
     void ensureReticleVisible() const;
 
