@@ -311,6 +311,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
         _isConnected = isConnected;
 
         if (_isConnected) {
+            _lastDomainConnectionError = -1;
             emit connectedToDomain(_domainURL);
 
             if (_domainURL.scheme() == URL_SCHEME_HIFI && !_domainURL.host().isEmpty()) {
