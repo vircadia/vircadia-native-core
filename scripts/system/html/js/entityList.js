@@ -181,7 +181,7 @@ function loaded() {
         
         elNoEntitiesInView.style.display = "none";
         
-        entityList = new ListView(elEntityTableHeaderRow, elEntityTableBody, elEntityTableScroll, 
+        entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
                                   createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
         
         function onRowClicked(clickEvent) {

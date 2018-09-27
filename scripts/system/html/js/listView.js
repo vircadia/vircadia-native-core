@@ -13,11 +13,11 @@ debugPrint = function (message) {
     console.log(message);
 };
 
-function ListView(elTableHeaderRow, elTableBody, elTableScroll, createRowFunction, 
+function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunction, 
                   updateRowFunction, clearRowFunction, WINDOW_NONVARIABLE_HEIGHT) {   
-    this.elTableHeaderRow = elTableHeaderRow;
     this.elTableBody = elTableBody;
     this.elTableScroll = elTableScroll;
+    this.elTableHeaderRow = elTableHeaderRow;
     
     this.elTopBuffer = null;
     this.elBottomBuffer = null;
@@ -264,11 +264,11 @@ ListView.prototype = {
         let ths = this.elTableHeaderRow;
         let tds = this.getNumRows() > 0 ? this.elRows[0].childNodes : [];
         if (!ths) {
-            debugPrint("ListView.resize - no valid header row");
+            debugPrint("ListView.resize - no valid table header row");
         } else if (tds.length !== ths.length) {
             debugPrint("ListView.resize - td list size " + tds.length + " does not match th list size " + ths.length);
         }
-        // update the widths of the header cells to match the body cells (using first row)
+        // update the widths of the header cells to match the body cells (using first body row)
         for (let i = 0; i < ths.length; i++) {
             ths[i].width = tds[i].offsetWidth;
         }
