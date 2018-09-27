@@ -207,8 +207,8 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
         scaleWithParent = propMap["scaleWithAvatar"].toBool();
     }
 
-    glm::vec3 position = glm::vec3();
-    glm::vec3 direction = -Vectors::FRONT;
+    glm::vec3 position = Vectors::ZERO;
+    glm::vec3 direction = propMap["joint"].isValid() ? Vectors::UP : -Vectors::FRONT;
     if (propMap["position"].isValid()) {
         position = vec3FromVariant(propMap["position"]);
     } else if (propMap["posOffset"].isValid()) {
