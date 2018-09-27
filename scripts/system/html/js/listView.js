@@ -13,11 +13,11 @@ debugPrint = function (message) {
     console.log(message);
 };
 
-function ListView(tableId, tableBodyId, tableScrollId, createRowFunction, updateRowFunction, 
-                  clearRowFunction, resizeFunction, WINDOW_NONVARIABLE_HEIGHT) {      
-    this.elTable = document.getElementById(tableId);
-    this.elTableBody = document.getElementById(tableBodyId);
-    this.elTableScroll = document.getElementById(tableScrollId);
+function ListView(elTableHeaderRow, elTableBody, elTableScroll, createRowFunction, 
+                  updateRowFunction, clearRowFunction, WINDOW_NONVARIABLE_HEIGHT) {   
+    this.elTableHeaderRow = elTableHeaderRow;
+    this.elTableBody = elTableBody;
+    this.elTableScroll = elTableScroll;
     
     this.elTopBuffer = null;
     this.elBottomBuffer = null;
@@ -25,7 +25,6 @@ function ListView(tableId, tableBodyId, tableScrollId, createRowFunction, update
     this.createRowFunction = createRowFunction;
     this.updateRowFunction = updateRowFunction;
     this.clearRowFunction = clearRowFunction;
-    this.resizeFunction = resizeFunction;
     
     // the list of row elements created in the table up to max viewable height plus SCROLL_ROWS rows for scrolling buffer
     this.elRows = [];
@@ -247,7 +246,7 @@ ListView.prototype = {
         
         // create new row elements inserted between the top and bottom buffers up until the max viewable scroll area
         let usedHeight = 0;
-        while(usedHeight < viewableHeight) {
+        while (usedHeight < viewableHeight) {
             let newRow = this.createRowFunction();
             this.elTableBody.insertBefore(newRow, this.elBottomBuffer);
             this.rowHeight = newRow.offsetHeight;
@@ -262,7 +261,17 @@ ListView.prototype = {
             this.elRows.push(scrollRow);
         }
 
-        this.resizeFunction();
+        let ths = this.elTableHeaderRow;
+        let tds = this.getNumRows() > 0 ? this.elRows[0].childNodes : [];
+        if (!ths) {
+            debugPrint("ListView.resize - no valid header row");
+        } else if (tds.length !== ths.length) {
+            debugPrint("ListView.resize - td list size " + tds.length + " does not match th list size " + ths.length);
+        }
+        // update the widths of the header cells to match the body cells (using first row)
+        for (let i = 0; i < ths.length; i++) {
+            ths[i].width = tds[i].offsetWidth;
+        }
         
         // restore the scroll point to the same scroll point from before above changes
         this.elTableScroll.scrollTop = prevScrollTop;

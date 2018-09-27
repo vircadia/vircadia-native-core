@@ -100,7 +100,7 @@ function loaded() {
         elEntityTable = document.getElementById("entity-table");
         elEntityTableBody = document.getElementById("entity-table-body");
         elEntityTableScroll = document.getElementById("entity-table-scroll");
-        elEntityTableFooter = document.getElementById("entity-table-footer");
+        elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
         elRefresh = document.getElementById("refresh");
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
@@ -181,8 +181,8 @@ function loaded() {
         
         elNoEntitiesInView.style.display = "none";
         
-        entityList = new ListView("entity-table", "entity-table-body", "entity-table-scroll", 
-                                  createRow, updateRow, clearRow, resize, WINDOW_NONVARIABLE_HEIGHT);
+        entityList = new ListView(elEntityTableHeaderRow, elEntityTableBody, elEntityTableScroll, 
+                                  createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
         
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
@@ -273,17 +273,17 @@ function loaded() {
                         type: type,
                         url: filename,
                         fullUrl: entity.url,
-                        locked: entity.locked ? LOCKED_GLYPH : null,
-                        visible: entity.visible ? VISIBLE_GLYPH : null,
+                        locked: entity.locked,
+                        visible: entity.visible,
                         verticesCount: displayIfNonZero(entity.verticesCount),
                         texturesCount: displayIfNonZero(entity.texturesCount),
                         texturesSize: decimalMegabytes(entity.texturesSize),
-                        hasTransparent: entity.hasTransparent ? TRANSPARENCY_GLYPH : null,
-                        isBaked: entity.isBaked ? BAKED_GLYPH : null,
+                        hasTransparent: entity.hasTransparent,
+                        isBaked: entity.isBaked,
                         drawCalls: displayIfNonZero(entity.drawCalls),
-                        hasScript: entity.hasScript ? SCRIPT_GLYPH : null,
-                        elRow: null, // if this entity has a row element assigned to it
-                        selected: false
+                        hasScript: entity.hasScript,
+                        elRow: null, // if this entity has a visible row element assigned to it
+                        selected: false // if this entity is selected for edit regardless of having a visible row
                     }
                     
                     entities.push(entityData);
@@ -491,7 +491,8 @@ function loaded() {
         
         function isGlyphColumn(columnIndex) {
             return columnIndex === COLUMN_INDEX.LOCKED || columnIndex === COLUMN_INDEX.VISIBLE || 
-                   columnIndex === COLUMN_INDEX.HAS_TRANSPARENT || columnIndex === COLUMN_INDEX.IS_BAKED;
+                   columnIndex === COLUMN_INDEX.HAS_TRANSPARENT || columnIndex === COLUMN_INDEX.IS_BAKED || 
+                   columnIndex === COLUMN_INDEX.HAS_SCRIPT;
         }
         
         function createRow() {
@@ -517,9 +518,9 @@ function loaded() {
             let urlCell = elRow.childNodes[COLUMN_INDEX.URL];
             urlCell.innerText = itemData.url;
             let lockedCell = elRow.childNodes[COLUMN_INDEX.LOCKED];
-            lockedCell.innerHTML = itemData.locked;
+            lockedCell.innerHTML = itemData.locked ? LOCKED_GLYPH : null;
             let visibleCell = elRow.childNodes[COLUMN_INDEX.VISIBLE];
-            visibleCell.innerHTML = itemData.visible;
+            visibleCell.innerHTML = itemData.visible ? VISIBLE_GLYPH : null;
             let verticesCountCell = elRow.childNodes[COLUMN_INDEX.VERTICLES_COUNT];
             verticesCountCell.innerText = itemData.verticesCount;
             let texturesCountCell = elRow.childNodes[COLUMN_INDEX.TEXTURES_COUNT];
@@ -527,13 +528,13 @@ function loaded() {
             let texturesSizeCell = elRow.childNodes[COLUMN_INDEX.TEXTURES_SIZE];
             texturesSizeCell.innerText = itemData.texturesSize;
             let hasTransparentCell = elRow.childNodes[COLUMN_INDEX.HAS_TRANSPARENT];
-            hasTransparentCell.innerHTML = itemData.hasTransparent;
+            hasTransparentCell.innerHTML = itemData.hasTransparent ? TRANSPARENCY_GLYPH : null;
             let isBakedCell = elRow.childNodes[COLUMN_INDEX.IS_BAKED];
-            isBakedCell.innerHTML = itemData.isBaked;
+            isBakedCell.innerHTML = itemData.isBaked ? BAKED_GLYPH : null;
             let drawCallsCell = elRow.childNodes[COLUMN_INDEX.DRAW_CALLS];
             drawCallsCell.innerText = itemData.drawCalls;
             let hasScriptCell = elRow.childNodes[COLUMN_INDEX.HAS_SCRIPT];
-            hasScriptCell.innerText = itemData.hasScript;
+            hasScriptCell.innerHTML = itemData.hasScript ? SCRIPT_GLYPH : null;
             
             // if this entity was previously selected flag it's row as selected
             if (itemData.selected) {
@@ -578,40 +579,6 @@ function loaded() {
             // reset the row to hidden and clear the entity from the row
             elRow.className = '';
             elRow.dataset.entityID = EMPTY_ENTITY_ID;
-        }
-
-        function resize() {
-            let SCROLLABAR_WIDTH = 21;
-            let tds = document.querySelectorAll("#entity-table-body tr:first-child td");
-            let ths = document.querySelectorAll("#entity-table thead th");
-            if (tds.length >= ths.length) {
-                // Update the widths of the header cells to match the body
-                for (let i = 0; i < ths.length; i++) {
-                    ths[i].width = tds[i].offsetWidth;
-                }
-            } else {
-                // Reasonable widths if nothing is displayed
-                let tableWidth = document.getElementById("entity-table").offsetWidth - SCROLLABAR_WIDTH;
-                if (showExtraInfo) {
-                    ths[0].width = 0.10 * tableWidth;
-                    ths[1].width = 0.20 * tableWidth;
-                    ths[2].width = 0.20 * tableWidth;
-                    ths[3].width = 0.04 * tableWidth;
-                    ths[4].width = 0.04 * tableWidth;
-                    ths[5].width = 0.08 * tableWidth;
-                    ths[6].width = 0.08 * tableWidth;
-                    ths[7].width = 0.10 * tableWidth;
-                    ths[8].width = 0.04 * tableWidth;
-                    ths[9].width = 0.08 * tableWidth;
-                    ths[10].width = 0.04 * tableWidth + SCROLLABAR_WIDTH;
-                } else {
-                    ths[0].width = 0.16 * tableWidth;
-                    ths[1].width = 0.34 * tableWidth;
-                    ths[2].width = 0.34 * tableWidth;
-                    ths[3].width = 0.08 * tableWidth;
-                    ths[4].width = 0.08 * tableWidth;
-                }
-            } 
         }
         
         function toggleFilterInView() {
