@@ -84,5 +84,5 @@ void main(void) {
 
     float occlusion = clamp(1.0 - obscuranceSum * getObscuranceScaling() * invNumSamples, 0.0, 1.0);
     
-    outFragColor = vec4(vec3(occlusion), 1.0);
+    outFragColor = packOcclusionOutput(occlusion * occlusion, fragPositionES.z, fragNormalES);
 }

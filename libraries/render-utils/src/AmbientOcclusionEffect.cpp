@@ -82,17 +82,22 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getLinearDepthTexture() {
 }
 
 void AmbientOcclusionFramebuffer::allocate() {
+#if SSAO_BILATERAL_BLUR_USE_NORMAL    
+    const auto occlusionformat = gpu::Element{ gpu::VEC4, gpu::HALF, gpu::RGBA };
+#else
+    const auto occlusionformat = gpu::Element{ gpu::VEC3, gpu::NUINT8, gpu::RGB };
+#endif
+
     //  Full frame
     {
         auto width = _frameSize.x;
         auto height = _frameSize.y;
-        auto format = gpu::Element::COLOR_R_8;
 
-        _occlusionTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
+        _occlusionTexture = gpu::Texture::createRenderBuffer(occlusionformat, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
         _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
         _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
 
-        _occlusionBlurredTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
+        _occlusionBlurredTexture = gpu::Texture::createRenderBuffer(occlusionformat, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
         _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusionBlurred"));
         _occlusionBlurredFramebuffer->setRenderBuffer(0, _occlusionBlurredTexture);
     }
@@ -128,9 +133,8 @@ void AmbientOcclusionFramebuffer::allocate() {
         }
         auto width = splitSize.x;
         auto height = splitSize.y;
-        auto format = gpu::Element::COLOR_R_8;
 
-        _occlusionSplitTexture = gpu::Texture::createRenderBufferArray(format, width, height, SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT, gpu::Texture::SINGLE_MIP, 
+        _occlusionSplitTexture = gpu::Texture::createRenderBufferArray(occlusionformat, width, height, SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT, gpu::Texture::SINGLE_MIP,
                                                                        gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
         for (int i = 0; i < SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT; i++) {
             _occlusionSplitFramebuffers[i] = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
@@ -665,10 +669,15 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
                 batch.setModelTransform(model);
             }
             batch.setPipeline(bilateralBlurPipeline);
-            batch.setViewportTransform(firstBlurViewport);
-            batch.setFramebuffer(occlusionBlurredFBO);
             // Use full resolution depth and normal for bilateral upscaling and blur
             batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
+#if SSAO_USE_QUAD_SPLIT
+            batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, occlusionNormalTexture);
+#else
+            batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, nullptr);
+#endif
+            batch.setViewportTransform(firstBlurViewport);
+            batch.setFramebuffer(occlusionBlurredFBO);
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _hblurParametersBuffer);
             batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionFBO->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);

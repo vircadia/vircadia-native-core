@@ -15,12 +15,123 @@
 
 // Hack comment
 
-<$declareBlurPass()$>
+<$declareAmbientOcclusion()$>
+<$declareFetchDepthPyramidMap()$>
+<$declarePackOcclusionDepth()$>
+
+// the source occlusion texture
+layout(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2D occlusionMap;
+
+layout(binding=RENDER_UTILS_BUFFER_SSAO_BLUR_PARAMS) uniform blurParamsBuffer {
+    AmbientOcclusionBlurParams blurParams;
+};
+
+vec2 getBlurOcclusionAxis() {
+    return blurParams._blurAxis.zw;
+}
+
+vec2 getBlurDepthAxis() {
+    return blurParams._blurAxis.xy;
+}
+
+vec2 getBlurOcclusionUVLimit() {
+    return blurParams._blurInfo.zw;
+}
+
+float getBlurEdgeSharpness() {
+    return blurParams._blurInfo.x;
+}
+
+int getBlurRadius() {
+    return int(blurParams._blurInfo.y);
+}
+
+vec4 fetchOcclusionPacked(ivec4 side, vec2 texCoord) {
+    texCoord.x = mix(texCoord.x, (texCoord.x + getStereoSide(side)) * 0.5, isStereo());
+    return textureLod(occlusionMap, texCoord, 0);
+}
+
+float evalBlurCoefficient(vec3 blurScales, float radialDistance, float zDistance, float normalDistance) {
+    vec3 distances = vec3(radialDistance, zDistance, normalDistance);
+    return exp2(dot(blurScales, distances*distances));
+}
+
+const float BLUR_EDGE_DISTANCE_SCALE = 1000 * SSAO_DEPTH_KEY_SCALE;
+const float BLUR_EDGE_NORMAL_SCALE = 2.0;
+const float BLUR_EDGE_NORMAL_LIMIT = 0.25;
+
+vec2 evalTapWeightedValue(vec3 blurScales, ivec4 side, int r, vec2 occlusionTexCoord, vec2 depthTexCoord, float fragDepth, vec3 fragNormal) {
+    vec2 tapOcclusionTexCoord = getBlurOcclusionAxis() * r + occlusionTexCoord;
+    vec2 occlusionTexCoordLimits = getBlurOcclusionUVLimit();
+
+    if (tapOcclusionTexCoord.x < side.x || tapOcclusionTexCoord.x >= (side.x + occlusionTexCoordLimits.x) 
+    || tapOcclusionTexCoord.y < 0 || tapOcclusionTexCoord.y >= occlusionTexCoordLimits.y) {
+        return vec2(0.0);
+    }
+    
+    vec4 tapOcclusionPacked = fetchOcclusionPacked(side, tapOcclusionTexCoord);
+    float tapOcclusion;
+    float tapDepth;
+    vec3 tapNormal;
+    unpackOcclusionOutput(tapOcclusionPacked, tapOcclusion, tapDepth, tapNormal);
+
+    // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
+    float zDistance = tapDepth - fragDepth;
+#if SSAO_BILATERAL_BLUR_USE_NORMAL    
+    float normalDistance = BLUR_EDGE_NORMAL_LIMIT - min(BLUR_EDGE_NORMAL_LIMIT, dot(tapNormal, fragNormal));
+#else
+    float normalDistance = 0.0;
+#endif
+    float weight = evalBlurCoefficient(blurScales, abs(r), zDistance, normalDistance);
+    
+    return vec2(tapOcclusion * weight, weight);
+}
+
+vec4 getBlurredOcclusion(ivec2 destPixelCoord, vec2 occlusionTexCoord, vec2 depthTexCoord) {
+    // Stereo side info
+    ivec4 side = getStereoSideInfo(destPixelCoord.x, 0);
+
+    float fragDepth = getZEyeAtUV(side, depthTexCoord, 0);
+    float fragDepthKey = CSZToDepthKey(fragDepth);
+#if SSAO_BILATERAL_BLUR_USE_NORMAL    
+    vec3 fragNormal = getNormalEyeAtUV(side, depthTexCoord, 0);
+#else
+    vec3 fragNormal = vec3(0, 0, 1);
+#endif
+    vec2 weightedSums = vec2(0.0);
+    
+    // Accumulate weighted contributions along the bluring axis in the [-radius, radius] range
+    int blurRadius = getBlurRadius();
+    float blurRadialSigma = float(blurRadius) * 0.5;
+    float blurRadialScale = 1.0 / (2.0*blurRadialSigma*blurRadialSigma);
+    vec3 blurScales = -vec3(blurRadialScale, vec2(BLUR_EDGE_DISTANCE_SCALE, BLUR_EDGE_NORMAL_SCALE) * getBlurEdgeSharpness());
+
+    // negative side first
+    for (int r = -blurRadius; r <= -1; ++r) {
+        weightedSums += evalTapWeightedValue(blurScales, side, r, occlusionTexCoord, depthTexCoord, fragDepthKey, fragNormal);
+    }
+    
+    // Central pixel contribution
+    float mainWeight = 1.0;
+    float pixelOcclusion = unpackOcclusion(fetchOcclusionPacked(side, occlusionTexCoord));
+    weightedSums += vec2(pixelOcclusion * mainWeight, mainWeight);
+
+    // then positive side
+    for (int r = 1; r <= blurRadius; ++r) {
+        weightedSums += evalTapWeightedValue(blurScales, side, r, occlusionTexCoord, depthTexCoord, fragDepthKey, fragNormal);
+    }
+
+    // Final normalization
+    const float epsilon = 0.0001;
+    float result = weightedSums.x / (weightedSums.y + epsilon);
+    
+    return packOcclusionOutput(result, fragDepth, fragNormal);
+}
 
 layout(location=0) in vec4 varTexCoord0;
 
 layout(location=0) out vec4 outFragColor;
 
 void main(void) {
-    outFragColor = vec4(getBlurredOcclusion(ivec2(gl_FragCoord.xy), varTexCoord0.xy, varTexCoord0.zw), 1.0);
+    outFragColor = getBlurredOcclusion(ivec2(gl_FragCoord.xy), varTexCoord0.xy, varTexCoord0.zw);
 }
