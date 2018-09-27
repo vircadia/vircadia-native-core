@@ -32,7 +32,6 @@
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system"),
         DEBUG = false;
 
-    // #region Utilities =======================================================================================================
 
     function debug(message) {
         if (!DEBUG) {
@@ -75,9 +74,6 @@
         return hand === LEFT_HAND ? RIGHT_HAND : LEFT_HAND;
     }
 
-    // #endregion
-
-    // #region UI ==============================================================================================================
 
     UI = function () {
 
@@ -511,9 +507,6 @@
 
     };
 
-    // #endregion
-
-    // #region State Machine ===================================================================================================
 
     State = function () {
 
@@ -535,8 +528,6 @@
             STATE_MACHINE,
             miniState = MINI_DISABLED,
             miniHand,
-            updateTimer = null,
-            UPDATE_INTERVAL = 25,
 
             // Mini tablet scaling.
             MINI_SCALE_DURATION = 250,
@@ -572,10 +563,7 @@
 
         function enterMiniDisabled() {
             // Stop updates.
-            if (updateTimer !== null) {
-                Script.clearTimeout(updateTimer);
-                updateTimer = null;
-            }
+            Script.update.disconnect(updateState);
 
             // Stop monitoring mute changes.
             Audio.mutedChanged.disconnect(ui.updateMutedStatus);
@@ -593,7 +581,7 @@
             Audio.mutedChanged.connect(ui.updateMutedStatus);
 
             // Start updates.
-            updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);
+            Script.update.connect(updateState);
         }
 
         function shouldShowMini(hand) {
@@ -943,7 +931,6 @@
             if (STATE_MACHINE[STATE_STRINGS[miniState]].update) {
                 STATE_MACHINE[STATE_STRINGS[miniState]].update();
             }
-            updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);
         }
 
         function create() {
@@ -966,7 +953,6 @@
             MINI_VISIBLE: MINI_VISIBLE,
             MINI_EXPANDING: MINI_EXPANDING,
             TABLET_OPEN: TABLET_OPEN,
-            updateState: updateState,
             setState: setState,
             getState: getState,
             getHand: getHand,
@@ -974,9 +960,6 @@
         };
     };
 
-    // #endregion
-
-    // #region External Events =================================================================================================
 
     function onMessageReceived(channel, data, senderID, localOnly) {
         var message,
@@ -1021,9 +1004,6 @@
         }
     }
 
-    // #endregion
-
-    // #region Set-up and tear-down ============================================================================================
 
     function setUp() {
         miniState = new State();
@@ -1053,7 +1033,5 @@
 
     setUp();
     Script.scriptEnding.connect(tearDown);
-
-    // #endregion
 
 }());

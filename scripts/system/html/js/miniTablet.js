@@ -32,7 +32,6 @@
         // Work around buttons staying hovered when mini tablet is replaced by tablet proper then subsequently redisplayed.
         isUnhover = true;
 
-    // #region Utilites ========================================================================================================
 
     function setUnhover() {
         if (!isUnhover) {
@@ -50,9 +49,6 @@
         }
     }
 
-    // #endregion
-
-    // #region Communications ==================================================================================================
 
     function onScriptEventReceived(data) {
         var message;
@@ -127,9 +123,6 @@
         EventBridge.scriptEventReceived.disconnect(onScriptEventReceived);
     }
 
-    // #endregion
-
-    // #region Set-up and tear-down ============================================================================================
 
     function onUnload() {
         disconnectEventBridge();
@@ -160,7 +153,5 @@
     }
 
     onLoad();
-
-    // #endregion
 
 }());
