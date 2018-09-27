@@ -86,10 +86,8 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
     RenderArgs* args = renderContext->args;
 
     int numItemsToDraw = (int)inItems.size();
-    int lastItemToDraw = -1; 
     if (maxDrawnItems != -1) {
         numItemsToDraw = glm::min(numItemsToDraw, maxDrawnItems);
-        lastItemToDraw = numItemsToDraw - 1;
     }
 
     using SortedPipelines = std::vector<render::ShapeKey>;
@@ -100,11 +98,6 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
 
     for (auto i = 0; i < numItemsToDraw; ++i) {
         auto& item = scene->getItem(inItems[i].id);
-        if (lastItemToDraw == i) {
-            if (!item.getKey().isShape()) {
-                qDebug() << "Item explored";
-            }
-        }
         {
             assert(item.getKey().isShape());
             auto key = item.getShapeKey() | globalKey;
