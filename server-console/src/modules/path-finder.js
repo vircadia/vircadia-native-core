@@ -1,5 +1,6 @@
 var fs = require('fs');
 var path = require('path');
+const { app } = require('electron');
 
 function platformExtension(name) {
     if (name == "Interface") {
@@ -53,12 +54,9 @@ exports.searchPaths = function(name, binaryType, releaseType) {
                 var componentsPath = appPath + "/Contents/MacOS/Components.app/Contents/MacOS/";
                 paths.push(componentsPath + name + extension);
 
-                // check beside the app bundle for the binaries
-                paths.push(path.join(path.dirname(appPath), name + extension));
-
-                // check in the peer bundle for the binaries
-                paths.push(path.join("..", name + extension));
             }
+            // check beside the app bundle for the binaries
+            paths.push(path.join(path.dirname(app.getAppPath()), "../../..", name + extension));
         }
     }
 
