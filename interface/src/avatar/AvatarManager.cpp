@@ -866,32 +866,3 @@ QVariantMap AvatarManager::getPalData(const QList<QString> specificAvatarIdentif
     doc.insert("data", palData);
     return doc.toVariantMap();
 }
-
-QVariantMap AvatarManager::getAvatarTransitData() {
-    QVariantMap result;
-    result["frameCount"] = _transitConfig._totalFrames;
-    result["framesPerMeter"] = _transitConfig._framesPerMeter;
-    result["isDistanceBased"] = _transitConfig._isDistanceBased;
-    result["triggerDistance"] = _transitConfig._triggerDistance;
-    result["easeType"] = (int)_transitConfig._easeType;
-
-    return result;
-}
-
-void AvatarManager::setAvatarTransitData(const QVariantMap& data) {
-    if (data.contains("frameCount")) {
-        _transitConfig._totalFrames = data["frameCount"].toInt();
-    }
-    if (data.contains("framesPerMeter")) {
-        _transitConfig._framesPerMeter = data["framesPerMeter"].toInt();
-    }
-    if (data.contains("isDistanceBased")) {
-        _transitConfig._isDistanceBased = data["isDistanceBased"].toBool();
-    }
-    if (data.contains("triggerDistance")) {
-        _transitConfig._triggerDistance = data["triggerDistance"].toDouble();
-    }
-    if (data.contains("easeType")) {
-        _transitConfig._easeType = (AvatarTransit::EaseType)data["easeType"].toInt();
-    }
-}

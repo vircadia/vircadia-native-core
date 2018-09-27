@@ -1115,8 +1115,6 @@ public:
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); };
-    bool getShowTransit() { return _showTransit; };
-    void setShowTransit(bool value) { _showTransit = value; };
 
 public slots:
 
@@ -1798,7 +1796,6 @@ private:
 
     void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
 
-    bool _showTransit { false };
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
     ThreadSafeValueCache<float> _walkBackwardSpeed { DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED };

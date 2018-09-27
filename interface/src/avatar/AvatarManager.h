@@ -181,9 +181,6 @@ public:
      */
     Q_INVOKABLE QVariantMap getPalData(const QList<QString> specificAvatarIdentifiers = QList<QString>());
 
-    Q_INVOKABLE QVariantMap getAvatarTransitData();
-    Q_INVOKABLE void setAvatarTransitData(const QVariantMap& data);
-
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
     int getIdentityRequestsSent() const { return _identityRequestsSent; }
 
@@ -211,7 +208,6 @@ private:
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
     QVector<AvatarSharedPointer> _avatarsToFade;
-    QVector<AvatarSharedPointer> _avatarsToCopy;
 
     using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
     SetOfOtherAvatars _avatarsToChangeInPhysics;
@@ -233,7 +229,6 @@ private:
     workload::SpacePointer _space;
     std::vector<int32_t> _spaceProxiesToDelete;
 
-    // Other avatars smooth transit global configuration
     AvatarTransit::TransitConfig  _transitConfig;
 };
 

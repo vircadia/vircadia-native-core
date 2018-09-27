@@ -616,16 +616,6 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
     animateScaleChanges(deltaTime);
-    if (_transit.isTransiting() && _showTransit) {
-        glm::vec3 nextPosition;
-        if (_transit.getNextPosition(nextPosition)) {
-            _globalPosition = nextPosition;
-            _globalPositionChanged = usecTimestampNow();
-            if (!hasParent()) {
-                setLocalPosition(nextPosition);
-            }
-        }
-    }
     
     setFlyingEnabled(getFlyingEnabled());
 
@@ -1223,7 +1213,6 @@ void MyAvatar::saveData() {
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
-    settings.setValue("showTransit", _showTransit);
     settings.setValue("userHeight", getUserHeight());
     settings.setValue("flyingHMD", getFlyingHMDPref());
 
@@ -1382,7 +1371,6 @@ void MyAvatar::loadData() {
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
-    setShowTransit(settings.value("showTransit", _showTransit).toBool());
     setDominantHand(settings.value("dominantHand", _dominantHand).toString().toLower());
     setUserHeight(settings.value("userHeight", DEFAULT_AVATAR_HEIGHT).toDouble());
     settings.endGroup();
