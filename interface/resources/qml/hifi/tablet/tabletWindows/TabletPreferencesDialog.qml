@@ -122,6 +122,14 @@ Item {
                         }
                     }
 
+                    // Runtime customization of preferences.
+                    if (HMD.isHeadControllerAvailable("Oculus")) {
+                        var preference = findPreference("VR Movement", "Show room boundaries while teleporting");
+                        if (preference) {
+                            preference.label = "Show room boundaries and sensors while teleporting";
+                        }
+                    }
+
                     if (sections.length) {
                         // Default sections to expanded/collapsed as appropriate for dialog.
                         if (sections.length === 1) {
@@ -233,5 +241,33 @@ Item {
                 scrollView.contentY += delta;
             }
         }
+    }
+
+    function findPreference(category, name) {
+        var section = null;
+        var preference = null;
+        var i;
+
+        // Find category section.
+        i = 0;
+        while (!section && i < sections.length) {
+            if (sections[i].name === category) {
+                section = sections[i];
+            }
+            i++;
+        }
+
+        // Find named preference.
+        if (section) {
+            i = 0;
+            while (!preference && i < section.preferences.length) {
+                if (section.preferences[i].preference && section.preferences[i].preference.name === name) {
+                    preference = section.preferences[i];
+                }
+                i++;
+            }
+        }
+
+        return preference;
     }
 }
