@@ -1728,7 +1728,7 @@ private:
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
         std::atomic<bool> _toggleHipsFollowing { true };
-        int _squatCount{ 0 };
+        int _squatCount { 0 };
     };
     FollowHelper _follow;
 
@@ -1760,6 +1760,7 @@ private:
     glm::quat _customListenOrientation;
 
     AtRestDetector _hmdAtRestDetector;
+    bool _lastFrameHMDMode { false } ;
     bool _lastIsMoving { false };
 
     // all poses are in sensor-frame
@@ -1804,7 +1805,7 @@ private:
     ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
     bool _isInWalkingState { false };
-    bool _isInSittingState { false };
+    bool _isInSittingState { true };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };

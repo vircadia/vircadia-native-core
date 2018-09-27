@@ -477,10 +477,20 @@ void MyAvatar::update(float deltaTime) {
     auto sensorHeadPoseDebug = getControllerPoseInSensorFrame(controller::Action::HEAD);
     glm::vec3 upHead = transformVectorFast(sensorHeadPoseDebug.getMatrix(), glm::vec3(0.0f, 1.0f, 0.0f));
     float acosHead = glm::dot(upHead, glm::vec3(0.0f, 1.0f, 0.0f));
+    qCDebug(interfaceapp) << "sensor space head pos " << sensorHeadPoseDebug.getTranslation().y;
     if ((acosHead > 0.98f) && !getIsInSittingState() && (sensorHeadPoseDebug.getTranslation().y < -0.5f)) {
-        qCDebug(interfaceapp) << "we are going to sitting state because it looks like we should" << sensorHeadPoseDebug.getTranslation().y;
+        //qCDebug(interfaceapp) << "we are going to sitting state because it looks like we should" << sensorHeadPoseDebug.getTranslation().y;
     }
-    
+    if (!_lastFrameHMDMode && qApp->isHMDMode()) {
+        // we have entered hmd mode, so make the best guess about sitting or standing
+        if (sensorHeadPoseDebug.getTranslation().y < 1.3f) {
+            // then we are sitting.
+            // setIsInSittingState(true);
+        } else {
+            // setIsInSittingState(false);
+        }
+    }
+
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
     if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid()) {
@@ -3575,9 +3585,9 @@ glm::vec3 MyAvatar::computeCounterBalance() {
     } else if (counterBalancedCg.y < sitSquatThreshold) {
         // do a height reset
         setResetMode(true);
-        //_follow.activate(FollowHelper::Vertical);
+        // _follow.activate(FollowHelper::Vertical);
         // disable cg behaviour in this case.
-        //setIsInSittingState(true);
+        // setIsInSittingState(true);
     }
     return counterBalancedCg;
 }
@@ -4090,7 +4100,7 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
             return true;
         } else if (offset.y > CYLINDER_TOP) {
             // if we recenter upwards then no longer in sitting state
-            myAvatar.setIsInSittingState(false);
+            // myAvatar.setIsInSittingState(false);
             return true;
         } else {
             return false;
@@ -4110,15 +4120,20 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         glm::vec3 headDefaultPos = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Head"));
         if (myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y < (headDefaultPos.y - 0.05f)) {
             _squatCount++;
-            if ((_squatCount > 300) && !isActive(Vertical) && !isActive(Horizontal)) {
-                activate(Horizontal);
-                activate(Vertical);
-                _squatCount = 0;
+            if ((_squatCount > 600) && !isActive(Vertical) && !isActive(Horizontal)) {
+                if (myAvatar.getIsInSittingState()) {
+                    // activate(Horizontal);
+                    activate(Vertical);
+                    _squatCount = 0;
+                } else {
+                    activate(Horizontal);
+                    _squatCount = 0;
+                }   
             }
         } else {
             _squatCount = 0;
         }
-        
+
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
             myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());

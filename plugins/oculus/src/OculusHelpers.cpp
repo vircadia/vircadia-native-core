@@ -79,18 +79,19 @@ private:
         if (!OVR_SUCCESS(ovr_Initialize(&initParams))) {
             qCWarning(oculusLog) << "Failed to initialze Oculus SDK" << ovr::getError();
             return;
-        } else {
-            qCWarning(oculusLog) << "successful init of oculus!!!!!!!!";
-            ovrTrackingOrigin fred; 
-            fred = ovr_GetTrackingOriginType(session);
-            qCWarning(oculusLog) << (int)fred;
-
         }
 
         ovrGraphicsLuid luid;
         if (!OVR_SUCCESS(ovr_Create(&session, &luid))) {
             qCWarning(oculusLog) << "Failed to acquire Oculus session" << ovr::getError();
             return;
+        } else {
+            qCWarning(oculusLog) << "successful init of oculus!!!!!!!!";
+            ovrTrackingOrigin fred;
+            //fred = ovr_GetTrackingOriginType(session);
+            ovrResult retTrackingType = ovr_SetTrackingOriginType(session, ovrTrackingOrigin::ovrTrackingOrigin_FloorLevel);
+            fred = ovr_GetTrackingOriginType(session);
+            qCWarning(oculusLog) << OVR_SUCCESS(retTrackingType) << (int)fred;
         }
     }
 
