@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  ssao_makeVerticalBlur.frag
+//  ssao_bilateralBlur.frag
 //
 //  Created by Sam Gateau on 1/1/16.
 //  Copyright 2016 High Fidelity, Inc.
@@ -10,6 +10,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 <@include ssao.slh@>
 
 // Hack comment

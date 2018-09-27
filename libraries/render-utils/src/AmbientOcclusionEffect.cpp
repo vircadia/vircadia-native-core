@@ -32,8 +32,7 @@
 #include "ViewFrustum.h"
 
 gpu::PipelinePointer AmbientOcclusionEffect::_occlusionPipeline;
-gpu::PipelinePointer AmbientOcclusionEffect::_hBlurPipeline;
-gpu::PipelinePointer AmbientOcclusionEffect::_vBlurPipeline;
+gpu::PipelinePointer AmbientOcclusionEffect::_bilateralBlurPipeline;
 gpu::PipelinePointer AmbientOcclusionEffect::_mipCreationPipeline;
 gpu::PipelinePointer AmbientOcclusionEffect::_gatherPipeline;
 gpu::PipelinePointer AmbientOcclusionEffect::_buildNormalsPipeline;
@@ -415,31 +414,17 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
     return _occlusionPipeline;
 }
 
-const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
-    if (!_hBlurPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeHorizontalBlur);
+const gpu::PipelinePointer& AmbientOcclusionEffect::getBilateralBlurPipeline() {
+    if (!_bilateralBlurPipeline) {
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_bilateralBlur);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setColorWriteMask(true, true, true, false);
         
         // Good to go add the brand new pipeline
-        _hBlurPipeline = gpu::Pipeline::create(program, state);
+        _bilateralBlurPipeline = gpu::Pipeline::create(program, state);
     }
-    return _hBlurPipeline;
-}
-
-const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
-    if (!_vBlurPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeVerticalBlur);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        
-        // Vertical blur write just the final result Occlusion value in the alpha channel
-        state->setColorWriteMask(true, true, true, false);
-
-        // Good to go add the brand new pipeline
-        _vBlurPipeline = gpu::Pipeline::create(program, state);
-    }
-    return _vBlurPipeline;
+    return _bilateralBlurPipeline;
 }
 
 const gpu::PipelinePointer& AmbientOcclusionEffect::getMipCreationPipeline() {
@@ -530,8 +515,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
     auto framebufferSize = _framebuffer->getSourceFrameSize();
     auto occlusionPipeline = getOcclusionPipeline();
-    auto firstHBlurPipeline = getHBlurPipeline();
-    auto lastVBlurPipeline = getVBlurPipeline();
+    auto bilateralBlurPipeline = getBilateralBlurPipeline();
     auto mipCreationPipeline = getMipCreationPipeline();
 #if SSAO_USE_QUAD_SPLIT
     auto gatherPipeline = getGatherPipeline();
@@ -680,12 +664,12 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
                 model.setScale(uvScale);
                 batch.setModelTransform(model);
             }
+            batch.setPipeline(bilateralBlurPipeline);
             batch.setViewportTransform(firstBlurViewport);
             batch.setFramebuffer(occlusionBlurredFBO);
             // Use full resolution depth and normal for bilateral upscaling and blur
             batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _hblurParametersBuffer);
-            batch.setPipeline(firstHBlurPipeline);
             batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionFBO->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
             batch.popProfileRange();
@@ -705,7 +689,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
             batch.setViewportTransform(sourceViewport);
             batch.setFramebuffer(occlusionFBO);
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _vblurParametersBuffer);
-            batch.setPipeline(lastVBlurPipeline);
             batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionBlurredFBO->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
             batch.popProfileRange();

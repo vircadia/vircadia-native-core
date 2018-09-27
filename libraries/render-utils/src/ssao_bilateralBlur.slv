@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  ssao_blur.vert
+//  ssao_bilateralBlur.vert
 //
 //  Draw the unit quad [-1,-1 -> 1,1] filling in 
 //  Simply draw a Triangle_strip of 2 triangles, no input buffers or index buffer needed
