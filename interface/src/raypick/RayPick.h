@@ -70,6 +70,11 @@ public:
 class RayPick : public Pick<PickRay> {
 
 public:
+    RayPick(const PickFilter& filter, float maxDistance, bool enabled) :
+        Pick(filter, maxDistance, enabled) {
+        _mathPick = PickRay(Vectors::ZERO, Vectors::UP);
+    }
+    
     RayPick(glm::vec3 position, glm::vec3 direction, const PickFilter& filter, float maxDistance, bool enabled) :
         Pick(filter, maxDistance, enabled) {
         _mathPick = PickRay(position, direction);
