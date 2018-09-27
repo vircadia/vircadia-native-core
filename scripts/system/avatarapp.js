@@ -140,6 +140,7 @@ function onCollisionsEnabledChanged(enabled) {
 function onSittingEnabledChanged(isSitting) {
     if (currentAvatarSettings.sittingEnabled !== isSitting) {
         currentAvatarSettings.sittingEnabled = isSitting;
+        print("emit sitting changed");
         sendToQml({ 'method': 'settingChanged', 'name': 'sittingEnabled', 'value': isSitting })
     }
 }
