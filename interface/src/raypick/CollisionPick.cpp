@@ -346,9 +346,8 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
 }
 
 CollisionPick::CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine) :
-    Pick(filter, maxDistance, enabled),
+    Pick(collisionRegion, filter, maxDistance, enabled),
     _physicsEngine(physicsEngine) {
-    _mathPick = collisionRegion;
     if (collisionRegion.shouldComputeShapeInfo()) {
         _cachedResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(collisionRegion.modelURL);
     }

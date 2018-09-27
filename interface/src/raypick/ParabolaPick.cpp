@@ -16,11 +16,10 @@
 #include "PickManager.h"
 
 ParabolaPick::ParabolaPick(const glm::vec3& position, const glm::vec3& direction, float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, bool rotateAccelerationWithParent, bool scaleWithParent, const PickFilter& filter, float maxDistance, bool enabled) :
-    Pick(filter, maxDistance, enabled),
+    Pick(PickParabola(position, speed * direction, accelerationAxis), filter, maxDistance, enabled),
     _rotateAccelerationWithAvatar(rotateAccelerationWithAvatar),
     _rotateAccelerationWithParent(rotateAccelerationWithParent),
     _scaleWithParent(scaleWithParent) {
-    _mathPick = PickParabola(position, speed*direction, accelerationAxis);
 }
 
 PickParabola ParabolaPick::getMathematicalPick() const {

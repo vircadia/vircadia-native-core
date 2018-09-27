@@ -243,7 +243,7 @@ Q_DECLARE_METATYPE(PickQuery::PickType)
 template<typename T>
 class Pick : public PickQuery {
 public:
-    Pick(const PickFilter& filter, const float maxDistance, const bool enabled) : PickQuery(filter, maxDistance, enabled) {}
+    Pick(const T& mathPick, const PickFilter& filter, const float maxDistance, const bool enabled) : PickQuery(filter, maxDistance, enabled), _mathPick(mathPick) {}
 
     virtual T getMathematicalPick() const = 0;
     virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;

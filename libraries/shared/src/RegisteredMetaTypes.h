@@ -200,6 +200,8 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 class StylusTip : public MathPick {
 public:
     StylusTip() : position(NAN), velocity(NAN) {}
+    StylusTip(bilateral::Side side, glm::vec3 position = Vectors::ZERO, glm::quat orientation = Quaternions::IDENTITY, glm::vec3 velocity = Vectors::ZERO) :
+        side(side), position(position), orientation(orientation), velocity(velocity) {}
     StylusTip(const QVariantMap& pickVariant) : side(bilateral::Side(pickVariant["side"].toInt())), position(vec3FromVariant(pickVariant["position"])),
         orientation(quatFromVariant(pickVariant["orientation"])), velocity(vec3FromVariant(pickVariant["velocity"])) {}
 
