@@ -776,9 +776,6 @@ Rectangle {
             case 'updateWalletReferrer':
                 walletSetup.referrer = message.referrer;
                 walletChoice.referrer = message.referrer;
-                if (Commerce.walletStatus !== 1) { // Already set up. Do it now!
-                   followReferrer({ referrer: walletSetup.referrer });
-                } // Otherwise we'll followReferrer later.
             break;
             case 'inspectionCertificate_resetCert':
                 // NOP
