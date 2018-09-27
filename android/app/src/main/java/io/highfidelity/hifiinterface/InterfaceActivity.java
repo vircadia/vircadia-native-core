@@ -13,6 +13,7 @@ package io.highfidelity.hifiinterface;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import io.highfidelity.hifiinterface.fragment.WebViewFragment;
+import io.highfidelity.hifiinterface.receiver.HeadsetStateReceiver;
 
 /*import com.google.vr.cardboard.DisplaySynchronizer;
 import com.google.vr.cardboard.DisplayUtils;
@@ -55,6 +57,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     private static final int NORMAL_DPI = 160;
 
     private Vibrator mVibrator;
+    private HeadsetStateReceiver headsetStateReceiver;
 
     //public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
@@ -152,6 +155,8 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         qtLayout.addView(webSlidingDrawer, layoutParams);
         webSlidingDrawer.setVisibility(View.GONE);
+
+        headsetStateReceiver = new HeadsetStateReceiver();
     }
 
     @Override
@@ -162,6 +167,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         } else {
             nativeEnterBackground();
         }
+        unregisterReceiver(headsetStateReceiver);
         //gvrApi.pauseTracking();
     }
 
@@ -184,6 +190,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         nativeEnterForeground();
         surfacesWorkaround();
         keepInterfaceRunning = false;
+        registerReceiver(headsetStateReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
         //gvrApi.resumeTracking();
     }
 

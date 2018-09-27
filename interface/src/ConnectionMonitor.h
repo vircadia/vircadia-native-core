@@ -24,7 +24,7 @@ public:
     void init();
 
 signals:
-    void setRedirectErrorState(QUrl errorURL, int reasonCode);
+    void setRedirectErrorState(QUrl errorURL, QString reasonMessage = "", int reasonCode = -1, const QString& extraInfo = "");
 
 private slots:
     void startTimer();

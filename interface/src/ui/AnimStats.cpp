@@ -42,6 +42,29 @@ void AnimStats::updateStats(bool force) {
     auto myAvatar = avatarManager->getMyAvatar();
     auto debugAlphaMap = myAvatar->getSkeletonModel()->getRig().getDebugAlphaMap();
 
+    glm::vec3 position = myAvatar->getWorldPosition();
+    glm::quat rotation = myAvatar->getWorldOrientation();
+    glm::vec3 velocity = myAvatar->getWorldVelocity();
+
+    _positionText = QString("Position: (%1, %2, %3)").
+        arg(QString::number(position.x, 'f', 2)).
+        arg(QString::number(position.y, 'f', 2)).
+        arg(QString::number(position.z, 'f', 2));
+    emit positionTextChanged();
+
+    glm::vec3 eulerRotation = safeEulerAngles(rotation);
+    _rotationText = QString("Heading: %1").
+        arg(QString::number(glm::degrees(eulerRotation.y), 'f', 2));
+    emit rotationTextChanged();
+
+    // transform velocity into rig coordinate frame. z forward.
+    glm::vec3 localVelocity = Quaternions::Y_180 * glm::inverse(rotation) * velocity;
+    _velocityText = QString("Local Vel: (%1, %2, %3)").
+        arg(QString::number(localVelocity.x, 'f', 2)).
+        arg(QString::number(localVelocity.y, 'f', 2)).
+        arg(QString::number(localVelocity.z, 'f', 2));
+    emit velocityTextChanged();
+
     // update animation debug alpha values
     QStringList newAnimAlphaValues;
     qint64 now = usecTimestampNow();
