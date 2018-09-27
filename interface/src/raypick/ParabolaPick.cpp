@@ -36,6 +36,8 @@ PickParabola ParabolaPick::getMathematicalPick() const {
     glm::vec3 position = currentParentTransform.transform(_mathPick.origin);
     glm::vec3 velocity = _mathPick.velocity;
     if (_scaleWithParent) {
+        velocity = currentParentTransform.transform(velocity);
+    } else {
         velocity = currentParentTransform.transformDirection(velocity);
     }
     glm::vec3 acceleration = _mathPick.acceleration;
