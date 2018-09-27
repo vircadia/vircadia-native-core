@@ -791,7 +791,7 @@ SelectionDisplay = (function() {
     var activeTool = null;
     var handleTools = {};
     
-    var debugPickPlaneEnabled = true;
+    var debugPickPlaneEnabled = false;
     var debugPickPlane = Overlays.addOverlay("shape", {
         shape: "Quad",
         alpha: 0.25,
