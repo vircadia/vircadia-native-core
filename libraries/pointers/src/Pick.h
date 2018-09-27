@@ -236,7 +236,7 @@ private:
     QVector<QUuid> _ignoreItems;
     QVector<QUuid> _includeItems;
 
-    JointState _jointState = JOINT_STATE_NONE;
+    JointState _jointState { JOINT_STATE_NONE };
 };
 Q_DECLARE_METATYPE(PickQuery::PickType)
 
