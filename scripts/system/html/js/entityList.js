@@ -191,7 +191,8 @@ function loaded() {
             if (clickEvent.ctrlKey) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
-                    selection = selectedEntities;
+                    selection = [];
+                    selection = selection.concat(selectedEntities);
                     selection.splice(selectedIndex, 1)
                 } else {
                     selection = selection.concat(selectedEntities);
@@ -210,15 +211,19 @@ function loaded() {
                 if (previousItemFound !== -1 && clickedItemFound !== -1) {
                     let betweenItems = [];
                     let toItem = Math.max(previousItemFound, clickedItemFound);
-                    // skip first and last item in this loop, we add them to selection after the loop
-                    for (let i = (Math.min(previousItemFound, clickedItemFound) + 1); i < toItem; i++) {
+                    for (let i = Math.min(previousItemFound, clickedItemFound); i <= toItem; i++) {
                         betweenItems.push(visibleEntities[i].id);
                     }
                     if (previousItemFound > clickedItemFound) {
                         // always make sure that we add the items in the right order
                         betweenItems.reverse();
                     }
-                    selection = selection.concat(betweenItems, selectedEntities);
+                    selection = betweenItems;
+                }
+            } else if (!clickEvent.ctrlKey && !clickEvent.shiftKey && selectedEntities.length === 1) {
+                // if reselecting the same entity then deselect it
+                if (selectedEntities[0] === entityID) {
+                    selection = [];
                 }
             }
             
