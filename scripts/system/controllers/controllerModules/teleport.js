@@ -580,6 +580,21 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
+        this.cancelFade = function () {
+            // Other hand may call this to immediately hide fading overlays.
+            var i, length;
+            if (this.teleportedFadeTimer) {
+                Overlays.editOverlay(this.teleportedTargetOverlay, { visible: false });
+                if (this.wasPlayAreaVisible) {
+                    Overlays.editOverlay(this.playAreaOverlay, { visible: false });
+                    for (i = 0, length = this.playAreaSensorPositionOverlays.length; i < length; i++) {
+                        Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], { visible: false });
+                    }
+                }
+                this.teleportedFadeTimer = null;
+            }
+        };
+
         this.setTeleportVisible = function (visible, mode, fade) {
             // Scales in teleport target and play area when start displaying them.
             if (visible === this.isTeleportVisible) {
@@ -596,6 +611,7 @@ Script.include("/~/system/libraries/controllers.js");
                         end: { dimensions: Vec3.ZERO }
                     }
                 );
+                this.getOtherModule().cancelFade();
                 this.teleportScaleStart = Date.now();
                 this.teleportScaleFactor = 0;
                 this.scaleInTeleport();
