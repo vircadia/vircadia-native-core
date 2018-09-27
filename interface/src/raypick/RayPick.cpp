@@ -21,9 +21,9 @@ PickRay RayPick::getMathematicalPick() const {
     }
 
     Transform currentParentTransform = parentTransform->getTransform();
-    Transform relativeTransform(rotationBetween(Vectors::UP, _mathPick.direction), glm::vec3(1.0f), _mathPick.origin);
-    Transform pickTransform = currentParentTransform.worldTransform(relativeTransform);
-    return PickRay(pickTransform.getTranslation(), pickTransform.getRotation() * Vectors::UP);
+    glm::vec3 origin = currentParentTransform.transform(_mathPick.origin);
+    glm::vec3 direction = currentParentTransform.transformDirection(_mathPick.direction);
+    return PickRay(origin, direction);
 }
 
 PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
