@@ -21,15 +21,15 @@ Pick parenting allows the pick's transform to be calculated relative to another 
 
 # What can be parented to what?
 
-               | Entity   | My Avatar   | Other Avatar   | 3D Overlay   | Pick^1   | Pointer^1     
----------------|----------|-------------|----------------|--------------|----------|---------------
-Entity         | yes      | yes         | no             | yes          | yes      | yes           
-My Avatar      | yes      | no          | no             | yes          | yes      | yes           
-Other Avatar   | yes      | yes         | no             | yes          | yes      | yes           
-3D Overlay     | yes      | yes         | no             | yes          | yes      | yes           
-Pick           | no       | no          | no             | no           | yes      | yes           
-Pointer        | no       | no          | no             | no           | no       | no            
-The Mouse      | no       | no          | no             | no           | yes      | yes           
+This object...       |                | Entity | My Avatar | 3D Overlay | Pick^1 | Pointer^1 
+---------------------|----------------|--------|-----------|------------|--------|-----------
+Can be parented to...| Entity         | yes    | yes       | yes        | yes    | yes       
+                     | My Avatar      | yes    | no        | yes        | yes    | yes       
+                     | Other Avatar   | yes    | yes       | yes        | yes    | yes       
+                     | 3D Overlay     | yes    | yes       | yes        | yes    | yes       
+                     | Pick           | no     | no        | no         | yes    | yes       
+                     | Pointer        | no     | no        | no         | no     | no        
+                     | The Mouse      | no     | no        | no         | yes    | yes       
 
 - ^1 Excluding stylus, which can only be parented to My Avatar's hands for now
 
