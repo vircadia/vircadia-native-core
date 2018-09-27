@@ -10,10 +10,10 @@ const buildInfo = GetBuildInfo();
 const osType = os.type();
 
 const notificationIcon = path.join(__dirname, '../../resources/console-notification.png');
-const STORIES_NOTIFICATION_POLL_TIME_MS = 15 * 1000;     // 120 * 1000;
-const PEOPLE_NOTIFICATION_POLL_TIME_MS = 15 * 1000;      // 120 * 1000;
-const WALLET_NOTIFICATION_POLL_TIME_MS = 15 * 1000;      // 600 * 1000;
-const MARKETPLACE_NOTIFICATION_POLL_TIME_MS = 15 * 1000; // 600 * 1000;
+const STORIES_NOTIFICATION_POLL_TIME_MS = 120 * 1000;
+const PEOPLE_NOTIFICATION_POLL_TIME_MS = 120 * 1000;
+const WALLET_NOTIFICATION_POLL_TIME_MS = 600 * 1000;
+const MARKETPLACE_NOTIFICATION_POLL_TIME_MS = 600 * 1000;
 const OSX_CLICK_DELAY_TIMEOUT = 500;
 
 const METAVERSE_SERVER_URL= process.env.HIFI_METAVERSE_URL ? process.env.HIFI_METAVERSE_URL : 'https://metaverse.highfidelity.com'
@@ -122,10 +122,12 @@ HifiNotification.prototype = {
             timeout: 5
             },
             function (error, reason, metadata) {
-                if (osType == 'Darwin') {
-                    setTimeout(_finished, OSX_CLICK_DELAY_TIMEOUT);
-                } else {
-                    _finished();
+                if(_finished) {
+                    if (osType == 'Darwin') {
+                        setTimeout(_finished, OSX_CLICK_DELAY_TIMEOUT);
+                    } else {
+                        _finished();
+                    }
                 }
             });
     }
@@ -231,7 +233,7 @@ HifiNotifications.prototype = {
             // All notifications are sent immediately as they are queued
             // by windows in Tray Notifications and can be bulk seen and 
             // dismissed
-            _this._showNotification(_this.pendingNotifications.shift());
+            _this.pendingNotifications.shift().show();
         }
     },
     _addNotification: function (notification) {
