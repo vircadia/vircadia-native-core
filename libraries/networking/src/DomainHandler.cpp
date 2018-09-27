@@ -363,6 +363,7 @@ void DomainHandler::setRedirectErrorState(QUrl errorUrl, QString reasonMessage, 
     if (getInterstitialModeEnabled()) {
         _errorDomainURL = errorUrl;
         _isInErrorState = true;
+        qCDebug(networking) << "Error connecting to domain: " << reasonMessage;
         emit redirectErrorStateChanged(_isInErrorState);
         emit redirectToErrorDomainURL(_errorDomainURL);
     } else {
