@@ -97,8 +97,6 @@
         android:background="@drawable/rounded_button"
         android:fontFamily="@font/raleway_semibold"
         android:paddingBottom="0dp"
-        android:paddingLeft="25dp"
-        android:paddingRight="25dp"
         android:paddingTop="0dp"
         android:text="@string/login"
         android:textColor="@color/white_opaque"
@@ -123,20 +121,21 @@
 
     <Button
         android:id="@+id/signupButton"
-        android:layout_width="154dp"
+        android:layout_width="0dp"
+        app:layout_constraintWidth_default="spread"
         android:layout_height="38dp"
         android:background="@drawable/rounded_secondary_button"
         android:fontFamily="@font/raleway_semibold"
         android:paddingBottom="0dp"
-        android:paddingLeft="25dp"
-        android:paddingRight="25dp"
         android:paddingTop="0dp"
+        android:layout_marginRight="15dp"
         android:text="@string/signup"
         android:textColor="@color/white_opaque"
         android:textAllCaps="false"
         android:textSize="18sp"
         app:layout_constraintLeft_toLeftOf="@id/passwordLayout"
         app:layout_constraintTop_toTopOf="@id/loginButton"
+        app:layout_constraintRight_toLeftOf="@id/loginButton"
         app:layout_goneMarginTop="4dp"/>
 
 

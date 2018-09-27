@@ -120,8 +120,6 @@
         android:background="@drawable/rounded_button"
         android:fontFamily="@font/raleway_semibold"
         android:paddingBottom="0dp"
-        android:paddingLeft="20dp"
-        android:paddingRight="20dp"
         android:paddingTop="0dp"
         android:text="@string/signup"
         android:textColor="@color/white_opaque"
@@ -133,20 +131,21 @@
 
     <Button
         android:id="@+id/cancelButton"
-        android:layout_width="154dp"
+        android:layout_width="0dp"
+        app:layout_constraintWidth_default="spread"
         android:layout_height="38dp"
         android:background="@drawable/rounded_secondary_button"
         android:fontFamily="@font/raleway_semibold"
         android:paddingBottom="0dp"
-        android:paddingLeft="20dp"
-        android:paddingRight="20dp"
         android:paddingTop="0dp"
+        android:layout_marginRight="15dp"
         android:text="@string/cancel"
         android:textColor="@color/white_opaque"
         android:textAllCaps="false"
         android:textSize="18sp"
         app:layout_constraintLeft_toLeftOf="@id/passwordLayout"
         app:layout_constraintTop_toTopOf="@id/signupButton"
+        app:layout_constraintRight_toLeftOf="@id/signupButton"
         app:layout_goneMarginTop="4dp"/>
 
 </android.support.constraint.ConstraintLayout>
