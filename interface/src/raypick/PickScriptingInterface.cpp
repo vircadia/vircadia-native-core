@@ -158,7 +158,7 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
  * @property {Vec3} [accelerationAxis=-Vec3.UP] The acceleration of the parabola, i.e. the acceleration of the projectile whose trajectory defines the parabola, both magnitude and direction.
  * @property {boolean} [rotateAccelerationWithAvatar=true] Whether or not the acceleration axis should rotate with the avatar's local Y axis.
  * @property {boolean} [rotateAccelerationWithParent=false] Whether or not the acceleration axis should rotate with the parent's local Y axis, if available.
- * @property {boolean} [scaleWithParent=false] If true, the velocity and acceleration of the Pick will scale linearly with the parent, if available.
+ * @property {boolean} [scaleWithParent=true] If true, the velocity and acceleration of the Pick will scale linearly with the parent, if available.
  * @property {boolean} [scaleWithAvatar] Alias for scaleWithParent. <em>Deprecated.</em>
  */
 unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properties) {
@@ -199,7 +199,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
         rotateAccelerationWithParent = propMap["rotateAccelerationWithParent"].toBool();
     }
 
-    bool scaleWithParent = false;
+    bool scaleWithParent = true;
     if (propMap["scaleWithParent"].isValid()) {
         scaleWithParent = propMap["scaleWithParent"].toBool();
     } else if (propMap["scaleWithAvatar"].isValid()) {
