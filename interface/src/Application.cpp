@@ -365,7 +365,6 @@ static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SI
 
 static const uint32_t INVALID_FRAME = UINT32_MAX;
 
-static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
 static const float INITIAL_QUERY_RADIUS = 10.0f;  // priority radius for entities before physics enabled
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
@@ -6569,8 +6568,8 @@ bool Application::gpuTextureMemSizeStable() {
     auto renderConfig = qApp->getRenderEngine()->getConfiguration();
     auto renderStats = renderConfig->getConfig<render::EngineStats>("Stats");
 
-    quint64 textureResourceGPUMemSize = renderStats->textureResourceGPUMemSize;
-    quint64 texturePopulatedGPUMemSize = renderStats->textureResourcePopulatedGPUMemSize;
+    qint64 textureResourceGPUMemSize = renderStats->textureResourceGPUMemSize;
+    qint64 texturePopulatedGPUMemSize = renderStats->textureResourcePopulatedGPUMemSize;
 
     if (_gpuTextureMemSizeAtLastCheck == textureResourceGPUMemSize) {
         _gpuTextureMemSizeStabilityCount++;

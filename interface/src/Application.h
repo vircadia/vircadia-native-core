@@ -730,8 +730,8 @@ private:
     std::atomic<uint32_t> _fullSceneReceivedCounter { 0 }; // how many times have we received a full-scene octree stats packet
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
 
-    quint64 _gpuTextureMemSizeStabilityCount { 0 };
-    quint64 _gpuTextureMemSizeAtLastCheck { 0 };
+    qint64 _gpuTextureMemSizeStabilityCount { 0 };
+    qint64 _gpuTextureMemSizeAtLastCheck { 0 };
 
     quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
