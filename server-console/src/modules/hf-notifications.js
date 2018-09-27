@@ -146,7 +146,6 @@ function HifiNotifications(config, menuNotificationCallback) {
 
     var _menuNotificationCallback = menuNotificationCallback;
     notifier.on('click', function (notifierObject, options) {
-        console.log("click.");
         StartInterface(options.url);
         _menuNotificationCallback(options.notificationType, false);
     });
@@ -185,18 +184,7 @@ HifiNotifications.prototype = {
             },
             MARKETPLACE_NOTIFICATION_POLL_TIME_MS);
         } else {
-            if (this.storiesPollTimer) {
-                clearInterval(this.storiesPollTimer);
-            }
-            if (this.peoplePollTimer) {
-                clearInterval(this.peoplePollTimer);
-            }
-            if (this.walletPollTimer) {
-                clearInterval(this.walletPollTimer);
-            }
-            if (this.marketplacePollTimer) {
-                clearInterval(this.marketplacePollTimer);
-            }
+            this.stopPolling();
         }
     },
     enabled: function () {
@@ -208,7 +196,18 @@ HifiNotifications.prototype = {
         this.config.set("walletNotifySince", this.walletSince.toISOString());
         this.config.set("marketplaceNotifySince", this.marketplaceSince.toISOString());
 
-        this.enable(false);
+        if (this.storiesPollTimer) {
+            clearInterval(this.storiesPollTimer);
+        }
+        if (this.peoplePollTimer) {
+            clearInterval(this.peoplePollTimer);
+        }
+        if (this.walletPollTimer) {
+            clearInterval(this.walletPollTimer);
+        }
+        if (this.marketplacePollTimer) {
+            clearInterval(this.marketplacePollTimer);
+        }
     },
     _showNotification: function () {
         var _this = this;
