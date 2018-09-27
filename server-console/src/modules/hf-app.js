@@ -67,7 +67,11 @@ exports.startInterface = function(url) {
 }
 
 exports.isInterfaceRunning = function(done) {
-    var pInterface = new Process('interface', 'interface.exe');
+    if (osType == 'Windows_NT') {
+        var pInterface = new Process('interface', 'interface.exe');
+    } else if (osType == 'Darwin') {
+        var pInterface = new Process('interface', 'Interface');
+    }
     return pInterface.isRunning(done);
 }
 
