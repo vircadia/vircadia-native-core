@@ -1016,9 +1016,6 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
                 SEND_ASSET_PARTICLE_TIMER_UPDATE);
         }
         break;
-    case 'goToMarketplaceMainPage':
-        openMarketplace();
-        break;
     case 'http.request':
         // Handled elsewhere, don't log.
         break;
