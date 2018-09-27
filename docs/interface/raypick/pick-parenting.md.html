@@ -8,7 +8,7 @@ Picks are immutable to allow efficient use by scripts. There are currently four 
 
 - Ray pick - Finds the first intersected object along a straight path
 - Parabola pick - Finds the first intersected object along a parabolic path
-- Stylus pick - Finds the distance between a point and a list of whitelisted objects
+- Stylus pick - Finds the distance between a point and the XZ planes of a list of whitelisted objects
 - Collision pick - Uses a volume to check for collisions in the physics engine
 
 With the exception of collision picks, all picks use the visible appearance of the object to check for collisions.
@@ -21,17 +21,17 @@ Pick parenting allows the pick's transform to be calculated relative to another 
 
 # What can be parented to what?
 
-Child type:    | Entity   | My Avatar   | Other Avatar   | 3D Overlay   | Pick^1   | Pointer^1     
+               | Entity   | My Avatar   | Other Avatar   | 3D Overlay   | Pick^1   | Pointer^1     
 ---------------|----------|-------------|----------------|--------------|----------|---------------
-Entity         | yes      | no          | no             | yes          | yes      | yes           
+Entity         | yes      | yes         | no             | yes          | yes      | yes           
 My Avatar      | yes      | no          | no             | yes          | yes      | yes           
-Other Avatar   | yes      | no          | no             | yes          | yes      | yes           
-3D Overlay     | yes      | no          | no             | yes          | yes      | yes           
+Other Avatar   | yes      | yes         | no             | yes          | yes      | yes           
+3D Overlay     | yes      | yes         | no             | yes          | yes      | yes           
 Pick           | no       | no          | no             | no           | yes      | yes           
 Pointer        | no       | no          | no             | no           | no       | no            
 The Mouse      | no       | no          | no             | no           | yes      | yes           
 
-- ^1 Excluding stylus, which can only be parented to My Avatar's hands
+- ^1 Excluding stylus, which can only be parented to My Avatar's hands for now
 
 # How pick parenting works
 
