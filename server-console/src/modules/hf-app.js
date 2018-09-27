@@ -34,7 +34,7 @@ exports.getBuildInfo = function() {
         buildNumber: "0",
         stableBuild: "0",
         organization: "High Fidelity - dev",
-        appUserModelId: "com.highfidelity.console"
+        appUserModelId: "com.highfidelity.sandbox-dev"
     };
     var buildInfo = DEFAULT_BUILD_INFO;
 
