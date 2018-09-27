@@ -41,9 +41,15 @@ void ConnectionMonitor::init() {
     }
 
     connect(&_timer, &QTimer::timeout, this, [this]() {
-        qDebug() << "ConnectionMonitor: Redirecting to 404 error domain";
         // set in a timeout error
-        emit setRedirectErrorState(REDIRECT_HIFI_ADDRESS, 5);
+        bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+        if (enableInterstitial) {
+            qDebug() << "ConnectionMonitor: Redirecting to 404 error domain";
+            emit setRedirectErrorState(REDIRECT_HIFI_ADDRESS, "", 5);
+        } else {
+            qDebug() << "ConnectionMonitor: Showing connection failure window";
+            DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(true);
+        }
     });
 }
 
@@ -53,4 +59,8 @@ void ConnectionMonitor::startTimer() {
 
 void ConnectionMonitor::stopTimer() {
     _timer.stop();
+    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+    if (!enableInterstitial) {
+        DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(false);
+    }
 }

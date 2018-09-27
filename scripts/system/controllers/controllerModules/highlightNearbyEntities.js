@@ -37,7 +37,7 @@
         this.highlightedEntities = [];
 
         this.parameters = dispatcherUtils.makeDispatcherModuleParameters(
-            120,
+            480,
             this.hand === dispatcherUtils.RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);

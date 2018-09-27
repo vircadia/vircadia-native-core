@@ -42,6 +42,7 @@ protected:
     Buttons getPressedButtons(const PickResultPointer& pickResult) override;
     bool shouldHover(const PickResultPointer& pickResult) override;
     bool shouldTrigger(const PickResultPointer& pickResult) override;
+    virtual PickResultPointer getPickResultCopy(const PickResultPointer& pickResult) const override;
 
     PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button = "", bool hover = true) override;
 

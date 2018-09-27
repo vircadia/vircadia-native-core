@@ -16,6 +16,7 @@ const WALLET_NOTIFICATION_POLL_TIME_MS = 600 * 1000;
 const MARKETPLACE_NOTIFICATION_POLL_TIME_MS = 600 * 1000;
 const OSX_CLICK_DELAY_TIMEOUT = 500;
 
+
 const METAVERSE_SERVER_URL= process.env.HIFI_METAVERSE_URL ? process.env.HIFI_METAVERSE_URL : 'https://metaverse.highfidelity.com'
 const STORIES_URL= '/api/v1/user_stories';
 const USERS_URL= '/api/v1/users';

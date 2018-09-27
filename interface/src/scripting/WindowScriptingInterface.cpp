@@ -180,6 +180,14 @@ void WindowScriptingInterface::setPreviousBrowseAssetLocation(const QString& loc
     Setting::Handle<QVariant>(LAST_BROWSE_ASSETS_LOCATION_SETTING).set(location);
 }
 
+bool WindowScriptingInterface::getInterstitialModeEnabled() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+}
+
+void WindowScriptingInterface::setInterstitialModeEnabled(bool enableInterstitialMode) {
+    DependencyManager::get<NodeList>()->getDomainHandler().setInterstitialModeEnabled(enableInterstitialMode);
+}
+
 bool  WindowScriptingInterface::isPointOnDesktopWindow(QVariant point) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->isPointOnDesktopWindow(point);
