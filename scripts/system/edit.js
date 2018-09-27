@@ -1388,7 +1388,6 @@ Script.scriptEnding.connect(function () {
     Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
 
-    Settings.setValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LARGE));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, Menu.isOptionChecked(MENU_ALLOW_SELECTION_SMALL));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LIGHTS));
@@ -1689,7 +1688,7 @@ function onPromptTextChanged(prompt) {
     }
 }
 
-function handeMenuEvent(menuItem) {
+function handleMenuEvent(menuItem) {
     if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
     } else if (menuItem === "Allow Selecting of Large Models") {
@@ -1725,6 +1724,8 @@ function handeMenuEvent(menuItem) {
         entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+    } else if (menuItem === MENU_CREATE_ENTITIES_GRABBABLE) {
+        Settings.setValue(SETTING_EDIT_PREFIX + menuItem, Menu.isOptionChecked(menuItem));
     }
     tooltip.show(false);
 }
@@ -1850,7 +1851,7 @@ function importSVO(importURL) {
 }
 Window.svoImportRequested.connect(importSVO);
 
-Menu.menuItemEvent.connect(handeMenuEvent);
+Menu.menuItemEvent.connect(handleMenuEvent);
 
 var keyPressEvent = function (event) {
     if (isActive) {
