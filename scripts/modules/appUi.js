@@ -107,7 +107,9 @@ function AppUi(properties) {
     that.notificationPollCaresAboutSince = false;
     that.notificationInitialCallbackMade = false;
     that.notificationDisplayBanner = function (message) {
-        Window.displayAnnouncement(message);
+        if (!that.isOpen) {
+            Window.displayAnnouncement(message);
+        }
     };
     //
     // END Notification Handling Defaults
@@ -118,6 +120,7 @@ function AppUi(properties) {
         // Set isOpen, wireEventBridge, set buttonActive as appropriate,
         // and finally call onOpened() or onClosed() IFF defined.
         that.setCurrentVisibleScreenMetadata(type, url);
+
         if (that.checkIsOpen(type, url)) {
             that.wireEventBridge(true);
             if (!that.isOpen) {
@@ -155,17 +158,21 @@ function AppUi(properties) {
             return;
         }
 
-        // User is "appearing offline"
-        if (GlobalServices.findableBy === "none") {
+        // User is "appearing offline" or is offline
+        if (GlobalServices.findableBy === "none" || Account.username === "") {
             that.notificationPollTimeout = Script.setTimeout(that.notificationPoll, that.notificationPollTimeoutMs);
             return;
         }
 
         var url = METAVERSE_BASE + that.notificationPollEndpoint;
 
+        var settingsKey = "notifications/" + that.buttonName + "/lastPoll";
+        var currentTimestamp = new Date().getTime();
+        var lastPollTimestamp = Settings.getValue(settingsKey, currentTimestamp);
         if (that.notificationPollCaresAboutSince) {
-            url = url + "&since=" + (new Date().getTime());
+            url = url + "&since=" + lastPollTimestamp/1000;
         }
+        Settings.setValue(settingsKey, currentTimestamp);
 
         console.debug(that.buttonName, 'polling for notifications at endpoint', url);
 
@@ -193,17 +200,18 @@ function AppUi(properties) {
             } else {
                 concatenatedServerResponse = concatenatedServerResponse.concat(that.notificationDataProcessPage(response));
                 currentDataPageToRetrieve++;
-                request({ uri: (url + "&page=" + currentDataPageToRetrieve) }, requestCallback);
+                request({ json: true, uri: (url + "&page=" + currentDataPageToRetrieve) }, requestCallback);
             }
         }
 
-        request({ uri: url }, requestCallback);
+        request({ json: true, uri: url }, requestCallback);
     };
 
     // This won't do anything if there isn't a notification endpoint set
     that.notificationPoll();
 
-    function availabilityChanged() {
+    function restartNotificationPoll() {
+        that.notificationInitialCallbackMade = false;
         if (that.notificationPollTimeout) {
             Script.clearTimeout(that.notificationPollTimeout);
             that.notificationPollTimeout = false;
@@ -303,7 +311,8 @@ function AppUi(properties) {
         } : that.ignore;
     that.onScriptEnding = function onScriptEnding() {
         // Close if necessary, clean up any remaining handlers, and remove the button.
-        GlobalServices.findableByChanged.disconnect(availabilityChanged);
+        GlobalServices.myUsernameChanged.disconnect(restartNotificationPoll);
+        GlobalServices.findableByChanged.disconnect(restartNotificationPoll);
         if (that.isOpen) {
             that.close();
         }
@@ -323,6 +332,7 @@ function AppUi(properties) {
     that.tablet.screenChanged.connect(that.onScreenChanged);
     that.button.clicked.connect(that.onClicked);
     Script.scriptEnding.connect(that.onScriptEnding);
-    GlobalServices.findableByChanged.connect(availabilityChanged);
+    GlobalServices.findableByChanged.connect(restartNotificationPoll);
+    GlobalServices.myUsernameChanged.connect(restartNotificationPoll);
 }
 module.exports = AppUi;
