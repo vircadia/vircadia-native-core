@@ -26,7 +26,7 @@
         }
     };
 
-    var oopsDimensions = {x: 4.2, y: 1};
+    var oopsDimensions = {x: 4.2, y: 0.8};
 
     var redirectOopsText = Overlays.addOverlay("text3d", {
         name: "oopsText",
