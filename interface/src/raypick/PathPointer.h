@@ -42,9 +42,12 @@ public:
     void setEndRot(const glm::quat& endRot) { _endRot = endRot; }
     const glm::quat& getEndRot() const { return _endRot; }
 
+    void setPathWidth(float width) { _pathWidth = width; }
+    float getPathWidth() const { return _pathWidth; }
+
     virtual void cleanup();
     virtual void disable();
-    virtual void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+    virtual void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, float parentScale, bool distanceScaleEnd, bool centerEndY,
                         bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult);
 
     bool isEnabled() const { return _enabled; }
@@ -58,6 +61,7 @@ protected:
     glm::vec3 _startDim;
     glm::vec3 _endDim;
     glm::quat _endRot;
+    float _pathWidth;
 
     glm::quat _avgEndRot;
     bool _avgEndRotInitialized { false };
@@ -73,7 +77,7 @@ class PathPointer : public Pointer {
 public:
     PathPointer(PickQuery::PickType type, const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
                 bool hover, const PointerTriggers& triggers, bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd,
-                bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
+                bool distanceScaleEnd, bool scaleWithParent, bool enabled);
     virtual ~PathPointer();
 
     void setRenderState(const std::string& state) override;
@@ -97,7 +101,7 @@ protected:
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;
-    bool _scaleWithAvatar;
+    bool _scaleWithParent;
     LockEndObject _lockEndObject;
 
     struct TriggerState {
