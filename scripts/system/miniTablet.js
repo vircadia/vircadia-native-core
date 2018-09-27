@@ -980,7 +980,7 @@
             return;
         }
 
-        if (message.action === "grab" && message.grabbedEntity === HMD.tabletID) {
+        if (message.action === "grab" && message.grabbedEntity === HMD.tabletID && HMD.active) {
             // Tablet may have been grabbed after it replaced expanded mini tablet.
             miniState.setState(miniState.MINI_HIDDEN);
         } else if (message.action === "grab" && miniState.getState() === miniState.MINI_VISIBLE) {
@@ -992,7 +992,9 @@
 
     function onWentAway() {
         // Mini tablet only available when user is not away.
-        miniState.setState(miniState.MINI_HIDDEN);
+        if (HMD.active) {
+            miniState.setState(miniState.MINI_HIDDEN);
+        }
     }
 
     function onDisplayModeChanged() {
