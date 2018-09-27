@@ -98,8 +98,7 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
     }
 
     auto rayPick = std::make_shared<RayPick>(position, direction, filter, maxDistance, enabled);
-    rayPick->parentTransform = createTransformNode(propMap);
-    rayPick->setJointState(getPickJointState(propMap));
+    setParentTransform(rayPick, propMap);
 
     return DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, rayPick);
 }
@@ -224,8 +223,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 
     auto parabolaPick = std::make_shared<ParabolaPick>(position, direction, speed, accelerationAxis,
         rotateAccelerationWithAvatar, rotateAccelerationWithParent, scaleWithParent, filter, maxDistance, enabled);
-    parabolaPick->parentTransform = createTransformNode(propMap);
-    parabolaPick->setJointState(getPickJointState(propMap));
+    setParentTransform(parabolaPick, propMap);
     return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, parabolaPick);
 }
 
@@ -277,8 +275,7 @@ unsigned int PickScriptingInterface::createCollisionPick(const QVariant& propert
 
     CollisionRegion collisionRegion(propMap);
     auto collisionPick = std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, qApp->getPhysicsEngine());
-    collisionPick->parentTransform = createTransformNode(propMap);
-    collisionPick->setJointState(getPickJointState(propMap));
+    setParentTransform(collisionPick, propMap);
 
     return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, collisionPick);
 }
@@ -355,82 +352,63 @@ void PickScriptingInterface::setPerFrameTimeBudget(unsigned int numUsecs) {
     DependencyManager::get<PickManager>()->setPerFrameTimeBudget(numUsecs);
 }
 
-PickQuery::JointState PickScriptingInterface::getPickJointState(const QVariantMap& propMap) {
+void PickScriptingInterface::setParentTransform(std::shared_ptr<PickQuery> pick, const QVariantMap& propMap) {
+    QUuid parentUuid;
+    int parentJointIndex = 0;
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
     if (propMap["parentID"].isValid()) {
-        QUuid parentUuid = propMap["parentID"].toUuid();
-        if (propMap["parentJointIndex"].isValid() && parentUuid == DependencyManager::get<AvatarManager>()->getMyAvatar()->getSessionUUID()) {
-            int jointIndex = propMap["parentJointIndes"].toInt();
-            if (jointIndex == CONTROLLER_LEFTHAND_INDEX || jointIndex == CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX) {
-                return PickQuery::JOINT_STATE_LEFT_HAND;
-            } else if (jointIndex == CONTROLLER_RIGHTHAND_INDEX || jointIndex == CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX) {
-                return PickQuery::JOINT_STATE_RIGHT_HAND;
-            } else {
-                return PickQuery::JOINT_STATE_NONE;
-            }
-        } else {
-            return PickQuery::JOINT_STATE_NONE;
+        parentUuid = propMap["parentID"].toUuid();
+        if (propMap["parentJointIndex"].isValid()) {
+            parentJointIndex = propMap["parentJointIndex"].toInt();
         }
     } else if (propMap["joint"].isValid()) {
         QString joint = propMap["joint"].toString();
         if (joint == "Mouse") {
-            return PickQuery::JOINT_STATE_MOUSE;
-        } else if (joint == "_CONTROLLER_LEFTHAND" || joint == "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND") {
-            return PickQuery::JOINT_STATE_LEFT_HAND;
-        } else if (joint== "_CONTROLLER_RIGHTHAND" || joint == "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND") {
-            return PickQuery::JOINT_STATE_RIGHT_HAND;
+            pick->parentTransform = std::make_shared<MouseTransformNode>();
+            pick->setJointState(PickQuery::JOINT_STATE_MOUSE);
+            return;
+        } else if (joint == "Avatar") {
+            pick->parentTransform = std::make_shared<MyAvatarHeadTransformNode>();
+            return;
         } else {
-            return PickQuery::JOINT_STATE_NONE;
+            parentUuid = myAvatar->getSessionUUID();
+            parentJointIndex = myAvatar->getJointIndex(joint);
+        }
+    }
+
+    if (parentUuid == myAvatar->getSessionUUID()) {
+        if (parentJointIndex == CONTROLLER_LEFTHAND_INDEX || parentJointIndex == CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX) {
+            pick->setJointState(PickQuery::JOINT_STATE_LEFT_HAND);
+        } else if (parentJointIndex == CONTROLLER_RIGHTHAND_INDEX || parentJointIndex == CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX) {
+            pick->setJointState(PickQuery::JOINT_STATE_RIGHT_HAND);
+        }
+
+        pick->parentTransform = std::make_shared<AvatarTransformNode>(myAvatar, parentJointIndex);
+    } else if (!parentUuid.isNull()) {
+        // Infer object type from parentID
+        // For now, assume a QUuid is a SpatiallyNestable. This should change when picks are converted over to QUuids.
+        bool success;
+        std::weak_ptr<SpatiallyNestable> nestablePointer = DependencyManager::get<SpatialParentFinder>()->find(parentUuid, success, nullptr);
+        auto sharedNestablePointer = nestablePointer.lock();
+
+        if (success && sharedNestablePointer) {
+            NestableType nestableType = sharedNestablePointer->getNestableType();
+            if (nestableType == NestableType::Avatar) {
+                pick->parentTransform = std::make_shared<AvatarTransformNode>(std::static_pointer_cast<Avatar>(sharedNestablePointer), parentJointIndex);
+            } else if (nestableType == NestableType::Overlay) {
+                pick->parentTransform = std::make_shared<OverlayTransformNode>(std::static_pointer_cast<Base3DOverlay>(sharedNestablePointer), parentJointIndex);
+            } else if (nestableType == NestableType::Entity) {
+                pick->parentTransform = std::make_shared<EntityTransformNode>(std::static_pointer_cast<EntityItem>(sharedNestablePointer), parentJointIndex);
+            } else {
+                pick->parentTransform = std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
+            }
         }
     } else {
-        return PickQuery::JOINT_STATE_NONE;
-    }
-}
-
-std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const QVariantMap& propMap) {
-    if (propMap["parentID"].isValid()) {
-        QUuid parentUuid = propMap["parentID"].toUuid();
-        if (!parentUuid.isNull()) {
-            // Infer object type from parentID
-            // For now, assume a QUuuid is a SpatiallyNestable. This should change when picks are converted over to QUuids.
-            bool success;
-            std::weak_ptr<SpatiallyNestable> nestablePointer = DependencyManager::get<SpatialParentFinder>()->find(parentUuid, success, nullptr);
-            int parentJointIndex = 0;
-            if (propMap["parentJointIndex"].isValid()) {
-                parentJointIndex = propMap["parentJointIndex"].toInt();
-            }
-            auto sharedNestablePointer = nestablePointer.lock();
-            if (success && sharedNestablePointer) {
-                NestableType nestableType = sharedNestablePointer->getNestableType();
-                if (nestableType == NestableType::Avatar) {
-                    return std::make_shared<AvatarTransformNode>(std::static_pointer_cast<Avatar>(sharedNestablePointer), parentJointIndex);
-                } else if (nestableType == NestableType::Overlay) {
-                    return std::make_shared<OverlayTransformNode>(std::static_pointer_cast<Base3DOverlay>(sharedNestablePointer), parentJointIndex);
-                } else if (nestableType == NestableType::Entity) {
-                    return std::make_shared<EntityTransformNode>(std::static_pointer_cast<EntityItem>(sharedNestablePointer), parentJointIndex);
-                } else {
-                    return std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
-                }
-            }
-        }
-
         unsigned int pickID = propMap["parentID"].toUInt();
-        if (pickID != 0) {
-            return std::make_shared<PickTransformNode>(pickID);
-        }
-    }
-    
-    if (propMap["joint"].isValid()) {
-        QString joint = propMap["joint"].toString();
-        if (joint == "Mouse") {
-            return std::make_shared<MouseTransformNode>();
-        } else if (joint == "Avatar") {
-            return std::make_shared<MyAvatarHeadTransformNode>();
-        } else if (!joint.isNull()) {
-            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            int jointIndex = myAvatar->getJointIndex(joint);
-            return std::make_shared<AvatarTransformNode>(myAvatar, jointIndex);
-        }
-    }
 
-    return std::shared_ptr<TransformNode>();
+        if (pickID != 0) {
+            pick->parentTransform = std::make_shared<PickTransformNode>(pickID);
+        }
+    }
 }
