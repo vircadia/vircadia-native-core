@@ -158,23 +158,16 @@ Script.include("/~/system/libraries/controllers.js");
         this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensorv4.fbx");
         this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1199 };
         this.PLAY_AREA_SENSOR_OVERLAY_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 });
+        this.PLAY_AREA_BOX_ALPHA = 1.0;
+        this.PLAY_AREA_SENSOR_ALPHA = 0.8;
         this.playAreaSensorPositions = [];
         this.playArea = { x: 0, y: 0 };
         this.playAreaCenterOffset = this.PLAY_AREA_OVERLAY_OFFSET;
         this.isPlayAreaVisible = false;
         this.isPlayAreaAvailable = false;
         this.targetOverlayID = null;
-
-        this.PLAY_AREA_FADE_DELAY_DURATION = 900;
-        this.PLAY_AREA_FADE_DURATION = 200;
-        this.PLAY_AREA_FADE_INTERVAL = 25;
-        this.PLAY_AREA_BOX_ALPHA = 1.0;
-        this.PLAY_AREA_SENSOR_ALPHA = 0.8;
-        this.PLAY_AREA_FADE_DELAY_DELTA = this.PLAY_AREA_FADE_INTERVAL / this.PLAY_AREA_FADE_DELAY_DURATION;
-        this.PLAY_AREA_FADE_DELTA = this.PLAY_AREA_FADE_INTERVAL / this.PLAY_AREA_FADE_DURATION;
-        this.playAreaFadeTimer = null;
-        this.playAreaFadeDelayFactor = 0;
-        this.PlayAreaFadeFactor = 0;
+        this.playAreaOverlay = null;
+        this.playAreaSensorPositionOverlays = [];
 
         this.TELEPORT_SCALE_DURATION = 130;
         this.TELEPORT_SCALE_TIMEOUT = 25;
@@ -184,10 +177,14 @@ Script.include("/~/system/libraries/controllers.js");
         this.teleportScaleFactor = 0;
         this.teleportScaleMode = "head";
 
-        this.playAreaOverlay = null;
-        this.playAreaSensorPositionOverlays = [];
-        this.teleportedTargetOverlay = null;
-
+        this.TELEPORTED_FADE_DELAY_DURATION = 900;
+        this.TELEPORTED_FADE_DURATION = 200;
+        this.TELEPORTED_FADE_INTERVAL = 25;
+        this.TELEPORTED_FADE_DELAY_DELTA = this.TELEPORTED_FADE_INTERVAL / this.TELEPORTED_FADE_DELAY_DURATION;
+        this.TELEPORTED_FADE_DELTA = this.TELEPORTED_FADE_INTERVAL / this.TELEPORTED_FADE_DURATION;
+        this.teleportedFadeTimer = null;
+        this.teleportedFadeDelayFactor = 0;
+        this.teleportedFadeFactor = 0;
         this.teleportedPosition = Vec3.ZERO;
         this.TELEPORTED_TARGET_ALPHA = 1.0;
         this.TELEPORTED_TARGET_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 });
@@ -451,41 +448,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.translateYAction = Controller.findAction("TranslateY");
         this.translateZAction = Controller.findAction("TranslateZ");
 
-        this.fadePlayArea = function () {
-            var isAvatarMoving,
-                i, length;
-
-            isAvatarMoving = Controller.getActionValue(_this.translateXAction) !== 0
-                || Controller.getActionValue(_this.translateYAction) !== 0
-                || Controller.getActionValue(_this.translateZAction) !== 0;
-
-            if (_this.playAreaFadeDelayFactor > 0 && !_this.isTeleportVisible && !isAvatarMoving) {
-                // Delay fade.
-                _this.playAreaFadeDelayFactor = _this.playAreaFadeDelayFactor - _this.PLAY_AREA_FADE_DELAY_DELTA;
-                _this.playAreaFadeTimer = Script.setTimeout(_this.fadePlayArea, _this.PLAY_AREA_FADE_INTERVAL);
-            } else if (_this.PlayAreaFadeFactor > 0 && !_this.isTeleportVisible && !isAvatarMoving) {
-                // Fade.
-                _this.PlayAreaFadeFactor = _this.PlayAreaFadeFactor - _this.PLAY_AREA_FADE_DELTA;
-                Overlays.editOverlay(_this.teleportedTargetOverlay, {
-                    alpha: _this.PlayAreaFadeFactor * _this.TELEPORTED_TARGET_ALPHA
-                });
-                Overlays.editOverlay(_this.playAreaOverlay, { alpha: _this.PlayAreaFadeFactor * _this.PLAY_AREA_BOX_ALPHA });
-                var sensorAlpha = _this.PlayAreaFadeFactor * _this.PLAY_AREA_SENSOR_ALPHA;
-                for (i = 0, length = _this.playAreaSensorPositionOverlays.length; i < length; i++) {
-                    Overlays.editOverlay(_this.playAreaSensorPositionOverlays[i], { alpha: sensorAlpha });
-                }
-                _this.playAreaFadeTimer = Script.setTimeout(_this.fadePlayArea, _this.PLAY_AREA_FADE_INTERVAL);
-            } else {
-                // Make invisible.
-                Overlays.editOverlay(_this.teleportedTargetOverlay, { visible: false });
-                Overlays.editOverlay(_this.playAreaOverlay, { visible: false });
-                for (i = 0, length = _this.playAreaSensorPositionOverlays.length; i < length; i++) {
-                    Overlays.editOverlay(_this.playAreaSensorPositionOverlays[i], { visible: false });
-                }
-                _this.playAreaFadeTimer = null;
-            }
-        };
-
         this.setPlayAreaVisible = function (visible, targetOverlayID, fade) {
             if (!this.isPlayAreaAvailable || this.isPlayAreaVisible === visible) {
                 return;
@@ -494,9 +456,9 @@ Script.include("/~/system/libraries/controllers.js");
             this.isPlayAreaVisible = visible;
             this.targetOverlayID = targetOverlayID;
 
-            if (this.playAreaFadeTimer !== null) {
-                Script.clearTimeout(this.playAreaFadeTimer);
-                this.playAreaFadeTimer = null;
+            if (this.teleportedFadeTimer !== null) {
+                Script.clearTimeout(this.teleportedFadeTimer);
+                this.teleportedFadeTimer = null;
             }
             if (visible || !fade) {
                 // Immediately make visible or invisible.
@@ -515,23 +477,7 @@ Script.include("/~/system/libraries/controllers.js");
                 }
                 Overlays.editOverlay(this.teleportedTargetOverlay, { visible: false });
             } else {
-                // Copy of target at teleported position for fading.
-                Overlays.editOverlay(this.teleportedTargetOverlay, {
-                    position: Vec3.sum(this.teleportedPosition, {
-                        x: 0,
-                        y: -getAvatarFootOffset() + MyAvatar.scale * TARGET_MODEL_DIMENSIONS.y / 2,
-                        z: 0
-                    }),
-                    rotation: Quat.multiply(this.TELEPORTED_TARGET_ROTATION, MyAvatar.orientation),
-                    dimensions: Vec3.multiply(MyAvatar.scale, TARGET_MODEL_DIMENSIONS),
-                    alpha: this.TELEPORTED_TARGET_ALPHA,
-                    visible: true
-                });
-
-                // Fade out over time.
-                this.playAreaFadeDelayFactor = 1.0;
-                this.PlayAreaFadeFactor = 1.0;
-                this.playAreaFadeTimer = Script.setTimeout(this.fadePlayArea, this.PLAY_AREA_FADE_DELAY);
+                // Fading out of overlays is initiated in setTeleportVisible().
             }
         };
 
@@ -591,7 +537,42 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.setTeleportVisible = function (visible, mode) {
+        this.fadeOutTeleport = function () {
+            var isAvatarMoving,
+                i, length;
+
+            isAvatarMoving = Controller.getActionValue(_this.translateXAction) !== 0
+                || Controller.getActionValue(_this.translateYAction) !== 0
+                || Controller.getActionValue(_this.translateZAction) !== 0;
+
+            if (_this.teleportedFadeDelayFactor > 0 && !_this.isTeleportVisible && !isAvatarMoving) {
+                // Delay fade.
+                _this.teleportedFadeDelayFactor = _this.teleportedFadeDelayFactor - _this.TELEPORTED_FADE_DELAY_DELTA;
+                _this.teleportedFadeTimer = Script.setTimeout(_this.fadeOutTeleport, _this.TELEPORTED_FADE_INTERVAL);
+            } else if (_this.teleportedFadeFactor > 0 && !_this.isTeleportVisible && !isAvatarMoving) {
+                // Fade.
+                _this.teleportedFadeFactor = _this.teleportedFadeFactor - _this.TELEPORTED_FADE_DELTA;
+                Overlays.editOverlay(_this.teleportedTargetOverlay, {
+                    alpha: _this.teleportedFadeFactor * _this.TELEPORTED_TARGET_ALPHA
+                });
+                Overlays.editOverlay(_this.playAreaOverlay, { alpha: _this.teleportedFadeFactor * _this.PLAY_AREA_BOX_ALPHA });
+                var sensorAlpha = _this.teleportedFadeFactor * _this.PLAY_AREA_SENSOR_ALPHA;
+                for (i = 0, length = _this.playAreaSensorPositionOverlays.length; i < length; i++) {
+                    Overlays.editOverlay(_this.playAreaSensorPositionOverlays[i], { alpha: sensorAlpha });
+                }
+                _this.teleportedFadeTimer = Script.setTimeout(_this.fadeOutTeleport, _this.TELEPORTED_FADE_INTERVAL);
+            } else {
+                // Make invisible.
+                Overlays.editOverlay(_this.teleportedTargetOverlay, { visible: false });
+                Overlays.editOverlay(_this.playAreaOverlay, { visible: false });
+                for (i = 0, length = _this.playAreaSensorPositionOverlays.length; i < length; i++) {
+                    Overlays.editOverlay(_this.playAreaSensorPositionOverlays[i], { visible: false });
+                }
+                _this.teleportedFadeTimer = null;
+            }
+        };
+
+        this.setTeleportVisible = function (visible, mode, fade) {
             // Scales in teleport target and play area when start displaying them.
             if (visible === this.isTeleportVisible) {
                 return;
@@ -614,6 +595,26 @@ Script.include("/~/system/libraries/controllers.js");
                 if (this.teleportScaleTimer !== null) {
                     Script.clearTimeout(this.teleportScaleTimer);
                     this.teleportScaleTimer = null;
+                }
+
+                if (fade) {
+                    // Copy of target at teleported position for fading.
+                    Overlays.editOverlay(this.teleportedTargetOverlay, {
+                        position: Vec3.sum(this.teleportedPosition, {
+                            x: 0,
+                            y: -getAvatarFootOffset() + MyAvatar.scale * TARGET_MODEL_DIMENSIONS.y / 2,
+                            z: 0
+                        }),
+                        rotation: Quat.multiply(this.TELEPORTED_TARGET_ROTATION, MyAvatar.orientation),
+                        dimensions: Vec3.multiply(MyAvatar.scale, TARGET_MODEL_DIMENSIONS),
+                        alpha: this.TELEPORTED_TARGET_ALPHA,
+                        visible: true
+                    });
+
+                    // Fade out over time.
+                    this.teleportedFadeDelayFactor = 1.0;
+                    this.teleportedFadeFactor = 1.0;
+                    this.teleportedFadeTimer = Script.setTimeout(this.fadeOutTeleport, this.TELEPORTED_FADE_DELAY);
                 }
             }
 
@@ -767,7 +768,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.disableLasers = function() {
             this.setPlayAreaVisible(false, null, true);
-            this.setTeleportVisible(false);
+            this.setTeleportVisible(false, null, true);
             Selection.disableListHighlight(this.teleporterSelectionName);
             Pointers.disablePointer(_this.teleportParabolaHandVisuals);
             Pointers.disablePointer(_this.teleportParabolaHandCollisions);
@@ -795,7 +796,7 @@ Script.include("/~/system/libraries/controllers.js");
                 pointerID = _this.teleportParabolaHandVisuals;
             }
             this.setPlayAreaVisible(visible, Pointers.getPointerProperties(pointerID).renderStates.teleport.end, false);
-            this.setTeleportVisible(visible, mode);
+            this.setTeleportVisible(visible, mode, false);
         };
 
         this.setIgnoreEntities = function(entitiesToIgnore) {
