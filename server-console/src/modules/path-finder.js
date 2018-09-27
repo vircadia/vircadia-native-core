@@ -55,6 +55,9 @@ exports.searchPaths = function(name, binaryType, releaseType) {
 
                 // check beside the app bundle for the binaries
                 paths.push(path.join(path.dirname(appPath), name + extension));
+
+                // check in the peer bundle for the binaries
+                paths.push(path.join("..", name + extension));
             }
         }
     }
