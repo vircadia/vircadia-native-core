@@ -149,14 +149,11 @@ public:
         float getPerspectiveScale() const { return _resolutionInfo.z; }
         float getObscuranceLevel() const { return _radiusInfo.w; }
         float getFalloffAngle() const { return (float)_ditheringInfo.z; }
-        float getEdgeSharpness() const { return (float)_blurInfo.x; }
-        float getBlurDeviation() const { return _blurInfo.z; }
         
         float getNumSpiralTurns() const { return _sampleInfo.z; }
         int getNumSamples() const { return (int)_sampleInfo.x; }
         bool isFetchMipsEnabled() const { return _sampleInfo.w; }
 
-        int getBlurRadius() const { return (int)_blurInfo.y; }
         bool isDitheringEnabled() const { return _ditheringInfo.x; }
         bool isBorderingEnabled() const { return _ditheringInfo.w; }
     };
@@ -165,11 +162,14 @@ public:
 private:
 
     // Class describing the uniform buffer with all the parameters common to the bilateral blur shaders
-    class BlurParameters {
+    class BlurParameters : public AmbientOcclusionBlurParams {
     public:
-        glm::vec4 scaleHeight{ 0.0f };
 
-        BlurParameters() {}
+        BlurParameters();
+
+        float getEdgeSharpness() const { return (float)_blurInfo.x; }
+        int getBlurRadius() const { return (int)_blurInfo.y; }
+
     };
     using BlurParametersBuffer = gpu::StructBuffer<BlurParameters>;
 

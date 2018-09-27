@@ -222,7 +222,7 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
 #else
     numSamples{ 16 },
 #endif
-    resolutionLevel{ 1 },
+    resolutionLevel{ 2 },
     blurRadius{ 4 },
     ditheringEnabled{ true },
     borderingEnabled{ true },
@@ -235,6 +235,9 @@ AmbientOcclusionEffect::AOParameters::AOParameters() {
     _radiusInfo = { 0.5f, 0.5f * 0.5f, 1.0f / (0.25f * 0.25f * 0.25f), 1.0f };
     _ditheringInfo = { 0.0f, 0.0f, 0.01f, 1.0f };
     _sampleInfo = { 11.0f, 1.0f / 11.0f, 7.0f, 1.0f };
+}
+
+AmbientOcclusionEffect::BlurParameters::BlurParameters() {
     _blurInfo = { 1.0f, 3.0f, 2.0f, 0.0f };
 }
 
@@ -269,14 +272,11 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.y = 1.0f / (1.0f - config.falloffAngle);
     }
 
-    if (config.edgeSharpness != _aoParametersBuffer->getEdgeSharpness()) {
-        auto& current = _aoParametersBuffer.edit()._blurInfo;
-        current.x = config.edgeSharpness;
-    }
-
-    if (config.blurDeviation != _aoParametersBuffer->getBlurDeviation()) {
-        auto& current = _aoParametersBuffer.edit()._blurInfo;
-        current.z = config.blurDeviation;
+    if (config.edgeSharpness != _hblurParametersBuffer.get().getEdgeSharpness()) {
+        auto& hblur = _hblurParametersBuffer.edit()._blurInfo;
+        auto& vblur = _vblurParametersBuffer.edit()._blurInfo;
+        hblur.x = config.edgeSharpness;
+        vblur.x = config.edgeSharpness;
     }
 
     if (config.numSpiralTurns != _aoParametersBuffer->getNumSpiralTurns()) {
@@ -327,9 +327,11 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         shouldUpdateBlurs = true;
     }
  
-    if (config.blurRadius != _aoParametersBuffer.get().getBlurRadius()) {
-        auto& current = _aoParametersBuffer.edit()._blurInfo;
-        current.y = (float)config.blurRadius;
+    if (config.blurRadius != _hblurParametersBuffer.get().getBlurRadius()) {
+        auto& hblur = _hblurParametersBuffer.edit()._blurInfo;
+        auto& vblur = _vblurParametersBuffer.edit()._blurInfo;
+        hblur.y = (float)config.blurRadius;
+        vblur.y = (float)config.blurRadius;
     }
 
     if (config.ditheringEnabled != _aoParametersBuffer->isDitheringEnabled()) {
@@ -353,31 +355,47 @@ void AmbientOcclusionEffect::updateBlurParameters() {
     auto& vblur = _vblurParametersBuffer.edit();
     auto& hblur = _hblurParametersBuffer.edit();
     auto frameSize = _framebuffer->getSourceFrameSize();
+    if (_framebuffer->isStereo()) {
+        frameSize.x >>= 1;
+    }
+    const auto occlusionSize = divideRoundUp(frameSize, resolutionScale);
 
-    hblur.scaleHeight.x = 1.0f / frameSize.x;
-    hblur.scaleHeight.y = float(resolutionScale) / frameSize.x;
-    hblur.scaleHeight.z = frameSize.y / resolutionScale;
+    // Occlusion UV limit
+    hblur._blurInfo.z = occlusionSize.x / float(frameSize.x);
+    hblur._blurInfo.w = occlusionSize.y / float(frameSize.y);
 
-    vblur.scaleHeight.x = 1.0f / frameSize.y;
-    vblur.scaleHeight.y = float(resolutionScale) / frameSize.y;
-    vblur.scaleHeight.z = frameSize.y;
+    vblur._blurInfo.z = 1.0f;
+    vblur._blurInfo.w = occlusionSize.y / float(frameSize.y);
+
+    // Depth axis
+    hblur._blurAxis.x = 1.0f / occlusionSize.x;
+    hblur._blurAxis.y = 0.0f;
+
+    vblur._blurAxis.x = 0.0f;
+    vblur._blurAxis.y = 1.0f / occlusionSize.y;
+
+    // Occlusion axis
+    hblur._blurAxis.z = hblur._blurAxis.x * hblur._blurInfo.z;
+    hblur._blurAxis.w = 0.0f;
+
+    vblur._blurAxis.z = 0.0f;
+    vblur._blurAxis.w = vblur._blurAxis.y * vblur._blurInfo.w;
 }
 
 void AmbientOcclusionEffect::updateFramebufferSizes() {
     auto& params = _aoParametersBuffer.edit();
     const int widthScale = _framebuffer->isStereo() & 1;
-    auto sourceFrameSize = _framebuffer->getSourceFrameSize();
-    const int resolutionLevel = _aoParametersBuffer.get().getResolutionLevel();
-    const float resolutionScale = powf(0.5f, resolutionLevel);
-    // Depth is at maximum half depth
-    const int depthResolutionLevel = std::min(1, resolutionLevel);
-    const float depthResolutionScale = powf(2.0f, depthResolutionLevel);
-    auto normalTextureSize = _framebuffer->getNormalTexture()->getDimensions();
-    auto occlusionDepthFrameSize = divideRoundUp(sourceFrameSize, depthResolutionLevel);
+    auto sourceFrameSideSize = _framebuffer->getSourceFrameSize();
+    sourceFrameSideSize.x >>= widthScale;
 
-    sourceFrameSize.x >>= widthScale;
+    const int resolutionLevel = _aoParametersBuffer.get().getResolutionLevel();
+    // Depth is at maximum half depth
+    const int depthResolutionLevel = getDepthResolutionLevel();
+    const auto occlusionDepthFrameSize = divideRoundUp(sourceFrameSideSize, 1 << depthResolutionLevel);
+    const auto occlusionFrameSize = divideRoundUp(sourceFrameSideSize, 1 << resolutionLevel);
+    auto normalTextureSize = _framebuffer->getNormalTexture()->getDimensions();
+
     normalTextureSize.x >>= widthScale;
-    occlusionDepthFrameSize.x >>= widthScale;
 
     params._sideSizes[0].x = normalTextureSize.x;
     params._sideSizes[0].y = normalTextureSize.y;
@@ -386,7 +404,7 @@ void AmbientOcclusionEffect::updateFramebufferSizes() {
 
     params._sideSizes[1].x = params._sideSizes[0].x;
     params._sideSizes[1].y = params._sideSizes[0].y;
-    auto occlusionSplitSize = divideRoundUp(sourceFrameSize, 1 << (resolutionLevel + SSAO_USE_QUAD_SPLIT));
+    auto occlusionSplitSize = divideRoundUp(occlusionFrameSize, SSAO_SPLIT_COUNT);
     params._sideSizes[1].z = occlusionSplitSize.x;
     params._sideSizes[1].w = occlusionSplitSize.y;
 }
@@ -491,7 +509,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     // We need to take the rounded up resolution.
     auto occlusionViewport = divideRoundUp(sourceViewport, 1 << resolutionLevel);
     auto firstBlurViewport = sourceViewport;
-    firstBlurViewport.w = divideRoundUp(firstBlurViewport.w, 1 << resolutionLevel);
+    firstBlurViewport.w = occlusionViewport.w;
 
     if (!_gpuTimer) {
         _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
@@ -550,9 +568,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
         batch.resetViewTransform();
 
-        Transform model;
         batch.setProjectionTransform(glm::mat4());
-        batch.setModelTransform(model);
+        batch.setModelTransform(Transform());
 
         batch.pushProfileRange("Depth Mip Generation");
         // We need this with the mips levels
@@ -578,11 +595,12 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
                 postPixelOffset.y - prePixelOffset.y,
                 0.0f
             );
+            Transform model;
 
             model.setScale(uvScale);
             model.setTranslation(uvTranslate);
+            batch.setModelTransform(model);
         }
-        batch.setModelTransform(model);
 
         // Build face normals pass
         batch.setViewportTransform(normalViewport);
@@ -608,11 +626,12 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, occlusionNormalTexture);
         {
             const auto uvScale = glm::vec3(
-                (splitSize.x * SSAO_SPLIT_COUNT * depthResolutionScale) / (occlusionDepthSize.x * resolutionScale),
-                (splitSize.y * SSAO_SPLIT_COUNT * depthResolutionScale) / (occlusionDepthSize.y * resolutionScale),
+                (splitSize.x * SSAO_SPLIT_COUNT) / float(occlusionViewport.z),
+                (splitSize.y * SSAO_SPLIT_COUNT) / float(occlusionViewport.w),
                 1.0f);
-            const auto postPixelOffset = glm::vec2(0.5f) / glm::vec2(occlusionDepthSize);
-            const auto prePixelOffset = glm::vec2(0.5f * uvScale.x, 0.5f * uvScale.y) / glm::vec2(splitSize.x, splitSize.y);
+            const auto postPixelOffset = glm::vec2(0.5f) / glm::vec2(occlusionViewport.z, occlusionViewport.w);
+            const auto prePixelOffset = glm::vec2(0.5f * uvScale.x, 0.5f * uvScale.y) / glm::vec2(splitSize);
+            Transform model;
 
             batch.setViewportTransform(splitViewport);
 
@@ -635,13 +654,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         }
 #else
         batch.setViewportTransform(occlusionViewport);
-        {
-            const auto uvScale = glm::vec3(
-                (occlusionViewport.z * depthResolutionScale) / (occlusionDepthSize.x * resolutionScale),
-                (occlusionViewport.w * depthResolutionScale) / (occlusionDepthSize.y * resolutionScale),
-                1.0f);
-            model.setScale(uvScale);
-        }
+        model.setIdentity();
         batch.setModelTransform(model);
         batch.setFramebuffer(occlusionFBO);
         batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
@@ -666,8 +679,15 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
             PROFILE_RANGE_BATCH(batch, "Bilateral Blur");
             // Blur 1st pass
             batch.pushProfileRange("Horizontal");
-            model.setScale(resolutionScale);
-            batch.setModelTransform(model);
+            {
+                const auto uvScale = glm::vec3(
+                    occlusionViewport.z / float(sourceViewport.z),
+                    occlusionViewport.w / float(sourceViewport.w),
+                    1.0f);
+                Transform model;
+                model.setScale(uvScale);
+                batch.setModelTransform(model);
+            }
             batch.setViewportTransform(firstBlurViewport);
             batch.setFramebuffer(occlusionBlurredFBO);
             // Use full resolution depth and normal for bilateral upscaling and blur
@@ -680,8 +700,16 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
             // Blur 2nd pass
             batch.pushProfileRange("Vertical");
-            model.setScale(glm::vec3(1.0f, resolutionScale, 1.0f));
-            batch.setModelTransform(model);
+            {
+                const auto uvScale = glm::vec3(
+                    1.0f,
+                    occlusionViewport.w / float(sourceViewport.w),
+                    1.0f);
+
+                Transform model;
+                model.setScale(uvScale);
+                batch.setModelTransform(model);
+            }
             batch.setViewportTransform(sourceViewport);
             batch.setFramebuffer(occlusionFBO);
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _vblurParametersBuffer);

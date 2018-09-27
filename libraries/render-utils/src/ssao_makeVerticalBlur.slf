@@ -14,14 +14,12 @@
 
 // Hack comment
 
-const ivec2 vertical = ivec2(0,1);
-<$declareBlurPass(vertical)$>
+<$declareBlurPass()$>
 
 layout(location=0) in vec4 varTexCoord0;
 
 layout(location=0) out vec4 outFragColor;
 
 void main(void) {
-    float occlusion = getBlurredOcclusion(ivec2(gl_FragCoord.xy), varTexCoord0.xy, varTexCoord0.zw).x;
-    outFragColor = vec4(occlusion, 0.0, 0.0, occlusion);
+    outFragColor = vec4(getBlurredOcclusion(ivec2(gl_FragCoord.xy), varTexCoord0.xy, varTexCoord0.zw), 1.0);
 }

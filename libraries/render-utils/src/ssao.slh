@@ -115,14 +115,6 @@ int doFetchMips() {
     return int(params._sampleInfo.w);
 }
 
-float getBlurEdgeSharpness() {
-    return params._blurInfo.x;
-}
-
-int getBlurRadius() {
-    return int(params._blurInfo.y);
-}
-
 <@endfunc@>
 
 <@func declareSamplingDisk()@>
@@ -245,6 +237,11 @@ float getZEyeAtPixel(ivec2 pixel, int level) {
 
 float getZEyeAtUV(vec2 texCoord, int level) {
     return -textureLod(depthPyramidTex, texCoord, level).x;
+}
+
+float getZEyeAtUV(ivec4 side, vec2 texCoord, int level) {
+    texCoord.x = mix(texCoord.x, (texCoord.x + getStereoSide(side)) * 0.5, isStereo());
+    return getZEyeAtUV(texCoord, level);
 }
 
 vec3 getNormalEyeAtUV(vec2 texCoord, int level) {
@@ -417,37 +414,42 @@ float evalVisibilityHBAO(ivec4 side, vec2 fragUVPos, vec2 invSideImageSize, vec2
 <@endfunc@>
 
 
-<@func declareBlurPass(axis)@>
+<@func declareBlurPass()@>
 
-<$declarePackOcclusionDepth()$>
 <$declareAmbientOcclusion()$>
 <$declareFetchDepthPyramidMap()$>
+<$declarePackOcclusionDepth()$>
 
 // the source occlusion texture
 layout(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2D occlusionMap;
 
-struct BlurParams {
-    vec4 scaleHeight;
-};
-
 layout(binding=RENDER_UTILS_BUFFER_SSAO_BLUR_PARAMS) uniform blurParamsBuffer {
-    BlurParams blurParams;
+    AmbientOcclusionBlurParams blurParams;
 };
 
-float getOcclusionBlurScale() {
-    return blurParams.scaleHeight.x;
+vec2 getBlurOcclusionAxis() {
+    return blurParams._blurAxis.zw;
 }
 
-float getDepthBlurScale() {
-    return blurParams.scaleHeight.y;
+vec2 getBlurDepthAxis() {
+    return blurParams._blurAxis.xy;
 }
 
-int getBlurImageHeight() {
-    return int(blurParams.scaleHeight.z);
+vec2 getBlurOcclusionUVLimit() {
+    return blurParams._blurInfo.zw;
 }
 
-float fetchOcclusion(vec2 coords) {
-    vec3 raw = texture(occlusionMap, coords, 0).xyz;
+float getBlurEdgeSharpness() {
+    return blurParams._blurInfo.x;
+}
+
+int getBlurRadius() {
+    return int(blurParams._blurInfo.y);
+}
+
+float fetchOcclusion(ivec4 side, vec2 texCoord) {
+    texCoord.x = mix(texCoord.x, (texCoord.x + getStereoSide(side)) * 0.5, isStereo());
+    vec3 raw = textureLod(occlusionMap, texCoord, 0).xyz;
     return raw.x;
 }
 
@@ -458,19 +460,19 @@ float evalBlurCoefficient(vec2 blurScales, float radialDistance, float zDistance
     return exp2(dot(blurScales, distances*distances));
 }
 
-vec2 evalTapWeightedValue(vec2 blurScales, ivec3 side, int r, ivec2 destPixelCoord, vec2 scaledTexCoord, vec2 fullTexCoord, float fragDepth) {
-    ivec2 tapOffset = <$axis$> * r;
-    ivec2 tapPixelCoord = destPixelCoord + ivec2(tapOffset);
+vec2 evalTapWeightedValue(vec2 blurScales, ivec4 side, int r, vec2 occlusionTexCoord, vec2 depthTexCoord, float fragDepth) {
+    vec2 tapOcclusionTexCoord = getBlurOcclusionAxis() * r + occlusionTexCoord;
+    vec2 occlusionTexCoordLimits = getBlurOcclusionUVLimit();
 
-    if ((tapPixelCoord.x < side.y || tapPixelCoord.x >= side.z + side.y) || (tapPixelCoord.y < 0 || tapPixelCoord.y >= getBlurImageHeight())) {
+    if (tapOcclusionTexCoord.x < side.x || tapOcclusionTexCoord.x >= (side.x + occlusionTexCoordLimits.x) 
+    || tapOcclusionTexCoord.y < 0 || tapOcclusionTexCoord.y >= occlusionTexCoordLimits.y) {
         return vec2(0.0);
     }
     
-    vec2 tapTexCoord = scaledTexCoord + tapOffset * getOcclusionBlurScale();
-    float tapOcclusion = fetchOcclusion(tapTexCoord);
+    float tapOcclusion = fetchOcclusion(side, tapOcclusionTexCoord);
 
-    tapTexCoord = fullTexCoord + tapOffset * getDepthBlurScale();
-    float tapDepth = getZEyeAtUV(tapTexCoord, 0);
+    vec2 tapDepthTexCoord = getBlurDepthAxis() * r + depthTexCoord;
+    float tapDepth = getZEyeAtUV(side, tapDepthTexCoord, 0);
 
     // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
     float zDistance = tapDepth - fragDepth;
@@ -479,11 +481,11 @@ vec2 evalTapWeightedValue(vec2 blurScales, ivec3 side, int r, ivec2 destPixelCoo
     return vec2(tapOcclusion * weight, weight);
 }
 
-vec3 getBlurredOcclusion(ivec2 destPixelCoord, vec2 scaledTexCoord, vec2 fullTexCoord) {
+vec3 getBlurredOcclusion(ivec2 destPixelCoord, vec2 occlusionTexCoord, vec2 depthTexCoord) {
     // Stereo side info
     ivec4 side = getStereoSideInfo(destPixelCoord.x, 0);
 
-    float fragDepth = getZEyeAtUV(fullTexCoord, 0);
+    float fragDepth = getZEyeAtUV(side, depthTexCoord, 0);
     vec2 weightedSums = vec2(0.0);
     
     // Accumulate weighted contributions along the bluring axis in the [-radius, radius] range
@@ -494,17 +496,17 @@ vec3 getBlurredOcclusion(ivec2 destPixelCoord, vec2 scaledTexCoord, vec2 fullTex
 
     // negative side first
     for (int r = -blurRadius; r <= -1; ++r) {
-        weightedSums += evalTapWeightedValue(blurScales, side.xyz, r, destPixelCoord, scaledTexCoord, fullTexCoord, fragDepth);
+        weightedSums += evalTapWeightedValue(blurScales, side, r, occlusionTexCoord, depthTexCoord, fragDepth);
     }
     
     // Central pixel contribution
     float mainWeight = 1.0;
-    float pixelOcclusion = fetchOcclusion(scaledTexCoord);
+    float pixelOcclusion = fetchOcclusion(side, occlusionTexCoord);
     weightedSums += vec2(pixelOcclusion * mainWeight, mainWeight);
 
     // then positive side
     for (int r = 1; r <= blurRadius; ++r) {
-        weightedSums += evalTapWeightedValue(blurScales, side.xyz, r, destPixelCoord, scaledTexCoord, fullTexCoord, fragDepth);
+        weightedSums += evalTapWeightedValue(blurScales, side, r, occlusionTexCoord, depthTexCoord, fragDepth);
     }
 
     // Final normalization

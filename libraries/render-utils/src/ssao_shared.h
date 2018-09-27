@@ -27,10 +27,10 @@
 // glsl / C++ compatible source as interface for ambient occlusion
 #ifdef __cplusplus
 #   define SSAO_VEC4 glm::vec4
-#   define SSAO_IVEC4 glm::ivec4
+#   define SSAO_MAT4 glm::mat4
 #else
 #   define SSAO_VEC4 vec4
-#   define SSAO_IVEC4 ivec4
+#   define SSAO_MAT4 mat4
 #endif
 
 struct AmbientOcclusionParams {
@@ -38,12 +38,16 @@ struct AmbientOcclusionParams {
     SSAO_VEC4 _radiusInfo;
     SSAO_VEC4 _ditheringInfo;
     SSAO_VEC4 _sampleInfo;
-    SSAO_VEC4 _blurInfo;
     SSAO_VEC4 _sideSizes[2];
 };
 
 struct AmbientOcclusionFrameParams {
     SSAO_VEC4 _angleInfo;
+};
+
+struct AmbientOcclusionBlurParams {
+    SSAO_VEC4 _blurInfo;
+    SSAO_VEC4 _blurAxis;
 };
 
 #endif // RENDER_UTILS_SHADER_CONSTANTS_H

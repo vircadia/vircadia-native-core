@@ -15,8 +15,7 @@
 
 // Hack comment
 
-const ivec2 horizontal = ivec2(1,0);
-<$declareBlurPass(horizontal)$>
+<$declareBlurPass()$>
 
 layout(location=0) in vec4 varTexCoord0;
 
