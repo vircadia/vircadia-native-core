@@ -1669,15 +1669,6 @@ void Blender::run() {
                                 currentBlendshapeOffset.tangentOffsetAndSpare += glm::vec4(blendshape.tangents.at(j) * normalCoefficient, 0.0f);
                             }
                         }
-/*#if FBX_PACK_NORMALS
-                        glm::uint32 finalNormal;
-                        glm::uint32 finalTangent;
-                        buffer_helpers::packNormalAndTangent(normal, tangent, finalNormal, finalTangent);
-#else
-                        const auto& finalNormal = normal;
-                        const auto& finalTangent = tangent;
-#endif*/
-
                     }
                 });
             }
@@ -1697,6 +1688,7 @@ bool Model::maybeStartBlender() {
 }
 
 void Model::setBlendedVertices(int blendNumber, const QVector<BlendshapeOffset>& blendshapeOffsets) {
+    PROFILE_RANGE(render, __FUNCTION__);
     if (!isLoaded() || blendNumber < _appliedBlendNumber || !_blendshapeBuffersInitialized) {
         return;
     }
@@ -1712,7 +1704,7 @@ void Model::setBlendedVertices(int blendNumber, const QVector<BlendshapeOffset>&
         }
 
         const auto blendshapeOffsetSize = meshBlendshapeOffsets->second.size() * sizeof(BlendshapeOffset);
-        buffer->second->setData(blendshapeOffsetSize, (gpu::Byte*) blendshapeOffsets.constData() + index * sizeof(BlendshapeOffset));
+        buffer->second->setSubData(0, blendshapeOffsetSize, (gpu::Byte*) blendshapeOffsets.constData() + index * sizeof(BlendshapeOffset));
 
         index += meshBlendshapeOffsets->second.size();
     }
@@ -1728,11 +1720,10 @@ void Model::initializeBlendshapes(const FBXMesh& mesh, int index) {
     }
     // Mesh has blendshape, let s allocate the local buffer if not done yet
     if (_blendshapeBuffers.find(index) == _blendshapeBuffers.end()) {
-        _blendshapeBuffers[index] = std::make_shared<gpu::Buffer>();
         QVector<BlendshapeOffset> blendshapeOffset;
         blendshapeOffset.fill(BlendshapeOffset(), 3 * mesh.vertices.size());
         const auto blendshapeOffsetsSize = blendshapeOffset.size() * sizeof(BlendshapeOffset);
-        _blendshapeBuffers[index]->setData(blendshapeOffsetsSize, (const gpu::Byte*) blendshapeOffset.constData());
+        _blendshapeBuffers[index] = std::make_shared<gpu::Buffer>(blendshapeOffsetsSize, (const gpu::Byte*) blendshapeOffset.constData(), blendshapeOffsetsSize);
         _blendshapeOffsets[index] = blendshapeOffset;
     }
 }

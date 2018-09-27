@@ -61,9 +61,10 @@ GLBuffer* GL45Backend::syncGPUObject(const Buffer& buffer) {
 
 
 bool GL45Backend::bindResourceBuffer(uint32_t slot, const BufferPointer& buffer) {
-    GLBuffer* object = syncGPUObject((*buffer));
-    if (object) {
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slot, object->_id);
+ //   GLBuffer* object = syncGPUObject((*buffer));
+    auto bo = getBufferIDUnsynced((*buffer));
+    if (bo) {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slot, bo);
 
         (void)CHECK_GL_ERROR();
 

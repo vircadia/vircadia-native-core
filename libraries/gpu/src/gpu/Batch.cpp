@@ -685,6 +685,8 @@ void Batch::_glColor4f(float red, float green, float blue, float alpha) {
 }
 
 void Batch::finishFrame(BufferUpdates& updates) {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
+
     for (auto& mapItem : _namedData) {
         auto& name = mapItem.first;
         auto& instance = mapItem.second;
@@ -713,6 +715,7 @@ void Batch::finishFrame(BufferUpdates& updates) {
 }
 
 void Batch::flush() {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     for (auto& mapItem : _namedData) {
         auto& name = mapItem.first;
         auto& instance = mapItem.second;
