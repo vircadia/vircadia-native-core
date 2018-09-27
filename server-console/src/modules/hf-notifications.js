@@ -9,10 +9,10 @@ const GetBuildInfo = hfApp.getBuildInfo;
 const buildInfo = GetBuildInfo();
 
 const notificationIcon = path.join(__dirname, '../../resources/console-notification.png');
-const STORIES_NOTIFICATION_POLL_TIME_MS = 15 * 1000;     // 120 * 1000;
-const PEOPLE_NOTIFICATION_POLL_TIME_MS = 15 * 1000;      // 120 * 1000;
-const WALLET_NOTIFICATION_POLL_TIME_MS = 15 * 1000;      // 600 * 1000;
-const MARKETPLACE_NOTIFICATION_POLL_TIME_MS = 15 * 1000; // 600 * 1000;
+const STORIES_NOTIFICATION_POLL_TIME_MS = 120 * 1000;
+const PEOPLE_NOTIFICATION_POLL_TIME_MS = 120 * 1000;
+const WALLET_NOTIFICATION_POLL_TIME_MS = 600 * 1000;
+const MARKETPLACE_NOTIFICATION_POLL_TIME_MS = 600 * 1000;
 
 const METAVERSE_SERVER_URL= process.env.HIFI_METAVERSE_URL ? process.env.HIFI_METAVERSE_URL : 'https://metaverse.highfidelity.com'
 const STORIES_URL= '/api/v1/user_stories';
