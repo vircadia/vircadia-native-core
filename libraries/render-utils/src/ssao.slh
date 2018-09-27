@@ -51,6 +51,10 @@ int getResolutionLevel() {
     return int(params._resolutionInfo.x);
 }
 
+bool isHorizonBased() {
+    return params._resolutionInfo.y!=0.0;
+}
+
 vec2 getNormalsSideSize() {
     return params._sideSizes[0].xy;
 }

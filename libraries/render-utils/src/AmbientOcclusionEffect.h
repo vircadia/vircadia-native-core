@@ -79,6 +79,7 @@ using AmbientOcclusionFramebufferPointer = std::shared_ptr<AmbientOcclusionFrame
 class AmbientOcclusionEffectConfig : public render::GPUJobConfig::Persistent {
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
+    Q_PROPERTY(bool horizonBased MEMBER horizonBased NOTIFY dirty)
     Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled NOTIFY dirty)
     Q_PROPERTY(bool borderingEnabled MEMBER borderingEnabled NOTIFY dirty)
     Q_PROPERTY(bool fetchMipsEnabled MEMBER fetchMipsEnabled NOTIFY dirty)
@@ -118,6 +119,7 @@ public:
     int numSamples;
     int resolutionLevel;
     int blurRadius; // 0 means no blurring
+    bool horizonBased; // Use horizon based AO
     bool ditheringEnabled; // randomize the distribution of taps per pixel, should always be true
     bool borderingEnabled; // avoid evaluating information from non existing pixels out of the frame, should always be true
     bool fetchMipsEnabled; // fetch taps in sub mips to otpimize cache, should always be true
@@ -154,8 +156,10 @@ public:
         int getNumSamples() const { return (int)_sampleInfo.x; }
         bool isFetchMipsEnabled() const { return _sampleInfo.w; }
 
-        bool isDitheringEnabled() const { return _ditheringInfo.x; }
-        bool isBorderingEnabled() const { return _ditheringInfo.w; }
+        bool isDitheringEnabled() const { return _ditheringInfo.x != 0.0f; }
+        bool isBorderingEnabled() const { return _ditheringInfo.w != 0.0f; }
+        bool isHorizonBased() const { return _resolutionInfo.y != 0.0f; }
+
     };
     using AOParametersBuffer = gpu::StructBuffer<AOParameters>;
 

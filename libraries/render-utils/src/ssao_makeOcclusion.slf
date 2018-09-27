@@ -51,9 +51,9 @@ void main(void) {
 
     // Choose the screen-space sample radius
     float diskPixelRadius = evalDiskRadius(fragPositionES.z, sideDepthSize);
-#if SSAO_USE_HORIZON_BASED
-    diskPixelRadius = min(diskPixelRadius, SSAO_HBAO_MAX_RADIUS);
-#endif
+    if (isHorizonBased()) {
+        diskPixelRadius = min(diskPixelRadius, SSAO_HBAO_MAX_RADIUS);
+    }
 
     // Let's make noise 
     float randomPatternRotationAngle = getAngleDithering(fragPixelPos);
@@ -63,24 +63,24 @@ void main(void) {
     int numSamples = int(getNumSamples());
     float invNumSamples = getInvNumSamples();
 
-    // Steps are in the depth texture resolution
-    vec2 depthTexFragPixelPos = fragUVPos * sideDepthSize;
-    for (int i = 0; i < numSamples; ++i) {
-#if SSAO_USE_HORIZON_BASED
-		vec3 deltaTap = getUnitTapLocation(i, 1.0, randomPatternRotationAngle, PI);
-        obscuranceSum += evalVisibilityHBAO(side, fragUVPos, deltaDepthUV, deltaTap.xy, diskPixelRadius, fragPositionES, fragNormalES);
-#else
-        vec3 tap = getTapLocationClampedSSAO(i, randomPatternRotationAngle, diskPixelRadius, depthTexFragPixelPos, sideDepthSize);
-        vec2 tapUV = fragUVPos + tap.xy * deltaDepthUV;
-        vec2 tapMipZ = fetchTapWithUV(side, tapUV, tap.z);
-        vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapMipZ.y, tapUV);
-        obscuranceSum += float(tap.z > 0.0) * evalVisibilitySSAO(fragPositionES, fragNormalES, tapPositionES);
-#endif
-    }
+    if (isHorizonBased()) {
+        for (int i = 0; i < numSamples; ++i) {
+            vec3 deltaTap = getUnitTapLocation(i, 1.0, randomPatternRotationAngle, PI);
+            obscuranceSum += evalVisibilityHBAO(side, fragUVPos, deltaDepthUV, deltaTap.xy, diskPixelRadius, fragPositionES, fragNormalES);
+        }
+        obscuranceSum *= 0.5 / PI;
+    } else {
+        // Steps are in the depth texture resolution
+        vec2 depthTexFragPixelPos = fragUVPos * sideDepthSize;
 
-#if SSAO_USE_HORIZON_BASED
-    obscuranceSum *= 0.5 / PI;
-#endif
+        for (int i = 0; i < numSamples; ++i) {
+            vec3 tap = getTapLocationClampedSSAO(i, randomPatternRotationAngle, diskPixelRadius, depthTexFragPixelPos, sideDepthSize);
+            vec2 tapUV = fragUVPos + tap.xy * deltaDepthUV;
+            vec2 tapMipZ = fetchTap(side, tapUV, tap.z);
+            vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapMipZ.y, tapUV);
+            obscuranceSum += float(tap.z > 0.0) * evalVisibilitySSAO(fragPositionES, fragNormalES, tapPositionES);
+        }
+    }
 
     float occlusion = clamp(1.0 - obscuranceSum * getObscuranceScaling() * invNumSamples, 0.0, 1.0);
     

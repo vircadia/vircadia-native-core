@@ -202,36 +202,24 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture() {
 
 AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false),
-#if SSAO_USE_HORIZON_BASED
     radius{ 0.3f },
-#else
-    radius{ 0.5f },
-#endif
     perspectiveScale{ 1.0f },
     obscuranceLevel{ 0.5f },
-#if SSAO_USE_HORIZON_BASED
     falloffAngle{ 0.3f },
-#else
-    falloffAngle{ 0.01f },
-#endif
     edgeSharpness{ 1.0f },
     blurDeviation{ 2.5f },
     numSpiralTurns{ 7.0f },
-#if SSAO_USE_HORIZON_BASED
     numSamples{ 1 },
-#else
-    numSamples{ 16 },
-#endif
     resolutionLevel{ 2 },
     blurRadius{ 4 },
     ditheringEnabled{ true },
     borderingEnabled{ true },
-    fetchMipsEnabled{ true } {
-
+    fetchMipsEnabled{ true },
+    horizonBased{ true } {
 }
 
 AmbientOcclusionEffect::AOParameters::AOParameters() {
-    _resolutionInfo = { -1.0f, 0.0f, 1.0f, 0.0f };
+    _resolutionInfo = { -1.0f, 1.0f, 1.0f, 0.0f };
     _radiusInfo = { 0.5f, 0.5f * 0.5f, 1.0f / (0.25f * 0.25f * 0.25f), 1.0f };
     _ditheringInfo = { 0.0f, 0.0f, 0.01f, 1.0f };
     _sampleInfo = { 11.0f, 1.0f / 11.0f, 7.0f, 1.0f };
@@ -251,14 +239,19 @@ void AmbientOcclusionEffect::configure(const Config& config) {
 
     const double RADIUS_POWER = 6.0;
     const auto& radius = config.radius;
-    if (radius != _aoParametersBuffer->getRadius()) {
+    if (radius != _aoParametersBuffer->getRadius() || config.horizonBased != _aoParametersBuffer->isHorizonBased()) {
         auto& current = _aoParametersBuffer.edit()._radiusInfo;
         current.x = radius;
         current.y = radius * radius;
         current.z = 10.0f;
-#if !SSAO_USE_HORIZON_BASED
-        current.z *= (float)(1.0 / pow((double)radius, RADIUS_POWER));
-#endif
+        if (!config.horizonBased) {
+            current.z *= (float)(1.0 / pow((double)radius, RADIUS_POWER));
+        }
+    }
+
+    if (config.horizonBased != _aoParametersBuffer->isHorizonBased()) {
+        auto& current = _aoParametersBuffer.edit()._resolutionInfo;
+        current.y = config.horizonBased & 1;
     }
 
     if (config.obscuranceLevel != _aoParametersBuffer->getObscuranceLevel()) {
@@ -501,6 +494,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
     const auto depthResolutionLevel = getDepthResolutionLevel();
     const auto depthResolutionScale = powf(0.5f, depthResolutionLevel);
+    const auto isHorizonBased = _aoParametersBuffer->isHorizonBased();
 
     auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
     auto occlusionDepthTexture = linearDepthTexture;
@@ -538,9 +532,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto occlusionPipeline = getOcclusionPipeline();
     auto firstHBlurPipeline = getHBlurPipeline();
     auto lastVBlurPipeline = getVBlurPipeline();
-#if SSAO_USE_HORIZON_BASED
     auto mipCreationPipeline = getMipCreationPipeline();
-#endif
 #if SSAO_USE_QUAD_SPLIT
     auto gatherPipeline = getGatherPipeline();
     auto buildNormalsPipeline = getBuildNormalsPipeline();
@@ -571,14 +563,14 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setProjectionTransform(glm::mat4());
         batch.setModelTransform(Transform());
 
-        batch.pushProfileRange("Depth Mip Generation");
         // We need this with the mips levels
-#if SSAO_USE_HORIZON_BASED
-        batch.setPipeline(mipCreationPipeline);
-        batch.generateTextureMipsWithPipeline(occlusionDepthTexture);
-#else
-        batch.generateTextureMips(occlusionDepthTexture);
-#endif
+        batch.pushProfileRange("Depth Mip Generation");
+        if (isHorizonBased) {
+            batch.setPipeline(mipCreationPipeline);
+            batch.generateTextureMipsWithPipeline(occlusionDepthTexture);
+        } else {
+            batch.generateTextureMips(occlusionDepthTexture);
+        }
         batch.popProfileRange();
 
 #if SSAO_USE_QUAD_SPLIT
@@ -730,8 +722,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
     config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
-
-
 
 DebugAmbientOcclusion::DebugAmbientOcclusion() {
 }
