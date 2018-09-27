@@ -27,8 +27,8 @@ var options = {
 }
 
 const EXEC_NAME = "server-console";
-const SHORT_NAME = "Sandbox";
-const FULL_NAME = "High Fidelity Sandbox";
+const SHORT_NAME = "Console";
+const FULL_NAME = "High Fidelity Console";
 
 // setup per OS options
 if (osType == "Darwin") {
