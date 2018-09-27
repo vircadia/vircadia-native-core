@@ -20,13 +20,14 @@ var AppUi = Script.require('appUi');
 Script.include("/~/system/libraries/gridTool.js");
 Script.include("/~/system/libraries/connectionUtils.js");
 
-var METAVERSE_SERVER_URL = Account.metaverseServerURL;
-var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
-var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
 var MARKETPLACE_CHECKOUT_QML_PATH = "hifi/commerce/checkout/Checkout.qml";
+var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
+var MARKETPLACE_ITEM_TESTER_QML_PATH = "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml";
 var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
 var MARKETPLACE_WALLET_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
-var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
+var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
+var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
+var METAVERSE_SERVER_URL = Account.metaverseServerURL;
 var REZZING_SOUND = SoundCache.getSound(Script.resolvePath("../assets/sounds/rezzing.wav"));
 
 // Event bridge messages.
@@ -756,7 +757,7 @@ function deleteSendAssetParticleEffect() {
     }
     sendAssetRecipient = null;
 }
-    
+
 var savedDisablePreviewOption = Menu.isOptionChecked("Disable Preview");
 var UI_FADE_TIMEOUT_MS = 150;
 function maybeEnableHMDPreview() {
@@ -766,6 +767,13 @@ function maybeEnableHMDPreview() {
         DesktopPreviewProvider.setPreviewDisabledReason("USER");
         Menu.setIsOptionChecked("Disable Preview", savedDisablePreviewOption);
     }, UI_FADE_TIMEOUT_MS);
+}
+
+var resourceObjectsInTest = [];
+function signalNewResourceObjectInTest(resourceObject) {
+    ui.tablet.sendToQml({
+        method: "newResourceObjectInTest",
+        resourceObject: resourceObject });
 }
 
 var onQmlMessageReceived = function onQmlMessageReceived(message) {
@@ -817,7 +825,19 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         break;
     case 'checkout_rezClicked':
     case 'purchases_rezClicked':
+    case 'tester_rezClicked':
         rezEntity(message.itemHref, message.itemType);
+        break;
+    case 'tester_newResourceObject':
+        var resourceObject = message.resourceObject;
+        resourceObjectsInTest[resourceObject.id] = resourceObject;
+        signalNewResourceObjectInTest(resourceObject);
+        break;
+    case 'tester_updateResourceObjectAssetType':
+        resourceObjectsInTest[message.objectId].assetType = message.assetType;
+        break;
+    case 'tester_deleteResourceObject':
+        delete resourceObjectsInTest[message.objectId];
         break;
     case 'header_marketplaceImageClicked':
     case 'purchases_backClicked':
@@ -841,10 +861,6 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         openLoginWindow();
         break;
     case 'disableHmdPreview':
-        if (!savedDisablePreviewOption) {
-            savedDisablePreviewOption = Menu.isOptionChecked("Disable Preview");
-        }
-
         if (!savedDisablePreviewOption) {
             DesktopPreviewProvider.setPreviewDisabledReason("SECURE_SCREEN");
             Menu.setIsOptionChecked("Disable Preview", true);
@@ -962,34 +978,65 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     }
 };
 
+function pushResourceObjectsInTest() {
+    var maxObjectId = -1;
+    for (var objectId in resourceObjectsInTest) {
+        signalNewResourceObjectInTest(resourceObjectsInTest[objectId]);
+        maxObjectId = (maxObjectId < objectId) ? parseInt(objectId) : maxObjectId;
+    }
+    // N.B. Thinking about removing the following sendToQml? Be sure
+    // that the marketplace item tester QML has heard from us, at least
+    // so that it can indicate to the user that all of the resoruce
+    // objects in test have been transmitted to it.
+    ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: maxObjectId + 1 });
+}
+
 // Function Name: onTabletScreenChanged()
 //
 // Description:
 //   -Called when the TabletScriptingInterface::screenChanged() signal is emitted. The "type" argument can be either the string
 //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
-var onMarketplaceScreen = false;
-var onWalletScreen = false;
+
 var onCommerceScreen = false;
 var onInspectionCertificateScreen = false;
+var onMarketplaceItemTesterScreen = false;
+var onMarketplaceScreen = false;
+var onWalletScreen = false;
 var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
     ui.setCurrentVisibleScreenMetadata(type, url);
     onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
     onInspectionCertificateScreen = type === "QML" && url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1;
     var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
-    var onCommerceScreenNow = type === "QML" &&
-        (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH ||
-        onInspectionCertificateScreen);
+    var onCommerceScreenNow = type === "QML" && (
+        url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 ||
+        url === MARKETPLACE_PURCHASES_QML_PATH ||
+        url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
+    var onMarketplaceItemTesterScreenNow = (
+        url.indexOf(MARKETPLACE_ITEM_TESTER_QML_PATH) !== -1 ||
+        url === MARKETPLACE_ITEM_TESTER_QML_PATH);
 
-    // exiting wallet or commerce screen
-    if ((!onWalletScreenNow && onWalletScreen) || (!onCommerceScreenNow && onCommerceScreen)) {
+    if ((!onWalletScreenNow && onWalletScreen) ||
+        (!onCommerceScreenNow && onCommerceScreen) ||
+        (!onMarketplaceItemTesterScreenNow && onMarketplaceScreen)
+    ) {
+        // exiting wallet, commerce, or marketplace item tester screen
         maybeEnableHMDPreview();
     }
 
     onCommerceScreen = onCommerceScreenNow;
     onWalletScreen = onWalletScreenNow;
-    wireQmlEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
+    onMarketplaceItemTesterScreen = onMarketplaceItemTesterScreenNow;
+
+    wireQmlEventBridge(
+        onMarketplaceScreen ||
+        onCommerceScreen ||
+        onWalletScreen ||
+        onMarketplaceItemTesterScreen);
 
     if (url === MARKETPLACE_PURCHASES_QML_PATH) {
+        // FIXME? Is there a race condition here in which the event
+        // bridge may not be up yet? If so, Script.setTimeout(..., 750)
+        // may help avoid the condition.
         ui.tablet.sendToQml({
             method: 'updatePurchases',
             referrerURL: referrerURL,
@@ -1026,6 +1073,14 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
         });
         off();
     }
+
+    if (onMarketplaceItemTesterScreen) {
+        // Why setTimeout? The QML event bridge, wired above, requires a
+        // variable amount of time to come up, in practice less than
+        // 750ms.
+        Script.setTimeout(pushResourceObjectsInTest, 750);
+    }
+
     console.debug(ui.buttonName + " app reports: Tablet screen changed.\nNew screen type: " + type +
         "\nNew screen URL: " + url + "\nCurrent app open status: " + ui.isOpen + "\n");
 };

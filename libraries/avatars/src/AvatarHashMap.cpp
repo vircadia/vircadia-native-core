@@ -66,6 +66,22 @@ void AvatarReplicas::removeReplicas(const QUuid& parentID) {
     }
 }
 
+std::vector<AvatarSharedPointer> AvatarReplicas::takeReplicas(const QUuid& parentID) {
+    std::vector<AvatarSharedPointer> replicas;
+
+    auto it = _replicasMap.find(parentID);
+
+    if (it != _replicasMap.end()) {
+        // take a copy of the replica shared pointers for this parent
+        replicas.swap(it->second);
+
+        // erase the replicas for this parent from our map
+        _replicasMap.erase(it);
+    }
+
+    return replicas;
+}
+
 void AvatarReplicas::processAvatarIdentity(const QUuid& parentID, const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged) {
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         auto &replicas = _replicasMap[parentID];
@@ -386,24 +402,31 @@ void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, S
 }
 
 void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
-    QWriteLocker locker(&_hashLock);
+    std::vector<AvatarSharedPointer> removedAvatars;
 
-    auto replicaIDs = _replicas.getReplicaIDs(sessionUUID);
-    _replicas.removeReplicas(sessionUUID);
-    for (auto id : replicaIDs) {
-        auto removedReplica = _avatarHash.take(id);
-        if (removedReplica) {
-            handleRemovedAvatar(removedReplica, removalReason);
+    {
+        QWriteLocker locker(&_hashLock);
+
+        auto replicas = _replicas.takeReplicas(sessionUUID);
+
+        for (auto& replica : replicas) {
+            auto removedReplica = _avatarHash.take(replica->getID());
+            if (removedReplica) {
+                removedAvatars.push_back(removedReplica);
+            }
+        }
+
+        _pendingAvatars.remove(sessionUUID);
+        auto removedAvatar = _avatarHash.take(sessionUUID);
+
+        if (removedAvatar) {
+            removedAvatars.push_back(removedAvatar);
         }
     }
 
-    _pendingAvatars.remove(sessionUUID);
-    auto removedAvatar = _avatarHash.take(sessionUUID);
-
-    if (removedAvatar) {
+    for (auto& removedAvatar: removedAvatars) {
         handleRemovedAvatar(removedAvatar, removalReason);
     }
-
 }
 
 void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
@@ -421,11 +444,18 @@ void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& ol
 }
 
 void AvatarHashMap::clearOtherAvatars() {
-    QWriteLocker locker(&_hashLock);
+    QList<AvatarSharedPointer> removedAvatars;
 
-    for (auto& av : _avatarHash) {
-        handleRemovedAvatar(av);
+    {
+        QWriteLocker locker(&_hashLock);
+
+        // grab a copy of the current avatars so we can call handleRemoveAvatar for them
+        removedAvatars = _avatarHash.values();
+
+        _avatarHash.clear();
     }
 
-    _avatarHash.clear();
+    for (auto& av : removedAvatars) {
+        handleRemovedAvatar(av);
+    }
 }

@@ -47,6 +47,8 @@ public:
     static std::shared_ptr<StartEndRenderState> buildRenderState(const QVariantMap& propMap);
 
 protected:
+    PickResultPointer getPickResultCopy(const PickResultPointer& pickResult) const override;
+
     void editRenderStatePath(const std::string& state, const QVariant& pathProps) override;
 
     glm::vec3 getPickOrigin(const PickResultPointer& pickResult) const override;
