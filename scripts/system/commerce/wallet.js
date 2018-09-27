@@ -474,9 +474,6 @@ function fromQml(message) {
             Window.location = "hifi://BankOfHighFidelity";
         }
         break;
-    case 'wallet_availableUpdatesReceived':
-        // NOP
-        break;
     case 'http.request':
         // Handled elsewhere, don't log.
         break;
@@ -491,15 +488,77 @@ function walletOpened() {
     Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
     triggerMapping.enable();
     triggerPressMapping.enable();
+    shouldShowDot = false;
+    ui.messagesWaiting(shouldShowDot);
 }
 
 function walletClosed() {
     off();
 }
 
-//
-// Manage the connection between the button and the window.
-//
+function notificationDataProcessPage(data) {
+    return data.data.history;
+}
+
+var shouldShowDot = false;
+function notificationPollCallback(historyArray) {
+    if (!ui.isOpen) {
+        var notificationCount = historyArray.length;
+        shouldShowDot = shouldShowDot || notificationCount > 0;
+        ui.messagesWaiting(shouldShowDot);
+
+        if (notificationCount > 0) {
+            var message;
+            if (!ui.notificationInitialCallbackMade) {
+                message = "You have " + notificationCount + " unread wallet " +
+                    "transaction" + (notificationCount === 1 ? "" : "s") + ". Open WALLET to see all activity.";
+                ui.notificationDisplayBanner(message);
+            } else {
+                for (var i = 0; i < notificationCount; i++) {
+                    message = '"' + (historyArray[i].message) + '" ' +
+                        "Open WALLET to see all activity.";
+                    ui.notificationDisplayBanner(message);
+                }
+            }
+        }
+    }
+}
+
+function isReturnedDataEmpty(data) {
+    var historyArray = data.data.history;
+    return historyArray.length === 0;
+}
+
+var DEVELOPER_MENU = "Developer";
+var MARKETPLACE_ITEM_TESTER_LABEL = "Marketplace Item Tester";
+var MARKETPLACE_ITEM_TESTER_QML_SOURCE = "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml";
+function installMarketplaceItemTester() {
+    if (!Menu.menuExists(DEVELOPER_MENU)) {
+        Menu.addMenu(DEVELOPER_MENU);
+    }
+    if (!Menu.menuItemExists(DEVELOPER_MENU, MARKETPLACE_ITEM_TESTER_LABEL)) {
+        Menu.addMenuItem({
+            menuName: DEVELOPER_MENU,
+            menuItemName: MARKETPLACE_ITEM_TESTER_LABEL,
+            isCheckable: false
+        });
+    }
+
+    Menu.menuItemEvent.connect(function (menuItem) {
+        if (menuItem === MARKETPLACE_ITEM_TESTER_LABEL) {
+            ui.open(MARKETPLACE_ITEM_TESTER_QML_SOURCE);
+        }
+    });
+}
+
+function uninstallMarketplaceItemTester() {
+    if (Menu.menuExists(DEVELOPER_MENU) &&
+        Menu.menuItemExists(DEVELOPER_MENU, MARKETPLACE_ITEM_TESTER_LABEL)
+    ) {
+        Menu.removeMenuItem(DEVELOPER_MENU, MARKETPLACE_ITEM_TESTER_LABEL);
+    }
+}
+
 var BUTTON_NAME = "WALLET";
 var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
 var ui;
@@ -510,10 +569,18 @@ function startup() {
         home: WALLET_QML_SOURCE,
         onOpened: walletOpened,
         onClosed: walletClosed,
-        onMessage: fromQml
+        onMessage: fromQml,
+        notificationPollEndpoint: "/api/v1/commerce/history?per_page=10",
+        notificationPollTimeoutMs: 300000,
+        notificationDataProcessPage: notificationDataProcessPage,
+        notificationPollCallback: notificationPollCallback,
+        notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
+        notificationPollCaresAboutSince: true
     });
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
+    installMarketplaceItemTester();
 }
+
 var isUpdateOverlaysWired = false;
 function off() {
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
@@ -528,9 +595,11 @@ function off() {
     }
     removeOverlays();
 }
+
 function shutdown() {
     GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
     deleteSendMoneyParticleEffect();
+    uninstallMarketplaceItemTester();
     off();
 }
 
