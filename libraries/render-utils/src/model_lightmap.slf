@@ -42,7 +42,7 @@ void main(void) {
 
     packDeferredFragmentLightmap(
         normalize(_normalWS), 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedoTex.a),
         albedo,
         roughness,
         metallic,

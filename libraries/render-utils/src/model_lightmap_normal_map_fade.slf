@@ -56,7 +56,7 @@ void main(void) {
 
     packDeferredFragmentLightmap(
         normalize(fragNormal),
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedoTex.a),
         albedo,
         roughness,
         metallic,

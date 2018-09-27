@@ -208,7 +208,7 @@ float fetchScatteringMap(vec2 uv) {
 <@if occlusion@>
     float <$occlusion$> = (((<$matKey$> & OCCLUSION_MAP_BIT) != 0) ? fetchOcclusionMap(<$texcoord1$>) : 1.0);
 <@endif@>
-<@if lightmapVal@>
+<@if lightmap@>
     vec3 <$lightmap$> = fetchLightmapMap(<$texcoord1$>);
 <@endif@>
 <@endfunc@>
