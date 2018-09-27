@@ -93,10 +93,10 @@ function setupWallet(cta) {
     openWallet();
     var ALLOWANCE_FOR_EVENT_BRIDGE_SETUP = 0;
     Script.setTimeout(function () {
-	ui.tablet.sendToQml({
-	    method: 'updateWalletReferrer',
-	    referrer: cta
-	});
+        ui.tablet.sendToQml({
+            method: 'updateWalletReferrer',
+            referrer: cta
+        });
     }, ALLOWANCE_FOR_EVENT_BRIDGE_SETUP);
 }
 
@@ -126,7 +126,6 @@ function openMarketplace(optionalItemOrUrl) {
         // Does that ever happen without the wallet already setup?
         cta = '';
     }
-    onMarketplaceOpen(cta);
     ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
 }
 
@@ -714,7 +713,7 @@ function onWebEventReceived(message) {
     } else if (message.type === "LOGIN") {
         openLoginWindow();
     } else if (message.type === "WALLET_SETUP") {
-	setupWallet('marketplace cta');
+        setupWallet('marketplace cta');
     } else if (message.type === "MY_ITEMS") {
         referrerURL = MARKETPLACE_URL_INITIAL;
         filterText = "";
@@ -1017,6 +1016,9 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
                 SEND_ASSET_PARTICLE_TIMER_UPDATE);
         }
         break;
+    case 'goToMarketplaceMainPage':
+        openMarketplace();
+        break;
     case 'http.request':
         // Handled elsewhere, don't log.
         break;
@@ -1112,7 +1114,9 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
         isWired = true;
         Wallet.refreshWalletStatus();
     } else {
-        onMarketplaceOpen('marketplace cta');
+        if (onMarketplaceScreen) {
+            onMarketplaceOpen('marketplace cta');
+        }
         ui.tablet.sendToQml({
             method: 'inspectionCertificate_resetCert'
         });
