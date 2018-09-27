@@ -30,6 +30,14 @@ ParabolaPointer::ParabolaPointer(const QVariant& rayProps, const RenderStateMap&
 {
 }
 
+PickResultPointer ParabolaPointer::getPickResultCopy(const PickResultPointer& pickResult) const {
+    auto parabolaPickResult = std::dynamic_pointer_cast<ParabolaPickResult>(pickResult);
+    if (!parabolaPickResult) {
+        return std::make_shared<ParabolaPickResult>();
+    }
+    return std::make_shared<ParabolaPickResult>(*parabolaPickResult.get());
+}
+
 void ParabolaPointer::editRenderStatePath(const std::string& state, const QVariant& pathProps) {
     auto renderState = std::static_pointer_cast<RenderState>(_renderStates[state]);
     if (renderState) {
@@ -382,9 +390,8 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::updateBounds() {
 
 const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabolaPipeline() {
     if (!_parabolaPipeline || !_transparentParabolaPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola);
-
         {
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola);
             auto state = std::make_shared<gpu::State>();
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
             state->setBlendFunction(false,
@@ -396,6 +403,7 @@ const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::get
         }
 
         {
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola_translucent);
             auto state = std::make_shared<gpu::State>();
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
             state->setBlendFunction(true,

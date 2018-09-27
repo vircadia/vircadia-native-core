@@ -1322,6 +1322,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             emit DependencyManager::get<scriptable::ModelProviderFactory>()->
                 modelRemovedFromScene(entity->getEntityItemID(), NestableType::Entity, _model);
         }
+        setKey(false);
+        _didLastVisualGeometryRequestSucceed = false;
         return;
     }
 
@@ -1347,6 +1349,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (_parsedModelURL != model->getURL()) {
         withWriteLock([&] {
             _texturesLoaded = false;
+            _jointMappingCompleted = false;
             model->setURL(_parsedModelURL);
         });
     }
@@ -1457,7 +1460,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             mapJoints(entity, model->getJointNames());
         //else the joint have been mapped before but we have a new animation to load
         } else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {
-            _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURL());
             _jointMappingCompleted = false;
             mapJoints(entity, model->getJointNames());
         }
