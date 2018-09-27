@@ -75,7 +75,7 @@ public:
 
         // _gainAdjust is retained
 
-        _silentState = false;
+        _silentState = true;
     }
 
 private:
@@ -110,7 +110,7 @@ private:
     // global and local gain adjustment
     float _gainAdjust = HRTF_GAIN;
 
-    bool _silentState = false;
+    bool _silentState = true;
 };
 
 #endif // AudioHRTF_h
