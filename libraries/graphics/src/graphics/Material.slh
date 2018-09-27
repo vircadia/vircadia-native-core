@@ -24,11 +24,6 @@ struct TexMapArray {
 
 <@func declareMaterialTexMapArrayBuffer()@>
 
-//layout(binding=GRAPHICS_BUFFER_TEXMAPARRAY) uniform texMapArrayBuffer {
-//    TexMapArray _texMapArray;
-//};
-
-
 <@func evalTexMapArrayTexcoord0(texMapArray, inTexcoord0, outTexcoord0)@>
 {
     <$outTexcoord0$> = (<$texMapArray$>._texcoordTransforms0 * vec4(<$inTexcoord0$>.st, 0.0, 1.0)).st;

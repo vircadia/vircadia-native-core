@@ -8,7 +8,7 @@
 <@if not BLENDSHAPE_SLH@>
 <@def BLENDSHAPE_SLH@>
 
-<@func declareApplyBlendshapeOffsets(USE_NORMAL, USE_TANGENT)@>
+<@func declareBlendshape(USE_NORMAL, USE_TANGENT)@>
 
 struct BlendshapeOffset {
     vec4 position;
@@ -39,7 +39,7 @@ BlendshapeOffset getBlendshapeOffset(int i) {
 }
 #endif
 
-void applyBlendshapeOffset(int i, vec4 inPosition, out vec4 position
+void evalBlendshape(int i, vec4 inPosition, out vec4 position
 <@if USE_NORMAL@>
                            , vec3 inNormal, out vec3 normal
 <@endif@>

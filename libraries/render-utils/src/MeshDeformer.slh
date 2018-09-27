@@ -14,12 +14,12 @@
 
 <@if USE_SKINNING@>
 <@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning($USE_DUAL_QUATERNION$) $>
+<$declareSkinning($USE_DUAL_QUATERNION$, $USE_NORMAL$, $USE_TANGENT$)$>
 <@endif@>
 
 <@if USE_BLENDSHAPE@>
 <@include Blendshape.slh@>
-<$declareApplyBlendshapeOffsets($USE_NORMAL$, $USE_TANGENT$)$>
+<$declareBlendshape($USE_NORMAL$, $USE_TANGENT$)$>
 <@endif@>
 
 void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
@@ -47,30 +47,28 @@ void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
 
 <@if USE_BLENDSHAPE@>
     if (isBlendshapeEnabled) {
-
-    <@if USE_TANGENT@>
-        applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition, inNormal, _deformedNormal, inTangent, _deformedTangent);
-    <@else@>
+        evalBlendshape(vertexIndex, inPosition, _deformedPosition
     <@if USE_NORMAL@>
-        applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition, inNormal, _deformedNormal);
-    <@else@>
-        applyBlendshapeOffset(vertexIndex, inPosition, _deformedPosition);
+                        , inNormal, _deformedNormal
     <@endif@>
+    <@if USE_TANGENT@>
+                        , inTangent, _deformedTangent
     <@endif@>
+        );
     }
 <@endif@>
 
 <@if USE_SKINNING@>
     if (isSkinningEnabled) {
-    <@if USE_TANGENT@>
-        skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedNormal, _deformedTangent, _deformedPosition, _deformedNormal, _deformedTangent);
-    <@else@>
+
+        evalSkinning(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedPosition
     <@if USE_NORMAL@>
-        skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedNormal, _deformedPosition, _deformedNormal);
-    <@else@>
-        skinPosition(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedPosition);
+                        , _deformedNormal, _deformedNormal
     <@endif@>
+    <@if USE_TANGENT@>
+                        , _deformedTangent, _deformedTangent
     <@endif@>
+        );
     }
 <@endif@>
 
