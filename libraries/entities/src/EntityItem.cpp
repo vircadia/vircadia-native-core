@@ -3255,3 +3255,26 @@ void EntityItem::setScriptHasFinishedPreload(bool value) {
 bool EntityItem::isScriptPreloadFinished() {
     return _scriptPreloadFinished;
 }
+
+void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properties, uint64_t now, uint8_t priority) {
+    if (dynamicDataNeedsTransmit()) {
+        setDynamicDataNeedsTransmit(false);
+        properties.setActionData(getDynamicData());
+    }
+
+    if (updateQueryAACube()) {
+        // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+        properties.setQueryAACube(getQueryAACube());
+    }
+
+    // set the LastEdited of the properties but NOT the entity itself
+    properties.setLastEdited(now);
+
+    clearScriptSimulationPriority();
+    properties.setSimulationOwner(Physics::getSessionUUID(), priority);
+    setPendingOwnershipPriority(priority);
+
+    properties.setClientOnly(getClientOnly());
+    properties.setOwningAvatarID(getOwningAvatarID());
+    setLastBroadcast(now); // for debug/physics status icons
+}

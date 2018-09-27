@@ -535,6 +535,8 @@ public:
 
     const GrabPropertyGroup& getGrabProperties() const { return _grabProperties; }
 
+    void prepareForSimulationOwnershipBid(EntityItemProperties& properties, uint64_t now, uint8_t priority);
+
 signals:
     void requestRenderUpdate();
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
