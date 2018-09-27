@@ -239,6 +239,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float walkSpeed READ getWalkSpeed WRITE setWalkSpeed);
     Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed);
     Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed);
+    Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -1505,6 +1506,14 @@ signals:
      * @returns {Signal}
      */
     void disableHandTouchForIDChanged(const QUuid& entityID, bool disable);
+
+    /**jsdoc
+    * Triggered when the sit state is enabled or disabled
+    * @function MyAvatar.sittingEnabledChanged
+    * @param {boolean} enabled
+    * @returns {Signal}
+    */
+    void sittingEnabledChanged(bool enabled);
 
 private slots:
     void leaveDomain();

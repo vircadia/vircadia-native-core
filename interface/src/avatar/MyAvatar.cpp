@@ -477,7 +477,7 @@ void MyAvatar::update(float deltaTime) {
     auto sensorHeadPoseDebug = getControllerPoseInSensorFrame(controller::Action::HEAD);
     glm::vec3 upHead = transformVectorFast(sensorHeadPoseDebug.getMatrix(), glm::vec3(0.0f, 1.0f, 0.0f));
     float acosHead = glm::dot(upHead, glm::vec3(0.0f, 1.0f, 0.0f));
-    qCDebug(interfaceapp) << "sensor space head pos " << sensorHeadPoseDebug.getTranslation().y;
+    // qCDebug(interfaceapp) << "sensor space head pos " << sensorHeadPoseDebug.getTranslation().y;
     if ((acosHead > 0.98f) && !getIsInSittingState() && (sensorHeadPoseDebug.getTranslation().y < -0.5f)) {
         //qCDebug(interfaceapp) << "we are going to sitting state because it looks like we should" << sensorHeadPoseDebug.getTranslation().y;
     }
@@ -3854,6 +3854,7 @@ void MyAvatar::setIsInWalkingState(bool isWalking) {
 
 void MyAvatar::setIsInSittingState(bool isSitting) {
     _isInSittingState = isSitting;
+    emit sittingEnabledChanged(isSitting);
 }
 
 void MyAvatar::setWalkSpeed(float value) {
@@ -4098,9 +4099,9 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
         if (offset.y < SITTING_BOTTOM) {
             // we recenter when sitting.
             return true;
-        } else if (offset.y > CYLINDER_TOP) {
+        } else if (offset.y > 2.0*CYLINDER_TOP) {
             // if we recenter upwards then no longer in sitting state
-            // myAvatar.setIsInSittingState(false);
+            myAvatar.setIsInSittingState(false);
             return true;
         } else {
             return false;
@@ -4126,7 +4127,12 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
                     activate(Vertical);
                     _squatCount = 0;
                 } else {
-                    activate(Horizontal);
+                    if (myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y < (headDefaultPos.y - 0.20f)) {
+                        myAvatar.setIsInSittingState(true);
+                        activate(Vertical);
+                    } else {
+                        activate(Horizontal);
+                    }
                     _squatCount = 0;
                 }   
             }

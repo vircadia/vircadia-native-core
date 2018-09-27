@@ -20,6 +20,7 @@ Rectangle {
     property real scaleValue: scaleSlider.value / 10
     property alias dominantHandIsLeft: leftHandRadioButton.checked
     property alias avatarCollisionsOn: collisionsEnabledRadiobutton.checked
+    property alias avatarSittingOn: sitRadiobutton.checked
     property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
     property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
@@ -43,6 +44,12 @@ Rectangle {
             collisionsEnabledRadiobutton.checked = true;
         } else {
             collisionsDisabledRadioButton.checked = true;
+        }
+
+        if (settings.sittingEnabled) {
+            sitRadiobutton.checked = true;
+        } else {
+            standRadioButton.checked = true;
         }
 
         avatarAnimationJSON = settings.animGraphUrl;
@@ -289,8 +296,56 @@ Rectangle {
                 text: "OFF"
                 boxSize: 20
             }
-        }
+        
 
+        // TextStyle9
+
+            RalewaySemiBold {
+                size: 17;
+                Layout.row: 2
+                Layout.column: 0
+
+                text: "Sitting State"
+            }
+
+            ButtonGroup {
+                id: sitStand
+            }
+
+            HifiControlsUit.RadioButton {
+                id: sitRadiobutton
+
+                Layout.row: 2
+                Layout.column: 1
+                Layout.leftMargin: -40
+
+                ButtonGroup.group: sitStand
+                checked: true
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Sit"
+                boxSize: 20
+            }
+
+            HifiControlsUit.RadioButton {
+                id: standRadioButton
+
+                Layout.row: 2
+                Layout.column: 2
+                Layout.rightMargin: 20
+
+                ButtonGroup.group: sitStand
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Stand"
+                boxSize: 20
+            }
+        }
+            
         ColumnLayout {
             id: avatarAnimationLayout
             anchors.top: handAndCollisions.bottom
