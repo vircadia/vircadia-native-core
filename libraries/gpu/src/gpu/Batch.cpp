@@ -417,6 +417,15 @@ void Batch::generateTextureMips(const TexturePointer& texture) {
     _params.emplace_back(_textures.cache(texture));
 }
 
+void Batch::generateTextureMipsWithPipeline(const TexturePointer& texture, int numMips) {
+    setResourceTexture(gpu::slot::texture::MipCreationInput, texture);
+
+    ADD_COMMAND(generateTextureMipsWithPipeline);
+
+    _params.emplace_back(_textures.cache(texture));
+    _params.emplace_back(numMips);
+}
+
 void Batch::beginQuery(const QueryPointer& query) {
     ADD_COMMAND(beginQuery);
 
