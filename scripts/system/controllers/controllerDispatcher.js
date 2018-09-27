@@ -228,7 +228,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             nearbyOverlays.splice(tabletIndex, 1);
                         }
                         if (miniTabletIndex !== -1
-                                && (closebyOverlays.indexOf(_this.miniTabletID) === -1) || h !== _this.miniTabletHand) {
+                                && ((closebyOverlays.indexOf(_this.miniTabletID) === -1) || h !== _this.miniTabletHand)) {
                             nearbyOverlays.splice(miniTabletIndex, 1);
                         }
                     }

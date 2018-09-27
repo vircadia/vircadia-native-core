@@ -45,7 +45,7 @@ Script.include("/~/system/libraries/utils.js");
 
         this.setMiniTabletID = function (id) {
             this.miniTabletID = id;
-        }
+        };
 
         this.otherHandIsParent = function(props) {
             return this.getOtherModule().thisHandIsParent(props);
