@@ -346,7 +346,7 @@ public:
         : BoolPreference(category, name, getter, setter) { }
     Type getType() override { return Checkbox; }
 
-    const bool getIndented() { return _isIndented; }
+    bool getIndented() { return _isIndented; }
     void setIndented(const bool indented) { _isIndented = indented; }
 protected:
     bool _isIndented { false };
