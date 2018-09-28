@@ -148,7 +148,7 @@ void TestRunner::runInstaller() {
     QString installerFullPath = _workingFolder + "/" + _installerFilename;
 
     QString commandLine =
-        QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
+        "\"" + QDir::toNativeSeparators(installerFullPath) + "\"" + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
 
     installerWorker->setCommandLine(commandLine);
     emit startInstaller();
