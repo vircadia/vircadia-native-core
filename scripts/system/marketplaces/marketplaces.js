@@ -101,11 +101,19 @@ function setupWallet(referrer) {
 }
 
 function onMarketplaceOpen(referrer) {
+    var cta = referrer, match;
     if (Account.loggedIn && walletNeedsSetup()) {
-        if (referrer) {
-            setupWallet(referrer);
+        if (referrer === MARKETPLACE_URL_INITIAL) {
+            setupWallet('marketplace cta');
         } else {
-            print("WARNING: opening marketplace to", url, "without wallet setup.");
+            match = referrer.match(/\/item\/(\w+)$/);
+            if (match && match[1]) {
+                setupWallet(match[1]);
+            } else if (referrer.indexOf(METAVERSE_SERVER_URL) === -1) { // not a url
+                setupWallet(referrer);
+            } else {
+                print("WARNING: opening marketplace to", referrer, "without wallet setup.");
+            }
         }
     }
 }
@@ -117,17 +125,9 @@ function openMarketplace(optionalItemOrUrl) {
     // Otherwise, use home and 'marketplace cta'.
     // AND... if call onMarketplaceOpen to setupWallet if we need to.
     var url = optionalItemOrUrl || MARKETPLACE_URL_INITIAL;
-    var cta = 'marketplace cta';
-    var match;
     // If optionalItemOrUrl contains the metaverse base, then it's a url, not an item id.
     if (optionalItemOrUrl && optionalItemOrUrl.indexOf(METAVERSE_SERVER_URL) === -1) {
-        cta = optionalItemOrUrl;  // item id
         url = MARKETPLACE_URL + '/items/' + optionalItemOrUrl;
-    } else if (optionalItemOrUrl) {
-        // A specific url.
-        match = optionalItemOrUrl.match(/\/item\/(\w+)$/);
-        // Don't attempt to set up wallet for a non-item url because we don't have a way to come back.
-        cta = (match && match[1]) || '';
     }
     ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
 }
