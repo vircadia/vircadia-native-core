@@ -34,7 +34,7 @@ Preference {
             left: parent.left
             right: parent.right
         }
-        height: isFirstCheckBox ? hifi.dimensions.controlInterlineHeight : 0
+        height: isFirstCheckBox && !preference.indented ? 16 : 2
     }
 
     CheckBox {
