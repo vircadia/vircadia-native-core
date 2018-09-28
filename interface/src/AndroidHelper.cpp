@@ -12,7 +12,9 @@
 #include <QDebug>
 #include <AccountManager.h>
 #include <AudioClient.h>
+#include <src/ui/LoginDialog.h>
 #include "Application.h"
+#include "Constants.h"
 
 #if defined(qApp)
 #undef qApp
@@ -83,8 +85,6 @@ void AndroidHelper::signup(QString email, QString username, QString password) {
     userObject.insert("password", password);
 
     payload.insert("user", userObject);
-
-    static const QString API_SIGNUP_PATH = "api/v1/users";
 
     auto accountManager = DependencyManager::get<AccountManager>();
 
