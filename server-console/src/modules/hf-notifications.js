@@ -218,11 +218,11 @@ HifiNotifications.prototype = {
         if (osType === 'Darwin') {
             this.pendingNotifications[0].show(function () {
                 // For OSX
-                // don't attempt to show the next notification
+                // Don't attempt to show the next notification
                 // until the current is clicked or times out
-                // as the OSX Notifier stuff will dismiss
-                // the previous notification immediately
-                // when a new one is submitted
+                // as the OSX Notifier stuff will dismiss the
+                // previous notification immediately when a
+                // new one is submitted
                 _this.pendingNotifications.shift();
                 if(_this.pendingNotifications.length > 0) {
                     _this._showNotification();
