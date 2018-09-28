@@ -208,8 +208,6 @@ public:
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
 private:
-
-    static void initMaskPipelines(render::ShapePlumber& plumber, gpu::StatePointer state);
     static const render::Varying addSelectItemJobs(JobModel& task, const render::Varying& selectionName, const RenderFetchCullSortTask::BucketList& items);
 
 };

@@ -147,6 +147,14 @@ bool StylusPointer::shouldTrigger(const PickResultPointer& pickResult) {
     return false;
 }
 
+PickResultPointer StylusPointer::getPickResultCopy(const PickResultPointer& pickResult) const {
+    auto stylusPickResult = std::dynamic_pointer_cast<StylusPickResult>(pickResult);
+    if (!stylusPickResult) {
+        return std::make_shared<StylusPickResult>();
+    }
+    return std::make_shared<StylusPickResult>(*stylusPickResult.get());
+}
+
 Pointer::PickedObject StylusPointer::getHoveredObject(const PickResultPointer& pickResult) {
     auto stylusPickResult = std::static_pointer_cast<const StylusPickResult>(pickResult);
     if (!stylusPickResult) {
