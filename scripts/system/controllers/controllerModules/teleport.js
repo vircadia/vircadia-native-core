@@ -55,21 +55,21 @@ Script.include("/~/system/libraries/controllers.js");
 
     var cancelPath = {
         color: COLORS_TELEPORT_CANCEL,
-        alpha: 1,
+        alpha: 0.3,
         width: 0.025,
         drawInFront: true
     };
     
     var teleportPath = {
         color: COLORS_TELEPORT_CAN_TELEPORT,
-        alpha: 1,
+        alpha: 0.7,
         width: 0.025,
         drawInFront: true
     };
     
     var seatPath = {
         color: COLORS_TELEPORT_SEAT,
-        alpha: 1,
+        alpha: 0.7,
         width: 0.025,
         drawInFront: true
     };
