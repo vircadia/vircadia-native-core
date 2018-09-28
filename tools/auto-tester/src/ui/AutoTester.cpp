@@ -36,6 +36,8 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
    _ui.statusLabel->setText("");
    _ui.plainTextEdit->setReadOnly(true);
 
+   setWindowTitle("Auto Tester - v4.5");
+
    // Coming soon to an auto-tester near you...
    //// _helpWindow.textBrowser->setText()
 }
@@ -96,11 +98,11 @@ void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
 
 void AutoTester::on_tabWidget_currentChanged(int index) {
     if (index == 2 || index == 3) {
-        _ui.userTextEdit->setDisabled(false);
-        _ui.branchTextEdit->setDisabled(false);
+        _ui.userLineEdit->setDisabled(false);
+        _ui.branchLineEdit->setDisabled(false);
     } else {
-        _ui.userTextEdit->setDisabled(true);
-        _ui.branchTextEdit->setDisabled(true);
+        _ui.userLineEdit->setDisabled(true);
+        _ui.branchLineEdit->setDisabled(true);
     }
 }
 
@@ -280,19 +282,19 @@ void AutoTester::content() {
 }
 
 void AutoTester::setUserText(const QString& user) {
-    _ui.userTextEdit->setText(user);
+    _ui.userLineEdit->setText(user);
 }
 
 QString AutoTester::getSelectedUser() {
-    return _ui.userTextEdit->toPlainText();
+    return _ui.userLineEdit->text();
 }
 
 void AutoTester::setBranchText(const QString& branch) {
-    _ui.branchTextEdit->setText(branch);
+    _ui.branchLineEdit->setText(branch);
 }
 
 QString AutoTester::getSelectedBranch() {
-    return _ui.branchTextEdit->toPlainText();
+    return _ui.branchLineEdit->text();
 }
 
 void AutoTester::updateStatusLabel(const QString& status) {
