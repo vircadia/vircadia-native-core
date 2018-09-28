@@ -88,22 +88,22 @@ function setTabletVisibleInSecondaryCamera(visibleInSecondaryCam) {
 function openWallet() {
     ui.open(MARKETPLACE_WALLET_QML_PATH);
 }
-function setupWallet(cta) {
+function setupWallet(referrer) {
     // Needs to be done within the QML page in order to get access to QmlCommerce
     openWallet();
     var ALLOWANCE_FOR_EVENT_BRIDGE_SETUP = 0;
     Script.setTimeout(function () {
         ui.tablet.sendToQml({
             method: 'updateWalletReferrer',
-            referrer: cta
+            referrer: referrer
         });
     }, ALLOWANCE_FOR_EVENT_BRIDGE_SETUP);
 }
 
-function onMarketplaceOpen(cta) {
+function onMarketplaceOpen(referrer) {
     if (Account.loggedIn && walletNeedsSetup()) {
-        if (cta) {
-            setupWallet(cta);
+        if (referrer) {
+            setupWallet(referrer);
         } else {
             print("WARNING: opening marketplace to", url, "without wallet setup.");
         }
@@ -670,8 +670,8 @@ var filterText; // Used for updating Purchases QML
 function onWebEventReceived(message) {
     message = JSON.parse(message);
     if (message.type === GOTO_DIRECTORY) {
-	// This is the chooser between marketplaces. Only OUR markteplace
-	// requires/makes-use-of wallet, so doesn't go through openMarketplace bottleneck.
+        // This is the chooser between marketplaces. Only OUR markteplace
+        // requires/makes-use-of wallet, so doesn't go through openMarketplace bottleneck.
         ui.open(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
     } else if (message.type === QUERY_CAN_WRITE_ASSETS) {
         ui.sendToHtml(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
@@ -822,7 +822,7 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     }
     switch (message.method) {
     case 'gotoBank':
-	ui.close();
+	    ui.close();
         if (Account.metaverseServerURL.indexOf("staging") >= 0) {
             Window.location = "hifi://hifiqa-master-metaverse-staging"; // So that we can test in staging.
         } else {
