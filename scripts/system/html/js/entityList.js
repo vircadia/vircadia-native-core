@@ -209,7 +209,7 @@ function loaded() {
                     }
                 }
                 if (previousItemFound !== -1 && clickedItemFound !== -1) {
-                    let selection = [];
+                    selection = [];
                     let toItem = Math.max(previousItemFound, clickedItemFound);
                     for (let i = Math.min(previousItemFound, clickedItemFound); i <= toItem; i++) {
                         selection.push(visibleEntities[i].id);
