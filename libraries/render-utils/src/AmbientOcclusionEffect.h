@@ -202,7 +202,7 @@ private:
     static gpu::PipelinePointer _buildNormalsPipeline;
 
     AmbientOcclusionFramebufferPointer _framebuffer;
-    std::array<float, 3 * SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT> _randomSamples;
+    std::array<float, 8 * SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT> _randomSamples;
     int _frameId{ 0 };
     
     gpu::RangeTimerPointer _gpuTimer;
