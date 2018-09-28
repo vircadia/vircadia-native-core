@@ -458,8 +458,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getBuildNormalsPipeline() {
 }
 
 int AmbientOcclusionEffect::getDepthResolutionLevel() const {
-    // Having some problems making a nice AO with Half resolution depth, so stick to full res.
-    return 0;
+    return std::min(1, _aoParametersBuffer->getResolutionLevel());
 }
 
 void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
