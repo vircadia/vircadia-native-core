@@ -24,7 +24,7 @@ Material::Material() :
 {
     // created from nothing: create the Buffer to store the properties
     Schema schema;
-    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema, sizeof(Schema)));
 }
 
 Material::Material(const Material& material) :
@@ -34,7 +34,7 @@ Material::Material(const Material& material) :
 {
     // copied: create the Buffer to store the properties, avoid holding a ref to the old Buffer
     Schema schema;
-    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema, sizeof(Schema)));
     _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
 }
 
@@ -49,7 +49,7 @@ Material& Material::operator= (const Material& material) {
 
     // copied: create the Buffer to store the properties, avoid holding a ref to the old Buffer
     Schema schema;
-    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema, sizeof(Schema)));
     _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
 
     return (*this);
