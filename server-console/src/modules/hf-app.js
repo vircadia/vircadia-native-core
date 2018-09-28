@@ -15,9 +15,9 @@ const osType = os.type();
 exports.getBuildInfo = function() {
     var buildInfoPath = null;
 
-    if (osType == 'Windows_NT') {
+    if (osType === 'Windows_NT') {
         buildInfoPath = path.join(path.dirname(process.execPath), 'build-info.json');
-    } else if (osType == 'Darwin') {
+    } else if (osType === 'Darwin') {
         var contentPath = ".app/Contents/";
         var contentEndIndex = __dirname.indexOf(contentPath);
 
@@ -67,9 +67,9 @@ exports.startInterface = function(url) {
 }
 
 exports.isInterfaceRunning = function(done) {
-    if (osType == 'Windows_NT') {
+    if (osType === 'Windows_NT') {
         var pInterface = new Process('interface', 'interface.exe');
-    } else if (osType == 'Darwin') {
+    } else if (osType === 'Darwin') {
         var pInterface = new Process('interface', 'interface');
     }
     return pInterface.isRunning(done);
@@ -78,13 +78,13 @@ exports.isInterfaceRunning = function(done) {
 
 exports.getRootHifiDataDirectory = function(local) {
     var organization = buildInfo.organization;
-    if (osType == 'Windows_NT') {
+    if (osType === 'Windows_NT') {
         if (local) {
             return path.resolve(osHomeDir(), 'AppData/Local', organization);
         } else {
             return path.resolve(osHomeDir(), 'AppData/Roaming', organization);
         }
-    } else if (osType == 'Darwin') {
+    } else if (osType === 'Darwin') {
         return path.resolve(osHomeDir(), 'Library/Application Support', organization);
     } else {
         return path.resolve(osHomeDir(), '.local/share/', organization);

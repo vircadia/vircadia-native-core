@@ -945,7 +945,7 @@ Function HandlePostInstallOptions
     Delete "$SMSTARTUP\@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@.lnk"
 
     ; make a startup shortcut in this user's current context
-	; use the console shortcut name regardless of server/interface install
+    ; use the console shortcut name regardless of server/interface install
     SetShellVarContext current
     CreateShortCut "$SMSTARTUP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
 

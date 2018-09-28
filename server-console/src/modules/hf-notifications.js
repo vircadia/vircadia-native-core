@@ -51,8 +51,8 @@ HifiNotification.prototype = {
         var app = null;
         switch (this.type) {
             case NotificationType.GOTO:
-                if (typeof(this.data) == "number") {
-                    if (this.data == 1) {
+                if (typeof(this.data) === "number") {
+                    if (this.data === 1) {
                         text = "You have " + this.data + " event invitation pending."
                     } else {
                         text = "You have " + this.data + " event invitations pending."
@@ -67,8 +67,8 @@ HifiNotification.prototype = {
                 break;
 
             case NotificationType.PEOPLE:
-                if (typeof(this.data) == "number") {
-                    if (this.data == 1) {
+                if (typeof(this.data) === "number") {
+                    if (this.data === 1) {
                         text = this.data + " of your connections is online."
                     } else {
                         text = this.data + " of your connections are online."
@@ -83,8 +83,8 @@ HifiNotification.prototype = {
                 break;
 
             case NotificationType.WALLET:
-                if (typeof(this.data) == "number") {
-                    if (this.data == 1) {
+                if (typeof(this.data) === "number") {
+                    if (this.data === 1) {
                         text = "You have " + this.data + " unread Wallet transaction.";
                     } else {
                         text = "You have " + this.data + " unread Wallet transactions.";
@@ -99,8 +99,8 @@ HifiNotification.prototype = {
                 break;
 
             case NotificationType.MARKETPLACE:
-                if (typeof(this.data) == "number") {
-                    if (this.data == 1) {
+                if (typeof(this.data) === "number") {
+                    if (this.data === 1) {
                         text = this.data + " of your purchased items has an update available.";
                     } else {  
                         text = this.data + " of your purchased items have updates available.";
@@ -124,7 +124,7 @@ HifiNotification.prototype = {
             },
             function (error, reason, metadata) {
                 if(_finished) {
-                    if (osType == 'Darwin') {
+                    if (osType === 'Darwin') {
                         setTimeout(_finished, OSX_CLICK_DELAY_TIMEOUT);
                     } else {
                         _finished();
@@ -215,7 +215,7 @@ HifiNotifications.prototype = {
     _showNotification: function () {
         var _this = this;
 
-        if (osType == 'Darwin') {
+        if (osType === 'Darwin') {
             this.pendingNotifications[0].show(function () {
                 // For OSX
                 // don't attempt to show the next notification
@@ -238,7 +238,7 @@ HifiNotifications.prototype = {
     },
     _addNotification: function (notification) {
         this.pendingNotifications.push(notification);
-        if(this.pendingNotifications.length == 1) {
+        if(this.pendingNotifications.length === 1) {
             this._showNotification();
         }
     },
