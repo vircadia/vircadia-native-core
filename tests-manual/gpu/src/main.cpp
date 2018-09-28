@@ -102,7 +102,7 @@ class MyTestWindow : public TestWindow {
 #ifdef INTERACTIVE
         t = _time.elapsed() * 1e-3f;
 #endif
-        glm::vec3 up { 0.0f, 1.0f, 0.0f };
+        static const glm::vec3 up { 0.0f, 1.0f, 0.0f };
 
         float distance = 3.0f;
         glm::vec3 camera_position { distance * sinf(t), 0.5f, distance * cosf(t) };

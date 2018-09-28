@@ -207,7 +207,7 @@ bool OffscreenUi::isPointOnDesktopWindow(QVariant point) {
 void OffscreenUi::hide(const QString& name) {
     auto rootItem = getRootItem();
     if (rootItem) {
-        QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
+        QQuickItem* item = rootItem->findChild<QQuickItem*>(name);
         if (item) {
             QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(false);
         }
