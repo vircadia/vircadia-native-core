@@ -68,13 +68,13 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
     _stats.processIncomingPacketsElapsedTime += (end - start);
 }
 
-int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    if (destinationNode->getType() == NodeType::Agent && !destinationNode->isUpstream()) {
+int AvatarMixerSlave::sendIdentityPacket(NLPacketList& packetList, const AvatarMixerClientData* nodeData, const Node& destinationNode) {
+    if (destinationNode.getType() == NodeType::Agent && !destinationNode.isUpstream()) {
         QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-        auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
-        identityPackets->write(individualData);
-        DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
+        packetList.startSegment();
+        packetList.write(individualData);
+        packetList.endSegment();
         _stats.numIdentityPackets++;
         return individualData.size();
     } else {
@@ -396,6 +396,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     const int avatarPacketCapacity = avatarPacket->getPayloadCapacity();
     int avatarSpaceAvailable = avatarPacketCapacity;
     int numPacketsSent = 0;
+    auto identityPacketList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
 
     const auto& sortedAvatarVector = sortedAvatars.getSortedVector(numToSendEst);
     for (const auto& sortedAvatar : sortedAvatarVector) {
@@ -425,16 +426,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
         const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
 
-        // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
-        // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
-        if (otherAvatar->hasProcessedFirstIdentity()
-            && nodeData->getLastBroadcastTime(otherNode->getLocalID()) <= otherNodeData->getIdentityChangeTimestamp()) {
-            identityBytesSent += sendIdentityPacket(otherNodeData, node);
-
-            // remember the last time we sent identity details about this other node to the receiver
-            nodeData->setLastBroadcastTime(otherNode->getLocalID(), usecTimestampNow());
-        }
-
         // Typically all out-of-view avatars but such avatars' priorities will rise with time:
         bool isLowerPriority = sortedAvatar.getPriority() <= OUT_OF_VIEW_THRESHOLD;
 
@@ -444,6 +435,16 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         } else if (!overBudget) {
             detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO ? AvatarData::SendAllData : AvatarData::CullSmallData;
             nodeData->incrementAvatarInView();
+
+            // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
+            // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
+            if (otherAvatar->hasProcessedFirstIdentity()
+                && nodeData->getLastBroadcastTime(otherNode->getLocalID()) <= otherNodeData->getIdentityChangeTimestamp()) {
+                identityBytesSent += sendIdentityPacket(*identityPacketList, otherNodeData, *destinationNode);
+
+                // remember the last time we sent identity details about this other node to the receiver
+                nodeData->setLastBroadcastTime(otherNode->getLocalID(), usecTimestampNow());
+            }
         }
 
         QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getLocalID());
@@ -518,6 +519,12 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     if (traitsPacketList->getNumPackets() >= 1) {
         // send the traits packet list
         nodeList->sendPacketList(std::move(traitsPacketList), *destinationNode);
+    }
+
+    // Send any AvatarIdentity packets:
+    identityPacketList->closeCurrentPacket();
+    if (identityBytesSent > 0) {
+        nodeList->sendPacketList(std::move(identityPacketList), *destinationNode);
     }
 
     // record the number of avatars held back this frame
