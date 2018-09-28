@@ -430,5 +430,7 @@ PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick)
 }
 
 Transform CollisionPick::getResultTransform() const {
-    return Transform(getMathematicalPick().transform);
+    Transform transform;
+    transform.setTranslation(_mathPick.transform.getTranslation());
+    return transform;
 }
