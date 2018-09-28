@@ -254,6 +254,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
 * @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
 * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
+* @property {boolean} [scaleWithParent=true] If true, the collision pick's dimensions and threshold will adjust according to the scale of the parent.
 */
 unsigned int PickScriptingInterface::createCollisionPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
@@ -273,8 +274,13 @@ unsigned int PickScriptingInterface::createCollisionPick(const QVariant& propert
         maxDistance = propMap["maxDistance"].toFloat();
     }
 
+    bool scaleWithParent = true;
+    if (propMap["scaleWithParent"].isValid()) {
+        scaleWithParent = propMap["scaleWithParent"].toBool();
+    }
+
     CollisionRegion collisionRegion(propMap);
-    auto collisionPick = std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, qApp->getPhysicsEngine());
+    auto collisionPick = std::make_shared<CollisionPick>(filter, maxDistance, enabled, scaleWithParent, collisionRegion, qApp->getPhysicsEngine());
     setParentTransform(collisionPick, propMap);
 
     return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, collisionPick);
