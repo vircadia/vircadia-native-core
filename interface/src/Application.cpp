@@ -269,7 +269,7 @@ class RenderEventHandler : public QObject {
 public:
     RenderEventHandler() {
         // Transfer to a new thread
-        moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
+        moveToNewNamedThread(this, "RenderThread", [](QThread* renderThread) {
             hifi::qt::addBlockingForbiddenThread("Render", renderThread);
             qApp->_lastTimeRendered.start();
         }, std::bind(&RenderEventHandler::initialize, this), QThread::HighestPriority);
@@ -1755,7 +1755,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // we can unlock the desktop repositioning code, since all the positions will be
     // relative to the desktop size for this plugin
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->getDesktop()->setProperty("repositionLocked", false);
+    connect(offscreenUi.data(), &OffscreenUi::desktopReady, []() {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto desktop = offscreenUi->getDesktop();
+        if (desktop) {
+            desktop->setProperty("repositionLocked", false);
+        }
+    });
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -2309,7 +2315,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QTimer* checkLoginTimer = new QTimer(this);
     checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
     checkLoginTimer->setSingleShot(true);
-    connect(checkLoginTimer, &QTimer::timeout, this, [this]() {
+    connect(checkLoginTimer, &QTimer::timeout, this, []() {
         auto accountManager = DependencyManager::get<AccountManager>();
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         if (!accountManager->isLoggedIn()) {
@@ -4673,8 +4679,14 @@ void Application::idle() {
 
     checkChangeCursor();
 
-    Stats::getInstance()->updateStats();
-    AnimStats::getInstance()->updateStats();
+    auto stats = Stats::getInstance();
+    if (stats) {
+        stats->updateStats();
+    }
+    auto animStats = AnimStats::getInstance();
+    if (animStats) {
+        animStats->updateStats();
+    }
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing

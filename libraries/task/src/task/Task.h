@@ -174,7 +174,8 @@ public:
     template <class T, class O, class C = Config> using ModelO = Model<T, C, None, O>;
     template <class T, class I, class O, class C = Config> using ModelIO = Model<T, C, I, O>;
 
-    Job(ConceptPointer concept) : _concept(concept) {}
+    Job(const ConceptPointer& concept) : _concept(concept) {}
+    virtual ~Job() {}
 
     const std::string& getName() const { return _concept->getName(); }
     const Varying getInput() const { return _concept->getInput(); }
