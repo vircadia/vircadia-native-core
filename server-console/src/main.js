@@ -885,6 +885,9 @@ function onContentLoaded() {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
+    var paths = pathFinder.searchPaths("interface", binaryType, buildInfo.releaseType);
+    dialog.showMessageBox({type: 'question', buttons: ['Yes', 'No'], title: "Paths", message: paths.join(", ")}, function () {});
+    
 
     if (app.dock) {
         // hide the dock icon on OS X
@@ -902,4 +905,5 @@ app.on('ready', function() {
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
     maybeInstallDefaultContentSet(onContentLoaded);
+
 });
