@@ -333,5 +333,11 @@ function AppUi(properties) {
     Script.scriptEnding.connect(that.onScriptEnding);
     GlobalServices.findableByChanged.connect(restartNotificationPoll);
     GlobalServices.myUsernameChanged.connect(restartNotificationPoll);
+    if (that.buttonName == Settings.getValue("startUpApp")) {
+        Settings.setValue("startUpApp", "");
+        Script.setTimeout(function () {
+            that.open();
+        }, 1000);
+    }
 }
 module.exports = AppUi;

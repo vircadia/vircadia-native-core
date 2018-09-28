@@ -24,6 +24,7 @@ class QmlCommerce : public QObject {
 
 public:
     QmlCommerce();
+    void openSystemApp(const QString& appPath);
 
 signals:
     void walletStatusResult(uint walletStatus);
