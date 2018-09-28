@@ -754,13 +754,21 @@ Function PostInstallOptionsPage
     !insertmacro SetInstallOption $DesktopClientCheckbox @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
 
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @SANDBOX_HF_SHORTCUT_NAME@"
+  ${Else}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @CONSOLE_HF_SHORTCUT_NAME@"
+  ${EndIf}
+  
+  Pop $DesktopConsoleCheckbox
+  IntOp $CurrentOffset $CurrentOffset + 15  
   ; set the checkbox state depending on what is present in the registry
   !insertmacro SetInstallOption $DesktopConsoleCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
 
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
     Pop $LaunchClientNowCheckbox
-    IntOp $CurrentOffset $CurrentOffset + 30
+    IntOp $CurrentOffset $CurrentOffset + 15
 
     ; set the checkbox state depending on what is present in the registry
     !insertmacro SetInstallOption $LaunchClientNowCheckbox @CLIENT_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
@@ -771,52 +779,30 @@ Function PostInstallOptionsPage
   ${EndIf}
 
   ${If} @SERVER_COMPONENT_CONDITIONAL@
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @SANDBOX_HF_SHORTCUT_NAME@"
-    Pop $DesktopConsoleCheckbox
-    IntOp $CurrentOffset $CurrentOffset + 15
-
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @SANDBOX_HF_SHORTCUT_NAME@ after install"
-    Pop $LaunchConsoleNowCheckbox
-
-    ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
-    ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
-    ${IfNot} $substringResult == ""
-        ${NSD_SetState} $LaunchConsoleNowCheckbox ${BST_UNCHECKED}
-    ${EndIf}
-
-    IntOp $CurrentOffset $CurrentOffset + 15
-
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @SANDBOX_HF_SHORTCUT_NAME@ on startup"
-    Pop $ConsoleStartupCheckbox
-    IntOp $CurrentOffset $CurrentOffset + 15
-
-    ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
   ${Else}
-      ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @CONSOLE_HF_SHORTCUT_NAME@"
-    Pop $DesktopConsoleCheckbox
-    IntOp $CurrentOffset $CurrentOffset + 15
-
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ after install"
-    Pop $LaunchConsoleNowCheckbox
-
-    ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
-    ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
-    ${IfNot} $substringResult == ""
-        ${NSD_SetState} $LaunchConsoleNowCheckbox ${BST_UNCHECKED}
-    ${EndIf}
-
-    IntOp $CurrentOffset $CurrentOffset + 15
-
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
-    Pop $ConsoleStartupCheckbox
-    IntOp $CurrentOffset $CurrentOffset + 15
-
-    ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
+  Pop $LaunchConsoleNowCheckbox
+
+  ; set the checkbox state depending on what is present in the registry
+  !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+  ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
+  ${IfNot} $substringResult == ""
+      ${NSD_SetState} $LaunchConsoleNowCheckbox ${BST_UNCHECKED}
+  ${EndIf}
+  IntOp $CurrentOffset $CurrentOffset + 30
+
+  ${If} @SERVER_COMPONENT_CONDITIONAL@  
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @SANDBOX_HF_SHORTCUT_NAME@ on startup"
+  ${Else}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
+  ${EndIf}
+  Pop $ConsoleStartupCheckbox
+  IntOp $CurrentOffset $CurrentOffset + 15
+
+  ; set the checkbox state depending on what is present in the registry
+  !insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
 
   ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
   Pop $CleanInstallCheckbox
@@ -921,6 +907,7 @@ Function HandlePostInstallOptions
   ${If} @SERVER_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to the console
     ${If} $DesktopConsoleState == ${BST_CHECKED}
+      Delete "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk"
       CreateShortCut "$DESKTOP\@SANDBOX_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
       !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
       ; Set appUserModelId
@@ -931,6 +918,7 @@ Function HandlePostInstallOptions
   ${Else}
     ; check if the user asked for a desktop shortcut to the console
     ${If} $DesktopConsoleState == ${BST_CHECKED}
+      Delete "$DESKTOP\@SANDBOX_HF_SHORTCUT_NAME@.lnk"
       CreateShortCut "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
       !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
       ; Set appUserModelId
@@ -957,6 +945,7 @@ Function HandlePostInstallOptions
     Delete "$SMSTARTUP\@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@.lnk"
 
     ; make a startup shortcut in this user's current context
+	; use the console shortcut name regardless of server/interface install
     SetShellVarContext current
     CreateShortCut "$SMSTARTUP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
 
@@ -1196,11 +1185,21 @@ Section "-Core installation"
 
   ${EndIf}
 
-  ; handling for server console shortcut
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
-    "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
-  ; Set appUserModelId
-  ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ; handling for server console shortcut
+    Delete "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk"
+    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@SANDBOX_SHORTCUT_NAME@.lnk" \
+      "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+    ; Set appUserModelId
+    ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@SANDBOX_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
+  ${Else}
+    ; handling for interface only console shortcut
+    Delete "$SMPROGRAMS\$STARTMENU_FOLDER\@SANDBOX_SHORTCUT_NAME@.lnk"
+    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
+      "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+    ; Set appUserModelId
+    ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
+  ${EndIf}
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\@UNINSTALLER_NAME@"
 
@@ -1406,6 +1405,7 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
   Delete "$SMPROGRAMS\$MUI_TEMP\@INTERFACE_SHORTCUT_NAME@.lnk"
   Delete "$SMPROGRAMS\$MUI_TEMP\@CONSOLE_SHORTCUT_NAME@.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\@SANDBOX_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@INTERFACE_HF_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@SANDBOX_HF_SHORTCUT_NAME@.lnk"
@@ -1446,6 +1446,7 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
   Delete "$SMPROGRAMS\$MUI_TEMP\@INTERFACE_SHORTCUT_NAME@.lnk"
   Delete "$SMPROGRAMS\$MUI_TEMP\@CONSOLE_SHORTCUT_NAME@.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\@SANDBOX_SHORTCUT_NAME@.lnk"
 @CPACK_NSIS_DELETE_ICONS_EXTRA@
 
   ;Delete empty start menu parent diretories
