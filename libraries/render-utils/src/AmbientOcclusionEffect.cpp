@@ -108,7 +108,7 @@ void AmbientOcclusionFramebuffer::allocate() {
         if (_isStereo) {
             sideSize.x >>= 1;
         }
-        sideSize = divideRoundUp(sideSize, 1 << _depthResolutionLevel);
+        sideSize = divideRoundUp(sideSize, 1 << _resolutionLevel);
         if (_isStereo) {
             sideSize.x <<= 1;
         }
@@ -208,7 +208,7 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     radius{ 0.3f },
     perspectiveScale{ 1.0f },
     obscuranceLevel{ 0.5f },
-    falloffAngle{ 0.3f },
+    falloffAngle{ 0.45f },
     edgeSharpness{ 1.0f },
     blurDeviation{ 2.5f },
     numSpiralTurns{ 7.0f },
@@ -363,19 +363,12 @@ void AmbientOcclusionEffect::updateBlurParameters() {
     vblur._blurInfo.z = 1.0f;
     vblur._blurInfo.w = occlusionSize.y / float(frameSize.y);
 
-    // Depth axis
-    hblur._blurAxis.x = 1.0f / occlusionSize.x;
+    // Occlusion axis
+    hblur._blurAxis.x = hblur._blurInfo.z / occlusionSize.x;
     hblur._blurAxis.y = 0.0f;
 
     vblur._blurAxis.x = 0.0f;
-    vblur._blurAxis.y = 1.0f / occlusionSize.y;
-
-    // Occlusion axis
-    hblur._blurAxis.z = hblur._blurAxis.x * hblur._blurInfo.z;
-    hblur._blurAxis.w = 0.0f;
-
-    vblur._blurAxis.z = 0.0f;
-    vblur._blurAxis.w = vblur._blurAxis.y * vblur._blurInfo.w;
+    vblur._blurAxis.y = vblur._blurInfo.w / occlusionSize.y;
 }
 
 void AmbientOcclusionEffect::updateFramebufferSizes() {
@@ -489,7 +482,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto occlusionDepthTexture = linearDepthTexture;
     auto sourceViewport = args->_viewport;
     // divideRoundUp is used two compute the quarter or half resolution render sizes.
-    // We need to take the rounded up resolution.
+    // We choose to take the rounded up resolution.
     auto occlusionViewport = divideRoundUp(sourceViewport, 1 << resolutionLevel);
     auto firstBlurViewport = sourceViewport;
     firstBlurViewport.w = occlusionViewport.w;
@@ -541,7 +534,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     // _frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
 
     gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {
-		PROFILE_RANGE_BATCH(batch, "AmbientOcclusion");
+		PROFILE_RANGE_BATCH(batch, "SSAO");
 		batch.enableStereo(false);
 
         _gpuTimer->begin(batch);
@@ -552,7 +545,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setModelTransform(Transform());
 
         // We need this with the mips levels
-        batch.pushProfileRange("Depth Mip Generation");
+        batch.pushProfileRange("Depth Mips");
         if (isHorizonBased) {
             batch.setPipeline(mipCreationPipeline);
             batch.generateTextureMipsWithPipeline(occlusionDepthTexture);
@@ -562,7 +555,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.popProfileRange();
 
 #if SSAO_USE_QUAD_SPLIT
-        batch.pushProfileRange("Normal Generation");
+        batch.pushProfileRange("Normal Gen.");
         {
             const auto uvScale = glm::vec3(
                 normalViewport.z / (sourceViewport.z * depthResolutionScale),
@@ -579,7 +572,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
             model.setScale(uvScale);
             model.setTranslation(uvTranslate);
-            batch.setModelTransform(model);
+            // TEMPO OP batch.setModelTransform(model);
+            batch.setModelTransform(Transform());
         }
 
         // Build face normals pass
@@ -658,7 +652,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         {
             PROFILE_RANGE_BATCH(batch, "Bilateral Blur");
             // Blur 1st pass
-            batch.pushProfileRange("Horizontal");
+            batch.pushProfileRange("Horiz.");
             {
                 const auto uvScale = glm::vec3(
                     occlusionViewport.z / float(sourceViewport.z),
@@ -684,7 +678,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
             batch.popProfileRange();
 
             // Blur 2nd pass
-            batch.pushProfileRange("Vertical");
+            batch.pushProfileRange("Vert.");
             {
                 const auto uvScale = glm::vec3(
                     1.0f,

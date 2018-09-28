@@ -27,10 +27,6 @@ layout(binding=RENDER_UTILS_BUFFER_SSAO_BLUR_PARAMS) uniform blurParamsBuffer {
 };
 
 vec2 getBlurOcclusionAxis() {
-    return blurParams._blurAxis.zw;
-}
-
-vec2 getBlurDepthAxis() {
     return blurParams._blurAxis.xy;
 }
 
@@ -56,7 +52,7 @@ float evalBlurCoefficient(vec3 blurScales, float radialDistance, float zDistance
     return exp2(dot(blurScales, distances*distances));
 }
 
-const float BLUR_EDGE_DISTANCE_SCALE = 1000 * SSAO_DEPTH_KEY_SCALE;
+const float BLUR_EDGE_DISTANCE_SCALE = 10000 * SSAO_DEPTH_KEY_SCALE;
 const float BLUR_EDGE_NORMAL_SCALE = 2.0;
 const float BLUR_EDGE_NORMAL_LIMIT = 0.25;
 
