@@ -51,8 +51,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.tabletID = null;
         this.blacklist = [];
         this.pointerManager = new PointerManager();
-        this.miniTabletID = null;
-        this.niniTabletHand = LEFT_HAND;
 
         // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
         // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
@@ -219,7 +217,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     // Tablet and mini-tablet must be within NEAR_TABLET_MAX_RADIUS in order to be grabbed.
                     // Mini tablet can only be grabbed the hand it's displayed on.
                     var tabletIndex = nearbyOverlays.indexOf(HMD.tabletID);
-                    var miniTabletIndex = nearbyOverlays.indexOf(_this.miniTabletID);
+                    var miniTabletIndex = nearbyOverlays.indexOf(HMD.miniTabletID);
                     if (tabletIndex !== -1 || miniTabletIndex !== -1) {
                         var closebyOverlays =
                             Overlays.findOverlays(controllerLocations[h].position, NEAR_TABLET_MAX_RADIUS * sensorScaleFactor);
@@ -228,7 +226,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             nearbyOverlays.splice(tabletIndex, 1);
                         }
                         if (miniTabletIndex !== -1
-                                && ((closebyOverlays.indexOf(_this.miniTabletID) === -1) || h !== _this.miniTabletHand)) {
+                                && ((closebyOverlays.indexOf(HMD.miniTabletID) === -1) || h !== HMD.miniTabletHand)) {
                             nearbyOverlays.splice(miniTabletIndex, 1);
                         }
                     }
@@ -493,12 +491,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                                 _this.setBlacklist();
                             }
                         }
-                    } else if (channel === 'Hifi-MiniTablet-Details') {
-                        message = JSON.parse(data);
-                        _this.miniTabletID = message.overlay;
-                        _this.miniTabletHand = message.hand;
                     }
-
                 } catch (e) {
                     print("WARNING: handControllerGrab.js -- error parsing message: " + data);
                 }
@@ -535,7 +528,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     Entities.mousePressOnEntity.connect(mousePress);
     var controllerDispatcher = new ControllerDispatcher();
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
-    Messages.subscribe('Hifi-MiniTablet-Details');
     Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);
     Script.scriptEnding.connect(controllerDispatcher.cleanup);
     Script.setTimeout(controllerDispatcher.update, BASIC_TIMER_INTERVAL_MS);

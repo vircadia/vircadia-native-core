@@ -231,13 +231,9 @@
 
 
         function updateMiniTabletID() {
-            // Send mini-tablet overlay ID to controllerDispatcher so that it can use a smaller near grab distance.
-            Messages.sendLocalMessage("Hifi-MiniTablet-Details", JSON.stringify({
-                overlay: miniOverlay,
-                hand: uiHand
-            }));
-            // Send mini-tablet UI overlay ID to stylusInput so that styluses can be used on it.
-            Messages.sendLocalMessage("Hifi-MiniTablet-UI-ID", miniUIOverlay);
+            HMD.miniTabletID = miniOverlay;
+            HMD.miniTabletScreenID = miniUIOverlay;
+            HMD.miniTabletHand = miniOverlay ? uiHand : -1;
         }
 
         function playSound(sound, volume) {

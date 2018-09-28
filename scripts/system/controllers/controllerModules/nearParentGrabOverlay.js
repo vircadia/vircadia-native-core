@@ -27,7 +27,6 @@ Script.include("/~/system/libraries/utils.js");
         this.previousParentJointIndex = {};
         this.previouslyUnhooked = {};
         this.robbed = false;
-        this.miniTabletID = null;
 
         this.parameters = makeDispatcherModuleParameters(
             90,
@@ -41,10 +40,6 @@ Script.include("/~/system/libraries/utils.js");
 
         this.getOtherModule = function() {
             return (this.hand === RIGHT_HAND) ? leftNearParentingGrabOverlay : rightNearParentingGrabOverlay;
-        };
-
-        this.setMiniTabletID = function (id) {
-            this.miniTabletID = id;
         };
 
         this.otherHandIsParent = function(props) {
@@ -168,7 +163,7 @@ Script.include("/~/system/libraries/utils.js");
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(overlayPosition, handPosition);
                 if (distance <= NEAR_GRAB_RADIUS * sensorScaleFactor) {
-                    if (overlays[i] !== this.miniTabletID || controllerData.secondaryValues[this.hand] === 0) {
+                    if (overlays[i] !== HMD.miniTabletID || controllerData.secondaryValues[this.hand] === 0) {
                         // Don't grab mini tablet with grip.
                         return overlays[i];
                     }
@@ -224,25 +219,6 @@ Script.include("/~/system/libraries/utils.js");
             }
         };
     }
-
-    function handleMessage(channel, data, sender) {
-        if (sender !== MyAvatar.sessionUUID) {
-            return;
-        }
-
-        if (channel === 'Hifi-MiniTablet-Details') {
-            try {
-                var message = JSON.parse(data);
-                leftNearParentingGrabOverlay.setMiniTabletID(message.overlay);
-                rightNearParentingGrabOverlay.setMiniTabletID(message.overlay);
-            } catch (e) {
-                print("WARNING: nearParentGrabOverlay.js -- error parsing message: " + data);
-            }
-        }
-    }
-
-    Messages.subscribe('Hifi-MiniTablet-Details');
-    Messages.messageReceived.connect(handleMessage);
 
     var leftNearParentingGrabOverlay = new NearParentingGrabOverlay(LEFT_HAND);
     var rightNearParentingGrabOverlay = new NearParentingGrabOverlay(RIGHT_HAND);

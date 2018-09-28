@@ -58,12 +58,6 @@ Script.include("/~/system/libraries/controllers.js");
             enabled: true
         });
 
-        this.miniTabletID = null;
-
-        this.setMiniTabletID = function (id) {
-            this.miniTabletID = id;
-        };
-
         this.disable = false;
 
         this.otherModuleNeedsToRun = function(controllerData) {
@@ -130,8 +124,8 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             // Add the mini tablet.
-            if (this.miniTabletID && Overlays.getProperty(this.miniTabletID, "visible")) {
-                stylusTarget = getOverlayDistance(controllerPosition, this.miniTabletID);
+            if (HMD.miniTabletScreenID && Overlays.getProperty(HMD.miniTabletScreenID, "visible")) {
+                stylusTarget = getOverlayDistance(controllerPosition, HMD.miniTabletScreenID);
                 if (stylusTarget) {
                     stylusTargets.push(stylusTarget);
                 }
@@ -205,15 +199,6 @@ Script.include("/~/system/libraries/controllers.js");
         }
     }
 
-    function onMessageReceived(channel, message, sender) {
-        if (sender === MyAvatar.sessionUUID) {
-            if (channel === 'Hifi-MiniTablet-UI-ID') {
-                leftTabletStylusInput.setMiniTabletID(message);
-                rightTabletStylusInput.setMiniTabletID(message);
-            }
-        }
-    }
-
     var leftTabletStylusInput = new StylusInput(LEFT_HAND);
     var rightTabletStylusInput = new StylusInput(RIGHT_HAND);
 
@@ -224,11 +209,7 @@ Script.include("/~/system/libraries/controllers.js");
     Overlays.hoverLeaveOverlay.connect(mouseHoverLeave);
     Overlays.mousePressOnOverlay.connect(mousePress); 
 
-    Messages.subscribe('Hifi-MiniTablet-UI-ID');
-    Messages.messageReceived.connect(onMessageReceived);
-
     this.cleanup = function () {
-        Messages.messageReceived.disconnect(onMessageReceived);
         leftTabletStylusInput.cleanup();
         rightTabletStylusInput.cleanup();
         disableDispatcherModule("LeftTabletStylusInput");
