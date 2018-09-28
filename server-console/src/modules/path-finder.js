@@ -3,7 +3,7 @@ var path = require('path');
 const { app } = require('electron');
 
 function platformExtension(name) {
-    if (name == "Interface") {
+    if (name == "interface") {
         if (process.platform == "darwin") {
             return ".app/Contents/MacOS/" + name
         } else if (process.platform == "win32") {

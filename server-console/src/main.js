@@ -259,7 +259,7 @@ var debug = argv.debug;
 
 var binaryType = argv.binaryType;
 
-interfacePath = pathFinder.discoveredPath("Interface", binaryType, buildInfo.releaseType);
+interfacePath = pathFinder.discoveredPath("interface", binaryType, buildInfo.releaseType);
 dsPath = pathFinder.discoveredPath("domain-server", binaryType, buildInfo.releaseType);
 acPath = pathFinder.discoveredPath("assignment-client", binaryType, buildInfo.releaseType);
 
