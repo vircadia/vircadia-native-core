@@ -35,13 +35,6 @@ Script.include("/~/system/libraries/controllers.js");
         };
     }
 
-    function getEntityDistance(controllerPosition, entityProps) {
-        return {
-            id: entityProps.id,
-            distance: Vec3.distance(entityProps.position, controllerPosition)
-        };
-    }
-
     function StylusInput(hand) {
         this.hand = hand;
 
