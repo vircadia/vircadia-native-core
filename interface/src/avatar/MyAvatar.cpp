@@ -3362,7 +3362,7 @@ float MyAvatar::getRawDriveKey(DriveKeys key) const {
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (getDriveKey(TRANSLATE_Y) > 0.0f) {
+    if (getDriveKey(TRANSLATE_Y) > 0.0f && (!qApp->isHMDMode() || useAdvancedMovementControls() && getFlyingHMDPref())) {
         _characterController.jump();
     }
 }
