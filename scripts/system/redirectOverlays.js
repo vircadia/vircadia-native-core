@@ -103,7 +103,6 @@
             backgroundAlpha: overlaysVisible * 0.00393,
             leftMargin: (textOverlayWidth - textWidth) / 2
         };
-        Window.copyToClipboard(redirectOopsText);
 
         Overlays.editOverlay(redirectOopsText, oopsTextProperties);
         Overlays.editOverlay(tryAgainImage, properties);
