@@ -19,7 +19,8 @@ ParabolaPick::ParabolaPick(const glm::vec3& position, const glm::vec3& direction
     Pick(PickParabola(position, speed * direction, accelerationAxis), filter, maxDistance, enabled),
     _rotateAccelerationWithAvatar(rotateAccelerationWithAvatar),
     _rotateAccelerationWithParent(rotateAccelerationWithParent),
-    _scaleWithParent(scaleWithParent) {
+    _scaleWithParent(scaleWithParent),
+    _speed(speed) {
 }
 
 PickParabola ParabolaPick::getMathematicalPick() const {
@@ -39,7 +40,7 @@ PickParabola ParabolaPick::getMathematicalPick() const {
         velocity = currentParentTransform.transformDirection(velocity);
     } else {
         glm::vec3 transformedVelocity = currentParentTransform.transformDirection(velocity);
-        velocity = glm::normalize(transformedVelocity) * glm::distance(velocity, Vectors::ZERO);
+        velocity = glm::normalize(transformedVelocity) * _speed;
     }
     glm::vec3 acceleration = _mathPick.acceleration;
     if (_rotateAccelerationWithAvatar) {

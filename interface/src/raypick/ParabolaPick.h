@@ -89,6 +89,8 @@ protected:
     bool _rotateAccelerationWithAvatar;
     bool _rotateAccelerationWithParent;
     bool _scaleWithParent;
+    // Cached magnitude of _mathPick.velocity
+    float _speed;
 };
 
 #endif // hifi_ParabolaPick_h
