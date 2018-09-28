@@ -22,7 +22,7 @@ PickRay RayPick::getMathematicalPick() const {
 
     Transform currentParentTransform = parentTransform->getTransform();
     glm::vec3 origin = currentParentTransform.transform(_mathPick.origin);
-    glm::vec3 direction = currentParentTransform.transformDirection(_mathPick.direction);
+    glm::vec3 direction = glm::normalize(currentParentTransform.transformDirection(_mathPick.direction));
     return PickRay(origin, direction);
 }
 
