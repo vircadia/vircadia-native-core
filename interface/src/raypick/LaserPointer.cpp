@@ -29,9 +29,9 @@ void LaserPointer::editRenderStatePath(const std::string& state, const QVariant&
     auto renderState = std::static_pointer_cast<RenderState>(_renderStates[state]);
     if (renderState) {
         updateRenderStateOverlay(renderState->getPathID(), pathProps);
-        QVariant pathWidth = pathProps.toMap()["lineWidth"];
-        if (pathWidth.isValid()) {
-            renderState->setPathWidth(pathWidth.toFloat());
+        QVariant lineWidth = pathProps.toMap()["lineWidth"];
+        if (lineWidth.isValid()) {
+            renderState->setLineWidth(lineWidth.toFloat());
         }
     }
 }
@@ -118,7 +118,7 @@ LaserPointer::RenderState::RenderState(const OverlayID& startID, const OverlayID
 {
     if (!_pathID.isNull()) {
         _pathIgnoreRays = qApp->getOverlays().getProperty(_pathID, "ignoreRayIntersection").value.toBool();
-        _pathWidth = qApp->getOverlays().getProperty(_pathID, "lineWidth").value.toFloat();
+        _lineWidth = qApp->getOverlays().getProperty(_pathID, "lineWidth").value.toFloat();
     }
 }
 
@@ -149,7 +149,7 @@ void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3&
         pathProps.insert("end", endVariant);
         pathProps.insert("visible", true);
         pathProps.insert("ignoreRayIntersection", doesPathIgnoreRays());
-        pathProps.insert("lineWidth", getPathWidth() * parentScale);
+        pathProps.insert("lineWidth", getLineWidth() * parentScale);
         qApp->getOverlays().editOverlay(getPathID(), pathProps);
     }
 }

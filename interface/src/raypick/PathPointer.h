@@ -42,9 +42,6 @@ public:
     void setEndRot(const glm::quat& endRot) { _endRot = endRot; }
     const glm::quat& getEndRot() const { return _endRot; }
 
-    void setPathWidth(float width) { _pathWidth = width; }
-    float getPathWidth() const { return _pathWidth; }
-
     virtual void cleanup();
     virtual void disable();
     virtual void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, float parentScale, bool distanceScaleEnd, bool centerEndY,
@@ -61,7 +58,6 @@ protected:
     glm::vec3 _startDim;
     glm::vec3 _endDim;
     glm::quat _endRot;
-    float _pathWidth;
 
     glm::quat _avgEndRot;
     bool _avgEndRotInitialized { false };

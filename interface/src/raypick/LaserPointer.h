@@ -24,6 +24,9 @@ public:
         const OverlayID& getPathID() const { return _pathID; }
         const bool& doesPathIgnoreRays() const { return _pathIgnoreRays; }
 
+        void setLineWidth(float width) { _lineWidth = width; }
+        float getLineWidth() const { return _lineWidth; }
+
         void cleanup() override;
         void disable() override;
         void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, float parentScale, bool distanceScaleEnd, bool centerEndY,
@@ -32,6 +35,8 @@ public:
     private:
         OverlayID _pathID;
         bool _pathIgnoreRays;
+
+        float _lineWidth;
     };
 
     LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
