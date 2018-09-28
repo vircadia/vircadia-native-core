@@ -106,7 +106,6 @@
         Window.copyToClipboard(redirectOopsText);
 
         Overlays.editOverlay(redirectOopsText, oopsTextProperties);
-        print("toggleOverlays: setting alpha to " + Overlays.getProperty(redirectOopsText, "alpha"));
         Overlays.editOverlay(tryAgainImage, properties);
         Overlays.editOverlay(backImage, properties);
 
