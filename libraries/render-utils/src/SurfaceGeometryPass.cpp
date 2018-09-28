@@ -45,7 +45,7 @@ void LinearDepthFramebuffer::update(const gpu::TexturePointer& depthBuffer, cons
             if (isStereo) {
                 _halfFrameSize.x >>= 1;
             }
-            _halfFrameSize = divideRoundUp(_halfFrameSize, 2);
+            _halfFrameSize >>= 1;
             if (isStereo) {
                 _halfFrameSize.x <<= 1;
             }
@@ -182,7 +182,7 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     auto downsamplePipeline = getDownsamplePipeline(renderContext);
 
     auto depthViewport = args->_viewport;
-    auto halfViewport = divideRoundUp(depthViewport, 2);
+    auto halfViewport = depthViewport >> 1;
     float clearLinearDepth = args->getViewFrustum().getFarClip() * 2.0f;
 
     gpu::doInBatch("LinearDepthPass::run", args->_context, [=](gpu::Batch& batch) {
