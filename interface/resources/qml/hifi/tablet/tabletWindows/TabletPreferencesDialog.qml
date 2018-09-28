@@ -123,10 +123,18 @@ Item {
                     }
 
                     // Runtime customization of preferences.
+                    var locomotionPreference = findPreference("VR Movement", "Teleporting only / Walking and teleporting");
+                    var flyingPreference = findPreference("VR Movement", "Jumping and flying");
+                    if (locomotionPreference && flyingPreference) {
+                        flyingPreference.visible = (locomotionPreference.value === 1);
+                        locomotionPreference.valueChanged.connect(function () {
+                            flyingPreference.visible = (locomotionPreference.value === 1);
+                        });
+                    }
                     if (HMD.isHeadControllerAvailable("Oculus")) {
-                        var preference = findPreference("VR Movement", "Show room boundaries while teleporting");
-                        if (preference) {
-                            preference.label = "Show room boundaries and sensors while teleporting";
+                        var boundariesPreference = findPreference("VR Movement", "Show room boundaries while teleporting");
+                        if (boundariesPreference) {
+                            boundariesPreference.label = "Show room boundaries and sensors while teleporting";
                         }
                     }
 

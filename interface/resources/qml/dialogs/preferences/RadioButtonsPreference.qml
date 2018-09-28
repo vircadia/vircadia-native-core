@@ -18,8 +18,20 @@ Preference {
 
     height: control.height + hifi.dimensions.controlInterlineHeight
 
+    property int value: 0
+
     Component.onCompleted: {
-        repeater.itemAt(preference.value).checked = true
+        value = preference.value;
+        repeater.itemAt(preference.value).checked = true;
+    }
+
+    function updateValue() {
+        for (var i = 0; i < repeater.count; i++) {
+            if (repeater.itemAt(i).checked) {
+                value = i;
+                break;
+            }
+        }
     }
 
     function save() {
@@ -61,9 +73,9 @@ Preference {
                 anchors {
                     left: parent.left
                 }
-
                 leftPadding: 0
                 colorScheme: hifi.colorSchemes.dark
+                onClicked: updateValue();
             }
         }
     }
