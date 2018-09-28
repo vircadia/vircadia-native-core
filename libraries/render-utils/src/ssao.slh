@@ -16,8 +16,6 @@
 
 <@func declarePackOcclusionDepth()@>
 
-#define SSAO_DEPTH_KEY_SCALE 300.0
-
 float CSZToDepthKey(float z) {
     return clamp(z * (-1.0 / SSAO_DEPTH_KEY_SCALE), 0.0, 1.0);
 }

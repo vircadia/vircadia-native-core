@@ -31,15 +31,15 @@ vec2 getBlurOcclusionAxis() {
 }
 
 vec2 getBlurOcclusionUVLimit() {
-    return blurParams._blurInfo.zw;
+    return blurParams._blurAxis.zw;
 }
 
-float getBlurEdgeSharpness() {
-    return blurParams._blurInfo.x;
+vec3 getBlurScales() {
+    return blurParams._blurInfo.xyz;
 }
 
 int getBlurRadius() {
-    return int(blurParams._blurInfo.y);
+    return int(blurParams._blurInfo.w);
 }
 
 vec4 fetchOcclusionPacked(ivec4 side, vec2 texCoord) {
@@ -52,8 +52,6 @@ float evalBlurCoefficient(vec3 blurScales, float radialDistance, float zDistance
     return exp2(dot(blurScales, distances*distances));
 }
 
-const float BLUR_EDGE_DISTANCE_SCALE = 10000 * SSAO_DEPTH_KEY_SCALE;
-const float BLUR_EDGE_NORMAL_SCALE = 2.0;
 const float BLUR_EDGE_NORMAL_LIMIT = 0.25;
 
 vec2 evalTapWeightedValue(vec3 blurScales, ivec4 side, int r, vec2 occlusionTexCoord, vec2 depthTexCoord, float fragDepth, vec3 fragNormal) {
@@ -98,9 +96,7 @@ vec4 getBlurredOcclusion(ivec2 destPixelCoord, vec2 occlusionTexCoord, vec2 dept
     
     // Accumulate weighted contributions along the bluring axis in the [-radius, radius] range
     int blurRadius = getBlurRadius();
-    float blurRadialSigma = float(blurRadius) * 0.5;
-    float blurRadialScale = 1.0 / (2.0*blurRadialSigma*blurRadialSigma);
-    vec3 blurScales = -vec3(blurRadialScale, vec2(BLUR_EDGE_DISTANCE_SCALE, BLUR_EDGE_NORMAL_SCALE) * getBlurEdgeSharpness());
+    vec3 blurScales = getBlurScales();
 
     // negative side first
     for (int r = -blurRadius; r <= -1; ++r) {

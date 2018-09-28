@@ -229,7 +229,7 @@ AmbientOcclusionEffect::AOParameters::AOParameters() {
 }
 
 AmbientOcclusionEffect::BlurParameters::BlurParameters() {
-    _blurInfo = { 1.0f, 3.0f, 2.0f, 0.0f };
+    _blurInfo = { 1.0f, 2.0f, 0.0f, 3.0f };
 }
 
 AmbientOcclusionEffect::AmbientOcclusionEffect() {
@@ -268,11 +268,26 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.y = 1.0f / (1.0f - config.falloffAngle);
     }
 
-    if (config.edgeSharpness != _hblurParametersBuffer.get().getEdgeSharpness()) {
+    // Update bilateral blur
+    {
+        const float BLUR_EDGE_DISTANCE_SCALE = float(10000 * SSAO_DEPTH_KEY_SCALE);
+        const float BLUR_EDGE_NORMAL_SCALE = 2.0f;
+
         auto& hblur = _hblurParametersBuffer.edit()._blurInfo;
         auto& vblur = _vblurParametersBuffer.edit()._blurInfo;
-        hblur.x = config.edgeSharpness;
-        vblur.x = config.edgeSharpness;
+        float blurRadialSigma = float(config.blurRadius) * 0.5f;
+        float blurRadialScale = 1.0f / (2.0f*blurRadialSigma*blurRadialSigma);
+        glm::vec3 blurScales = -glm::vec3(blurRadialScale, glm::vec2(BLUR_EDGE_DISTANCE_SCALE, BLUR_EDGE_NORMAL_SCALE) * config.edgeSharpness);
+
+        hblur.x = blurScales.x;
+        hblur.y = blurScales.y;
+        hblur.z = blurScales.z;
+        hblur.w = (float)config.blurRadius;
+
+        vblur.x = blurScales.x;
+        vblur.y = blurScales.y;
+        vblur.z = blurScales.z;
+        vblur.w = (float)config.blurRadius;
     }
 
     if (config.numSpiralTurns != _aoParametersBuffer->getNumSpiralTurns()) {
@@ -322,13 +337,6 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.x = (float)config.resolutionLevel;
         shouldUpdateBlurs = true;
     }
- 
-    if (config.blurRadius != _hblurParametersBuffer.get().getBlurRadius()) {
-        auto& hblur = _hblurParametersBuffer.edit()._blurInfo;
-        auto& vblur = _vblurParametersBuffer.edit()._blurInfo;
-        hblur.y = (float)config.blurRadius;
-        vblur.y = (float)config.blurRadius;
-    }
 
     if (config.ditheringEnabled != _aoParametersBuffer->isDitheringEnabled()) {
         auto& current = _aoParametersBuffer.edit()._ditheringInfo;
@@ -357,18 +365,18 @@ void AmbientOcclusionEffect::updateBlurParameters() {
     const auto occlusionSize = divideRoundUp(frameSize, resolutionScale);
 
     // Occlusion UV limit
-    hblur._blurInfo.z = occlusionSize.x / float(frameSize.x);
-    hblur._blurInfo.w = occlusionSize.y / float(frameSize.y);
+    hblur._blurAxis.z = occlusionSize.x / float(frameSize.x);
+    hblur._blurAxis.w = occlusionSize.y / float(frameSize.y);
 
-    vblur._blurInfo.z = 1.0f;
-    vblur._blurInfo.w = occlusionSize.y / float(frameSize.y);
+    vblur._blurAxis.z = 1.0f;
+    vblur._blurAxis.w = occlusionSize.y / float(frameSize.y);
 
     // Occlusion axis
-    hblur._blurAxis.x = hblur._blurInfo.z / occlusionSize.x;
+    hblur._blurAxis.x = hblur._blurAxis.z / occlusionSize.x;
     hblur._blurAxis.y = 0.0f;
 
     vblur._blurAxis.x = 0.0f;
-    vblur._blurAxis.y = vblur._blurInfo.w / occlusionSize.y;
+    vblur._blurAxis.y = vblur._blurAxis.w / occlusionSize.y;
 }
 
 void AmbientOcclusionEffect::updateFramebufferSizes() {
