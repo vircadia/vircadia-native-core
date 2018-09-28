@@ -121,7 +121,7 @@ Script.include("/~/system/libraries/controllers.js");
                                    controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             var allowThisModule = !otherModuleRunning || isTriggerPressed;
 
-            if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed, false)) {
+            if ((allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed, false)) && !this.grabModuleWantsNearbyOverlay(controllerData)) {
                 this.updateAllwaysOn();
                 if (isTriggerPressed) {
                     this.dominantHandOverride = true; // Override dominant hand.

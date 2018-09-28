@@ -1691,21 +1691,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_WINDOWS, []() -> float {
-#if defined(Q_OS_WIN) 
+#if defined(Q_OS_WIN)
         return 1;
 #else
         return 0;
 #endif
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_MAC, []() -> float {
-#if defined(Q_OS_MAC) 
+#if defined(Q_OS_MAC)
         return 1;
 #else
         return 0;
 #endif
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_ANDROID, []() -> float {
-#if defined(Q_OS_ANDROID) 
+#if defined(Q_OS_ANDROID)
         return 1;
 #else
         return 0;
@@ -1759,10 +1759,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
-
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
-        connect(qApp, &Application::beforeAboutToQuit, [this, settingsTimer]{
+        // This needs to run on the settings thread, so we need to pass the `settingsTimer` as the 
+        // receiver object, otherwise it will run on the application thread and trigger a warning
+        // about trying to kill the timer on the main thread.
+        connect(qApp, &Application::beforeAboutToQuit, settingsTimer, [this, settingsTimer]{
             // Disconnect the signal from the save settings
             QObject::disconnect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
             // Stop the settings timer
@@ -2881,9 +2883,10 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/common/CommerceLightbox.qml" },
         QUrl{ "hifi/commerce/common/EmulatedMarketplaceHeader.qml" },
         QUrl{ "hifi/commerce/common/FirstUseTutorial.qml" },
-        QUrl{ "hifi/commerce/common/SortableListModel.qml" },
         QUrl{ "hifi/commerce/common/sendAsset/SendAsset.qml" },
+        QUrl{ "hifi/commerce/common/SortableListModel.qml" },
         QUrl{ "hifi/commerce/inspectionCertificate/InspectionCertificate.qml" },
+        QUrl{ "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml"},
         QUrl{ "hifi/commerce/purchases/PurchasedItem.qml" },
         QUrl{ "hifi/commerce/purchases/Purchases.qml" },
         QUrl{ "hifi/commerce/wallet/Help.qml" },
@@ -3427,7 +3430,12 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
     QString addressLookupString;
     if (urlIndex != -1) {
-        addressLookupString = arguments().value(urlIndex + 1);
+        QUrl url(arguments().value(urlIndex + 1));
+        if (url.scheme() == URL_SCHEME_HIFIAPP) {
+            Setting::Handle<QVariant>("startUpApp").set(url.path());
+        } else {
+            addressLookupString = url.toString();
+        }
     }
 
     static const QString SENT_TO_PREVIOUS_LOCATION = "previous_location";
@@ -3498,13 +3506,14 @@ bool Application::isServerlessMode() const {
 }
 
 void Application::setIsInterstitialMode(bool interstitialMode) {
-    Settings settings;
-    bool enableInterstitial = settings.value("enableIntersitialMode", false).toBool();
-    if (_interstitialMode != interstitialMode && enableInterstitial) {
-        _interstitialMode = interstitialMode;
+    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+    if (enableInterstitial) {
+        if (_interstitialMode != interstitialMode) {
+            _interstitialMode = interstitialMode;
 
-        DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
-        DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
+            DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
+            DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
+        }
     }
 }
 
@@ -7674,6 +7683,9 @@ void Application::openUrl(const QUrl& url) const {
     if (!url.isEmpty()) {
         if (url.scheme() == URL_SCHEME_HIFI) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+        } else if (url.scheme() == URL_SCHEME_HIFIAPP) {
+            QmlCommerce commerce;
+            commerce.openSystemApp(url.path());
         } else {
             // address manager did not handle - ask QDesktopServices to handle
             QDesktopServices::openUrl(url);
