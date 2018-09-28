@@ -18,7 +18,10 @@
     function getOopsText() {
         var error = Window.getLastDomainConnectionError();
         var errorMessageMapIndex = hardRefusalErrors.indexOf(error);
-        if (errorMessageMapIndex >= 0) {
+        if (error === -1) {
+            // not an error.
+            return "";
+        } else if (errorMessageMapIndex >= 0) {
             return ERROR_MESSAGE_MAP[errorMessageMapIndex];
         } else {
             // some other text.
@@ -71,9 +74,6 @@
         parentID: redirectOopsText
     });
 
-    var TARGET_UPDATE_HZ = 60;
-    var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
-
     function toggleOverlays(isInErrorState) {
         if (!isInErrorState) {
             var properties = {
@@ -85,19 +85,9 @@
             Overlays.editOverlay(backImage, properties);
             return;
         }
-        var overlaysVisible = false;
-        var error = Window.getLastDomainConnectionError();
-        var errorMessageMapIndex = hardRefusalErrors.indexOf(error);
-        var oopsText = "";
-        if (error === -1) {
-            overlaysVisible = false;
-        } else if (errorMessageMapIndex >= 0) {
-            overlaysVisible = true;
-            oopsText = ERROR_MESSAGE_MAP[errorMessageMapIndex];
-        } else {
-            overlaysVisible = true;
-            oopsText = ERROR_MESSAGE_MAP[4];
-        }
+        var oopsText = getOopsText();
+        // if oopsText === "", it was a success.
+        var overlaysVisible = (oopsText !== "");
         var properties = {
             visible: overlaysVisible
         };
