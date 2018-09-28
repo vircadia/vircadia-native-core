@@ -37,8 +37,8 @@
         rotation: {x: -4.57763671875e-05, y: 0.4957197904586792, z: -7.62939453125e-05, w: 0.8684672117233276},
         text: getOopsText(),
         textAlpha: 1,
+        backgroundColor: {x: 0, y: 0, z:0},
         backgroundAlpha: 0,
-        color: {x: 255, y: 255, z: 255},
         lineHeight: 0.10,
         leftMargin: 0.538373570564886,
         visible: false,
@@ -98,10 +98,15 @@
         var oopsTextProperties = {
             visible: overlaysVisible,
             text: oopsText,
+            textAlpha: overlaysVisible,
+            // either visible or invisible. 0 doesn't work in Mac.
+            backgroundAlpha: overlaysVisible * 0.00393,
             leftMargin: (textOverlayWidth - textWidth) / 2
         };
+        Window.copyToClipboard(redirectOopsText);
 
         Overlays.editOverlay(redirectOopsText, oopsTextProperties);
+        print("toggleOverlays: setting alpha to " + Overlays.getProperty(redirectOopsText, "alpha"));
         Overlays.editOverlay(tryAgainImage, properties);
         Overlays.editOverlay(backImage, properties);
 
