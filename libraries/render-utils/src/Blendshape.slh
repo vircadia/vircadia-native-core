@@ -10,6 +10,10 @@
 
 <@func declareBlendshape(USE_NORMAL, USE_TANGENT)@>
 
+struct PackedBlendshapeOffset {
+    ivec4 packedPosNorTan;
+};
+
 struct BlendshapeOffset {
     vec4 position;
     vec4 normal;
@@ -32,10 +36,21 @@ BlendshapeOffset getBlendshapeOffset(int i) {
 }
 #else
 layout(std140, binding=0) buffer blendshapeOffsetsBuffer {
-    BlendshapeOffset _blendshapeOffsets[];
+    ivec4 _blendshapeOffsets[];
+   // BlendshapeOffset _blendshapeOffsets[];
 };
 BlendshapeOffset getBlendshapeOffset(int i) {
-    return _blendshapeOffsets[i];
+  //  return _blendshapeOffsets[i];
+
+    
+    ivec4 elem_packed = _blendshapeOffsets[i];
+
+    BlendshapeOffset unpacked;
+    unpacked.position = vec4(unpackHalf2x16(uint(elem_packed.x)), unpackHalf2x16(uint(elem_packed.y)));
+    unpacked.normal = vec4(0.0);
+    unpacked.tangent = vec4(0.0);
+
+    return unpacked;
 }
 #endif
 

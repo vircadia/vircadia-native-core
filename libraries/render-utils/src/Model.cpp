@@ -1632,6 +1632,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
     _blendshapeCoefficients(blendshapeCoefficients) {
 }
 
+
 void Blender::run() {
     QVector<BlendshapeOffset> blendshapeOffsets;
     if (_model && _model->isLoaded()) {
@@ -1648,6 +1649,8 @@ void Blender::run() {
             blendshapeOffsets += modelMeshBlendshapeOffsets->second;
             BlendshapeOffset* meshBlendshapeOffsets = blendshapeOffsets.data() + offset;
             offset += modelMeshBlendshapeOffsets->second.size();
+            std::vector<BlendshapeOffsetUnpacked> unpackedBlendshapeOffsets(modelMeshBlendshapeOffsets->second.size());
+
             const float NORMAL_COEFFICIENT_SCALE = 0.01f;
             for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
                 float vertexCoefficient = _blendshapeCoefficients.at(i);
@@ -1655,12 +1658,25 @@ void Blender::run() {
                 if (vertexCoefficient < EPSILON) {
                     continue;
                 }
+
                 float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
                 const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
+                bool doTangent = (mesh.tangents.size()) && (blendshape.tangents.size());
+
                 tbb::parallel_for(tbb::blocked_range<int>(0, blendshape.indices.size()), [&](const tbb::blocked_range<int>& range) {
                     for (auto j = range.begin(); j < range.end(); j++) {
                         int index = blendshape.indices.at(j);
-                        auto& currentBlendshapeOffset = meshBlendshapeOffsets[index];
+
+#ifdef PACKED_BLENDSHAPE_OFFSET
+                        auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
+                        currentBlendshapeOffset.positionOffsetAndSpare += blendshape.vertices.at(j) * vertexCoefficient;
+
+                        currentBlendshapeOffset.normalOffsetAndSpare += blendshape.normals.at(j) * normalCoefficient;
+                        if (doTangent) {
+                           currentBlendshapeOffset.tangentOffsetAndSpare += blendshape.tangents.at(j) * normalCoefficient;
+                        }
+#else
+                        auto& currentBlendshapeOffset = blendshapeOffsets[index];
                         currentBlendshapeOffset.positionOffsetAndSpare += glm::vec4(blendshape.vertices.at(j) * vertexCoefficient, 0.0f);
 
                         currentBlendshapeOffset.normalOffsetAndSpare += glm::vec4(blendshape.normals.at(j) * normalCoefficient, 0.0f);
@@ -1669,9 +1685,28 @@ void Blender::run() {
                                 currentBlendshapeOffset.tangentOffsetAndSpare += glm::vec4(blendshape.tangents.at(j) * normalCoefficient, 0.0f);
                             }
                         }
+#endif
                     }
                 });
             }
+
+#ifdef PACKED_BLENDSHAPE_OFFSET
+
+            auto unpacked = unpackedBlendshapeOffsets.data();
+            auto packed = meshBlendshapeOffsets;
+
+            for (int i = 0; i < unpackedBlendshapeOffsets.size(); i++) {
+                auto pposXY = glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare));
+                auto pposZ = glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare.z, 0.0f));
+                auto pnor = glm::packSnorm3x10_1x2(glm::vec4(unpacked->normalOffsetAndSpare, 0.0f));
+                auto ptan = glm::packSnorm3x10_1x2(glm::vec4(unpacked->tangentOffsetAndSpare, 0.0f));
+                (*packed).packedPosNorTan = glm::uvec4(pposXY, pposZ, pnor, ptan);
+
+                unpacked++;
+                packed++;
+            }
+#endif
+
         }
     }
     // post the result to the ModelBlender, which will dispatch to the model if still alive

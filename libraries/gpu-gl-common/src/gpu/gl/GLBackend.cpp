@@ -274,8 +274,9 @@ void GLBackend::renderPassDraw(const Batch& batch) {
             case Batch::COMMAND_drawIndexedInstanced:
             case Batch::COMMAND_multiDrawIndirect:
             case Batch::COMMAND_multiDrawIndexedIndirect: {
+#ifdef GPU_BATCH_DETAILED_TRACING
                 PROFILE_RANGE(render_gpu_gl_detail, "drawcall");
-
+#endif 
                 // updates for draw calls
                 ++_currentDraw;
                 updateInput();
