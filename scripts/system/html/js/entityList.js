@@ -209,16 +209,15 @@ function loaded() {
                     }
                 }
                 if (previousItemFound !== -1 && clickedItemFound !== -1) {
-                    let betweenItems = [];
+                    let selection = [];
                     let toItem = Math.max(previousItemFound, clickedItemFound);
                     for (let i = Math.min(previousItemFound, clickedItemFound); i <= toItem; i++) {
-                        betweenItems.push(visibleEntities[i].id);
+                        selection.push(visibleEntities[i].id);
                     }
                     if (previousItemFound > clickedItemFound) {
                         // always make sure that we add the items in the right order
-                        betweenItems.reverse();
+                        selection.reverse();
                     }
-                    selection = betweenItems;
                 }
             } else if (!clickEvent.ctrlKey && !clickEvent.shiftKey && selectedEntities.length === 1) {
                 // if reselecting the same entity then deselect it
