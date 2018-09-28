@@ -24,6 +24,7 @@ Item {
 
         fragmentShader: {
 "
+#version 150 core
             varying highp vec2 qt_TexCoord0;
             uniform lowp sampler2D source;
             uniform lowp sampler2D mask;
