@@ -83,9 +83,9 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getLinearDepthTexture() {
 
 void AmbientOcclusionFramebuffer::allocate() {
 #if SSAO_BILATERAL_BLUR_USE_NORMAL    
-    const auto occlusionformat = gpu::Element{ gpu::VEC4, gpu::HALF, gpu::RGBA };
+    auto occlusionformat = gpu::Element{ gpu::VEC4, gpu::HALF, gpu::RGBA };
 #else
-    const auto occlusionformat = gpu::Element{ gpu::VEC3, gpu::NUINT8, gpu::RGB };
+    auto occlusionformat = gpu::Element{ gpu::VEC3, gpu::NUINT8, gpu::RGB };
 #endif
 
     //  Full frame
@@ -563,27 +563,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
 #if SSAO_USE_QUAD_SPLIT
         batch.pushProfileRange("Normal Gen.");
-        {
-            const auto uvScale = glm::vec3(
-                normalViewport.z / (sourceViewport.z * depthResolutionScale),
-                normalViewport.w / (sourceViewport.w * depthResolutionScale),
-                1.0f);
-            const auto postPixelOffset = glm::vec2(0.5f) / glm::vec2(occlusionDepthSize);
-            const auto prePixelOffset = glm::vec2(0.5f * uvScale.x, 0.5f * uvScale.y) / glm::vec2(normalViewport.z, normalViewport.w);
-            const auto uvTranslate = glm::vec3(
-                postPixelOffset.x - prePixelOffset.x,
-                postPixelOffset.y - prePixelOffset.y,
-                0.0f
-            );
-            Transform model;
-
-            model.setScale(uvScale);
-            model.setTranslation(uvTranslate);
-            // TEMPO OP batch.setModelTransform(model);
-            batch.setModelTransform(Transform());
-        }
-
         // Build face normals pass
+        batch.setModelTransform(Transform());
         batch.setViewportTransform(normalViewport);
         batch.setPipeline(buildNormalsPipeline);
         batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
