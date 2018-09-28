@@ -60,7 +60,10 @@ const HOME_CONTENT_URL = "http://cdn.highfidelity.com/content-sets/home-tutorial
 
 const buildInfo = GetBuildInfo();
 
-
+const NotificationState = {
+    UNNOTIFIED: 'unnotified',
+    NOTIFIED: 'notified'
+};
 
 // Update lock filepath
 const UPDATER_LOCK_FILENAME = ".updating";
@@ -324,12 +327,21 @@ const HifiNotifications = hfNotifications.HifiNotifications;
 const HifiNotificationType = hfNotifications.NotificationType;
 
 var pendingNotifications = {}
-function notificationCallback(notificationType, pending = true) {
+var notificationState = NotificationState.UNNOTIFIED;
+
+function setNotificationState(notificationType, pending = true) {
     pendingNotifications[notificationType] = pending;
+    notificationState = NotificationState.UNNOTIFIED;
+    for (var key in pendingNotifications) {
+        if (pendingNotifications[key]) {
+            notificationState = NotificationState.NOTIFIED;
+            break;
+        }
+    }
     updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
 }
 
-var trayNotifications = new HifiNotifications(userConfig, notificationCallback);
+var trayNotifications = new HifiNotifications(userConfig, setNotificationState);
 
 var LogWindow = function(ac, ds) {
     this.ac = ac;
@@ -389,7 +401,7 @@ var labels = {
         type: 'checkbox',
         checked: true,
         click: function () {
-            trayNotifications.enable(!trayNotifications.enabled(), notificationCallback);
+            trayNotifications.enable(!trayNotifications.enabled(), setNotificationState);
             userConfig.save(configPath);
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
@@ -398,32 +410,28 @@ var labels = {
         label: 'GoTo',
         click: function () {
             StartInterface("hifiapp:GOTO");
-            pendingNotifications[HifiNotificationType.GOTO] = false;
-            updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
+            setNotificationState(HifiNotificationType.GOTO, false);
         }
     },
     people: {
         label: 'People',
         click: function () {
             StartInterface("hifiapp:PEOPLE");
-            pendingNotifications[HifiNotificationType.PEOPLE] = false;
-            updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
+            setNotificationState(HifiNotificationType.PEOPLE, false);
         }
     },
     wallet: {
         label: 'Wallet',
         click: function () {
             StartInterface("hifiapp:WALLET");
-            pendingNotifications[HifiNotificationType.WALLET] = false;
-            updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
+            setNotificationState(HifiNotificationType.WALLET, false);
         }
     },
     marketplace: {
         label: 'Market',
         click: function () {
             StartInterface("hifiapp:MARKET");
-            pendingNotifications[HifiNotificationType.MARKETPLACE] = false;
-            updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
+            setNotificationState(HifiNotificationType.MARKETPLACE, false);
         }
     },
     restart: {
@@ -557,7 +565,7 @@ function updateLabels(serverState) {
 function updateTrayMenu(serverState) {
     if (tray) {
         var menuArray = buildMenuArray(isShuttingDown ? null : serverState);
-        tray.setImage(trayIcons[serverState]);
+        tray.setImage(trayIcons[notificationState]);
         tray.setContextMenu(Menu.buildFromTemplate(menuArray));
         if (isShuttingDown) {
             tray.setToolTip('High Fidelity - Shutting Down');
@@ -777,9 +785,8 @@ function maybeShowSplash() {
 
 const trayIconOS = (osType == "Darwin") ? "osx" : "win";
 var trayIcons = {};
-trayIcons[ProcessGroupStates.STARTED] = "console-tray-" + trayIconOS + ".png";
-trayIcons[ProcessGroupStates.STOPPED] = "console-tray-" + trayIconOS + "-stopped.png";
-trayIcons[ProcessGroupStates.STOPPING] = "console-tray-" + trayIconOS + "-stopping.png";
+trayIcons[NotificationState.UNNOTIFIED] = "console-tray-" + trayIconOS + ".png";
+trayIcons[NotificationState.NOTIFIED] = "console-tray-" + trayIconOS + "-stopped.png";
 for (var key in trayIcons) {
     var fullPath = path.join(__dirname, '../resources/' + trayIcons[key]);
     var img = nativeImage.createFromPath(fullPath);
@@ -892,7 +899,7 @@ app.on('ready', function() {
     }
 
     // Create tray icon
-    tray = new Tray(trayIcons[ProcessGroupStates.STOPPED]);
+    tray = new Tray(trayIcons[NotificationState.UNNOTIFIED]);
     tray.setToolTip('High Fidelity');
 
     tray.on('click', function() {
