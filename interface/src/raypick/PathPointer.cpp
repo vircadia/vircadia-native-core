@@ -146,7 +146,7 @@ void PathPointer::updateVisuals(const PickResultPointer& pickResult) {
     IntersectionType type = getPickedObjectType(pickResult);
     auto renderState = _renderStates.find(_currentRenderState);
     auto defaultRenderState = _defaultRenderStates.find(_currentRenderState);
-    float parentScale = 1;
+    float parentScale = 1.0f;
     if (_enabled && _scaleWithParent) {
         glm::vec3 dimensions = DependencyManager::get<PickManager>()->getParentTransform(_pickUID).getScale();
         parentScale = glm::max(glm::max(dimensions.x, dimensions.y), dimensions.z);
