@@ -75,30 +75,7 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
     }
 #endif
     
-    if (gl::Context::enableDebugLogger()) {
-        _context->makeCurrent(_offscreenSurface);
-        QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);
-        connect(logger, &QOpenGLDebugLogger::messageLogged, this, &OffscreenGLCanvas::onMessageLogged);
-        logger->initialize();
-        logger->enableMessages();
-        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
-        _context->doneCurrent();
-    }
-
     return true;
-}
-
-void OffscreenGLCanvas::onMessageLogged(const QOpenGLDebugMessage& debugMessage) {
-    auto severity = debugMessage.severity(); 
-    switch (severity) {
-    case QOpenGLDebugMessage::NotificationSeverity:
-    case QOpenGLDebugMessage::LowSeverity:
-        return;
-    default:
-        break;
-    }
-    qDebug(glLogging) << debugMessage;
-    return;
 }
 
 bool OffscreenGLCanvas::makeCurrent() {

@@ -139,9 +139,9 @@ void RenderEventHandler::onRender() {
         glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
         auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        // Fence will be used in another thread / context, so a flush is required
         glFlush();
         _shared->updateTextureAndFence({ texture, fence });
-        // Fence will be used in another thread / context, so a flush is required
         _shared->_quickWindow->resetOpenGLState();
     }
 }
@@ -167,4 +167,5 @@ void RenderEventHandler::onQuit() {
     moveToThread(qApp->thread());
     QThread::currentThread()->quit();
 }
+
 #endif

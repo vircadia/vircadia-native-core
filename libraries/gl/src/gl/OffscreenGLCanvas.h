@@ -35,9 +35,6 @@ public:
     void setThreadContext();
     static bool restoreThreadContext();
 
-private slots:
-    void onMessageLogged(const QOpenGLDebugMessage &debugMessage);
-
 protected:
     void clearThreadContext();
 

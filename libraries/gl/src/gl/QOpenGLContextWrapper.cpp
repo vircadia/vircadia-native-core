@@ -13,6 +13,10 @@
 
 #include <QOpenGLContext>
 
+#ifdef Q_OS_WIN
+#include <QtPlatformHeaders/QWGLNativeContext>
+#endif
+
 uint32_t QOpenGLContextWrapper::currentContextVersion() {
     QOpenGLContext* context = QOpenGLContext::currentContext();
     if (!context) {
@@ -44,6 +48,19 @@ QOpenGLContextWrapper::~QOpenGLContextWrapper() {
 void QOpenGLContextWrapper::setFormat(const QSurfaceFormat& format) {
     _context->setFormat(format);
 }
+
+#ifdef Q_OS_WIN
+void* QOpenGLContextWrapper::nativeContext(QOpenGLContext* context) {
+    HGLRC result = 0;
+    if (context != nullptr) {
+        auto nativeHandle = context->nativeHandle();
+        if (nativeHandle.canConvert<QWGLNativeContext>()) {
+            result = nativeHandle.value<QWGLNativeContext>().context();
+        }
+    }
+    return result;
+}
+#endif
 
 bool QOpenGLContextWrapper::create() {
     return _context->create();

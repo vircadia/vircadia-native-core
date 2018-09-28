@@ -39,8 +39,13 @@ void gl::getTargetVersion(int& major, int& minor) {
     major = 3;
     minor = 2;
 #else
+#if defined(Q_OS_MAC)
+    major = 4;
+    minor = 1;
+#else
     major = 4;
     minor = disableGl45() ? 1 : 5;
+#endif
 #endif
 }
 
@@ -57,6 +62,7 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
 #else
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
 #endif
+        format.setOption(QSurfaceFormat::DebugContext);
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
@@ -64,7 +70,6 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
         ::gl::getTargetVersion(major, minor);
         format.setMajorVersion(major);
         format.setMinorVersion(minor);
-        QSurfaceFormat::setDefaultFormat(format);
     });
     return format;
 }
