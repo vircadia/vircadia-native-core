@@ -2637,8 +2637,6 @@ SelectionDisplay = (function() {
                         startAt: startAtCurrent,
                         endAt: endAtCurrent
                     });
-
-                    // not sure why but this seems to be needed to fix an reverse rotation for yaw ring only
                 }
 
                 if (wantDebug) {
