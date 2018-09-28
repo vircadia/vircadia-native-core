@@ -307,7 +307,7 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
 }
 
 void RenderableModelEntityItem::getCollisionGeometryResource() {
-    QUrl hullURL(getCompoundShapeURL());
+    QUrl hullURL(getCollisionShapeURL());
     QUrlQuery queryArgs(hullURL);
     queryArgs.addQueryItem("collision-hull", "");
     hullURL.setQuery(queryArgs);
@@ -316,8 +316,9 @@ void RenderableModelEntityItem::getCollisionGeometryResource() {
 
 void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
-    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-        if (!_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
+    auto shapeType = getShapeType();
+    if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
+        if (!_compoundShapeResource && !getCollisionShapeURL().isEmpty()) {
             getCollisionGeometryResource();
         }
     } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
@@ -344,8 +345,11 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
     ShapeType type = getShapeType();
 
     auto model = getModel();
-    if (type == SHAPE_TYPE_COMPOUND) {
-        if (!model || getCompoundShapeURL().isEmpty()) {
+    auto shapeType = getShapeType();
+    if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
+        auto shapeURL = getCollisionShapeURL();
+
+        if (!model || shapeURL.isEmpty()) {
             return false;
         }
 
@@ -355,7 +359,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
         }
 
         if (model->isLoaded()) {
-            if (!getCompoundShapeURL().isEmpty() && !_compoundShapeResource) {
+            if (!shapeURL.isEmpty() && !_compoundShapeResource) {
                 const_cast<RenderableModelEntityItem*>(this)->getCollisionGeometryResource();
             }
 
@@ -510,7 +514,15 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             return;
         }
 
-        auto& meshes = model->getGeometry()->getMeshes();
+        std::vector<std::shared_ptr<const graphics::Mesh>> compoundMeshes;
+        if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+            auto& fbxMeshes = _compoundShapeResource->getFBXGeometry().meshes;
+            compoundMeshes.reserve(fbxMeshes.size());
+            for (auto& fbxMesh : fbxMeshes) {
+                compoundMeshes.push_back(fbxMesh._mesh);
+            }
+        }
+        auto& meshes = (type == SHAPE_TYPE_SIMPLE_COMPOUND ? compoundMeshes : model->getGeometry()->getMeshes());
         int32_t numMeshes = (int32_t)(meshes.size());
 
         const int MAX_ALLOWED_MESH_COUNT = 1000;
@@ -744,7 +756,7 @@ bool RenderableModelEntityItem::shouldBePhysical() const {
     auto model = getModel();
     // If we have a model, make sure it hasn't failed to download.
     // If it has, we'll report back that we shouldn't be physical so that physics aren't held waiting for us to be ready.
-    if (model && getShapeType() == SHAPE_TYPE_COMPOUND && model->didCollisionGeometryRequestFail()) {
+    if (model && (getShapeType() == SHAPE_TYPE_COMPOUND || getShapeType() == SHAPE_TYPE_SIMPLE_COMPOUND) && model->didCollisionGeometryRequestFail()) {
         return false;
     } else if (model && getShapeType() != SHAPE_TYPE_NONE && model->didVisualGeometryRequestFail()) {
         return false;
