@@ -50,7 +50,7 @@ exports.getBuildInfo = function() {
 }
 
 const buildInfo = exports.getBuildInfo();
-const interfacePath = pathFinder.discoveredPath("Interface", binaryType, buildInfo.releaseType);
+const interfacePath = pathFinder.discoveredPath("interface", binaryType, buildInfo.releaseType);
 
 exports.startInterface = function(url) {
     var argArray = [];
@@ -70,7 +70,7 @@ exports.isInterfaceRunning = function(done) {
     if (osType == 'Windows_NT') {
         var pInterface = new Process('interface', 'interface.exe');
     } else if (osType == 'Darwin') {
-        var pInterface = new Process('interface', 'Interface');
+        var pInterface = new Process('interface', 'interface');
     }
     return pInterface.isRunning(done);
 }
