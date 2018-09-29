@@ -475,6 +475,12 @@ void MyAvatar::update(float deltaTime) {
     // if the head is close to the floor in sensor space
     // and the up of the head is close to sensor up then try switching us to sitting state.
     auto sensorHeadPoseDebug = getControllerPoseInSensorFrame(controller::Action::HEAD);
+    if (sensorHeadPoseDebug.isValid()) {
+        _sumUserHeightSensorSpace += sensorHeadPoseDebug.getTranslation().y;
+        _averageUserHeightCount++;
+    }
+    qCDebug(interfaceapp) << sensorHeadPoseDebug.isValid() << " valid. sensor space average " << (_sumUserHeightSensorSpace / _averageUserHeightCount) << " head position sensor y value " << sensorHeadPoseDebug.getTranslation().y;
+
     glm::vec3 upHead = transformVectorFast(sensorHeadPoseDebug.getMatrix(), glm::vec3(0.0f, 1.0f, 0.0f));
     float acosHead = glm::dot(upHead, glm::vec3(0.0f, 1.0f, 0.0f));
     //   qCDebug(interfaceapp) << "sensor space head pos " << sensorHeadPoseDebug.getTranslation().y;
@@ -3854,6 +3860,9 @@ void MyAvatar::setIsInWalkingState(bool isWalking) {
 
 void MyAvatar::setIsInSittingState(bool isSitting) {
     _isInSittingState = isSitting;
+    controller::Pose sensorHeadPoseDebug = getControllerPoseInSensorFrame(controller::Action::HEAD);
+    _sumUserHeightSensorSpace = sensorHeadPoseDebug.getTranslation().y;
+    _averageUserHeightCount = 1;
     emit sittingEnabledChanged(isSitting);
 }
 
@@ -4093,21 +4102,36 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     glm::vec3 headWorldSpace = myAvatar.getHead()->getPosition();
     glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar.getSensorToWorldMatrix());
     glm::vec3 headSensorSpace = transformVectorFast(myAvatar.getSensorToWorldMatrix(), headWorldSpace);
-    //qCDebug(interfaceapp) << "sensor space position " << extractTranslation(currentBodyMatrix) << " head position sensor " << sensorHeadPose.getTranslation();
+    //get the mode.
+    //put it in sensor space.
+    // if we are 20% higher switch to standing. 
+    // 16.6% lower then switch to sitting. 
+    //  add this !!!!  And the head is upright.
+    float averageSensorSpaceHeight = myAvatar._sumUserHeightSensorSpace / myAvatar._averageUserHeightCount;
 
     if (myAvatar.getIsInSittingState()) {
         if (offset.y < SITTING_BOTTOM) {
             // we recenter when sitting.
             return true;
-        } else if (offset.y > 2.0*CYLINDER_TOP) {
+        } else if (sensorHeadPose.getTranslation().y > (1.2f * averageSensorSpaceHeight)) {
             // if we recenter upwards then no longer in sitting state
             myAvatar.setIsInSittingState(false);
+            //myAvatar._sumUserHeightSensorSpace = 1.2f * averageSensorSpaceHeight;
+           // myAvatar._averageUserHeightCount = 1;
             return true;
         } else {
             return false;
         }
     } else {
-        return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
+        // in the standing state 
+        if (sensorHeadPose.getTranslation().y < (0.83f * averageSensorSpaceHeight)) {
+            myAvatar.setIsInSittingState(true);
+           // myAvatar._sumUserHeightSensorSpace = 0.83f * averageSensorSpaceHeight;
+           // myAvatar._averageUserHeightCount = 1;
+            return true;
+        } else {
+            return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
+        }
     }
 }
 
@@ -4124,14 +4148,14 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             if ((_squatCount > 600) && !isActive(Vertical) && !isActive(Horizontal)) {
                 if (myAvatar.getIsInSittingState()) {
                     // activate(Horizontal);
-                    activate(Vertical);
+                    //activate(Vertical);
                     _squatCount = 0;
                 } else {
                     if (myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y < (headDefaultPos.y - 0.20f)) {
-                        myAvatar.setIsInSittingState(true);
-                        activate(Vertical);
+                        //myAvatar.setIsInSittingState(true);
+                        //activate(Vertical);
                     } else {
-                        activate(Horizontal);
+                        //activate(Horizontal);
                     }
                     _squatCount = 0;
                 }   

@@ -1805,6 +1805,8 @@ private:
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
+    float _sumUserHeightSensorSpace { DEFAULT_AVATAR_HEIGHT };
+    int _averageUserHeightCount { 1 };
 
     void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
 
@@ -1814,7 +1816,7 @@ private:
     ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
     bool _isInWalkingState { false };
-    bool _isInSittingState { true };
+    bool _isInSittingState { false };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
