@@ -1767,10 +1767,8 @@ glm::quat AvatarData::getOrientationOutbound() const {
     return (getLocalOrientation());
 }
 
-void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
+void AvatarData::processAvatarIdentity(QDataStream& packetStream, bool& identityChanged,
                                        bool& displayNameChanged) {
-
-    QDataStream packetStream(identityData);
 
     QUuid avatarSessionID;
 
@@ -1786,16 +1784,17 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             << (udt::SequenceNumber::Type) incomingSequenceNumber;
     }
 
-    if (incomingSequenceNumber > _identitySequenceNumber) {
-        Identity identity;
+    Identity identity;
 
-        packetStream
-            >> identity.attachmentData
-            >> identity.displayName
-            >> identity.sessionDisplayName
-            >> identity.isReplicated
-            >> identity.lookAtSnappingEnabled
+    packetStream
+        >> identity.attachmentData
+        >> identity.displayName
+        >> identity.sessionDisplayName
+        >> identity.isReplicated
+        >> identity.lookAtSnappingEnabled
         ;
+
+    if (incomingSequenceNumber > _identitySequenceNumber) {
 
         // set the store identity sequence number to match the incoming identity
         _identitySequenceNumber = incomingSequenceNumber;
