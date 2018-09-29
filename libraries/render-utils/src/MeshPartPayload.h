@@ -26,10 +26,9 @@ class Model;
 
 class MeshPartPayload {
 public:
-
-    MeshPartPayload() {}
+    MeshPartPayload() = default;
     MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material);
-    virtual ~MeshPartPayload() {}
+    virtual ~MeshPartPayload() = default;
 
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
