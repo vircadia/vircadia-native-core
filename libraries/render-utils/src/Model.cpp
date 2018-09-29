@@ -1691,20 +1691,19 @@ void Blender::run() {
             }
 
 #ifdef PACKED_BLENDSHAPE_OFFSET
-
-            auto unpacked = unpackedBlendshapeOffsets.data();
-            auto packed = meshBlendshapeOffsets;
-
-            for (int i = 0; i < unpackedBlendshapeOffsets.size(); i++) {
-                auto pposXY = glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare));
-                auto pposZ = glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare.z, 0.0f));
-                auto pnor = glm::packSnorm3x10_1x2(glm::vec4(unpacked->normalOffsetAndSpare, 0.0f));
-                auto ptan = glm::packSnorm3x10_1x2(glm::vec4(unpacked->tangentOffsetAndSpare, 0.0f));
-                (*packed).packedPosNorTan = glm::uvec4(pposXY, pposZ, pnor, ptan);
-
-                unpacked++;
-                packed++;
-            }
+            tbb::parallel_for(tbb::blocked_range<int>(0, unpackedBlendshapeOffsets.size()), [&](const tbb::blocked_range<int>& range) {
+                auto unpacked = unpackedBlendshapeOffsets.data() + range.begin();
+                auto packed = meshBlendshapeOffsets + range.begin();
+                for (auto j = range.begin(); j < range.end(); j++) {
+                    (*packed).packedPosNorTan = glm::uvec4(
+                        glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare)),
+                        glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare.z, 0.0f)),
+                        glm::packSnorm3x10_1x2(glm::vec4(unpacked->normalOffsetAndSpare, 0.0f)),
+                        glm::packSnorm3x10_1x2(glm::vec4(unpacked->tangentOffsetAndSpare, 0.0f)));
+                    unpacked++;
+                    packed++;
+                }
+            });
 #endif
 
         }
