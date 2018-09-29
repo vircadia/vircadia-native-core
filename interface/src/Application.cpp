@@ -1691,21 +1691,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_WINDOWS, []() -> float {
-#if defined(Q_OS_WIN) 
+#if defined(Q_OS_WIN)
         return 1;
 #else
         return 0;
 #endif
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_MAC, []() -> float {
-#if defined(Q_OS_MAC) 
+#if defined(Q_OS_MAC)
         return 1;
 #else
         return 0;
 #endif
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_ANDROID, []() -> float {
-#if defined(Q_OS_ANDROID) 
+#if defined(Q_OS_ANDROID)
         return 1;
 #else
         return 0;
@@ -2883,9 +2883,10 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/common/CommerceLightbox.qml" },
         QUrl{ "hifi/commerce/common/EmulatedMarketplaceHeader.qml" },
         QUrl{ "hifi/commerce/common/FirstUseTutorial.qml" },
-        QUrl{ "hifi/commerce/common/SortableListModel.qml" },
         QUrl{ "hifi/commerce/common/sendAsset/SendAsset.qml" },
+        QUrl{ "hifi/commerce/common/SortableListModel.qml" },
         QUrl{ "hifi/commerce/inspectionCertificate/InspectionCertificate.qml" },
+        QUrl{ "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml"},
         QUrl{ "hifi/commerce/purchases/PurchasedItem.qml" },
         QUrl{ "hifi/commerce/purchases/Purchases.qml" },
         QUrl{ "hifi/commerce/wallet/Help.qml" },
@@ -3429,7 +3430,12 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
     QString addressLookupString;
     if (urlIndex != -1) {
-        addressLookupString = arguments().value(urlIndex + 1);
+        QUrl url(arguments().value(urlIndex + 1));
+        if (url.scheme() == URL_SCHEME_HIFIAPP) {
+            Setting::Handle<QVariant>("startUpApp").set(url.path());
+        } else {
+            addressLookupString = url.toString();
+        }
     }
 
     static const QString SENT_TO_PREVIOUS_LOCATION = "previous_location";
@@ -7677,6 +7683,9 @@ void Application::openUrl(const QUrl& url) const {
     if (!url.isEmpty()) {
         if (url.scheme() == URL_SCHEME_HIFI) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+        } else if (url.scheme() == URL_SCHEME_HIFIAPP) {
+            QmlCommerce commerce;
+            commerce.openSystemApp(url.path());
         } else {
             // address manager did not handle - ask QDesktopServices to handle
             QDesktopServices::openUrl(url);

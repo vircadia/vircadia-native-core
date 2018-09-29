@@ -21,7 +21,7 @@
         this.hyperlink = "";
 
         this.parameters = makeDispatcherModuleParameters(
-            125,
+            485,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);

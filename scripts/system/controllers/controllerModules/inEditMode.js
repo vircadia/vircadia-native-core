@@ -29,7 +29,7 @@ Script.include("/~/system/libraries/utils.js");
         this.reticleMaxY;
 
         this.parameters = makeDispatcherModuleParameters(
-            200,
+            160,
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
             100,
@@ -73,20 +73,21 @@ Script.include("/~/system/libraries/utils.js");
                             method: "clearSelection",
                             hand: hand
                         }));
+                    } else {
+                        if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
+                            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                                method: "selectEntity",
+                                entityID: this.selectedTarget.objectID,
+                                hand: hand
+                            }));
+                        } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
+                            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                                method: "selectOverlay",
+                                overlayID: this.selectedTarget.objectID,
+                                hand: hand
+                            }));
+                        }
                     }
-                }
-                if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
-                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "selectEntity",
-                        entityID: this.selectedTarget.objectID,
-                        hand: hand
-                    }));
-                } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
-                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "selectOverlay",
-                        overlayID: this.selectedTarget.objectID,
-                        hand: hand
-                    }));
                 }
 
                 this.triggerClicked = true;
