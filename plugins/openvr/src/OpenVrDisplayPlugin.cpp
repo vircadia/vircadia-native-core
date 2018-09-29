@@ -463,7 +463,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
     auto chaperone = vr::VRChaperone();
     if (chaperone) {
         float const UI_RADIUS = 1.0f;
-        float const UI_HEIGHT = 1.6f;
+        float const UI_HEIGHT = 0.0f;
         float const UI_Z_OFFSET = 0.5;
 
         float xSize, zSize;
