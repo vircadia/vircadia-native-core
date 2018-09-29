@@ -69,8 +69,9 @@ void AvatarReplicas::removeReplicas(const QUuid& parentID) {
 void AvatarReplicas::processAvatarIdentity(const QUuid& parentID, const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged) {
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         auto &replicas = _replicasMap[parentID];
+        QDataStream identityDataStream(identityData);
         for (auto avatar : replicas) {
-            avatar->processAvatarIdentity(QDataStream(identityData), identityChanged, displayNameChanged);
+            avatar->processAvatarIdentity(identityDataStream, identityChanged, displayNameChanged);
         }
     }
 }
