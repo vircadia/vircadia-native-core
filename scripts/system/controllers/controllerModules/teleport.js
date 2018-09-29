@@ -802,7 +802,15 @@ Script.include("/~/system/libraries/controllers.js");
             Picks.disablePick(_this.teleportHandCollisionPick);
         };
 
+        this.teleportState = "";
+
         this.setTeleportState = function (mode, visibleState, invisibleState) {
+            var teleportState = mode + visibleState + invisibleState;
+            if (teleportState === this.teleportState) {
+                return;
+            }
+            this.teleportState = teleportState;
+
             var visible = visibleState === "teleport";
             if (visible) {
                 Selection.enableListHighlight(this.teleporterSelectionName, this.TELEPORTER_SELECTION_STYLE);
