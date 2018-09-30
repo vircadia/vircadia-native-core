@@ -37,6 +37,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(BUILD_VERSION ${RELEASE_NUMBER})
     set(BUILD_ORGANIZATION "High Fidelity")
     set(HIGH_FIDELITY_PROTOCOL "hifi")
+    set(HIGH_FIDELITY_APP_PROTOCOL "hifiapp")
     set(INTERFACE_BUNDLE_NAME "Interface")
     set(INTERFACE_ICON_PREFIX "interface")
 

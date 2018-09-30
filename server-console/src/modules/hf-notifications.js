@@ -143,7 +143,6 @@ function HifiNotifications(config, menuNotificationCallback) {
     this.walletSince = new Date(this.config.get("walletNotifySince", "1970-01-01T00:00:00.000Z"));
     this.marketplaceSince = new Date(this.config.get("marketplaceNotifySince", "1970-01-01T00:00:00.000Z"));  
 
-    this.enable(this.enabled());
     this.pendingNotifications = [];
 
 
@@ -192,6 +191,9 @@ HifiNotifications.prototype = {
     },
     enabled: function () {
         return !this.config.get("disableTrayNotifications", false);
+    },
+    startPolling: function () {
+        this.enable(this.enabled());
     },
     stopPolling: function () {
         this.config.set("storiesNotifySince", this.storiesSince.toISOString());

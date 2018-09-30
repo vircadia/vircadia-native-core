@@ -108,7 +108,16 @@ const ipcMain = electron.ipcMain;
 
 
 function isInterfaceInstalled() {
-    return interfacePath;
+    if (osType == "Darwin") {
+        // In OSX Sierra, the app translocation process moves
+        // the executable to a random location before starting it
+        // which makes finding the interface near impossible using
+        // relative paths.  For now, as there are no server-only
+        // installs, we just assume the interface is installed here 
+        return true;
+    } else {
+        return interfacePath;
+    }
 }
 
 function isServerInstalled() {
@@ -377,7 +386,7 @@ LogWindow.prototype = {
 };
 
 function visitSandboxClicked() {
-    if (interfacePath) {
+    if (isInterfaceInstalled()) {
         StartInterface('hifi://localhost');
     } else {
         // show an error to say that we can't go home without an interface instance
@@ -906,6 +915,9 @@ app.on('ready', function() {
         tray.popUpContextMenu(tray.menu);
     });
 
+    if (isInterfaceInstalled()) {
+        trayNotifications.startPolling();
+    }
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
     maybeInstallDefaultContentSet(onContentLoaded);

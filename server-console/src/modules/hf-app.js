@@ -7,6 +7,7 @@ const path = require('path');
 const argv = require('yargs').argv;
 const hfprocess = require('./hf-process');
 const osHomeDir = require('os-homedir');
+const childProcess = require('child_process');
 const Process = hfprocess.Process;
 
 const binaryType = argv.binaryType;
@@ -53,17 +54,35 @@ const buildInfo = exports.getBuildInfo();
 const interfacePath = pathFinder.discoveredPath("interface", binaryType, buildInfo.releaseType);
 
 exports.startInterface = function(url) {
-    var argArray = [];
 
-    // check if we have a url parameter to include
-    if (url) {
-        argArray = ["--url", url];
+    if (osType === 'Darwin') {
+        if (!url) {
+            log.debug("No URL given for startInterface");
+            return;
+        }
+
+        // do this as a workaround for app translocation on osx, which makes
+        // it nearly impossible to find the interface executable
+        var bundle_id = 'com.highfidelity.interface-dev';
+        if (buildInfo.releaseType == 'PR') {
+            bundle_id = 'com.highfidelity.interface-pr';
+        } else if (buildInfo.releaseType == 'PRODUCTION') {
+            bundle_id = 'com.highfidelity.interface';
+        }
+        childProcess.exec('open -b ' + bundle_id + ' --args --url ' + url);
+    } else {
+        var argArray = [];
+
+        // check if we have a url parameter to include
+        if (url) {
+            argArray = ["--url", url];
+        }
+        console.log("Starting with " + url);
+        // create a new Interface instance - Interface makes sure only one is running at a time
+        var pInterface = new Process('Interface', interfacePath, argArray);
+        pInterface.detached = true;
+        pInterface.start();
     }
-    console.log("Starting with " + url);
-    // create a new Interface instance - Interface makes sure only one is running at a time
-    var pInterface = new Process('Interface', interfacePath, argArray);
-    pInterface.detached = true;
-    pInterface.start();
 }
 
 exports.isInterfaceRunning = function(done) {
