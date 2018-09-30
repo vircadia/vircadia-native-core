@@ -227,7 +227,7 @@ void CauterizedModel::updateRenderItems() {
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
                 transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
-                isWireframe, renderItemKeyGlobalFlags, enableCauterization](ModelMeshPartPayload& mmppData) {
+                        isWireframe, renderItemKeyGlobalFlags, enableCauterization](ModelMeshPartPayload& mmppData) {
                     CauterizedMeshPartPayload& data = static_cast<CauterizedMeshPartPayload&>(mmppData);
                     if (useDualQuaternionSkinning) {
                         data.updateClusterBuffer(meshState.clusterDualQuaternions,
