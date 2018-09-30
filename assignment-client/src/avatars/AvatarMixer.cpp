@@ -565,7 +565,8 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             // parse the identity packet and update the change timestamp if appropriate
             bool identityChanged = false;
             bool displayNameChanged = false;
-            avatar.processAvatarIdentity(QDataStream(message->getMessage()), identityChanged, displayNameChanged);
+            QDataStream avatarIdentityStream(message->getMessage());
+            avatar.processAvatarIdentity(avatarIdentityStream, identityChanged, displayNameChanged);
 
             if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
