@@ -441,6 +441,8 @@ public:
 
     void setDynamicDataNeedsTransmit(bool value) const { _dynamicDataNeedsTransmit = value; }
     bool dynamicDataNeedsTransmit() const { return _dynamicDataNeedsTransmit; }
+    void setTransitingWithAvatar(bool value) { _transitingWithAvatar = value; }
+    bool getTransitingWithAvatar() { return _transitingWithAvatar; }
 
     bool shouldSuppressLocationEdits() const;
 
@@ -668,6 +670,7 @@ protected:
     QUuid _sourceUUID; /// the server node UUID we came from
 
     bool _clientOnly { false };
+    bool _transitingWithAvatar{ false };
     QUuid _owningAvatarID;
 
     // physics related changes from the network to suppress any duplicates and make

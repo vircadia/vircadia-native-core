@@ -369,7 +369,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAvatarGlobalPosition) {
         auto startSection = destinationBuffer;
-        AVATAR_MEMCPY(_globalPosition);
+        if (_overrideGlobalPosition) {
+            AVATAR_MEMCPY(_globalPositionOverride);
+        } else {
+            AVATAR_MEMCPY(_globalPosition);
+        }
+        
 
         int numBytes = destinationBuffer - startSection;
 
@@ -2086,6 +2091,10 @@ void AvatarData::sendAvatarDataPacket(bool sendAll) {
                 return;
             }
         }
+    }
+
+    if (_overrideGlobalPosition) {
+        _overrideGlobalPosition = false;
     }
 
     doneEncoding(cullSmallData);
