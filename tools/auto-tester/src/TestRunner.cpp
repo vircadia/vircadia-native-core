@@ -300,7 +300,7 @@ void TestRunner::runInterfaceWithTestScript() {
     QString url = QString("hifi://localhost");
     if (_runServerless->isChecked()) {
         // Move to an empty area
-        url = "file:///~serverless/tutorial.json";////"/9999,9999,9999/0.0,0.0,0.0,1.0";
+        url = "file:///~serverless/tutorial.json";
     } else {
         url = "hifi://localhost";
     }
