@@ -256,6 +256,16 @@ JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_fragment_HomeFragme
 }
 
 JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeCancelLogin(JNIEnv *env, jobject instance) {
+
+    auto accountManager = DependencyManager::get<AccountManager>();
+
+    QObject::disconnect(accountManager.data(), &AccountManager::loginComplete, nullptr, nullptr);
+    QObject::disconnect(accountManager.data(), &AccountManager::loginFailed, nullptr, nullptr);
+
+}
+
+JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *env, jobject instance,
                                                             jstring username_, jstring password_,
                                                             jobject usernameChangedListener) {
@@ -273,17 +283,23 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *en
 
     QObject::connect(accountManager.data(), &AccountManager::loginComplete, [](const QUrl& authURL) {
         jboolean jSuccess = (jboolean) true;
-        __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
+        if (__loginCompletedListener.isValid()) {
+            __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
+        }
     });
 
     QObject::connect(accountManager.data(), &AccountManager::loginFailed, []() {
         jboolean jSuccess = (jboolean) false;
-        __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
+        if (__loginCompletedListener.isValid()) {
+            __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
+        }
     });
 
     QObject::connect(accountManager.data(), &AccountManager::usernameChanged, [](const QString& username) {
         QAndroidJniObject string = QAndroidJniObject::fromString(username);
-        __usernameChangedListener.callMethod<void>("handleUsernameChanged", "(Ljava/lang/String;)V", string.object<jstring>());
+        if (__usernameChangedListener.isValid()) {
+            __usernameChangedListener.callMethod<void>("handleUsernameChanged", "(Ljava/lang/String;)V", string.object<jstring>());
+        }
     });
 
     QMetaObject::invokeMethod(accountManager.data(), "requestAccessToken",

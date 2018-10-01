@@ -74,7 +74,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
     const float FULL_CIRCLE = 360.0f;
     const float SLICES = 180.0f;  // The amount of segment to create the circle
-    const float SLICE_ANGLE = FULL_CIRCLE / SLICES;
+    const float SLICE_ANGLE_RADIANS = glm::radians(FULL_CIRCLE / SLICES);
     const float MAX_COLOR = 255.0f;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -111,28 +111,38 @@ void Circle3DOverlay::render(RenderArgs* args) {
             vec4 innerEndColor = vec4(toGlm(_innerEndColor), _innerEndAlpha) * pulseModifier;
             vec4 outerEndColor = vec4(toGlm(_outerEndColor), _outerEndAlpha) * pulseModifier;
 
+            const auto startAtRadians = glm::radians(_startAt);
+            const auto endAtRadians = glm::radians(_endAt);
+
+            const auto totalRange = _endAt - _startAt;
             if (_innerRadius <= 0) {
                 _solidPrimitive = gpu::TRIANGLE_FAN;
                 points << vec2();
                 colors << innerStartColor;
-                for (float angle = _startAt; angle <= _endAt; angle += SLICE_ANGLE) {
-                    float range = (angle - _startAt) / (_endAt - _startAt);
-                    float angleRadians = glm::radians(angle);
+                for (float angleRadians = startAtRadians; angleRadians < endAtRadians; angleRadians += SLICE_ANGLE_RADIANS) {
+                    float range = (angleRadians - startAtRadians) / totalRange;
                     points << glm::vec2(cosf(angleRadians) * _outerRadius, sinf(angleRadians) * _outerRadius);
                     colors << glm::mix(outerStartColor, outerEndColor, range);
                 }
+                points << glm::vec2(cosf(endAtRadians) * _outerRadius, sinf(endAtRadians) * _outerRadius);
+                colors << outerEndColor;
+
             } else {
                 _solidPrimitive = gpu::TRIANGLE_STRIP;
-                for (float angle = _startAt; angle <= _endAt; angle += SLICE_ANGLE) {
-                    float range = (angle - _startAt) / (_endAt - _startAt);
+                for (float angleRadians = startAtRadians; angleRadians < endAtRadians; angleRadians += SLICE_ANGLE_RADIANS) {
+                    float range = (angleRadians - startAtRadians) / totalRange;
 
-                    float angleRadians = glm::radians(angle);
                     points << glm::vec2(cosf(angleRadians) * _innerRadius, sinf(angleRadians) * _innerRadius);
                     colors << glm::mix(innerStartColor, innerEndColor, range);
 
                     points << glm::vec2(cosf(angleRadians) * _outerRadius, sinf(angleRadians) * _outerRadius);
                     colors << glm::mix(outerStartColor, outerEndColor, range);
                 }
+                points << glm::vec2(cosf(endAtRadians) * _innerRadius, sinf(endAtRadians) * _innerRadius);
+                colors << innerEndColor;
+
+                points << glm::vec2(cosf(endAtRadians) * _outerRadius, sinf(endAtRadians) * _outerRadius);
+                colors << outerEndColor;
             }
             geometryCache->updateVertices(_quadVerticesID, points, colors);
         }
@@ -147,29 +157,28 @@ void Circle3DOverlay::render(RenderArgs* args) {
         if (geometryChanged) {
             QVector<glm::vec2> points;
             
-            float angle = _startAt;
-            float angleInRadians = glm::radians(angle);
-            glm::vec2 firstPoint(cosf(angleInRadians) * _outerRadius, sinf(angleInRadians) * _outerRadius);
+            const auto startAtRadians = glm::radians(_startAt);
+            const auto endAtRadians = glm::radians(_endAt);
+
+            float angleRadians = startAtRadians;
+            glm::vec2 firstPoint(cosf(angleRadians) * _outerRadius, sinf(angleRadians) * _outerRadius);
             points << firstPoint;
             
-            while (angle < _endAt) {
-                angle += SLICE_ANGLE;
-                angleInRadians = glm::radians(angle);
-                glm::vec2 thisPoint(cosf(angleInRadians) * _outerRadius, sinf(angleInRadians) * _outerRadius);
+            while (angleRadians < endAtRadians) {
+                angleRadians += SLICE_ANGLE_RADIANS;
+                glm::vec2 thisPoint(cosf(angleRadians) * _outerRadius, sinf(angleRadians) * _outerRadius);
                 points << thisPoint;
                 
                 if (getIsDashedLine()) {
-                    angle += SLICE_ANGLE / 2.0f; // short gap
-                    angleInRadians = glm::radians(angle);
-                    glm::vec2 dashStartPoint(cosf(angleInRadians) * _outerRadius, sinf(angleInRadians) * _outerRadius);
+                    angleRadians += SLICE_ANGLE_RADIANS / 2.0f; // short gap
+                    glm::vec2 dashStartPoint(cosf(angleRadians) * _outerRadius, sinf(angleRadians) * _outerRadius);
                     points << dashStartPoint;
                 }
             }
             
             // get the last slice portion....
-            angle = _endAt;
-            angleInRadians = glm::radians(angle);
-            glm::vec2 lastPoint(cosf(angleInRadians) * _outerRadius, sinf(angleInRadians) * _outerRadius);
+            angleRadians = endAtRadians;
+            glm::vec2 lastPoint(cosf(angleRadians) * _outerRadius, sinf(angleRadians) * _outerRadius);
             points << lastPoint;
             geometryCache->updateVertices(_lineVerticesID, points, vec4(toGlm(getColor()), getAlpha()));
         }

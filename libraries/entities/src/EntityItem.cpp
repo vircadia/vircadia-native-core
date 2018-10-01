@@ -1251,9 +1251,10 @@ quint64 EntityItem::getExpiry() const {
     return getCreated() + (quint64)(getLifetime() * (float)USECS_PER_SECOND);
 }
 
-EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EncodeBitstreamParams params; // unknown
-    EntityPropertyFlags propertyFlags = desiredProperties.isEmpty() ? getEntityProperties(params) : desiredProperties;
+    const EntityPropertyFlags propertyFlags = !allowEmptyDesiredProperties && desiredProperties.isEmpty() ?
+        getEntityProperties(params) : desiredProperties;
     EntityItemProperties properties(propertyFlags);
     properties._id = getID();
     properties._idSet = true;

@@ -18,6 +18,7 @@ class ConstrainToIntegerFilter : public Filter {
     REGISTER_FILTER_CLASS(ConstrainToIntegerFilter);
 public:
     ConstrainToIntegerFilter() {};
+    virtual ~ConstrainToIntegerFilter() {}
 
     virtual float apply(float value) const override {
         return glm::sign(value);
