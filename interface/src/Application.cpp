@@ -1236,7 +1236,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 #if defined(Q_OS_ANDROID)
     connect(accountManager.data(), &AccountManager::authRequired, this, []() {
-        AndroidHelper::instance().showLoginDialog();
+        auto addressManager = DependencyManager::get<AddressManager>();
+        AndroidHelper::instance().showLoginDialog(addressManager->currentAddress());
     });
 #else
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);

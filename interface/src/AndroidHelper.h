@@ -13,6 +13,8 @@
 #define hifi_Android_Helper_h
 
 #include <QObject>
+#include <QMap>
+#include <QUrl>
 
 class AndroidHelper : public QObject {
     Q_OBJECT
@@ -21,7 +23,7 @@ public:
             static AndroidHelper instance;
             return instance;
     }
-    void requestActivity(const QString &activityName, const bool backToScene, QList<QString> args = QList<QString>());
+    void requestActivity(const QString &activityName, const bool backToScene, QMap<QString, QString> args = QMap<QString, QString>());
     void notifyLoadComplete();
     void notifyEnterForeground();
     void notifyBeforeEnterBackground();
@@ -35,10 +37,10 @@ public:
     void operator=(AndroidHelper const&) = delete;
 
 public slots:
-    void showLoginDialog();
+    void showLoginDialog(QUrl url);
 
 signals:
-    void androidActivityRequested(const QString &activityName, const bool backToScene, QList<QString> args = QList<QString>());
+    void androidActivityRequested(const QString &activityName, const bool backToScene, QMap<QString, QString> args = QMap<QString, QString>());
     void qtAppLoadComplete();
     void enterForeground();
     void beforeEnterBackground();
