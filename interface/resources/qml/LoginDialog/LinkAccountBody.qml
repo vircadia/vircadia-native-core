@@ -334,7 +334,10 @@ Item {
             root.keyboardEnabled = HMD.active;
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
-        d.resize();
+        // d.resize();
+
+        print(root.width);
+        print(root.height);
 
         if (failAfterSignUp) {
             mainTextContainer.text = "Account created successfully."

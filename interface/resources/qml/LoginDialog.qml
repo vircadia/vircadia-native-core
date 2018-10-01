@@ -11,15 +11,15 @@
 import Hifi 1.0
 import QtQuick 2.4
 
-import "controls-uit"
-import "styles-uit"
-import "windows"
+import "controls-uit" as HifiControlsUit
+import "styles-uit" as HifiStylesUit
+import "windows" as Windows
 
 import "LoginDialog"
 
-ModalWindow {
+Windows.ModalWindow {
     id: root
-    HifiConstants { id: hifi }
+    HifiStylesUit.HifiConstants { id: hifi }
     objectName: "LoginDialog"
     implicitWidth: 520
     implicitHeight: 320
@@ -85,4 +85,9 @@ ModalWindow {
                 break
         }
     }
+
+    /* Component.onCompleted: {
+        root.implicitWidth = Window.innerWidth;
+        root.implicitHeight = Window.innerHeight;
+    } */
 }

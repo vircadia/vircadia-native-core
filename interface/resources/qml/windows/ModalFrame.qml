@@ -123,7 +123,5 @@ Frame {
                 color: hifi.colors.lightGray
             }
         }
-
-
     }
 }
