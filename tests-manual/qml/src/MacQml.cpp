@@ -29,7 +29,7 @@ using TextureAndFence = hifi::qml::OffscreenSurface::TextureAndFence;
 void MacQml::update() {
     auto rootItem =_surface->getRootItem();
     float now = sinf(secTimestampNow());
-    rootItem->setProperty("level", abs(now));
+    rootItem->setProperty("level", fabs(now));
     rootItem->setProperty("muted", now > 0.0f);
     rootItem->setProperty("statsValue", rand());
 
