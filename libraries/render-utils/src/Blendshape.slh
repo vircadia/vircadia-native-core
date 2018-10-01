@@ -11,7 +11,7 @@
 <@func declareBlendshape(USE_NORMAL, USE_TANGENT)@>
 
 struct PackedBlendshapeOffset {
-    ivec4 packedPosNorTan;
+    uvec4 packedPosNorTan;
 };
 
 struct BlendshapeOffset {
@@ -26,14 +26,14 @@ struct BlendshapeOffset {
 
 const float oneOver511 = 1.0 / 511.0;
 
-vec3 unpackSnorm3x10_1x2(int packed) {  
-    vec4 unpacked = vec4(
-            float( (packed & 0x000003FF) - 512 ),
-            float( ((packed >> 10) & 0x000003FF) - 512 ),
-            float( ((packed >> 20) & 0x000003FF) - 512 ),
-            float( (packed >> 30) & 0x00000003 )
+vec3 unpackSnorm3x10_1x2(int packedX10Y10Z10A2) {  
+    vec4 my_unpacked = vec4(
+           clamp( float( (packedX10Y10Z10A2 & 0x000003FF) - 511 ) / 511.0, -1.0, 1.0),
+           clamp( float( ((packedX10Y10Z10A2 >> 10) & 0x000003FF) - 511 ) / 511.0, -1.0, 1.0),
+           clamp( float( ((packedX10Y10Z10A2 >> 20) & 0x000003FF) - 511 ) / 511.0, -1.0, 1.0),
+           0.0//clamp( float( int((packedX10Y10Z10A2 >> 30) & 0x00000003) - 1 ), -1.0, 1.0)
         );
-    return clamp(unpacked.xyz * oneOver511, vec3(-1.0), vec3(1.0));
+    return my_unpacked.xyz;
 }
 
 #if defined(GPU_GL410)
@@ -59,9 +59,11 @@ BlendshapeOffset getBlendshapeOffset(int i) {
     ivec4 elem_packed = _packedBlendshapeOffsets[i];
 
     BlendshapeOffset unpacked;
-    unpacked.position = vec3(unpackHalf2x16(uint(elem_packed.x)), unpackHalf2x16(uint(elem_packed.y)).x);
+    vec2 pZnZ = unpackHalf2x16(uint(elem_packed.y));
+    unpacked.position = vec3(unpackHalf2x16(uint(elem_packed.x)), pZnZ.x);
 <@if USE_NORMAL@>
-    unpacked.normal = unpackSnorm3x10_1x2((elem_packed.z)).xyz;
+    unpacked.normal = vec3(unpackHalf2x16(uint(elem_packed.z)), pZnZ.y);
+    //unpacked.normal = unpackSnorm3x10_1x2((elem_packed.z)).xyz;
 <@endif@>
 <@if USE_TANGENT@>
     unpacked.tangent = unpackSnorm3x10_1x2((elem_packed.w)).xyz;
@@ -85,7 +87,7 @@ void evalBlendshape(int i, vec4 inPosition, out vec4 position
     normal = normalize(inNormal + blendshapeOffset.normal.xyz);
 <@endif@>
 <@if USE_TANGENT@>
-    tangent = normalize(inTangent + blendshapeOffset.tangent.xyz);
+    tangent = normalize(inTangent /*+ blendshapeOffset.tangent.xyz*/);
 <@endif@>
 }
 

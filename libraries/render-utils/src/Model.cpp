@@ -1651,7 +1651,8 @@ void Blender::run() {
             offset += modelMeshBlendshapeOffsets->second.size();
             std::vector<BlendshapeOffsetUnpacked> unpackedBlendshapeOffsets(modelMeshBlendshapeOffsets->second.size());
 
-            const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+          //  const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+            const float NORMAL_COEFFICIENT_SCALE = 1.0f;
             for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
                 float vertexCoefficient = _blendshapeCoefficients.at(i);
                 const float EPSILON = 0.0001f;
@@ -1691,15 +1692,17 @@ void Blender::run() {
             }
 
 #ifdef PACKED_BLENDSHAPE_OFFSET
-            tbb::parallel_for(tbb::blocked_range<int>(0, unpackedBlendshapeOffsets.size()), [&](const tbb::blocked_range<int>& range) {
+            tbb::parallel_for(tbb::blocked_range<int>(0, (int) unpackedBlendshapeOffsets.size()), [&](const tbb::blocked_range<int>& range) {
                 auto unpacked = unpackedBlendshapeOffsets.data() + range.begin();
                 auto packed = meshBlendshapeOffsets + range.begin();
                 for (auto j = range.begin(); j < range.end(); j++) {
                     (*packed).packedPosNorTan = glm::uvec4(
                         glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare)),
-                        glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare.z, 0.0f)),
-                        glm::packSnorm3x10_1x2(glm::vec4(unpacked->normalOffsetAndSpare, 0.0f)),
-                        glm::packSnorm3x10_1x2(glm::vec4(unpacked->tangentOffsetAndSpare, 0.0f)));
+                        glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare.z, unpacked->normalOffsetAndSpare.z)),
+                        glm::packHalf2x16(glm::vec2(unpacked->normalOffsetAndSpare)),
+                        glm::packSnorm3x10_1x2(glm::vec4(unpacked->tangentOffsetAndSpare, 0.0f))
+                    );
+
                     unpacked++;
                     packed++;
                 }

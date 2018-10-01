@@ -80,7 +80,7 @@ struct SortedTriangleSet {
 #define PACKED_BLENDSHAPE_OFFSET 1
 #ifdef PACKED_BLENDSHAPE_OFFSET
 struct BlendshapeOffsetPacked {
-    glm::ivec4 packedPosNorTan;
+    glm::uvec4 packedPosNorTan;
 };
 
 struct BlendshapeOffsetUnpacked {
