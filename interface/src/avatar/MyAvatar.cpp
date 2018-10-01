@@ -4079,13 +4079,21 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     // if we are 20% higher switch to standing. 
     // 16.6% lower then switch to sitting. 
     //  add this !!!!  And the head is upright.
+    glm::vec3 upHead = transformVectorFast(sensorHeadPose.getMatrix(), glm::vec3(0.0f, 1.0f, 0.0f));
+    float acosHead = glm::dot(upHead, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 avatarHips = myAvatar.getAbsoluteJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
+    glm::vec3 worldHips = transformVectorFast(myAvatar.getTransform().getMatrix(),avatarHips);
+    glm::vec3 sensorHips = transformVectorFast(myAvatar.getSensorToWorldMatrix(), worldHips);
     float averageSensorSpaceHeight = myAvatar._sumUserHeightSensorSpace / myAvatar._averageUserHeightCount;
+    // we could add a counting here to make sure that a lean forward doesn't accidentally put you in sitting mode.
+    // but maybe so what.  
+    // the real test is... can I pick something up in standing mode?
 
     if (myAvatar.getIsInSittingState()) {
         if (offset.y < SITTING_BOTTOM) {
             // we recenter when sitting.
             return true;
-        } else if (sensorHeadPose.getTranslation().y > (1.2f * averageSensorSpaceHeight)) {
+        } else if (sensorHeadPose.getTranslation().y > (1.2f * averageSensorSpaceHeight))  {
             // if we recenter upwards then no longer in sitting state
             myAvatar.setIsInSittingState(false);
             //myAvatar._sumUserHeightSensorSpace = 1.2f * averageSensorSpaceHeight;
@@ -4096,7 +4104,7 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
         }
     } else {
         // in the standing state 
-        if (sensorHeadPose.getTranslation().y < (0.83f * averageSensorSpaceHeight)) {
+        if ((sensorHeadPose.getTranslation().y < (0.83f * averageSensorSpaceHeight)) && (acosHead > 0.98f) && !(sensorHips.y > (0.4f * averageSensorSpaceHeight)) {
             myAvatar.setIsInSittingState(true);
            // myAvatar._sumUserHeightSensorSpace = 0.83f * averageSensorSpaceHeight;
            // myAvatar._averageUserHeightCount = 1;
