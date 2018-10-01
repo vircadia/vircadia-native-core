@@ -212,6 +212,8 @@ private:
     void sendDisconnectPacket();
     void hardReset();
 
+    bool isHardRefusal(int reasonCode);
+
     QUuid _uuid;
     Node::LocalID _localID;
     QUrl _domainURL;

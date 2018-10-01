@@ -139,6 +139,11 @@ void DomainHandler::hardReset() {
     _pendingPath.clear();
 }
 
+bool DomainHandler::isHardRefusal(int reasonCode) {
+    return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch || reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
+        reasonCode == (int)ConnectionRefusedReason::TimedOut);
+}
+
 bool DomainHandler::getInterstitialModeEnabled() const {
     return _interstitialModeSettingLock.resultWithReadLock<bool>([&] {
         return _enableInterstitialMode.get();
@@ -360,7 +365,7 @@ void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
 
 void DomainHandler::setRedirectErrorState(QUrl errorUrl, QString reasonMessage, int reasonCode, const QString& extraInfo) {
     _lastDomainConnectionError = reasonCode;
-    if (getInterstitialModeEnabled()) {
+    if (getInterstitialModeEnabled() && isHardRefusal(reasonCode)) {
         _errorDomainURL = errorUrl;
         _isInErrorState = true;
         qCDebug(networking) << "Error connecting to domain: " << reasonMessage;
