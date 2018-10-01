@@ -1115,6 +1115,8 @@ public:
     virtual QVariantList getAttachmentsVariant() const override;
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
+    glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); };
+
 public slots:
 
     /**jsdoc
@@ -1732,6 +1734,7 @@ private:
     bool _goToPending { false };
     bool _physicsSafetyPending { false };
     bool _goToSafe { true };
+    bool _goToFeetAjustment { false };
     glm::vec3 _goToPosition;
     glm::quat _goToOrientation;
 
@@ -1807,6 +1810,7 @@ private:
 
     bool _haveReceivedHeightLimitsFromDomain { false };
     int _disableHandTouchCount { 0 };
+    bool _skeletonModelLoaded { false };
 
     Setting::Handle<QString> _dominantHandSetting;
     Setting::Handle<float> _headPitchSetting;

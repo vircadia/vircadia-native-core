@@ -59,6 +59,8 @@ private:
     bool _kinematicSetVelocity { false };
     bool _previousSet { false };
     bool _ignoreIK { false };
+    bool _isTransitingWithAvatar { false };
+
     glm::vec3 _previousPositionalTarget;
     glm::quat _previousRotationalTarget;
 

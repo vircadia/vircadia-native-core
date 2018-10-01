@@ -23,6 +23,7 @@ Item {
     property bool failAfterSignUp: false
 
     function login() {
+        flavorText.visible = false
         mainTextContainer.visible = false
         toggleLoading(true)
         loginDialog.login(usernameField.text, passwordField.text)
@@ -43,7 +44,7 @@ Item {
 
         function resize() {
             var targetWidth = Math.max(titleWidth, form.contentWidth);
-            var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height +
+            var targetHeight =  hifi.dimensions.contentSpacing.y + flavorText.height + mainTextContainer.height +
                     4 * hifi.dimensions.contentSpacing.y + form.height;
 
             if (additionalInformation.visible) {
@@ -106,14 +107,15 @@ Item {
     ShortcutText {
         id: mainTextContainer
         anchors {
-            top: parent.top
+            top: flavorText.bottom
             left: parent.left
             margins: 0
-            topMargin: hifi.dimensions.contentSpacing.y
+            topMargin: 1.5 * hifi.dimensions.contentSpacing.y
         }
 
         visible: false
         text: qsTr("Username or password incorrect.")
+        height: flavorText.height - 20
         wrapMode: Text.WordWrap
         color: hifi.colors.redAccent
         lineHeight: 1
@@ -128,7 +130,7 @@ Item {
 
         anchors {
             top: mainTextContainer.bottom
-            topMargin: 2 * hifi.dimensions.contentSpacing.y
+            topMargin: 1.5 * hifi.dimensions.contentSpacing.y
         }
         spacing: 2 * hifi.dimensions.contentSpacing.y
 
@@ -139,6 +141,7 @@ Item {
             focus: true
             placeholderText: "Username or Email"
             activeFocusOnPress: true
+            onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
             ShortcutText {
                 z: 10
@@ -172,7 +175,7 @@ Item {
             width: parent.width
             placeholderText: "Password"
             activeFocusOnPress: true
-            echoMode: TextInput.Password
+            echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
             ShortcutText {
@@ -212,29 +215,28 @@ Item {
 
                 Image {
                     id: showPasswordImage
-                    y: (passwordField.height - (passwordField.height * 16 / 23)) / 2
-                    width: passwordField.width - (passwordField.width - (((passwordField.height) * 31/23)))
+                    width: passwordField.height * 16 / 23
                     height: passwordField.height * 16 / 23
                     anchors {
                         right: parent.right
-                        rightMargin: 3
+                        rightMargin: 8
+                        top: parent.top
+                        topMargin: passwordFieldMouseArea.showPassword ? 6 : 8
+                        bottom: parent.bottom
+                        bottomMargin: passwordFieldMouseArea.showPassword ? 5 : 8
                     }
-                    source: "../../images/eyeOpen.svg"
+                    source: passwordFieldMouseArea.showPassword ?  "../../images/eyeClosed.svg" : "../../images/eyeOpen.svg"
+                    MouseArea {
+                        id: passwordFieldMouseArea
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton
+                        property bool showPassword: false
+                        onClicked: {
+                            showPassword = !showPassword;
+                        }
+                    }
                 }
 
-                MouseArea {
-                    id: passwordFieldMouseArea
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    property bool showPassword: false
-                    onClicked: {
-                        showPassword = !showPassword;
-                        passwordField.echoMode = showPassword ? TextInput.Normal : TextInput.Password;
-                        showPasswordImage.source = showPassword ?  "../../images/eyeClosed.svg" : "../../images/eyeOpen.svg";
-                        showPasswordImage.height = showPassword ?  passwordField.height : passwordField.height * 16 / 23;
-                        showPasswordImage.y = showPassword ? 0 : (passwordField.height - showPasswordImage.height) / 2;
-                    }
-                }
             }
 
             Keys.onReturnPressed: linkAccountBody.login()
@@ -284,7 +286,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 200
 
-                text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Login")
+                text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Log in")
                 color: hifi.buttons.blue
 
                 onClicked: linkAccountBody.login()
@@ -336,6 +338,7 @@ Item {
 
         if (failAfterSignUp) {
             mainTextContainer.text = "Account created successfully."
+            flavorText.visible = true
             mainTextContainer.visible = true
         }
 
@@ -374,6 +377,7 @@ Item {
                 UserActivityLogger.logAction("encourageLoginDialog", data);
                 Settings.setValue("loginDialogPoppedUp", false);
             }
+            flavorText.visible = true
             mainTextContainer.visible = true
             toggleLoading(false)
         }
