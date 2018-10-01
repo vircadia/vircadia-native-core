@@ -32,6 +32,7 @@ namespace NetworkingConstants {
 
 const QString URL_SCHEME_ABOUT = "about";
 const QString URL_SCHEME_HIFI = "hifi";
+const QString URL_SCHEME_HIFIAPP = "hifiapp";
 const QString URL_SCHEME_QRC = "qrc";
 const QString URL_SCHEME_FILE = "file";
 const QString URL_SCHEME_HTTP = "http";

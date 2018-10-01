@@ -29,6 +29,7 @@ public:
 
     void performHapticFeedback(int duration);
     void processURL(const QString &url);
+    void notifyHeadsetOn(bool pluggedIn);
 
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;

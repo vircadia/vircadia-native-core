@@ -13,6 +13,7 @@
 #define hifi_AudioHRTF_h
 
 #include <stdint.h>
+#include <string.h>
 
 static const int HRTF_AZIMUTHS = 72;    // 360 / 5-degree steps
 static const int HRTF_TAPS = 64;        // minimum-phase FIR coefficients
@@ -56,6 +57,27 @@ public:
     void setGainAdjustment(float gain) { _gainAdjust = HRTF_GAIN * gain; };
     float getGainAdjustment() { return _gainAdjust; }
 
+    // clear internal state, but retain settings
+    void reset() {
+        // FIR history
+        memset(_firState, 0, sizeof(_firState));
+
+        // integer delay history
+        memset(_delayState, 0, sizeof(_delayState));
+
+        // biquad history
+        memset(_bqState, 0, sizeof(_bqState));
+
+        // parameter history
+        _azimuthState = 0.0f;
+        _distanceState = 0.0f;
+        _gainState = 0.0f;
+
+        // _gainAdjust is retained
+
+        _silentState = true;
+    }
+
 private:
     AudioHRTF(const AudioHRTF&) = delete;
     AudioHRTF& operator=(const AudioHRTF&) = delete;
@@ -88,7 +110,7 @@ private:
     // global and local gain adjustment
     float _gainAdjust = HRTF_GAIN;
 
-    bool _silentState = false;
+    bool _silentState = true;
 };
 
 #endif // AudioHRTF_h

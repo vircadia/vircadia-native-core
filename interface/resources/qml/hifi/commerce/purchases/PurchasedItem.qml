@@ -59,7 +59,7 @@ Item {
 
     Connections {
         target: Commerce;
-        
+
         onContentSetChanged: {
             if (contentSetHref === root.itemHref) {
                 showConfirmation = true;
@@ -135,7 +135,7 @@ Item {
                 anchors.topMargin: 8;
                 width: 30;
                 height: width;
-            
+
                 HiFiGlyphs {
                     id: closeContextMenuGlyph;
                     text: hifi.glyphs.close;
@@ -376,7 +376,7 @@ Item {
                 }
             }
         }
-        
+
         transform: Rotation {
             id: rotation;
             origin.x: flipable.width/2;
@@ -509,7 +509,7 @@ Item {
                     }
                 verticalAlignment: Text.AlignTop;
             }
-        
+
             HiFiGlyphs {
                 id: statusIcon;
                 text: {
@@ -588,7 +588,7 @@ Item {
                 border.width: 1;
                 border.color: "#E2334D";
             }
-            
+
             HiFiGlyphs {
                 id: contextMenuGlyph;
                 text: hifi.glyphs.verticalEllipsis;
@@ -615,7 +615,7 @@ Item {
                 }
             }
         }
-        
+
         Rectangle {
             id: rezzedNotifContainer;
             z: 998;
@@ -663,13 +663,13 @@ Item {
                     Tablet.playSound(TabletEnums.ButtonHover);
                 }
             }
-    
+
             onFocusChanged: {
                 if (focus) {
                     Tablet.playSound(TabletEnums.ButtonHover);
                 }
             }
-            
+
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
                 if (root.itemType === "contentSet") {
@@ -775,7 +775,7 @@ Item {
             // Style
             color: hifi.colors.redAccent;
             horizontalAlignment: Text.AlignRight;
-            
+
             MouseArea {
                 anchors.fill: parent;
                 hoverEnabled: true;
