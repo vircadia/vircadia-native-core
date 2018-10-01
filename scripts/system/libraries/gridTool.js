@@ -267,7 +267,6 @@ GridTool = function(opts) {
         try {
             data = JSON.parse(data);
         } catch (e) {
-            print("gridTool.js: Error parsing JSON: " + e.name + " data " + data);
             return;
         }
 
