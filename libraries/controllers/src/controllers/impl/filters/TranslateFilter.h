@@ -21,6 +21,7 @@ class TranslateFilter : public Filter {
 public:
     TranslateFilter() { }
     TranslateFilter(glm::vec3 translate) : _translate(translate) {}
+    virtual ~TranslateFilter() {}
 
     virtual float apply(float value) const override { return value; }
     virtual Pose apply(Pose value) const override { return value.transform(glm::translate(_translate)); }

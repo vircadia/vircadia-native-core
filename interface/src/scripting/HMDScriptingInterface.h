@@ -62,7 +62,6 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_OBJECT
     Q_PROPERTY(glm::vec3 position READ getPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation)
-    Q_PROPERTY(bool mounted READ isMounted NOTIFY mountedChanged)
     Q_PROPERTY(bool showTablet READ getShouldShowTablet)
     Q_PROPERTY(bool tabletContextualMode READ getTabletContextualMode)
     Q_PROPERTY(QUuid tabletID READ getCurrentTabletFrameID WRITE setCurrentTabletFrameID)
@@ -350,7 +349,7 @@ public:
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine);
 
-    bool isMounted() const;
+    bool isMounted() const override;
 
     void toggleShouldShowTablet();
     void setShouldShowTablet(bool value);
