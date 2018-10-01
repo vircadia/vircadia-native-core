@@ -192,7 +192,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.teleportedTargetOverlay = null;
 
         this.setPlayAreaDimensions = function () {
-            var avatarScale = MyAvatar.scale;
+            var avatarScale = MyAvatar.sensorToWorldScale;
 
             var playAreaOverlayProperties = {
                 dimensions:
@@ -217,7 +217,7 @@ Script.include("/~/system/libraries/controllers.js");
                     Vec3.sum(this.playAreaCenterOffset, { x: 0, y: -TARGET_MODEL_DIMENSIONS.y / 2, z: 0 });
                 var localPosition = Vec3.multiplyQbyV(Quat.inverse(targetRotation),
                     Vec3.multiplyQbyV(sensorToWorldRotation,
-                        Vec3.multiply(MyAvatar.scale, Vec3.subtract(relativePlayAreaCenterOffset, avatarSensorPosition))));
+                        Vec3.multiply(avatarScale, Vec3.subtract(relativePlayAreaCenterOffset, avatarSensorPosition))));
                 localPosition.y = this.teleportScaleFactor * localPosition.y;
 
                 playAreaOverlayProperties.parentID = this.targetOverlayID;
@@ -500,7 +500,8 @@ Script.include("/~/system/libraries/controllers.js");
                     parentID: Uuid.NULL,
                     position: Vec3.sum(position,
                         Vec3.multiplyQbyV(sensorToWorldRotation,
-                            Vec3.multiply(MyAvatar.scale, Vec3.subtract(this.playAreaCenterOffset, avatarSensorPosition)))),
+                            Vec3.multiply(MyAvatar.sensorToWorldScale,
+                                Vec3.subtract(this.playAreaCenterOffset, avatarSensorPosition)))),
                     rotation: sensorToWorldRotation
                 });
             } else {
@@ -514,7 +515,8 @@ Script.include("/~/system/libraries/controllers.js");
                     parentID: this.targetOverlayID,
                     localPosition: Vec3.multiplyQbyV(Quat.inverse(targetRotation),
                         Vec3.multiplyQbyV(sensorToWorldRotation,
-                            Vec3.multiply(MyAvatar.scale, Vec3.subtract(relativePlayAreaCenterOffset, avatarSensorPosition)))),
+                            Vec3.multiply(MyAvatar.sensorToWorldScale,
+                                Vec3.subtract(relativePlayAreaCenterOffset, avatarSensorPosition)))),
                     localRotation: sensorToTargetRotation
                 });
             }
@@ -560,7 +562,9 @@ Script.include("/~/system/libraries/controllers.js");
                     alpha: _this.teleportedFadeFactor * _this.TELEPORTED_TARGET_ALPHA
                 });
                 if (_this.wasPlayAreaVisible) {
-                    Overlays.editOverlay(_this.playAreaOverlay, { alpha: _this.teleportedFadeFactor * _this.PLAY_AREA_BOX_ALPHA });
+                    Overlays.editOverlay(_this.playAreaOverlay, {
+                        alpha: _this.teleportedFadeFactor * _this.PLAY_AREA_BOX_ALPHA
+                    });
                     var sensorAlpha = _this.teleportedFadeFactor * _this.PLAY_AREA_SENSOR_ALPHA;
                     for (i = 0, length = _this.playAreaSensorPositionOverlays.length; i < length; i++) {
                         Overlays.editOverlay(_this.playAreaSensorPositionOverlays[i], { alpha: sensorAlpha });
@@ -623,14 +627,15 @@ Script.include("/~/system/libraries/controllers.js");
 
                 if (fade) {
                     // Copy of target at teleported position for fading.
+                    var avatarScale = MyAvatar.sensorToWorldScale;
                     Overlays.editOverlay(this.teleportedTargetOverlay, {
                         position: Vec3.sum(this.teleportedPosition, {
                             x: 0,
-                            y: -getAvatarFootOffset() + MyAvatar.scale * TARGET_MODEL_DIMENSIONS.y / 2,
+                            y: -getAvatarFootOffset() + avatarScale * TARGET_MODEL_DIMENSIONS.y / 2,
                             z: 0
                         }),
                         rotation: Quat.multiply(this.TELEPORTED_TARGET_ROTATION, MyAvatar.orientation),
-                        dimensions: Vec3.multiply(MyAvatar.scale, TARGET_MODEL_DIMENSIONS),
+                        dimensions: Vec3.multiply(avatarScale, TARGET_MODEL_DIMENSIONS),
                         alpha: this.TELEPORTED_TARGET_ALPHA,
                         visible: true
                     });
@@ -862,12 +867,12 @@ Script.include("/~/system/libraries/controllers.js");
             var footPos = MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(footJointIndex);
             if (footPos.x === 0 && footPos.y === 0 && footPos.z === 0.0) {
                 // if footPos is exactly zero, it's probably wrong because avatar is currently loading, fall back to default.
-                return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.scale;
+                return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.sensorToWorldScale;
             } else {
                 return -footPos.y;
             }
         } else {
-            return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.scale;
+            return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.sensorToWorldScale;
         }
     }
 
@@ -1046,7 +1051,7 @@ Script.include("/~/system/libraries/controllers.js");
     Messages.subscribe('Hifi-Teleport-Ignore-Remove');
     Messages.messageReceived.connect(handleTeleportMessages);
 
-    MyAvatar.scaleChanged.connect(function () {
+    MyAvatar.sensorToWorldScaleChanged.connect(function () {
         leftTeleporter.updatePlayAreaScale();
         rightTeleporter.updatePlayAreaScale();
     });
