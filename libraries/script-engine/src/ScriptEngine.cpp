@@ -2442,6 +2442,8 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     // if we got this far, then call the preload method
     callEntityScriptMethod(entityID, "preload");
 
+    emit entityScriptPreloadFinished(entityID);
+
     _occupiedScriptURLs.remove(entityScript);
     processDeferredEntityLoads(entityScript, entityID);
 }

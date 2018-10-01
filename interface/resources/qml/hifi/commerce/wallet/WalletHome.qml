@@ -45,14 +45,6 @@ Item {
         onHistoryResult : {
             transactionHistoryModel.handlePage(null, result);
         }
-
-        onAvailableUpdatesResult: {
-            if (result.status !== 'success') {
-                console.log("Failed to get Available Updates", result.data.message);
-            } else {
-                sendToScript({method: 'wallet_availableUpdatesReceived', numUpdates: result.data.updates.length });
-            }
-        }
     }
 
     Connections {
