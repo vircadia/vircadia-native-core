@@ -101,7 +101,6 @@ Rectangle {
     }
 
     function entityHasAvatarJoints(entityID) {
-        console.log(entityID);
         var hasAvatarJoint = false;
         var entityJointNames = Entities.getJointNames(entityID);
         for (var index = 0; index < entityJointNames.length; index++) {
