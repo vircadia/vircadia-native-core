@@ -115,8 +115,8 @@ ShapeEntityItem::ShapeEntityItem(const EntityItemID& entityItemID) : EntityItem(
     _material = std::make_shared<graphics::Material>();
 }
 
-EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties ShapeEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
     properties.setShape(entity::stringFromShape(getShape()));
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);

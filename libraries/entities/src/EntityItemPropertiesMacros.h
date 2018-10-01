@@ -155,7 +155,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
     }
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE(p,P) \
-    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+    if (((!psuedoPropertyFlagsButDesiredEmpty && _desiredProperties.isEmpty()) || _desiredProperties.getHasProperty(p)) && \
         (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, _##P); \
         properties.setProperty(#P, V); \
@@ -165,7 +165,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
     properties.setProperty(#P, G);
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(p, P, G) \
-    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+    if (((!psuedoPropertyFlagsButDesiredEmpty && _desiredProperties.isEmpty()) || _desiredProperties.getHasProperty(p)) && \
         (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, G); \
         properties.setProperty(#P, V); \
@@ -173,7 +173,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
 
 // same as COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER but uses #X instead of #P in the setProperty() step
 #define COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(p, P, X, G) \
-    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+    if (((!psuedoPropertyFlagsButDesiredEmpty && _desiredProperties.isEmpty()) || _desiredProperties.getHasProperty(p)) && \
         (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, G); \
         properties.setProperty(#X, V); \
