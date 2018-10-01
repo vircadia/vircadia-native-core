@@ -43,13 +43,13 @@ PickParabola ParabolaPick::getMathematicalPick() const {
         velocity = glm::normalize(transformedVelocity) * _speed;
     }
     glm::vec3 acceleration = _mathPick.acceleration;
+    if (_scaleWithParent) {
+        acceleration *= currentParentTransform.getScale();
+    }
     if (_rotateAccelerationWithAvatar) {
         acceleration = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * acceleration;
     } else if (_rotateAccelerationWithParent) {
         acceleration = currentParentTransform.getRotation() * acceleration;
-    }
-    if (_scaleWithParent) {
-        acceleration *= currentParentTransform.getScale();
     }
 
     return PickParabola(position, velocity, acceleration);
