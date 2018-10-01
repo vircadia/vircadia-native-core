@@ -172,11 +172,11 @@ void TestRunner::verifyInstallationSucceeded() {
     // Exit if the executables are missing.
     // On Windows, the reason is probably that UAC has blocked the installation.  This is treated as a critical error
 #ifdef Q_OS_WIN
-    QFileInfo interfacExe(QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"");
-    QFileInfo assignmentClientExe(QDir::toNativeSeparators(_installationFolder) + "\\assignment-client.exe\"");
-    QFileInfo domainServerExe(QDir::toNativeSeparators(_installationFolder) + "\\domain-server.exe\"");
+    QFileInfo interfaceExe(QDir::toNativeSeparators(_installationFolder) + "\\interface.exe");
+    QFileInfo assignmentClientExe(QDir::toNativeSeparators(_installationFolder) + "\\assignment-client.exe");
+    QFileInfo domainServerExe(QDir::toNativeSeparators(_installationFolder) + "\\domain-server.exe");
 
-    if (!interfacExe.exists() || !assignmentClientExe.exists() || !domainServerExe.exists()) {
+    if (!interfaceExe.exists() || !assignmentClientExe.exists() || !domainServerExe.exists()) {
         QMessageBox::critical(0, "Installation of High Fidelity has failed", "Please verify that UAC has been disabled");
         exit(-1);
     }
