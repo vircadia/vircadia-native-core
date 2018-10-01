@@ -485,18 +485,6 @@ void MyAvatar::update(float deltaTime) {
     glm::vec3 upHead = transformVectorFast(sensorHeadPoseDebug.getMatrix(), glm::vec3(0.0f, 1.0f, 0.0f));
     float acosHead = glm::dot(upHead, glm::vec3(0.0f, 1.0f, 0.0f));
     //   qCDebug(interfaceapp) << "sensor space head pos " << sensorHeadPoseDebug.getTranslation().y;
-    if ((acosHead > 0.98f) && !getIsInSittingState() && (sensorHeadPoseDebug.getTranslation().y < -0.5f)) {
-        //qCDebug(interfaceapp) << "we are going to sitting state because it looks like we should" << sensorHeadPoseDebug.getTranslation().y;
-    }
-    if (!_lastFrameHMDMode && qApp->isHMDMode()) {
-        // we have entered hmd mode, so make the best guess about sitting or standing
-        if (sensorHeadPoseDebug.getTranslation().y < 1.3f) {
-            // then we are sitting.
-            // setIsInSittingState(true);
-        } else {
-            // setIsInSittingState(false);
-        }
-    }
 
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter

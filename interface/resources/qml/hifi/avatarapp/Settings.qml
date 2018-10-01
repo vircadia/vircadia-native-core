@@ -296,7 +296,6 @@ Rectangle {
                 text: "OFF"
                 boxSize: 20
             }
-        
 
         // TextStyle9
 
@@ -345,7 +344,7 @@ Rectangle {
                 boxSize: 20
             }
         }
-            
+
         ColumnLayout {
             id: avatarAnimationLayout
             anchors.top: handAndCollisions.bottom
