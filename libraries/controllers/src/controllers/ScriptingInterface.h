@@ -539,10 +539,7 @@ namespace controller {
          */
         virtual void releaseActionEvents() { _actionsCaptured = false; }
 
-        void updateRunningInputDevices(const QString& deviceName, bool isRunning, const QStringList& runningDevices) { 
-            _runningInputDeviceNames = runningDevices;
-            emit inputDeviceRunningChanged(deviceName, isRunning);
-        }
+        void updateRunningInputDevices(const QString& deviceName, bool isRunning, const QStringList& runningDevices);
 
     signals:
         /**jsdoc
@@ -629,7 +626,8 @@ namespace controller {
         std::atomic<bool> _wheelCaptured { false };
         std::atomic<bool> _actionsCaptured { false };
 
-        QMutex _mutex;
+        QMutex _setRunningDevicesMutex;
+        QMutex _getRunningDevicesMutex;
     };
 
 }
