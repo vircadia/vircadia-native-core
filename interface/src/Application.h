@@ -560,6 +560,8 @@ private:
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
 
+    bool _aboutToQuit { false };
+
     bool _previousSessionCrashed;
 
     DisplayPluginPointer _displayPlugin;
@@ -650,8 +652,6 @@ private:
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
-
-    bool _aboutToQuit;
 
     bool _notifiedPacketVersionMismatchThisDomain;
 

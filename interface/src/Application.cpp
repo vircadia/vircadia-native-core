@@ -996,7 +996,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _enableProcessOctreeThread(true),
     _lastNackTime(usecTimestampNow()),
     _lastSendDownstreamAudioStats(usecTimestampNow()),
-    _aboutToQuit(false),
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0),
