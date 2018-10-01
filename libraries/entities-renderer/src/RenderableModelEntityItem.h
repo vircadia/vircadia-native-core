@@ -81,6 +81,7 @@ public:
 
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
+    bool computeShapeFailedToLoad();
 
     virtual bool contains(const glm::vec3& point) const override;
     void stopModelOverrideIfNoParent();
