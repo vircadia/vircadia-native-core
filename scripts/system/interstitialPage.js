@@ -38,7 +38,6 @@
     var button = null;
 
     var errorConnectingToDomain = false;
-    var resettingError = false;
 
     // Tips have a character limit of 69
     var userTips = [
@@ -128,7 +127,7 @@
         localPosition: { x: 0.0 , y: -1.6, z: 0.0 },
         text: toolTip,
         textAlpha: 1,
-        backgroundAlpha: 1,
+        backgroundAlpha: 0.00393,
         lineHeight: 0.13,
         visible: isVisible,
         ignoreRayIntersection: true,
@@ -138,17 +137,47 @@
         parentID: anchorOverlay
     });
 
-    var loadingToTheSpotID = Overlays.addOverlay("image3d", {
+    var loadingToTheSpotText = Overlays.addOverlay("text3d", {
         name: "Loading-Destination-Card-Text",
-        localPosition: { x: 0.0 , y: -1.5, z: -0.3 },
-        url: Script.resourcesPath() + "images/interstitialPage/goTo_button.png",
+        localPosition: { x: 0.0 , y: -1.687, z: -0.3 },
+        text: "Go To TheSpot",
+        textAlpha: 1,
+        backgroundAlpha: 0.00393,
+        lineHeight: 0.10,
+        visible: isVisible,
+        ignoreRayIntersection: true,
+        dimensions: {x: 1, y: 0.17},
+        drawInFront: true,
+        grabbable: false,
+        localOrientation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+        parentID: anchorOverlay
+    });
+
+    var loadingToTheSpotID = Overlays.addOverlay("image3d", {
+        name: "Loading-Destination-Card-GoTo-Image",
+        localPosition: { x: 0.0 , y: -1.75, z: -0.3 },
+        url: Script.resourcesPath() + "images/interstitialPage/button.png",
         alpha: 1,
         visible: isVisible,
         emissive: true,
         ignoreRayIntersection: false,
         drawInFront: true,
         grabbable: false,
-        localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 180.0, z: 0.0 }),
+        localOrientation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+        parentID: anchorOverlay
+    });
+
+    var loadingToTheSpotHoverID = Overlays.addOverlay("image3d", {
+        name: "Loading-Destination-Card-GoTo-Image-Hover",
+        localPosition: { x: 0.0 , y: -1.75, z: -0.3 },
+        url: Script.resourcesPath() + "images/interstitialPage/button_hover.png",
+        alpha: 1,
+        visible: false,
+        emissive: true,
+        ignoreRayIntersection: false,
+        drawInFront: true,
+        grabbable: false,
+        localOrientation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
         parentID: anchorOverlay
     });
 
@@ -268,7 +297,7 @@
             domainName = name.charAt(0).toUpperCase() + name.slice(1);
             var doRequest = true;
             if (name.length === 0 && location.href === "file:///~/serverless/tutorial.json") {
-                domainName = "Serveless Domain (Tutorial)";
+                domainName = "Serverless Domain (Tutorial)";
                 doRequest = false;
             }
             var domainNameLeftMargin = getLeftMargin(domainNameTextID, domainName);
@@ -319,8 +348,10 @@
 
     var THE_PLACE = (HifiAbout.buildVersion === "dev") ? "hifi://TheSpot-dev": "hifi://TheSpot";
     function clickedOnOverlay(overlayID, event) {
-        if (loadingToTheSpotID === overlayID) {
+        if (loadingToTheSpotHoverID === overlayID) {
             location.handleLookupString(THE_PLACE);
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: false});
+            Overlays.editOverlay(loadingToTheSpotID, {visible: true});
         }
     }
 
@@ -353,6 +384,7 @@
         renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = physicsEnabled;
         renderViewTask.getConfig("LightingModel")["enablePointLight"] = physicsEnabled;
         Overlays.editOverlay(loadingSphereID, mainSphereProperties);
+        Overlays.editOverlay(loadingToTheSpotText, properties);
         Overlays.editOverlay(loadingToTheSpotID, properties);
         Overlays.editOverlay(domainNameTextID, properties);
         Overlays.editOverlay(domainDescription, domainTextProperties);
@@ -475,13 +507,15 @@
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
         if (overlayID === loadingToTheSpotID) {
-            Overlays.editOverlay(loadingToTheSpotID, { color: greyColor });
+            Overlays.editOverlay(loadingToTheSpotID, {visible: false});
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: true});
         }
     });
 
     Overlays.hoverLeaveOverlay.connect(function(overlayID, event) {
-        if (overlayID === loadingToTheSpotID) {
-            Overlays.editOverlay(loadingToTheSpotID, { color: whiteColor });
+        if (overlayID === loadingToTheSpotHoverID) {
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: false});
+            Overlays.editOverlay(loadingToTheSpotID, {visible: true});
         }
     });
 
@@ -510,9 +544,17 @@
         });
     }
 
+    // set left margin of text.
+    var loadingTextProperties = {
+        leftMargin: getLeftMargin(loadingToTheSpotText, "Go To TheSpot") + 0.045
+    };
+
+    Overlays.editOverlay(loadingToTheSpotText, loadingTextProperties);
+
     function cleanup() {
         Overlays.deleteOverlay(loadingSphereID);
         Overlays.deleteOverlay(loadingToTheSpotID);
+        Overlays.deleteOverlay(loadingToTheSpotHoverID);
         Overlays.deleteOverlay(domainNameTextID);
         Overlays.deleteOverlay(domainDescription);
         Overlays.deleteOverlay(domainToolTip);

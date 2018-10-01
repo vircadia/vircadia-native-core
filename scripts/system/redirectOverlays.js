@@ -43,15 +43,15 @@
         leftMargin: 0.538373570564886,
         visible: false,
         emissive: true,
-        ignoreRayIntersection: false,
+        ignoreRayIntersection: true,
         dimensions: oopsDimensions,
         grabbable: false,
     });
 
-    var tryAgainImage = Overlays.addOverlay("image3d", {
+    var tryAgainImageNeutral = Overlays.addOverlay("image3d", {
         name: "tryAgainImage",
         localPosition: {x: -0.6, y: -0.6, z: 0.0},
-        url: Script.resourcesPath() + "images/interstitialPage/button_tryAgain.png",
+        url: Script.resourcesPath() + "images/interstitialPage/button.png",
         alpha: 1,
         visible: false,
         emissive: true,
@@ -61,14 +61,70 @@
         parentID: redirectOopsText
     });
 
-    var backImage = Overlays.addOverlay("image3d", {
-        name: "backImage",
-        localPosition: {x: 0.6, y: -0.6, z: 0.0},
-        url: Script.resourcesPath() + "images/interstitialPage/button_back.png",
+    var tryAgainImageHover = Overlays.addOverlay("image3d", {
+        name: "tryAgainImageHover",
+        localPosition: {x: -0.6, y: -0.6, z: 0.0},
+        url: Script.resourcesPath() + "images/interstitialPage/button_hover.png",
         alpha: 1,
         visible: false,
         emissive: true,
         ignoreRayIntersection: false,
+        grabbable: false,
+        orientation: Overlays.getProperty(redirectOopsText, "orientation"),
+        parentID: redirectOopsText
+    });
+
+    var tryAgainText = Overlays.addOverlay("text3d", {
+        name: "tryAgainText",
+        localPosition: {x: -0.6, y: -0.962, z: 0.0},
+        text: "Try Again",
+        textAlpha: 1,
+        backgroundAlpha: 0.00393,
+        lineHeight: 0.08,
+        visible: false,
+        emissive: true,
+        ignoreRayIntersection: true,
+        grabbable: false,
+        orientation: Overlays.getProperty(redirectOopsText, "orientation"),
+        parentID: redirectOopsText
+    });
+
+    var backImageNeutral = Overlays.addOverlay("image3d", {
+        name: "backImage",
+        localPosition: {x: 0.6, y: -0.6, z: 0.0},
+        url: Script.resourcesPath() + "images/interstitialPage/button.png",
+        alpha: 1,
+        visible: false,
+        emissive: true,
+        ignoreRayIntersection: false,
+        grabbable: false,
+        orientation: Overlays.getProperty(redirectOopsText, "orientation"),
+        parentID: redirectOopsText
+    });
+
+    var backImageHover = Overlays.addOverlay("image3d", {
+        name: "backImageHover",
+        localPosition: {x: 0.6, y: -0.6, z: 0.0},
+        url: Script.resourcesPath() + "images/interstitialPage/button_hover.png",
+        alpha: 1,
+        visible: false,
+        emissive: true,
+        ignoreRayIntersection: false,
+        grabbable: false,
+        orientation: Overlays.getProperty(redirectOopsText, "orientation"),
+        parentID: redirectOopsText
+    });
+
+    var backText = Overlays.addOverlay("text3d", {
+        name: "backText",
+        localPosition: {x: 0.6, y: -0.962, z: 0.0},
+        text: "Back",
+        textAlpha: 1,
+        backgroundAlpha: 0.00393,
+        lineHeight: 0.08,
+        visible: false,
+        emissive: true,
+        ignoreRayIntersection: true,
         grabbable: false,
         orientation: Overlays.getProperty(redirectOopsText, "orientation"),
         parentID: redirectOopsText
@@ -81,8 +137,10 @@
             };
 
             Overlays.editOverlay(redirectOopsText, properties);
-            Overlays.editOverlay(tryAgainImage, properties);
-            Overlays.editOverlay(backImage, properties);
+            Overlays.editOverlay(tryAgainImageNeutral, properties);
+            Overlays.editOverlay(tryAgainImageHover, properties);
+            Overlays.editOverlay(backImageNeutral, properties);
+            Overlays.editOverlay(backImageHover, properties);
             return;
         }
         var oopsText = getOopsText();
@@ -104,9 +162,29 @@
             leftMargin: (textOverlayWidth - textWidth) / 2
         };
 
+        var tryAgainTextWidth = Overlays.textSize(tryAgainText, "Try Again").width;
+        var tryAgainImageWidth = Overlays.getProperty(tryAgainImageNeutral, "dimensions").x;
+
+        var tryAgainTextProperties = {
+            visible: overlaysVisible,
+            leftMargin: (tryAgainImageWidth - tryAgainTextWidth) / 2
+        };
+
+        var backTextWidth = Overlays.textSize(backText, "Back").width;
+        var backImageWidth = Overlays.getProperty(backImageNeutral, "dimensions").x;
+
+        var backTextProperties = {
+            visible: overlaysVisible,
+            leftMargin: (backImageWidth - backTextWidth) / 2
+        };
+
         Overlays.editOverlay(redirectOopsText, oopsTextProperties);
-        Overlays.editOverlay(tryAgainImage, properties);
-        Overlays.editOverlay(backImage, properties);
+        Overlays.editOverlay(tryAgainImageNeutral, properties);
+        Overlays.editOverlay(backImageNeutral, properties);
+        Overlays.editOverlay(tryAgainImageHover, {visible: false});
+        Overlays.editOverlay(backImageHover, {visible: false});
+        Overlays.editOverlay(tryAgainText, tryAgainTextProperties);
+        Overlays.editOverlay(backText, backTextProperties);
 
     }
 
@@ -115,9 +193,9 @@
             // don't allow right-clicks.
             return;
         }
-        if (tryAgainImage === overlayID) {
+        if (tryAgainImageHover === overlayID) {
             location.goToLastAddress();
-        } else if (backImage === overlayID) {
+        } else if (backImageHover === overlayID) {
             location.goBack();
         }
     }
@@ -126,24 +204,36 @@
         Script.clearInterval(timer);
         timer = null;
         Overlays.deleteOverlay(redirectOopsText);
-        Overlays.deleteOverlay(tryAgainImage);
-        Overlays.deleteOverlay(backImage);
+        Overlays.deleteOverlay(tryAgainImageNeutral);
+        Overlays.deleteOverlay(backImageNeutral);
+        Overlays.deleteOverlay(tryAgainImageHover);
+        Overlays.deleteOverlay(backImageHover);
+        Overlays.deleteOverlay(tryAgainText);
+        Overlays.deleteOverlay(backText);
     }
 
     toggleOverlays(true);
 
-    var whiteColor = {red: 255, green: 255, blue: 255};
-    var greyColor = {red: 125, green: 125, blue: 125};
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
-        if (overlayID === backImage || overlayID === tryAgainImage) {
-            Overlays.editOverlay(overlayID, { color: greyColor });
+        if (overlayID === backImageNeutral) {
+            Overlays.editOverlay(backImageNeutral, {visible: false});
+            Overlays.editOverlay(backImageHover, {visible: true});
+        }
+        if (overlayID === tryAgainImageNeutral) {
+            Overlays.editOverlay(tryAgainImageNeutral, {visible: false});
+            Overlays.editOverlay(tryAgainImageHover, {visible: true});
         }
     });
 
     Overlays.hoverLeaveOverlay.connect(function(overlayID, event) {
-        if (overlayID === backImage || overlayID === tryAgainImage) {
-            Overlays.editOverlay(overlayID, { color: whiteColor });
+        if (overlayID === backImageHover) {
+            Overlays.editOverlay(backImageHover, {visible: false});
+            Overlays.editOverlay(backImageNeutral, {visible: true});
+        }
+        if (overlayID === tryAgainImageHover) {
+            Overlays.editOverlay(tryAgainImageHover, {visible: false});
+            Overlays.editOverlay(tryAgainImageNeutral, {visible: true});
         }
     });
 
