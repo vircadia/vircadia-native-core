@@ -123,19 +123,6 @@ bool SafeLanding::isLoadSequenceComplete() {
 
 float SafeLanding::loadingProgressPercentage() {
     Locker lock(_lock);
-
-    float sequencePercentage = 0.0f;
-
-    if (_initialStart != INVALID_SEQUENCE && _initialEnd != 0) {
-        int sequenceSize = _initialStart <= _initialEnd ? _initialEnd - _initialStart:
-            _initialEnd + SEQUENCE_MODULO - _initialStart;
-
-        auto startIter = _sequenceNumbers.find(_initialStart);
-        auto endIter = _sequenceNumbers.find(_initialEnd - 1);
-
-        sequencePercentage = (distance(startIter, endIter) / (sequenceSize - 1));
-    }
-
     static const int MINIMUM_TRACKED_ENTITY_STABILITY_COUNT = 15;
 
     float entityReadyPercentage = 0.0f;
@@ -147,7 +134,7 @@ float SafeLanding::loadingProgressPercentage() {
         entityReadyPercentage *= 0.20f;
     }
 
-    return ((sequencePercentage *= 0.50f) + (entityReadyPercentage *= 0.50f));
+    return entityReadyPercentage;
 }
 
 bool SafeLanding::isSequenceNumbersComplete() {
@@ -204,8 +191,6 @@ bool SafeLanding::isEntityLoadingComplete() {
 
         if (enableInterstitial) {
             isVisuallyReady = (entity->isVisuallyReady() || !entityTree->renderableForEntityId(entityMapIter->first));
-
-            //qDebug() << "EntityTpye" << EntityTypes::getEntityTypeName(entity->getType()) << entity->getEntityItemID() << isVisuallyReady;
         }
 
         if (isEntityPhysicsReady(entity) && isVisuallyReady) {
@@ -221,7 +206,6 @@ bool SafeLanding::isEntityLoadingComplete() {
 
     if (enableInterstitial) {
         _trackedEntityStabilityCount++;
-        //qDebug() << "EntityList size" << _trackedEntities.size() << "\n";
     }
 
 
