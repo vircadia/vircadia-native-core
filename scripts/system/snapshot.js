@@ -44,7 +44,10 @@ try {
 }
 
 function removeFromStoryIDsToMaybeDelete(story_id) {
-    storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(story_id), 1);
+    story_id = parseInt(story_id);
+    if (storyIDsToMaybeDelete.indexOf(story_id) > -1) {
+        storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(story_id), 1);
+    }
     print('storyIDsToMaybeDelete[] now:', JSON.stringify(storyIDsToMaybeDelete));
 }
 
@@ -258,6 +261,7 @@ function onMessage(message) {
             }
             break;
         case 'removeFromStoryIDsToMaybeDelete':
+            console.log("Facebook OR Twitter button clicked for story_id " + message.story_id);
             removeFromStoryIDsToMaybeDelete(message.story_id);
             break;
         default:
@@ -371,7 +375,8 @@ function snapshotUploaded(isError, reply) {
             isGif = fileExtensionMatches(imageURL, "gif"),
             ignoreGifSnapshotData = false,
             ignoreStillSnapshotData = false;
-        storyIDsToMaybeDelete.push(storyID);
+        storyIDsToMaybeDelete.push(parseInt(storyID));
+        print('storyIDsToMaybeDelete[] now:', JSON.stringify(storyIDsToMaybeDelete));
         if (isGif) {
             if (mostRecentGifSnapshotFilename !== replyJson.user_story.details.original_image_file_name) {
                 ignoreGifSnapshotData = true;
