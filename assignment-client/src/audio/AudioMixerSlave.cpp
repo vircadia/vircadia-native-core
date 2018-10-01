@@ -453,9 +453,9 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
         });
     }
 
-    stats.skipped += streams.skipped.size();
-    stats.inactive += streams.inactive.size();
-    stats.active += streams.active.size();
+    stats.skipped += (int)streams.skipped.size();
+    stats.inactive += (int)streams.inactive.size();
+    stats.active += (int)streams.active.size();
 
     // clear the newly ignored, un-ignored, ignoring, and un-ignoring streams now that we've processed them
     listenerData->clearStagedIgnoreChanges();
