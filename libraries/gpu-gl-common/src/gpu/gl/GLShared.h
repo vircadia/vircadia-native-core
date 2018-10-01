@@ -19,7 +19,7 @@ Q_DECLARE_LOGGING_CATEGORY(gpugllogging)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu_gl)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu_gl_detail)
 
-#if defined(Q_OS_MAC)
+#if defined(__clang__)
 #define BUFFER_OFFSET(bytes) (reinterpret_cast<GLvoid*>(bytes))
 #else
 #define BUFFER_OFFSET(bytes) ((GLubyte*) nullptr + (bytes))
