@@ -97,8 +97,7 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
  * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the pointer is pointing.
  * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
- * @property {boolean} [scaleWithParent=false] If true, the width of the Pointer's path will scale linearly with the pick parent's scale.
- * @property {boolean} [scaleWithAvatar] Alias for scaleWithParent
+ * @property {boolean} [scaleWithParent=false] If true, the width of the Pointer's path will scale linearly with the pick parent's scale. scaleWithAvatar is an alias but is deprecated.
  * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
  * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
  * the normal will follow exactly.
@@ -251,8 +250,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
 * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the pointer is pointing.
 * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
-* @property {boolean} [scaleWithParent=true] If true, the width of the Pointer's path will scale linearly with the pick parent's scale.
-* @property {boolean} [scaleWithAvatar] Alias for scaleWithParent
+* @property {boolean} [scaleWithParent=true] If true, the width of the Pointer's path will scale linearly with the pick parent's scale. scaleWithAvatar is an alias but is deprecated.
 * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
 * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
 * the normal will follow exactly.
