@@ -97,10 +97,10 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         withWriteLock([&] {
             auto entity = getEntity();
             _position = entity->getWorldPosition();
-            _dimensions = entity->getScaledDimensions();
+            _dimensions = entity->getUnscaledDimensions(); // get unscaled to avoid scaling twice
             _orientation = entity->getWorldOrientation();
             updateModelTransformAndBound();
-            _renderTransform = getModelTransform();
+            _renderTransform = getModelTransform(); // contains parent scale, if this entity scales with its parent
             if (_shape == entity::Sphere) {
                 _renderTransform.postScale(SPHERE_ENTITY_SCALE);
             }
