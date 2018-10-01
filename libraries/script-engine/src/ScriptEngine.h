@@ -712,6 +712,13 @@ signals:
     // script is updated (goes from RUNNING to ERROR_RUNNING_SCRIPT, for example)
     void entityScriptDetailsUpdated();
 
+    /**jsdoc
+     * @function Script.entityScriptPreloadFinished
+     * @returns {Signal}
+     */
+    // Emitted when an entity script has finished running preload
+    void entityScriptPreloadFinished(const EntityItemID& entityID);
+
 protected:
     void init();
 
