@@ -86,12 +86,10 @@ private:
             qCWarning(oculusLog) << "Failed to acquire Oculus session" << ovr::getError();
             return;
         } else {
-            qCWarning(oculusLog) << "successful init of oculus!!!!!!!!";
-            ovrTrackingOrigin fred;
-            //fred = ovr_GetTrackingOriginType(session);
-            ovrResult retTrackingType = ovr_SetTrackingOriginType(session, ovrTrackingOrigin::ovrTrackingOrigin_FloorLevel);
-            fred = ovr_GetTrackingOriginType(session);
-            qCWarning(oculusLog) << OVR_SUCCESS(retTrackingType) << (int)fred;
+            ovrResult setFloorLevelOrigin = ovr_SetTrackingOriginType(session, ovrTrackingOrigin::ovrTrackingOrigin_FloorLevel);
+            if (!OVR_SUCCESS(setFloorLevelOrigin)) {
+                qCWarning(oculusLog) << "Failed to set the Oculus tracking origin to floor level" << ovr::getError();
+            }
         }
     }
 

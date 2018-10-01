@@ -63,8 +63,8 @@ function getMyAvatar() {
 function getMyAvatarSettings() {
     return {
         dominantHand: MyAvatar.getDominantHand(),
-        collisionsEnabled: MyAvatar.getCollisionsEnabled(),
-        sittingEnabled: MyAvatar.isInSittingState,
+        collisionsEnabled : MyAvatar.getCollisionsEnabled(),
+        sittingEnabled : MyAvatar.isInSittingState,
         collisionSoundUrl : MyAvatar.collisionSoundURL,
         animGraphUrl: MyAvatar.getAnimGraphUrl(),
         animGraphOverrideUrl : MyAvatar.getAnimGraphOverrideUrl(),
@@ -326,7 +326,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         MyAvatar.isInSittingState = message.settings.sittingEnabled;
         MyAvatar.collisionSoundURL = message.settings.collisionSoundUrl;
         MyAvatar.setAnimGraphOverrideUrl(message.settings.animGraphOverrideUrl);
-        print("save settings");
+
         settings = getMyAvatarSettings();
         break;
     default:
