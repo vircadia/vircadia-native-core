@@ -150,18 +150,4 @@ public slots:
 signals:
     void dirty();
 };
-
-class FetchHazeStage {
-public:
-    using Config = FetchHazeConfig;
-    using JobModel = render::Job::ModelO<FetchHazeStage, graphics::HazePointer, Config>;
-
-    FetchHazeStage();
-
-    void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, graphics::HazePointer& haze);
-
-private:
-    graphics::HazePointer _haze;
-};
 #endif

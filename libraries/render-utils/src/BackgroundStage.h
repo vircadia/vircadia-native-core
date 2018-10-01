@@ -76,18 +76,16 @@ public:
 
     BackgroundStageSetup();
     void run(const render::RenderContextPointer& renderContext);
-
-protected:
 };
 
 class DrawBackgroundStage {
 public:
-    using Inputs = LightingModelPointer;
+    using Inputs = render::VaryingSet2<LightingModelPointer, BackgroundStage::Frame>;
     using JobModel = render::Job::ModelI<DrawBackgroundStage, Inputs>;
 
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
+    DrawBackgroundStage() {}
 
-protected:
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 };
 
 #endif
