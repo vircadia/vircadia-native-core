@@ -339,11 +339,13 @@ function fillImageDataFromPrevious() {
     var previousAnimatedSnapStoryID = Settings.getValue("previousAnimatedSnapStoryID");
     var previousAnimatedSnapBlastingDisabled = Settings.getValue("previousAnimatedSnapBlastingDisabled");
     var previousAnimatedSnapHifiSharingDisabled = Settings.getValue("previousAnimatedSnapHifiSharingDisabled");
+
     snapshotOptions = {
         containsGif: previousAnimatedSnapPath !== "",
         processingGif: false,
         shouldUpload: false,
-        canBlast: snapshotDomainID === Settings.getValue("previousSnapshotDomainID"),
+        canBlast: snapshotDomainID === Settings.getValue("previousSnapshotDomainID") &&
+            snapshotDomainID === location.domainID,
         isLoggedIn: isLoggedIn
     };
     imageData = [];
