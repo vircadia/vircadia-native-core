@@ -179,12 +179,12 @@ namespace controller {
     }
 
     QStringList ScriptingInterface::getRunningInputDeviceNames() {
-        QMutexLocker locker(&_getRunningDevicesMutex);
+        QMutexLocker locker(&_runningDevicesMutex);
         return _runningInputDeviceNames;
     }
 
     void ScriptingInterface::updateRunningInputDevices(const QString& deviceName, bool isRunning, const QStringList& runningDevices) {
-        QMutexLocker locker(&_setRunningDevicesMutex);
+        QMutexLocker locker(&_runningDevicesMutex);
         _runningInputDeviceNames = runningDevices;
         emit inputDeviceRunningChanged(deviceName, isRunning);
     }

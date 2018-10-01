@@ -626,8 +626,7 @@ namespace controller {
         std::atomic<bool> _wheelCaptured { false };
         std::atomic<bool> _actionsCaptured { false };
 
-        QMutex _setRunningDevicesMutex;
-        QMutex _getRunningDevicesMutex;
+        QMutex _runningDevicesMutex;
     };
 
 }
