@@ -115,11 +115,18 @@ float isBorderingEnabled() {
     return params._ditheringInfo.w;
 }
 
-float getFalloffAngle() {
-    return params._ditheringInfo.z;
+float getFalloffCosAngle() {
+    return params._falloffInfo.x;
 }
-float getFalloffAngleScale() {
-    return params._ditheringInfo.y;
+float getFalloffCosAngleScale() {
+    return params._falloffInfo.y;
+}
+
+float getFalloffSinAngle() {
+    return params._falloffInfo.z;
+}
+float getFalloffSinAngleScale() {
+    return params._falloffInfo.w;
 }
 
 float getNumSamples() {
@@ -330,16 +337,39 @@ vec3 buildNormal(ivec4 side, vec2 fragUVPos, vec3 fragPosition, vec2 deltaDepthU
     vec3 fragPositionDyPos = buildPosition(side, fragUVPos, ivec2(0,1), deltaDepthUV);
     vec3 fragPositionDyNeg = buildPosition(side, fragUVPos, ivec2(0,-1), deltaDepthUV);
 
-    vec3 fragPositionDx = getMinDelta(fragPosition, fragPositionDxPos, fragPositionDxNeg);
-    vec3 fragPositionDy = getMinDelta(fragPosition, fragPositionDyPos, fragPositionDyNeg);
+    vec3 fragDeltaDx = getMinDelta(fragPosition, fragPositionDxPos, fragPositionDxNeg);
+    vec3 fragDeltaDy = getMinDelta(fragPosition, fragPositionDyPos, fragPositionDyNeg);
 
-    return normalize( cross(fragPositionDx, fragPositionDy) );
+    return normalize( cross(fragDeltaDx, fragDeltaDy) );
+}
+
+void buildTangentBinormal(ivec4 side, vec2 fragUVPos, vec3 fragPosition, vec3 fragNormal, vec2 deltaDepthUV,
+                          out vec3 fragTangent, out vec3 fragBinormal) {
+    vec3 fragPositionDxPos = buildPosition(side, fragUVPos, ivec2(1,0), deltaDepthUV);
+    vec3 fragPositionDxNeg = buildPosition(side, fragUVPos, ivec2(-1,0), deltaDepthUV);
+    vec3 fragPositionDyPos = buildPosition(side, fragUVPos, ivec2(0,1), deltaDepthUV);
+    vec3 fragPositionDyNeg = buildPosition(side, fragUVPos, ivec2(0,-1), deltaDepthUV);
+
+    vec3 fragDeltaDx = getMinDelta(fragPosition, fragPositionDxPos, fragPositionDxNeg);
+    vec3 fragDeltaDy = getMinDelta(fragPosition, fragPositionDyPos, fragPositionDyNeg);
+
+    //fragTangent = normalize( cross(fragDeltaDy, fragNormal) );
+    //fragBinormal = normalize( cross(fragNormal, fragDeltaDx) );
+
+    fragTangent = fragDeltaDx;
+    fragBinormal = fragDeltaDy;
 }
 
 <@endfunc@>
 
 
 <@func declareEvalObscurance()@>
+
+struct TBNFrame {
+    vec3 tangent;
+    vec3 binormal;
+    vec3 normal;
+};
 
 vec3 fastAcos(vec3 x) {
 	// [Eberly2014] GPGPU Programming for Games and Science
@@ -357,29 +387,25 @@ float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 t
     // Falloff function as recommended in SSAO paper
     const float epsilon = 0.01;
     float f = max(getRadius2() - vv, 0.0);
-    return f * f * f * max((vn - getFalloffAngle()) / (epsilon + vv), 0.0);
+    return f * f * f * max((vn - getFalloffCosAngle()) / (epsilon + vv), 0.0);
 }
 
-vec2 computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNormalES) {
-    const float epsilon = 0.001;
+#define HBAO_USE_COS_ANGLE 0
 
-    vec3 deltaVec = tapPositionES - fragPositionES;
-    float distance = length(deltaVec);
-    float cosHorizonAngle = dot(deltaVec, fragNormalES) / (distance + epsilon);
+float computeWeightedHorizon(float horizonLimit, float distanceSquared) {
+    float radiusFalloff = distanceSquared / getRadius2();
 
-    return vec2(cosHorizonAngle, distance);
-}
+    radiusFalloff = max(0.0, 1.0 - radiusFalloff);
 
-float computeWeightedHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNormalES) {
-    vec2 rawHorizon = computeHorizonFromTap(tapPositionES, fragPositionES, fragNormalES);
-    float distance = rawHorizon.y;
-    float cosHorizonAngle = rawHorizon.x;
-    float radiusFalloff = max(0.0, 1.0 - (distance*distance / getRadius2()));
+#if !HBAO_USE_COS_ANGLE
+    horizonLimit = getFalloffSinAngle() - horizonLimit;
+#endif
+    horizonLimit *= radiusFalloff;
+#if !HBAO_USE_COS_ANGLE
+    horizonLimit = getFalloffSinAngle() - horizonLimit;
+#endif
 
-    cosHorizonAngle = max(0.0, (cosHorizonAngle - getFalloffAngle()) * getFalloffAngleScale());
-    cosHorizonAngle *= radiusFalloff;
-
-    return cosHorizonAngle;
+    return horizonLimit;
 }
 
 <@func computeHorizon()@>
@@ -389,24 +415,46 @@ float computeWeightedHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec
         }
         vec2 tapMipZ = fetchTap(side, fragUVPos, radius);
         vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapMipZ.y, fragUVPos);
-        float tapCosHorizonAngle = computeWeightedHorizonFromTap(tapPositionES, fragPositionES, fragNormalES);
+        vec3 deltaVec = tapPositionES - fragPositionES;
+        float distanceSquared = dot(deltaVec, deltaVec);
+        float distance = sqrt(distanceSquared);
+        float deltaDotNormal = dot(deltaVec, fragFrameES.normal);
+#if HBAO_USE_COS_ANGLE
+        float tapHorizonLimit = deltaDotNormal;
+#else
+        float tapHorizonLimit = dot(deltaVec, fragFrameES.tangent);
+#endif
+        float epsilon = 0.0001;
+        tapHorizonLimit /= (distance + epsilon);
 
-        cosHorizonAngle = max(cosHorizonAngle, tapCosHorizonAngle);
-        
+        if (distanceSquared < getRadius2() && deltaDotNormal>0.0 &&
+#if HBAO_USE_COS_ANGLE
+            tapHorizonLimit > horizonLimit
+#else
+            tapHorizonLimit < horizonLimit
+#endif
+        ) {
+            tapHorizonLimit = computeWeightedHorizon(tapHorizonLimit, distanceSquared);
+#if HBAO_USE_COS_ANGLE
+            horizonLimit = max(horizonLimit, tapHorizonLimit);
+#else   
+            horizonLimit = min(horizonLimit, tapHorizonLimit);
+#endif
+        }
 <@endfunc@>
 
 #define HBAO_HORIZON_SEARCH_CONSTANT_STEP 0
 
-float computeHorizon(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, vec3 fragNormalES, vec2 searchVec, vec2 pixelSearchVec, 
-                     float searchRadius) {
+float computeHorizon(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame fragFrameES, vec2 searchVec, float searchRadius, int stepCount) {
     vec2 absSearchVec = abs(searchVec);
-    pixelSearchVec = abs(pixelSearchVec);
-    int stepCount = int(ceil(max(pixelSearchVec.x, pixelSearchVec.y)));
-    float cosHorizonAngle = 0.0;
+#if HBAO_USE_COS_ANGLE
+    float horizonLimit = getFalloffCosAngle();
+#else
+    float horizonLimit = getFalloffSinAngle();
+#endif
 
     if (stepCount>0) {
         vec2 deltaTapUV = searchVec / float(stepCount);
-
         float deltaRadius = searchRadius / float(stepCount);
 
 #if HBAO_HORIZON_SEARCH_CONSTANT_STEP
@@ -439,22 +487,33 @@ float computeHorizon(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, vec3 fragN
 #endif
     }
 
-    return cosHorizonAngle;
+    return horizonLimit;
 }
 
 float evalVisibilityHBAO(ivec4 side, vec2 fragUVPos, vec2 invSideImageSize, vec2 deltaTap, float diskPixelRadius, 
-                         vec3 fragPositionES, vec3 fragNormalES) {
+                         vec3 fragPositionES, TBNFrame fragFrameES) {
     vec2 pixelSearchVec = deltaTap * diskPixelRadius;
 	vec2 searchVec = pixelSearchVec * invSideImageSize;
-	float obscurance = 0.0;
+	float obscuranceH1 = 0.0;
+	float obscuranceH2 = 0.0;
+
+#if !HBAO_USE_COS_ANGLE
+    fragFrameES.tangent = normalize(fragFrameES.tangent * deltaTap.x + fragFrameES.binormal * deltaTap.y);
+#endif
+
+    pixelSearchVec = abs(pixelSearchVec);
+    int stepCount = int(ceil(max(pixelSearchVec.x, pixelSearchVec.y)));
 
     // Forward search for h1
-    obscurance = computeHorizon(side, fragUVPos, fragPositionES, fragNormalES, searchVec, pixelSearchVec, diskPixelRadius);
+    obscuranceH1 = computeHorizon(side, fragUVPos, fragPositionES, fragFrameES, searchVec, diskPixelRadius, stepCount);
 
     // Backward search for h2
-    obscurance += computeHorizon(side, fragUVPos, fragPositionES, fragNormalES, -searchVec, pixelSearchVec, diskPixelRadius);
+#if !HBAO_USE_COS_ANGLE
+    fragFrameES.tangent = -fragFrameES.tangent;
+#endif
+    obscuranceH2 = computeHorizon(side, fragUVPos, fragPositionES, fragFrameES, -searchVec, diskPixelRadius, stepCount);
 
-	return obscurance;
+	return obscuranceH1 + obscuranceH2;
 }
 
 <@endfunc@>

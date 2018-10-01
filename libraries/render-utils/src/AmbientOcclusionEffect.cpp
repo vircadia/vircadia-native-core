@@ -206,10 +206,10 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture() {
 
 AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false),
-    radius{ 0.3f },
+    radius{ 0.5f },
     perspectiveScale{ 1.0f },
-    obscuranceLevel{ 0.5f },
-    falloffAngle{ 0.45f },
+    obscuranceLevel{ 0.25f },
+    falloffAngle{ 0.7f },
     edgeSharpness{ 1.0f },
     blurDeviation{ 2.5f },
     numSpiralTurns{ 7.0f },
@@ -227,6 +227,7 @@ AmbientOcclusionEffect::AOParameters::AOParameters() {
     _radiusInfo = { 0.5f, 0.5f * 0.5f, 1.0f / (0.25f * 0.25f * 0.25f), 1.0f };
     _ditheringInfo = { 0.0f, 0.0f, 0.01f, 1.0f };
     _sampleInfo = { 11.0f, 1.0f / 11.0f, 7.0f, 1.0f };
+    _falloffInfo = { 0.5f, 2.0f, 0.866f, 1.1547f };
 }
 
 AmbientOcclusionEffect::BlurParameters::BlurParameters() {
@@ -263,10 +264,13 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.w = config.obscuranceLevel;
     }
 
-    if (config.falloffAngle != _aoParametersBuffer->getFalloffAngle()) {
-        auto& current = _aoParametersBuffer.edit()._ditheringInfo;
-        current.z = config.falloffAngle;
-        current.y = 1.0f / (1.0f - config.falloffAngle);
+    if (config.falloffAngle != _aoParametersBuffer->getFalloffCosAngle()) {
+        auto& current = _aoParametersBuffer.edit()._falloffInfo;
+        current.x = config.falloffAngle;
+        current.y = 1.0f / (1.0f - current.x);
+        // Compute sin from cos
+        current.z = sqrtf(1.0f - config.falloffAngle * config.falloffAngle);
+        current.w = 1.0f / current.z;
     }
 
     // Update bilateral blur
@@ -535,7 +539,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         auto& sample = _aoFrameParametersBuffer[splitId].edit();
         sample._angleInfo.x = _randomSamples[splitId + SSAO_RANDOM_SAMPLE_COUNT * _frameId];
     }
-    _frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
+    //_frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
 
     gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {
 		PROFILE_RANGE_BATCH(batch, "SSAO");

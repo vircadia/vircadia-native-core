@@ -150,7 +150,7 @@ public:
         float getRadius() const { return _radiusInfo.x; }
         float getPerspectiveScale() const { return _resolutionInfo.z; }
         float getObscuranceLevel() const { return _radiusInfo.w; }
-        float getFalloffAngle() const { return (float)_ditheringInfo.z; }
+        float getFalloffCosAngle() const { return (float)_falloffInfo.x; }
         
         float getNumSpiralTurns() const { return _sampleInfo.z; }
         int getNumSamples() const { return (int)_sampleInfo.x; }

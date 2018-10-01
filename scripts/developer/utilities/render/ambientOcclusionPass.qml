@@ -37,7 +37,7 @@ Rectangle {
                 "Level:obscuranceLevel:1.0:false",
                 "Num Taps:numSamples:16:true",
                 "Taps Spiral:numSpiralTurns:10.0:false",
-                "Falloff Angle:falloffAngle:0.5:false",
+                "Falloff Angle:falloffAngle:1.0:false",
                 "Blur Edge Sharpness:edgeSharpness:1.0:false",
                 "Blur Radius:blurRadius:15.0:true",
                 "Resolution Downscale:resolutionLevel:2:true",

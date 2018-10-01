@@ -40,6 +40,7 @@ struct AmbientOcclusionParams {
     SSAO_VEC4 _radiusInfo;
     SSAO_VEC4 _ditheringInfo;
     SSAO_VEC4 _sampleInfo;
+    SSAO_VEC4 _falloffInfo;
     SSAO_VEC4 _sideSizes[2];
 };
 

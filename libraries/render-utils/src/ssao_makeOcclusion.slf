@@ -55,6 +55,15 @@ void main(void) {
         diskPixelRadius = min(diskPixelRadius, SSAO_HBAO_MAX_RADIUS);
     }
 
+    TBNFrame fragFrameES;
+
+    fragFrameES.tangent = vec3(0.0);
+    fragFrameES.binormal = vec3(0.0);
+    fragFrameES.normal = fragNormalES;
+#if !HBAO_USE_COS_ANGLE
+    buildTangentBinormal(side, fragUVPos, fragPositionES, fragNormalES, deltaDepthUV, fragFrameES.tangent, fragFrameES.binormal);
+#endif
+
     // Let's make noise 
     float randomPatternRotationAngle = getAngleDithering(fragPixelPos);
 
@@ -66,9 +75,18 @@ void main(void) {
     if (isHorizonBased()) {
         for (int i = 0; i < numSamples; ++i) {
             vec3 deltaTap = getUnitTapLocation(i, 1.0, randomPatternRotationAngle, PI);
-            obscuranceSum += evalVisibilityHBAO(side, fragUVPos, deltaDepthUV, deltaTap.xy, diskPixelRadius, fragPositionES, fragNormalES);
+            obscuranceSum += evalVisibilityHBAO(side, fragUVPos, deltaDepthUV, deltaTap.xy, diskPixelRadius, fragPositionES, fragFrameES);
         }
+        obscuranceSum *= invNumSamples;
+#if HBAO_USE_COS_ANGLE
         obscuranceSum *= 0.5 / PI;
+        obscuranceSum = 1.0 - obscuranceSum * obscuranceSum * getObscuranceScaling();
+#else
+        obscuranceSum *= 0.5;
+        obscuranceSum += 1.0 - getFalloffSinAngle();
+
+        obscuranceSum = mix(1.0, obscuranceSum, getObscuranceScaling());
+#endif
     } else {
         // Steps are in the depth texture resolution
         vec2 depthTexFragPixelPos = fragUVPos * sideDepthSize;
@@ -80,10 +98,11 @@ void main(void) {
             vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapMipZ.y, tapUV);
             obscuranceSum += float(tap.z > 0.0) * evalVisibilitySSAO(fragPositionES, fragNormalES, tapPositionES);
         }
+        obscuranceSum *= invNumSamples;
+        obscuranceSum = 1.0 - obscuranceSum * obscuranceSum * getObscuranceScaling();
     }
 
-    obscuranceSum *= getObscuranceScaling() * invNumSamples;
-    float occlusion = clamp(1.0 - obscuranceSum * obscuranceSum, 0.0, 1.0);
+    float occlusion = clamp(obscuranceSum, 0.0, 1.0);
     
     outFragColor = packOcclusionOutput(occlusion, fragPositionES.z, fragNormalES);
 }
