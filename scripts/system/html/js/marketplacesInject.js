@@ -96,7 +96,7 @@
         });
     }
 
-    var emitWalletSetupEvent = function () {
+    emitWalletSetupEvent = function () {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "WALLET_SETUP"
         }));
