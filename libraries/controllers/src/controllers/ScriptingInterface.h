@@ -26,6 +26,7 @@
 #include <QThread>
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
+#include <QMutex>
 
 #include <QtQml/QJSValue>
 #include <QtScript/QScriptValue>
@@ -436,7 +437,7 @@ namespace controller {
         * @function Controller.getRunningInputDevices
         * @returns {string[]} An array of strings with the names
         */
-        Q_INVOKABLE QStringList getRunningInputDeviceNames() { return _runningInputDeviceNames; }
+        Q_INVOKABLE QStringList getRunningInputDeviceNames();
 
         bool isMouseCaptured() const { return _mouseCaptured; }
         bool isTouchCaptured() const { return _touchCaptured; }
@@ -627,6 +628,8 @@ namespace controller {
         std::atomic<bool> _touchCaptured { false };
         std::atomic<bool> _wheelCaptured { false };
         std::atomic<bool> _actionsCaptured { false };
+
+        QMutex _mutex;
     };
 
 }
