@@ -264,6 +264,7 @@
     function domainChanged(domain) {
         if (domain !== currentDomain) {
             MyAvatar.restoreAnimation();
+            resetValues();
             var name = location.placename;
             domainName = name.charAt(0).toUpperCase() + name.slice(1);
             var doRequest = true;
