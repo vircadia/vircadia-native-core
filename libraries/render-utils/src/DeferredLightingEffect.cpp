@@ -647,19 +647,18 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
 void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
 
     if (!_defaultLight || !_defaultBackground) {
-        if (!_defaultSkyboxTexture) {
-            auto textureCache = DependencyManager::get<TextureCache>();
-            {
-                PROFILE_RANGE(render, "Process Default Skybox");
-                QFileSelector fileSelector;
-                fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
-                auto skyboxUrl = fileSelector.select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx");
+        if (!_defaultSkyboxNetworkTexture) {
+            PROFILE_RANGE(render, "Process Default Skybox");
+            _defaultSkyboxNetworkTexture = DependencyManager::get<TextureCache>()->getTexture(
+                PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap/Default-Sky-9-cubemap.texmeta.json", image::TextureUsage::CUBE_TEXTURE);
+        }
 
-                _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl.toStdString());
-                _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
-
-                _defaultSkybox->setCubemap(_defaultSkyboxTexture);
-            }
+        if (_defaultSkyboxNetworkTexture && _defaultSkyboxNetworkTexture->isLoaded() && _defaultSkyboxNetworkTexture->getGPUTexture()) {
+            _defaultSkyboxAmbientTexture = _defaultSkyboxNetworkTexture->getGPUTexture();
+            _defaultSkybox->setCubemap(_defaultSkyboxAmbientTexture);
+        } else {
+            // Don't do anything until the skybox has loaded
+            return;
         }
 
         auto lightStage = renderContext->_scene->getStage<LightStage>();

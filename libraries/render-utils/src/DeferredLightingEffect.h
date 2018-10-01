@@ -220,7 +220,7 @@ protected:
     graphics::HazePointer _defaultHaze{ nullptr };
     HazeStage::Index _defaultHazeID{ HazeStage::INVALID_INDEX };
     graphics::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
-    gpu::TexturePointer _defaultSkyboxTexture;
+    NetworkTexturePointer _defaultSkyboxNetworkTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 };
 
