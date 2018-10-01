@@ -179,7 +179,9 @@ public:
             _context->makeCurrent();
             {
                 PROFILE_RANGE(render, "PluginPresent")
+                gl::globalLock();
                 currentPlugin->present();
+                gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
             _context->doneCurrent();

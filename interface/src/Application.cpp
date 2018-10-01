@@ -2736,7 +2736,36 @@ void Application::initializeGL() {
     // We have to account for this possibility by checking here for an existing 
     // global share context
     auto globalShareContext = qt_gl_global_share_context();
-    _glWidget->createContext(globalShareContext); 
+    
+#if !defined(DISABLE_QML)
+    // Build a shared canvas / context for the Chromium processes
+    if (!globalShareContext) {
+        // Chromium rendering uses some GL functions that prevent nSight from capturing
+        // frames, so we only create the shared context if nsight is NOT active.
+        if (!nsightActive()) {
+            _chromiumShareContext = new OffscreenGLCanvas();
+            _chromiumShareContext->setObjectName("ChromiumShareContext");
+            auto format =QSurfaceFormat::defaultFormat();
+#ifdef Q_OS_MAC
+            // On mac, the primary shared OpenGL context must be a 3.2 core context,
+            // or chromium flips out and spews error spam (but renders fine)
+            format.setMajorVersion(3);
+            format.setMinorVersion(2);
+#endif
+            _chromiumShareContext->setFormat(format);
+            _chromiumShareContext->create();
+            if (!_chromiumShareContext->makeCurrent()) {
+                qCWarning(interfaceapp, "Unable to make chromium shared context current");
+            }
+            globalShareContext = _chromiumShareContext->getContext();
+            qt_gl_set_global_share_context(globalShareContext);
+            _chromiumShareContext->doneCurrent();
+        }
+    }
+#endif
+
+
+    _glWidget->createContext(globalShareContext);
 
     if (!_glWidget->makeCurrent()) {
         qCWarning(interfaceapp, "Unable to make window context current");
@@ -2748,27 +2777,6 @@ void Application::initializeGL() {
     std::string vendor{ (const char*)glGetString(GL_VENDOR) };
     if ((vendor.find("AMD") != std::string::npos) || (vendor.find("ATI") != std::string::npos)) {
         qputenv("QTWEBENGINE_CHROMIUM_FLAGS", QByteArray("--disable-distance-field-text"));
-    }
-
-    // Build a shared canvas / context for the Chromium processes
-    if (!globalShareContext) {
-        // Chromium rendering uses some GL functions that prevent nSight from capturing
-        // frames, so we only create the shared context if nsight is NOT active.
-        if (!nsightActive()) {
-           _chromiumShareContext = new OffscreenGLCanvas();
-            _chromiumShareContext->setObjectName("ChromiumShareContext");
-            _chromiumShareContext->create(_glWidget->qglContext());
-            if (!_chromiumShareContext->makeCurrent()) {
-                qCWarning(interfaceapp, "Unable to make chromium shared context current");
-            }
-            globalShareContext = _chromiumShareContext->getContext();
-            qt_gl_set_global_share_context(globalShareContext);
-            _chromiumShareContext->doneCurrent();
-            // Restore the GL widget context
-            if (!_glWidget->makeCurrent()) {
-                qCWarning(interfaceapp, "Unable to make window context current");
-            }
-        }
     }
 #endif
 

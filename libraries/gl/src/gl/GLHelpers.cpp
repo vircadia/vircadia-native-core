@@ -34,6 +34,41 @@ bool gl::disableGl45() {
 #endif
 }
 
+#ifdef Q_OS_MAC
+#define SERIALIZE_GL_RENDERING
+#endif
+
+#ifdef SERIALIZE_GL_RENDERING
+
+// This terrible terrible hack brought to you by the complete lack of reasonable
+// OpenGL debugging tools on OSX.  Without this serialization code, the UI textures
+// frequently become 'glitchy' and get composited onto the main scene in what looks
+// like a partially rendered state.
+// This looks very much like either state bleeding across the contexts, or bad
+// synchronization for the shared OpenGL textures.  However, previous attempts to resolve
+// it, even with gratuitous use of glFinish hasn't improved the situation
+
+static std::mutex _globalOpenGLLock;
+
+void gl::globalLock() {
+    _globalOpenGLLock.lock();
+}
+
+void gl::globalRelease(bool finish) {
+    if (finish) {
+        glFinish();
+    }
+    _globalOpenGLLock.unlock();
+}
+
+#else
+
+void gl::globalLock() {}
+void gl::globalRelease(bool finish) {}
+
+#endif
+
+
 void gl::getTargetVersion(int& major, int& minor) {
 #if defined(USE_GLES)
     major = 3;

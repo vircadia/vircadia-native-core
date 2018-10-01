@@ -18,11 +18,13 @@
 class QOpenGLContext;
 class QOffscreenSurface;
 class QOpenGLDebugMessage;
+class QSurfaceFormat;
 
 class OffscreenGLCanvas : public QObject {
 public:
     OffscreenGLCanvas();
     ~OffscreenGLCanvas();
+    void setFormat(const QSurfaceFormat& format);
     bool create(QOpenGLContext* sharedContext = nullptr);
     bool makeCurrent();
     void doneCurrent();

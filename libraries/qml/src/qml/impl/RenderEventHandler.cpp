@@ -12,6 +12,7 @@
 
 #include <gl/Config.h>
 #include <gl/QOpenGLContextWrapper.h>
+#include <gl/GLHelpers.h>
 
 #include <QtQuick/QQuickWindow>
 
@@ -114,6 +115,7 @@ void RenderEventHandler::onRender() {
 
     PROFILE_RANGE(render_qml_gl, __FUNCTION__);
 
+    gl::globalLock();
     if (!_shared->preRender()) {
         return;
     }
@@ -144,6 +146,7 @@ void RenderEventHandler::onRender() {
         _shared->updateTextureAndFence({ texture, fence });
         _shared->_quickWindow->resetOpenGLState();
     }
+    gl::globalRelease();
 }
 
 void RenderEventHandler::onQuit() {
