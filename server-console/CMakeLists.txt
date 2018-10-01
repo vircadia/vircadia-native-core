@@ -19,7 +19,13 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Server Console")
 set_target_properties(${TARGET_NAME}-npm-install PROPERTIES FOLDER "hidden/Server Console")
 
 # add a dependency from the package target to the server components
-add_dependencies(${TARGET_NAME} assignment-client domain-server interface)
+if (BUILD_CLIENT)
+  add_dependencies(${TARGET_NAME} interface)
+endif()
+
+if (BUILD_SERVER)
+  add_dependencies(${TARGET_NAME} assignment-client domain-server interface)
+endif()
 
 # set the packaged console folder depending on platform, so we can copy it
 if (APPLE)
@@ -49,7 +55,6 @@ elseif (WIN32)
     DIRECTORY "${CONSOLE_DESTINATION}/"
     DESTINATION ${CONSOLE_INSTALL_DIR}
     COMPONENT ${SERVER_COMPONENT}
-	COMPONENT ${CLIENT_COMPONENT}
   )
   install(
     DIRECTORY "${CONSOLE_DESTINATION}/"
