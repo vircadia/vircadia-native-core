@@ -75,7 +75,14 @@ void OverlayConductor::centerUI() {
 
 void OverlayConductor::update(float dt) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    bool currentVisible = !offscreenUi->getDesktop()->property("pinned").toBool();
+    if (!offscreenUi) {
+        return;
+    }
+    auto desktop = offscreenUi->getDesktop();
+    if (!desktop) {
+        return;
+    }
+    bool currentVisible = !desktop->property("pinned").toBool();
 
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     // centerUI when hmd mode is first enabled and mounted

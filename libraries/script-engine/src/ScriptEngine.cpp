@@ -721,6 +721,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
 
     registerGlobalObject("Entities", entityScriptingInterface.data());
+    registerFunction("Entities", "getMultipleEntityProperties", EntityScriptingInterface::getMultipleEntityProperties);
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Mat4", &_mat4Library);
@@ -2441,6 +2442,8 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     // if we got this far, then call the preload method
     callEntityScriptMethod(entityID, "preload");
+
+    emit entityScriptPreloadFinished(entityID);
 
     _occupiedScriptURLs.remove(entityScript);
     processDeferredEntityLoads(entityScript, entityID);
