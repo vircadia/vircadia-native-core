@@ -110,8 +110,10 @@ describe('Entity', function() {
         propertySets = Entities.getMultipleEntityProperties(entityIDs, filterTypes);
         expect(propertySets.length).toBe(entityIDs.length);
         expect(Object.keys(propertySets[0]).length).toBe(filterTypes.length);
+        expect(propertySets[0].id).toBe(boxEntity);
         expect(propertySets[0].type).toBe(boxProps.type);
         expect(Object.keys(propertySets[1]).length).toBe(filterTypes.length);
+        expect(propertySets[1].id).toBe(sphereEntity);
         expect(propertySets[1].type).toBe(sphereProps.type);
 
         Entities.deleteEntity(sphereEntity);
