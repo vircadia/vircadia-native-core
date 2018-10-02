@@ -248,7 +248,7 @@ bool TriangleSet::TriangleTreeCell::findRayIntersection(const glm::vec3& origin,
     // The distance passed in here is the distance to our bounding box.  If !precision, that distance is used
     {
         float internalDistance = distance;
-        BoxFace internalFace;
+        BoxFace internalFace { UNKNOWN_FACE };
         Triangle internalTriangle;
         if (findRayIntersectionInternal(origin, direction, internalDistance, internalFace, internalTriangle, precision, trianglesTouched, allowBackface)) {
             bestLocalDistance = internalDistance;

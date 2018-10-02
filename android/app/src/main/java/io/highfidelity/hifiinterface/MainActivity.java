@@ -29,6 +29,9 @@ import android.widget.TextView;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import io.highfidelity.hifiinterface.fragment.FriendsFragment;
 import io.highfidelity.hifiinterface.fragment.HomeFragment;
 import io.highfidelity.hifiinterface.fragment.LoginFragment;
@@ -48,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public static final String DEFAULT_FRAGMENT = "Home";
     public static final String EXTRA_FRAGMENT = "fragment";
     public static final String EXTRA_BACK_TO_SCENE = "backToScene";
+    public static final String EXTRA_BACK_TO_URL = "url";
 
     private String TAG = "HighFidelity";
 
@@ -65,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private MenuItem mPeopleMenuItem;
 
     private boolean backToScene;
+    private String backToUrl;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,9 +113,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 loadFragment(DEFAULT_FRAGMENT);
             }
 
-            if (getIntent().hasExtra(EXTRA_BACK_TO_SCENE)) {
-                backToScene = getIntent().getBooleanExtra(EXTRA_BACK_TO_SCENE, false);
-            }
+            backToScene = getIntent().getBooleanExtra(EXTRA_BACK_TO_SCENE, false);
+            backToUrl = getIntent().getStringExtra(EXTRA_BACK_TO_URL);
         }
     }
 
@@ -315,7 +319,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void goToLastLocation() {
-        goToDomain("");
+        goToDomain(backToUrl != null? backToUrl : "");
     }
 
     private void goToDomain(String domainUrl) {

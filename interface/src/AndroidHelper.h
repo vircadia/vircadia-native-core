@@ -13,6 +13,9 @@
 #define hifi_Android_Helper_h
 
 #include <QObject>
+#include <QMap>
+#include <QUrl>
+
 #include <QNetworkReply>
 #include <QtCore/QEventLoop>
 
@@ -23,7 +26,7 @@ public:
             static AndroidHelper instance;
             return instance;
     }
-    void requestActivity(const QString &activityName, const bool backToScene, QList<QString> args = QList<QString>());
+    void requestActivity(const QString &activityName, const bool backToScene, QMap<QString, QString> args = QMap<QString, QString>());
     void notifyLoadComplete();
     void notifyEnterForeground();
     void notifyBeforeEnterBackground();
@@ -39,12 +42,11 @@ public:
     void signup(QString email, QString username, QString password);
 
 public slots:
-    void showLoginDialog();
+    void showLoginDialog(QUrl url);
     void signupCompleted(QNetworkReply* reply);
     void signupFailed(QNetworkReply* reply);
-
 signals:
-    void androidActivityRequested(const QString &activityName, const bool backToScene, QList<QString> args = QList<QString>());
+    void androidActivityRequested(const QString &activityName, const bool backToScene, QMap<QString, QString> args = QMap<QString, QString>());
     void qtAppLoadComplete();
     void enterForeground();
     void beforeEnterBackground();
