@@ -1121,6 +1121,8 @@ public:
     virtual QVariantList getAttachmentsVariant() const override;
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
+    glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); };
+
 public slots:
 
     /**jsdoc

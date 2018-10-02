@@ -25,7 +25,7 @@ AndroidHelper::AndroidHelper() {
 AndroidHelper::~AndroidHelper() {
 }
 
-void AndroidHelper::requestActivity(const QString &activityName, const bool backToScene, QList<QString> args) {
+void AndroidHelper::requestActivity(const QString &activityName, const bool backToScene, QMap<QString, QString> args) {
     emit androidActivityRequested(activityName, backToScene, args);
 }
 
@@ -49,8 +49,10 @@ void AndroidHelper::performHapticFeedback(int duration) {
     emit hapticFeedbackRequested(duration);
 }
 
-void AndroidHelper::showLoginDialog() {
-    emit androidActivityRequested("Login", true);
+void AndroidHelper::showLoginDialog(QUrl url) {
+    QMap<QString, QString> args;
+    args["url"] = url.toString();
+    emit androidActivityRequested("Login", true, args);
 }
 
 void AndroidHelper::processURL(const QString &url) {

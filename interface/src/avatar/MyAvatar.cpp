@@ -530,7 +530,8 @@ void MyAvatar::update(float deltaTime) {
     }
     if (_goToFeetAjustment && _skeletonModelLoaded) {
         auto feetAjustment = getWorldPosition() - getWorldFeetPosition();
-        goToLocation(getWorldPosition() + feetAjustment);
+        _goToPosition = getWorldPosition() + feetAjustment;
+        setWorldPosition(_goToPosition);
         _goToFeetAjustment = false;
     }
     if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) {
@@ -639,9 +640,8 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
-    
     animateScaleChanges(deltaTime);
-
+    
     setFlyingEnabled(getFlyingEnabled());
 
     if (_cauterizationNeedsUpdate) {
@@ -929,6 +929,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
     
     if (hasSensorToWorldScaleChanged) {
+        setTransitScale(sensorToWorldScale);
         emit sensorToWorldScaleChanged(sensorToWorldScale);
     }
     

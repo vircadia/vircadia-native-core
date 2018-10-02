@@ -78,6 +78,15 @@ AvatarManager::AvatarManager(QObject* parent) :
             removeAvatar(nodeID, KillAvatarReason::AvatarIgnored);
         }
     });
+
+    const float AVATAR_TRANSIT_TRIGGER_DISTANCE = 1.0f;
+    const int AVATAR_TRANSIT_FRAME_COUNT = 11; // Based on testing
+    const int AVATAR_TRANSIT_FRAMES_PER_METER = 1; // Based on testing
+
+    _transitConfig._totalFrames = AVATAR_TRANSIT_FRAME_COUNT;
+    _transitConfig._triggerDistance = AVATAR_TRANSIT_TRIGGER_DISTANCE;
+    _transitConfig._framesPerMeter = AVATAR_TRANSIT_FRAMES_PER_METER;
+    _transitConfig._isDistanceBased = true;
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -129,6 +138,10 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
+    AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _transitConfig);
+    bool sendFirstTransitPackage = (status == AvatarTransit::Status::START_TRANSIT);
+    bool blockTransitData = (status == AvatarTransit::Status::TRANSITING);
+
     _myAvatar->update(deltaTime);
     render::Transaction transaction;
     _myAvatar->updateRenderItem(transaction);
@@ -137,9 +150,13 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
 
-    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused) {
+
+    if (sendFirstTransitPackage || (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused && !blockTransitData)) {
         // send head/hand data to the avatar mixer and voxel server
         PerformanceTimer perfTimer("send");
+        if (sendFirstTransitPackage) {
+            _myAvatar->overrideNextPackagePositionData(_myAvatar->getTransit()->getEndPosition());
+        }       
         _myAvatar->sendAvatarDataPacket();
         _lastSendAvatarDataTime = now;
         _myAvatarSendRate.increment();
@@ -258,6 +275,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             if (inView && avatar->hasNewJointData()) {
                 numAvatarsUpdated++;
             }
+            avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(renderTransaction);
             avatar->updateSpaceProxy(workloadTransaction);
@@ -811,7 +829,7 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
- QVariantMap AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers) {
+QVariantMap AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers) {
     QJsonArray palData;
 
     auto avatarMap = getHashCopy();

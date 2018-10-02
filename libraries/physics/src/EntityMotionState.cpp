@@ -432,6 +432,9 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // this case is prevented by setting _ownershipState to UNOWNABLE in EntityMotionState::ctor
     assert(!(_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
 
+    if (_entity->getTransitingWithAvatar()) {
+        return false;
+    }
     if (_entity->dynamicDataNeedsTransmit()) {
         return true;
     }
