@@ -1609,6 +1609,7 @@ glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, int kneeIndex, int up
 
 void Rig::updateFromControllerParameters(const ControllerParameters& params, float dt) {
     if (!_animSkeleton || !_animNode) {
+        _previousControllerParameters = params;
         return;
     }
 
@@ -1700,6 +1701,8 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
             }
         }
     }
+
+    _previousControllerParameters = params;
 }
 
 void Rig::initAnimGraph(const QUrl& url) {

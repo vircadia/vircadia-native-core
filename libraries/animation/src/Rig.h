@@ -394,6 +394,8 @@ protected:
 
     AnimContext _lastContext;
     AnimVariantMap _lastAnimVars;
+
+    ControllerParameters _previousControllerParameters;
 };
 
 #endif /* defined(__hifi__Rig__) */
