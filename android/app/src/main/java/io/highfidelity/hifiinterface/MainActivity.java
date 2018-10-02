@@ -37,12 +37,15 @@ import io.highfidelity.hifiinterface.fragment.HomeFragment;
 import io.highfidelity.hifiinterface.fragment.LoginFragment;
 import io.highfidelity.hifiinterface.fragment.PolicyFragment;
 import io.highfidelity.hifiinterface.fragment.SettingsFragment;
-import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
+import io.highfidelity.hifiinterface.fragment.SignedInFragment;
+import io.highfidelity.hifiinterface.fragment.SignupFragment;import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
                                                                 LoginFragment.OnLoginInteractionListener,
                                                                 HomeFragment.OnHomeInteractionListener,
-                                                                FriendsFragment.OnHomeInteractionListener {
+                                                                FriendsFragment.OnHomeInteractionListener,
+                                                                SignupFragment.OnSignupInteractionListener,
+                                                                SignedInFragment.OnSignedInInteractionListener {
 
     private static final int PROFILE_PICTURE_PLACEHOLDER = R.drawable.default_profile_avatar;
     public static final String DEFAULT_FRAGMENT = "Home";
@@ -147,35 +150,44 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void loadHomeFragment(boolean addToBackStack) {
         Fragment fragment = HomeFragment.newInstance();
-        loadFragment(fragment, getString(R.string.home), getString(R.string.tagFragmentHome), addToBackStack);
+        loadFragment(fragment, getString(R.string.home), getString(R.string.tagFragmentHome), addToBackStack, true);
     }
 
     private void loadLoginFragment() {
         Fragment fragment = LoginFragment.newInstance();
+        loadFragment(fragment, getString(R.string.login), getString(R.string.tagFragmentLogin), true, true);
+    }
 
-        loadFragment(fragment, getString(R.string.login), getString(R.string.tagFragmentLogin), true);
+    private void loadSignedInFragment() {
+        Fragment fragment = SignedInFragment.newInstance();
+        loadFragment(fragment, getString(R.string.welcome), getString(R.string.tagFragmentSignedIn), true, true);
+    }
+
+    private void loadSignupFragment() {
+        Fragment fragment = SignupFragment.newInstance();
+        loadFragment(fragment, getString(R.string.signup), getString(R.string.tagFragmentSignup), true, false);
     }
 
     private void loadPrivacyPolicyFragment() {
         Fragment fragment = PolicyFragment.newInstance();
 
-        loadFragment(fragment, getString(R.string.privacyPolicy), getString(R.string.tagFragmentPolicy), true);
+        loadFragment(fragment, getString(R.string.privacyPolicy), getString(R.string.tagFragmentPolicy), true, true);
     }
 
     private void loadPeopleFragment() {
         Fragment fragment = FriendsFragment.newInstance();
 
-        loadFragment(fragment, getString(R.string.people), getString(R.string.tagFragmentPeople), true);
+        loadFragment(fragment, getString(R.string.people), getString(R.string.tagFragmentPeople), true, true);
     }
 
     private void loadSettingsFragment() {
         SettingsFragment fragment = SettingsFragment.newInstance();
 
-        loadFragment(fragment, getString(R.string.settings), getString(R.string.tagSettings), true);
+        loadFragment(fragment, getString(R.string.settings), getString(R.string.tagSettings), true, true);
     }
 
 
-    private void loadFragment(Fragment fragment, String title, String tag, boolean addToBackStack) {
+    private void loadFragment(Fragment newFragment, String title, String tag, boolean addToBackStack, boolean goBackUntilHome) {
         FragmentManager fragmentManager = getFragmentManager();
 
         // check if it's the same fragment
@@ -187,17 +199,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return; // cancel as we are already in that fragment
         }
 
-        // go back until first transaction
-        int backStackEntryCount = fragmentManager.getBackStackEntryCount();
-        for (int i = 0; i < backStackEntryCount - 1; i++) {
-            fragmentManager.popBackStackImmediate();
+        if (goBackUntilHome) {
+            // go back until first transaction
+            int backStackEntryCount = fragmentManager.getBackStackEntryCount();
+            for (int i = 0; i < backStackEntryCount - 1; i++) {
+                fragmentManager.popBackStackImmediate();
+            }
         }
 
         // this case is when we wanted to go home.. rollback already did that!
         // But asking for a new Home fragment makes it easier to have an updated list so we let it to continue
 
         FragmentTransaction ft = fragmentManager.beginTransaction();
-        ft.replace(R.id.content_frame, fragment, tag);
+        ft.replace(R.id.content_frame, newFragment, tag);
 
         if (addToBackStack) {
             ft.addToBackStack(title);
@@ -332,6 +346,32 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             backToScene = false;
             goToLastLocation();
         }
+    }
+
+    @Override
+    public void onGettingStarted() {
+        loadHomeFragment(false);
+        if (backToScene) {
+            backToScene = false;
+            goToLastLocation();
+        }
+    }
+
+    @Override
+    public void onLoginRequested() {
+        // go back from signup to login
+        onBackPressed();
+    }
+
+    @Override
+    public void onSignupRequested() {
+        loadSignupFragment();
+    }
+
+    @Override
+    public void onSignupCompleted() {
+        loadSignedInFragment();
+        updateLoginMenu();
     }
 
     public void handleUsernameChanged(String username) {
