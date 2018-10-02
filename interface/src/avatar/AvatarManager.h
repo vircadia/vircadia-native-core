@@ -31,6 +31,7 @@
 #include "MyAvatar.h"
 #include "OtherAvatar.h"
 
+
 using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
 
 /**jsdoc 
@@ -204,7 +205,12 @@ private:
     void simulateAvatarFades(float deltaTime);
 
     AvatarSharedPointer newSharedAvatar() override;
-    void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
+    
+    // called only from the AvatarHashMap thread - cannot be called while this thread holds the
+    // hash lock, since handleRemovedAvatar needs a write lock on the entity tree and the entity tree
+    // frequently grabs a read lock on the hash to get a given avatar by ID
+    void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar,
+                             KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
     QVector<AvatarSharedPointer> _avatarsToFade;
 
@@ -227,6 +233,8 @@ private:
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space;
     std::vector<int32_t> _spaceProxiesToDelete;
+
+    AvatarTransit::TransitConfig  _transitConfig;
 };
 
 #endif // hifi_AvatarManager_h

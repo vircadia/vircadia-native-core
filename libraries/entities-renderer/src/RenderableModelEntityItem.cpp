@@ -250,8 +250,8 @@ void RenderableModelEntityItem::updateModelBounds() {
 }
 
 
-EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = ModelEntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties RenderableModelEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = ModelEntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
     if (_originalTexturesRead) {
         properties.setTextureNames(_originalTextures);
     }

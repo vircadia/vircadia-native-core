@@ -19,6 +19,9 @@ class AnimStats : public QQuickItem {
     Q_PROPERTY(QStringList animAlphaValues READ animAlphaValues NOTIFY animAlphaValuesChanged)
     Q_PROPERTY(QStringList animVars READ animVars NOTIFY animVarsChanged)
     Q_PROPERTY(QStringList animStateMachines READ animStateMachines NOTIFY animStateMachinesChanged)
+    Q_PROPERTY(QString positionText READ positionText NOTIFY positionTextChanged)
+    Q_PROPERTY(QString rotationText READ rotationText NOTIFY rotationTextChanged)
+    Q_PROPERTY(QString velocityText READ velocityText NOTIFY velocityTextChanged)
 
 public:
     static AnimStats* getInstance();
@@ -27,9 +30,13 @@ public:
 
     void updateStats(bool force = false);
 
-    QStringList animAlphaValues() { return _animAlphaValues; }
-    QStringList animVars() { return _animVarsList; }
-    QStringList animStateMachines() { return _animStateMachines; }
+    QStringList animAlphaValues() const { return _animAlphaValues; }
+    QStringList animVars() const { return _animVarsList; }
+    QStringList animStateMachines() const { return _animStateMachines; }
+
+    QString positionText() const { return _positionText; }
+    QString rotationText() const { return _rotationText; }
+    QString velocityText() const { return _velocityText; }
 
 public slots:
     void forceUpdateStats() { updateStats(true); }
@@ -39,6 +46,9 @@ signals:
     void animAlphaValuesChanged();
     void animVarsChanged();
     void animStateMachinesChanged();
+    void positionTextChanged();
+    void rotationTextChanged();
+    void velocityTextChanged();
 
 private:
     QStringList _animAlphaValues;
@@ -50,6 +60,10 @@ private:
     std::map<QString, qint64> _animVarChangedTimers; // last time animVar value has changed.
 
     QStringList _animStateMachines;
+
+    QString _positionText;
+    QString _rotationText;
+    QString _velocityText;
 };
 
 #endif // hifi_AnimStats_h

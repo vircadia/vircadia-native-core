@@ -157,7 +157,10 @@ void Application::paintGL() {
     renderArgs._context->enableStereo(false);
 
     {
-        Stats::getInstance()->setRenderDetails(renderArgs._details);
+        auto stats = Stats::getInstance();
+        if (stats) {
+            stats->setRenderDetails(renderArgs._details);
+        }
     }
 
     uint64_t lastPaintDuration = usecTimestampNow() - lastPaintBegin;
