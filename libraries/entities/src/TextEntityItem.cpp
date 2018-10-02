@@ -46,8 +46,8 @@ void TextEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     EntityItem::setUnscaledDimensions(glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH));
 }
 
-EntityItemProperties TextEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(text, getText);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineHeight, getLineHeight);

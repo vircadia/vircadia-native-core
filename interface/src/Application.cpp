@@ -269,7 +269,7 @@ class RenderEventHandler : public QObject {
 public:
     RenderEventHandler() {
         // Transfer to a new thread
-        moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
+        moveToNewNamedThread(this, "RenderThread", [](QThread* renderThread) {
             hifi::qt::addBlockingForbiddenThread("Render", renderThread);
             qApp->_lastTimeRendered.start();
         }, std::bind(&RenderEventHandler::initialize, this), QThread::HighestPriority);
@@ -963,7 +963,7 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
-const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 70.0f;
+const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 60.0f;
 const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
@@ -976,7 +976,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
     _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
-    _undoStackScriptingInterface(&_undoStack),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
     _entityClipboard(new EntityTree()),
@@ -996,7 +995,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _enableProcessOctreeThread(true),
     _lastNackTime(usecTimestampNow()),
     _lastSendDownstreamAudioStats(usecTimestampNow()),
-    _aboutToQuit(false),
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0),
@@ -1236,7 +1234,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 #if defined(Q_OS_ANDROID)
     connect(accountManager.data(), &AccountManager::authRequired, this, []() {
-        AndroidHelper::instance().showLoginDialog();
+        auto addressManager = DependencyManager::get<AddressManager>();
+        AndroidHelper::instance().showLoginDialog(addressManager->currentAddress());
     });
 #else
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
@@ -1691,21 +1690,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_WINDOWS, []() -> float {
-#if defined(Q_OS_WIN) 
+#if defined(Q_OS_WIN)
         return 1;
 #else
         return 0;
 #endif
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_MAC, []() -> float {
-#if defined(Q_OS_MAC) 
+#if defined(Q_OS_MAC)
         return 1;
 #else
         return 0;
 #endif
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_ANDROID, []() -> float {
-#if defined(Q_OS_ANDROID) 
+#if defined(Q_OS_ANDROID)
         return 1;
 #else
         return 0;
@@ -1755,14 +1754,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // we can unlock the desktop repositioning code, since all the positions will be
     // relative to the desktop size for this plugin
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->getDesktop()->setProperty("repositionLocked", false);
+    connect(offscreenUi.data(), &OffscreenUi::desktopReady, []() {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto desktop = offscreenUi->getDesktop();
+        if (desktop) {
+            desktop->setProperty("repositionLocked", false);
+        }
+    });
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
-
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
-        connect(qApp, &Application::beforeAboutToQuit, [this, settingsTimer]{
+        // This needs to run on the settings thread, so we need to pass the `settingsTimer` as the 
+        // receiver object, otherwise it will run on the application thread and trigger a warning
+        // about trying to kill the timer on the main thread.
+        connect(qApp, &Application::beforeAboutToQuit, settingsTimer, [this, settingsTimer]{
             // Disconnect the signal from the save settings
             QObject::disconnect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
             // Stop the settings timer
@@ -2302,13 +2309,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
-#endif
-
+#else
     static int CHECK_LOGIN_TIMER = 3000;
     QTimer* checkLoginTimer = new QTimer(this);
     checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
     checkLoginTimer->setSingleShot(true);
-    connect(checkLoginTimer, &QTimer::timeout, this, [this]() {
+    connect(checkLoginTimer, &QTimer::timeout, this, []() {
         auto accountManager = DependencyManager::get<AccountManager>();
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         if (!accountManager->isLoggedIn()) {
@@ -2321,6 +2327,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
     checkLoginTimer->start();
+#endif
 }
 
 void Application::updateVerboseLogging() {
@@ -2881,9 +2888,10 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/common/CommerceLightbox.qml" },
         QUrl{ "hifi/commerce/common/EmulatedMarketplaceHeader.qml" },
         QUrl{ "hifi/commerce/common/FirstUseTutorial.qml" },
-        QUrl{ "hifi/commerce/common/SortableListModel.qml" },
         QUrl{ "hifi/commerce/common/sendAsset/SendAsset.qml" },
+        QUrl{ "hifi/commerce/common/SortableListModel.qml" },
         QUrl{ "hifi/commerce/inspectionCertificate/InspectionCertificate.qml" },
+        QUrl{ "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml"},
         QUrl{ "hifi/commerce/purchases/PurchasedItem.qml" },
         QUrl{ "hifi/commerce/purchases/Purchases.qml" },
         QUrl{ "hifi/commerce/wallet/Help.qml" },
@@ -3086,7 +3094,6 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
     surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
-    surfaceContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
     surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
@@ -3427,7 +3434,12 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
     QString addressLookupString;
     if (urlIndex != -1) {
-        addressLookupString = arguments().value(urlIndex + 1);
+        QUrl url(arguments().value(urlIndex + 1));
+        if (url.scheme() == URL_SCHEME_HIFIAPP) {
+            Setting::Handle<QVariant>("startUpApp").set(url.path());
+        } else {
+            addressLookupString = url.toString();
+        }
     }
 
     static const QString SENT_TO_PREVIOUS_LOCATION = "previous_location";
@@ -3498,13 +3510,14 @@ bool Application::isServerlessMode() const {
 }
 
 void Application::setIsInterstitialMode(bool interstitialMode) {
-    Settings settings;
-    bool enableInterstitial = settings.value("enableIntersitialMode", false).toBool();
-    if (_interstitialMode != interstitialMode && enableInterstitial) {
-        _interstitialMode = interstitialMode;
+    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+    if (enableInterstitial) {
+        if (_interstitialMode != interstitialMode) {
+            _interstitialMode = interstitialMode;
 
-        DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
-        DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
+            DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
+            DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
+        }
     }
 }
 
@@ -4664,8 +4677,14 @@ void Application::idle() {
 
     checkChangeCursor();
 
-    Stats::getInstance()->updateStats();
-    AnimStats::getInstance()->updateStats();
+    auto stats = Stats::getInstance();
+    if (stats) {
+        stats->updateStats();
+    }
+    auto animStats = AnimStats::getInstance();
+    if (animStats) {
+        animStats->updateStats();
+    }
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
@@ -6746,8 +6765,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
 
-    scriptEngine->registerGlobalObject("UndoStack", &_undoStackScriptingInterface);
-
     scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
 
     scriptEngine->registerGlobalObject("Paths", DependencyManager::get<PathUtils>().data());
@@ -7674,6 +7691,9 @@ void Application::openUrl(const QUrl& url) const {
     if (!url.isEmpty()) {
         if (url.scheme() == URL_SCHEME_HIFI) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+        } else if (url.scheme() == URL_SCHEME_HIFIAPP) {
+            QmlCommerce commerce;
+            commerce.openSystemApp(url.path());
         } else {
             // address manager did not handle - ask QDesktopServices to handle
             QDesktopServices::openUrl(url);

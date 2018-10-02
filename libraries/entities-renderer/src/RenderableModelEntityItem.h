@@ -62,7 +62,7 @@ public:
 
     virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     void doInitialModelSimulation();
     void updateModelBounds();
 
@@ -187,7 +187,7 @@ private:
     const void* _collisionMeshKey { nullptr };
 
     // used on client side
-    bool _jointMappingCompleted{ false };
+    bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
     AnimationPointer _animation;
     QUrl _parsedModelURL;

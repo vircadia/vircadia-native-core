@@ -43,6 +43,7 @@ public:
 
     void setWorkloadRegion(uint8_t region);
     bool shouldBeInPhysicsSimulation() const;
+    bool needsPhysicsUpdate() const;
 
     friend AvatarManager;
 

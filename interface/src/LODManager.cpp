@@ -45,10 +45,11 @@ const float LOD_ADJUST_RUNNING_AVG_TIMESCALE = 0.08f; // sec
 const float LOD_BATCH_TO_PRESENT_CUSHION_TIME = 3.0f; // msec
 
 void LODManager::setRenderTimes(float presentTime, float engineRunTime, float batchTime, float gpuTime) {
-    _presentTime = presentTime;
-    _engineRunTime = engineRunTime;
-    _batchTime = batchTime;
-    _gpuTime = gpuTime;
+    // Make sure the sampled time are positive values
+    _presentTime = std::max(0.0f, presentTime);
+    _engineRunTime = std::max(0.0f, engineRunTime);
+    _batchTime = std::max(0.0f, batchTime);
+    _gpuTime = std::max(0.0f, gpuTime);
 }
 
 void LODManager::autoAdjustLOD(float realTimeDelta) {
@@ -64,16 +65,29 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     auto presentTime = (_presentTime > _batchTime + LOD_BATCH_TO_PRESENT_CUSHION_TIME ? _batchTime + LOD_BATCH_TO_PRESENT_CUSHION_TIME : _presentTime);
     float maxRenderTime = glm::max(glm::max(presentTime, _engineRunTime), _gpuTime);
 
-    // compute time-weighted running average maxRenderTime
-    // Note: we MUST clamp the blend to 1.0 for stability
+    // maxRenderTime must be a realistic valid duration in order for the regulation to work correctly.
+    // We make sure it s a non zero positive value (1.0ms) under 1 sec
+    maxRenderTime = std::max(1.0f, std::min(maxRenderTime, (float)MSECS_PER_SECOND));
+
+    // realTimeDelta must be a realistic valid duration in order for the regulation to work correctly.
+    // We make sure it a positive value under 1 sec
+    // note that if real time delta is very small we will early exit to avoid division by zero
+    realTimeDelta = std::max(0.0f, std::min(realTimeDelta, 1.0f));
+
+    // compute time-weighted running average render time (now and smooth)
+    // We MUST clamp the blend between 0.0 and 1.0 for stability
     float nowBlend = (realTimeDelta < LOD_ADJUST_RUNNING_AVG_TIMESCALE) ? realTimeDelta / LOD_ADJUST_RUNNING_AVG_TIMESCALE : 1.0f;
-    _nowRenderTime = (1.0f - nowBlend) * _nowRenderTime + nowBlend * maxRenderTime; // msec
-
     float smoothBlend = (realTimeDelta <  LOD_ADJUST_RUNNING_AVG_TIMESCALE * _smoothScale) ? realTimeDelta / (LOD_ADJUST_RUNNING_AVG_TIMESCALE * _smoothScale) : 1.0f;
-    _smoothRenderTime = (1.0f - smoothBlend) * _smoothRenderTime + smoothBlend * maxRenderTime; // msec
 
-    if (!_automaticLODAdjust || _nowRenderTime == 0.0f || _smoothRenderTime == 0.0f) {
-        // early exit
+    //Evaluate the running averages for the render time
+    // We must sanity check for the output average evaluated to be in a valid range to avoid issues 
+    _nowRenderTime = (1.0f - nowBlend) * _nowRenderTime + nowBlend * maxRenderTime; // msec
+    _nowRenderTime = std::max(0.0f, std::min(_nowRenderTime, (float)MSECS_PER_SECOND));
+    _smoothRenderTime = (1.0f - smoothBlend) * _smoothRenderTime + smoothBlend * maxRenderTime; // msec
+    _smoothRenderTime = std::max(0.0f, std::min(_smoothRenderTime, (float)MSECS_PER_SECOND));
+
+    // Early exit if not regulating or if the simulation or render times don't matter
+    if (!_automaticLODAdjust || realTimeDelta <= 0.0f || _nowRenderTime <= 0.0f || _smoothRenderTime <= 0.0f) {
         return;
     }
 
@@ -130,7 +144,8 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     glm::clamp(integral, -1.0f, 1.0f);
 
     // Compute derivative
-    auto derivative = (error - previous_error) / dt;
+    // dt is never zero because realTimeDelta would have early exit above, but if it ever was let's zero the derivative term
+    auto derivative = (dt <= 0.0f ? 0.0f : (error - previous_error) / dt);
 
     // remember history
     _pidHistory.x = error;
