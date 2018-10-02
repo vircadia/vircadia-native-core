@@ -118,10 +118,12 @@ public:
         uint8 _function = LESS;
         uint8 _writeMask = true;
         uint8 _enabled = false;
-        uint8 _spare = 0;
+        uint8 _spare = 0; // _spare is here to to affect alignment
     public:
         DepthTest(bool enabled = false, bool writeMask = true, ComparisonFunction func = LESS) :
-            _function(func), _writeMask(writeMask), _enabled(enabled) {}
+            _function(func), _writeMask(writeMask), _enabled(enabled) {
+                (void)_spare; // to avoid unusued variable warning
+            }
 
         bool isEnabled() const { return _enabled != 0; }
         ComparisonFunction getFunction() const { return ComparisonFunction(_function); }

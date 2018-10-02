@@ -91,6 +91,7 @@ protected:
 
     virtual bool shouldHover(const PickResultPointer& pickResult) { return true; }
     virtual bool shouldTrigger(const PickResultPointer& pickResult) { return true; }
+    virtual PickResultPointer getPickResultCopy(const PickResultPointer& pickResult) const = 0;
     virtual PickResultPointer getVisualPickResult(const PickResultPointer& pickResult) { return pickResult; };
 
     static const float POINTER_MOVE_DELAY;

@@ -445,5 +445,3 @@ void GraphicsScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
 
     Q_UNUSED(metaTypeIds);
 }
-
-#include "GraphicsScriptingInterface.moc"

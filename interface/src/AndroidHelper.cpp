@@ -10,6 +10,7 @@
 //
 #include "AndroidHelper.h"
 #include <QDebug>
+#include <AudioClient.h>
 #include "Application.h"
 
 #if defined(qApp)
@@ -18,12 +19,13 @@
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
 AndroidHelper::AndroidHelper() {
+    qRegisterMetaType<QAudio::Mode>("QAudio::Mode");
 }
 
 AndroidHelper::~AndroidHelper() {
 }
 
-void AndroidHelper::requestActivity(const QString &activityName, const bool backToScene, QList<QString> args) {
+void AndroidHelper::requestActivity(const QString &activityName, const bool backToScene, QMap<QString, QString> args) {
     emit androidActivityRequested(activityName, backToScene, args);
 }
 
@@ -47,12 +49,23 @@ void AndroidHelper::performHapticFeedback(int duration) {
     emit hapticFeedbackRequested(duration);
 }
 
-void AndroidHelper::showLoginDialog() {
-    emit androidActivityRequested("Login", true);
+void AndroidHelper::showLoginDialog(QUrl url) {
+    QMap<QString, QString> args;
+    args["url"] = url.toString();
+    emit androidActivityRequested("Login", true, args);
 }
 
 void AndroidHelper::processURL(const QString &url) {
     if (qApp->canAcceptURL(url)) {
         qApp->acceptURL(url);
     }
+}
+
+void AndroidHelper::notifyHeadsetOn(bool pluggedIn) {
+#if defined (Q_OS_ANDROID)
+    auto audioClient = DependencyManager::get<AudioClient>();
+    if (audioClient) {
+        QMetaObject::invokeMethod(audioClient.data(), "setHeadsetPluggedIn", Q_ARG(bool, pluggedIn));
+    }
+#endif
 }

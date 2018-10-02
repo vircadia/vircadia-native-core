@@ -240,5 +240,3 @@ glm::uint32 scriptable::ScriptableModel::forEachVertexAttribute(QScriptValue cal
     return result;
 }
 #endif
-
-#include "ScriptableModel.moc"
