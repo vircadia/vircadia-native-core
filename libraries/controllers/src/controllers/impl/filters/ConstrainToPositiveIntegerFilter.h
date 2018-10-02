@@ -18,6 +18,7 @@ class ConstrainToPositiveIntegerFilter : public Filter {
     REGISTER_FILTER_CLASS(ConstrainToPositiveIntegerFilter);
 public:
     ConstrainToPositiveIntegerFilter() {};
+    virtual ~ConstrainToPositiveIntegerFilter() {};
 
     virtual float apply(float value) const override {
         return (value <= 0.0f) ? 0.0f : 1.0f;
