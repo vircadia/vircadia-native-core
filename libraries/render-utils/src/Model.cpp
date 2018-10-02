@@ -1614,32 +1614,21 @@ public:
 using packBlendshapeOffsetTo = void(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked);
 
 void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
-    float len = glm::compMax(glm::abs(unpacked.positionOffsetAndSpare));
-    glm::vec3 normalizedPos(unpacked.positionOffsetAndSpare);
+    float len = glm::compMax(glm::abs(unpacked.positionOffset));
+    glm::vec3 normalizedPos(unpacked.positionOffset);
     if (len > 1.0f) {
         normalizedPos /= len;
-    }
-    else {
+    } else {
         len = 1.0f;
     }
 
     packed = glm::uvec4(
         glm::floatBitsToUint(len),
         glm::packSnorm3x10_1x2(glm::vec4(normalizedPos, 0.0f)),
-        glm::packSnorm3x10_1x2(glm::vec4(unpacked.normalOffsetAndSpare, 0.0f)),
-        glm::packSnorm3x10_1x2(glm::vec4(unpacked.tangentOffsetAndSpare, 0.0f))
+        glm::packSnorm3x10_1x2(glm::vec4(unpacked.normalOffset, 0.0f)),
+        glm::packSnorm3x10_1x2(glm::vec4(unpacked.tangentOffset, 0.0f))
     );
 }
-
-void packBlendshapeOffsetTo_Pos_3xF16_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
-    packed = glm::uvec4(
-        glm::packHalf2x16(glm::vec2(unpacked.positionOffsetAndSpare)),
-        glm::packHalf2x16(glm::vec2(unpacked.positionOffsetAndSpare.z, 0.0f)),
-        glm::packSnorm3x10_1x2(glm::vec4(unpacked.normalOffsetAndSpare, 0.0f)),
-        glm::packSnorm3x10_1x2(glm::vec4(unpacked.tangentOffsetAndSpare, 0.0f))
-    );
-}
-
 
 class Blender : public QRunnable {
 public:
@@ -1691,20 +1680,17 @@ void Blender::run() {
 
                 float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
                 const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
-                bool doTangent = (mesh.tangents.size()) && (blendshape.tangents.size());
 
                 tbb::parallel_for(tbb::blocked_range<int>(0, blendshape.indices.size()), [&](const tbb::blocked_range<int>& range) {
                     for (auto j = range.begin(); j < range.end(); j++) {
                         int index = blendshape.indices.at(j);
 
                         auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
-                        currentBlendshapeOffset.positionOffsetAndSpare += blendshape.vertices.at(j) * vertexCoefficient;
+                        currentBlendshapeOffset.positionOffset += blendshape.vertices.at(j) * vertexCoefficient;
 
-                        currentBlendshapeOffset.normalOffsetAndSpare += blendshape.normals.at(j) * normalCoefficient;
-                        if (doTangent) {
-                            if ((int)j < blendshape.tangents.size()) {
-                                currentBlendshapeOffset.tangentOffsetAndSpare += blendshape.tangents.at(j) * normalCoefficient;
-                            }
+                        currentBlendshapeOffset.normalOffset += blendshape.normals.at(j) * normalCoefficient;
+                        if (j < blendshape.tangents.size()) {
+                            currentBlendshapeOffset.tangentOffset += blendshape.tangents.at(j) * normalCoefficient;
                         }
                     }
                 });

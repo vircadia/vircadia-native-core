@@ -80,9 +80,9 @@ struct BlendshapeOffsetPacked {
 };
 
 struct BlendshapeOffsetUnpacked {
-    glm::vec3 positionOffsetAndSpare;
-    glm::vec3 normalOffsetAndSpare;
-    glm::vec3 tangentOffsetAndSpare;
+    glm::vec3 positionOffset;
+    glm::vec3 normalOffset;
+    glm::vec3 tangentOffset;
 };
 
 using BlendshapeOffset = BlendshapeOffsetPacked;

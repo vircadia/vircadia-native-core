@@ -355,7 +355,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     bool isDeformed = _isBlendShaped || _isSkinned;
 
     if (isWireframe) {
-        isTranslucent = hasTangents = hasLightmap = isDeformed = false;
+        isTranslucent = hasTangents = hasLightmap = false;
     }
 
     ShapeKey::Builder builder;
