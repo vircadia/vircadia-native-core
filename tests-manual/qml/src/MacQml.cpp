@@ -7,24 +7,6 @@
 #include <SharedUtil.h>
 
 using TextureAndFence = hifi::qml::OffscreenSurface::TextureAndFence;
-//
-//void MacQml::destroySurface(QmlInfo& qmlInfo) {
-//    auto& surface = qmlInfo.surface;
-//    auto& currentTexture = qmlInfo.texture;
-//    if (currentTexture) {
-//        auto readFence = _glf.glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-//        glFlush();
-//        _discardLamdba(currentTexture, readFence);
-//    }
-//    auto webView = surface->getRootItem();
-//    if (webView) {
-//        // stop loading
-//        QMetaObject::invokeMethod(webView, "stop");
-//        webView->setProperty(URL_PROPERTY, "about:blank");
-//    }
-//    surface->pause();
-//    surface.reset();
-//}
 
 void MacQml::update() {
     auto rootItem =_surface->getRootItem();

@@ -13,6 +13,8 @@
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLDebugLogger>
 
+#include "Context.h"
+
 size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format) {
     size_t pixelSize = format.redBufferSize() + format.greenBufferSize() + format.blueBufferSize() + format.alphaBufferSize();
     // We don't apply the length of the swap chain into this pixelSize since it is not vsible for the Process (on windows).
@@ -97,7 +99,9 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
 #else
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
 #endif
-        format.setOption(QSurfaceFormat::DebugContext);
+        if (gl::Context::enableDebugLogger()) {
+            format.setOption(QSurfaceFormat::DebugContext);
+        }
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);

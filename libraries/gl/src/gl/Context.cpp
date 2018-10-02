@@ -31,6 +31,10 @@ using namespace gl;
 
 
 bool Context::enableDebugLogger() {
+#if defined(Q_OS_MAC)
+    // OSX does not support GL_KHR_debug or GL_ARB_debug_output
+    return false;
+#else
 #if defined(DEBUG) || defined(USE_GLES)
     static bool enableDebugLogger = true;
 #else
@@ -45,6 +49,7 @@ bool Context::enableDebugLogger() {
         }
     });
     return enableDebugLogger;
+#endif
 }
 
 
@@ -233,7 +238,6 @@ GLAPI PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 
 Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
 
-
 void Context::create(QOpenGLContext* shareContext) {
     assert(0 != _hwnd);
     assert(0 == _hdc);
@@ -350,7 +354,6 @@ void Context::create(QOpenGLContext* shareContext) {
 }
 
 #endif
-
 
 OffscreenContext::~OffscreenContext() {
     _window->deleteLater();
