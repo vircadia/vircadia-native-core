@@ -16,6 +16,9 @@
 #include <QMap>
 #include <QUrl>
 
+#include <QNetworkReply>
+#include <QtCore/QEventLoop>
+
 class AndroidHelper : public QObject {
     Q_OBJECT
 public:
@@ -36,9 +39,12 @@ public:
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
 
+    void signup(QString email, QString username, QString password);
+
 public slots:
     void showLoginDialog(QUrl url);
-
+    void signupCompleted(QNetworkReply* reply);
+    void signupFailed(QNetworkReply* reply);
 signals:
     void androidActivityRequested(const QString &activityName, const bool backToScene, QMap<QString, QString> args = QMap<QString, QString>());
     void qtAppLoadComplete();
@@ -48,9 +54,14 @@ signals:
 
     void hapticFeedbackRequested(int duration);
 
+    void handleSignupCompleted();
+    void handleSignupFailed(QString errorString);
+
 private:
     AndroidHelper();
     ~AndroidHelper();
+
+    QString errorStringFromAPIObject(const QJsonValue& apiObject);
 };
 
 #endif
