@@ -130,6 +130,8 @@ signals:
     void dirty();
 };
 
+#define SSAO_RANDOM_SAMPLE_COUNT 16
+
 class AmbientOcclusionEffect {
 public:
     using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer>;
@@ -205,7 +207,7 @@ private:
     static gpu::PipelinePointer _buildNormalsPipeline;
 
     AmbientOcclusionFramebufferPointer _framebuffer;
-    std::array<float, 8 * SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT> _randomSamples;
+    std::array<float, SSAO_RANDOM_SAMPLE_COUNT * SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT> _randomSamples;
     int _frameId{ 0 };
     bool _isJitterEnabled{ true };
     

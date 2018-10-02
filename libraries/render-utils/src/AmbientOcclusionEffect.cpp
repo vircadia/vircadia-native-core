@@ -477,7 +477,6 @@ int AmbientOcclusionEffect::getDepthResolutionLevel() const {
 }
 
 void AmbientOcclusionEffect::updateJitterSamples() {
-    const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / (SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT));
     for (int splitId = 0; splitId < SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT; splitId++) {
         auto& sample = _aoFrameParametersBuffer[splitId].edit();
         sample._angleInfo.x = _randomSamples[splitId + SSAO_RANDOM_SAMPLE_COUNT * _frameId];
@@ -547,9 +546,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
     // Update sample rotation
     if (_isJitterEnabled) {
-        const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / (SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT));
         updateJitterSamples();
-        _frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
+        _frameId = (_frameId + 1) % (SSAO_RANDOM_SAMPLE_COUNT);
     }
 
     gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {

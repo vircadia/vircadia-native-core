@@ -295,7 +295,7 @@ vec3 getNormalEyeAtPixel(ivec2 pixel, int level) {
 }
 
 int evalMipFromRadius(float radius) {
-    const int LOG_MAX_OFFSET = 1;
+    const int LOG_MAX_OFFSET = 2;
     const int MAX_MIP_LEVEL = 5;
     return clamp(findMSB(int(radius)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
 }
@@ -433,11 +433,11 @@ float computeWeightedHorizon(float horizonLimit, float distanceSquared) {
             if (tapHorizonLimit > horizonLimit) {
                 occlusion += weight * (tapHorizonLimit - horizonLimit);
                 horizonLimit = tapHorizonLimit;
-            } else if (dot(deltaVec, fragFrameES.tangent) < 0.0) {
+            } /*else if (dot(deltaVec, fragFrameES.tangent) < 0.0) {
                 // This is a hack to try to handle the case where the occlusion angle is
                 // greater than 90°
                 occlusion = mix(occlusion, (occlusion+1.0) * 0.5, weight);
-            }
+            }*/
 #else   
             if (tapHorizonLimit < horizonLimit) {
                 tapHorizonLimit = computeWeightedHorizon(tapHorizonLimit, distanceSquared);
