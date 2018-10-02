@@ -864,12 +864,12 @@ Script.include("/~/system/libraries/controllers.js");
             var footPos = MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(footJointIndex);
             if (footPos.x === 0 && footPos.y === 0 && footPos.z === 0.0) {
                 // if footPos is exactly zero, it's probably wrong because avatar is currently loading, fall back to default.
-                return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.sensorToWorldScale;
+                return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.scale;
             } else {
                 return -footPos.y;
             }
         } else {
-            return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.sensorToWorldScale;
+            return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.scale;
         }
     }
 
