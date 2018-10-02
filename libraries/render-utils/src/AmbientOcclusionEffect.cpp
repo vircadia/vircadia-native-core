@@ -115,7 +115,7 @@ void AmbientOcclusionFramebuffer::allocate() {
         }
         auto width = sideSize.x;
         auto height = sideSize.y;
-        auto format = gpu::Element::COLOR_RGBA_32;
+        auto format = gpu::Element{ gpu::VEC4, gpu::NINT2_10_10_10, gpu::RGBA };
         _normalTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, 
                                                           gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
         _normalFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ssaoNormals"));
@@ -206,10 +206,10 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture() {
 
 AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false),
-    radius{ 0.5f },
+    radius{ 0.7f },
     perspectiveScale{ 1.0f },
-    obscuranceLevel{ 0.25f },
-    falloffAngle{ 0.4f },
+    obscuranceLevel{ 0.15f },
+    falloffAngle{ 0.1f },
     edgeSharpness{ 1.0f },
     blurDeviation{ 2.5f },
     numSpiralTurns{ 7.0f },

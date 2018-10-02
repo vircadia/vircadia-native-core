@@ -37,8 +37,6 @@ void main(void) {
     // The position and normal of the pixel fragment in Eye space
     vec3 fragPositionES = buildPosition(side, fragUVPos);
     vec3 fragNormalES = buildNormal(side, fragUVPos, fragPositionES, deltaDepthUV);
-    vec3 absFragNormalES = abs(fragNormalES);
 
-    fragNormalES /= max(absFragNormalES.z, max(absFragNormalES.x, absFragNormalES.y));
-    outFragColor = vec4(vec3(fragNormalES)*0.5 + vec3(0.5), 1.0);
+    outFragColor = vec4(packNormal(fragNormalES), 1.0);
 }

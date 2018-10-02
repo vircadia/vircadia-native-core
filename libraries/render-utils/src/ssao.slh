@@ -287,8 +287,17 @@ float getZEyeAtUV(ivec4 side, vec2 texCoord, int level, ivec2 texelOffset) {
     return getZEyeAtUV(texCoord, level, texelOffset);
 }
 
+vec3 packNormal(vec3 normal) {
+    vec3 absNormal = abs(normal);
+    return 0.5 + normal * 0.5 / max(absNormal.x, max(absNormal.y, absNormal.z));
+}
+
+vec3 unpackNormal(vec3 packedNormal) {
+    return normalize(packedNormal*2.0 - 1.0);
+}
+
 vec3 getNormalEyeAtUV(vec2 texCoord, int level) {
-    return normalize(textureLod(normalTex, texCoord, level).xyz*2.0 - vec3(1.0));
+    return unpackNormal(textureLod(normalTex, texCoord, level).xyz);
 }
 
 vec3 getNormalEyeAtUV(ivec4 side, vec2 texCoord, int level) {
@@ -297,7 +306,11 @@ vec3 getNormalEyeAtUV(ivec4 side, vec2 texCoord, int level) {
 }
 
 vec3 getNormalEyeAtPixel(ivec2 pixel, int level) {
-    return normalize(texelFetch(normalTex, pixel, level).xyz*2.0 - vec3(1.0));
+    return unpackNormal(texelFetch(normalTex, pixel, level).xyz);
+}
+
+vec2 snapToTexel(vec2 uv, vec2 pixelSize) {
+	return (floor(uv * pixelSize - 0.5) + 0.5) / pixelSize;
 }
 
 int evalMipFromRadius(float radius) {
@@ -418,12 +431,12 @@ float computeWeightedHorizon(float horizonLimit, float distanceSquared) {
 }
 
 <@func computeHorizon()@>
-        if (fragUVPos.x<0 || fragUVPos.y<0 || fragUVPos.x>=1.0 || fragUVPos.y>=1.0) {
+        if (tapUVPos.x<0 || tapUVPos.y<0 || tapUVPos.x>=1.0 || tapUVPos.y>=1.0) {
             // Early exit because we've hit the borders of the frame
             break;
         }
-        vec2 tapMipZ = fetchTap(side, fragUVPos, radius);
-        vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapMipZ.y, fragUVPos);
+        vec2 tapMipZ = fetchTap(side, tapUVPos, radius);
+        vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapMipZ.y, tapUVPos);
         vec3 deltaVec = tapPositionES - fragPositionES;
         float distanceSquared = dot(deltaVec, deltaVec);
         float deltaDotNormal = dot(deltaVec, fragFrameES.normal);
@@ -460,16 +473,18 @@ float computeWeightedHorizon(float horizonLimit, float distanceSquared) {
 #define HBAO_HORIZON_SEARCH_CONSTANT_STEP 0
 
 float computeOcclusion(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame fragFrameES, vec2 searchDir, float searchRadius, int stepCount) {
+    float occlusion = 0.0;
 #if HBAO_USE_COS_ANGLE
     float horizonLimit = getFalloffCosAngle();
-    float occlusion = 0.0;
 #else
     float horizonLimit = getFalloffSinAngle();
 #endif
 
     if (stepCount>0) {
         vec2 deltaTapUV = searchDir / float(stepCount);
+        vec2 tapUVPos;
         float deltaRadius = searchRadius / float(stepCount);
+        vec2 sideDepthSize = getDepthTextureSideSize(0);
 
 #if HBAO_HORIZON_SEARCH_CONSTANT_STEP
         float radius = 0.0;
@@ -478,6 +493,7 @@ float computeOcclusion(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame
         for (stepIndex=0 ; stepIndex<stepCount ; stepIndex++) {
             fragUVPos += deltaTapUV;
             radius += deltaRadius;
+            tapUVPos = snapToTexel(fragUVPos, sideDepthSize);
 
             <$computeHorizon()$>
         }
@@ -488,6 +504,7 @@ float computeOcclusion(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame
 
         while (radius<=searchRadius) {
             fragUVPos += deltaTapUV;
+            tapUVPos = snapToTexel(fragUVPos, sideDepthSize);
 
             <$computeHorizon()$>
 
@@ -495,6 +512,7 @@ float computeOcclusion(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame
                 mipLevel = tapMipZ.x;
                 deltaRadius *= 2;
                 deltaTapUV *= 2;
+                sideDepthSize = getDepthTextureSideSize(int(mipLevel));
             }
             radius += deltaRadius;
         }
@@ -511,16 +529,27 @@ float computeOcclusion(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame
 }
 
 float evalVisibilityHBAO(ivec4 side, vec2 fragUVPos, vec2 invSideImageSize, vec2 deltaTap, float diskPixelRadius, 
-                         vec3 fragPositionES, TBNFrame fragFrameES) {
+                         vec3 fragPositionES, vec3 fragNormalES) {
     vec2 pixelSearchVec = deltaTap * diskPixelRadius;
 	vec2 searchDir = pixelSearchVec * invSideImageSize;
+    vec2 deltaTapUV = deltaTap * invSideImageSize;
 	float obscuranceH1 = 0.0;
 	float obscuranceH2 = 0.0;
     pixelSearchVec = abs(pixelSearchVec);
     int stepCount = int(ceil(max(pixelSearchVec.x, pixelSearchVec.y)));
+    TBNFrame fragFrameES;
+
+    fragFrameES.tangent = vec3(0.0);
+    fragFrameES.binormal = vec3(0.0);
+    fragFrameES.normal = fragNormalES;
 
 #if HBAO_USE_OVERHANG_HACK || !HBAO_USE_COS_ANGLE
-    fragFrameES.tangent = normalize(fragFrameES.tangent * deltaTap.x + fragFrameES.binormal * deltaTap.y);
+    vec3 positionPos = buildPosition(side, fragUVPos + deltaTapUV);
+    vec3 positionNeg = buildPosition(side, fragUVPos - deltaTapUV);
+
+    fragFrameES.tangent = getMinDelta(fragPositionES, positionPos, positionNeg);
+    fragFrameES.tangent -= dot(fragNormalES, fragFrameES.tangent) * fragNormalES;
+    fragFrameES.tangent = normalize(fragFrameES.tangent);
 #endif
     // Forward search for h1
     obscuranceH1 = computeOcclusion(side, fragUVPos, fragPositionES, fragFrameES, searchDir, diskPixelRadius, stepCount);
