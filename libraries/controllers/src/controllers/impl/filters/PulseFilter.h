@@ -20,6 +20,7 @@ class PulseFilter : public Filter {
 public:
     PulseFilter() {}
     PulseFilter(float interval) : _interval(interval) {}
+    virtual ~PulseFilter() {}
 
     virtual float apply(float value) const override;
 

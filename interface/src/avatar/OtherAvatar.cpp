@@ -11,6 +11,25 @@
 
 #include "AvatarMotionState.h"
 
+static xColor getLoadingOrbColor(Avatar::LoadingStatus loadingStatus) {
+
+    const xColor NO_MODEL_COLOR(0xe3, 0xe3, 0xe3);
+    const xColor LOAD_MODEL_COLOR(0xef, 0x93, 0xd1);
+    const xColor LOAD_SUCCESS_COLOR(0x1f, 0xc6, 0xa6);
+    const xColor LOAD_FAILURE_COLOR(0xc6, 0x21, 0x47);
+    switch (loadingStatus) {
+    case Avatar::LoadingStatus::NoModel:
+        return NO_MODEL_COLOR;
+    case Avatar::LoadingStatus::LoadModel:
+        return LOAD_MODEL_COLOR;
+    case Avatar::LoadingStatus::LoadSuccess:
+        return LOAD_SUCCESS_COLOR;
+    case Avatar::LoadingStatus::LoadFailure:
+    default:
+        return LOAD_FAILURE_COLOR;
+    }
+}
+
 OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = new Head(this);
@@ -29,23 +48,26 @@ OtherAvatar::~OtherAvatar() {
 }
 
 void OtherAvatar::removeOrb() {
-    if (qApp->getOverlays().isAddedOverlay(_otherAvatarOrbMeshPlaceholderID)) {
+    if (!_otherAvatarOrbMeshPlaceholderID.isNull()) {
         qApp->getOverlays().deleteOverlay(_otherAvatarOrbMeshPlaceholderID);
+        _otherAvatarOrbMeshPlaceholderID = UNKNOWN_OVERLAY_ID;
     }
 }
 
 void OtherAvatar::updateOrbPosition() {
     if (_otherAvatarOrbMeshPlaceholder != nullptr) {
         _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
+        if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
+            _otherAvatarOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_otherAvatarOrbMeshPlaceholder);
+        }
     }
 }
 
 void OtherAvatar::createOrb() {
-    if (_otherAvatarOrbMeshPlaceholderID == UNKNOWN_OVERLAY_ID ||
-        !qApp->getOverlays().isAddedOverlay(_otherAvatarOrbMeshPlaceholderID)) {
+    if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
         _otherAvatarOrbMeshPlaceholder = std::make_shared<Sphere3DOverlay>();
         _otherAvatarOrbMeshPlaceholder->setAlpha(1.0f);
-        _otherAvatarOrbMeshPlaceholder->setColor({ 0xFF, 0x00, 0xFF });
+        _otherAvatarOrbMeshPlaceholder->setColor(getLoadingOrbColor(_loadingStatus));
         _otherAvatarOrbMeshPlaceholder->setIsSolid(false);
         _otherAvatarOrbMeshPlaceholder->setPulseMin(0.5);
         _otherAvatarOrbMeshPlaceholder->setPulseMax(1.0);
@@ -58,6 +80,13 @@ void OtherAvatar::createOrb() {
         _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
         _otherAvatarOrbMeshPlaceholder->setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
         _otherAvatarOrbMeshPlaceholder->setVisible(true);
+    }
+}
+
+void OtherAvatar::indicateLoadingStatus(LoadingStatus loadingStatus) {
+    Avatar::indicateLoadingStatus(loadingStatus);
+    if (_otherAvatarOrbMeshPlaceholder) {
+        _otherAvatarOrbMeshPlaceholder->setColor(getLoadingOrbColor(_loadingStatus));
     }
 }
 
@@ -88,6 +117,11 @@ void OtherAvatar::setWorkloadRegion(uint8_t region) {
 
 bool OtherAvatar::shouldBeInPhysicsSimulation() const {
     return (_workloadRegion < workload::Region::R3 && !isDead());
+}
+
+bool OtherAvatar::needsPhysicsUpdate() const {
+    constexpr uint32_t FLAGS_OF_INTEREST = Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS | Simulation::DIRTY_POSITION;
+    return (_motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST));
 }
 
 void OtherAvatar::rebuildCollisionShape() {

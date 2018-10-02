@@ -36,19 +36,7 @@ class QJsonObject;
 
 class AnimNode : public std::enable_shared_from_this<AnimNode> {
 public:
-    enum class Type {
-        Clip = 0,
-        BlendLinear,
-        BlendLinearMove,
-        Overlay,
-        StateMachine,
-        Manipulator,
-        InverseKinematics,
-        DefaultPose,
-        TwoBoneIK,
-        PoleVectorConstraint,
-        NumTypes
-    };
+    using Type = AnimNodeType;
     using Pointer = std::shared_ptr<AnimNode>;
     using ConstPointer = std::shared_ptr<const AnimNode>;
 
@@ -84,7 +72,6 @@ public:
     }
 
     void setCurrentFrame(float frame);
-    const std::map<QString, float> getAnimStack() { return _animStack; }
 
     template <typename F>
     bool traverse(F func) {
@@ -126,9 +113,6 @@ protected:
     AnimSkeleton::ConstPointer _skeleton;
     std::weak_ptr<AnimNode> _parent;
     std::vector<QString> _outputJointNames;
-
-    // global available to Stats.h
-    static std::map<QString, float> _animStack;
 
     // no copies
     AnimNode(const AnimNode&) = delete;

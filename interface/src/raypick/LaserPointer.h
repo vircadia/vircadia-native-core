@@ -42,9 +42,13 @@ public:
     LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
         bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
 
+    QVariantMap toVariantMap() const override;
+
     static std::shared_ptr<StartEndRenderState> buildRenderState(const QVariantMap& propMap);
 
 protected:
+    PickResultPointer getPickResultCopy(const PickResultPointer& pickResult) const override;
+
     void editRenderStatePath(const std::string& state, const QVariant& pathProps) override;
 
     glm::vec3 getPickOrigin(const PickResultPointer& pickResult) const override;

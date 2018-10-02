@@ -21,6 +21,7 @@ class ScaleFilter : public Filter {
 public:
     ScaleFilter() {}
     ScaleFilter(float scale) : _scale(scale) {}
+    virtual ~ScaleFilter() {}
 
     virtual float apply(float value) const override {
         return value * _scale;

@@ -97,7 +97,7 @@ void main(void) {
         1.0,
         occlusionTex,
         fragPositionES,
-		fragPositionWS,
+        fragPositionWS,
         albedo,
         fresnel,
         metallic,

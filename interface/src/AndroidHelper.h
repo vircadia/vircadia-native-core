@@ -13,6 +13,11 @@
 #define hifi_Android_Helper_h
 
 #include <QObject>
+#include <QMap>
+#include <QUrl>
+
+#include <QNetworkReply>
+#include <QtCore/QEventLoop>
 
 class AndroidHelper : public QObject {
     Q_OBJECT
@@ -21,7 +26,7 @@ public:
             static AndroidHelper instance;
             return instance;
     }
-    void requestActivity(const QString &activityName, const bool backToScene, QList<QString> args = QList<QString>());
+    void requestActivity(const QString &activityName, const bool backToScene, QMap<QString, QString> args = QMap<QString, QString>());
     void notifyLoadComplete();
     void notifyEnterForeground();
     void notifyBeforeEnterBackground();
@@ -29,15 +34,19 @@ public:
 
     void performHapticFeedback(int duration);
     void processURL(const QString &url);
+    void notifyHeadsetOn(bool pluggedIn);
 
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
 
-public slots:
-    void showLoginDialog();
+    void signup(QString email, QString username, QString password);
 
+public slots:
+    void showLoginDialog(QUrl url);
+    void signupCompleted(QNetworkReply* reply);
+    void signupFailed(QNetworkReply* reply);
 signals:
-    void androidActivityRequested(const QString &activityName, const bool backToScene, QList<QString> args = QList<QString>());
+    void androidActivityRequested(const QString &activityName, const bool backToScene, QMap<QString, QString> args = QMap<QString, QString>());
     void qtAppLoadComplete();
     void enterForeground();
     void beforeEnterBackground();
@@ -45,9 +54,14 @@ signals:
 
     void hapticFeedbackRequested(int duration);
 
+    void handleSignupCompleted();
+    void handleSignupFailed(QString errorString);
+
 private:
     AndroidHelper();
     ~AndroidHelper();
+
+    QString errorStringFromAPIObject(const QJsonValue& apiObject);
 };
 
 #endif

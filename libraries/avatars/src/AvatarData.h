@@ -964,6 +964,8 @@ public:
     qint64 packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID,
                              ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
 
+    void prepareResetTraitInstances();
+
     void processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
     void processTraitInstance(AvatarTraits::TraitType traitType,
                               AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
@@ -1095,7 +1097,7 @@ public:
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
     glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
-    glm::vec3 getGlobalBoundingBoxCorner() const { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
+    AABox getGlobalBoundingBox() const { return AABox(_globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
 
     /**jsdoc
      * @function MyAvatar.getAvatarEntityData
@@ -1166,8 +1168,6 @@ public:
 
     // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
     virtual glm::quat getOrientationOutbound() const;
-
-    static const float OUT_OF_VIEW_PENALTY;
 
     // TODO: remove this HACK once we settle on optimal sort coefficients
     // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
@@ -1372,7 +1372,8 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition { 0, 0, 0 };
-
+    glm::vec3 _globalPositionOverride { 0, 0, 0 };
+    bool _overrideGlobalPosition { false };
 
     quint64 _globalPositionChanged { 0 };
     quint64 _avatarBoundingBoxChanged { 0 };
@@ -1437,6 +1438,8 @@ protected:
     ThreadSafeValueCache<glm::mat4> _farGrabRightMatrixCache { glm::mat4() };
     ThreadSafeValueCache<glm::mat4> _farGrabLeftMatrixCache { glm::mat4() };
     ThreadSafeValueCache<glm::mat4> _farGrabMouseMatrixCache { glm::mat4() };
+
+    ThreadSafeValueCache<QVariantMap> _collisionCapsuleCache{ QVariantMap() };
 
     int getFauxJointIndex(const QString& name) const;
 

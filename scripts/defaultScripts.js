@@ -31,12 +31,17 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/dialTone.js",
     "system/firstPersonHMD.js",
     "system/tablet-ui/tabletUI.js",
-    "system/emote.js"
+    "system/emote.js",
+    "system/miniTablet.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
     //"system/chat.js"
 ];
+
+if (Settings.getValue("enableInterstitialMode", false)) {
+    DEFAULT_SCRIPTS_SEPARATE.push("system/interstitialPage.js");
+}
 
 // add a menu item for debugging
 var MENU_CATEGORY = "Developer > Scripting";

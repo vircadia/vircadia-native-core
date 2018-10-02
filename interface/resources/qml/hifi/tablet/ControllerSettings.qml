@@ -24,6 +24,8 @@ Item {
     height: parent.height
     width: parent.width
 
+    property string title: "Controls"
+
     HifiConstants { id: hifi }
 
     TabBar {

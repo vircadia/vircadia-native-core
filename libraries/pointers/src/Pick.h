@@ -17,6 +17,7 @@
 #include <QVariant>
 
 #include <shared/ReadWriteLockable.h>
+#include <TransformNode.h>
 
 enum IntersectionType {
     NONE = 0,
@@ -108,6 +109,7 @@ class PickResult {
 public:
     PickResult() {}
     PickResult(const QVariantMap& pickVariant) : pickVariant(pickVariant) {}
+    virtual ~PickResult() {}
 
     virtual QVariantMap toVariantMap() const {
         return pickVariant;
@@ -213,6 +215,10 @@ public:
     virtual bool isRightHand() const { return false; }
     virtual bool isMouse() const { return false; }
 
+    virtual Transform getResultTransform() const = 0;
+
+    std::shared_ptr<TransformNode> parentTransform;
+
 private:
     PickFilter _filter;
     const float _maxDistance;
@@ -228,6 +234,7 @@ template<typename T>
 class Pick : public PickQuery {
 public:
     Pick(const PickFilter& filter, const float maxDistance, const bool enabled) : PickQuery(filter, maxDistance, enabled) {}
+    virtual ~Pick() {}
 
     virtual T getMathematicalPick() const = 0;
     virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;

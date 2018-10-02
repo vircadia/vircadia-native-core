@@ -93,7 +93,6 @@ private: \
  * @property {number} processing - <em>Read-only.</em>
  * @property {number} processingPending - <em>Read-only.</em>
  * @property {number} triangles - <em>Read-only.</em>
- * @property {number} quads - <em>Read-only.</em>
  * @property {number} materialSwitches - <em>Read-only.</em>
  * @property {number} itemConsidered - <em>Read-only.</em>
  * @property {number} itemOutOfView - <em>Read-only.</em>
@@ -135,7 +134,6 @@ private: \
  * @property {number} batchFrameTime - <em>Read-only.</em>
  * @property {number} engineFrameTime - <em>Read-only.</em>
  * @property {number} avatarSimulationTime - <em>Read-only.</em>
- * @property {string[]} animStackNames - <em>Read-only.</em>
  *
  *
  * @property {number} x
@@ -249,7 +247,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, processing, 0)
     STATS_PROPERTY(int, processingPending, 0)
     STATS_PROPERTY(int, triangles, 0)
-    STATS_PROPERTY(int, quads, 0)
+    STATS_PROPERTY(int, drawcalls, 0)
     STATS_PROPERTY(int, materialSwitches, 0)
     STATS_PROPERTY(int, itemConsidered, 0)
     STATS_PROPERTY(int, itemOutOfView, 0)
@@ -293,7 +291,6 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, batchFrameTime, 0)
     STATS_PROPERTY(float, engineFrameTime, 0)
     STATS_PROPERTY(float, avatarSimulationTime, 0)
-    Q_PROPERTY(QStringList animStackNames READ animStackNames NOTIFY animStackNamesChanged)
 
     STATS_PROPERTY(int, stylusPicksCount, 0)
     STATS_PROPERTY(int, rayPicksCount, 0)
@@ -327,7 +324,6 @@ public:
     }
 
     QStringList downloadUrls () { return _downloadUrls; }
-    QStringList animStackNames() { return _animStackNames; }
 
 public slots:
     void forceUpdateStats() { updateStats(true); }
@@ -735,11 +731,12 @@ signals:
     void trianglesChanged();
 
     /**jsdoc
-     * Triggered when the value of the <code>quads</code> property changes.
-     * @function Stats.quadsChanged
-     * @returns {Signal}
-     */
-    void quadsChanged();
+    * Triggered when the value of the <code>drawcalls</code> property changes.
+    * This 
+    * @function Stats.drawcallsChanged
+    * @returns {Signal}
+    */
+    void drawcallsChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>materialSwitches</code> property changes.
@@ -1029,13 +1026,6 @@ signals:
     void avatarSimulationTimeChanged();
 
     /**jsdoc
-    * Triggered when the value of the <code>animStackNames</code> property changes.
-    * @function Stats.animStackNamesChanged
-    * @returns {Signal}
-    */
-    void animStackNamesChanged();
-
-    /**jsdoc
      * Triggered when the value of the <code>rectifiedTextureCount</code> property changes.
      * @function Stats.rectifiedTextureCountChanged
      * @returns {Signal}
@@ -1049,7 +1039,6 @@ signals:
      */
     void decimatedTextureCountChanged();
 
-    
     // QQuickItem signals.
 
     /**jsdoc
@@ -1336,7 +1325,6 @@ private:
     QString _monospaceFont;
     const AudioIOStats* _audioStats;
     QStringList _downloadUrls = QStringList();
-    QStringList _animStackNames = QStringList();
 };
 
 #endif // hifi_Stats_h

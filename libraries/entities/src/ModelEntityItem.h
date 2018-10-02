@@ -27,7 +27,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -88,8 +88,8 @@ public:
     void setAnimationIsPlaying(bool value);
     void setAnimationFPS(float value); 
 
-    void setAnimationAllowTranslation(bool value) { _animationProperties.setAllowTranslation(value); };
-    bool getAnimationAllowTranslation() const { return _animationProperties.getAllowTranslation(); };
+    void setAnimationAllowTranslation(bool value);
+    bool getAnimationAllowTranslation() const;
 
     void setAnimationLoop(bool loop);
     bool getAnimationLoop() const;

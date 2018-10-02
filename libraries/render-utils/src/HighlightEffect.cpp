@@ -28,7 +28,6 @@ using namespace render;
 namespace ru {
     using render_utils::slot::texture::Texture;
     using render_utils::slot::buffer::Buffer;
-    using render_utils::slot::uniform::Uniform;
 }
 
 namespace gr {
@@ -37,6 +36,8 @@ namespace gr {
 }
 
 #define OUTLINE_STENCIL_MASK    1
+
+extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
 
 HighlightRessources::HighlightRessources() {
 }
@@ -181,6 +182,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
 
             auto maskPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
             auto maskSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
+            auto maskSkinnedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned().withDualQuatSkinned());
 
             // Setup camera, projection and viewport for all items
             batch.setViewportTransform(args->_viewport);
@@ -188,14 +190,17 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             batch.setProjectionJitter(jitter.x, jitter.y);
             batch.setViewTransform(viewMat);
 
-            std::vector<ShapeKey> skinnedShapeKeys{};
+            std::vector<ShapeKey> skinnedShapeKeys;
+            std::vector<ShapeKey> skinnedDQShapeKeys;
 
             // Iterate through all inShapes and render the unskinned
             args->_shapePipeline = maskPipeline;
             batch.setPipeline(maskPipeline->pipeline);
             for (const auto& items : inShapes) {
                 itemBounds.insert(itemBounds.end(), items.second.begin(), items.second.end());
-                if (items.first.isSkinned()) {
+                if (items.first.isSkinned() && items.first.isDualQuatSkinned()) {
+                    skinnedDQShapeKeys.push_back(items.first);
+                } else if (items.first.isSkinned()) {
                     skinnedShapeKeys.push_back(items.first);
                 } else {
                     renderItems(renderContext, items.second);
@@ -203,10 +208,21 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             }
 
             // Reiterate to render the skinned
-            args->_shapePipeline = maskSkinnedPipeline;
-            batch.setPipeline(maskSkinnedPipeline->pipeline);
-            for (const auto& key : skinnedShapeKeys) {
-                renderItems(renderContext, inShapes.at(key));
+            if (skinnedShapeKeys.size() > 0) {
+                args->_shapePipeline = maskSkinnedPipeline;
+                batch.setPipeline(maskSkinnedPipeline->pipeline);
+                for (const auto& key : skinnedShapeKeys) {
+                    renderItems(renderContext, inShapes.at(key));
+                }
+            }
+
+            // Reiterate to render the DQ skinned
+            if (skinnedDQShapeKeys.size() > 0) {
+                args->_shapePipeline = maskSkinnedDQPipeline;
+                batch.setPipeline(maskSkinnedDQPipeline->pipeline);
+                for (const auto& key : skinnedDQShapeKeys) {
+                    renderItems(renderContext, inShapes.at(key));
+                }
             }
 
             args->_shapePipeline = nullptr;
@@ -489,7 +505,7 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         state->setColorWriteMask(false, false, false, false);
 
-        initMaskPipelines(*shapePlumber, state);
+        initZPassPipelines(*shapePlumber, state);
     }
     auto sharedParameters = std::make_shared<HighlightSharedParameters>();
 
@@ -549,16 +565,4 @@ const render::Varying DrawHighlightTask::addSelectItemJobs(JobModel& task, const
     const auto selectedMetasAndOpaques = task.addJob<SelectItems>("OpaqueSelection", selectMetaAndOpaqueInput);
     const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques, selectionName).asVarying();
     return task.addJob<SelectItems>("TransparentSelection", selectItemInput);
-}
-
-void DrawHighlightTask::initMaskPipelines(render::ShapePlumber& shapePlumber, gpu::StatePointer state) {
-    gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(shader::render_utils::program::model_shadow);
-    shapePlumber.addPipeline(
-        ShapeKey::Filter::Builder().withoutSkinned(),
-        modelProgram, state);
-
-    gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(shader::render_utils::program::skin_model_shadow);
-    shapePlumber.addPipeline(
-        ShapeKey::Filter::Builder().withSkinned(),
-        skinProgram, state);
 }

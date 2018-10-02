@@ -238,7 +238,9 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
  */
 QVariant Base3DOverlay::getProperty(const QString& property) {
     if (property == "name") {
-        return _name;
+        return _nameLock.resultWithReadLock<QString>([&] {
+            return _name;
+        });
     }
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
         return vec3toVariant(getWorldPosition());
@@ -345,6 +347,20 @@ void Base3DOverlay::setVisible(bool visible) {
     Parent::setVisible(visible);
     notifyRenderVariableChange();
 }
+
+QString Base3DOverlay::getName() const {
+    return _nameLock.resultWithReadLock<QString>([&] {
+        return QString("Overlay:") + _name;
+    });
+}
+
+void Base3DOverlay::setName(QString name) {
+    _nameLock.withWriteLock([&] {
+        _name = name;
+    });
+}
+
+
 
 render::ItemKey Base3DOverlay::getKey() {
     auto builder = render::ItemKey::Builder(Overlay::getKey());

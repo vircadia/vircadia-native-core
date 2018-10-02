@@ -90,19 +90,6 @@ Menu::Menu() {
     // Edit menu ----------------------------------
     MenuWrapper* editMenu = addMenu("Edit");
 
-    // Edit > Undo
-    QUndoStack* undoStack = qApp->getUndoStack();
-    QAction* undoAction = undoStack->createUndoAction(editMenu);
-    undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
-    addActionToQMenuAndActionHash(editMenu, undoAction);
-
-    // Edit > Redo
-    QAction* redoAction = undoStack->createRedoAction(editMenu);
-    redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
-    addActionToQMenuAndActionHash(editMenu, redoAction);
-
-    editMenu->addSeparator();
-
     // Edit > Cut
     auto cutAction = addActionToQMenuAndActionHash(editMenu, "Cut", QKeySequence::Cut);
     connect(cutAction, &QAction::triggered, [] {
@@ -255,7 +242,7 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [] {
             auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
             auto hmd = DependencyManager::get<HMDScriptingInterface>();
-            tablet->loadQMLSource("hifi/tablet/ControllerSettings.qml");
+            tablet->pushOntoStack("hifi/tablet/ControllerSettings.qml");
 
             if (!hmd->getShouldShowTablet()) {
                 hmd->toggleShouldShowTablet();
@@ -797,7 +784,37 @@ Menu::Menu() {
 
     // Developer > Show Statistics
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
-    
+
+    // Developer > Show Animation Statistics
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AnimStats);
+
+    // Developer > Scripting > Enable Speech Control API
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+    auto speechRecognizer = DependencyManager::get<SpeechRecognizer>();
+    QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::ControlWithSpeech,
+        Qt::CTRL | Qt::SHIFT | Qt::Key_C,
+        speechRecognizer->getEnabled(),
+        speechRecognizer.data(),
+        SLOT(setEnabled(bool)),
+        UNSPECIFIED_POSITION);
+    connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
+#endif
+
+    // Developer > Scripting > Console...
+    addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
+                                  DependencyManager::get<StandAloneJSConsole>().data(),
+                                  SLOT(toggleConsole()),
+                                  QAction::NoRole,
+                                  UNSPECIFIED_POSITION);
+
+     // Developer > Scripting > API Debugger
+    action = addActionToQMenuAndActionHash(scriptingOptionsMenu, "API Debugger");
+    connect(action, &QAction::triggered, [] {
+        QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
+        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/tools/currentAPI.js");
+        DependencyManager::get<ScriptEngines>()->loadScript(defaultScriptsLoc.toString());
+    });
+
     // Developer > Log
     addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
                                   qApp, SLOT(toggleLogDialog()));

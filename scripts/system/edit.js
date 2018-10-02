@@ -850,6 +850,7 @@ var toolBar = (function () {
         }));
         isActive = active;
         activeButton.editProperties({isActive: isActive});
+        undoHistory.setEnabled(isActive);
 
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
@@ -860,7 +861,7 @@ var toolBar = (function () {
             propertiesTool.setVisible(false);
             selectionManager.clearSelections();
             cameraManager.disable();
-            selectionDisplay.triggerMapping.disable();
+            selectionDisplay.disableTriggerMapping();
             tablet.landscape = false;
             Controller.disableMapping(CONTROLLER_MAPPING_NAME);
         } else {
@@ -876,7 +877,7 @@ var toolBar = (function () {
             gridTool.setVisible(true);
             grid.setEnabled(true);
             propertiesTool.setVisible(true);
-            selectionDisplay.triggerMapping.enable();
+            selectionDisplay.enableTriggerMapping();
             print("starting tablet in landscape mode");
             tablet.landscape = true;
             Controller.enableMapping(CONTROLLER_MAPPING_NAME);
@@ -1239,6 +1240,19 @@ function setupModelMenus() {
     // adj our menuitems
     Menu.addMenuItem({
         menuName: "Edit",
+        menuItemName: "Undo",
+        shortcutKey: 'Ctrl+Z',
+        position: 0,
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Redo",
+        shortcutKey: 'Ctrl+Shift+Z',
+        position: 1,
+    });
+
+    Menu.addMenuItem({
+        menuName: "Edit",
         menuItemName: "Entities",
         isSeparator: true
     });
@@ -1356,6 +1370,9 @@ function setupModelMenus() {
 setupModelMenus(); // do this when first running our script.
 
 function cleanupModelMenus() {
+    Menu.removeMenuItem("Edit", "Undo");
+    Menu.removeMenuItem("Edit", "Redo");
+
     Menu.removeSeparator("Edit", "Entities");
     if (modelMenuAddedDelete) {
         // delete our menuitems
@@ -1698,6 +1715,10 @@ function handeMenuEvent(menuItem) {
         Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem === "Delete") {
         deleteSelectedEntities();
+    } else if (menuItem === "Undo") {
+        undoHistory.undo();
+    } else if (menuItem === "Redo") {
+        undoHistory.redo();
     } else if (menuItem === "Parent Entity to Last") {
         parentSelectedEntities();
     } else if (menuItem === "Unparent Entity") {
@@ -1739,7 +1760,6 @@ function getPositionToCreateEntity(extra) {
         position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), CREATE_DISTANCE + delta));
     } else {
         position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getForward(MyAvatar.orientation), CREATE_DISTANCE + delta));
-        position.y += 0.5;
     }
 
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
@@ -1925,6 +1945,86 @@ function recursiveAdd(newParentID, parentData) {
     }
 }
 
+var UndoHistory = function(onUpdate) {
+    this.history = [];
+    // The current position is the index of the last executed action in the history array.
+    //
+    //     -1 0 1 2 3    <- position
+    //        A B C D    <- actions in history
+    //
+    // If our lastExecutedIndex is 1, the last executed action is B.
+    // If we undo, we undo B (index 1). If we redo, we redo C (index 2).
+    this.lastExecutedIndex = -1;
+    this.enabled = true;
+    this.onUpdate = onUpdate;
+};
+
+UndoHistory.prototype.pushCommand = function(undoFn, undoArgs, redoFn, redoArgs) {
+    if (!this.enabled) {
+        return;
+    }
+    // Delete any history following the last executed action.
+    this.history.splice(this.lastExecutedIndex + 1);
+    this.history.push({
+        undoFn: undoFn,
+        undoArgs: undoArgs,
+        redoFn: redoFn,
+        redoArgs: redoArgs
+    });
+    this.lastExecutedIndex++;
+
+    if (this.onUpdate) {
+        this.onUpdate();
+    }
+};
+UndoHistory.prototype.setEnabled = function(enabled) {
+    this.enabled = enabled;
+    if (this.onUpdate) {
+        this.onUpdate();
+    }
+};
+UndoHistory.prototype.canUndo = function() {
+    return this.enabled && this.lastExecutedIndex >= 0;
+};
+UndoHistory.prototype.canRedo = function() {
+    return this.enabled && this.lastExecutedIndex < this.history.length - 1;
+};
+UndoHistory.prototype.undo = function() {
+    if (!this.canUndo()) {
+        console.warn("Cannot undo action");
+        return;
+    }
+
+    var command = this.history[this.lastExecutedIndex];
+    command.undoFn(command.undoArgs);
+    this.lastExecutedIndex--;
+
+    if (this.onUpdate) {
+        this.onUpdate();
+    }
+};
+UndoHistory.prototype.redo = function() {
+    if (!this.canRedo()) {
+        console.warn("Cannot redo action");
+        return;
+    }
+
+    var command = this.history[this.lastExecutedIndex + 1];
+    command.redoFn(command.redoArgs);
+    this.lastExecutedIndex++;
+
+    if (this.onUpdate) {
+        this.onUpdate();
+    }
+};
+
+function updateUndoRedoMenuItems() {
+    Menu.setMenuEnabled("Edit > Undo", undoHistory.canUndo());
+    Menu.setMenuEnabled("Edit > Redo", undoHistory.canRedo());
+}
+var undoHistory = new UndoHistory(updateUndoRedoMenuItems);
+updateUndoRedoMenuItems();
+
 // When an entity has been deleted we need a way to "undo" this deletion.  Because it's not currently
 // possible to create an entity with a specific id, earlier undo commands to the deleted entity
 // will fail if there isn't a way to find the new entity id.
@@ -2012,7 +2112,7 @@ function pushCommandForSelections(createdEntityData, deletedEntityData, doNotSav
             properties: currentProperties
         });
     }
-    UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
+    undoHistory.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
 }
 
 var ServerScriptStatusMonitor = function(entityID, statusCallback) {
@@ -2135,9 +2235,7 @@ var PropertiesTool = function (opts) {
     var onWebEventReceived = function(data) {
         try {
             data = JSON.parse(data);
-        }
-        catch(e) {
-            print('Edit.js received web event that was not valid json.');
+        } catch(e) {
             return;
         }
         var i, properties, dY, diff, newPosition;

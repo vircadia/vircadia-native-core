@@ -33,6 +33,8 @@ public:
     void setRenderState(const std::string& state) override;
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override {}
 
+    QVariantMap toVariantMap() const override;
+
     static OverlayID buildStylusOverlay(const QVariantMap& properties);
 
 protected:
@@ -40,6 +42,7 @@ protected:
     Buttons getPressedButtons(const PickResultPointer& pickResult) override;
     bool shouldHover(const PickResultPointer& pickResult) override;
     bool shouldTrigger(const PickResultPointer& pickResult) override;
+    virtual PickResultPointer getPickResultCopy(const PickResultPointer& pickResult) const override;
 
     PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button = "", bool hover = true) override;
 

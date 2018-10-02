@@ -135,7 +135,7 @@ typedef std::vector<Transaction> TransactionQueue;
 class Collection {
 public:
     Collection();
-    ~Collection();
+    virtual ~Collection();
 
     virtual void clear();
 

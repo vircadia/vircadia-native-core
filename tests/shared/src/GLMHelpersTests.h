@@ -22,6 +22,7 @@ private slots:
     void testSixByteOrientationCompression();
     void testSimd();
     void testGenerateBasisVectors();
+    void roundPerf();
 };
 
 float getErrorDifference(const float& a, const float& b);

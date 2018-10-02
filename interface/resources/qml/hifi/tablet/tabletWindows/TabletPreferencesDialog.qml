@@ -41,7 +41,15 @@ Item {
             section.saveAll();
         }
 
-        closeDialog();
+        if (HMD.active) {
+            if (gotoPreviousApp) {
+                tablet.returnToPreviousApp();
+            } else {
+                tablet.popFromStack();
+            }
+        } else {
+            closeDialog();
+        }
     }
 
     function restoreAll() {
@@ -50,7 +58,15 @@ Item {
             section.restoreAll();
         }
 
-        closeDialog();
+        if (HMD.active) {
+            if (gotoPreviousApp) {
+                tablet.returnToPreviousApp();
+            } else {
+                tablet.popFromStack();
+            }
+        } else {
+            closeDialog();
+        }
     }
 
     function closeDialog() {

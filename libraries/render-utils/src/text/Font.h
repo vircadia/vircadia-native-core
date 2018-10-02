@@ -23,15 +23,33 @@ public:
 
     void read(QIODevice& path);
 
+    struct DrawParams {
+        vec4 color{ -1 };
+        EffectType effect;
+    };
+
+    struct DrawInfo {
+        gpu::BufferPointer verticesBuffer;
+        gpu::BufferPointer indicesBuffer;
+        gpu::BufferPointer paramsBuffer;
+        uint32_t indexCount;
+
+        QString string;
+        glm::vec2 origin;
+        glm::vec2 bounds;
+        DrawParams params;
+    };
+
     glm::vec2 computeExtent(const QString& str) const;
     float getFontSize() const { return _fontSize; }
 
     // Render string to batch
-    void drawString(gpu::Batch& batch, float x, float y, const QString& str,
-        const glm::vec4* color, EffectType effectType,
-        const glm::vec2& bound, bool layered = false);
+    void drawString(gpu::Batch& batch, DrawInfo& drawInfo, const QString& str,
+        const glm::vec4& color, EffectType effectType, 
+        const glm::vec2& origin, const glm::vec2& bound, bool layered = false);
 
     static Pointer load(const QString& family);
+
 
 private:
     static Pointer load(QIODevice& fontFile);
@@ -40,7 +58,7 @@ private:
     glm::vec2 computeTokenExtent(const QString& str) const;
 
     const Glyph& getGlyph(const QChar& c) const;
-    void rebuildVertices(float x, float y, const QString& str, const glm::vec2& bounds);
+    void buildVertices(DrawInfo& drawInfo, const QString& str, const glm::vec2& origin, const glm::vec2& bounds);
 
     void setupGPU();
 
@@ -66,15 +84,7 @@ private:
     gpu::PipelinePointer _transparentPipeline;
     gpu::TexturePointer _texture;
     gpu::Stream::FormatPointer _format;
-    gpu::BufferPointer _verticesBuffer;
-    gpu::BufferPointer _indicesBuffer;
     gpu::BufferStreamPointer _stream;
-    unsigned int _numVertices = 0;
-    unsigned int _numIndices = 0;
-
-    // last string render characteristics
-    QString _lastStringRendered;
-    glm::vec2 _lastBounds;
 };
 
 #endif

@@ -23,6 +23,8 @@ FocusScope {
     property string subMenu: ""
     signal sendToScript(var message);
 
+    HifiConstants { id: hifi }
+
     Rectangle {
         id: bgNavBar
         height: 90
@@ -45,24 +47,22 @@ FocusScope {
         anchors.topMargin: 0
         anchors.top: parent.top
 
-        Image {
+        HiFiGlyphs {
             id: menuRootIcon
-            width: 40
-            height: 40
-            source: "../../../icons/tablet-icons/menu-i.svg"
+            text: breadcrumbText.text !== "Menu" ? hifi.glyphs.backward : ""
+            size: 72
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
-            anchors.leftMargin: 15
+            width: breadcrumbText.text === "Menu" ? 32 : 50
+            visible: breadcrumbText.text !== "Menu"
 
             MouseArea {
                 anchors.fill: parent
                 hoverEnabled: true
                 onEntered: iconColorOverlay.color = "#1fc6a6";
                 onExited: iconColorOverlay.color = "#34a2c7";
-                // navigate back to root level menu
                 onClicked: {
-                    buildMenu();
-                    breadcrumbText.text = "Menu";
+                    menuPopperUpper.closeLastMenu();
                     tabletRoot.playButtonClickSound();
                 }
             }
@@ -79,30 +79,16 @@ FocusScope {
             id: breadcrumbText
             text: "Menu"
             size: 26
-            color: "#34a2c7"
+            color: "#e3e3e3"
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: menuRootIcon.right
             anchors.leftMargin: 15
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                onEntered: breadcrumbText.color = "#1fc6a6";
-                onExited: breadcrumbText.color = "#34a2c7";
-                // navigate back to parent level menu if there is one
-                onClicked: { 
-                    if (breadcrumbText.text !== "Menu") {
-                        menuPopperUpper.closeLastMenu();
-                    }
-                    tabletRoot.playButtonClickSound();
-                }
-            }
         }
     }
 
     function pop() {
         menuPopperUpper.closeLastMenu();
     }
-
 
     function setRootMenu(rootMenu, subMenu) {
         tabletMenu.subMenu = subMenu;

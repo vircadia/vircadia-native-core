@@ -72,17 +72,17 @@ def jniFolder = new File(appDir, 'src/main/jniLibs/arm64-v8a')
 def baseUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/android/'
 def breakpadDumpSymsDir = new File("${appDir}/build/tmp/breakpadDumpSyms")
 
-def qtFile='qt-5.11.1_linux_armv8-libcpp_openssl.tgz'
-def qtChecksum='f312c47cd8b8dbca824c32af4eec5e66'
-def qtVersionId='nyCGcb91S4QbYeJhUkawO5x1lrLdSNB_'
+def qtFile='qt-5.11.1_linux_armv8-libcpp_openssl_patched.tgz'
+def qtChecksum='aa449d4bfa963f3bc9a9dfe558ba29df'
+def qtVersionId='3S97HBM5G5Xw9EfE52sikmgdN3t6C2MN'
 if (Os.isFamily(Os.FAMILY_MAC)) {
-    qtFile = 'qt-5.11.1_osx_armv8-libcpp_openssl.tgz'
-    qtChecksum='a0c8b394aec5b0fcd46714ca3a53278a'
-    qtVersionId='QNa.lwNJaPc0eGuIL.xZ8ebeTuLL7rh8'
+    qtFile = 'qt-5.11.1_osx_armv8-libcpp_openssl_patched.tgz'
+    qtChecksum='c83cc477c08a892e00c71764dca051a0'
+    qtVersionId='OxBD7iKINv1HbyOXmAmDrBb8AF3N.Kup'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-    qtFile = 'qt-5.11.1_win_armv8-libcpp_openssl.tgz'
-    qtChecksum='d80aed4233ce9e222aae8376e7a94bf9'
-    qtVersionId='iDVXu0i3WEXRFIxQCtzcJ2XuKrE8RIqB'
+    qtFile = 'qt-5.11.1_win_armv8-libcpp_openssl_patched.tgz'
+    qtChecksum='0582191cc55431aa4f660848a542883e'
+    qtVersionId='JfWM0P_Mz5Qp0LwpzhrsRwN3fqlLSFeT'
 }
 
 def packages = [
