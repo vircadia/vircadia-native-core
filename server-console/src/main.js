@@ -107,7 +107,7 @@ userConfig.load(configPath);
 const ipcMain = electron.ipcMain;
 
 
-function isInterfaceInstalled() {
+function isInterfaceInstalled () {
     if (osType == "Darwin") {
         // In OSX Sierra, the app translocation process moves
         // the executable to a random location before starting it
@@ -120,7 +120,7 @@ function isInterfaceInstalled() {
     }
 }
 
-function isServerInstalled() {
+function isServerInstalled () {
     return dsPath && acPath;
 }
 
@@ -338,7 +338,7 @@ const HifiNotificationType = hfNotifications.NotificationType;
 var pendingNotifications = {}
 var notificationState = NotificationState.UNNOTIFIED;
 
-function setNotificationState(notificationType, pending = true) {
+function setNotificationState (notificationType, pending = true) {
     pendingNotifications[notificationType] = pending;
     notificationState = NotificationState.UNNOTIFIED;
     for (var key in pendingNotifications) {
@@ -526,7 +526,7 @@ function buildMenuArray(serverState) {
         menuArray.push(labels.share);
         menuArray.push(separator);
         if (isInterfaceInstalled()) {
-            if(trayNotifications.enabled()) {
+            if (trayNotifications.enabled()) {
                 menuArray.push(labels.goto);
                 menuArray.push(labels.people);
                 menuArray.push(labels.wallet);

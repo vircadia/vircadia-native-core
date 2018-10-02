@@ -123,7 +123,7 @@ HifiNotification.prototype = {
             timeout: 5
             },
             function (error, reason, metadata) {
-                if(_finished) {
+                if (_finished) {
                     if (osType === 'Darwin') {
                         setTimeout(_finished, OSX_CLICK_DELAY_TIMEOUT);
                     } else {
