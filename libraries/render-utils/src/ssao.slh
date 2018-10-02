@@ -107,11 +107,14 @@ float getRadius2() {
     return params._radiusInfo.y;
 }
 float getInvRadius6() {
+    return mix(params._radiusInfo.z, 1.0, isHorizonBased());
+}
+float getInvRadius2() {
     return params._radiusInfo.z;
 }
 
 float getObscuranceScaling() {
-    return params._radiusInfo.z * params._radiusInfo.w;
+    return getInvRadius6() * params._radiusInfo.w;
 }
 
 float isDitheringEnabled() {
@@ -161,13 +164,22 @@ float getAngleDitheringWorldPos(in vec3 pixelWorldPos) {
     return isDitheringEnabled() * float(((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) + (3 * pixelPos.y ^ pixelPos.z + pixelPos.x * pixelPos.z)) * 10);
 }
 
+float getAngleDitheringSplit() {
+    return isDitheringEnabled() * frameParams._angleInfo.x;
+}
+
 float getAngleDithering(in ivec2 pixelPos) {
 #if SSAO_USE_QUAD_SPLIT
-    return isDitheringEnabled() * frameParams._angleInfo.x;
+    return getAngleDitheringSplit();
 #else
     // Hash function used in the AlchemyAO paper
-    return isDitheringEnabled() *  float((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10);
+    return getAngleDitheringPixelPos(pixelPos);
 #endif
+}
+
+float getAngleDitheringPixelPos(in ivec2 pixelPos) {
+    // Hash function used in the AlchemyAO paper
+    return isDitheringEnabled() *  float((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10);
 }
 
 float evalDiskRadius(float Zeye, vec2 sideImageSize) {
@@ -413,7 +425,7 @@ float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 t
 #define HBAO_USE_OVERHANG_HACK 0
 
 float computeWeightForHorizon(float horizonLimit, float distanceSquared) {
-    return max(0.0, 1.0 - distanceSquared / getRadius2());
+    return max(0.0, 1.0 - distanceSquared * getInvRadius2());
 }
 
 float computeWeightedHorizon(float horizonLimit, float distanceSquared) {

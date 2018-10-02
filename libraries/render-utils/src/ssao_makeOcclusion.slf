@@ -37,13 +37,18 @@ void main(void) {
 
     // Stereo side info based on the real viewport size of this pass
     vec2 sideDepthSize = getDepthTextureSideSize(0);
-    ivec2 sideOcclusionSize = ivec2( getOcclusionSplitSideSize() );
+    ivec2 sideOcclusionSize;
+    if (isHorizonBased()) {
+        sideOcclusionSize = ivec2( getOcclusionSplitSideSize() );
+    } else {
+        sideOcclusionSize = ivec2( getOcclusionSideSize() );
+    }
     ivec4 side = getStereoSideInfoFromWidth(fragPixelPos.x, sideOcclusionSize.x);
     // From now on, fragUVPos is the UV pos in the side
     fragUVPos.x = mix(fragUVPos.x, fragUVPos.x * 2.0 - getStereoSide(side), isStereo());
 
     fragUVPos = snapToTexel(fragUVPos, sideDepthSize);
-    
+
     // The position and normal of the pixel fragment in Eye space
     vec2 deltaDepthUV = vec2(2.0) / sideDepthSize;
     vec3 fragPositionES = buildPosition(side, fragUVPos);
@@ -58,7 +63,7 @@ void main(void) {
     }
 
     // Let's make noise 
-    float randomPatternRotationAngle = getAngleDithering(fragPixelPos);
+    float randomPatternRotationAngle = 0.0;
 
     // Accumulate the obscurance for each samples
     float obscuranceSum = 0.0;
@@ -66,21 +71,23 @@ void main(void) {
     float invNumSamples = getInvNumSamples();
 
     if (isHorizonBased()) {
+        randomPatternRotationAngle = getAngleDithering(fragPixelPos);
+
         for (int i = 0; i < numSamples; ++i) {
             vec3 deltaTap = getUnitTapLocation(i, 1.0, randomPatternRotationAngle, PI);
             obscuranceSum += evalVisibilityHBAO(side, fragUVPos, deltaDepthUV, deltaTap.xy, diskPixelRadius, fragPositionES, fragNormalES);
         }
         obscuranceSum *= invNumSamples;
 #if HBAO_USE_COS_ANGLE
-        obscuranceSum *= 0.5;
         obscuranceSum = 1.0 - obscuranceSum * getObscuranceScaling();
 #else
-        obscuranceSum *= 0.5;
         obscuranceSum = mix(1.0, obscuranceSum, getObscuranceScaling());
 #endif
     } else {
         // Steps are in the depth texture resolution
         vec2 depthTexFragPixelPos = fragUVPos * sideDepthSize;
+
+        randomPatternRotationAngle = getAngleDitheringPixelPos(fragPixelPos) + getAngleDitheringSplit();
 
         for (int i = 0; i < numSamples; ++i) {
             vec3 tap = getTapLocationClampedSSAO(i, randomPatternRotationAngle, diskPixelRadius, depthTexFragPixelPos, sideDepthSize);
@@ -90,7 +97,7 @@ void main(void) {
             obscuranceSum += float(tap.z > 0.0) * evalVisibilitySSAO(fragPositionES, fragNormalES, tapPositionES);
         }
         obscuranceSum *= invNumSamples;
-        obscuranceSum = 1.0 - obscuranceSum * obscuranceSum * getObscuranceScaling();
+        obscuranceSum = 1.0 - obscuranceSum * getObscuranceScaling();
     }
 
     float occlusion = clamp(obscuranceSum, 0.0, 1.0);

@@ -206,21 +206,85 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture() {
 
 AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false),
-    radius{ 0.7f },
     perspectiveScale{ 1.0f },
-    obscuranceLevel{ 0.15f },
-    falloffAngle{ 0.1f },
     edgeSharpness{ 1.0f },
-    blurDeviation{ 2.5f },
-    numSpiralTurns{ 7.0f },
-    numSamples{ 1 },
     resolutionLevel{ 2 },
     blurRadius{ 4 },
+
+    ssaoRadius{ 1.0f },
+    ssaoObscuranceLevel{ 0.4f },
+    ssaoFalloffAngle{ 0.1f },
+    ssaoNumSamples{ 32 },
+    ssaoNumSpiralTurns{ 7.0f },
+
+    hbaoRadius{ 0.7f },
+    hbaoObscuranceLevel{ 0.75f },
+    hbaoFalloffAngle{ 0.3f },
+    hbaoNumSamples{ 1 },
+
     ditheringEnabled{ true },
     borderingEnabled{ true },
     fetchMipsEnabled{ true },
-    horizonBased{ true },
+    horizonBased{ false },
     jitterEnabled{ false }{
+}
+
+void AmbientOcclusionEffectConfig::setSSAORadius(float newRadius) {
+    ssaoRadius = std::max(0.01f, newRadius); emit dirty();
+}
+
+void AmbientOcclusionEffectConfig::setSSAOObscuranceLevel(float level) {
+    ssaoObscuranceLevel = std::max(0.01f, level);
+    emit dirty();
+}
+
+void AmbientOcclusionEffectConfig::setSSAOFalloffAngle(float bias) {
+    ssaoFalloffAngle = std::max(0.0f, std::min(bias, 1.0f));
+    emit dirty();
+}
+
+void AmbientOcclusionEffectConfig::setSSAONumSpiralTurns(float turns) {
+    ssaoNumSpiralTurns = std::max(0.0f, (float)turns);
+    emit dirty();
+}
+
+void AmbientOcclusionEffectConfig::setSSAONumSamples(int samples) {
+    ssaoNumSamples = std::max(1.0f, (float)samples);
+    emit dirty();
+}
+
+void AmbientOcclusionEffectConfig::setHBAORadius(float newRadius) {
+    hbaoRadius = std::max(0.01f, newRadius); emit dirty();
+}
+
+void AmbientOcclusionEffectConfig::setHBAOObscuranceLevel(float level) {
+    hbaoObscuranceLevel = std::max(0.01f, level);
+    emit dirty();
+}
+
+void AmbientOcclusionEffectConfig::setHBAOFalloffAngle(float bias) {
+    hbaoFalloffAngle = std::max(0.0f, std::min(bias, 1.0f));
+    emit dirty();
+}
+
+void AmbientOcclusionEffectConfig::setHBAONumSamples(int samples) {
+    hbaoNumSamples = std::max(1.0f, (float)samples);
+    emit dirty();
+}
+
+void AmbientOcclusionEffectConfig::setEdgeSharpness(float sharpness) { 
+    edgeSharpness = std::max(0.0f, (float)sharpness); 
+    emit dirty(); 
+}
+
+void AmbientOcclusionEffectConfig::setResolutionLevel(int level) { 
+    resolutionLevel = std::max(0, std::min(level, MAX_RESOLUTION_LEVEL)); 
+    emit dirty(); 
+}
+
+void AmbientOcclusionEffectConfig::setBlurRadius(int radius) { 
+    blurRadius = std::max(0, std::min(MAX_BLUR_RADIUS, radius)); 
+    emit dirty(); 
 }
 
 AmbientOcclusionEffect::AOParameters::AOParameters() {
@@ -242,42 +306,17 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(config.enabled);
 
     bool shouldUpdateBlurs = false;
+    bool shouldUpdateTechnique = false;
 
     _isJitterEnabled = config.jitterEnabled;
 
-    const double RADIUS_POWER = 6.0;
-    const auto& radius = config.radius;
-    if (radius != _aoParametersBuffer->getRadius() || config.horizonBased != _aoParametersBuffer->isHorizonBased()) {
-        auto& current = _aoParametersBuffer.edit()._radiusInfo;
-        current.x = radius;
-        current.y = radius * radius;
-        current.z = 10.0f;
-        if (!config.horizonBased) {
-            current.z *= (float)(1.0 / pow((double)radius, RADIUS_POWER));
-        }
-    }
-
-    if (config.horizonBased != _aoParametersBuffer->isHorizonBased()) {
-        auto& current = _aoParametersBuffer.edit()._resolutionInfo;
-        current.y = config.horizonBased & 1;
-    }
-
-    if (config.obscuranceLevel != _aoParametersBuffer->getObscuranceLevel()) {
-        auto& current = _aoParametersBuffer.edit()._radiusInfo;
-        current.w = config.obscuranceLevel;
-    }
-
-    if (config.falloffAngle != _aoParametersBuffer->getFalloffCosAngle()) {
-        auto& current = _aoParametersBuffer.edit()._falloffInfo;
-        current.x = config.falloffAngle;
-        current.y = 1.0f / (1.0f - current.x);
-        // Compute sin from cos
-        current.z = sqrtf(1.0f - config.falloffAngle * config.falloffAngle);
-        current.w = 1.0f / current.z;
+    if (!_framebuffer) {
+        _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
+        shouldUpdateBlurs = true;
     }
 
     // Update bilateral blur
-    {
+    if (config.blurRadius != _hblurParametersBuffer->getBlurRadius() || _blurEdgeSharpness != config.edgeSharpness) {
         const float BLUR_EDGE_DISTANCE_SCALE = float(10000 * SSAO_DEPTH_KEY_SCALE);
         const float BLUR_EDGE_NORMAL_SCALE = 2.0f;
 
@@ -286,6 +325,8 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         float blurRadialSigma = float(config.blurRadius) * 0.5f;
         float blurRadialScale = 1.0f / (2.0f*blurRadialSigma*blurRadialSigma);
         glm::vec3 blurScales = -glm::vec3(blurRadialScale, glm::vec2(BLUR_EDGE_DISTANCE_SCALE, BLUR_EDGE_NORMAL_SCALE) * config.edgeSharpness);
+
+        _blurEdgeSharpness = config.edgeSharpness;
 
         hblur.x = blurScales.x;
         hblur.y = blurScales.y;
@@ -298,33 +339,10 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         vblur.w = (float)config.blurRadius;
     }
 
-    if (config.numSpiralTurns != _aoParametersBuffer->getNumSpiralTurns()) {
-        auto& current = _aoParametersBuffer.edit()._sampleInfo;
-        current.z = config.numSpiralTurns;
-    }
-
-    if (config.numSamples != _aoParametersBuffer->getNumSamples()) {
-        auto& current = _aoParametersBuffer.edit()._sampleInfo;
-        current.x = config.numSamples;
-        current.y = 1.0f / config.numSamples;
-
-        // Regenerate offsets
-        const int B = 3;
-        const float invB = 1.0f / (float)B;
-
-        for (int i = 0; i < _randomSamples.size(); i++) {
-            int index = i+1; // Indices start at 1, not 0
-            float f = 1.0f;
-            float r = 0.0f;
-
-            while (index > 0) {
-                f = f * invB;
-                r = r + f * (float)(index % B);
-                index = index / B;
-            }
-            _randomSamples[i] = r * 2.0f * M_PI / config.numSamples;
-        }
-        updateJitterSamples();
+    if (_aoParametersBuffer->isHorizonBased() != config.horizonBased) {
+        auto& current = _aoParametersBuffer.edit()._resolutionInfo;
+        current.y = config.horizonBased & 1;
+        shouldUpdateTechnique = true;
     }
 
     if (config.fetchMipsEnabled != _aoParametersBuffer->isFetchMipsEnabled()) {
@@ -332,11 +350,6 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.w = (float)config.fetchMipsEnabled;
     }
 
-    if (!_framebuffer) {
-        _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
-        shouldUpdateBlurs = true;
-    }
-    
     if (config.perspectiveScale != _aoParametersBuffer->getPerspectiveScale()) {
         _aoParametersBuffer.edit()._resolutionInfo.z = config.perspectiveScale;
     }
@@ -357,11 +370,102 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.w = (float)config.borderingEnabled;
     }
 
+    if (config.horizonBased) {
+        // Configure for HBAO
+        const auto& radius = config.hbaoRadius;
+        if (shouldUpdateTechnique || radius != _aoParametersBuffer->getRadius()) {
+            auto& current = _aoParametersBuffer.edit()._radiusInfo;
+            current.x = radius;
+            current.y = radius * radius;
+            current.z = 1.0f / current.y;
+        }
+
+        if (shouldUpdateTechnique || config.hbaoObscuranceLevel != _aoParametersBuffer->getObscuranceLevel()) {
+            auto& current = _aoParametersBuffer.edit()._radiusInfo;
+            current.w = config.hbaoObscuranceLevel;
+        }
+
+        if (shouldUpdateTechnique || config.hbaoFalloffAngle != _aoParametersBuffer->getFalloffAngle()) {
+            auto& current = _aoParametersBuffer.edit()._falloffInfo;
+            current.x = config.hbaoFalloffAngle;
+            current.y = 1.0f / (1.0f - current.x);
+            // Compute sin from cos
+            current.z = sqrtf(1.0f - config.hbaoFalloffAngle * config.hbaoFalloffAngle);
+            current.w = 1.0f / current.z;
+        }
+
+        if (shouldUpdateTechnique || config.hbaoNumSamples != _aoParametersBuffer->getNumSamples()) {
+            auto& current = _aoParametersBuffer.edit()._sampleInfo;
+            current.x = config.hbaoNumSamples;
+            current.y = 1.0f / config.hbaoNumSamples;
+            updateRandomSamples();
+            updateJitterSamples();
+        }
+    } else {
+        // Configure for SSAO
+        const double RADIUS_POWER = 6.0;
+        const auto& radius = config.ssaoRadius;
+        if (shouldUpdateTechnique || radius != _aoParametersBuffer->getRadius()) {
+            auto& current = _aoParametersBuffer.edit()._radiusInfo;
+            current.x = radius;
+            current.y = radius * radius;
+            current.z = (float)(10.0 / pow((double)radius, RADIUS_POWER));
+        }
+
+        if (shouldUpdateTechnique || config.ssaoObscuranceLevel != _aoParametersBuffer->getObscuranceLevel()) {
+            auto& current = _aoParametersBuffer.edit()._radiusInfo;
+            current.w = config.ssaoObscuranceLevel;
+        }
+
+        if (shouldUpdateTechnique || config.ssaoFalloffAngle != _aoParametersBuffer->getFalloffAngle()) {
+            auto& current = _aoParametersBuffer.edit()._falloffInfo;
+            current.x = config.ssaoFalloffAngle;
+        }
+
+        if (shouldUpdateTechnique || config.ssaoNumSpiralTurns != _aoParametersBuffer->getNumSpiralTurns()) {
+            auto& current = _aoParametersBuffer.edit()._sampleInfo;
+            current.z = config.ssaoNumSpiralTurns;
+        }
+
+        if (shouldUpdateTechnique || config.ssaoNumSamples != _aoParametersBuffer->getNumSamples()) {
+            auto& current = _aoParametersBuffer.edit()._sampleInfo;
+            current.x = config.ssaoNumSamples;
+            current.y = 1.0f / config.ssaoNumSamples;
+            updateRandomSamples();
+            updateJitterSamples();
+        }
+    }
+
     if (shouldUpdateBlurs) {
         updateBlurParameters();
     }
 }
 
+void AmbientOcclusionEffect::updateRandomSamples() {
+    // Regenerate offsets
+    if (_aoParametersBuffer->isHorizonBased()) {
+        const int B = 3;
+        const float invB = 1.0f / (float)B;
+        float sampleScale = 2.0f * M_PI / _aoParametersBuffer->getNumSamples();
+
+        for (int i = 0; i < _randomSamples.size(); i++) {
+            int index = i + 1; // Indices start at 1, not 0
+            float f = 1.0f;
+            float r = 0.0f;
+
+            while (index > 0) {
+                f = f * invB;
+                r = r + f * (float)(index % B);
+                index = index / B;
+            }
+            _randomSamples[i] = r * sampleScale;
+        }
+    } else {
+        for (int i = 0; i < _randomSamples.size(); i++) {
+            _randomSamples[i] = randFloat() * 2.0f * M_PI;
+        }
+    }
+}
 void AmbientOcclusionEffect::updateBlurParameters() {
     const auto resolutionLevel = _aoParametersBuffer->getResolutionLevel();
     auto& vblur = _vblurParametersBuffer.edit();
@@ -477,9 +581,14 @@ int AmbientOcclusionEffect::getDepthResolutionLevel() const {
 }
 
 void AmbientOcclusionEffect::updateJitterSamples() {
-    for (int splitId = 0; splitId < SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT; splitId++) {
-        auto& sample = _aoFrameParametersBuffer[splitId].edit();
-        sample._angleInfo.x = _randomSamples[splitId + SSAO_RANDOM_SAMPLE_COUNT * _frameId];
+    if (_aoParametersBuffer->isHorizonBased()) {
+        for (int splitId = 0; splitId < SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT; splitId++) {
+            auto& sample = _aoFrameParametersBuffer[splitId].edit();
+            sample._angleInfo.x = _randomSamples[splitId + SSAO_RANDOM_SAMPLE_COUNT * _frameId];
+        }
+    } else {
+        auto& sample = _aoFrameParametersBuffer[0].edit();
+        sample._angleInfo.x = _randomSamples[_frameId];
     }
 }
 
@@ -594,57 +703,69 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setPipeline(occlusionPipeline);
         batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, occlusionDepthTexture);
 
+        if (_aoParametersBuffer->isHorizonBased()) {
 #if SSAO_USE_QUAD_SPLIT
-        batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, occlusionNormalTexture);
-        {
-            const auto uvScale = glm::vec3(
-                (splitSize.x * SSAO_SPLIT_COUNT) / float(occlusionViewport.z),
-                (splitSize.y * SSAO_SPLIT_COUNT) / float(occlusionViewport.w),
-                1.0f);
-            const auto postPixelOffset = glm::vec2(0.5f) / glm::vec2(occlusionViewport.z, occlusionViewport.w);
-            const auto prePixelOffset = glm::vec2(0.5f * uvScale.x, 0.5f * uvScale.y) / glm::vec2(splitSize);
-            Transform model;
+            batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, occlusionNormalTexture);
+            {
+                const auto uvScale = glm::vec3(
+                    (splitSize.x * SSAO_SPLIT_COUNT) / float(occlusionViewport.z),
+                        (splitSize.y * SSAO_SPLIT_COUNT) / float(occlusionViewport.w),
+                    1.0f);
+                const auto postPixelOffset = glm::vec2(0.5f) / glm::vec2(occlusionViewport.z, occlusionViewport.w);
+                const auto prePixelOffset = glm::vec2(0.5f * uvScale.x, 0.5f * uvScale.y) / glm::vec2(splitSize);
+                Transform model;
 
-            batch.setViewportTransform(splitViewport);
+                batch.setViewportTransform(splitViewport);
 
-            model.setScale(uvScale);
-            for (int y = 0; y < SSAO_SPLIT_COUNT; y++) {
-                for (int x = 0; x < SSAO_SPLIT_COUNT; x++) {
-                    const int splitIndex = x + y * SSAO_SPLIT_COUNT;
-                    const auto uvTranslate = glm::vec3(
-                        postPixelOffset.x * (2 * x + 1) - prePixelOffset.x,
-                        postPixelOffset.y * (2 * y + 1) - prePixelOffset.y,
-                        0.0f
+                model.setScale(uvScale);
+                for (int y = 0; y < SSAO_SPLIT_COUNT; y++) {
+                    for (int x = 0; x < SSAO_SPLIT_COUNT; x++) {
+                        const int splitIndex = x + y * SSAO_SPLIT_COUNT;
+                        const auto uvTranslate = glm::vec3(
+                            postPixelOffset.x * (2 * x + 1) - prePixelOffset.x,
+                            postPixelOffset.y * (2 * y + 1) - prePixelOffset.y,
+                            0.0f
                         );
-                    model.setTranslation(uvTranslate);
-                    batch.setModelTransform(model);
-                    batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(splitIndex));
-                    batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[splitIndex]);
-                    batch.draw(gpu::TRIANGLE_STRIP, 4);
+                        model.setTranslation(uvTranslate);
+                        batch.setModelTransform(model);
+                        batch.setFramebuffer(_framebuffer->getOcclusionSplitFramebuffer(splitIndex));
+                        batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[splitIndex]);
+                        batch.draw(gpu::TRIANGLE_STRIP, 4);
+                    }
                 }
             }
-        }
 #else
-        batch.setViewportTransform(occlusionViewport);
-        model.setIdentity();
-        batch.setModelTransform(model);
-        batch.setFramebuffer(occlusionFBO);
-        batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
+            batch.setViewportTransform(occlusionViewport);
+            batch.setModelTransform(Transform());
+            batch.setFramebuffer(occlusionFBO);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
 #endif
+        } else {
+#if SSAO_USE_QUAD_SPLIT
+            batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, occlusionNormalTexture);
+#endif
+            batch.setViewportTransform(occlusionViewport);
+            batch.setModelTransform(Transform());
+            batch.setFramebuffer(occlusionFBO);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        }
 
         batch.popProfileRange();
 
 #if SSAO_USE_QUAD_SPLIT
-        // Gather back the four separate renders into one interleaved one
-        batch.pushProfileRange("Gather");
-        batch.setViewportTransform(occlusionViewport);
-        batch.setModelTransform(Transform());
-        batch.setFramebuffer(occlusionFBO);
-        batch.setPipeline(gatherPipeline);
-        batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, _framebuffer->getOcclusionSplitTexture());
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-        batch.popProfileRange();
+        if (_aoParametersBuffer->isHorizonBased()) {
+            // Gather back the four separate renders into one interleaved one
+            batch.pushProfileRange("Gather");
+            batch.setViewportTransform(occlusionViewport);
+            batch.setModelTransform(Transform());
+            batch.setFramebuffer(occlusionFBO);
+            batch.setPipeline(gatherPipeline);
+            batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, _framebuffer->getOcclusionSplitTexture());
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+            batch.popProfileRange();
+        }
 #endif
 
         {

@@ -33,11 +33,6 @@ Rectangle {
 
         Repeater {
             model: [
-                "Radius:radius:2.0:false",
-                "Level:obscuranceLevel:1.0:false",
-                "Num Taps:numSamples:16:true",
-                "Taps Spiral:numSpiralTurns:10.0:false",
-                "Falloff Angle:falloffAngle:1.0:false",
                 "Blur Edge Sharpness:edgeSharpness:1.0:false",
                 "Blur Radius:blurRadius:15.0:true",
                 "Resolution Downscale:resolutionLevel:2:true",
@@ -102,5 +97,81 @@ Rectangle {
                }
             ]
         }
+
+
+
+        TabView {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 400
+
+            Tab {
+                title: "SSAO"
+
+                Rectangle {                        
+                    color: hifi.colors.baseGray;
+
+                    Column {
+                        spacing: 8
+                        anchors.left: parent.left
+                        anchors.right: parent.right       
+                        anchors.margins: hifi.dimensions.contentMargin.x  
+
+                        Repeater {
+                            model: [
+                                "Radius:ssaoRadius:2.0:false",
+                                "Level:ssaoObscuranceLevel:1.0:false",
+                                "Num Taps:ssaoNumSamples:64:true",
+                                "Taps Spiral:ssaoNumSpiralTurns:10.0:false",
+                                "Falloff Angle:ssaoFalloffAngle:1.0:false",
+                            ]
+                            ConfigSlider {
+                                label: qsTr(modelData.split(":")[0])
+                                integral: (modelData.split(":")[3] == 'true')
+                                config: Render.getConfig("RenderMainView.AmbientOcclusion")
+                                property: modelData.split(":")[1]
+                                max: modelData.split(":")[2]
+                                min: 0.0
+                                height:38
+                            }
+                        }
+                    }
+                }
+            }
+
+            Tab {
+                title: "HBAO"
+                    
+                Rectangle {
+                    color: hifi.colors.baseGray;
+                    
+                    Column {
+                        spacing: 8
+                        anchors.left: parent.left
+                        anchors.right: parent.right       
+                        anchors.margins: hifi.dimensions.contentMargin.x  
+
+                        Repeater {
+                            model: [
+                                "Radius:hbaoRadius:2.0:false",
+                                "Level:hbaoObscuranceLevel:1.0:false",
+                                "Num Taps:hbaoNumSamples:6:true",
+                                "Falloff Angle:hbaoFalloffAngle:1.0:false",
+                            ]
+                            ConfigSlider {
+                                label: qsTr(modelData.split(":")[0])
+                                integral: (modelData.split(":")[3] == 'true')
+                                config: Render.getConfig("RenderMainView.AmbientOcclusion")
+                                property: modelData.split(":")[1]
+                                max: modelData.split(":")[2]
+                                min: 0.0
+                                height:38
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
