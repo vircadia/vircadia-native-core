@@ -617,7 +617,6 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         qWarning() << "Unexpected tangents in " << url;
     }
     const auto normalsAndTangentsSize = normalsSize + tangentsSize;
-    const int normalsAndTangentsStride = 2 * normalElement.getSize();
 
     // Color attrib
     const auto colorElement = FBX_COLOR_ELEMENT;
