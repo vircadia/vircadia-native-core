@@ -471,34 +471,6 @@ void MyAvatar::update(float deltaTime) {
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     setHipToHandController(computeHandAzimuth());
 
-    // qCDebug(interfaceapp) << "sitting state is " << getIsInSittingState();
-    // debug setting for sitting state if you start in the chair.
-    // if the head is close to the floor in sensor space
-    // and the up of the head is close to sensor up then try switching us to sitting state.
-    auto sensorHeadPoseDebug = getControllerPoseInSensorFrame(controller::Action::HEAD);
-    if (sensorHeadPoseDebug.isValid()) {
-        _sumUserHeightSensorSpace += sensorHeadPoseDebug.getTranslation().y;
-        _averageUserHeightCount++;
-    }
-    qCDebug(interfaceapp) << sensorHeadPoseDebug.isValid() << " valid. sensor space average " << (_sumUserHeightSensorSpace / _averageUserHeightCount) << " head position sensor y value " << sensorHeadPoseDebug.getTranslation().y;
-
-    glm::vec3 upHead = transformVectorFast(sensorHeadPoseDebug.getMatrix(), glm::vec3(0.0f, 1.0f, 0.0f));
-    float acosHead = glm::dot(upHead, glm::vec3(0.0f, 1.0f, 0.0f));
-
-    glm::vec3 headDefaultPositionAvatarSpace = getAbsoluteDefaultJointTranslationInObjectFrame(getJointIndex("Head"));
-    glm::quat spine2OrientationAvatarSpace = getAbsoluteJointRotationInObjectFrame(getJointIndex("Spine2"));
-    glm::vec3 headCurrentPositionAvatarSpace = getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation();
-    glm::vec3 upSpine2 = spine2OrientationAvatarSpace * glm::vec3(0.0f, 1.0f, 0.0f);
-    float angleSpine2 = glm::dot(upSpine2, glm::vec3(0.0f, 1.0f, 0.0f));
-    if (headCurrentPositionAvatarSpace.y < (headDefaultPositionAvatarSpace.y - 0.05) && (angleSpine2 > 0.98f)) {
-        _squatCount++;
-    } else {
-        _squatCount = 0;
-    }
-
-
-    //   qCDebug(interfaceapp) << "sensor space head pos " << sensorHeadPoseDebug.getTranslation().y;
-
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
     if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid()) {
@@ -526,6 +498,29 @@ void MyAvatar::update(float deltaTime) {
     _recentModeReadings.insert(newHeightReadingInCentimeters);
     setCurrentStandingHeight(computeStandingHeightMode(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
     setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
+
+    // if the head tracker reading is valid then add it to the running average.
+    auto sensorHeadPoseDebug = getControllerPoseInSensorFrame(controller::Action::HEAD);
+    if (sensorHeadPoseDebug.isValid()) {
+        _sumUserHeightSensorSpace += sensorHeadPoseDebug.getTranslation().y;
+        _averageUserHeightCount++;
+    }
+
+    // if the spine is straight and the head is below the default position by 5 cm then increment squatty count.
+    const float SQUAT_THRESHOLD = 0.05f;
+    const float COSINE_TEN_DEGREES = 0.98f;
+    glm::vec3 headDefaultPositionAvatarSpace = getAbsoluteDefaultJointTranslationInObjectFrame(getJointIndex("Head"));
+    glm::quat spine2OrientationAvatarSpace = getAbsoluteJointRotationInObjectFrame(getJointIndex("Spine2"));
+    glm::vec3 upSpine2 = spine2OrientationAvatarSpace * glm::vec3(0.0f, 1.0f, 0.0f);
+    if (glm::length(upSpine2) > 0.0f) {
+        upSpine2 = glm::normalize(upSpine2);
+    }
+    float angleSpine2 = glm::dot(upSpine2, glm::vec3(0.0f, 1.0f, 0.0f));
+    if (newHeightReading < (headDefaultPositionAvatarSpace.y - SQUAT_THRESHOLD) && (angleSpine2 > COSINE_TEN_DEGREES)) {
+        _squatCount++;
+    } else {
+        _squatCount = 0;
+    }
 
     if (_drawAverageFacingEnabled) {
         auto sensorHeadPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
@@ -3561,12 +3556,6 @@ glm::vec3 MyAvatar::computeCounterBalance() {
     if (counterBalancedCg.y > (tposeHips.y + 0.05f)) {
         // if the height is higher than default hips, clamp to default hips
         counterBalancedCg.y = tposeHips.y + 0.05f;
-    } else if (counterBalancedCg.y < sitSquatThreshold) {
-        // do a height reset
-        setResetMode(true);
-        // _follow.activate(FollowHelper::Vertical);
-        // disable cg behaviour in this case.
-        // setIsInSittingState(true);
     }
     return counterBalancedCg;
 }
@@ -4068,34 +4057,29 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     const float CYLINDER_TOP = 0.1f;
     const float CYLINDER_BOTTOM = -1.5f;
     const float SITTING_BOTTOM = -0.02f;
+    const float STANDING_HEIGHT_MULTIPLE = 1.2f;
+    const float SITTING_HEIGHT_MULTIPLE = 0.833f;
+    const float COSINE_TEN_DEGREES = 0.98f;
+    const int SITTING_COUNT_THRESHOLD = 300;
+    const int SQUATTY_COUNT_THRESHOLD = 600;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
 
     auto sensorHeadPose = myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD);
-    glm::vec3 headWorldSpace = myAvatar.getHead()->getPosition();
-    glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar.getSensorToWorldMatrix());
-    glm::vec3 headSensorSpace = transformVectorFast(myAvatar.getSensorToWorldMatrix(), headWorldSpace);
-    //get the mode.
-    //put it in sensor space.
-    // if we are 20% higher switch to standing.
-    // 16.6% lower then switch to sitting.
-    //  add this !!!!  And the head is upright.
     glm::vec3 upHead = transformVectorFast(sensorHeadPose.getMatrix(), glm::vec3(0.0f, 1.0f, 0.0f));
     float acosHead = glm::dot(upHead, glm::vec3(0.0f, 1.0f, 0.0f));
+
     glm::vec3 avatarHips = myAvatar.getAbsoluteJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
     glm::vec3 worldHips = transformVectorFast(myAvatar.getTransform().getMatrix(),avatarHips);
     glm::vec3 sensorHips = transformVectorFast(myAvatar.getSensorToWorldMatrix(), worldHips);
+
     float averageSensorSpaceHeight = myAvatar._sumUserHeightSensorSpace / myAvatar._averageUserHeightCount;
-    // we could add a counting here to make sure that a lean forward doesn't accidentally put you in sitting mode.
-    // but maybe so what.
-    // the real test is... can I pick something up in standing mode?
-    
 
     if (myAvatar.getIsInSittingState()) {
         if (offset.y < SITTING_BOTTOM) {
             // we recenter when sitting.
             return true;
-        } else if (sensorHeadPose.getTranslation().y > (1.2f * averageSensorSpaceHeight))  {
+        } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * averageSensorSpaceHeight))  {
             // if we recenter upwards then no longer in sitting state
             myAvatar.setIsInSittingState(false);
             return true;
@@ -4104,16 +4088,18 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
         }
     } else {
         // in the standing state
-        if ((sensorHeadPose.getTranslation().y < (0.83f * averageSensorSpaceHeight)) && (acosHead > 0.98f) && !(sensorHips.y > (0.4f * averageSensorSpaceHeight))) {
+        if ((sensorHeadPose.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * myAvatar._tippingPoint)) && (acosHead > COSINE_TEN_DEGREES)) {  //&& !(sensorHips.y > (0.4f * averageSensorSpaceHeight)
             myAvatar._sitStandStateCount++;
-            if (myAvatar._sitStandStateCount > 300) {
+            if (myAvatar._sitStandStateCount > SITTING_COUNT_THRESHOLD) {
                 myAvatar.setIsInSittingState(true);
+                myAvatar._tippingPoint = averageSensorSpaceHeight;
                 myAvatar._sitStandStateCount = 0;
                 myAvatar._squatCount = 0;
                 return true;
             }
         } else {
-            if (myAvatar._squatCount > 600) {
+            myAvatar._tippingPoint = averageSensorSpaceHeight;
+            if (myAvatar._squatCount > SQUATTY_COUNT_THRESHOLD) {
                 return true;
                 myAvatar._squatCount = 0;
             }

@@ -140,6 +140,7 @@ class MyAvatar : public Avatar {
      * @property {number} walkSpeed
      * @property {number} walkBackwardSpeed
      * @property {number} sprintSpeed
+     * @property {number} isInSittingState
      *
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
      *     registration point of the 3D model.
@@ -1818,6 +1819,7 @@ private:
     ThreadSafeValueCache<bool> _isInSittingState { false };
     int _sitStandStateCount { 0 };
     int _squatCount { 0 };
+    float _tippingPoint { DEFAULT_AVATAR_HEIGHT };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
