@@ -26,52 +26,53 @@ struct BlendshapeOffset {
 
 const float oneOver511 = 1.0 / 511.0;
 
-vec3 unpackSnorm3x10_1x2(int packedX10Y10Z10A2) {  
-    vec4 my_unpacked = vec4(
-           clamp( float( (packedX10Y10Z10A2 & 0x000003FF) - 511 ) / 511.0, -1.0, 1.0),
-           clamp( float( ((packedX10Y10Z10A2 >> 10) & 0x000003FF) - 511 ) / 511.0, -1.0, 1.0),
-           clamp( float( ((packedX10Y10Z10A2 >> 20) & 0x000003FF) - 511 ) / 511.0, -1.0, 1.0),
-           0.0//clamp( float( int((packedX10Y10Z10A2 >> 30) & 0x00000003) - 1 ), -1.0, 1.0)
+vec3 unpackSnorm3x10_1x2(int packed) {  
+    vec4 _unpacked = vec4(
+           clamp( float( bitfieldExtract(packed, 0, 10)) * oneOver511, -1.0, 1.0),
+           clamp( float( bitfieldExtract(packed, 10, 10)) * oneOver511, -1.0, 1.0),
+           clamp( float( bitfieldExtract(packed, 20, 10)) * oneOver511, -1.0, 1.0),
+           0.0
         );
-    return my_unpacked.xyz;
+    return _unpacked.xyz;
 }
 
 #if defined(GPU_GL410)
 layout(binding=0) uniform samplerBuffer blendshapeOffsetsBuffer;
+
+vec2 gpu_unpackHalf2x16(uint packed) {  
+    return unpackHalf2x16(packed);
+}
+
 BlendshapeOffset getBlendshapeOffset(int i) {
     vec4 fetched = texelFetch(blendshapeOffsetsBuffer, i);
-    ivec4 elem_packed = ivec4(floatBitsToUint(fetched.x), floatBitsToUint(fetched.y), floatBitsToUint(fetched.z), floatBitsToUint(fetched.w));
+    uvec4 elem_packed = uvec4(floatBitsToUint(fetched.x), floatBitsToUint(fetched.y), floatBitsToUint(fetched.z), floatBitsToUint(fetched.w));
 
     BlendshapeOffset unpacked;
-    vec2 pZnZ = unpackHalf2x16(uint(elem_packed.y));
-    unpacked.position = vec3(unpackHalf2x16(uint(elem_packed.x)), pZnZ.x);
+    unpacked.position = vec3(gpu_unpackHalf2x16((elem_packed.x)), gpu_unpackHalf2x16(uint(elem_packed.y)).x);
 <@if USE_NORMAL@>
-    unpacked.normal = vec3(unpackHalf2x16(uint(elem_packed.z)), pZnZ.y);
-    //unpacked.normal = unpackSnorm3x10_1x2((elem_packed.z)).xyz;
+    unpacked.normal = unpackSnorm3x10_1x2(int(elem_packed.z)).xyz;
 <@endif@>
 <@if USE_TANGENT@>
-    unpacked.tangent = unpackSnorm3x10_1x2((elem_packed.w)).xyz;
+    unpacked.tangent = unpackSnorm3x10_1x2(int(elem_packed.w)).xyz;
 <@endif@>
 
     return unpacked;
 }
 #else
 layout(std140, binding=0) buffer blendshapeOffsetsBuffer {
-    ivec4 _packedBlendshapeOffsets[];
+    uvec4 _packedBlendshapeOffsets[];
 };
 BlendshapeOffset getBlendshapeOffset(int i) {
 
-    ivec4 elem_packed = _packedBlendshapeOffsets[i];
+    uvec4 elem_packed = _packedBlendshapeOffsets[i];
 
     BlendshapeOffset unpacked;
-    vec2 pZnZ = unpackHalf2x16(uint(elem_packed.y));
-    unpacked.position = vec3(unpackHalf2x16(uint(elem_packed.x)), pZnZ.x);
+    unpacked.position = vec3(unpackHalf2x16((elem_packed.x)), unpackHalf2x16(uint(elem_packed.y)).x);
 <@if USE_NORMAL@>
-    unpacked.normal = vec3(unpackHalf2x16(uint(elem_packed.z)), pZnZ.y);
-    //unpacked.normal = unpackSnorm3x10_1x2((elem_packed.z)).xyz;
+    unpacked.normal = unpackSnorm3x10_1x2(int(elem_packed.z)).xyz;
 <@endif@>
 <@if USE_TANGENT@>
-    unpacked.tangent = unpackSnorm3x10_1x2((elem_packed.w)).xyz;
+    unpacked.tangent = unpackSnorm3x10_1x2(int(elem_packed.w)).xyz;
 <@endif@>
 
     return unpacked;
@@ -92,7 +93,7 @@ void evalBlendshape(int i, vec4 inPosition, out vec4 position
     normal = normalize(inNormal + blendshapeOffset.normal.xyz);
 <@endif@>
 <@if USE_TANGENT@>
-    tangent = normalize(inTangent /*+ blendshapeOffset.tangent.xyz*/);
+    tangent = normalize(inTangent + blendshapeOffset.tangent.xyz);
 <@endif@>
 }
 

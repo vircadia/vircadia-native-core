@@ -75,10 +75,6 @@ struct SortedTriangleSet {
     int subMeshIndex;
 };
 
-
-
-#define PACKED_BLENDSHAPE_OFFSET 1
-#ifdef PACKED_BLENDSHAPE_OFFSET
 struct BlendshapeOffsetPacked {
     glm::uvec4 packedPosNorTan;
 };
@@ -90,15 +86,6 @@ struct BlendshapeOffsetUnpacked {
 };
 
 using BlendshapeOffset = BlendshapeOffsetPacked;
-#else
-
-struct BlendshapeOffsetUnpacked {
-    glm::vec4 positionOffsetAndSpare;
-    glm::vec4 normalOffsetAndSpare;
-    glm::vec4 tangentOffsetAndSpare;
-};
-using BlendshapeOffset = BlendshapeOffsetUnpacked;
-#endif
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
