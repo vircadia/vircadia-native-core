@@ -55,29 +55,26 @@ float evalBlurCoefficient(vec3 blurScales, float radialDistance, float zDistance
 const float BLUR_EDGE_NORMAL_LIMIT = 0.25;
 
 vec2 evalTapWeightedValue(vec3 blurScales, ivec4 side, int r, vec2 occlusionTexCoord, float fragDepth, vec3 fragNormal) {
-    vec2 tapOcclusionTexCoord = getBlurOcclusionAxis() * r + occlusionTexCoord;
     vec2 occlusionTexCoordLimits = getBlurOcclusionUVLimit();
 
-    if (any(lessThan(tapOcclusionTexCoord, vec2(0.0))) || any(greaterThanEqual(tapOcclusionTexCoord, occlusionTexCoordLimits)) ) {
+    if (any(lessThan(occlusionTexCoord, vec2(0.0))) || any(greaterThanEqual(occlusionTexCoord, occlusionTexCoordLimits)) ) {
         return vec2(0.0);
     }
     
-    vec4 tapOcclusionPacked = fetchOcclusionPacked(side, tapOcclusionTexCoord);
-    float tapOcclusion;
-    float tapDepth;
-    vec3 tapNormal;
-    unpackOcclusionOutput(tapOcclusionPacked, tapOcclusion, tapDepth, tapNormal);
+    vec4 tapOcclusionPacked = fetchOcclusionPacked(side, occlusionTexCoord);
+    UnpackedOcclusion tap;
+    unpackOcclusionOutput(tapOcclusionPacked, tap);
 
     // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
-    float zDistance = tapDepth - fragDepth;
+    float zDistance = tap.depth - fragDepth;
 #if SSAO_BILATERAL_BLUR_USE_NORMAL    
-    float normalDistance = BLUR_EDGE_NORMAL_LIMIT - min(BLUR_EDGE_NORMAL_LIMIT, dot(tapNormal, fragNormal));
+    float normalDistance = BLUR_EDGE_NORMAL_LIMIT - min(BLUR_EDGE_NORMAL_LIMIT, dot(tap.normal, fragNormal));
 #else
     float normalDistance = 0.0;
 #endif
     float weight = evalBlurCoefficient(blurScales, abs(r), zDistance, normalDistance);
     
-    return vec2(tapOcclusion * weight, weight);
+    return vec2(tap.occlusion * weight, weight);
 }
 
 vec4 getBlurredOcclusion(ivec2 destPixelCoord, vec2 occlusionTexCoord, vec2 depthTexCoord) {
@@ -96,24 +93,30 @@ vec4 getBlurredOcclusion(ivec2 destPixelCoord, vec2 occlusionTexCoord, vec2 dept
     // Accumulate weighted contributions along the bluring axis in the [-radius, radius] range
     int blurRadius = getBlurRadius();
     vec3 blurScales = getBlurScales();
+    int r;
 
     // From now on, occlusionTexCoord is the UV pos in the side
     float sideTexCoord = occlusionTexCoord.x * 2.0 - getStereoSide(side) * getBlurOcclusionUVLimit().x;
     occlusionTexCoord.x = mix(occlusionTexCoord.x, sideTexCoord, isStereo());
 
+    occlusionTexCoord -= getBlurOcclusionAxis() * blurRadius;
+
     // negative side first
-    for (int r = -blurRadius; r <= -1; ++r) {
+    for (r = -blurRadius; r <= -1; r++) {
         weightedSums += evalTapWeightedValue(blurScales, side, r, occlusionTexCoord, fragDepthKey, fragNormal);
+        occlusionTexCoord += getBlurOcclusionAxis();
     }
     
     // Central pixel contribution
     float mainWeight = 1.0;
     float pixelOcclusion = unpackOcclusion(fetchOcclusionPacked(side, occlusionTexCoord));
     weightedSums += vec2(pixelOcclusion * mainWeight, mainWeight);
+    occlusionTexCoord += getBlurOcclusionAxis();
 
     // then positive side
-    for (int r = 1; r <= blurRadius; ++r) {
+    for (r = 1; r <= blurRadius; ++r) {
         weightedSums += evalTapWeightedValue(blurScales, side, r, occlusionTexCoord, fragDepthKey, fragNormal);
+        occlusionTexCoord += getBlurOcclusionAxis();
     }
 
     // Final normalization

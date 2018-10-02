@@ -220,7 +220,7 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     borderingEnabled{ true },
     fetchMipsEnabled{ true },
     horizonBased{ true },
-    jitterEnabled{ true }{
+    jitterEnabled{ false }{
 }
 
 AmbientOcclusionEffect::AOParameters::AOParameters() {

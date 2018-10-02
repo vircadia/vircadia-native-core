@@ -60,8 +60,9 @@ void main(void) {
     fragFrameES.tangent = vec3(0.0);
     fragFrameES.binormal = vec3(0.0);
     fragFrameES.normal = fragNormalES;
+#if HBAO_USE_OVERHANG_HACK || !HBAO_USE_COS_ANGLE
     buildTangentBinormal(side, fragUVPos, fragPositionES, fragNormalES, deltaDepthUV, fragFrameES.tangent, fragFrameES.binormal);
-
+#endif
     // Let's make noise 
     float randomPatternRotationAngle = getAngleDithering(fragPixelPos);
 

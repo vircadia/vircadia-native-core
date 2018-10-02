@@ -32,14 +32,20 @@ vec4 packOcclusionOutput(float occlusion, float depth, vec3 eyeNormal) {
 #endif
 }
 
-void unpackOcclusionOutput(vec4 raw, out float occlusion, out float depth, out vec3 eyeNormal) {
-    occlusion = raw.x;
+struct UnpackedOcclusion {
+    vec3 normal;
+    float depth;
+    float occlusion;
+};
+
+void unpackOcclusionOutput(vec4 raw, out UnpackedOcclusion result) {
+    result.occlusion = raw.x;
 #if SSAO_BILATERAL_BLUR_USE_NORMAL    
-    depth = raw.y;
-    eyeNormal = normalize(vec3(raw.zw, 1.0));
+    result.depth = raw.y;
+    result.normal = normalize(vec3(raw.zw, 1.0));
 #else
-    depth = (raw.y + raw.z / 256.0);
-    eyeNormal = vec3(0,0,1);
+    result.depth = (raw.y + raw.z / 256.0);
+    result.normal = vec3(0,0,1);
 #endif
 }
 
@@ -391,6 +397,7 @@ float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 t
 }
 
 #define HBAO_USE_COS_ANGLE 1
+#define HBAO_USE_OVERHANG_HACK 0
 
 float computeWeightForHorizon(float horizonLimit, float distanceSquared) {
     return max(0.0, 1.0 - distanceSquared / getRadius2());
@@ -433,11 +440,14 @@ float computeWeightedHorizon(float horizonLimit, float distanceSquared) {
             if (tapHorizonLimit > horizonLimit) {
                 occlusion += weight * (tapHorizonLimit - horizonLimit);
                 horizonLimit = tapHorizonLimit;
-            } /*else if (dot(deltaVec, fragFrameES.tangent) < 0.0) {
+            }
+#if HBAO_USE_OVERHANG_HACK 
+            else if (dot(deltaVec, fragFrameES.tangent) < 0.0) {
                 // This is a hack to try to handle the case where the occlusion angle is
                 // greater than 90°
                 occlusion = mix(occlusion, (occlusion+1.0) * 0.5, weight);
-            }*/
+            }
+#endif
 #else   
             if (tapHorizonLimit < horizonLimit) {
                 tapHorizonLimit = computeWeightedHorizon(tapHorizonLimit, distanceSquared);
@@ -509,13 +519,16 @@ float evalVisibilityHBAO(ivec4 side, vec2 fragUVPos, vec2 invSideImageSize, vec2
     pixelSearchVec = abs(pixelSearchVec);
     int stepCount = int(ceil(max(pixelSearchVec.x, pixelSearchVec.y)));
 
+#if HBAO_USE_OVERHANG_HACK || !HBAO_USE_COS_ANGLE
     fragFrameES.tangent = normalize(fragFrameES.tangent * deltaTap.x + fragFrameES.binormal * deltaTap.y);
-
+#endif
     // Forward search for h1
     obscuranceH1 = computeOcclusion(side, fragUVPos, fragPositionES, fragFrameES, searchDir, diskPixelRadius, stepCount);
 
     // Backward search for h2
+#if HBAO_USE_OVERHANG_HACK || !HBAO_USE_COS_ANGLE
     fragFrameES.tangent = -fragFrameES.tangent;
+#endif
     obscuranceH2 = computeOcclusion(side, fragUVPos, fragPositionES, fragFrameES, -searchDir, diskPixelRadius, stepCount);
 
 	return obscuranceH1 + obscuranceH2;
