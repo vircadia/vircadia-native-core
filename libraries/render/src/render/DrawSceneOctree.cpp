@@ -88,7 +88,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
         batch.setInputFormat(_cellBoundsFormat);
 
         std::vector<ivec4> cellBounds;
-        auto drawCellBounds = [this, &cellBounds, &scene, &batch](const std::vector<gpu::Stamp>& cells) {
+        auto drawCellBounds = [this, &cellBounds, &scene](const std::vector<gpu::Stamp>& cells) {
             cellBounds.reserve(cellBounds.size() + cells.size());
             for (const auto& cellID : cells) {
                 auto cell = scene->getSpatialTree().getConcreteCell(cellID);

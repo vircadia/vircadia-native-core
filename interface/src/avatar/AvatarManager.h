@@ -31,6 +31,7 @@
 #include "MyAvatar.h"
 #include "OtherAvatar.h"
 
+
 using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
 
 /**jsdoc 
@@ -232,6 +233,8 @@ private:
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space;
     std::vector<int32_t> _spaceProxiesToDelete;
+
+    AvatarTransit::TransitConfig  _transitConfig;
 };
 
 #endif // hifi_AvatarManager_h

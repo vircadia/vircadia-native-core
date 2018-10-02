@@ -109,6 +109,7 @@ class PickResult {
 public:
     PickResult() {}
     PickResult(const QVariantMap& pickVariant) : pickVariant(pickVariant) {}
+    virtual ~PickResult() {}
 
     virtual QVariantMap toVariantMap() const {
         return pickVariant;
@@ -244,6 +245,7 @@ template<typename T>
 class Pick : public PickQuery {
 public:
     Pick(const T& mathPick, const PickFilter& filter, const float maxDistance, const bool enabled) : PickQuery(filter, maxDistance, enabled), _mathPick(mathPick) {}
+    virtual ~Pick() {}
 
     virtual T getMathematicalPick() const = 0;
     virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;

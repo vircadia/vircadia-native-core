@@ -69,8 +69,8 @@ void LightEntityItem::dimensionsChanged() {
 }
 
 
-EntityItemProperties LightEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties LightEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isSpotlight, getIsSpotlight);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);

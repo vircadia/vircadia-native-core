@@ -530,7 +530,8 @@ private:
     ModelBlender();
     virtual ~ModelBlender();
 
-    std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlends;
+    std::queue<ModelWeakPointer> _modelsRequiringBlendsQueue;
+    std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlendsSet;
     int _pendingBlenders;
     Mutex _mutex;
 

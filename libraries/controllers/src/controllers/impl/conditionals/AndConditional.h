@@ -24,6 +24,8 @@ public:
     AndConditional(Conditional::Pointer& first, Conditional::Pointer& second)
         : _children({ first, second }) {}
 
+    virtual ~AndConditional() {}
+
     virtual bool satisfied() override;
 
 private:
