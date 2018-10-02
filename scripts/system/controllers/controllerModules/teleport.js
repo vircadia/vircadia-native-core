@@ -150,13 +150,13 @@ Script.include("/~/system/libraries/controllers.js");
         this.teleportParabolaHeadCollisions;
 
 
-        this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev12.fbx");
+        this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev18.fbx");
         this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 1.969, y: 0.001, z: 1.969 };
-        this.PLAY_AREA_FLOAT_ABOVE_FLOOR = 0;
+        this.PLAY_AREA_FLOAT_ABOVE_FLOOR = 0.005;
         this.PLAY_AREA_OVERLAY_OFFSET = // Offset from floor.
             { x: 0, y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2 + this.PLAY_AREA_FLOAT_ABOVE_FLOOR, z: 0 };
-        this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensorv4.fbx");
-        this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1199 };
+        this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensorv11.fbx");
+        this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1198 };
         this.PLAY_AREA_SENSOR_OVERLAY_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 });
         this.PLAY_AREA_BOX_ALPHA = 1.0;
         this.PLAY_AREA_SENSOR_ALPHA = 0.8;
@@ -398,7 +398,6 @@ Script.include("/~/system/libraries/controllers.js");
 
             _this.playAreaOverlay = Overlays.addOverlay("model", {
                 url: _this.PLAY_AREA_OVERLAY_MODEL,
-                textures: { "Map #264": Math.random().toString() }, // Work around model displaying black.
                 drawInFront: false,
                 visible: false
             });
@@ -509,7 +508,6 @@ Script.include("/~/system/libraries/controllers.js");
                 var sensorToTargetRotation = Quat.multiply(Quat.inverse(targetRotation), sensorToWorldRotation);
                 var relativePlayAreaCenterOffset =
                     Vec3.sum(this.playAreaCenterOffset, { x: 0, y: -TARGET_MODEL_DIMENSIONS.y / 2, z: 0 });
-
                 Overlays.editOverlay(this.playAreaOverlay, {
                     parentID: this.targetOverlayID,
                     localPosition: Vec3.multiplyQbyV(Quat.inverse(targetRotation),
