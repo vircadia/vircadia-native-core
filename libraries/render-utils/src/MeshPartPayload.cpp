@@ -423,7 +423,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     // IF deformed pass the mesh key
     auto drawcallInfo = (uint16_t) (((_isBlendShaped && args->_enableBlendshape) << 0) | ((_isSkinned && args->_enableSkinning) << 1));
     if (drawcallInfo) {
-        batch.setDrawcallInfo(drawcallInfo);
+        batch.setDrawcallUniform(drawcallInfo);
     }
 
     // apply material properties

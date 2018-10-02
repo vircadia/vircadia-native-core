@@ -1610,6 +1610,37 @@ public:
     }
 };
 
+
+using packBlendshapeOffsetTo = void(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked);
+
+void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
+    float len = glm::compMax(glm::abs(unpacked.positionOffsetAndSpare));
+    glm::vec3 normalizedPos(unpacked.positionOffsetAndSpare);
+    if (len > 1.0f) {
+        normalizedPos /= len;
+    }
+    else {
+        len = 1.0f;
+    }
+
+    packed = glm::uvec4(
+        glm::floatBitsToUint(len),
+        glm::packSnorm3x10_1x2(glm::vec4(normalizedPos, 0.0f)),
+        glm::packSnorm3x10_1x2(glm::vec4(unpacked.normalOffsetAndSpare, 0.0f)),
+        glm::packSnorm3x10_1x2(glm::vec4(unpacked.tangentOffsetAndSpare, 0.0f))
+    );
+}
+
+void packBlendshapeOffsetTo_Pos_3xF16_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
+    packed = glm::uvec4(
+        glm::packHalf2x16(glm::vec2(unpacked.positionOffsetAndSpare)),
+        glm::packHalf2x16(glm::vec2(unpacked.positionOffsetAndSpare.z, 0.0f)),
+        glm::packSnorm3x10_1x2(glm::vec4(unpacked.normalOffsetAndSpare, 0.0f)),
+        glm::packSnorm3x10_1x2(glm::vec4(unpacked.tangentOffsetAndSpare, 0.0f))
+    );
+}
+
+
 class Blender : public QRunnable {
 public:
 
@@ -1631,9 +1662,6 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
     _geometry(geometry),
     _blendshapeCoefficients(blendshapeCoefficients) {
 }
-
-
-#define DEBUG_PACKED_BLENDSHAPE_OFFSET 1
 
 void Blender::run() {
     QVector<BlendshapeOffset> blendshapeOffsets;
@@ -1687,29 +1715,8 @@ void Blender::run() {
                 auto unpacked = unpackedBlendshapeOffsets.data() + range.begin();
                 auto packed = meshBlendshapeOffsets + range.begin();
                 for (auto j = range.begin(); j < range.end(); j++) {
-                    
-#ifdef Q_OS_MAC
-                    float len = glm::compMax(glm::abs(unpacked->positionOffsetAndSpare));
-                    if (len > 1.0f) {
-                        unpacked->positionOffsetAndSpare /= len;
-                    } else {
-                        len = 1.0f;
-                    }
-                        
-                    (*packed).packedPosNorTan = glm::uvec4(
-                       glm::floatBitsToUint(len),
-                       glm::packSnorm3x10_1x2(glm::vec4(unpacked->positionOffsetAndSpare, 0.0f)),
-                       glm::packSnorm3x10_1x2(glm::vec4(unpacked->normalOffsetAndSpare, 0.0f)),
-                       glm::packSnorm3x10_1x2(glm::vec4(unpacked->tangentOffsetAndSpare, 0.0f))
-                   );
-#else
-                    (*packed).packedPosNorTan = glm::uvec4(
-                        glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare)),
-                        glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare.z, 0.0f)),
-                        glm::packSnorm3x10_1x2(glm::vec4(unpacked->normalOffsetAndSpare, 0.0f)),
-                        glm::packSnorm3x10_1x2(glm::vec4(unpacked->tangentOffsetAndSpare, 0.0f))
-                    );
-#endif
+                    packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10((*packed).packedPosNorTan, (*unpacked));
+
                     unpacked++;
                     packed++;
                 }

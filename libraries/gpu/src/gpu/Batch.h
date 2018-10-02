@@ -112,8 +112,13 @@ public:
     void enableSkybox(bool enable = true);
     bool isSkyboxEnabled() const;
 
-    // Push user Drawcall info
-    void setDrawcallInfo(uint16 user);
+    // Drawcall Uniform value
+    // One 16bit word uniform value is available during the drawcall
+    // its value must be set before each drawcall
+    void setDrawcallUniform(uint16 uniform);
+    // It is reset to the reset value between each drawcalls
+    // The reset value is 0 by default and can be changed as a batch state with this call
+    void setDrawcallUniformReset(uint16 resetUniform);
 
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
@@ -503,7 +508,8 @@ public:
 
     NamedBatchDataMap _namedData;
 
-    uint16_t _drawcallUserInfo{ 0 };
+    uint16_t _drawcallUniform{ 0 };
+    uint16_t _drawcallUniformReset{ 0 };
 
     glm::vec2 _projectionJitter{ 0.0f, 0.0f };
     bool _enableStereo{ true };
