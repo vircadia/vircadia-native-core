@@ -77,12 +77,8 @@ static glm::mat4 computeOffset(glm::mat4 defaultToReferenceMat, glm::mat4 defaul
     return glm::inverse(poseMat) * referenceJointMat;
 }
 
-static bool sortPucksYPosition(PuckPosePair firstPuck, PuckPosePair secondPuck) {
+static bool sortPucksYPosition(const PuckPosePair& firstPuck, const PuckPosePair& secondPuck) {
     return (firstPuck.second.translation.y < secondPuck.second.translation.y);
-}
-
-static bool sortPucksXPosition(PuckPosePair firstPuck, PuckPosePair secondPuck) {
-    return (firstPuck.second.translation.x < secondPuck.second.translation.x);
 }
 
 static bool determineLimbOrdering(const controller::Pose& poseA, const controller::Pose& poseB, glm::vec3 axis, glm::vec3 axisOrigin) {
@@ -592,7 +588,17 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 }
 
 bool ViveControllerManager::InputDevice::configureHands(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
-    std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksXPosition);
+
+    // Sort valid tracked objects in the default frame by the x dimension (left to right).
+    // Because the sort is in the default frame we guarentee that poses are relative to the head facing.
+    // i.e. -x will always be to the left of the head, and +x will be to the right.
+    // This allows the user to be facing in any direction in sensor space while calibrating.
+    glm::mat4 referenceToDefaultMat = glm::inverse(defaultToReferenceMat);
+    std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), [&referenceToDefaultMat](const PuckPosePair& a, const PuckPosePair& b) {
+        glm::vec3 aPos = transformPoint(referenceToDefaultMat, a.second.translation);
+        glm::vec3 bPos = transformPoint(referenceToDefaultMat, b.second.translation);
+        return (aPos.x < bPos.x);
+    });
     int puckCount = (int)_validTrackedObjects.size();
     if (_handConfig == HandConfig::Pucks && puckCount >= MIN_PUCK_COUNT) {
         glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
