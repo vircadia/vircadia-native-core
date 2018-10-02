@@ -410,6 +410,10 @@ public:
         });
     }
 
+    void setMainThreadID(Qt::HANDLE threadID) {
+        _mainThreadID = threadID;
+    }
+
     static void updateHeartbeat() {
         auto now = usecTimestampNow();
         auto elapsed = now - _heartbeat;
@@ -417,7 +421,9 @@ public:
         _heartbeat = now;
     }
 
-    static void deadlockDetectionCrash() {
+    void deadlockDetectionCrash() {
+        setCrashAnnotation("_mod_faulting_tid", std::to_string((uint64_t)_mainThreadID));
+        setCrashAnnotation("deadlock", "1");
         uint32_t* crashTrigger = nullptr;
         *crashTrigger = 0xDEAD10CC;
     }
@@ -504,6 +510,8 @@ public:
     static ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
 
     bool _quit { false };
+
+    Qt::HANDLE _mainThreadID = nullptr;
 };
 
 std::atomic<bool> DeadlockWatchdogThread::_paused;
@@ -1092,7 +1100,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
     // Set up a watchdog thread to intentionally crash the application on deadlocks
     if (!DISABLE_WATCHDOG) {
-        (new DeadlockWatchdogThread())->start();
+        auto deadlockWatchdogThread = new DeadlockWatchdogThread();
+        deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
+        deadlockWatchdogThread->start();
     }
 
     // Set File Logger Session UUID
