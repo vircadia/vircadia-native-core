@@ -569,9 +569,6 @@ bool Test::createMDFile(const QString& directory) {
     QString testName = testScriptLines.title;
     stream << "# " << testName << "\n";
 
-    // Find the relevant part of the path to the test (i.e. from "tests" down)
-    QString partialPath = extractPathFromTestsDown(_testsRootDirectory);
-
     stream << "## Run this script URL: [Manual](./test.js?raw=true)   [Auto](./testAuto.js?raw=true)(from menu/Edit/Open and Run scripts from URL...)."  << "\n\n";
 
     stream << "## Preconditions" << "\n";

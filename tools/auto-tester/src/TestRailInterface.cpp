@@ -16,6 +16,7 @@
 
 #include <QDateTime>
 #include <QFile>
+#include <QHostInfo>
 #include <QMessageBox>
 #include <QTextStream>
 
@@ -45,7 +46,6 @@ TestRailInterface::TestRailInterface() {
 QString TestRailInterface::getObject(const QString& path) {
     return path.right(path.length() - path.lastIndexOf("/") - 1);
 }
-
 
 bool TestRailInterface::setPythonCommand() {
     if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
@@ -478,8 +478,8 @@ void TestRailInterface::addRun() {
     stream << "\tcase_ids.append(case['id'])\n\n";
 
     // Now, we can create the run
-    stream << "data = { 'name': '" + _sectionNames[_testRailRunSelectorWindow.getSectionID()].replace("Section", "Run") +
-                  "', 'suite_id': " + _suiteID + 
+    stream << "data = { 'name': '" + _sectionNames[_testRailRunSelectorWindow.getSectionID()].replace("Section", "Run") + "[" +
+                  QHostInfo::localHostName() + "]" + "', 'suite_id': " + _suiteID +
                   ", 'include_all': False, 'case_ids': case_ids}\n";
 
     stream << "run = client.send_post('add_run/" + _projectID + "', data)\n";
@@ -1027,7 +1027,6 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
 
     QString testContent = QString("Execute instructions in [THIS TEST](") + testMDName + ")";
     QString testExpected = QString("Refer to the expected result in the linked description.");
-
 
     stream << "data = {\n"
            << "\t'title': '" << title << "',\n"

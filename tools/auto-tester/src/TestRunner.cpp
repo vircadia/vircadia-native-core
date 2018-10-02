@@ -148,13 +148,15 @@ void TestRunner::runInstaller() {
     QString installerFullPath = _workingFolder + "/" + _installerFilename;
 
     QString commandLine =
-        QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
+        "\"" + QDir::toNativeSeparators(installerFullPath) + "\"" + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
 
     installerWorker->setCommandLine(commandLine);
     emit startInstaller();
 }
 
 void TestRunner::installationComplete() {
+    verifyInstallationSucceeded();
+
     createSnapshotFolder();
 
     updateStatusLabel("Running tests");
@@ -164,6 +166,21 @@ void TestRunner::installationComplete() {
     }
 
     runInterfaceWithTestScript();
+}
+
+void TestRunner::verifyInstallationSucceeded() {
+    // Exit if the executables are missing.
+    // On Windows, the reason is probably that UAC has blocked the installation.  This is treated as a critical error
+#ifdef Q_OS_WIN
+    QFileInfo interfaceExe(QDir::toNativeSeparators(_installationFolder) + "\\interface.exe");
+    QFileInfo assignmentClientExe(QDir::toNativeSeparators(_installationFolder) + "\\assignment-client.exe");
+    QFileInfo domainServerExe(QDir::toNativeSeparators(_installationFolder) + "\\domain-server.exe");
+
+    if (!interfaceExe.exists() || !assignmentClientExe.exists() || !domainServerExe.exists()) {
+        QMessageBox::critical(0, "Installation of High Fidelity has failed", "Please verify that UAC has been disabled");
+        exit(-1);
+    }
+#endif
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
@@ -283,7 +300,9 @@ void TestRunner::runInterfaceWithTestScript() {
     QString url = QString("hifi://localhost");
     if (_runServerless->isChecked()) {
         // Move to an empty area
-        url = url + "/9999,9999,9999/0.0,0.0,0.0,1.0";
+        url = "file:///~serverless/tutorial.json";
+    } else {
+        url = "hifi://localhost";
     }
 
     QString testScript =

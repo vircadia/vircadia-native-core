@@ -42,6 +42,7 @@ public:
 
     void installerDownloadComplete();
     void runInstaller();
+    void verifyInstallationSucceeded();
 
     void saveExistingHighFidelityAppDataFolder();
     void restoreHighFidelityAppDataFolder();
