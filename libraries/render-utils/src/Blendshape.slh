@@ -26,21 +26,19 @@ struct BlendshapeOffset {
 
 const float oneOver511 = 1.0 / 511.0;
 
-vec3 unpackSnorm3x10_1x2(int packed) {  
-    vec4 _unpacked = vec4(
-           clamp( float( bitfieldExtract(packed, 0, 10)) * oneOver511, -1.0, 1.0),
-           clamp( float( bitfieldExtract(packed, 10, 10)) * oneOver511, -1.0, 1.0),
-           clamp( float( bitfieldExtract(packed, 20, 10)) * oneOver511, -1.0, 1.0),
-           0.0
+vec3 unpackSnorm3x10_1x2(int packedValue) {  
+    return vec3(
+           clamp( float( bitfieldExtract(packedValue, 0, 10)) * oneOver511, -1.0, 1.0),
+           clamp( float( bitfieldExtract(packedValue, 10, 10)) * oneOver511, -1.0, 1.0),
+           clamp( float( bitfieldExtract(packedValue, 20, 10)) * oneOver511, -1.0, 1.0)
         );
-    return _unpacked.xyz;
 }
 
 #if defined(GPU_GL410)
 layout(binding=0) uniform samplerBuffer blendshapeOffsetsBuffer;
 
-vec2 gpu_unpackHalf2x16(uint packed) {  
-    return unpackHalf2x16(packed);
+vec2 gpu_unpackHalf2x16(uint packedValue) {  
+    return unpackHalf2x16(packedValue);
 }
 
 BlendshapeOffset getBlendshapeOffset(int i) {

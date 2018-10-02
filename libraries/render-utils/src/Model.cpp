@@ -1633,7 +1633,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 }
 
 
-//#define DEBUG_PACKED_BLENDSHAPE_OFFSET 1
+#define DEBUG_PACKED_BLENDSHAPE_OFFSET 1
 
 void Blender::run() {
     QVector<BlendshapeOffset> blendshapeOffsets;
@@ -1678,15 +1678,6 @@ void Blender::run() {
                                 currentBlendshapeOffset.tangentOffsetAndSpare += blendshape.tangents.at(j) * normalCoefficient;
                             }
                         }
-
-#ifdef DEBUG_PACKED_BLENDSHAPE_OFFSET
-                        if (glm::any(glm::greaterThan(glm::abs(currentBlendshapeOffset.normalOffsetAndSpare), glm::vec3(1.0f)))) {
-                            currentBlendshapeOffset.normalOffsetAndSpare = glm::clamp(currentBlendshapeOffset.normalOffsetAndSpare, glm::vec3(-1.0f), glm::vec3(1.0f));
-                        }
-                        if (glm::any(glm::greaterThan(glm::abs(currentBlendshapeOffset.tangentOffsetAndSpare), glm::vec3(1.0f)))) {
-                            currentBlendshapeOffset.tangentOffsetAndSpare = glm::clamp(currentBlendshapeOffset.tangentOffsetAndSpare, glm::vec3(-1.0f), glm::vec3(1.0f));
-                        }
-#endif
                     }
                 });
             }
