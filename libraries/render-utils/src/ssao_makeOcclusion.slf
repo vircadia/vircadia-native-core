@@ -60,9 +60,7 @@ void main(void) {
     fragFrameES.tangent = vec3(0.0);
     fragFrameES.binormal = vec3(0.0);
     fragFrameES.normal = fragNormalES;
-#if !HBAO_USE_COS_ANGLE
     buildTangentBinormal(side, fragUVPos, fragPositionES, fragNormalES, deltaDepthUV, fragFrameES.tangent, fragFrameES.binormal);
-#endif
 
     // Let's make noise 
     float randomPatternRotationAngle = getAngleDithering(fragPixelPos);
@@ -79,12 +77,10 @@ void main(void) {
         }
         obscuranceSum *= invNumSamples;
 #if HBAO_USE_COS_ANGLE
-        obscuranceSum *= 0.5 / PI;
-        obscuranceSum = 1.0 - obscuranceSum * obscuranceSum * getObscuranceScaling();
+        obscuranceSum *= 0.5;
+        obscuranceSum = 1.0 - obscuranceSum * getObscuranceScaling();
 #else
         obscuranceSum *= 0.5;
-        obscuranceSum += 1.0 - getFalloffSinAngle();
-
         obscuranceSum = mix(1.0, obscuranceSum, getObscuranceScaling());
 #endif
     } else {

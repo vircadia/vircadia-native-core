@@ -59,6 +59,7 @@ Rectangle {
                 Repeater {
                     model: [
                         "horizonBased:horizonBased",
+                        "jitterEnabled:jitterEnabled",
                         "ditheringEnabled:ditheringEnabled",
                         "fetchMipsEnabled:fetchMipsEnabled",
                         "borderingEnabled:borderingEnabled"

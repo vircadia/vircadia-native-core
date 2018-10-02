@@ -390,12 +390,14 @@ float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 t
     return f * f * f * max((vn - getFalloffCosAngle()) / (epsilon + vv), 0.0);
 }
 
-#define HBAO_USE_COS_ANGLE 0
+#define HBAO_USE_COS_ANGLE 1
+
+float computeWeightForHorizon(float horizonLimit, float distanceSquared) {
+    return max(0.0, 1.0 - distanceSquared / getRadius2());
+}
 
 float computeWeightedHorizon(float horizonLimit, float distanceSquared) {
-    float radiusFalloff = distanceSquared / getRadius2();
-
-    radiusFalloff = max(0.0, 1.0 - radiusFalloff);
+    float radiusFalloff = computeWeightForHorizon(horizonLimit, distanceSquared);
 
 #if !HBAO_USE_COS_ANGLE
     horizonLimit = getFalloffSinAngle() - horizonLimit;
@@ -417,44 +419,46 @@ float computeWeightedHorizon(float horizonLimit, float distanceSquared) {
         vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapMipZ.y, fragUVPos);
         vec3 deltaVec = tapPositionES - fragPositionES;
         float distanceSquared = dot(deltaVec, deltaVec);
-        float distance = sqrt(distanceSquared);
         float deltaDotNormal = dot(deltaVec, fragFrameES.normal);
 #if HBAO_USE_COS_ANGLE
         float tapHorizonLimit = deltaDotNormal;
 #else
         float tapHorizonLimit = dot(deltaVec, fragFrameES.tangent);
 #endif
-        float epsilon = 0.0001;
-        tapHorizonLimit /= (distance + epsilon);
+        tapHorizonLimit *= inversesqrt(distanceSquared);
 
-        if (distanceSquared < getRadius2() && deltaDotNormal>0.0 &&
+        if (distanceSquared < getRadius2() && deltaDotNormal>0.0) {
 #if HBAO_USE_COS_ANGLE
-            tapHorizonLimit > horizonLimit
-#else
-            tapHorizonLimit < horizonLimit
-#endif
-        ) {
-            tapHorizonLimit = computeWeightedHorizon(tapHorizonLimit, distanceSquared);
-#if HBAO_USE_COS_ANGLE
-            horizonLimit = max(horizonLimit, tapHorizonLimit);
+            float weight = computeWeightForHorizon(tapHorizonLimit, distanceSquared);
+            if (tapHorizonLimit > horizonLimit) {
+                occlusion += weight * (tapHorizonLimit - horizonLimit);
+                horizonLimit = tapHorizonLimit;
+            } else if (dot(deltaVec, fragFrameES.tangent) < 0.0) {
+                // This is a hack to try to handle the case where the occlusion angle is
+                // greater than 90°
+                occlusion = mix(occlusion, (occlusion+1.0) * 0.5, weight);
+            }
 #else   
-            horizonLimit = min(horizonLimit, tapHorizonLimit);
+            if (tapHorizonLimit < horizonLimit) {
+                tapHorizonLimit = computeWeightedHorizon(tapHorizonLimit, distanceSquared);
+                horizonLimit = min(horizonLimit, tapHorizonLimit);
+            }
 #endif
         }
 <@endfunc@>
 
 #define HBAO_HORIZON_SEARCH_CONSTANT_STEP 0
 
-float computeHorizon(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame fragFrameES, vec2 searchVec, float searchRadius, int stepCount) {
-    vec2 absSearchVec = abs(searchVec);
+float computeOcclusion(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame fragFrameES, vec2 searchDir, float searchRadius, int stepCount) {
 #if HBAO_USE_COS_ANGLE
     float horizonLimit = getFalloffCosAngle();
+    float occlusion = 0.0;
 #else
     float horizonLimit = getFalloffSinAngle();
 #endif
 
     if (stepCount>0) {
-        vec2 deltaTapUV = searchVec / float(stepCount);
+        vec2 deltaTapUV = searchDir / float(stepCount);
         float deltaRadius = searchRadius / float(stepCount);
 
 #if HBAO_HORIZON_SEARCH_CONSTANT_STEP
@@ -487,31 +491,32 @@ float computeHorizon(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame f
 #endif
     }
 
-    return horizonLimit;
+#if HBAO_USE_COS_ANGLE
+    occlusion = min(occlusion * getFalloffCosAngleScale(), 1.0);
+#else
+    occlusion = horizonLimit > 0.0 ? horizonLimit * getFalloffSinAngleScale() : horizonLimit;
+#endif
+
+    return occlusion;
 }
 
 float evalVisibilityHBAO(ivec4 side, vec2 fragUVPos, vec2 invSideImageSize, vec2 deltaTap, float diskPixelRadius, 
                          vec3 fragPositionES, TBNFrame fragFrameES) {
     vec2 pixelSearchVec = deltaTap * diskPixelRadius;
-	vec2 searchVec = pixelSearchVec * invSideImageSize;
+	vec2 searchDir = pixelSearchVec * invSideImageSize;
 	float obscuranceH1 = 0.0;
 	float obscuranceH2 = 0.0;
-
-#if !HBAO_USE_COS_ANGLE
-    fragFrameES.tangent = normalize(fragFrameES.tangent * deltaTap.x + fragFrameES.binormal * deltaTap.y);
-#endif
-
     pixelSearchVec = abs(pixelSearchVec);
     int stepCount = int(ceil(max(pixelSearchVec.x, pixelSearchVec.y)));
 
+    fragFrameES.tangent = normalize(fragFrameES.tangent * deltaTap.x + fragFrameES.binormal * deltaTap.y);
+
     // Forward search for h1
-    obscuranceH1 = computeHorizon(side, fragUVPos, fragPositionES, fragFrameES, searchVec, diskPixelRadius, stepCount);
+    obscuranceH1 = computeOcclusion(side, fragUVPos, fragPositionES, fragFrameES, searchDir, diskPixelRadius, stepCount);
 
     // Backward search for h2
-#if !HBAO_USE_COS_ANGLE
     fragFrameES.tangent = -fragFrameES.tangent;
-#endif
-    obscuranceH2 = computeHorizon(side, fragUVPos, fragPositionES, fragFrameES, -searchVec, diskPixelRadius, stepCount);
+    obscuranceH2 = computeOcclusion(side, fragUVPos, fragPositionES, fragFrameES, -searchDir, diskPixelRadius, stepCount);
 
 	return obscuranceH1 + obscuranceH2;
 }

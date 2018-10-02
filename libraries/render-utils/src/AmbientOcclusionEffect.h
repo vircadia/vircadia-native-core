@@ -83,6 +83,7 @@ class AmbientOcclusionEffectConfig : public render::GPUJobConfig::Persistent {
     Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled NOTIFY dirty)
     Q_PROPERTY(bool borderingEnabled MEMBER borderingEnabled NOTIFY dirty)
     Q_PROPERTY(bool fetchMipsEnabled MEMBER fetchMipsEnabled NOTIFY dirty)
+    Q_PROPERTY(bool jitterEnabled MEMBER jitterEnabled NOTIFY dirty)
     Q_PROPERTY(float radius MEMBER radius WRITE setRadius)
     Q_PROPERTY(float obscuranceLevel MEMBER obscuranceLevel WRITE setObscuranceLevel)
     Q_PROPERTY(float falloffAngle MEMBER falloffAngle WRITE setFalloffAngle)
@@ -123,6 +124,7 @@ public:
     bool ditheringEnabled; // randomize the distribution of taps per pixel, should always be true
     bool borderingEnabled; // avoid evaluating information from non existing pixels out of the frame, should always be true
     bool fetchMipsEnabled; // fetch taps in sub mips to otpimize cache, should always be true
+    bool jitterEnabled; // Add small jittering to AO samples at each frame
 
 signals:
     void dirty();
@@ -181,6 +183,7 @@ private:
 
     void updateBlurParameters();
     void updateFramebufferSizes();
+    void updateJitterSamples();
 
     int getDepthResolutionLevel() const;
    
@@ -204,6 +207,7 @@ private:
     AmbientOcclusionFramebufferPointer _framebuffer;
     std::array<float, 8 * SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT> _randomSamples;
     int _frameId{ 0 };
+    bool _isJitterEnabled{ true };
     
     gpu::RangeTimerPointer _gpuTimer;
 

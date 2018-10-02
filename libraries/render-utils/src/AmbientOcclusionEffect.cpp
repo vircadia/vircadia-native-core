@@ -209,7 +209,7 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     radius{ 0.5f },
     perspectiveScale{ 1.0f },
     obscuranceLevel{ 0.25f },
-    falloffAngle{ 0.7f },
+    falloffAngle{ 0.4f },
     edgeSharpness{ 1.0f },
     blurDeviation{ 2.5f },
     numSpiralTurns{ 7.0f },
@@ -219,15 +219,16 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     ditheringEnabled{ true },
     borderingEnabled{ true },
     fetchMipsEnabled{ true },
-    horizonBased{ true } {
+    horizonBased{ true },
+    jitterEnabled{ true }{
 }
 
 AmbientOcclusionEffect::AOParameters::AOParameters() {
-    _resolutionInfo = { -1.0f, 1.0f, 1.0f, 0.0f };
-    _radiusInfo = { 0.5f, 0.5f * 0.5f, 1.0f / (0.25f * 0.25f * 0.25f), 1.0f };
-    _ditheringInfo = { 0.0f, 0.0f, 0.01f, 1.0f };
-    _sampleInfo = { 11.0f, 1.0f / 11.0f, 7.0f, 1.0f };
-    _falloffInfo = { 0.5f, 2.0f, 0.866f, 1.1547f };
+    _resolutionInfo = glm::vec4{ 0.0f };
+    _radiusInfo = glm::vec4{ 0.0f };
+    _ditheringInfo = glm::vec4{ 0.0f };
+    _sampleInfo = glm::vec4{ 0.0f };
+    _falloffInfo = glm::vec4{ 0.0f };
 }
 
 AmbientOcclusionEffect::BlurParameters::BlurParameters() {
@@ -241,6 +242,8 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(config.enabled);
 
     bool shouldUpdateBlurs = false;
+
+    _isJitterEnabled = config.jitterEnabled;
 
     const double RADIUS_POWER = 6.0;
     const auto& radius = config.radius;
@@ -321,6 +324,7 @@ void AmbientOcclusionEffect::configure(const Config& config) {
             }
             _randomSamples[i] = r * 2.0f * M_PI / config.numSamples;
         }
+        updateJitterSamples();
     }
 
     if (config.fetchMipsEnabled != _aoParametersBuffer->isFetchMipsEnabled()) {
@@ -472,6 +476,14 @@ int AmbientOcclusionEffect::getDepthResolutionLevel() const {
     return std::min(1, _aoParametersBuffer->getResolutionLevel());
 }
 
+void AmbientOcclusionEffect::updateJitterSamples() {
+    const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / (SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT));
+    for (int splitId = 0; splitId < SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT; splitId++) {
+        auto& sample = _aoFrameParametersBuffer[splitId].edit();
+        sample._angleInfo.x = _randomSamples[splitId + SSAO_RANDOM_SAMPLE_COUNT * _frameId];
+    }
+}
+
 void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
@@ -534,12 +546,11 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto occlusionDepthSize = glm::ivec2(occlusionDepthTexture->getDimensions());
 
     // Update sample rotation
-    const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / (SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT));
-    for (int splitId=0 ; splitId < SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT ; splitId++) {
-        auto& sample = _aoFrameParametersBuffer[splitId].edit();
-        sample._angleInfo.x = _randomSamples[splitId + SSAO_RANDOM_SAMPLE_COUNT * _frameId];
+    if (_isJitterEnabled) {
+        const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / (SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT));
+        updateJitterSamples();
+        _frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
     }
-    //_frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
 
     gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {
 		PROFILE_RANGE_BATCH(batch, "SSAO");
