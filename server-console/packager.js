@@ -27,14 +27,13 @@ var options = {
 }
 
 const EXEC_NAME = "server-console";
-const SHORT_NAME = "Console";
-const OSX_SHORT_NAME = "Sandbox";
-const FULL_NAME = "High Fidelity Console";
+var SHORT_NAME = argv.client_only ? "Console" : "Sandbox";
+var FULL_NAME = argv.client_only ? "High Fidelity Console" : "High Fidelity Sandbox";
 
 // setup per OS options
 if (osType == "Darwin") {
     options["app-bundle-id"] = "com.highfidelity.server-console" + (argv.production ? "" : "-dev")
-    options["name"] = OSX_SHORT_NAME
+    options["name"] = SHORT_NAME
 } else if (osType == "Windows_NT") {
     options["version-string"] = {
         CompanyName: "High Fidelity, Inc.",

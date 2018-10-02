@@ -4,13 +4,17 @@ if (PRODUCTION_BUILD)
   set(PRODUCTION_OPTION "--production")
 endif()
 
+if (CLIENT_ONLY)
+  set(CLIENT_ONLY_OPTION "--client_only")
+endif()
+
 # add a target that will package the console
 add_custom_target(${TARGET_NAME}-npm-install
   COMMAND npm install
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 add_custom_target(${TARGET_NAME}
-  COMMAND npm run packager -- --out ${CMAKE_CURRENT_BINARY_DIR} ${PRODUCTION_OPTION}
+  COMMAND npm run packager -- --out ${CMAKE_CURRENT_BINARY_DIR} ${PRODUCTION_OPTION} ${CLIENT_ONLY_OPTION}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   DEPENDS ${TARGET_NAME}-npm-install
 )
@@ -29,7 +33,11 @@ endif()
 
 # set the packaged console folder depending on platform, so we can copy it
 if (APPLE)
-  set(PACKAGED_CONSOLE_FOLDER "Sandbox-darwin-x64/${CONSOLE_EXEC_NAME}")
+  if (CLIENT_ONLY)
+    set(PACKAGED_CONSOLE_FOLDER "Console-darwin-x64/${CONSOLE_EXEC_NAME}")
+  else ()
+    set(PACKAGED_CONSOLE_FOLDER "Sandbox-darwin-x64/${CONSOLE_EXEC_NAME}")
+  endif()
 elseif (WIN32)
   set(PACKAGED_CONSOLE_FOLDER "server-console-win32-x64")
 elseif (UNIX)
@@ -45,9 +53,9 @@ if (APPLE)
     COMPONENT ${SERVER_COMPONENT}
   )
   install(
-    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}"
+    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}/"
     USE_SOURCE_PERMISSIONS
-    DESTINATION ${CONSOLE_INSTALL_DIR}
+    DESTINATION ${CONSOLE_INSTALL_DIR}/${CONSOLE_EXEC_NAME}
     COMPONENT ${CLIENT_COMPONENT}
   )
 elseif (WIN32)
