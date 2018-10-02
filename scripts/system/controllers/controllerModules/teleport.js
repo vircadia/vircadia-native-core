@@ -427,7 +427,6 @@ Script.include("/~/system/libraries/controllers.js");
                             dimensions: _this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS,
                             parentID: _this.playAreaOverlay,
                             localRotation: _this.PLAY_AREA_SENSOR_OVERLAY_ROTATION,
-                            solid: true,
                             drawInFront: false,
                             visible: false
                         });
@@ -581,6 +580,7 @@ Script.include("/~/system/libraries/controllers.js");
                     }
                 }
                 _this.teleportedFadeTimer = null;
+                Selection.disableListHighlight(this.teleporterSelectionName);
             }
         };
 
@@ -619,6 +619,7 @@ Script.include("/~/system/libraries/controllers.js");
                 this.teleportScaleStart = Date.now();
                 this.teleportScaleFactor = 0;
                 this.scaleInTeleport();
+                Selection.enableListHighlight(this.teleporterSelectionName, this.TELEPORTER_SELECTION_STYLE);
             } else {
                 if (this.teleportScaleTimer !== null) {
                     Script.clearTimeout(this.teleportScaleTimer);
@@ -644,6 +645,8 @@ Script.include("/~/system/libraries/controllers.js");
                     this.teleportedFadeDelayFactor = 1.0;
                     this.teleportedFadeFactor = 1.0;
                     this.teleportedFadeTimer = Script.setTimeout(this.fadeOutTeleport, this.TELEPORTED_FADE_DELAY);
+                } else {
+                    Selection.disableListHighlight(this.teleporterSelectionName);
                 }
             }
 
@@ -798,7 +801,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.disableLasers = function() {
             this.setPlayAreaVisible(false, null, true);
             this.setTeleportVisible(false, null, true);
-            Selection.disableListHighlight(this.teleporterSelectionName);
             Pointers.disablePointer(_this.teleportParabolaHandVisuals);
             Pointers.disablePointer(_this.teleportParabolaHandCollisions);
             Pointers.disablePointer(_this.teleportParabolaHeadVisuals);
@@ -816,12 +818,6 @@ Script.include("/~/system/libraries/controllers.js");
             }
             this.teleportState = teleportState;
 
-            var visible = visibleState === "teleport";
-            if (visible) {
-                Selection.enableListHighlight(this.teleporterSelectionName, this.TELEPORTER_SELECTION_STYLE);
-            } else {
-                Selection.disableListHighlight(this.teleporterSelectionName);
-            }
             var pointerID;
             if (mode === 'head') {
                 Pointers.setRenderState(_this.teleportParabolaHeadVisuals, visibleState);
@@ -832,6 +828,7 @@ Script.include("/~/system/libraries/controllers.js");
                 Pointers.setRenderState(_this.teleportParabolaHandCollisions, invisibleState);
                 pointerID = _this.teleportParabolaHandVisuals;
             }
+            var visible = visibleState === "teleport";
             this.setPlayAreaVisible(visible && MyAvatar.showPlayArea,
                 Pointers.getPointerProperties(pointerID).renderStates.teleport.end, false);
             this.setTeleportVisible(visible, mode, false);
