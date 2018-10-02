@@ -37,16 +37,11 @@ vec3 unpackSnorm3x10_1x2(int packedValue) {
 #if defined(GPU_GL410)
 layout(binding=0) uniform samplerBuffer blendshapeOffsetsBuffer;
 
-vec2 gpu_unpackHalf2x16(uint packedValue) {  
-    return unpackHalf2x16(packedValue);
-}
-
 BlendshapeOffset getBlendshapeOffset(int i) {
-    vec4 fetched = texelFetch(blendshapeOffsetsBuffer, i);
-    uvec4 elem_packed = uvec4(floatBitsToUint(fetched.x), floatBitsToUint(fetched.y), floatBitsToUint(fetched.z), floatBitsToUint(fetched.w));
-
+    uvec4 elem_packed = floatBitsToUint(texelFetch(blendshapeOffsetsBuffer, i));
+  
     BlendshapeOffset unpacked;
-    unpacked.position = vec3(gpu_unpackHalf2x16((elem_packed.x)), gpu_unpackHalf2x16(uint(elem_packed.y)).x);
+    unpacked.position = unpackSnorm3x10_1x2(int(elem_packed.y)).xyz * uintBitsToFloat(elem_packed.x);
 <@if USE_NORMAL@>
     unpacked.normal = unpackSnorm3x10_1x2(int(elem_packed.z)).xyz;
 <@endif@>

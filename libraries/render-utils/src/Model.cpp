@@ -1687,13 +1687,29 @@ void Blender::run() {
                 auto unpacked = unpackedBlendshapeOffsets.data() + range.begin();
                 auto packed = meshBlendshapeOffsets + range.begin();
                 for (auto j = range.begin(); j < range.end(); j++) {
+                    
+#ifdef Q_OS_MAC
+                    float len = glm::compMax(glm::abs(unpacked->positionOffsetAndSpare));
+                    if (len > 1.0f) {
+                        unpacked->positionOffsetAndSpare /= len;
+                    } else {
+                        len = 1.0f;
+                    }
+                        
+                    (*packed).packedPosNorTan = glm::uvec4(
+                       glm::floatBitsToUint(len),
+                       glm::packSnorm3x10_1x2(glm::vec4(unpacked->positionOffsetAndSpare, 0.0f)),
+                       glm::packSnorm3x10_1x2(glm::vec4(unpacked->normalOffsetAndSpare, 0.0f)),
+                       glm::packSnorm3x10_1x2(glm::vec4(unpacked->tangentOffsetAndSpare, 0.0f))
+                   );
+#else
                     (*packed).packedPosNorTan = glm::uvec4(
                         glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare)),
                         glm::packHalf2x16(glm::vec2(unpacked->positionOffsetAndSpare.z, 0.0f)),
                         glm::packSnorm3x10_1x2(glm::vec4(unpacked->normalOffsetAndSpare, 0.0f)),
                         glm::packSnorm3x10_1x2(glm::vec4(unpacked->tangentOffsetAndSpare, 0.0f))
                     );
-
+#endif
                     unpacked++;
                     packed++;
                 }
