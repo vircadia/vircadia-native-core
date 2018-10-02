@@ -20,6 +20,12 @@
 #include <QTimeEdit>
 #include <QTimer>
 
+class BuildInformation {
+public:
+    QString build;
+    QString url;
+};
+
 class Worker;
 
 class TestRunner : public QObject {
@@ -40,7 +46,7 @@ public:
 
     void run();
 
-    void installerDownloadComplete();
+    void downloadComplete();
     void runInstaller();
     void verifyInstallationSucceeded();
 
@@ -66,6 +72,8 @@ public:
     QString getInstallerNameFromURL(const QString& url);
     QString getPRNumberFromURL(const QString& url);
 
+    void parseBuildInformation();
+
 private slots:
     void checkTime();
     void installationComplete();
@@ -78,13 +86,14 @@ signals:
 private:
     bool _automatedTestIsRunning{ false };
 
-    const QString INSTALLER_URL_LATEST{ "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe" };
     const QString INSTALLER_FILENAME_LATEST{ "HighFidelity-Beta-latest-dev.exe" };
 
     QString _installerURL;
     QString _installerFilename;
-    const QString BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
-    const QString BUILD_XML_FILENAME{ "dev-builds.xml" };
+    const QString DEV_BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
+    const QString DEV_BUILD_XML_FILENAME{ "dev-builds.xml" };
+
+    bool buildXMLDownloaded;
 
     QDir _appDataFolder;
     QDir _savedAppDataFolder;
@@ -117,6 +126,8 @@ private:
     QThread* interfaceThread;
     Worker* installerWorker;
     Worker* interfaceWorker;
+
+    BuildInformation _buildInformation;
 };
 
 class Worker : public QObject {

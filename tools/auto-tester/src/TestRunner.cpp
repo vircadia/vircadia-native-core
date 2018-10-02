@@ -104,39 +104,62 @@ void TestRunner::run() {
     // This will be restored at the end of the tests
     saveExistingHighFidelityAppDataFolder();
 
-    // Download the latest High Fidelity installer and build XML.
+    // Download the latest High Fidelity build XML.
     QStringList urls;
     QStringList filenames;
-    if (_runLatest->isChecked()) {
-        _installerFilename = INSTALLER_FILENAME_LATEST;
 
-        urls << INSTALLER_URL_LATEST << BUILD_XML_URL;
-        filenames << _installerFilename << BUILD_XML_FILENAME;
-    } else {
-        QString urlText = _url->toPlainText();
-        urls << urlText;
-        _installerFilename = getInstallerNameFromURL(urlText);
-        filenames << _installerFilename;
-    }
+    urls << DEV_BUILD_XML_URL;
+    filenames << DEV_BUILD_XML_FILENAME;
 
-    updateStatusLabel("Downloading installer");
+    updateStatusLabel("Downloading Build XML");
 
+    buildXMLDownloaded = false;
     autoTester->downloadFiles(urls, _workingFolder, filenames, (void*)this);
 
-    // `installerDownloadComplete` will run after download has completed
+    // `downloadComplete` will run after download has completed
 }
 
-void TestRunner::installerDownloadComplete() {
-    appendLog(QString("Tests started at ") + QString::number(_testStartDateTime.time().hour()) + ":" +
-              QString("%1").arg(_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
-              _testStartDateTime.date().toString("ddd, MMM d, yyyy"));
+void TestRunner::downloadComplete() {
+    if (!buildXMLDownloaded) {
+        // Download of Build XML has completed
+        buildXMLDownloaded = true;
 
-    updateStatusLabel("Installing");
+        parseBuildInformation();
 
-    // Kill any existing processes that would interfere with installation
-    killProcesses();
+        // Download the High Fidelity installer
+        QStringList urls;
+        QStringList filenames;
+        if (_runLatest->isChecked()) {
+            _installerFilename = INSTALLER_FILENAME_LATEST;
 
-    runInstaller();
+            urls << _buildInformation.url;
+            filenames << _installerFilename;
+        } else {
+            QString urlText = _url->toPlainText();
+            urls << urlText;
+            _installerFilename = getInstallerNameFromURL(urlText);
+            filenames << _installerFilename;
+        }
+
+        updateStatusLabel("Downloading installer");
+
+        autoTester->downloadFiles(urls, _workingFolder, filenames, (void*)this);
+
+        // `downloadComplete` will run again after download has completed
+
+    } else {
+        // Download of Installer has completed
+        appendLog(QString("Tests started at ") + QString::number(_testStartDateTime.time().hour()) + ":" +
+                  QString("%1").arg(_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
+                  _testStartDateTime.date().toString("ddd, MMM d, yyyy"));
+
+        updateStatusLabel("Installing");
+
+        // Kill any existing processes that would interfere with installation
+        killProcesses();
+
+        runInstaller();
+    }
 }
 
 void TestRunner::runInstaller() {
@@ -360,70 +383,10 @@ void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
 
         return;
     }
-    try {
-        QDomDocument domDocument;
-        QString filename{ _workingFolder + "/" + BUILD_XML_FILENAME };
-        QFile file(filename);
-        if (!file.open(QIODevice::ReadOnly) || !domDocument.setContent(&file)) {
-            throw QString("Could not open " + filename);
-        }
 
-        QString platformOfInterest;
-#ifdef Q_OS_WIN
-        platformOfInterest = "windows";
-#else if Q_OS_MAC
-        platformOfInterest = "mac";
-#endif
-        QDomElement element = domDocument.documentElement();
-
-        // Verify first element is "projects"
-        if (element.tagName() != "projects") {
-            throw("File seems to be in wrong format");
-        }
-
-        element = element.firstChild().toElement();
-        if (element.tagName() != "project") {
-            throw("File seems to be in wrong format");
-        }
-
-        if (element.attribute("name") != "interface") {
-            throw("File is not from 'interface' build");
-        }
-
-        // Now loop over the platforms
-        while (!element.isNull()) {
-            element = element.firstChild().toElement();
-            QString sdf = element.tagName();
-            if (element.tagName() != "platform" || element.attribute("name") != platformOfInterest) {
-                continue;
-            }
-
-            // Next element should be the build
-            element = element.firstChild().toElement();
-            if (element.tagName() != "build") {
-                throw("File seems to be in wrong format");
-            }
-
-            // Next element should be the version
-            element = element.firstChild().toElement();
-            if (element.tagName() != "version") {
-                throw("File seems to be in wrong format");
-            }
-
-            // Add the build number to the end of the filename
-            QString build = element.text();
-            QStringList filenameParts = zippedFolderName.split(".");
-            QString augmentedFilename = filenameParts[0] + "(" + build + ")." + filenameParts[1];
-            QFile::rename(zippedFolderName, augmentedFilename);
-        }
-
-    } catch (QString errorMessage) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
-        exit(-1);
-    } catch (...) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
-        exit(-1);
-    }
+    QStringList filenameParts = zippedFolderName.split(".");
+    QString augmentedFilename = filenameParts[0] + "(" + _buildInformation.build + ")." + filenameParts[1];
+    QFile::rename(zippedFolderName, augmentedFilename);
 }
 
 void TestRunner::restoreHighFidelityAppDataFolder() {
@@ -545,6 +508,82 @@ QString TestRunner::getPRNumberFromURL(const QString& url) {
             throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe`";
         }
         return filenameParts[filenameParts.size() - 2];
+    } catch (QString errorMessage) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
+        exit(-1);
+    } catch (...) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
+        exit(-1);
+    }
+}
+
+void TestRunner::parseBuildInformation() {
+    try {
+        QDomDocument domDocument;
+        QString filename{ _workingFolder + "/" + DEV_BUILD_XML_FILENAME };
+        QFile file(filename);
+        if (!file.open(QIODevice::ReadOnly) || !domDocument.setContent(&file)) {
+            throw QString("Could not open " + filename);
+        }
+
+        QString platformOfInterest;
+#ifdef Q_OS_WIN
+        platformOfInterest = "windows";
+#else if Q_OS_MAC
+        platformOfInterest = "mac";
+#endif
+        QDomElement element = domDocument.documentElement();
+
+        // Verify first element is "projects"
+        if (element.tagName() != "projects") {
+            throw("File seems to be in wrong format");
+        }
+
+        element = element.firstChild().toElement();
+        if (element.tagName() != "project") {
+            throw("File seems to be in wrong format");
+        }
+
+        if (element.attribute("name") != "interface") {
+            throw("File is not from 'interface' build");
+        }
+
+        // Now loop over the platforms
+        while (!element.isNull()) {
+            element = element.firstChild().toElement();
+            if (element.tagName() != "platform" || element.attribute("name") != platformOfInterest) {
+                continue;
+            }
+
+            // Next element should be the build
+            element = element.firstChild().toElement();
+            if (element.tagName() != "build") {
+                throw("File seems to be in wrong format");
+            }
+
+            // Next element should be the version
+            element = element.firstChild().toElement();
+            if (element.tagName() != "version") {
+                throw("File seems to be in wrong format");
+            }
+
+            // Add the build number to the end of the filename
+            _buildInformation.build = element.text();
+
+            // First sibling should be stable_version
+            element = element.nextSibling().toElement();
+            if (element.tagName() != "stable_version") {
+                throw("File seems to be in wrong format");
+            }
+
+            // Next sibling should be url
+            element = element.nextSibling().toElement();
+            if (element.tagName() != "url") {
+                throw("File seems to be in wrong format");
+            }
+            _buildInformation.url = element.text();
+        }
+
     } catch (QString errorMessage) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
         exit(-1);

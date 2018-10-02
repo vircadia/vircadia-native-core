@@ -36,7 +36,7 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
    _ui.statusLabel->setText("");
    _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Auto Tester - v4.6");
+   setWindowTitle("Auto Tester - v5.0");
 
    // Coming soon to an auto-tester near you...
    //// _helpWindow.textBrowser->setText()
@@ -266,7 +266,7 @@ void AutoTester::saveFile(int index) {
         if (_caller == _test) {
             _test->finishTestsEvaluation();
         } else if (_caller == _testRunner) {
-            _testRunner->installerDownloadComplete();
+            _testRunner->downloadComplete();
         }
     } else {
         _ui.progressBar->setValue(_numberOfFilesDownloaded);
