@@ -150,7 +150,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.teleportParabolaHeadCollisions;
 
 
-        this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev9.fbx");
+        this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev12.fbx");
         this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 1.969, y: 0.001, z: 1.969 };
         this.PLAY_AREA_FLOAT_ABOVE_FLOOR = 0;
         this.PLAY_AREA_OVERLAY_OFFSET = // Offset from floor.
