@@ -213,7 +213,7 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
 
     ssaoRadius{ 1.0f },
     ssaoObscuranceLevel{ 0.4f },
-    ssaoFalloffAngle{ 0.1f },
+    ssaoFalloffAngle{ 0.15f },
     ssaoNumSpiralTurns{ 7.0f },
     ssaoNumSamples{ 32 },
 
