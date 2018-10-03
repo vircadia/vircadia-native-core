@@ -1078,7 +1078,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
 bool RenderableModelEntityItem::readyToAnimate() const {
     return resultWithReadLock<bool>([&] {
         float firstFrame = _animationProperties.getFirstFrame();
-        return (firstFrame <= 0.0f) || (firstFrame <= _animationProperties.getLastFrame());
+        return (firstFrame >= 0.0f) && (firstFrame <= _animationProperties.getLastFrame());
     });
 }
 
