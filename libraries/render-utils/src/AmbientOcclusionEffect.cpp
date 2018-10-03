@@ -449,7 +449,7 @@ void AmbientOcclusionEffect::updateRandomSamples() {
         float sampleScale = float(2.0 * M_PI / double(_aoParametersBuffer->getNumSamples()));
 
         for (size_t i = 0; i < _randomSamples.size(); i++) {
-            int index = i + 1; // Indices start at 1, not 0
+            auto index = i + 1; // Indices start at 1, not 0
             float f = 1.0f;
             float r = 0.0f;
 
