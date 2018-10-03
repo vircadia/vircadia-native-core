@@ -208,24 +208,24 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false),
     perspectiveScale{ 1.0f },
     edgeSharpness{ 1.0f },
-    resolutionLevel{ 2 },
     blurRadius{ 4 },
+    resolutionLevel{ 2 },
 
     ssaoRadius{ 1.0f },
     ssaoObscuranceLevel{ 0.4f },
     ssaoFalloffAngle{ 0.1f },
-    ssaoNumSamples{ 32 },
     ssaoNumSpiralTurns{ 7.0f },
+    ssaoNumSamples{ 32 },
 
     hbaoRadius{ 0.7f },
     hbaoObscuranceLevel{ 0.75f },
     hbaoFalloffAngle{ 0.3f },
     hbaoNumSamples{ 1 },
 
+    horizonBased{ false },
     ditheringEnabled{ true },
     borderingEnabled{ true },
     fetchMipsEnabled{ true },
-    horizonBased{ false },
     jitterEnabled{ false }{
 }
 
@@ -446,9 +446,9 @@ void AmbientOcclusionEffect::updateRandomSamples() {
     if (_aoParametersBuffer->isHorizonBased()) {
         const int B = 3;
         const float invB = 1.0f / (float)B;
-        float sampleScale = 2.0f * M_PI / _aoParametersBuffer->getNumSamples();
+        float sampleScale = float(2.0f * M_PI / _aoParametersBuffer->getNumSamples());
 
-        for (int i = 0; i < _randomSamples.size(); i++) {
+        for (auto i = 0; i < _randomSamples.size(); i++) {
             int index = i + 1; // Indices start at 1, not 0
             float f = 1.0f;
             float r = 0.0f;
@@ -461,7 +461,7 @@ void AmbientOcclusionEffect::updateRandomSamples() {
             _randomSamples[i] = r * sampleScale;
         }
     } else {
-        for (int i = 0; i < _randomSamples.size(); i++) {
+        for (auto i = 0; i < _randomSamples.size(); i++) {
             _randomSamples[i] = randFloat() * 2.0f * M_PI;
         }
     }
@@ -499,7 +499,6 @@ void AmbientOcclusionEffect::updateFramebufferSizes() {
 
     const int resolutionLevel = _aoParametersBuffer.get().getResolutionLevel();
     const int depthResolutionLevel = getDepthResolutionLevel();
-    const auto occlusionDepthFrameSize = sourceFrameSideSize >> depthResolutionLevel;
     const auto occlusionFrameSize = sourceFrameSideSize >> resolutionLevel;
     auto normalTextureSize = _framebuffer->getNormalTexture()->getDimensions();
 
@@ -602,10 +601,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     const auto& linearDepthFramebuffer = inputs.get2();
     
     const int resolutionLevel = _aoParametersBuffer->getResolutionLevel();
-    const auto resolutionScale = powf(0.5f, resolutionLevel);
-
     const auto depthResolutionLevel = getDepthResolutionLevel();
-    const auto depthResolutionScale = powf(0.5f, depthResolutionLevel);
     const auto isHorizonBased = _aoParametersBuffer->isHorizonBased();
 
     auto fullResDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
@@ -638,7 +634,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     outputs.edit0() = _framebuffer;
     outputs.edit1() = _aoParametersBuffer;
 
-    auto framebufferSize = _framebuffer->getSourceFrameSize();
     auto occlusionPipeline = getOcclusionPipeline();
     auto bilateralBlurPipeline = getBilateralBlurPipeline();
     auto mipCreationPipeline = getMipCreationPipeline();
@@ -651,7 +646,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto splitSize = glm::ivec2(_framebuffer->getOcclusionSplitTexture()->getDimensions());
     auto splitViewport = glm::ivec4{ 0, 0, splitSize.x, splitSize.y };
 #endif
-    auto occlusionDepthSize = glm::ivec2(occlusionDepthTexture->getDimensions());
 
     // Update sample rotation
     if (_isJitterEnabled) {
