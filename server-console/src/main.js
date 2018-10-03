@@ -568,7 +568,34 @@ function updateLabels(serverState) {
     labels.people.icon = pendingNotifications[HifiNotificationType.PEOPLE] ? menuNotificationIcon : null;
     labels.wallet.icon = pendingNotifications[HifiNotificationType.WALLET] ? menuNotificationIcon : null;
     labels.marketplace.icon = pendingNotifications[HifiNotificationType.MARKETPLACE] ? menuNotificationIcon : null;
-
+    var onlineUsers = trayNotifications.getOnlineUsers();
+    if(onlineUsers) {
+        labels.people.submenu = [];        
+        for (var name in onlineUsers) {
+            labels.people.submenu.push({
+                label: name,
+                click: function () {
+                    setNotificationState(HifiNotificationType.GOTO, false);
+                    StartInterface("hifi://" + onlineUsers[name].location.root.name + onlineUsers[name].location.path);
+                }
+            });
+        }
+    }
+    var currentStories = trayNotifications.getCurrentStories();
+    console.log("CURRENT STORIES");
+    console.log(currentStories);
+    if(currentStories) {
+        labels.goto.submenu = [];        
+        for (var location in currentStories) {
+            labels.goto.submenu.push({
+                label: "event in " + location,
+                click: function () {
+                    setNotificationState(HifiNotificationType.GOTO, false);
+                    StartInterface("hifi://" + location + getCurrentStories[location].path);
+                }
+            });
+        }
+    }
 }
 
 function updateTrayMenu(serverState) {
