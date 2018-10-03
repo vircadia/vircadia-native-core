@@ -10,8 +10,8 @@ const buildInfo = GetBuildInfo();
 const osType = os.type();
 
 const notificationIcon = path.join(__dirname, '../../resources/console-notification.png');
-const STORIES_NOTIFICATION_POLL_TIME_MS = 15 * 1000;
-const PEOPLE_NOTIFICATION_POLL_TIME_MS = 15 * 1000;
+const STORIES_NOTIFICATION_POLL_TIME_MS = 120 * 1000;
+const PEOPLE_NOTIFICATION_POLL_TIME_MS = 120 * 1000;
 const WALLET_NOTIFICATION_POLL_TIME_MS = 600 * 1000;
 const MARKETPLACE_NOTIFICATION_POLL_TIME_MS = 600 * 1000;
 const OSX_CLICK_DELAY_TIMEOUT = 500;
@@ -354,7 +354,7 @@ HifiNotifications.prototype = {
                         'include_actions=announcement',
                         'restriction=open,hifi',
                         'require_online=true',
-                        'per_page=1'
+                        'per_page=' + MAX_NOTIFICATION_ITEMS
                     ];            
                     var url = METAVERSE_SERVER_URL + STORIES_URL + '?' + options.join('&');
                     // call a second time to determine if there are no more stories and we should
