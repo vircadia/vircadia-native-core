@@ -16,6 +16,8 @@
 
 #include "PositionalAudioStream.h"
 
+using LoopbackFlag = uchar;
+
 class InjectedAudioStream : public PositionalAudioStream {
 public:
     InjectedAudioStream(const QUuid& streamIdentifier, bool isStereo, int numStaticJitterFrames = -1);

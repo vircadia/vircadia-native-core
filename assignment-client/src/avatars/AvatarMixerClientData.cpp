@@ -227,7 +227,7 @@ void AvatarMixerClientData::ignoreOther(const Node* self, const Node* other) {
         addToRadiusIgnoringSet(other->getUUID());
         auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
         killPacket->write(other->getUUID().toRfc4122());
-        if (self->isIgnoreRadiusEnabled()) {
+        if (_isIgnoreRadiusEnabled) {
             killPacket->writePrimitive(KillAvatarReason::TheirAvatarEnteredYourBubble);
         } else {
             killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
