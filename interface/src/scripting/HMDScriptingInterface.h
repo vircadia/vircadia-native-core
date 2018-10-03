@@ -61,6 +61,8 @@ class QScriptEngine;
  * @property {Uuid} miniTabletScreenID - The UUID of the mini tablet's screen overlay. <code>null</code> if not in HMD mode.
  * @property {number} miniTabletHand - The hand that the mini tablet is displayed on: <code>0</code> for left hand, 
  *     <code>1</code> for right hand, <code>-1</code> if not in HMD mode.
+ * @property {Rect} playArea=0,0,0,0 - The size and position of the HMD play area in sensor coordinates. <em>Read-only.</em>
+ * @property {Vec3[]} sensorPositions=[]] - The positions of the VR system sensors in sensor coordinates. <em>Read-only.</em>
  */
 class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
@@ -75,6 +77,8 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(QUuid miniTabletID READ getCurrentMiniTabletID WRITE setCurrentMiniTabletID)
     Q_PROPERTY(QUuid miniTabletScreenID READ getCurrentMiniTabletScreenID WRITE setCurrentMiniTabletScreenID)
     Q_PROPERTY(int miniTabletHand READ getCurrentMiniTabletHand WRITE setCurrentMiniTabletHand)
+    Q_PROPERTY(QVariant playArea READ getPlayAreaRect);
+    Q_PROPERTY(QVector<glm::vec3> sensorPositions READ getSensorPositions);
 
 public:
 
@@ -383,6 +387,9 @@ public:
 
     void setCurrentMiniTabletHand(int miniTabletHand) { _miniTabletHand = miniTabletHand; }
     int getCurrentMiniTabletHand() const { return _miniTabletHand; }
+
+    QVariant getPlayAreaRect();
+    QVector<glm::vec3> getSensorPositions();
 
 private:
     bool _showTablet { false };
