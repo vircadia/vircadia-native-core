@@ -126,6 +126,11 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
     return _status;
 }
 
+void AvatarTransit::reset() {
+    _lastPosition = _endPosition;
+    _currentPosition = _endPosition;
+    _isTransiting = false;
+}
 void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const AvatarTransit::TransitConfig& config) {
     _startPosition = startPosition;
     _endPosition = endPosition;

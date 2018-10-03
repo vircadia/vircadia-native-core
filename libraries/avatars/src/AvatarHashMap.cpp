@@ -259,18 +259,20 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
         if (isNewAvatar) {
             QWriteLocker locker(&_hashLock);
             _pendingAvatars.insert(sessionUUID, { std::chrono::steady_clock::now(), 0, avatar });
+            avatar->setIsNewAvatar(true);
             auto replicaIDs = _replicas.getReplicaIDs(sessionUUID);
             for (auto replicaID : replicaIDs) {
                 auto replicaAvatar = addAvatar(replicaID, sendingNode);
+                replicaAvatar->setIsNewAvatar(true);
                 _replicas.addReplica(sessionUUID, replicaAvatar);
             }
         } 
-
-
+        
         // have the matching (or new) avatar parse the data from the packet
         int bytesRead = avatar->parseDataFromBuffer(byteArray);
         message->seek(positionBeforeRead + bytesRead);
         _replicas.parseDataFromBuffer(sessionUUID, byteArray);
+        
 
         return avatar;
     } else {

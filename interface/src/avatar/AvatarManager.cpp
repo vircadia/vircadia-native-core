@@ -275,7 +275,11 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             if (inView && avatar->hasNewJointData()) {
                 numAvatarsUpdated++;
             }
-            avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
+            auto transitStatus = avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
+            if (avatar->getIsNewAvatar() && transitStatus == AvatarTransit::Status::START_TRANSIT) {
+                avatar->_transit.reset();
+                avatar->setIsNewAvatar(false);
+            }
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(renderTransaction);
             avatar->updateSpaceProxy(workloadTransaction);
