@@ -16,7 +16,9 @@
 
 (function () {
 
+    var LEAP_MOTION_NAME = "LeapMotion";
     var handTouchEnabled = true;
+    var leapMotionEnabled = Controller.getRunningInputDeviceNames().indexOf(LEAP_MOTION_NAME) >= 0;
     var MSECONDS_AFTER_LOAD = 2000;
     var updateFingerWithIndex = 0;
     var untouchableEntities = [];
@@ -870,6 +872,12 @@
         handTouchEnabled = !shouldDisable;
     });
 
+    Controller.inputDeviceRunningChanged.connect(function (deviceName, isEnabled) {
+        if (deviceName == LEAP_MOTION_NAME) {
+            leapMotionEnabled = isEnabled;
+        }
+    });
+
     MyAvatar.disableHandTouchForIDChanged.connect(function (entityID, disable) {
         var entityIndex = untouchableEntities.indexOf(entityID);
         if (disable) {
@@ -902,7 +910,7 @@
 
     Script.update.connect(function () {
 
-        if (!handTouchEnabled) {
+        if (!handTouchEnabled || leapMotionEnabled) {
             return;
         }
 

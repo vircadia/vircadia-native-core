@@ -205,7 +205,7 @@ public:
 
     /**jsdoc
      * Returns information about an existing Pointer
-     * @function Pointers.getPointerState
+     * @function Pointers.getPointerProperties
      * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
      * @returns {Pointers.LaserPointerProperties|Pointers.StylusPointerProperties|Pointers.ParabolaPointerProperties} The information about the Pointer.
      * Currently only includes renderStates and defaultRenderStates with associated overlay IDs.
