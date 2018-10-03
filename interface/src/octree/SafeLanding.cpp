@@ -149,7 +149,7 @@ bool SafeLanding::isSequenceNumbersComplete() {
             && endIter != _sequenceNumbers.end()
             && distance(startIter, endIter) == sequenceSize - 1)) {
             _trackingEntities = false; // Don't track anything else that comes in.
-            returnm true;
+            return true;
         }
     }
     return false;
