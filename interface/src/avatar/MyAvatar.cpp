@@ -4074,12 +4074,18 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     glm::vec3 sensorHips = transformVectorFast(myAvatar.getSensorToWorldMatrix(), worldHips);
 
     float averageSensorSpaceHeight = myAvatar._sumUserHeightSensorSpace / myAvatar._averageUserHeightCount;
+    glm::vec3 modeWorldSpace = myAvatar.getTransform().getRotation() * glm::vec3(0.0f,myAvatar.getCurrentStandingHeight(),0.0f);
+    glm::vec3 modeSensorSpace =  extractRotation(myAvatar.getSensorToWorldMatrix()) * modeWorldSpace;
+    glm::vec3 bodyInSensorSpace = transformPoint(glm::inverse(myAvatar.getSensorToWorldMatrix()), myAvatar.getTransform().getTranslation());
+    modeSensorSpace.y = modeSensorSpace.y + bodyInSensorSpace.y;
+    qCDebug(interfaceapp) << "mode world sensor " << myAvatar.getCurrentStandingHeight() << " " << modeWorldSpace << " " << modeSensorSpace << " " << bodyInSensorSpace;
 
     if (myAvatar.getIsInSittingState()) {
         if (offset.y < SITTING_BOTTOM) {
             // we recenter when sitting.
             return true;
-        } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * averageSensorSpaceHeight))  {
+        // } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * averageSensorSpaceHeight))  {
+        } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * modeSensorSpace.y)) {
             // if we recenter upwards then no longer in sitting state
             myAvatar.setIsInSittingState(false);
             return true;
@@ -4088,10 +4094,12 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
         }
     } else {
         // in the standing state
-        if ((sensorHeadPose.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * myAvatar._tippingPoint)) && (acosHead > COSINE_TEN_DEGREES)) {  //&& !(sensorHips.y > (0.4f * averageSensorSpaceHeight)
+        // if ((sensorHeadPose.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * myAvatar._tippingPoint)) && (acosHead > COSINE_TEN_DEGREES)) {  //&& !(sensorHips.y > (0.4f * averageSensorSpaceHeight)
+        if ((sensorHeadPose.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * modeSensorSpace.y)) && (acosHead > COSINE_TEN_DEGREES)) {
             myAvatar._sitStandStateCount++;
             if (myAvatar._sitStandStateCount > SITTING_COUNT_THRESHOLD) {
                 myAvatar.setIsInSittingState(true);
+                myAvatar.setResetMode(true);
                 myAvatar._tippingPoint = averageSensorSpaceHeight;
                 myAvatar._sitStandStateCount = 0;
                 myAvatar._squatCount = 0;
