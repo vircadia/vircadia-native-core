@@ -33,7 +33,7 @@
         this.reticleMinY = MARGIN;
         this.reticleMaxY;
         this.parameters = ControllerDispatcherUtils.makeDispatcherModuleParameters(
-            540,
+            160, // Same as webSurfaceLaserInput.
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100,
