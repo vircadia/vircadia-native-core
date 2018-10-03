@@ -356,6 +356,26 @@
         }
     }
 
+    function onEnterOverlay(overlayID, event) {
+        if (currentDomain === "no domain") {
+            return;
+        }
+        if (overlayID === loadingToTheSpotID) {
+            Overlays.editOverlay(loadingToTheSpotID, {visible: false});
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: true});
+        }
+    }
+
+    function onLeaveOverlay(overlayID, event) {
+        if (currentDomain === "no domain") {
+            return;
+        }
+        if (overlayID === loadingToTheSpotHoverID) {
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: false});
+            Overlays.editOverlay(loadingToTheSpotID, {visible: true});
+        }
+    }
+
     var currentProgress = 0.1;
 
     function updateOverlays(physicsEnabled) {
@@ -482,6 +502,8 @@
 
         if (errorConnectingToDomain) {
             updateOverlays(errorConnectingToDomain);
+            // setting hover id to invisible
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: false});
             endAudio();
             currentDomain = "no domain";
             timer = null;
@@ -496,6 +518,8 @@
             return;
         } else if ((physicsEnabled && (currentProgress >= (TOTAL_LOADING_PROGRESS - EPSILON)))) {
             updateOverlays((physicsEnabled || connectionToDomainFailed));
+            // setting hover id to invisible
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: false});
             endAudio();
             currentDomain = "no domain";
             timer = null;
@@ -506,19 +530,9 @@
     var whiteColor = {red: 255, green: 255, blue: 255};
     var greyColor = {red: 125, green: 125, blue: 125};
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
-    Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
-        if (overlayID === loadingToTheSpotID) {
-            Overlays.editOverlay(loadingToTheSpotID, {visible: false});
-            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: true});
-        }
-    });
+    Overlays.hoverEnterOverlay.connect(onEnterOverlay);
 
-    Overlays.hoverLeaveOverlay.connect(function(overlayID, event) {
-        if (overlayID === loadingToTheSpotHoverID) {
-            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: false});
-            Overlays.editOverlay(loadingToTheSpotID, {visible: true});
-        }
-    });
+    Overlays.hoverLeaveOverlay.connect(onLeaveOverlay);
 
     location.hostChanged.connect(domainChanged);
     location.lookupResultsFinished.connect(function() {
