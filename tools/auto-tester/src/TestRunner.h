@@ -15,6 +15,7 @@
 #include <QDir>
 #include <QLabel>
 #include <QObject>
+#include <QPushButton>
 #include <QTextEdit>
 #include <QThread>
 #include <QTimeEdit>
@@ -38,6 +39,7 @@ public:
                         QCheckBox* runServerless,
                         QCheckBox* runLatest,
                         QTextEdit* url,
+                        QPushButton* runNow,
                         QObject* parent = 0);
 
     ~TestRunner();
@@ -62,7 +64,7 @@ public:
 
     void evaluateResults();
     void automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures);
-    void addBuildNumberToResults(QString zippedFolderName);
+    void addBuildNumberAndHostnameToResults(QString zippedFolderName);
 
     void copyFolder(const QString& source, const QString& destination);
 
@@ -115,7 +117,7 @@ private:
     QCheckBox* _runServerless;
     QCheckBox* _runLatest;
     QTextEdit* _url;
-
+    QPushButton* _runNow;
     QTimer* _timer;
 
     QFile _logFile;

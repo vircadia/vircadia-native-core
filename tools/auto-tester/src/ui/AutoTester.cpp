@@ -36,7 +36,7 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
    _ui.statusLabel->setText("");
    _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Auto Tester - v5.0");
+   setWindowTitle("Auto Tester - v5.1");
 
    // Coming soon to an auto-tester near you...
    //// _helpWindow.textBrowser->setText()
@@ -84,7 +84,7 @@ void AutoTester::setup() {
     if (_testRunner) {
         delete _testRunner;
     }
-    _testRunner = new TestRunner(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlTextEdit);
+    _testRunner = new TestRunner(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlTextEdit, _ui.runNowButton);
 }
 
 void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,

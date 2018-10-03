@@ -9,6 +9,7 @@
 //
 #include "TestRunner.h"
 
+#include <QHostInfo>
 #include <QThread>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
@@ -28,6 +29,7 @@ TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
                        QCheckBox* runServerless,
                        QCheckBox* runLatest,
                        QTextEdit* url,
+                       QPushButton* runNow,
                        QObject* parent) :
     QObject(parent) {
     _dayCheckboxes = dayCheckboxes;
@@ -37,6 +39,7 @@ TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
     _runServerless = runServerless;
     _runLatest = runLatest;
     _url = url;
+    _runNow = runNow;
 
     installerThread = new QThread();
     installerWorker = new Worker();
@@ -94,6 +97,8 @@ void TestRunner::setWorkingFolder() {
 }
 
 void TestRunner::run() {
+    _runNow->setEnabled(false);
+
     _testStartDateTime = QDateTime::currentDateTime();
     _automatedTestIsRunning = true;
 
@@ -240,10 +245,12 @@ void TestRunner::createSnapshotFolder() {
     // Just delete all PNGs from the folder if it already exists
     if (QDir(_snapshotFolder).exists()) {
         // Note that we cannot use just a `png` filter, as the filenames include periods
+        // Also, delete any `jpg` and `txt` files
+        // The idea is to leave only previous zipped result folders
         QDirIterator it(_snapshotFolder.toStdString().c_str());
         while (it.hasNext()) {
             QString filename = it.next();
-            if (filename.right(4) == ".png") {
+            if (filename.right(4) == ".png" || filename.right(4) == ".jpg" || filename.right(4) == ".txt") {
                 QFile::remove(filename);
             }
         }
@@ -341,6 +348,13 @@ void TestRunner::runInterfaceWithTestScript() {
 void TestRunner::interfaceExecutionComplete() {
     killProcesses();
 
+    QFileInfo testCompleted(QDir::toNativeSeparators(_snapshotFolder) +"/tests_completed.txt");
+    if (!testCompleted.exists()) {
+        QMessageBox::critical(0, "Tests not completed", "Interface seems to have crashed before completion of the test scripts");
+        _runNow->setEnabled(true);
+        return;
+    }
+
     evaluateResults();
 
     // The High Fidelity AppData folder will be restored after evaluation has completed
@@ -352,7 +366,7 @@ void TestRunner::evaluateResults() {
 }
 
 void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder, int numberOfFailures) {
-    addBuildNumberToResults(zippedFolder);
+    addBuildNumberAndHostnameToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
 
     updateStatusLabel("Testing complete");
@@ -373,9 +387,11 @@ void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder, int nu
     appendLog(completionText);
 
     _automatedTestIsRunning = false;
+
+    _runNow->setEnabled(true);
 }
 
-void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
+void TestRunner::addBuildNumberAndHostnameToResults(QString zippedFolderName) {
     if (!_runLatest->isChecked()) {
         QStringList filenameParts = zippedFolderName.split(".");
         QString augmentedFilename = filenameParts[0] + "(" + getPRNumberFromURL(_url->toPlainText()) + ")." + filenameParts[1];
@@ -385,7 +401,9 @@ void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
     }
 
     QStringList filenameParts = zippedFolderName.split(".");
-    QString augmentedFilename = filenameParts[0] + "(" + _buildInformation.build + ")." + filenameParts[1];
+    QString augmentedFilename =
+        filenameParts[0] + "(" + _buildInformation.build + ")[" + QHostInfo::localHostName() + "]." + filenameParts[1];
+
     QFile::rename(zippedFolderName, augmentedFilename);
 }
 
