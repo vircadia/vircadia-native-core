@@ -201,3 +201,12 @@ bool HMDScriptingInterface::isKeyboardVisible() {
 void HMDScriptingInterface::centerUI() {
     QMetaObject::invokeMethod(qApp, "centerUI", Qt::QueuedConnection);
 }
+
+QVariant HMDScriptingInterface::getPlayAreaRect() {
+    auto rect = qApp->getActiveDisplayPlugin()->getPlayAreaRect();
+    return qRectFToVariant(rect);
+}
+
+QVector<glm::vec3> HMDScriptingInterface::getSensorPositions() {
+    return qApp->getActiveDisplayPlugin()->getSensorPositions();
+}

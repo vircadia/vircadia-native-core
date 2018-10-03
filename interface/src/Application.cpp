@@ -411,6 +411,10 @@ public:
         });
     }
 
+    void setMainThreadID(Qt::HANDLE threadID) {
+        _mainThreadID = threadID;
+    }
+
     static void updateHeartbeat() {
         auto now = usecTimestampNow();
         auto elapsed = now - _heartbeat;
@@ -418,7 +422,9 @@ public:
         _heartbeat = now;
     }
 
-    static void deadlockDetectionCrash() {
+    void deadlockDetectionCrash() {
+        setCrashAnnotation("_mod_faulting_tid", std::to_string((uint64_t)_mainThreadID));
+        setCrashAnnotation("deadlock", "1");
         uint32_t* crashTrigger = nullptr;
         *crashTrigger = 0xDEAD10CC;
     }
@@ -505,6 +511,8 @@ public:
     static ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
 
     bool _quit { false };
+
+    Qt::HANDLE _mainThreadID = nullptr;
 };
 
 std::atomic<bool> DeadlockWatchdogThread::_paused;
@@ -977,7 +985,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
     _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
-    _undoStackScriptingInterface(&_undoStack),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
     _entityClipboard(new EntityTree()),
@@ -1055,6 +1062,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     auto controllerScriptingInterface = DependencyManager::get<controller::ScriptingInterface>().data();
     _controllerScriptingInterface = dynamic_cast<ControllerScriptingInterface*>(controllerScriptingInterface);
+    connect(PluginManager::getInstance().data(), &PluginManager::inputDeviceRunningChanged,
+        controllerScriptingInterface, &controller::ScriptingInterface::updateRunningInputDevices);
 
     _entityClipboard->createRootElement();
 
@@ -1094,7 +1103,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
     // Set up a watchdog thread to intentionally crash the application on deadlocks
     if (!DISABLE_WATCHDOG) {
-        (new DeadlockWatchdogThread())->start();
+        auto deadlockWatchdogThread = new DeadlockWatchdogThread();
+        deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
+        deadlockWatchdogThread->start();
     }
 
     // Set File Logger Session UUID
@@ -3101,7 +3112,6 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
     surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
-    surfaceContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
     surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
@@ -6772,8 +6782,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
 
     scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
-
-    scriptEngine->registerGlobalObject("UndoStack", &_undoStackScriptingInterface);
 
     scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
 

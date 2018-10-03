@@ -77,12 +77,8 @@ static glm::mat4 computeOffset(glm::mat4 defaultToReferenceMat, glm::mat4 defaul
     return glm::inverse(poseMat) * referenceJointMat;
 }
 
-static bool sortPucksYPosition(PuckPosePair firstPuck, PuckPosePair secondPuck) {
+static bool sortPucksYPosition(const PuckPosePair& firstPuck, const PuckPosePair& secondPuck) {
     return (firstPuck.second.translation.y < secondPuck.second.translation.y);
-}
-
-static bool sortPucksXPosition(PuckPosePair firstPuck, PuckPosePair secondPuck) {
-    return (firstPuck.second.translation.x < secondPuck.second.translation.x);
 }
 
 static bool determineLimbOrdering(const controller::Pose& poseA, const controller::Pose& poseB, glm::vec3 axis, glm::vec3 axisOrigin) {
@@ -568,6 +564,7 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
         return;
     }
 
+    // Compute the defaultToRefrenceMat, this will take inputCalibration default poses into the reference frame. (sensor space)
     glm::mat4 defaultToReferenceMat = glm::mat4();
     if (_headConfig == HeadConfig::HMD) {
         defaultToReferenceMat = calculateDefaultToReferenceForHmd(inputCalibration);
@@ -591,7 +588,17 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 }
 
 bool ViveControllerManager::InputDevice::configureHands(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
-    std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksXPosition);
+
+    // Sort valid tracked objects in the default frame by the x dimension (left to right).
+    // Because the sort is in the default frame we guarentee that poses are relative to the head facing.
+    // i.e. -x will always be to the left of the head, and +x will be to the right.
+    // This allows the user to be facing in any direction in sensor space while calibrating.
+    glm::mat4 referenceToDefaultMat = glm::inverse(defaultToReferenceMat);
+    std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), [&referenceToDefaultMat](const PuckPosePair& a, const PuckPosePair& b) {
+        glm::vec3 aPos = transformPoint(referenceToDefaultMat, a.second.translation);
+        glm::vec3 bPos = transformPoint(referenceToDefaultMat, b.second.translation);
+        return (aPos.x < bPos.x);
+    });
     int puckCount = (int)_validTrackedObjects.size();
     if (_handConfig == HandConfig::Pucks && puckCount >= MIN_PUCK_COUNT) {
         glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
@@ -1025,25 +1032,23 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
 
 void ViveControllerManager::InputDevice::calibrateLeftHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
     controller::Pose& handPose = handPair.second;
-    glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
-    glm::vec3 handPoseTranslation = extractTranslation(handPoseAvatarMat);
-    glm::vec3 handPoseZAxis = glmExtractRotation(handPoseAvatarMat) * glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 avatarHandYAxis = transformVectorFast(inputCalibration.defaultLeftHand, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 handPoseZAxis = handPose.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 referenceHandYAxis = transformVectorFast(defaultToReferenceMat * inputCalibration.defaultLeftHand, glm::vec3(0.0f, 1.0f, 0.0f));
     const float EPSILON = 1.0e-4f;
-    if (fabsf(fabsf(glm::dot(glm::normalize(avatarHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
+    if (fabsf(fabsf(glm::dot(glm::normalize(referenceHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
         handPoseZAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
+    // This allows the user to not have to match the t-pose exactly.  We assume that the y facing of the hand lies in the plane of the puck.
+    // Where the plane of the puck is defined by the the local z-axis of the puck, which is facing out of the vive logo/power button.
     glm::vec3 zPrime = handPoseZAxis;
-    glm::vec3 xPrime = glm::normalize(glm::cross(avatarHandYAxis, handPoseZAxis));
+    glm::vec3 xPrime = glm::normalize(glm::cross(referenceHandYAxis, handPoseZAxis));
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
-
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-
     glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
-    glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
+    glm::quat initialRotation = handPose.getRotation();
     glm::quat finalRotation = glmExtractRotation(newHandMat);
 
     glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
@@ -1056,25 +1061,23 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(const glm::mat4& defa
 
 void ViveControllerManager::InputDevice::calibrateRightHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
     controller::Pose& handPose = handPair.second;
-    glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
-    glm::vec3 handPoseTranslation = extractTranslation(handPoseAvatarMat);
-    glm::vec3 handPoseZAxis = glmExtractRotation(handPoseAvatarMat) * glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 avatarHandYAxis = transformVectorFast(inputCalibration.defaultRightHand, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 handPoseZAxis = handPose.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 referenceHandYAxis = transformVectorFast(defaultToReferenceMat * inputCalibration.defaultRightHand, glm::vec3(0.0f, 1.0f, 0.0f));
     const float EPSILON = 1.0e-4f;
-    if (fabsf(fabsf(glm::dot(glm::normalize(avatarHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
+    if (fabsf(fabsf(glm::dot(glm::normalize(referenceHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
         handPoseZAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
+    // This allows the user to not have to match the t-pose exactly.  We assume that the y facing of the hand lies in the plane of the puck.
+    // Where the plane of the puck is defined by the the local z-axis of the puck, which is facing out of the vive logo/power button.
     glm::vec3 zPrime = handPoseZAxis;
-    glm::vec3 xPrime = glm::normalize(glm::cross(avatarHandYAxis, handPoseZAxis));
+    glm::vec3 xPrime = glm::normalize(glm::cross(referenceHandYAxis, handPoseZAxis));
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-
-
     glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
-    glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
+    glm::quat initialRotation = handPose.getRotation();
     glm::quat finalRotation = glmExtractRotation(newHandMat);
 
     glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
@@ -1105,15 +1108,18 @@ void ViveControllerManager::InputDevice::calibrateFeet(const glm::mat4& defaultT
 
 void ViveControllerManager::InputDevice::calibrateFoot(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot){
     controller::Pose footPose = footPair.second;
-    glm::mat4 puckPoseAvatarMat = createMatFromQuatAndPos(footPose.getRotation(), footPose.getTranslation());
+    glm::mat4 puckPoseMat = createMatFromQuatAndPos(footPose.getRotation(), footPose.getTranslation());
     glm::mat4 defaultFoot = isLeftFoot ? inputCalibration.defaultLeftFoot : inputCalibration.defaultRightFoot;
     glm::mat4 footOffset = computeOffset(defaultToReferenceMat, defaultFoot, footPose);
-
     glm::quat rotationOffset = glmExtractRotation(footOffset);
     glm::vec3 translationOffset = extractTranslation(footOffset);
-    glm::vec3 avatarXAxisInPuckFrame = glm::normalize(transformVectorFast(glm::inverse(puckPoseAvatarMat), glm::vec3(-1.0f, 0.0f, 0.0f)));
-    float distance = glm::dot(translationOffset, avatarXAxisInPuckFrame);
-    glm::vec3 finalTranslation =  translationOffset - (distance * avatarXAxisInPuckFrame);
+
+    glm::vec3 localXAxisInPuckFrame = glm::normalize(transformVectorFast(glm::inverse(puckPoseMat) * defaultToReferenceMat, glm::vec3(-1.0f, 0.0f, 0.0f)));
+    float distance = glm::dot(translationOffset, localXAxisInPuckFrame);
+
+    // We ensure the offset vector lies in the sagittal plane of the avatar.
+    // This helps prevent wide or narrow stances due to the user not matching the t-pose perfectly.
+    glm::vec3 finalTranslation =  translationOffset - (distance * localXAxisInPuckFrame);
     glm::mat4 finalOffset = createMatFromQuatAndPos(rotationOffset, finalTranslation);
 
     if (isLeftFoot) {

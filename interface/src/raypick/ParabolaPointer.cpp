@@ -18,6 +18,7 @@
 const glm::vec4 ParabolaPointer::RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_COLOR { 1.0f };
 const float ParabolaPointer::RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_WIDTH { 0.01f };
 const bool ParabolaPointer::RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_ISVISIBLEINSECONDARYCAMERA { false };
+const bool ParabolaPointer::RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_DRAWINFRONT { false };
 
 gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::_parabolaPipeline { nullptr };
 gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::_transparentParabolaPipeline { nullptr };
@@ -46,6 +47,7 @@ void ParabolaPointer::editRenderStatePath(const std::string& state, const QVaria
         float alpha = RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_COLOR.a;
         float width = RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_WIDTH;
         bool isVisibleInSecondaryCamera = RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_ISVISIBLEINSECONDARYCAMERA;
+        bool drawInFront = RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_DRAWINFRONT;
         bool enabled = false;
         if (!pathMap.isEmpty()) {
             enabled = true;
@@ -63,8 +65,11 @@ void ParabolaPointer::editRenderStatePath(const std::string& state, const QVaria
             if (pathMap["isVisibleInSecondaryCamera"].isValid()) {
                 isVisibleInSecondaryCamera = pathMap["isVisibleInSecondaryCamera"].toBool();
             }
+            if (pathMap["drawInFront"].isValid()) {
+                drawInFront = pathMap["drawInFront"].toBool();
+            }
         }
-        renderState->editParabola(color, alpha, width, isVisibleInSecondaryCamera, enabled);
+        renderState->editParabola(color, alpha, width, isVisibleInSecondaryCamera, drawInFront, enabled);
     }
 }
 
@@ -146,7 +151,7 @@ void ParabolaPointer::setVisualPickResultInternal(PickResultPointer pickResult, 
 }
 
 ParabolaPointer::RenderState::RenderState(const OverlayID& startID, const OverlayID& endID, const glm::vec3& pathColor, float pathAlpha, float pathWidth,
-                                          bool isVisibleInSecondaryCamera, bool pathEnabled) :
+                                          bool isVisibleInSecondaryCamera, bool drawInFront, bool pathEnabled) :
     StartEndRenderState(startID, endID)
 {
     render::Transaction transaction;
@@ -154,7 +159,7 @@ ParabolaPointer::RenderState::RenderState(const OverlayID& startID, const Overla
     _pathID = scene->allocateID();
     _pathWidth = pathWidth;
     if (render::Item::isValidID(_pathID)) {
-        auto renderItem = std::make_shared<ParabolaRenderItem>(pathColor, pathAlpha, pathWidth, isVisibleInSecondaryCamera, pathEnabled);
+        auto renderItem = std::make_shared<ParabolaRenderItem>(pathColor, pathAlpha, pathWidth, isVisibleInSecondaryCamera, drawInFront, pathEnabled);
         transaction.resetItem(_pathID, std::make_shared<ParabolaRenderItem::Payload>(renderItem));
         scene->enqueueTransaction(transaction);
     }
@@ -182,15 +187,16 @@ void ParabolaPointer::RenderState::disable() {
     }
 }
 
-void ParabolaPointer::RenderState::editParabola(const glm::vec3& color, float alpha, float width, bool isVisibleInSecondaryCamera, bool enabled) {
+void ParabolaPointer::RenderState::editParabola(const glm::vec3& color, float alpha, float width, bool isVisibleInSecondaryCamera, bool drawInFront, bool enabled) {
     if (render::Item::isValidID(_pathID)) {
         render::Transaction transaction;
         auto scene = qApp->getMain3DScene();
-        transaction.updateItem<ParabolaRenderItem>(_pathID, [color, alpha, width, isVisibleInSecondaryCamera, enabled](ParabolaRenderItem& item) {
+        transaction.updateItem<ParabolaRenderItem>(_pathID, [color, alpha, width, isVisibleInSecondaryCamera, drawInFront, enabled](ParabolaRenderItem& item) {
             item.setColor(color);
             item.setAlpha(alpha);
             item.setWidth(width);
             item.setIsVisibleInSecondaryCamera(isVisibleInSecondaryCamera);
+            item.setDrawInFront(drawInFront);
             item.setEnabled(enabled);
             item.updateKey();
         });
@@ -238,6 +244,7 @@ std::shared_ptr<StartEndRenderState> ParabolaPointer::buildRenderState(const QVa
     float alpha = RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_COLOR.a;
     float width = RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_WIDTH;
     bool isVisibleInSecondaryCamera = RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_ISVISIBLEINSECONDARYCAMERA;
+    bool drawInFront = RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_DRAWINFRONT;
     bool enabled = false;
     if (propMap["path"].isValid()) {
         enabled = true;
@@ -258,6 +265,10 @@ std::shared_ptr<StartEndRenderState> ParabolaPointer::buildRenderState(const QVa
         if (pathMap["isVisibleInSecondaryCamera"].isValid()) {
             isVisibleInSecondaryCamera = pathMap["isVisibleInSecondaryCamera"].toBool();
         }
+
+        if (pathMap["drawInFront"].isValid()) {
+            drawInFront = pathMap["drawInFront"].toBool();
+        }
     }
 
     QUuid endID;
@@ -269,7 +280,7 @@ std::shared_ptr<StartEndRenderState> ParabolaPointer::buildRenderState(const QVa
         }
     }
 
-    return std::make_shared<RenderState>(startID, endID, color, alpha, width, isVisibleInSecondaryCamera, enabled);
+    return std::make_shared<RenderState>(startID, endID, color, alpha, width, isVisibleInSecondaryCamera, drawInFront, enabled);
 }
 
 PointerEvent ParabolaPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button, bool hover) {
@@ -321,8 +332,8 @@ glm::vec3 ParabolaPointer::findIntersection(const PickedObject& pickedObject, co
 }
 
 ParabolaPointer::RenderState::ParabolaRenderItem::ParabolaRenderItem(const glm::vec3& color, float alpha, float width,
-                                                                     bool isVisibleInSecondaryCamera, bool enabled) :
-    _isVisibleInSecondaryCamera(isVisibleInSecondaryCamera), _enabled(enabled)
+                                                                     bool isVisibleInSecondaryCamera, bool drawInFront, bool enabled) :
+    _isVisibleInSecondaryCamera(isVisibleInSecondaryCamera), _drawInFront(drawInFront), _enabled(enabled)
 {
     _uniformBuffer->resize(sizeof(ParabolaData));
     setColor(color);
@@ -356,6 +367,10 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::updateKey() {
         builder.withTagBits(render::hifi::TAG_ALL_VIEWS);
     } else {
         builder.withTagBits(render::hifi::TAG_MAIN_VIEW);
+    }
+
+    if (_drawInFront) {
+        builder.withLayer(render::hifi::LAYER_3D_FRONT);
     }
 
     _key = builder.build();

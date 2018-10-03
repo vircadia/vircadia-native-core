@@ -106,6 +106,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", true),
+    _showPlayArea("showPlayArea", true),
     _smoothOrientationTimer(std::numeric_limits<float>::max()),
     _smoothOrientationInitial(),
     _smoothOrientationTarget(),
@@ -3307,7 +3308,7 @@ float MyAvatar::getRawDriveKey(DriveKeys key) const {
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (getDriveKey(TRANSLATE_Y) > 0.0f) {
+    if (getDriveKey(TRANSLATE_Y) > 0.0f && (!qApp->isHMDMode() || (useAdvancedMovementControls() && getFlyingHMDPref()))) {
         _characterController.jump();
     }
 }
