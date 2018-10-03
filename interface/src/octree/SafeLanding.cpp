@@ -116,10 +116,9 @@ bool SafeLanding::isLoadSequenceComplete() {
         _initialEnd = INVALID_SEQUENCE;
         _entityTree = nullptr;
         EntityTreeRenderer::setEntityLoadingPriorityFunction(StandardPriority);
-        return true;
     }
 
-    return false;
+    return !_trackingEntities;
 }
 
 float SafeLanding::loadingProgressPercentage() {
@@ -150,9 +149,10 @@ bool SafeLanding::isSequenceNumbersComplete() {
             && endIter != _sequenceNumbers.end()
             && distance(startIter, endIter) == sequenceSize - 1)) {
             _trackingEntities = false; // Don't track anything else that comes in.
+            returnm true;
         }
     }
-    return !_trackingEntities;
+    return false;
 }
 
 bool isEntityPhysicsReady(const EntityItemPointer& entity) {
