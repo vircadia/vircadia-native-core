@@ -117,8 +117,6 @@ Rectangle {
                     break;
                 }
             }
-        } else {
-            softWearableTimer.restart();
         }
 
         return hasAvatarJoint;
@@ -158,9 +156,9 @@ Rectangle {
 
     Timer {
         id: softWearableTimer
-        interval: 500
+        interval: 1000
         running: false
-        repeat: false
+        repeat: true
         onTriggered: {
             var currentWearable = getCurrentWearable();
             var soft = currentWearable ? currentWearable.relayParentJoints : false;
