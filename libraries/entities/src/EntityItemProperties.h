@@ -352,6 +352,10 @@ public:
     bool hasTransformOrVelocityChanges() const;
     bool hasMiscPhysicsChanges() const;
 
+    bool hasSimulationRestrictedChanges() const;
+    void copySimulationRestrictedProperties(const EntityItemPointer& entity);
+    void clearSimulationRestrictedProperties();
+
     void clearSimulationOwner();
     void setSimulationOwner(const QUuid& id, uint8_t priority);
     void setSimulationOwner(const QByteArray& data);

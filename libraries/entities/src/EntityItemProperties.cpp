@@ -3258,6 +3258,56 @@ bool EntityItemProperties::hasMiscPhysicsChanges() const {
         _compoundShapeURLChanged || _dynamicChanged || _collisionlessChanged || _collisionMaskChanged;
 }
 
+bool EntityItemProperties::hasSimulationRestrictedChanges() const {
+    return _positionChanged || _localPositionChanged
+        || _rotationChanged || _localRotationChanged
+        || _velocityChanged || _localVelocityChanged
+        || _angularVelocityChanged || _localAngularVelocityChanged
+        || _accelerationChanged
+        || _parentIDChanged || _parentJointIndexChanged;
+}
+
+void EntityItemProperties::copySimulationRestrictedProperties(const EntityItemPointer& entity) {
+    if (!_parentIDChanged) {
+        setParentID(entity->getParentID());
+    }
+    if (!_parentJointIndexChanged) {
+        setParentJointIndex(entity->getParentJointIndex());
+    }
+    if (!_localPositionChanged && !_positionChanged) {
+        setPosition(entity->getWorldPosition());
+    }
+    if (!_localRotationChanged && !_rotationChanged) {
+        setRotation(entity->getWorldOrientation());
+    }
+    if (!_localVelocityChanged && !_velocityChanged) {
+        setVelocity(entity->getWorldVelocity());
+    }
+    if (!_localAngularVelocityChanged && !_angularVelocityChanged) {
+        setAngularVelocity(entity->getWorldAngularVelocity());
+    }
+    if (!_accelerationChanged) {
+        setAcceleration(entity->getAcceleration());
+    }
+    if (!_localDimensionsChanged && !_dimensionsChanged) {
+        setDimensions(entity->getScaledDimensions());
+    }
+}
+
+void EntityItemProperties::clearSimulationRestrictedProperties() {
+    _positionChanged = false;
+    _localPositionChanged = false;
+    _rotationChanged = false;
+    _localRotationChanged = false;
+    _velocityChanged = false;
+    _localVelocityChanged = false;
+    _angularVelocityChanged = false;
+    _localAngularVelocityChanged = false;
+    _accelerationChanged = false;
+    _parentIDChanged = false;
+    _parentJointIndexChanged = false;
+}
+
 void EntityItemProperties::clearSimulationOwner() {
     _simulationOwner.clear();
     _simulationOwnerChanged = true;
