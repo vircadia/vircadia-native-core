@@ -446,9 +446,9 @@ void AmbientOcclusionEffect::updateRandomSamples() {
     if (_aoParametersBuffer->isHorizonBased()) {
         const int B = 3;
         const float invB = 1.0f / (float)B;
-        float sampleScale = float(2.0f * M_PI / _aoParametersBuffer->getNumSamples());
+        float sampleScale = float(2.0 * M_PI / double(_aoParametersBuffer->getNumSamples()));
 
-        for (auto i = 0; i < _randomSamples.size(); i++) {
+        for (size_t i = 0; i < _randomSamples.size(); i++) {
             int index = i + 1; // Indices start at 1, not 0
             float f = 1.0f;
             float r = 0.0f;
@@ -461,8 +461,8 @@ void AmbientOcclusionEffect::updateRandomSamples() {
             _randomSamples[i] = r * sampleScale;
         }
     } else {
-        for (auto i = 0; i < _randomSamples.size(); i++) {
-            _randomSamples[i] = randFloat() * 2.0f * M_PI;
+        for (size_t i = 0; i < _randomSamples.size(); i++) {
+            _randomSamples[i] = randFloat() * float(2.0 * M_PI);
         }
     }
 }
