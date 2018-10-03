@@ -153,7 +153,7 @@ void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestFa
     stream << "Test failed in folder " << testFailure._pathname.left(testFailure._pathname.length() - 1) << endl; // remove trailing '/'
     stream << "Expected image was    " << testFailure._expectedImageFilename << endl;
     stream << "Actual image was      " << testFailure._actualImageFilename << endl;
-    stream << "Similarity _index was  " << testFailure._error << endl;
+    stream << "Similarity index was  " << testFailure._error << endl;
 
     descriptionFile.close();
 
