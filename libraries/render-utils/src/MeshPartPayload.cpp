@@ -250,7 +250,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     // it cannot be null otherwise we crash in the drawcall using a deformed pipeline with a skinned only (not blendshaped) mesh
     if ((_isBlendShaped || _isSkinned) && !_blendshapeBuffer) {
         glm::vec4 data;
-        _blendshapeBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), reinterpret_cast<const Byte*>(data));
+        _blendshapeBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), reinterpret_cast<const gpu::Byte*>(&data));
     }
 #endif
 
