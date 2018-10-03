@@ -23,6 +23,9 @@ Rectangle {
     property bool modified: false;
     Component.onCompleted: {
         modified = false;
+        MyAavatar.animGraphLoaded.connect(function() {
+            softWearableTimer.restart();
+        });
     }
 
     property var jointNames: []
@@ -102,13 +105,20 @@ Rectangle {
 
     function entityHasAvatarJoints(entityID) {
         var hasAvatarJoint = false;
-        var entityJointNames = Entities.getJointNames(entityID);
-        for (var index = 0; index < entityJointNames.length; index++) {
-            var avatarJointIndex = MyAvatar.getJointIndex(entityJointNames[index]);
-            if (avatarJointIndex >= 0) {
-                hasAvatarJoint = true;
-                break;
+
+        var props = Entities.getEntityProperties(entityID);
+        var avatarJointsCount = MyAvatar.getJointNames().length;
+        if (props && avatarJointsCount >= 0 ) {
+            var entityJointNames = Entities.getJointNames(entityID);
+            for (var index = 0; index < entityJointNames.length; index++) {
+                var avatarJointIndex = MyAvatar.getJointIndex(entityJointNames[index]);
+                if (avatarJointIndex >= 0) {
+                    hasAvatarJoint = true;
+                    break;
+                }
             }
+        } else {
+            softWearableTimer.restart();
         }
 
         return hasAvatarJoint;
@@ -133,6 +143,7 @@ Rectangle {
         visible = false;
         adjustWearablesClosed(status, avatarName);
     }
+    
 
     HifiConstants { id: hifi }
 
