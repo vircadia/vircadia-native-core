@@ -97,7 +97,7 @@ void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
 }
 
 void AutoTester::on_tabWidget_currentChanged(int index) {
-    if (index == 2 || index == 3) {
+    if (index == 0 || index == 2 || index == 3) {
         _ui.userLineEdit->setDisabled(false);
         _ui.branchLineEdit->setDisabled(false);
     } else {
@@ -274,7 +274,7 @@ void AutoTester::saveFile(int index) {
 }
 
 void AutoTester::about() {
-    QMessageBox::information(0, "About", QString("Built ") + __DATE__ + " : " + __TIME__);
+    QMessageBox::information(0, "About", QString("Built ") + __DATE__ + ", " + __TIME__);
 }
 
 void AutoTester::content() {
