@@ -1620,7 +1620,9 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;
     bool rightHandEnabled = params.primaryControllerFlags[PrimaryControllerType_RightHand] & (uint8_t)ControllerFlags::Enabled;
     bool hipsEnabled = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Enabled;
+    bool prevHipsEnabled = _previousControllerParameters.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Enabled;
     bool hipsEstimated = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Estimated;
+    bool prevHipsEstimated = _previousControllerParameters.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Estimated;
     bool leftFootEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftFoot] & (uint8_t)ControllerFlags::Enabled;
     bool rightFootEnabled = params.primaryControllerFlags[PrimaryControllerType_RightFoot] & (uint8_t)ControllerFlags::Enabled;
     bool spine2Enabled = params.primaryControllerFlags[PrimaryControllerType_Spine2] & (uint8_t)ControllerFlags::Enabled;
@@ -1659,9 +1661,26 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     }
 
     if (hipsEnabled) {
+
+        // Apply a bit of smoothing when the hips toggle between estimated and non-estimated poses.
+        // This should help smooth out problems with the vive tracker when the sensor is occluded.
+        if (prevHipsEnabled && hipsEstimated != prevHipsEstimated) {
+            // blend from a snapshot of the previous hips.
+            const float HIPS_BLEND_DURATION = 0.3f;
+            _hipsBlendHelper.setBlendDuration(HIPS_BLEND_DURATION);
+            _hipsBlendHelper.setSnapshot(_previousControllerParameters.primaryControllerPoses[PrimaryControllerType_Hips]);
+        } else if (!prevHipsEnabled) {
+            // we have no sensible value to blend from.
+            const float HIPS_BLEND_DURATION = 0.0f;
+            _hipsBlendHelper.setBlendDuration(HIPS_BLEND_DURATION);
+            _hipsBlendHelper.setSnapshot(params.primaryControllerPoses[PrimaryControllerType_Hips]);
+        }
+
+        AnimPose hips = _hipsBlendHelper.update(params.primaryControllerPoses[PrimaryControllerType_Hips], dt);
+
         _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
-        _animVars.set("hipsPosition", params.primaryControllerPoses[PrimaryControllerType_Hips].trans());
-        _animVars.set("hipsRotation", params.primaryControllerPoses[PrimaryControllerType_Hips].rot());
+        _animVars.set("hipsPosition", hips.trans());
+        _animVars.set("hipsRotation", hips.rot());
     } else {
         _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
     }

@@ -91,4 +91,41 @@ protected:
     bool _prevPoseValid;
 };
 
+class SnapshotBlendPoseHelper {
+public:
+    SnapshotBlendPoseHelper() : _snapshotValid(false) {}
+
+    void setBlendDuration(float duration) {
+        _duration = duration;
+    }
+
+    void setSnapshot(const AnimPose& pose) {
+        _snapshotValid = true;
+        _snapshotPose = pose;
+        _timer = _duration;
+    }
+
+    AnimPose update(const AnimPose& targetPose, float deltaTime) {
+        _timer -= deltaTime;
+        if (_timer > 0.0f) {
+            float alpha = (_duration - _timer) / _duration;
+
+            // ease in expo
+            alpha = 1.0f - powf(2.0f, -10.0f * alpha);
+
+            AnimPose newPose = targetPose;
+            newPose.blend(_snapshotPose, alpha);
+            return newPose;
+        } else {
+            return targetPose;
+        }
+    }
+
+protected:
+    AnimPose _snapshotPose;
+    float _duration { 1.0f };
+    float _timer { 0.0f };
+    bool _snapshotValid { false };
+};
+
 #endif
