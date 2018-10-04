@@ -356,13 +356,14 @@ getTabletWidthFromSettings = function () {
     var DEFAULT_TABLET_WIDTH = 0.4375;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var toolbarMode = tablet.toolbarMode;
-    var DEFAULT_TABLET_SCALE = 70;
-    var tabletScalePercentage = DEFAULT_TABLET_SCALE;
+    var DEFAULT_DESKTOP_TABLET_SCALE = 75;
+    var DEFAULT_HMD_TABLET_SCALE = 60;
+    var tabletScalePercentage = DEFAULT_HMD_TABLET_SCALE;
     if (!toolbarMode) {
         if (HMD.active) {
-            tabletScalePercentage = Settings.getValue("hmdTabletScale") || DEFAULT_TABLET_SCALE;
+            tabletScalePercentage = Settings.getValue("hmdTabletScale") || DEFAULT_HMD_TABLET_SCALE;
         } else {
-            tabletScalePercentage = Settings.getValue("desktopTabletScale") || DEFAULT_TABLET_SCALE;
+            tabletScalePercentage = Settings.getValue("desktopTabletScale") || DEFAULT_DESKTOP_TABLET_SCALE;
         }
     }
     return DEFAULT_TABLET_WIDTH * (tabletScalePercentage / 100);

@@ -163,7 +163,10 @@ Script.include("/~/system/libraries/utils.js");
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(overlayPosition, handPosition);
                 if (distance <= NEAR_GRAB_RADIUS * sensorScaleFactor) {
-                    return overlays[i];
+                    if (overlays[i] !== HMD.miniTabletID || controllerData.secondaryValues[this.hand] === 0) {
+                        // Don't grab mini tablet with grip.
+                        return overlays[i];
+                    }
                 }
             }
             return null;

@@ -15,9 +15,31 @@ const VISIBLE_GLYPH = "&#xe007;";
 const TRANSPARENCY_GLYPH = "&#xe00b;";
 const BAKED_GLYPH = "&#xe01a;"
 const SCRIPT_GLYPH = "k";
+const BYTES_PER_MEGABYTE = 1024 * 1024;
+const IMAGE_MODEL_NAME = 'default-image-model.fbx';
+const COLLAPSE_EXTRA_INFO = "E";
+const EXPAND_EXTRA_INFO = "D";
+const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
+const WINDOW_NONVARIABLE_HEIGHT = 207;
+const NUM_COLUMNS = 12;
+const EMPTY_ENTITY_ID = "0";
 const DELETE = 46; // Key code for the delete key.
 const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
-const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
+
+const COLUMN_INDEX = {
+    TYPE: 0,
+    NAME: 1,
+    URL: 2,
+    LOCKED: 3,
+    VISIBLE: 4,
+    VERTICLES_COUNT: 5,
+    TEXTURES_COUNT: 6,
+    TEXTURES_SIZE: 7,
+    HAS_TRANSPARENT: 8,
+    IS_BAKED: 9,
+    DRAW_CALLS: 10,
+    HAS_SCRIPT: 11
+};
 
 const COMPARE_ASCENDING = function(a, b) {
     let va = a[currentSortColumn];
@@ -37,17 +59,21 @@ const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
 }
 
-
 // List of all entities
-let entities = []
+var entities = []
 // List of all entities, indexed by Entity ID
 var entitiesByID = {};
-// The filtered and sorted list of entities
+// The filtered and sorted list of entities passed to ListView
 var visibleEntities = [];
-
+// List of all entities that are currently selected
 var selectedEntities = [];
+
+var entityList = null; // The ListView
+
 var currentSortColumn = 'type';
 var currentSortOrder = ASCENDING_SORT;
+var isFilterInView = false;
+var showExtraInfo = false;
 
 const ENABLE_PROFILING = false;
 var profileIndent = '';
@@ -56,19 +82,25 @@ const PROFILE_NOOP = function(_name, fn, args) {
 } ;
 const PROFILE = !ENABLE_PROFILING ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") Begin");
-    var previousIndent = profileIndent;
+    let previousIndent = profileIndent;
     profileIndent += '  ';
-    var before = Date.now();
+    let before = Date.now();
     fn.apply(this, args);
-    var delta = Date.now() - before;
+    let delta = Date.now() - before;
     profileIndent = previousIndent;
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
+};
+
+debugPrint = function (message) {
+    console.log(message);
 };
 
 function loaded() {
     openEventBridge(function() {
         elEntityTable = document.getElementById("entity-table");
         elEntityTableBody = document.getElementById("entity-table-body");
+        elEntityTableScroll = document.getElementById("entity-table-scroll");
+        elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
         elRefresh = document.getElementById("refresh");
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
@@ -78,15 +110,13 @@ function loaded() {
         elRadius = document.getElementById("radius");
         elExport = document.getElementById("export");
         elPal = document.getElementById("pal");
-        elEntityTable = document.getElementById("entity-table");
         elInfoToggle = document.getElementById("info-toggle");
         elInfoToggleGlyph = elInfoToggle.firstChild;
         elFooter = document.getElementById("footer-text");
         elNoEntitiesMessage = document.getElementById("no-entities");
         elNoEntitiesInView = document.getElementById("no-entities-in-view");
         elNoEntitiesRadius = document.getElementById("no-entities-radius");
-        elEntityTableScroll = document.getElementById("entity-table-scroll");
-
+        
         document.getElementById("entity-name").onclick = function() {
             setSortColumn('name');
         };
@@ -123,14 +153,46 @@ function loaded() {
         document.getElementById("entity-hasScript").onclick = function () {
             setSortColumn('hasScript');
         };
-
+        elRefresh.onclick = function() {
+            refreshEntities();
+        }
+        elToggleLocked.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
+        }
+        elToggleVisible.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
+        }
+        elExport.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
+        }
+        elPal.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
+        }
+        elDelete.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+        }
+        elFilter.onkeyup = refreshEntityList;
+        elFilter.onpaste = refreshEntityList;
+        elFilter.onchange = onFilterChange;
+        elFilter.onblur = refreshFooter;
+        elInView.onclick = toggleFilterInView;
+        elRadius.onchange = onRadiusChange;
+        elInfoToggle.onclick = toggleInfo;
+        
+        elNoEntitiesInView.style.display = "none";
+        
+        entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
+                                  createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
+        
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
             let selection = [entityID];
+            
             if (clickEvent.ctrlKey) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
-                    selection = selectedEntities;
+                    selection = [];
+                    selection = selection.concat(selectedEntities);
                     selection.splice(selectedIndex, 1)
                 } else {
                     selection = selection.concat(selectedEntities);
@@ -145,35 +207,26 @@ function loaded() {
                     } else if (previousItemFound === -1 && selectedEntities[0] === entity.id) {
                         previousItemFound = i;
                     }
-                };
+                }
                 if (previousItemFound !== -1 && clickedItemFound !== -1) {
-                    let betweenItems = [];
+                    selection = [];
                     let toItem = Math.max(previousItemFound, clickedItemFound);
-                    // skip first and last item in this loop, we add them to selection after the loop
-                    for (let i = (Math.min(previousItemFound, clickedItemFound) + 1); i < toItem; i++) {
-                        visibleEntities[i].el.className = 'selected';
-                        betweenItems.push(visibleEntities[i].id);
+                    for (let i = Math.min(previousItemFound, clickedItemFound); i <= toItem; i++) {
+                        selection.push(visibleEntities[i].id);
                     }
                     if (previousItemFound > clickedItemFound) {
                         // always make sure that we add the items in the right order
-                        betweenItems.reverse();
+                        selection.reverse();
                     }
-                    selection = selection.concat(betweenItems, selectedEntities);
+                }
+            } else if (!clickEvent.ctrlKey && !clickEvent.shiftKey && selectedEntities.length === 1) {
+                // if reselecting the same entity then deselect it
+                if (selectedEntities[0] === entityID) {
+                    selection = [];
                 }
             }
-
-            selectedEntities.forEach(function(entityID) {
-                if (selection.indexOf(entityID) === -1) {
-                    let entity = entitiesByID[entityID];
-                    if (entity !== undefined) {
-                        entity.el.className = '';
-                    }
-                }
-            });
-
-            selectedEntities = selection;
-
-            this.className = 'selected';
+            
+            updateSelectedEntities(selection);
 
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
@@ -191,9 +244,7 @@ function loaded() {
                 entityIds: [this.dataset.entityID],
             }));
         }
-
-        const BYTES_PER_MEGABYTE = 1024 * 1024;
-
+        
         function decimalMegabytes(number) {
             return number ? (number / BYTES_PER_MEGABYTE).toFixed(1) : "";
         }
@@ -206,15 +257,12 @@ function loaded() {
             let urlParts = url.split('/');
             return urlParts[urlParts.length - 1];
         }
-
-        // Update the entity list with the new set of data sent from edit.js
-        function updateEntityList(entityData) {
-            const IMAGE_MODEL_NAME = 'default-image-model.fbx';
-
-            entities = []
+        
+        function updateEntityData(entityData) {
+            entities = [];
             entitiesByID = {};
-            visibleEntities = [];
-
+            visibleEntities.length = 0; // maintains itemData reference in ListView
+            
             PROFILE("map-data", function() {
                 entityData.forEach(function(entity) {
                     let type = entity.type;
@@ -222,7 +270,7 @@ function loaded() {
                     if (filename === IMAGE_MODEL_NAME) {
                         type = "Image";
                     }
-
+            
                     let entityData = {
                         id: entity.id,
                         name: entity.name,
@@ -231,60 +279,25 @@ function loaded() {
                         fullUrl: entity.url,
                         locked: entity.locked,
                         visible: entity.visible,
-                        verticesCount: entity.verticesCount,
-                        texturesCount: entity.texturesCount,
-                        texturesSize: entity.texturesSize,
+                        verticesCount: displayIfNonZero(entity.verticesCount),
+                        texturesCount: displayIfNonZero(entity.texturesCount),
+                        texturesSize: decimalMegabytes(entity.texturesSize),
                         hasTransparent: entity.hasTransparent,
                         isBaked: entity.isBaked,
-                        drawCalls: entity.drawCalls,
+                        drawCalls: displayIfNonZero(entity.drawCalls),
                         hasScript: entity.hasScript,
+                        elRow: null, // if this entity has a visible row element assigned to it
+                        selected: false // if this entity is selected for edit regardless of having a visible row
                     }
-
+                    
                     entities.push(entityData);
                     entitiesByID[entityData.id] = entityData;
                 });
             });
-
-            PROFILE("create-rows", function() {
-                entities.forEach(function(entity) {
-                    let row = document.createElement('tr');
-                    row.dataset.entityID = entity.id;
-                    row.attributes.title = entity.fullUrl;
-                    function addColumn(cls, text) {
-                        let col = document.createElement('td');
-                        col.className = cls;
-                        col.innerText = text;
-                        row.append(col);
-                    }
-                    function addColumnHTML(cls, text) {
-                        let col = document.createElement('td');
-                        col.className = cls;
-                        col.innerHTML = text;
-                        row.append(col);
-                    }
-                    addColumn('type', entity.type);
-                    addColumn('name', entity.name);
-                    addColumn('url', entity.url);
-                    addColumnHTML('locked glyph', entity.locked ? LOCKED_GLYPH : null);
-                    addColumnHTML('visible glyph', entity.visible ? VISIBLE_GLYPH : null);
-                    addColumn('verticesCount', displayIfNonZero(entity.verticesCount));
-                    addColumn('texturesCount', displayIfNonZero(entity.texturesCount));
-                    addColumn('texturesSize', decimalMegabytes(entity.texturesSize));
-                    addColumnHTML('hasTransparent glyph', entity.hasTransparent ? TRANSPARENCY_GLYPH : null);
-                    addColumnHTML('isBaked glyph', entity.isBaked ? BAKED_GLYPH : null);
-                    addColumn('drawCalls', displayIfNonZero(entity.drawCalls));
-                    addColumn('hasScript glyph', entity.hasScript ? SCRIPT_GLYPH : null);
-                    row.addEventListener('click', onRowClicked);
-                    row.addEventListener('dblclick', onRowDoubleClicked);
-
-                    entity.el = row;
-                });
-            });
-
+            
             refreshEntityList();
-            updateSelectedEntities(selectedEntities);
         }
-
+        
         function refreshEntityList() {
             PROFILE("refresh-entity-list", function() {
                 PROFILE("filter", function() {
@@ -300,44 +313,95 @@ function loaded() {
                         });
                     }
                 });
-
+                
                 PROFILE("sort", function() {
                     let cmp = currentSortOrder === ASCENDING_SORT ? COMPARE_ASCENDING : COMPARE_DESCENDING;
                     visibleEntities.sort(cmp);
                 });
 
                 PROFILE("update-dom", function() {
-                    elEntityTableBody.innerHTML = '';
-                    for (let i = 0, len = visibleEntities.length; i < len; ++i) {
-                        elEntityTableBody.append(visibleEntities[i].el);
-                    }
+                    entityList.itemData = visibleEntities;
+                    entityList.refresh();
                 });
+                
+                refreshFooter();
+                refreshNoEntitiesMessage();
             });
         }
-
+        
         function removeEntities(deletedIDs) {
             // Loop from the back so we can pop items off while iterating
+            
+            // delete any entities matching deletedIDs list from entities and entitiesByID lists
+            // if the entity had an associated row element then ensure row is unselected and clear it's entity
             for (let j = entities.length - 1; j >= 0; --j) {
-                let id = entities[j];
+                let id = entities[j].id;
                 for (let i = 0, length = deletedIDs.length; i < length; ++i) {
                     if (id === deletedIDs[i]) {
+                        let elRow = entities[j].elRow;
+                        if (elRow) {
+                            elRow.className = '';
+                            elRow.dataset.entityID = EMPTY_ENTITY_ID;
+                        }
                         entities.splice(j, 1);
-                        entitiesByID[id].el.remove();
                         delete entitiesByID[id];
                         break;
                     }
                 }
             }
-            refreshEntities();
-        }
+            
+            // delete any entities matching deletedIDs list from selectedEntities list
+            for (let j = selectedEntities.length - 1; j >= 0; --j) {
+                let id = selectedEntities[j].id;
+                for (let i = 0, length = deletedIDs.length; i < length; ++i) {
+                    if (id === deletedIDs[i]) {
+                        selectedEntities.splice(j, 1);
+                        break;
+                    }
+                }
+            }
 
-        function clearEntities() {
-            entities = []
-            entitiesByID = {};
-            visibleEntities = [];
-            elEntityTableBody.innerHTML = '';
-
+            // delete any entities matching deletedIDs list from visibleEntities list
+            // if this was a row that was above our current row offset (a hidden top row in the top buffer),
+            // then decrease row offset accordingly
+            let firstVisibleRow = entityList.getFirstVisibleRowIndex();
+            for (let j = visibleEntities.length - 1; j >= 0; --j) {
+                let id = visibleEntities[j].id;
+                for (let i = 0, length = deletedIDs.length; i < length; ++i) {
+                    if (id === deletedIDs[i]) {
+                        if (j < firstVisibleRow && entityList.rowOffset > 0) {
+                            entityList.rowOffset--;
+                        }
+                        visibleEntities.splice(j, 1);
+                        break;
+                    }
+                }
+            }
+            
+            entityList.refresh();
+            
             refreshFooter();
+            refreshNoEntitiesMessage();
+        }
+        
+        function clearEntities() {
+            // clear the associated entity ID from all visible row elements
+            let firstVisibleRow = entityList.getFirstVisibleRowIndex();
+            let lastVisibleRow = entityList.getLastVisibleRowIndex();
+            for (let i = firstVisibleRow; i <= lastVisibleRow && i < visibleEntities.length; i++) {
+                let entity = visibleEntities[i];
+                entity.elRow.dataset.entityID = EMPTY_ENTITY_ID;
+            }
+            
+            entities = [];
+            entitiesByID = {};
+            visibleEntities.length = 0; // maintains itemData reference in ListView
+            
+            entityList.resetToTop();
+            entityList.clear();
+            
+            refreshFooter();
+            refreshNoEntitiesMessage();
         }
 
         var elSortOrder = {
@@ -363,17 +427,18 @@ function loaded() {
                     currentSortColumn = column;
                     currentSortOrder = ASCENDING_SORT;
                 }
-                elSortOrder[column].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+                refreshSortOrder();
                 refreshEntityList();
             });
         }
-        setSortColumn('type');
-
+        function refreshSortOrder() {
+            elSortOrder[currentSortColumn].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+        }
+        
         function refreshEntities() {
-            clearEntities();
             EventBridge.emitWebEvent(JSON.stringify({ type: 'refresh' }));
         }
-
+        
         function refreshFooter() {
             if (selectedEntities.length > 1) {
                 elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
@@ -385,76 +450,142 @@ function loaded() {
                 elFooter.firstChild.nodeValue = visibleEntities.length + " entities found";
             }
         }
-
-
+        
+        function refreshNoEntitiesMessage() {
+            if (visibleEntities.length > 0) {
+                elNoEntitiesMessage.style.display = "none";
+            } else {
+                elNoEntitiesMessage.style.display = "block";
+            }
+        }
+        
         function updateSelectedEntities(selectedIDs) {
             let notFound = false;
-
+            
+            // reset all currently selected entities and their rows first
             selectedEntities.forEach(function(id) {
                 let entity = entitiesByID[id];
                 if (entity !== undefined) {
-                    entity.el.className = '';
+                    entity.selected = false;
+                    if (entity.elRow) {
+                        entity.elRow.className = '';
+                    }
                 }
             });
-
+            
+            // then reset selected entities list with newly selected entities and set them selected
             selectedEntities = [];
-            for (let i = 0; i < selectedIDs.length; i++) {
-                let id = selectedIDs[i];
+            selectedIDs.forEach(function(id) {
                 selectedEntities.push(id);
                 let entity = entitiesByID[id];
                 if (entity !== undefined) {
-                    entity.el.className = 'selected';
+                    entity.selected = true;
+                    if (entity.elRow) {
+                        entity.elRow.className = 'selected';
+                    }
                 } else {
                     notFound = true;
                 }
-            }
+            });
 
             refreshFooter();
 
             return notFound;
         }
-
-        elRefresh.onclick = function() {
-            refreshEntities();
+        
+        function isGlyphColumn(columnIndex) {
+            return columnIndex === COLUMN_INDEX.LOCKED || columnIndex === COLUMN_INDEX.VISIBLE || 
+                   columnIndex === COLUMN_INDEX.HAS_TRANSPARENT || columnIndex === COLUMN_INDEX.IS_BAKED || 
+                   columnIndex === COLUMN_INDEX.HAS_SCRIPT;
         }
-        elToggleLocked.onclick = function () {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
-        }
-        elToggleVisible.onclick = function () {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
-        }
-        elExport.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
-        }
-        elPal.onclick = function () {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
-        }
-        elDelete.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
-        }
-
-        document.addEventListener("keydown", function (keyDownEvent) {
-            if (keyDownEvent.target.nodeName === "INPUT") {
-                return;
+        
+        function createRow() {
+            let row = document.createElement("tr");
+            for (let i = 0; i < NUM_COLUMNS; i++) {
+                let column = document.createElement("td");
+                if (isGlyphColumn(i)) {
+                    column.className = 'glyph';
+                }
+                row.appendChild(column);
             }
-            var keyCode = keyDownEvent.keyCode;
-            if (keyCode === DELETE) {
-                EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
-                refreshEntities();
+            row.onclick = onRowClicked;
+            row.ondblclick = onRowDoubleClicked;
+            return row;
+        }
+        
+        function updateRow(elRow, itemData) {
+            // update all column texts and glyphs to this entity's data
+            let typeCell = elRow.childNodes[COLUMN_INDEX.TYPE];
+            typeCell.innerText = itemData.type;
+            let nameCell = elRow.childNodes[COLUMN_INDEX.NAME];
+            nameCell.innerText = itemData.name;
+            let urlCell = elRow.childNodes[COLUMN_INDEX.URL];
+            urlCell.innerText = itemData.url;
+            let lockedCell = elRow.childNodes[COLUMN_INDEX.LOCKED];
+            lockedCell.innerHTML = itemData.locked ? LOCKED_GLYPH : null;
+            let visibleCell = elRow.childNodes[COLUMN_INDEX.VISIBLE];
+            visibleCell.innerHTML = itemData.visible ? VISIBLE_GLYPH : null;
+            let verticesCountCell = elRow.childNodes[COLUMN_INDEX.VERTICLES_COUNT];
+            verticesCountCell.innerText = itemData.verticesCount;
+            let texturesCountCell = elRow.childNodes[COLUMN_INDEX.TEXTURES_COUNT];
+            texturesCountCell.innerText = itemData.texturesCount;
+            let texturesSizeCell = elRow.childNodes[COLUMN_INDEX.TEXTURES_SIZE];
+            texturesSizeCell.innerText = itemData.texturesSize;
+            let hasTransparentCell = elRow.childNodes[COLUMN_INDEX.HAS_TRANSPARENT];
+            hasTransparentCell.innerHTML = itemData.hasTransparent ? TRANSPARENCY_GLYPH : null;
+            let isBakedCell = elRow.childNodes[COLUMN_INDEX.IS_BAKED];
+            isBakedCell.innerHTML = itemData.isBaked ? BAKED_GLYPH : null;
+            let drawCallsCell = elRow.childNodes[COLUMN_INDEX.DRAW_CALLS];
+            drawCallsCell.innerText = itemData.drawCalls;
+            let hasScriptCell = elRow.childNodes[COLUMN_INDEX.HAS_SCRIPT];
+            hasScriptCell.innerHTML = itemData.hasScript ? SCRIPT_GLYPH : null;
+            
+            // if this entity was previously selected flag it's row as selected
+            if (itemData.selected) {
+                elRow.className = 'selected';
+            } else {
+                elRow.className = '';
             }
-            if (keyDownEvent.keyCode === KEY_P && keyDownEvent.ctrlKey) {
-                if (keyDownEvent.shiftKey) {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+
+            // if this row previously had an associated entity ID that wasn't the new entity ID then clear
+            // the ID from the row and the row element from the previous entity's data, then set the new 
+            // entity ID to the row and the row element to the new entity's data
+            let prevEntityID = elRow.dataset.entityID;
+            let newEntityID = itemData.id;
+            let validPrevItemID = prevEntityID !== undefined && prevEntityID !== EMPTY_ENTITY_ID;
+            if (validPrevItemID && prevEntityID !== newEntityID && entitiesByID[prevEntityID].elRow === elRow) {
+                elRow.dataset.entityID = EMPTY_ENTITY_ID;
+                entitiesByID[prevEntityID].elRow = null;
+            }
+            if (!validPrevItemID || prevEntityID !== newEntityID) {
+                elRow.dataset.entityID = newEntityID;
+                entitiesByID[newEntityID].elRow = elRow;
+            }
+        }
+        
+        function clearRow(elRow) {
+            // reset all texts and glyphs for each of the row's column
+            for (let i = 0; i < NUM_COLUMNS; i++) {
+                let cell = elRow.childNodes[i];
+                if (isGlyphColumn(i)) {
+                    cell.innerHTML = "";
                 } else {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+                    cell.innerText = "";
                 }
             }
-        }, false);
-
-        var isFilterInView = false;
-        var FILTER_IN_VIEW_ATTRIBUTE = "pressed";
-        elNoEntitiesInView.style.display = "none";
-        elInView.onclick = function () {
+            
+            // clear the row from any associated entity
+            let entityID = elRow.dataset.entityID;
+            if (entityID && entitiesByID[entityID]) {
+                entitiesByID[entityID].elRow = null;
+            }
+            
+            // reset the row to hidden and clear the entity from the row
+            elRow.className = '';
+            elRow.dataset.entityID = EMPTY_ENTITY_ID;
+        }
+        
+        function toggleFilterInView() {
             isFilterInView = !isFilterInView;
             if (isFilterInView) {
                 elInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
@@ -466,99 +597,19 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({ type: "filterInView", filterInView: isFilterInView }));
             refreshEntities();
         }
-
-        elRadius.onchange = function () {
+        
+        function onFilterChange() {
+            refreshEntityList();
+            entityList.resize();
+        }
+        
+        function onRadiusChange() {
             elRadius.value = Math.max(elRadius.value, 0);
+            elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
+            elNoEntitiesMessage.style.display = "none";
             EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));
             refreshEntities();
-            elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
         }
-
-        if (window.EventBridge !== undefined) {
-            EventBridge.scriptEventReceived.connect(function(data) {
-                data = JSON.parse(data);
-
-                if (data.type === "clearEntityList") {
-                    clearEntities();
-                } else if (data.type == "selectionUpdate") {
-                    var notFound = updateSelectedEntities(data.selectedIDs);
-                    if (notFound) {
-                        refreshEntities();
-                    }
-                } else if (data.type === "update" && data.selectedIDs !== undefined) {
-                    PROFILE("update", function() {
-                        var newEntities = data.entities;
-                        if (newEntities && newEntities.length === 0) {
-                            elNoEntitiesMessage.style.display = "block";
-                            elFooter.firstChild.nodeValue = "0 entities found";
-                        } else if (newEntities) {
-                            elNoEntitiesMessage.style.display = "none";
-                            updateEntityList(newEntities);
-                            updateSelectedEntities(data.selectedIDs);
-                        }
-                    });
-                } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
-                    removeEntities(data.deletedIDs);
-                    updateSelectedEntities(data.selectedIDs);
-                } else if (data.type === "deleted" && data.ids) {
-                    removeEntities(data.ids);
-                    refreshFooter();
-                }
-            });
-            setTimeout(refreshEntities, 1000);
-        }
-
-        function resize() {
-            // Take up available window space
-            elEntityTableScroll.style.height = window.innerHeight - 207;
-
-            var SCROLLABAR_WIDTH = 21;
-            var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
-            var ths = document.querySelectorAll("#entity-table thead th");
-            if (tds.length >= ths.length) {
-                // Update the widths of the header cells to match the body
-                for (var i = 0; i < ths.length; i++) {
-                    ths[i].width = tds[i].offsetWidth;
-                }
-            } else {
-                // Reasonable widths if nothing is displayed
-                var tableWidth = document.getElementById("entity-table").offsetWidth - SCROLLABAR_WIDTH;
-                if (showExtraInfo) {
-                    ths[0].width = 0.10 * tableWidth;
-                    ths[1].width = 0.20 * tableWidth;
-                    ths[2].width = 0.20 * tableWidth;
-                    ths[3].width = 0.04 * tableWidth;
-                    ths[4].width = 0.04 * tableWidth;
-                    ths[5].width = 0.08 * tableWidth;
-                    ths[6].width = 0.08 * tableWidth;
-                    ths[7].width = 0.10 * tableWidth;
-                    ths[8].width = 0.04 * tableWidth;
-                    ths[9].width = 0.08 * tableWidth;
-                    ths[10].width = 0.04 * tableWidth + SCROLLABAR_WIDTH;
-                } else {
-                    ths[0].width = 0.16 * tableWidth;
-                    ths[1].width = 0.34 * tableWidth;
-                    ths[2].width = 0.34 * tableWidth;
-                    ths[3].width = 0.08 * tableWidth;
-                    ths[4].width = 0.08 * tableWidth;
-                }
-            }
-        };
-
-        window.onresize = resize;
-
-        elFilter.onkeyup = refreshEntityList;
-        elFilter.onpaste = refreshEntityList;
-        elFilter.onchange = function() {
-            refreshEntityList();
-            resize();
-        };
-        elFilter.onblur = refreshFooter;
-
-
-        var showExtraInfo = false;
-        var COLLAPSE_EXTRA_INFO = "E";
-        var EXPAND_EXTRA_INFO = "D";
 
         function toggleInfo(event) {
             showExtraInfo = !showExtraInfo;
@@ -569,15 +620,62 @@ function loaded() {
                 elEntityTable.className = "";
                 elInfoToggleGlyph.innerHTML = EXPAND_EXTRA_INFO;
             }
-            resize();
+            entityList.resize();
             event.stopPropagation();
         }
-        elInfoToggle.addEventListener("click", toggleInfo, true);
 
-
-        resize();
+        document.addEventListener("keydown", function (keyDownEvent) {
+            if (keyDownEvent.target.nodeName === "INPUT") {
+                return;
+            }
+            let keyCode = keyDownEvent.keyCode;
+            if (keyCode === DELETE) {
+                EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+            }
+            if (keyDownEvent.keyCode === KEY_P && keyDownEvent.ctrlKey) {
+                if (keyDownEvent.shiftKey) {
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+                } else {
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+                }
+            }
+        }, false);
+        
+        if (window.EventBridge !== undefined) {
+            EventBridge.scriptEventReceived.connect(function(data) {
+                data = JSON.parse(data);
+                if (data.type === "clearEntityList") {
+                    clearEntities();
+                } else if (data.type == "selectionUpdate") {
+                    let notFound = updateSelectedEntities(data.selectedIDs);
+                    if (notFound) {
+                        refreshEntities();
+                    }
+                } else if (data.type === "update" && data.selectedIDs !== undefined) {
+                    PROFILE("update", function() {
+                        let newEntities = data.entities;
+                        if (newEntities) {
+                            if (newEntities.length === 0) {
+                                clearEntities();
+                            } else {
+                                updateEntityData(newEntities);
+                                updateSelectedEntities(data.selectedIDs);
+                            }
+                        }
+                    });
+                } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
+                    removeEntities(data.deletedIDs);
+                    updateSelectedEntities(data.selectedIDs);
+                } else if (data.type === "deleted" && data.ids) {
+                    removeEntities(data.ids);
+                }
+            });
+        }
+        
+        refreshSortOrder();
+        refreshEntities();
     });
-
+    
     augmentSpinButtons();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked

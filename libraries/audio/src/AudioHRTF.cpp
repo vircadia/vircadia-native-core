@@ -1173,20 +1173,5 @@ void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, 
     // crossfade old/new output and accumulate
     crossfade_4x2(bqBuffer, output, crossfadeTable, HRTF_BLOCK);
 
-    _silentState = false;
-}
-
-void AudioHRTF::renderSilent(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames) {
-
-    // process the first silent block, to flush internal state
-    if (!_silentState) {
-        render(input, output, index, azimuth, distance, gain, numFrames);
-    } 
-
-    // new parameters become old
-    _azimuthState = azimuth;
-    _distanceState = distance;
-    _gainState = gain;
-
-    _silentState = true;
+    _resetState = false;
 }

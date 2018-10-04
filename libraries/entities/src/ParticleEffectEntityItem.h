@@ -210,7 +210,7 @@ public:
     ParticleEffectEntityItem(const EntityItemID& entityItemID);
 
     // methods for getting/setting all properties of this entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;

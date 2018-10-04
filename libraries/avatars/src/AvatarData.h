@@ -1372,7 +1372,8 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition { 0, 0, 0 };
-
+    glm::vec3 _globalPositionOverride { 0, 0, 0 };
+    bool _overrideGlobalPosition { false };
 
     quint64 _globalPositionChanged { 0 };
     quint64 _avatarBoundingBoxChanged { 0 };

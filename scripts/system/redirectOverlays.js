@@ -141,6 +141,8 @@
             Overlays.editOverlay(tryAgainImageHover, properties);
             Overlays.editOverlay(backImageNeutral, properties);
             Overlays.editOverlay(backImageHover, properties);
+            Overlays.editOverlay(tryAgainText, properties);
+            Overlays.editOverlay(backText, properties);
             return;
         }
         var oopsText = getOopsText();
@@ -194,8 +196,22 @@
             return;
         }
         if (tryAgainImageHover === overlayID) {
+            // hide try again overlays.
+            var properties = {
+                visible: false
+            };
+            Overlays.editOverlay(tryAgainImageNeutral, properties);
+            Overlays.editOverlay(tryAgainImageHover, properties);
+            Overlays.editOverlay(tryAgainText, properties);
             location.goToLastAddress();
-        } else if (backImageHover === overlayID) {
+        } else if (backImageHover === overlayID && location.canGoBack()) {
+            // hide back overlays.
+            var properties = {
+                visible: false
+            };
+            Overlays.editOverlay(backImageNeutral, properties);
+            Overlays.editOverlay(backImageHover, properties);
+            Overlays.editOverlay(backText, properties);
             location.goBack();
         }
     }
@@ -216,7 +232,7 @@
 
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
-        if (overlayID === backImageNeutral) {
+        if (overlayID === backImageNeutral && location.canGoBack()) {
             Overlays.editOverlay(backImageNeutral, {visible: false});
             Overlays.editOverlay(backImageHover, {visible: true});
         }
