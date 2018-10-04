@@ -325,7 +325,7 @@ public:
     // TODO: move this "ScriptSimulationPriority" and "PendingOwnership" stuff into EntityMotionState
     // but first would need to do some other cleanup. In the meantime these live here as "scratch space"
     // to allow libs that don't know about each other to communicate.
-    void setScriptSimulationPriority(uint8_t priority);
+    void upgradeScriptSimulationPriority(uint8_t priority);
     void clearScriptSimulationPriority();
     uint8_t getScriptSimulationPriority() const { return _scriptSimulationPriority; }
     void setPendingOwnershipPriority(uint8_t priority);

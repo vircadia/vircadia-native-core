@@ -78,8 +78,10 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
-                // since we're creating this object we will immediately volunteer to own its simulation
-                entity->setScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                if (entityProperties.getDynamic()) {
+                    // since we're creating a dynamic object we volunteer immediately to own its simulation
+                    entity->upgradeScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                }
                 entityProperties.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "AvatarEntitiesBookmark failed to add new Entity to local Octree";

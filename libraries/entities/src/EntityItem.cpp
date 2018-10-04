@@ -1382,8 +1382,11 @@ void EntityItem::getTransformAndVelocityProperties(EntityItemProperties& propert
     properties._accelerationChanged = true;
 }
 
-void EntityItem::setScriptSimulationPriority(uint8_t priority) {
-    uint8_t newPriority = stillHasGrabActions() ? glm::max(priority, SCRIPT_GRAB_SIMULATION_PRIORITY) : priority;
+void EntityItem::upgradeScriptSimulationPriority(uint8_t priority) {
+    uint8_t newPriority = glm::max(priority, _scriptSimulationPriority);
+    if (newPriority < SCRIPT_GRAB_SIMULATION_PRIORITY && stillHasGrabActions()) {
+        newPriority = SCRIPT_GRAB_SIMULATION_PRIORITY;
+    }
     if (newPriority != _scriptSimulationPriority) {
         // set the dirty flag to trigger a bid or ownership update
         markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);

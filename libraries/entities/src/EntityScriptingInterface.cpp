@@ -290,7 +290,7 @@ bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properti
 
                 entity->setLastBroadcast(usecTimestampNow());
                 // since we're creating this object we will immediately volunteer to own its simulation
-                entity->setScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                entity->upgradeScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
                 properties.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "script failed to add new Entity to local Octree";
@@ -569,16 +569,20 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     //    TODO: figure out how to change simulation ownership priority
                     //}
                 } else {
-                    // we don't own the simulation
+                    // we don't own the simulation but think we would like to
+                    // --> flag the object for simulation ownership at at least POKE
+                    // (the bid for simulation ownership (if any) will be sent by the physics simulation)
+                    entity->upgradeScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+
                     uint8_t desiredPriority = entity->getScriptSimulationPriority();
                     if (desiredPriority < simulationOwner.getPriority()) {
-                        // we don't desire to own it --> clear restricted properties
+                        // the priority at which we'd like to own it is not high enough
+                        // --> assume failure and clear all restricted property changes
                         properties.clearSimulationRestrictedProperties();
                     } else {
-                        // we want to own it --> copy ALL restricted properties
+                        // the priority at which we'd like to own it is high enough to win.
+                        // --> assume success and copy ALL restricted properties
                         properties.copySimulationRestrictedProperties(entity);
-                        // and also store our simulation
-                        properties.setSimulationOwner(sessionID, desiredPriority);
                     }
                 }
             } else if (!simulationOwner.getID().isNull()) {
@@ -587,7 +591,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 properties.clearSimulationRestrictedProperties();
             }
             // clear the cached simulationPriority level
-            entity->setScriptSimulationPriority(0);
+            entity->upgradeScriptSimulationPriority(0);
         }
 
         // set these to make EntityItemProperties::getScalesWithParent() work correctly
@@ -1452,7 +1456,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
         }
         action->setIsMine(true);
         success = entity->addAction(simulation, action);
-        entity->setScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
+        entity->upgradeScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
         return false; // Physics will cause a packet to be sent, so don't send from here.
     });
     if (success) {
@@ -1468,7 +1472,7 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
     return actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
         bool success = entity->updateAction(simulation, actionID, arguments);
         if (success) {
-            entity->setScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
+            entity->upgradeScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
         }
         return success;
     });
@@ -1482,7 +1486,7 @@ bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& 
         success = entity->removeAction(simulation, actionID);
         if (success) {
             // reduce from grab to poke
-            entity->setScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+            entity->upgradeScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
         }
         return false; // Physics will cause a packet to be sent, so don't send from here.
     });
