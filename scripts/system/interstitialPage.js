@@ -475,7 +475,7 @@
             if (textureMemSizeStabilityCount >= 15) {
 
                 if (textureResourceGPUMemSize > 0) {
-                    print((texturePopulatedGPUMemSize / textureResourceGPUMemSize));
+                    // print((texturePopulatedGPUMemSize / textureResourceGPUMemSize));
                     var gpuPercantage = (TOTAL_LOADING_PROGRESS * 0.6) * (texturePopulatedGPUMemSize / textureResourceGPUMemSize);
                     var totalProgress = progress + gpuPercantage;
                     if (totalProgress >= target) {

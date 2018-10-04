@@ -195,7 +195,7 @@
         }
         if (tryAgainImageHover === overlayID) {
             location.goToLastAddress();
-        } else if (backImageHover === overlayID) {
+        } else if (backImageHover === overlayID && location.canGoBack()) {
             location.goBack();
         }
     }
@@ -216,7 +216,7 @@
 
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
-        if (overlayID === backImageNeutral) {
+        if (overlayID === backImageNeutral && location.canGoBack()) {
             Overlays.editOverlay(backImageNeutral, {visible: false});
             Overlays.editOverlay(backImageHover, {visible: true});
         }

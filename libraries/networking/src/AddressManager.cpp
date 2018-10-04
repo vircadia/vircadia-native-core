@@ -161,8 +161,14 @@ void AddressManager::storeCurrentAddress() {
         // be loaded over http(s)
         // url.scheme() == URL_SCHEME_HTTP ||
         // url.scheme() == URL_SCHEME_HTTPS ||
+        bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
         if (isConnected()) {
-            currentAddressHandle.set(url);
+            if (isInErrorState) {
+                // save the last address visited before the problem url.
+                currentAddressHandle.set(lastAddress());
+            } else {
+                currentAddressHandle.set(url);
+            }
         } else {
             qCWarning(networking) << "Ignoring attempt to save current address because not connected to domain:" << url;
         }
@@ -859,6 +865,10 @@ void AddressManager::goToUser(const QString& username, bool shouldMatchOrientati
                                               QNetworkAccessManager::GetOperation,
                                               apiCallbackParameters(),
                                               QByteArray(), nullptr, requestParams);
+}
+
+bool AddressManager::canGoBack() const {
+    return (_backStack.size() > 0);
 }
 
 void AddressManager::refreshPreviousLookup() {
