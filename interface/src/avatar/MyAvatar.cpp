@@ -493,7 +493,7 @@ void MyAvatar::update(float deltaTime) {
         _smoothOrientationTimer += deltaTime;
     }
 
-    float newHeightReading = getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y;
+    float newHeightReading = getControllerPoseInSensorFrame(controller::Action::HEAD).getTranslation().y;
     int newHeightReadingInCentimeters = glm::floor(newHeightReading * CENTIMETERS_PER_METER);
     _recentModeReadings.insert(newHeightReadingInCentimeters);
     setCurrentStandingHeight(computeStandingHeightMode(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
@@ -4015,6 +4015,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
     controller::Pose currentHeadPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD);
     controller::Pose currentLeftHandPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND);
     controller::Pose currentRightHandPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND);
+    controller::Pose currentHeadSensorPose = myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD);
 
     bool stepDetected = false;
     float myScale = myAvatar.getAvatarScale();
@@ -4028,7 +4029,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
     } else {
         if (!withinBaseOfSupport(currentHeadPose) &&
             headAngularVelocityBelowThreshold(currentHeadPose) &&
-            isWithinThresholdHeightMode(currentHeadPose, myAvatar.getCurrentStandingHeight(), myScale) &&
+            isWithinThresholdHeightMode(currentHeadSensorPose, myAvatar.getCurrentStandingHeight(), myScale) &&
             handDirectionMatchesHeadDirection(currentLeftHandPose, currentRightHandPose, currentHeadPose) &&
             handAngularVelocityBelowThreshold(currentLeftHandPose, currentRightHandPose) &&
             headVelocityGreaterThanThreshold(currentHeadPose) &&
@@ -4083,7 +4084,7 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
 
     // qCDebug(interfaceapp) << "mode reading avatar " << myAvatar.getCurrentStandingHeight() << "mode w " << modeWorldSpace << "mode s " << modeSensorSpace << "sensor pose " <<sensorHeadPose.getTranslation();
     // qCDebug(interfaceapp) << "mode sensor " <<  modeSensorSpace << "sensor pose " << sensorHeadPose.getTranslation() << " " << myAvatar.getIsInSittingState() << " count " <<myAvatar._sitStandStateCount;
-    qCDebug(interfaceapp) << "average height " << averageSensorSpaceHeight << "head height " << sensorHeadPose.getTranslation().y << " tipping " << myAvatar._tippingPoint << " state: " << myAvatar.getIsInSittingState();
+    qCDebug(interfaceapp) << "mode height " << myAvatar.getCurrentStandingHeight() << " head height " << sensorHeadPose.getTranslation().y << " state: " << myAvatar.getIsInSittingState();
     bool returnValue = false;
     if (myAvatar.getIsInSittingState()) {
         if (offset.y < SITTING_BOTTOM) {
