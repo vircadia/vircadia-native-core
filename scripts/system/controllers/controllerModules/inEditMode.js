@@ -128,7 +128,8 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.run = function(controllerData) {
-            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightTabletStylusInput" : "LeftTabletStylusInput");
+            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightTabletStylusInput" : "LeftTabletStylusInput");
             if (tabletStylusInput) {
                 var tabletReady = tabletStylusInput.isReady(controllerData);
                 if (tabletReady.active) {
@@ -136,7 +137,8 @@ Script.include("/~/system/libraries/utils.js");
                 }
             }
 
-            var webLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
+            var webLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
             if (webLaser) {
                 var webLaserReady = webLaser.isReady(controllerData);
                 var target = controllerData.rayPicks[this.hand].objectID;
@@ -146,15 +148,19 @@ Script.include("/~/system/libraries/utils.js");
                 }
             }
 
-            var hudLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightHudOverlayPointer" : "LeftHudOverlayPointer");
-            if (hudLaser) {
-                var hudLaserReady = hudLaser.isReady(controllerData);
-                if (hudLaserReady.active) {
-                    return this.exitModule();
+            if (!controllerData.triggerClicks[this.hand]) { // Don't grab if trigger pressed when laser starts intersecting.
+                var hudLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                    ? "RightHudOverlayPointer" : "LeftHudOverlayPointer");
+                if (hudLaser) {
+                    var hudLaserReady = hudLaser.isReady(controllerData);
+                    if (hudLaserReady.active) {
+                        return this.exitModule();
+                    }
                 }
             }
 
-            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
+            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
             if (nearOverlay) {
                 var nearOverlayReady = nearOverlay.isReady(controllerData);
                 if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
