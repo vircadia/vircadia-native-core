@@ -3821,10 +3821,14 @@ void MyAvatar::setIsInWalkingState(bool isWalking) {
 }
 
 void MyAvatar::setIsInSittingState(bool isSitting) {
-    _isInSittingState.set(isSitting);
+    _sitStandStateCount = 0;
+    _squatCount = 0;
     controller::Pose sensorHeadPoseDebug = getControllerPoseInSensorFrame(controller::Action::HEAD);
     _sumUserHeightSensorSpace = sensorHeadPoseDebug.getTranslation().y;
+    _tippingPoint = sensorHeadPoseDebug.getTranslation().y;
     _averageUserHeightCount = 1;
+    setResetMode(true);
+    _isInSittingState.set(isSitting);
     emit sittingEnabledChanged(isSitting);
 }
 
@@ -4070,45 +4074,48 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     float acosHead = glm::dot(upHead, glm::vec3(0.0f, 1.0f, 0.0f));
 
     glm::vec3 avatarHips = myAvatar.getAbsoluteJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
-    glm::vec3 worldHips = transformVectorFast(myAvatar.getTransform().getMatrix(),avatarHips);
-    glm::vec3 sensorHips = transformVectorFast(myAvatar.getSensorToWorldMatrix(), worldHips);
+    glm::vec3 worldHips = transformPoint(myAvatar.getTransform().getMatrix(),avatarHips);
+    glm::vec3 sensorHips = transformPoint(glm::inverse(myAvatar.getSensorToWorldMatrix()), worldHips);
 
     float averageSensorSpaceHeight = myAvatar._sumUserHeightSensorSpace / myAvatar._averageUserHeightCount;
-    glm::vec3 modeWorldSpace = myAvatar.getTransform().getRotation() * glm::vec3(0.0f,myAvatar.getCurrentStandingHeight(),0.0f);
-    glm::vec3 modeSensorSpace =  extractRotation(myAvatar.getSensorToWorldMatrix()) * modeWorldSpace;
-    glm::vec3 bodyInSensorSpace = transformPoint(glm::inverse(myAvatar.getSensorToWorldMatrix()), myAvatar.getTransform().getTranslation());
-    modeSensorSpace.y = modeSensorSpace.y + bodyInSensorSpace.y;
-    qCDebug(interfaceapp) << "mode world sensor " << myAvatar.getCurrentStandingHeight() << " " << modeWorldSpace << " " << modeSensorSpace << " " << bodyInSensorSpace;
+    glm::vec3 modeWorldSpace = transformPoint(myAvatar.getTransform().getMatrix(), glm::vec3(0.0f,myAvatar.getCurrentStandingHeight(),0.0f));
+    glm::vec3 modeSensorSpace = transformPoint(glm::inverse(myAvatar.getSensorToWorldMatrix()), modeWorldSpace);
 
+    //qCDebug(interfaceapp) << "mode reading avatar " << myAvatar.getCurrentStandingHeight() << "mode w " << modeWorldSpace << "mode s " << modeSensorSpace << "sensor pose " <<sensorHeadPose.getTranslation();
+    qCDebug(interfaceapp) << "mode sensor " <<  modeSensorSpace << "sensor pose " << sensorHeadPose.getTranslation() << " " << myAvatar.getIsInSittingState() << " count " <<myAvatar._sitStandStateCount;
+    qCDebug(interfaceapp) << "average height " << averageSensorSpaceHeight << "head height " << sensorHeadPose.getTranslation().y;
+    
     if (myAvatar.getIsInSittingState()) {
         if (offset.y < SITTING_BOTTOM) {
             // we recenter when sitting.
             return true;
-        // } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * averageSensorSpaceHeight))  {
-        } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * modeSensorSpace.y)) {
+        } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * averageSensorSpaceHeight))  {
+        // } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * modeSensorSpace.y)) {
             // if we recenter upwards then no longer in sitting state
-            myAvatar.setIsInSittingState(false);
-            return true;
+            //myAvatar._sitStandStateCount++;
+            //if (myAvatar._sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+                myAvatar.setIsInSittingState(false);
+                return true;
+            //}
         } else {
+            myAvatar._sitStandStateCount = 0;
+            myAvatar._tippingPoint = averageSensorSpaceHeight;
             return false;
         }
     } else {
         // in the standing state
         // if ((sensorHeadPose.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * myAvatar._tippingPoint)) && (acosHead > COSINE_TEN_DEGREES)) {  //&& !(sensorHips.y > (0.4f * averageSensorSpaceHeight)
-        if ((sensorHeadPose.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * modeSensorSpace.y)) && (acosHead > COSINE_TEN_DEGREES)) {
+        if ((sensorHeadPose.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * myAvatar._tippingPoint))) {
             myAvatar._sitStandStateCount++;
             if (myAvatar._sitStandStateCount > SITTING_COUNT_THRESHOLD) {
                 myAvatar.setIsInSittingState(true);
-                myAvatar.setResetMode(true);
-                myAvatar._tippingPoint = averageSensorSpaceHeight;
-                myAvatar._sitStandStateCount = 0;
-                myAvatar._squatCount = 0;
                 return true;
             }
         } else {
             myAvatar._tippingPoint = averageSensorSpaceHeight;
+            myAvatar._sitStandStateCount = 0;
             if (myAvatar._squatCount > SQUATTY_COUNT_THRESHOLD) {
-                return true;
+                // return true;
                 myAvatar._squatCount = 0;
             }
         }
@@ -4145,7 +4152,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             }
         }
         if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
-            activate(Vertical);
+            //activate(Vertical);
         }
     } else {
         if (!isActive(Rotation) && getForceActivateRotation()) {
