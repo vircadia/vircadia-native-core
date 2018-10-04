@@ -1802,15 +1802,24 @@ QUrl AvatarData::getWireSafeSkeletonModelURL() const {
 
 qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
                            AvatarTraits::TraitVersion traitVersion) {
-    qint64 bytesWritten = 0;
-    bytesWritten += destination.writePrimitive(traitType);
 
-    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-        bytesWritten += destination.writePrimitive(traitVersion);
-    }
+    qint64 bytesWritten = 0;
 
     if (traitType == AvatarTraits::SkeletonModelURL) {
+
         QByteArray encodedSkeletonURL = getWireSafeSkeletonModelURL().toEncoded();
+
+        if (encodedSkeletonURL.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
+            qWarning() << "Refusing to pack simple trait" << traitType << "of size" << encodedSkeletonURL.size()
+                << "bytes since it exceeds the maximum size" << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
+            return 0;
+        }
+
+        bytesWritten += destination.writePrimitive(traitType);
+
+        if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
+            bytesWritten += destination.writePrimitive(traitVersion);
+        }
         
         AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
         bytesWritten += destination.writePrimitive(encodedURLSize);
@@ -1825,14 +1834,6 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
                                    ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
     qint64 bytesWritten = 0;
 
-    bytesWritten += destination.writePrimitive(traitType);
-
-    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-        bytesWritten += destination.writePrimitive(traitVersion);
-    }
-
-    bytesWritten += destination.write(traitInstanceID.toRfc4122());
-
     if (traitType == AvatarTraits::AvatarEntity) {
         // grab a read lock on the avatar entities and check for entity data for the given ID
         QByteArray entityBinaryData;
@@ -1842,6 +1843,20 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
                 entityBinaryData = _avatarEntityData[traitInstanceID];
             }
         });
+
+        if (entityBinaryData.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
+            qWarning() << "Refusing to pack instanced trait" << traitType << "of size" << entityBinaryData.size()
+                << "bytes since it exceeds the maximum size " << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
+            return 0;
+        }
+
+        bytesWritten += destination.writePrimitive(traitType);
+
+        if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
+            bytesWritten += destination.writePrimitive(traitVersion);
+        }
+
+        bytesWritten += destination.write(traitInstanceID.toRfc4122());
 
         if (!entityBinaryData.isNull()) {
             AvatarTraits::TraitWireSize entityBinarySize = entityBinaryData.size();
