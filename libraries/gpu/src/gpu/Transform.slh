@@ -218,7 +218,7 @@ TransformObject getTransformObject() {
     { // transformModelToEyeAndClipPos
         vec4 eyeWAPos;
         <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
-        <$worldPos$> = vec4(eyeWAPos.xyz - <$cameraTransform$>._view[3].xyz, 1.0);
+        <$worldPos$> = vec4(eyeWAPos.xyz + <$cameraTransform$>._viewInverse[3].xyz, 1.0);
         <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
         <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
         
