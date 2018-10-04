@@ -315,9 +315,18 @@ void Socket::checkForReadyReadBackup() {
 }
 
 void Socket::readPendingDatagrams() {
+    using namespace std::chrono;
+    static const auto MAX_PROCESS_TIME { 100ms };
+    const auto abortTime = system_clock::now() + MAX_PROCESS_TIME;
     int packetSizeWithHeader = -1;
 
-    while (_udpSocket.hasPendingDatagrams() && (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+    while (_udpSocket.hasPendingDatagrams() &&
+           (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+        if (system_clock::now() > abortTime) {
+            // We've been running for too long, stop processing packets for now
+            // Once we've processed the event queue, we'll come back to packet processing
+            break;
+        }
 
         // we're reading a packet so re-start the readyRead backup timer
         _readyReadBackupTimer->start();
