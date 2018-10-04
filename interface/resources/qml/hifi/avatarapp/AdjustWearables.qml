@@ -23,9 +23,6 @@ Rectangle {
     property bool modified: false;
     Component.onCompleted: {
         modified = false;
-        MyAavatar.animGraphLoaded.connect(function() {
-            softWearableTimer.restart();
-        });
     }
 
     property var jointNames: []
