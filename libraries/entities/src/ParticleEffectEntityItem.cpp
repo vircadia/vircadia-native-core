@@ -166,6 +166,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
 {
     _type = EntityTypes::ParticleEffect;
     setColor(DEFAULT_COLOR);
+    _visuallyReady = false;
 }
 
 void ParticleEffectEntityItem::setAlpha(float alpha) {

@@ -587,7 +587,7 @@ private:
     QElapsedTimer _lastTimeUpdated;
     QElapsedTimer _lastTimeRendered;
 
-    int _minimumGPUTextureMemSizeStabilityCount { 15 };
+    int _minimumGPUTextureMemSizeStabilityCount { 20 };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulationPointer _entitySimulation;

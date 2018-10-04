@@ -6575,6 +6575,7 @@ bool Application::gpuTextureMemSizeStable() {
 
     qint64 textureResourceGPUMemSize = renderStats->textureResourceGPUMemSize;
     qint64 texturePopulatedGPUMemSize = renderStats->textureResourcePopulatedGPUMemSize;
+    qint64 textureTransferSize = renderStats->texturePendingGPUTransferSize;
 
     if (_gpuTextureMemSizeAtLastCheck == textureResourceGPUMemSize) {
         _gpuTextureMemSizeStabilityCount++;
@@ -6584,8 +6585,10 @@ bool Application::gpuTextureMemSizeStable() {
     _gpuTextureMemSizeAtLastCheck = textureResourceGPUMemSize;
 
     if (_gpuTextureMemSizeStabilityCount >= _minimumGPUTextureMemSizeStabilityCount) {
-        return (textureResourceGPUMemSize == texturePopulatedGPUMemSize);
+        qDebug() << "GPU checking";
+        return (textureResourceGPUMemSize == texturePopulatedGPUMemSize) && (textureTransferSize == 0);
     }
+    qDebug() << "GPU not ready";
     return false;
 }
 
