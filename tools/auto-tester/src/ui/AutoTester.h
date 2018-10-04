@@ -20,6 +20,7 @@
 
 #include "HelpWindow.h"
 #include "../TestRunner.h"
+#include "../AWSInterface.h"
 
 class AutoTester : public QMainWindow {
     Q_OBJECT
@@ -84,6 +85,8 @@ private slots:
     void on_createPythonScriptRadioButton_clicked();
     void on_createXMLScriptRadioButton_clicked();
 
+    void on_createWebPagePushButton_clicked();
+
     void on_closeButton_clicked();
 
     void saveFile(int index);
@@ -95,6 +98,8 @@ private:
     Ui::AutoTesterClass _ui;
     Test* _test{ nullptr };
     TestRunner* _testRunner{ nullptr };
+
+    AWSInterface _awsInterface;
 
     std::vector<Downloader*> _downloaders;
 

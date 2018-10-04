@@ -89,6 +89,7 @@ public:
     void updateRunWithResults();
 
     bool setPythonCommand();
+    void extractTestFailuresFromZippedFolder(const QString& testResults, const QString& tempDirectory);
 
 private:
     // HighFidelity Interface project ID in TestRail
@@ -111,6 +112,7 @@ private:
     QString _suiteID;
 
     QString _testDirectory;
+    QString _testResults;
     QString _outputDirectory;
     QString _userGitHub;
     QString _branchGitHub;
@@ -126,7 +128,7 @@ private:
     QStringList _runNames;
     std::vector<int> _runIDs;
 
-    QString tempName{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
+    QString TEMP_NAME{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
 };
 
 #endif

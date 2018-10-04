@@ -1027,3 +1027,19 @@ QString Test::getExpectedImagePartialSourceDirectory(const QString& filename) {
 void Test::setTestRailCreateMode(TestRailCreateMode testRailCreateMode) {
     _testRailCreateMode = testRailCreateMode;
 }
+
+void Test::createWebPage() {
+    QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
+                                                       "Zipped Test Results (*.zip)");
+    if (testResults.isNull()) {
+        return;
+    }
+
+    QString tempDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store temporary files in",
+                                                              nullptr, QFileDialog::ShowDirsOnly);
+    if (tempDirectory.isNull()) {
+        return;
+    }
+
+    _awsInterface.createWebPageFromResults(testResults, tempDirectory);
+}

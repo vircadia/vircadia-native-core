@@ -530,7 +530,7 @@ void TestRailInterface::updateRunWithResults() {
 
     stream << "failed_tests = set()\n";
 
-    stream << "for entry in listdir('" + _outputDirectory + "/" + tempName + "'):\n";
+    stream << "for entry in listdir('" + _outputDirectory + "/" + TEMP_NAME + "'):\n";
     stream << "\tparts = entry.split('--tests.')[1].split('.')\n";
     stream << "\tfailed_test = parts[0]\n";
     stream << "\tfor i in range(1, len(parts) - 1):\n";
@@ -1157,11 +1157,20 @@ void TestRailInterface::updateTestRailRunResults(const QString& testResults, con
     createTestRailDotPyScript();
 
     // Extract test failures from zipped folder
-    QString tempSubDirectory = tempDirectory + "/" + tempName;
+    QString tempSubDirectory = tempDirectory + "/" + TEMP_NAME;
     QDir dir = tempSubDirectory;
     dir.mkdir(tempSubDirectory);
     JlCompress::extractDir(testResults, tempSubDirectory);
 
     // TestRail will be updated after the process initiated by getTestRunFromTestRail has completed
     getRunsFromTestRail();
+
+    dir.rmdir(tempSubDirectory);
+}
+
+void TestRailInterface::extractTestFailuresFromZippedFolder(const QString& testResults, const QString& tempDirectory) {
+    QString tempSubDirectory = tempDirectory + "/" + TEMP_NAME;
+    QDir dir = tempSubDirectory;
+    dir.mkdir(tempSubDirectory);
+    JlCompress::extractDir(testResults, tempSubDirectory);
 }

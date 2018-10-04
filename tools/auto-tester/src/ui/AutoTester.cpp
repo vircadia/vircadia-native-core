@@ -36,7 +36,7 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
    _ui.statusLabel->setText("");
    _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Auto Tester - v5.1");
+   setWindowTitle("Auto Tester - v6.0");
 
    // Coming soon to an auto-tester near you...
    //// _helpWindow.textBrowser->setText()
@@ -210,6 +210,10 @@ void AutoTester::on_createPythonScriptRadioButton_clicked() {
 
 void AutoTester::on_createXMLScriptRadioButton_clicked() {
     _test->setTestRailCreateMode(XML);
+}
+
+void AutoTester::on_createWebPagePushButton_clicked() {
+    _test->createWebPage();
 }
 
 void AutoTester::downloadFile(const QUrl& url) {

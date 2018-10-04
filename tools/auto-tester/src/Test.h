@@ -16,6 +16,7 @@
 #include <QtCore/QRegularExpression>
 #include <QProgressBar>
 
+#include "AWSInterface.h"
 #include "ImageComparer.h"
 #include "ui/MismatchWindow.h"
 #include "TestRailInterface.h"
@@ -97,6 +98,8 @@ public:
 
     void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
+    void createWebPage();
+
 private:
     QProgressBar* _progressBar;
     QCheckBox* _checkBoxInteractiveMode;
@@ -151,8 +154,9 @@ private:
     bool _exitWhenComplete{ false };
 
     TestRailInterface _testRailInterface;
-
     TestRailCreateMode _testRailCreateMode { PYTHON };
+
+    AWSInterface _awsInterface;
 };
 
 #endif // hifi_test_h
