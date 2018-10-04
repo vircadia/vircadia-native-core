@@ -186,10 +186,13 @@ bool SafeLanding::isEntityLoadingComplete() {
         bool isVisuallyReady = true;
 
         if (enableInterstitial) {
+            bool hasRenderable = true;
             auto entityRenderable = entityTree->renderableForEntityId(entityMapIter->first);
             if (!entityRenderable) {
+                hasRenderable = false;
                 entityTree->addingEntity(entityMapIter->first);
             }
+            qDebug() << EntityTypes::getEntityTypeName(entity->getType()) << entity->isVisuallyReady() << hasRenderable << entity->isParentPathComplete();
             isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable  && !entity->isParentPathComplete());
         }
 
@@ -202,6 +205,10 @@ bool SafeLanding::isEntityLoadingComplete() {
 
             entityMapIter++;
         }
+    }
+
+    if (!_trackedEntities.empty()) {
+        qDebug() << "\n";
     }
 
     if (enableInterstitial) {
