@@ -56,7 +56,8 @@ public:
         IDLE = 0,
         START_TRANSIT,
         TRANSITING,
-        END_TRANSIT
+        END_TRANSIT,
+        ABORT_TRANSIT
     };
 
     enum EaseType {

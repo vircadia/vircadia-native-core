@@ -118,8 +118,13 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
     float oneFrameDistance = glm::length(currentPosition - _lastPosition);
     const float MAX_TRANSIT_DISTANCE = 30.0f;
     float scaledMaxTransitDistance = MAX_TRANSIT_DISTANCE * _scale;
-    if (oneFrameDistance > config._triggerDistance && oneFrameDistance < scaledMaxTransitDistance && !_isTransiting) {
-        start(deltaTime, _lastPosition, currentPosition, config);
+    if (oneFrameDistance > config._triggerDistance && !_isTransiting) {
+        if (oneFrameDistance < scaledMaxTransitDistance) {
+            start(deltaTime, _lastPosition, currentPosition, config);
+        } else {
+            _lastPosition = currentPosition;
+            return Status::ABORT_TRANSIT;
+        }        
     }
     _lastPosition = currentPosition;
     _status = updatePosition(deltaTime);

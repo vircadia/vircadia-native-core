@@ -276,7 +276,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 numAvatarsUpdated++;
             }
             auto transitStatus = avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
-            if (avatar->getIsNewAvatar() && transitStatus == AvatarTransit::Status::START_TRANSIT) {
+            if (avatar->getIsNewAvatar() && (transitStatus == AvatarTransit::Status::START_TRANSIT || transitStatus == AvatarTransit::Status::ABORT_TRANSIT)) {
                 avatar->_transit.reset();
                 avatar->setIsNewAvatar(false);
             }
