@@ -243,11 +243,11 @@
     });
 
     Overlays.hoverLeaveOverlay.connect(function(overlayID, event) {
-        if (overlayID === backImageHover) {
+        if (overlayID === backImageHover && Overlays.getProperty(backImageHover, "visible")) {
             Overlays.editOverlay(backImageHover, {visible: false});
             Overlays.editOverlay(backImageNeutral, {visible: true});
         }
-        if (overlayID === tryAgainImageHover) {
+        if (overlayID === tryAgainImageHover && Overlays.getProperty(tryAgainImageHover, "visible")) {
             Overlays.editOverlay(tryAgainImageHover, {visible: false});
             Overlays.editOverlay(tryAgainImageNeutral, {visible: true});
         }
