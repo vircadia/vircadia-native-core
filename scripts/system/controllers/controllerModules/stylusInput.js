@@ -35,13 +35,6 @@ Script.include("/~/system/libraries/controllers.js");
         };
     }
 
-    function getEntityDistance(controllerPosition, entityProps) {
-        return {
-            id: entityProps.id,
-            distance: Vec3.distance(entityProps.position, controllerPosition)
-        };
-    }
-
     function StylusInput(hand) {
         this.hand = hand;
 
@@ -118,6 +111,14 @@ Script.include("/~/system/libraries/controllers.js");
             if (HMD.homeButtonID && HMD.homeButtonID !== Uuid.NULL &&
                 Overlays.getProperty(HMD.homeButtonID, "visible")) {
                 stylusTarget = getOverlayDistance(controllerPosition, HMD.homeButtonID);
+                if (stylusTarget) {
+                    stylusTargets.push(stylusTarget);
+                }
+            }
+
+            // Add the mini tablet.
+            if (HMD.miniTabletScreenID && Overlays.getProperty(HMD.miniTabletScreenID, "visible")) {
+                stylusTarget = getOverlayDistance(controllerPosition, HMD.miniTabletScreenID);
                 if (stylusTarget) {
                     stylusTargets.push(stylusTarget);
                 }

@@ -114,7 +114,6 @@ void Text3DOverlay::render(RenderArgs* args) {
 
     float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight;
 
-    glm::vec2 clipMinimum(0.0f, 0.0f);
     glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor,
                              (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
 

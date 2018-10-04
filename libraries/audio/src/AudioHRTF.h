@@ -47,9 +47,14 @@ public:
     void render(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames);
 
     //
-    // Fast path when input is known to be silent
+    // Fast path when input is known to be silent and state as been flushed
     //
-    void renderSilent(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames);
+    void setParameterHistory(float azimuth, float distance, float gain) {
+        // new parameters become old
+        _azimuthState = azimuth;
+        _distanceState = distance;
+        _gainState = gain;
+    }
 
     //
     // HRTF local gain adjustment in amplitude (1.0 == unity)
@@ -59,23 +64,25 @@ public:
 
     // clear internal state, but retain settings
     void reset() {
-        // FIR history
-        memset(_firState, 0, sizeof(_firState));
+        if (!_resetState) {
+            // FIR history
+            memset(_firState, 0, sizeof(_firState));
 
-        // integer delay history
-        memset(_delayState, 0, sizeof(_delayState));
+            // integer delay history
+            memset(_delayState, 0, sizeof(_delayState));
 
-        // biquad history
-        memset(_bqState, 0, sizeof(_bqState));
+            // biquad history
+            memset(_bqState, 0, sizeof(_bqState));
 
-        // parameter history
-        _azimuthState = 0.0f;
-        _distanceState = 0.0f;
-        _gainState = 0.0f;
+            // parameter history
+            _azimuthState = 0.0f;
+            _distanceState = 0.0f;
+            _gainState = 0.0f;
 
-        // _gainAdjust is retained
+            // _gainAdjust is retained
 
-        _silentState = true;
+            _resetState = true;
+        }
     }
 
 private:
@@ -110,7 +117,7 @@ private:
     // global and local gain adjustment
     float _gainAdjust = HRTF_GAIN;
 
-    bool _silentState = true;
+    bool _resetState = true;
 };
 
 #endif // AudioHRTF_h

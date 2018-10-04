@@ -19,6 +19,7 @@ using PluginManagerPointer = QSharedPointer<PluginManager>;
 
 class PluginManager : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
+    Q_OBJECT
 
 public:
     static PluginManagerPointer getInstance();
@@ -44,6 +45,10 @@ public:
     void setInputPluginProvider(const InputPluginProvider& provider);
     void setCodecPluginProvider(const CodecPluginProvider& provider);
     void setInputPluginSettingsPersister(const InputPluginSettingsPersister& persister);
+    QStringList getRunningInputDeviceNames() const;
+
+signals:
+    void inputDeviceRunningChanged(const QString& pluginName, bool isRunning, const QStringList& runningDevices);
     
 private:
     PluginManager() = default;

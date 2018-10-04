@@ -314,7 +314,7 @@ Rectangle {
                         }
                     };
 
-                    wearableUpdated(getCurrentWearable().id, jointIndex, properties);
+                    wearableUpdated(getCurrentWearable().id, wearablesCombobox.currentIndex, properties);
                 }
 
                 onCurrentIndexChanged: {

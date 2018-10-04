@@ -35,6 +35,7 @@
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
+#include "EntityPsuedoPropertyFlags.h"
 #include "LightEntityItem.h"
 #include "LineEntityItem.h"
 #include "ParticleEffectEntityItem.h"
@@ -86,7 +87,8 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false, bool strictSemantics = false) const;
+    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false,
+        bool strictSemantics = false, EntityPsuedoPropertyFlags psueudoPropertyFlags = EntityPsuedoPropertyFlags()) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
 
     static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);

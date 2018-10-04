@@ -106,6 +106,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", true),
+    _showPlayArea("showPlayArea", true),
     _smoothOrientationTimer(std::numeric_limits<float>::max()),
     _smoothOrientationInitial(),
     _smoothOrientationTarget(),
@@ -529,7 +530,8 @@ void MyAvatar::update(float deltaTime) {
     }
     if (_goToFeetAjustment && _skeletonModelLoaded) {
         auto feetAjustment = getWorldPosition() - getWorldFeetPosition();
-        goToLocation(getWorldPosition() + feetAjustment);
+        _goToPosition = getWorldPosition() + feetAjustment;
+        setWorldPosition(_goToPosition);
         _goToFeetAjustment = false;
     }
     if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) {
@@ -638,9 +640,8 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
-    
     animateScaleChanges(deltaTime);
-
+    
     setFlyingEnabled(getFlyingEnabled());
 
     if (_cauterizationNeedsUpdate) {
@@ -928,6 +929,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
     
     if (hasSensorToWorldScaleChanged) {
+        setTransitScale(sensorToWorldScale);
         emit sensorToWorldScaleChanged(sensorToWorldScale);
     }
     
@@ -3306,7 +3308,7 @@ float MyAvatar::getRawDriveKey(DriveKeys key) const {
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (getDriveKey(TRANSLATE_Y) > 0.0f) {
+    if (getDriveKey(TRANSLATE_Y) > 0.0f && (!qApp->isHMDMode() || (useAdvancedMovementControls() && getFlyingHMDPref()))) {
         _characterController.jump();
     }
 }
