@@ -1004,32 +1004,38 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ${If} $LaunchConsoleNowState == ${BST_CHECKED}
-  ${AndIf} @SERVER_COMPONENT_CONDITIONAL@
-    !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ YES
-
-    ; both launches use the explorer trick in case the user has elevated permissions for the installer
-    ${If} $LaunchClientNowState == ${BST_CHECKED}
+  ${If} $LaunchClientNowState == ${BST_CHECKED}
       !insertmacro WriteInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ YES
+  ${Else}
+      !insertmacro WriteInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ NO
+  ${EndIf}
+
+  ${If} $LaunchConsoleNowState == ${BST_CHECKED}
+      !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ YES
+  ${Else}
+      !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ NO
+  ${EndIf}
+
+  ${If} $LaunchConsoleNowState == ${BST_CHECKED}
+    ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ${AndIf} $LaunchClientNowState == ${BST_CHECKED}
+    ${AndIf} @CLIENT_COMPONENT_CONDITIONAL@
+      ; both launches use the explorer trick in case the user has elevated permissions for the installer
       ; create shortcut with ARGUMENTS
       CreateShortCut "$TEMP\ConsoleShortcut.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@" "-- --launchInterface"
       Exec '"$WINDIR\explorer.exe" "$TEMP\ConsoleShortcut.lnk"'
     ${Else}
-      !insertmacro WriteInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ NO
       Exec '"$WINDIR\explorer.exe" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"'
     ${EndIf}
+  ${EndIf}
 
-  ${ElseIf} @CLIENT_COMPONENT_CONDITIONAL@
-    !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ NO
-
-    ; launch uses the explorer trick in case the user has elevated permissions for the installer
-    ${If} $LaunchClientNowState == ${BST_CHECKED}
-      !insertmacro WriteInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ YES
+  ${If} $LaunchClientNowState == ${BST_CHECKED}
+  ${AndIf} @CLIENT_COMPONENT_CONDITIONAL@
+    ${Unless} $LaunchConsoleNowState == ${BST_CHECKED}
+    ${OrUnless} @SERVER_COMPONENT_CONDITIONAL@
+      ; launch uses the explorer trick in case the user has elevated permissions for the installer
       Exec '"$WINDIR\explorer.exe" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"'
-    ${Else}
-      !insertmacro WriteInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ NO
     ${EndIf}
-
   ${EndIf}
 FunctionEnd
 
