@@ -28,7 +28,7 @@ if (BUILD_CLIENT)
 endif()
 
 if (BUILD_SERVER)
-  add_dependencies(${TARGET_NAME} assignment-client domain-server interface)
+  add_dependencies(${TARGET_NAME} assignment-client domain-server)
 endif()
 
 # set the packaged console folder depending on platform, so we can copy it
@@ -64,12 +64,6 @@ elseif (WIN32)
   install(
     DIRECTORY "${CONSOLE_DESTINATION}/"
     DESTINATION ${CONSOLE_INSTALL_DIR}
-    COMPONENT ${SERVER_COMPONENT}
-  )
-  install(
-    DIRECTORY "${CONSOLE_DESTINATION}/"
-    DESTINATION ${CONSOLE_INSTALL_DIR}
-    COMPONENT ${CLIENT_COMPONENT}
   )
 
   # sign the copied server console executable after install

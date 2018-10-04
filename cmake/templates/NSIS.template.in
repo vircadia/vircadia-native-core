@@ -412,7 +412,7 @@ Section "-Previous Install Cleanup"
   Delete "$INSTDIR\@AC_EXEC_NAME@" 
   
   ; delete interface so it's not there for server-only installs
-   Delete "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@" 
+  Delete "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@" 
 SectionEnd
 
 @CPACK_NSIS_INSTALLATION_TYPES@
@@ -1005,6 +1005,7 @@ Function HandlePostInstallOptions
   ${EndIf}
 
   ${If} $LaunchConsoleNowState == ${BST_CHECKED}
+  ${AndIf} @SERVER_COMPONENT_CONDITIONAL@
     !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ YES
 
     ; both launches use the explorer trick in case the user has elevated permissions for the installer
