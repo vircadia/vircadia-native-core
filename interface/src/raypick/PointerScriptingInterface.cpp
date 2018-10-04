@@ -218,6 +218,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * @property {number} alpha=1.0 The alpha of the parabola.
 * @property {number} width=0.01 The width of the parabola, in meters.
 * @property {boolean} isVisibleInSecondaryCamera=false The width of the parabola, in meters.
+* @property {boolean} drawInFront=false If <code>true</code>, the parabola is rendered in front of other items in the scene.
 */
 /**jsdoc
 * A set of properties used to define the visual aspect of a Parabola Pointer in the case that the Pointer is not intersecting something.  Same as a {@link Pointers.ParabolaPointerRenderState},

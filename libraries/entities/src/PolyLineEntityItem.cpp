@@ -36,9 +36,9 @@ PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) : Entit
     _type = EntityTypes::PolyLine;
 }
 
-EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+EntityItemProperties PolyLineEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     QWriteLocker lock(&_quadReadWriteLock);
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
 
     properties._color = getXColor();

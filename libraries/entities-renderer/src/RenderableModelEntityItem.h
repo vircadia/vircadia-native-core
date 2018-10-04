@@ -62,7 +62,7 @@ public:
 
     virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     void doInitialModelSimulation();
     void updateModelBounds();
 

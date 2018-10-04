@@ -45,8 +45,8 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
     _visuallyReady = false;
 }
 
-EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties ZoneEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
     // Contain QString properties, must be synchronized
     withReadLock([&] {

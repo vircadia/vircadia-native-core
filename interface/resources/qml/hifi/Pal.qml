@@ -48,7 +48,7 @@ Rectangle {
     HifiModels.PSFListModel {
         id: connectionsUserModel;
         http: http;
-        endpoint: "/api/v1/users?filter=connections";
+        endpoint: "/api/v1/users/connections";
         property var sortColumn: connectionsTable.getColumn(connectionsTable.sortIndicatorColumn);
         sortProperty: switch (sortColumn && sortColumn.role) {
             case 'placeName':
