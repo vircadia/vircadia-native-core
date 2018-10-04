@@ -141,6 +141,8 @@
             Overlays.editOverlay(tryAgainImageHover, properties);
             Overlays.editOverlay(backImageNeutral, properties);
             Overlays.editOverlay(backImageHover, properties);
+            Overlays.editOverlay(tryAgainText, properties);
+            Overlays.editOverlay(backText, properties);
             return;
         }
         var oopsText = getOopsText();
