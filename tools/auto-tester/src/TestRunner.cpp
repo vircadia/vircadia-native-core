@@ -110,6 +110,8 @@ void TestRunner::run() {
     saveExistingHighFidelityAppDataFolder();
 
     // Download the latest High Fidelity build XML.
+    //      Note that this is not needed for PR builds (or whenever `Run Latest` is unchecked)
+    //      It is still downloaded, to simplify the flow
     QStringList urls;
     QStringList filenames;
 
@@ -129,12 +131,12 @@ void TestRunner::downloadComplete() {
         // Download of Build XML has completed
         buildXMLDownloaded = true;
 
-        parseBuildInformation();
-
         // Download the High Fidelity installer
         QStringList urls;
         QStringList filenames;
         if (_runLatest->isChecked()) {
+            parseBuildInformation();
+
             _installerFilename = INSTALLER_FILENAME_LATEST;
 
             urls << _buildInformation.url;
@@ -392,18 +394,16 @@ void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder, int nu
 }
 
 void TestRunner::addBuildNumberAndHostnameToResults(QString zippedFolderName) {
+    QString augmentedFilename;
     if (!_runLatest->isChecked()) {
         QStringList filenameParts = zippedFolderName.split(".");
-        QString augmentedFilename = filenameParts[0] + "(" + getPRNumberFromURL(_url->toPlainText()) + ")." + filenameParts[1];
-        QFile::rename(zippedFolderName, augmentedFilename);
-
-        return;
+        augmentedFilename = 
+            filenameParts[0] + "(" + getPRNumberFromURL(_url->toPlainText()) + ")[" + QHostInfo::localHostName() + "]." + filenameParts[1];
+    } else {
+        QStringList filenameParts = zippedFolderName.split(".");
+        augmentedFilename =
+            filenameParts[0] + "(" + _buildInformation.build + ")[" + QHostInfo::localHostName() + "]." + filenameParts[1];
     }
-
-    QStringList filenameParts = zippedFolderName.split(".");
-    QString augmentedFilename =
-        filenameParts[0] + "(" + _buildInformation.build + ")[" + QHostInfo::localHostName() + "]." + filenameParts[1];
-
     QFile::rename(zippedFolderName, augmentedFilename);
 }
 
@@ -504,10 +504,6 @@ QString TestRunner::getInstallerNameFromURL(const QString& url) {
     // An example URL: https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe
     try {
         QStringList urlParts = url.split("/");
-        int rr = urlParts.size();
-        if (urlParts.size() != 8) {
-            throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe`";
-        }
         return urlParts[urlParts.size() - 1];
     } catch (QString errorMessage) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
