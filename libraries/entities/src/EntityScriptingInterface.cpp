@@ -565,9 +565,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 if (simulationOwner.getID() == sessionID) {
                     // we own the simulation --> copy ALL restricted properties
                     properties.copySimulationRestrictedProperties(entity);
-                    //if (ourBidPriority != currentBidPriority) {
-                    //    TODO: figure out how to change simulation ownership priority
-                    //}
                 } else {
                     // we don't own the simulation but think we would like to
                     // --> flag the object for simulation ownership at at least POKE
