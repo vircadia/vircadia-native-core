@@ -1807,6 +1807,7 @@ private:
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
     float _sumUserHeightSensorSpace { DEFAULT_AVATAR_HEIGHT };
     int _averageUserHeightCount { 1 };
+    bool _sitStandStateChange { false };
 
     void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
 

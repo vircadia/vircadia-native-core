@@ -4081,26 +4081,26 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     glm::vec3 modeWorldSpace = transformPoint(myAvatar.getTransform().getMatrix(), glm::vec3(0.0f,myAvatar.getCurrentStandingHeight(),0.0f));
     glm::vec3 modeSensorSpace = transformPoint(glm::inverse(myAvatar.getSensorToWorldMatrix()), modeWorldSpace);
 
-    //qCDebug(interfaceapp) << "mode reading avatar " << myAvatar.getCurrentStandingHeight() << "mode w " << modeWorldSpace << "mode s " << modeSensorSpace << "sensor pose " <<sensorHeadPose.getTranslation();
-    qCDebug(interfaceapp) << "mode sensor " <<  modeSensorSpace << "sensor pose " << sensorHeadPose.getTranslation() << " " << myAvatar.getIsInSittingState() << " count " <<myAvatar._sitStandStateCount;
-    qCDebug(interfaceapp) << "average height " << averageSensorSpaceHeight << "head height " << sensorHeadPose.getTranslation().y;
-    
+    // qCDebug(interfaceapp) << "mode reading avatar " << myAvatar.getCurrentStandingHeight() << "mode w " << modeWorldSpace << "mode s " << modeSensorSpace << "sensor pose " <<sensorHeadPose.getTranslation();
+    // qCDebug(interfaceapp) << "mode sensor " <<  modeSensorSpace << "sensor pose " << sensorHeadPose.getTranslation() << " " << myAvatar.getIsInSittingState() << " count " <<myAvatar._sitStandStateCount;
+    qCDebug(interfaceapp) << "average height " << averageSensorSpaceHeight << "head height " << sensorHeadPose.getTranslation().y << " tipping " << myAvatar._tippingPoint << " state: " << myAvatar.getIsInSittingState();
+    bool returnValue = false;
     if (myAvatar.getIsInSittingState()) {
         if (offset.y < SITTING_BOTTOM) {
             // we recenter when sitting.
-            return true;
-        } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * averageSensorSpaceHeight))  {
+            //returnValue = true;
+        } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * myAvatar._tippingPoint))  {
         // } else if (sensorHeadPose.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * modeSensorSpace.y)) {
             // if we recenter upwards then no longer in sitting state
-            //myAvatar._sitStandStateCount++;
-            //if (myAvatar._sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+            myAvatar._sitStandStateCount++;
+            if (myAvatar._sitStandStateCount > SITTING_COUNT_THRESHOLD) {
                 myAvatar.setIsInSittingState(false);
-                return true;
-            //}
+                myAvatar._sitStandStateChange = true;
+                returnValue = true;
+            }
         } else {
             myAvatar._sitStandStateCount = 0;
             myAvatar._tippingPoint = averageSensorSpaceHeight;
-            return false;
         }
     } else {
         // in the standing state
@@ -4109,7 +4109,8 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
             myAvatar._sitStandStateCount++;
             if (myAvatar._sitStandStateCount > SITTING_COUNT_THRESHOLD) {
                 myAvatar.setIsInSittingState(true);
-                return true;
+                myAvatar._sitStandStateChange = true;
+                returnValue = true;
             }
         } else {
             myAvatar._tippingPoint = averageSensorSpaceHeight;
@@ -4119,8 +4120,9 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
                 myAvatar._squatCount = 0;
             }
         }
-        return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
+        // returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
     }
+    return returnValue;
 }
 
 void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix,
@@ -4152,7 +4154,9 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             }
         }
         if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
-            //activate(Vertical);
+            activate(Vertical);
+            _timeRemaining[(int)Vertical] = 0.1f;
+            qCDebug(interfaceapp) << "recenter vertically!!!!!!   " << hasDriveInput;
         }
     } else {
         if (!isActive(Rotation) && getForceActivateRotation()) {
@@ -4209,6 +4213,9 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, co
 
         // apply follow displacement to the body matrix.
         glm::vec3 worldLinearDisplacement = myAvatar.getCharacterController()->getFollowLinearDisplacement();
+        if (worldLinearDisplacement.y > 0.0001f) {
+            qCDebug(interfaceapp) << "linear displacement " << worldLinearDisplacement << " time remaining " << getMaxTimeRemaining();
+        }
         glm::quat worldAngularDisplacement = myAvatar.getCharacterController()->getFollowAngularDisplacement();
 
         glm::mat4 sensorToWorldMatrix = myAvatar.getSensorToWorldMatrix();
@@ -4219,6 +4226,12 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, co
 
         glm::mat4 newBodyMat = createMatFromQuatAndPos(sensorAngularDisplacement * glmExtractRotation(currentBodyMatrix),
                                                        sensorLinearDisplacement + extractTranslation(currentBodyMatrix));
+        if (isActive(Vertical)) {
+            deactivate(Vertical);
+            return myAvatar.deriveBodyFromHMDSensor();
+        } else {
+            return newBodyMat;
+        }
         return newBodyMat;
     } else {
         return currentBodyMatrix;
