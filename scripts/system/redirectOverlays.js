@@ -196,22 +196,8 @@
             return;
         }
         if (tryAgainImageHover === overlayID) {
-            // hide try again overlays.
-            var properties = {
-                visible: false
-            };
-            Overlays.editOverlay(tryAgainImageNeutral, properties);
-            Overlays.editOverlay(tryAgainImageHover, properties);
-            Overlays.editOverlay(tryAgainText, properties);
             location.goToLastAddress();
         } else if (backImageHover === overlayID && location.canGoBack()) {
-            // hide back overlays.
-            var properties = {
-                visible: false
-            };
-            Overlays.editOverlay(backImageNeutral, properties);
-            Overlays.editOverlay(backImageHover, properties);
-            Overlays.editOverlay(backText, properties);
             location.goBack();
         }
     }
