@@ -90,6 +90,17 @@ void PickManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& includ
     }
 }
 
+Transform PickManager::getParentTransform(unsigned int uid) const {
+    auto pick = findPick(uid);
+    if (pick) {
+        auto parentTransform = pick->parentTransform;
+        if (parentTransform) {
+            return parentTransform->getTransform();
+        }
+    }
+    return Transform();
+}
+
 Transform PickManager::getResultTransform(unsigned int uid) const {
     auto pick = findPick(uid);
     if (pick) {
