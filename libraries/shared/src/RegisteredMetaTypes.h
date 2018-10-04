@@ -163,12 +163,25 @@ QVariant quatToVariant(const glm::quat& quat);
 glm::quat quatFromVariant(const QVariant &object, bool& isValid);
 glm::quat quatFromVariant(const QVariant &object);
 
-// Rect
+/**jsdoc
+ * Defines a rectangular portion of an image or screen, or similar.
+ * @typedef {object} Rect
+ * @property {number} x - Left, x-coordinate value.
+ * @property {number} y - Top, y-coordinate value.
+ * @property {number} width - Width of the rectangle.
+ * @property {number} height - Height of the rectangle.
+ */
 QScriptValue qRectToScriptValue(QScriptEngine* engine, const QRect& rect);
 void qRectFromScriptValue(const QScriptValue& object, QRect& rect);
 QRect qRectFromVariant(const QVariant& object, bool& isValid);
 QRect qRectFromVariant(const QVariant& object);
 QVariant qRectToVariant(const QRect& rect);
+
+QScriptValue qRectFToScriptValue(QScriptEngine* engine, const QRectF& rect);
+void qRectFFromScriptValue(const QScriptValue& object, QRectF& rect);
+QRectF qRectFFromVariant(const QVariant& object, bool& isValid);
+QRectF qRectFFromVariant(const QVariant& object);
+QVariant qRectFToVariant(const QRectF& rect);
 
 // QColor
 QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color);

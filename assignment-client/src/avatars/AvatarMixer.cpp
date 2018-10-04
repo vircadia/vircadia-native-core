@@ -673,7 +673,13 @@ void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> 
 
 void AvatarMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     auto start = usecTimestampNow();
-    sendingNode->parseIgnoreRadiusRequestMessage(packet);
+
+    bool enabled;
+    packet->readPrimitive(&enabled);
+
+    auto avatarData = getOrCreateClientData(sendingNode);
+    avatarData->setIsIgnoreRadiusEnabled(enabled);
+
     auto end = usecTimestampNow();
     _handleRadiusIgnoreRequestPacketElapsedTime += (end - start);
 }

@@ -21,7 +21,7 @@
 Q_DECLARE_LOGGING_CATEGORY(inputplugins)
 Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
-const char* LeapMotionPlugin::NAME = "Leap Motion";
+const char* LeapMotionPlugin::NAME = "LeapMotion";
 const char* LeapMotionPlugin::LEAPMOTION_ID_STRING = "Leap Motion";
 
 const bool DEFAULT_ENABLED = false;
@@ -203,7 +203,6 @@ static const char* getControllerJointName(controller::StandardPoseChannel i) {
     return "unknown";
 }
 
-
 void LeapMotionPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     if (!_enabled) {
         return;
@@ -312,13 +311,13 @@ void LeapMotionPlugin::InputDevice::update(float deltaTime, const controller::In
 
 void LeapMotionPlugin::init() {
     loadSettings();
-
     auto preferences = DependencyManager::get<Preferences>();
     static const QString LEAPMOTION_PLUGIN { "Leap Motion" };
     {
         auto getter = [this]()->bool { return _enabled; };
         auto setter = [this](bool value) {
             _enabled = value;
+            emit deviceStatusChanged(getName(), isRunning());
             saveSettings();
             if (!_enabled) {
                 auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -406,6 +405,7 @@ void LeapMotionPlugin::loadSettings() {
     settings.beginGroup(idString);
     {
         _enabled = settings.value(SETTINGS_ENABLED_KEY, QVariant(DEFAULT_ENABLED)).toBool();
+        emit deviceStatusChanged(getName(), isRunning());
         _sensorLocation = settings.value(SETTINGS_SENSOR_LOCATION_KEY, QVariant(DEFAULT_SENSOR_LOCATION)).toString();
         _desktopHeightOffset = 
             settings.value(SETTINGS_DESKTOP_HEIGHT_OFFSET_KEY, QVariant(DEFAULT_DESKTOP_HEIGHT_OFFSET)).toFloat();
