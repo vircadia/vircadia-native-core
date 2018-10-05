@@ -399,10 +399,6 @@ void WindowScriptingInterface::showAssetServer(const QString& upload) {
     QMetaObject::invokeMethod(qApp, "showAssetServerWidget", Qt::QueuedConnection, Q_ARG(QString, upload));
 }
 
-void WindowScriptingInterface::setMinimumGPUTextureMemSizeStabilityCount(int stabilityCount) {
-    QMetaObject::invokeMethod(qApp, " setMinimumGPUTextureMemStabilityCount", Qt::QueuedConnection, Q_ARG(int, stabilityCount));
-}
-
 QString WindowScriptingInterface::checkVersion() {
     return QCoreApplication::applicationVersion();
 }

@@ -50,7 +50,7 @@
         "Tip: Use the Create app to import models and create custom entities.",
         "Tip: We're open source! Feel free to contribute to our code on GitHub!",
         "Tip: What emotes have you used in the Emote app?",
-        "Tip: Take and share your snapshots with the everyone using the Snap app.",
+        "Tip: Take and share your snapshots with everyone using the Snap app.",
         "Tip: Did you know you can show websites in-world by creating a web entity?",
         "Tip: Find out more information about domains by visiting our website!",
         "Tip: Did you know you can get cool new apps from the Marketplace?",

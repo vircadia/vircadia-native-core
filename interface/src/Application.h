@@ -183,6 +183,8 @@ public:
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
 
+    bool isMissingSequenceNumbers() { return _isMissingSequenceNumbers; }
+
     const ConicalViewFrustums& getConicalViews() const override { return _conicalViews; }
 
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
@@ -712,6 +714,8 @@ private:
     bool _settingsLoaded { false };
 
     bool _fakedMouseEvent { false };
+
+    bool _isMissingSequenceNumbers { false };
 
     void checkChangeCursor();
     mutable QMutex _changeCursorLock { QMutex::Recursive };
