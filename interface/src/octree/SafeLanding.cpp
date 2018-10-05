@@ -189,10 +189,8 @@ bool SafeLanding::isEntityLoadingComplete() {
         bool isVisuallyReady = true;
 
         if (enableInterstitial) {
-            bool hasRenderable = true;
             auto entityRenderable = entityTree->renderableForEntityId(entityMapIter->first);
             if (!entityRenderable) {
-                hasRenderable = false;
                 entityTree->addingEntity(entityMapIter->first);
             }
 

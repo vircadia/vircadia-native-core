@@ -14,6 +14,7 @@
     var hardRefusalErrors = [PROTOCOL_VERSION_MISMATCH,
         NOT_AUTHORIZED, TIMEOUT];
     var timer = null;
+    var isErrorState = false;
 
     function getOopsText() {
         var error = Window.getLastDomainConnectionError();
@@ -131,6 +132,7 @@
     });
 
     function toggleOverlays(isInErrorState) {
+        isErrorState = isInErrorState;
         if (!isInErrorState) {
             var properties = {
                 visible: false
@@ -148,6 +150,8 @@
         var oopsText = getOopsText();
         // if oopsText === "", it was a success.
         var overlaysVisible = (oopsText !== "");
+        // for catching init or if error state were to be different.
+        isErrorState = overlaysVisible;
         var properties = {
             visible: overlaysVisible
         };
@@ -218,6 +222,10 @@
 
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
+        if (!isErrorState) {
+            // don't allow hover overlay events to get caught if it's not in error state anymore.
+            return;
+        }
         if (overlayID === backImageNeutral && location.canGoBack()) {
             Overlays.editOverlay(backImageNeutral, {visible: false});
             Overlays.editOverlay(backImageHover, {visible: true});
@@ -229,11 +237,15 @@
     });
 
     Overlays.hoverLeaveOverlay.connect(function(overlayID, event) {
-        if (overlayID === backImageHover && Overlays.getProperty(backImageHover, "visible")) {
+        if (!isErrorState) {
+            // don't allow hover overlay events to get caught if it's not in error state anymore.
+            return;
+        }
+        if (overlayID === backImageHover) {
             Overlays.editOverlay(backImageHover, {visible: false});
             Overlays.editOverlay(backImageNeutral, {visible: true});
         }
-        if (overlayID === tryAgainImageHover && Overlays.getProperty(tryAgainImageHover, "visible")) {
+        if (overlayID === tryAgainImageHover) {
             Overlays.editOverlay(tryAgainImageHover, {visible: false});
             Overlays.editOverlay(tryAgainImageNeutral, {visible: true});
         }
