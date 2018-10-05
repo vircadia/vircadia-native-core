@@ -147,6 +147,10 @@ bool SafeLanding::isSequenceNumbersComplete() {
             (startIter != _sequenceNumbers.end()
             && endIter != _sequenceNumbers.end()
             && distance(startIter, endIter) == sequenceSize - 1)) {
+            bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+            if (!enableInterstitial) {
+                _trackingEntities = false; // Don't track anything else that comes in.
+            }
             return true;
         }
     }
@@ -193,7 +197,7 @@ bool SafeLanding::isEntityLoadingComplete() {
                 entityTree->addingEntity(entityMapIter->first);
             }
             qDebug() << EntityTypes::getEntityTypeName(entity->getType()) << entity->isVisuallyReady() << hasRenderable << entity->isParentPathComplete();
-            isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable  && !entity->isParentPathComplete());
+            isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable && !entity->isParentPathComplete());
         }
 
         if (isEntityPhysicsReady(entity) && isVisuallyReady) {
