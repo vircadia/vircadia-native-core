@@ -5617,7 +5617,8 @@ void Application::update(float deltaTime) {
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
         if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
-            if (gpuTextureMemSizeStable()) {
+            bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+            if (gpuTextureMemSizeStable() || !enableInterstitial) {
                 // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
                 _lastPhysicsCheckTime = now;
                 _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
@@ -6240,6 +6241,8 @@ int Application::sendNackPackets() {
                 sequenceNumberStats.pruneMissingSet();
                 missingSequenceNumbers = sequenceNumberStats.getMissingSet();
             });
+
+            _isMissingSequenceNumbers = (missingSequenceNumbers.size() != 0);
 
             // construct nack packet(s) for this node
             foreach(const OCTREE_PACKET_SEQUENCE& missingNumber, missingSequenceNumbers) {

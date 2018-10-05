@@ -142,10 +142,12 @@ bool SafeLanding::isSequenceNumbersComplete() {
                 _initialEnd + SEQUENCE_MODULO - _initialStart;
         auto startIter = _sequenceNumbers.find(_initialStart);
         auto endIter = _sequenceNumbers.find(_initialEnd - 1);
+
+        bool missingSequenceNumbers = qApp->isMissingSequenceNumbers();
         if (sequenceSize == 0 ||
             (startIter != _sequenceNumbers.end()
             && endIter != _sequenceNumbers.end()
-            && distance(startIter, endIter) == sequenceSize - 1)) {
+             && ((distance(startIter, endIter) == sequenceSize - 1) || !missingSequenceNumbers))) {
             bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
             if (!enableInterstitial) {
                 _trackingEntities = false; // Don't track anything else that comes in.
