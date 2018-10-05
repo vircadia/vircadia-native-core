@@ -98,7 +98,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
         that.setVisible(!visible);
     };
 
-    selectionManager.addEventListener(function() {
+    selectionManager.addEventListener(function(isSelectionUpdate, caller) {
         var selectedIDs = [];
 
         for (var i = 0; i < selectionManager.selections.length; i++) {
@@ -107,7 +107,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
 
         emitJSONScriptEvent({
             type: 'selectionUpdate',
-            selectedIDs: selectedIDs
+            selectedIDs: selectedIDs,
+            caller: caller
         });
     });
 
@@ -224,7 +225,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             for (var i = 0; i < ids.length; i++) {
                 entityIDs.push(ids[i]);
             }
-            selectionManager.setSelections(entityIDs);
+            selectionManager.setSelections(entityIDs, "entityList");
             if (data.focus) {
                 cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,

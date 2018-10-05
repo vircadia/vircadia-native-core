@@ -152,6 +152,24 @@ ListView.prototype = {
             this.refresh();
         }
     },
+
+    scrollToRow(rowIndex, lastRowIndex) {
+        lastRowIndex = lastRowIndex ? lastRowIndex : rowIndex;
+        let boundingTop = rowIndex * this.rowHeight;
+        let boundingBottom = (lastRowIndex * this.rowHeight) + this.rowHeight;
+        if ((boundingBottom - boundingTop) > this.elTableScroll.clientHeight) {
+            boundingBottom = boundingTop + this.elTableScroll.clientHeight;
+        }
+
+        let currentVisibleAreaTop = this.elTableScroll.scrollTop;
+        let currentVisibleAreaBottom = currentVisibleAreaTop + this.elTableScroll.clientHeight;
+
+        if (boundingTop < currentVisibleAreaTop) {
+            this.elTableScroll.scrollTop = boundingTop;
+        } else if (boundingBottom > currentVisibleAreaBottom) {
+            this.elTableScroll.scrollTop = boundingBottom - (this.elTableScroll.clientHeight);
+        }
+    },
     
     refresh: function() {
         // block refreshing before rows are initialized

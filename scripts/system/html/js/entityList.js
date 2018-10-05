@@ -194,7 +194,7 @@ function loaded() {
                 if (selectedIndex >= 0) {
                     selection = [];
                     selection = selection.concat(selectedEntities);
-                    selection.splice(selectedIndex, 1)
+                    selection.splice(selectedIndex, 1);
                 } else {
                     selection = selection.concat(selectedEntities);
                 }
@@ -453,7 +453,10 @@ function loaded() {
             }
         }
         
-        function updateSelectedEntities(selectedIDs) {
+        function updateSelectedEntities(selectedIDs, autoScroll) {
+            // force autoScroll to be a boolean
+            autoScroll = !!autoScroll;
+
             let notFound = false;
             
             // reset all currently selected entities and their rows first
@@ -481,6 +484,26 @@ function loaded() {
                     notFound = true;
                 }
             });
+
+            if (autoScroll && selectedIDs.length > 0) {
+                let firstItem = Number.MAX_VALUE;
+                let lastItem = -1;
+                let itemFound = false;
+                visibleEntities.forEach(function(entity, index) {
+                    if (selectedIDs.indexOf(entity.id) !== -1) {
+                        if (firstItem > index) {
+                            firstItem = index;
+                        }
+                        if (lastItem < index) {
+                            lastItem = index;
+                        }
+                        itemFound = true;
+                    }
+                });
+                if (itemFound) {
+                    entityList.scrollToRow(firstItem, lastItem);
+                }
+            }
 
             refreshFooter();
 
@@ -640,8 +663,8 @@ function loaded() {
                 data = JSON.parse(data);
                 if (data.type === "clearEntityList") {
                     clearEntities();
-                } else if (data.type === "selectionUpdate") {
-                    let notFound = updateSelectedEntities(data.selectedIDs);
+                } else if (data.type === "selectionUpdate" && data.caller !== "entityList") {
+                    let notFound = updateSelectedEntities(data.selectedIDs, true);
                     if (notFound) {
                         refreshEntities();
                     }
@@ -653,13 +676,13 @@ function loaded() {
                                 clearEntities();
                             } else {
                                 updateEntityData(newEntities);
-                                updateSelectedEntities(data.selectedIDs);
+                                updateSelectedEntities(data.selectedIDs, true);
                             }
                         }
                     });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
                     removeEntities(data.deletedIDs);
-                    updateSelectedEntities(data.selectedIDs);
+                    updateSelectedEntities(data.selectedIDs, true);
                 } else if (data.type === "deleted" && data.ids) {
                     removeEntities(data.ids);
                 }
