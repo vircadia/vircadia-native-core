@@ -524,14 +524,11 @@ void MyAvatar::update(float deltaTime) {
     }
 
     float averageSensorSpaceHeight = _sumUserHeightSensorSpace / _averageUserHeightCount;
-    //auto sensorHeadPose = myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD);
-    //glm::vec3 upHead = transformVectorFast(sensorHeadPose.getMatrix(), glm::vec3(0.0f, 1.0f, 0.0f));
-    //float acosHead = glm::dot(upHead, glm::vec3(0.0f, 1.0f, 0.0f));
 
     glm::vec3 avatarHips = getAbsoluteJointTranslationInObjectFrame(getJointIndex("Hips"));
     glm::vec3 worldHips = transformPoint(getTransform().getMatrix(), avatarHips);
     glm::vec3 sensorHips = transformPoint(glm::inverse(getSensorToWorldMatrix()), worldHips);
-    
+
     // put update sit stand state counts here
     if (getIsInSittingState()) {
         if (newHeightReading.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
@@ -548,11 +545,11 @@ void MyAvatar::update(float deltaTime) {
                 setResetMode(true);
                 setIsInSittingState(false);
                 setCenterOfGravityModelEnabled(true);
-                _sitStandStateChange = true;
+                setSitStandStateChange(true);
             }
         } else {
             _sitStandStateCount = 0;
-            // tipping point is average height when sitting.  
+            // tipping point is average height when sitting.
             _tippingPoint = averageSensorSpaceHeight;
         }
     } else {
@@ -570,7 +567,7 @@ void MyAvatar::update(float deltaTime) {
                 setResetMode(true);
                 setIsInSittingState(true);
                 setCenterOfGravityModelEnabled(false);
-                _sitStandStateChange = true;
+                setSitStandStateChange(true);
             }
         } else {
             // returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
@@ -2091,11 +2088,6 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setPositionAndOrientation(getWorldPosition(), getWorldOrientation());
     auto headPose = getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
-        if (getCenterOfGravityModelEnabled()) {
-            //_follow.prePhysicsUpdate(*this, deriveBodyUsingCgModel(), _bodySensorMatrix, hasDriveInput());
-        } else {
-            //_follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix, hasDriveInput());
-        }
         _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix, hasDriveInput());
     } else {
         _follow.deactivate();
@@ -3886,15 +3878,6 @@ void MyAvatar::setIsInWalkingState(bool isWalking) {
 }
 
 void MyAvatar::setIsInSittingState(bool isSitting) {
-    _sitStandStateCount = 0;
-    _squatCount = 0;
-    controller::Pose sensorHeadPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
-    if (sensorHeadPose.isValid()) {
-        _sumUserHeightSensorSpace = sensorHeadPose.getTranslation().y;
-        _tippingPoint = sensorHeadPose.getTranslation().y;
-    }
-    _averageUserHeightCount = 1;
-    setResetMode(true);
     _isInSittingState.set(isSitting);
     emit sittingEnabledChanged(isSitting);
 }
@@ -3913,6 +3896,14 @@ void MyAvatar::setSprintSpeed(float value) {
 
 float MyAvatar::getSprintSpeed() const {
     return _sprintSpeed.get();
+}
+
+void MyAvatar::setSitStandStateChange(bool stateChanged) {
+    _sitStandStateChange = stateChanged;
+}
+
+float MyAvatar::getSitStandStateChange() const {
+    return _sitStandStateChange;
 }
 
 QVector<QString> MyAvatar::getScriptUrls() {
@@ -4134,10 +4125,8 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     const int SQUATTY_COUNT_THRESHOLD = 600;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
-    //qCDebug(interfaceapp) << " current mode " << myAvatar.getCurrentStandingHeight() << " " << sensorHeadPose.getTranslation().y << " state " << myAvatar.getIsInSittingState();
-    
     bool returnValue = false;
-    if (myAvatar._sitStandStateChange) {
+    if (myAvatar.getSitStandStateChange()) {
         returnValue = true;
     }
     if (myAvatar.getIsInSittingState()) {
@@ -4184,13 +4173,10 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
                 }
             }
         }
-        
-        qCDebug(interfaceapp) << "velocity of headset " << glm::length(myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD).getVelocity());
-        
+
         if (_velocityCount > 60) {
             if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
                 activate(Vertical);
-                qCDebug(interfaceapp) << "recenter vertically!!!!!!   " << hasDriveInput;
             }
         } else {
             if ((glm::length(myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD).getVelocity()) > 0.1f)) {
@@ -4263,14 +4249,10 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(MyAvatar& myAvatar, const gl
 
         glm::mat4 newBodyMat = createMatFromQuatAndPos(sensorAngularDisplacement * glmExtractRotation(currentBodyMatrix),
                                                        sensorLinearDisplacement + extractTranslation(currentBodyMatrix));
-        if (myAvatar._sitStandStateChange) {
-            myAvatar._sitStandStateChange = false;
+        if (myAvatar.getSitStandStateChange()) {
+            myAvatar.setSitStandStateChange(false);
             deactivate(Vertical);
-            
-            qCDebug(interfaceapp) << "before snap " << extractTranslation(newBodyMat);
-            //newBodyMat = myAvatar.deriveBodyFromHMDSensor();
             setTranslation(newBodyMat, extractTranslation(myAvatar.deriveBodyFromHMDSensor()));
-            qCDebug(interfaceapp) << "after snap " << extractTranslation(newBodyMat);
         }
         return newBodyMat;
     } else {

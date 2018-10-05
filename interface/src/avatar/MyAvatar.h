@@ -1105,6 +1105,8 @@ public:
     float getWalkBackwardSpeed() const;
     void setSprintSpeed(float value);
     float getSprintSpeed() const;
+    void setSitStandStateChange(bool stateChanged);
+    float getSitStandStateChange() const;
 
     QVector<QString> getScriptUrls();
 
@@ -1804,13 +1806,15 @@ private:
     std::mutex _pinnedJointsMutex;
     std::vector<int> _pinnedJoints;
 
-    // height of user in sensor space, when standing erect.
-    ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
-    float _sumUserHeightSensorSpace { 0.0f };
-    int _averageUserHeightCount { 1 };
-    bool _sitStandStateChange { false };
-
     void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
+
+    const float DEFAULT_FLOOR_HEIGHT = 0.0f;
+
+    // height of user in sensor space, when standing erect.
+    ThreadSafeValueCache<float> _userHeight{ DEFAULT_AVATAR_HEIGHT };
+    float _sumUserHeightSensorSpace{ DEFAULT_AVATAR_HEIGHT };
+    int _averageUserHeightCount{ 1 };
+    bool _sitStandStateChange{ false };
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
@@ -1821,7 +1825,7 @@ private:
     ThreadSafeValueCache<bool> _isInSittingState { false };
     int _sitStandStateCount { 0 };
     int _squatCount { 0 };
-    float _tippingPoint { 0.0f };
+    float _tippingPoint { DEFAULT_FLOOR_HEIGHT };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
