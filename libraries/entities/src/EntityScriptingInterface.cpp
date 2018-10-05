@@ -1754,8 +1754,9 @@ int EntityScriptingInterface::getJointIndex(const QUuid& entityID, const QString
         return -1;
     }
     int result;
-    BLOCKING_INVOKE_METHOD(_entityTree.get(), "getJointIndex",
-                              Q_RETURN_ARG(int, result), Q_ARG(QUuid, entityID), Q_ARG(QString, name));
+    _entityTree->withReadLock([&] {
+       result = _entityTree->getJointIndex(entityID, name);
+    });
     return result;
 }
 
@@ -1764,8 +1765,9 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
         return QStringList();
     }
     QStringList result;
-    BLOCKING_INVOKE_METHOD(_entityTree.get(), "getJointNames",
-                              Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
+    _entityTree->withReadLock([&] {
+        result = _entityTree->getJointNames(entityID);
+    });
     return result;
 }
 
