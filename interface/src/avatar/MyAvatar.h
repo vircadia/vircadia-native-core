@@ -1805,7 +1805,7 @@ private:
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
-    float _sumUserHeightSensorSpace { DEFAULT_AVATAR_HEIGHT };
+    float _sumUserHeightSensorSpace { 0.0f };
     int _averageUserHeightCount { 1 };
     bool _sitStandStateChange { false };
 
@@ -1820,7 +1820,7 @@ private:
     ThreadSafeValueCache<bool> _isInSittingState { false };
     int _sitStandStateCount { 0 };
     int _squatCount { 0 };
-    float _tippingPoint { DEFAULT_AVATAR_HEIGHT };
+    float _tippingPoint { 0.0f };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
