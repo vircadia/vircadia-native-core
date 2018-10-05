@@ -6607,10 +6607,8 @@ bool Application::gpuTextureMemSizeStable() {
     _gpuTextureMemSizeAtLastCheck = textureResourceGPUMemSize;
 
     if (_gpuTextureMemSizeStabilityCount >= _minimumGPUTextureMemSizeStabilityCount) {
-        qDebug() << "GPU checking";
         return (textureResourceGPUMemSize == texturePopulatedGPUMemSize) && (textureTransferSize == 0);
     }
-    qDebug() << "GPU not ready";
     return false;
 }
 
