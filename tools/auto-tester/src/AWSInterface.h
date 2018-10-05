@@ -38,6 +38,8 @@ public:
 private:
     QString _tempDirectory;
     QString _resultsFolder;
+
+    const QString FAILURE_FOLDER{ "failures" };
 };
 
 #endif  // hifi_AWSInterface_h

@@ -23,8 +23,7 @@ void AWSInterface::createWebPageFromResults(const QString& testResults, const QS
     // Extract test failures from zipped folder
     _tempDirectory = tempDirectory;
 
-    QDir dir = _tempDirectory;
-    dir.mkdir(_tempDirectory);
+    QDir().mkdir(_tempDirectory);
     JlCompress::extractDir(testResults, _tempDirectory);
 
     createHTMLFile(testResults, tempDirectory);
@@ -153,12 +152,15 @@ void AWSInterface::writeTable(QTextStream& stream) {
         newNames.append(originalNames[i].split("--tests.")[1]);
     }
     
+    QString htmlFolder{ _tempDirectory + "/" + _resultsFolder + "/" + FAILURE_FOLDER };
+    QDir().mkdir(htmlFolder);
+
     for (int i = 0; i < newNames.length(); ++i) {
         QDir dir(originalNames[i]);
-        dir.rename(originalNames[i], _tempDirectory + "/" + _resultsFolder + "/" + newNames[i]);
+        dir.rename(originalNames[i], htmlFolder + "/" + newNames[i]);
     }
 
-    QDirIterator it2((_tempDirectory + "/" + _resultsFolder).toStdString().c_str());
+    QDirIterator it2((htmlFolder).toStdString().c_str());
     while (it2.hasNext()) {
         QString nextDirectory = it2.next();
 
@@ -186,7 +188,7 @@ void AWSInterface::writeTable(QTextStream& stream) {
             openTable(stream);
         }
 
-        createEntry(testNumber.toInt(), nextDirectory, stream);
+        createEntry(testNumber.toInt(), filename, stream);
     }
 
     closeTable(stream);
@@ -215,8 +217,8 @@ void AWSInterface::createEntry(int index, const QString& testFailure, QTextStrea
     QStringList failureNameComponents = testFailure.split('/');
     QString failureName = failureNameComponents[failureNameComponents.length() - 1];
 
-    stream << "\t\t\t\t<td><img src=\"" << failureName << "/Actual Image.png\" width = \"576\" height = \"324\" ></td>\n";
-    stream << "\t\t\t\t<td><img src=\"" << failureName << "/Expected Image.png\" width = \"576\" height = \"324\" ></td>\n";
-    stream << "\t\t\t\t<td><img src=\"" << failureName << "/Difference Image.png\" width = \"576\" height = \"324\" ></td>\n";
+    stream << "\t\t\t\t<td><img src=\"" << FAILURE_FOLDER << "/" << failureName << "/Actual Image.png\" width = \"576\" height = \"324\" ></td>\n";
+    stream << "\t\t\t\t<td><img src=\"" << FAILURE_FOLDER << "/" << failureName << "/Expected Image.png\" width = \"576\" height = \"324\" ></td>\n";
+    stream << "\t\t\t\t<td><img src=\"" << FAILURE_FOLDER << "/" << failureName << "/Difference Image.png\" width = \"576\" height = \"324\" ></td>\n";
     stream << "\t\t\t</tr>\n";
 }
