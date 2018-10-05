@@ -107,7 +107,6 @@ void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
 }
 
 bool SafeLanding::isLoadSequenceComplete() {
-    qDebug() << "is sequence complete" << isSequenceNumbersComplete();
     if (isEntityLoadingComplete() && isSequenceNumbersComplete()) {
         Locker lock(_lock);
         _initialStart = INVALID_SEQUENCE;
@@ -196,7 +195,7 @@ bool SafeLanding::isEntityLoadingComplete() {
                 hasRenderable = false;
                 entityTree->addingEntity(entityMapIter->first);
             }
-            qDebug() << EntityTypes::getEntityTypeName(entity->getType()) << entity->isVisuallyReady() << hasRenderable << entity->isParentPathComplete();
+
             isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable && !entity->isParentPathComplete());
         }
 
@@ -209,10 +208,6 @@ bool SafeLanding::isEntityLoadingComplete() {
 
             entityMapIter++;
         }
-    }
-
-    if (!_trackedEntities.empty()) {
-        qDebug() << "\n";
     }
 
     if (enableInterstitial) {
