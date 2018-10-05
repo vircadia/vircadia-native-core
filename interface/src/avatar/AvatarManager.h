@@ -182,7 +182,7 @@ public:
      * than iterating over each avatar and obtaining data about them in JavaScript, as that method
      * locks and unlocks each avatar's data structure potentially hundreds of times per update tick.
      * @function AvatarManager.getPalData
-     * @param {string[]} specificAvatarIdentifiers - A list of specific Avatar Identifiers about
+     * @param {string[]} [specificAvatarIdentifiers] - A list of specific Avatar Identifiers about
      * which you want to get PAL data
      * @returns {object}
      */
