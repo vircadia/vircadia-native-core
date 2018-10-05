@@ -86,9 +86,8 @@ void CauterizedModel::createRenderItemSet() {
             // Create the render payloads
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                if (!fbxGeometry.meshes[i].blendshapes.empty() && _blendedVertexBuffers.find(i) == _blendedVertexBuffers.end()) {
-                    initializeBlendshapes(fbxGeometry.meshes[i], i);
-                }
+                initializeBlendshapes(fbxGeometry.meshes[i], i);
+
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
                 auto material = getGeometry()->getShapeMaterial(shapeID);
@@ -97,7 +96,7 @@ void CauterizedModel::createRenderItemSet() {
                 shapeID++;
             }
         }
-        _blendedVertexBuffersInitialized = true;
+        _blendshapeBuffersInitialized = true;
     } else {
         Model::createRenderItemSet();
     }
@@ -176,7 +175,7 @@ void CauterizedModel::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (_blendedVertexBuffersInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (_blendshapeBuffersInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }

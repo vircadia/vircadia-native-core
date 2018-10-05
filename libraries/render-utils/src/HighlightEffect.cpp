@@ -181,8 +181,8 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             args->_batch = &batch;
 
             auto maskPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
-            auto maskSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
-            auto maskSkinnedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned().withDualQuatSkinned());
+            auto maskDeformedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withDeformed());
+            auto maskDeformedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withDeformed().withDualQuatSkinned());
 
             // Setup camera, projection and viewport for all items
             batch.setViewportTransform(args->_viewport);
@@ -190,37 +190,37 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             batch.setProjectionJitter(jitter.x, jitter.y);
             batch.setViewTransform(viewMat);
 
-            std::vector<ShapeKey> skinnedShapeKeys;
-            std::vector<ShapeKey> skinnedDQShapeKeys;
+            std::vector<ShapeKey> deformedShapeKeys;
+            std::vector<ShapeKey> deformedDQShapeKeys;
 
             // Iterate through all inShapes and render the unskinned
             args->_shapePipeline = maskPipeline;
             batch.setPipeline(maskPipeline->pipeline);
             for (const auto& items : inShapes) {
                 itemBounds.insert(itemBounds.end(), items.second.begin(), items.second.end());
-                if (items.first.isSkinned() && items.first.isDualQuatSkinned()) {
-                    skinnedDQShapeKeys.push_back(items.first);
-                } else if (items.first.isSkinned()) {
-                    skinnedShapeKeys.push_back(items.first);
+                if (items.first.isDeformed() && items.first.isDualQuatSkinned()) {
+                    deformedDQShapeKeys.push_back(items.first);
+                } else if (items.first.isDeformed()) {
+                    deformedShapeKeys.push_back(items.first);
                 } else {
                     renderItems(renderContext, items.second);
                 }
             }
 
             // Reiterate to render the skinned
-            if (skinnedShapeKeys.size() > 0) {
-                args->_shapePipeline = maskSkinnedPipeline;
-                batch.setPipeline(maskSkinnedPipeline->pipeline);
-                for (const auto& key : skinnedShapeKeys) {
+            if (deformedShapeKeys.size() > 0) {
+                args->_shapePipeline = maskDeformedPipeline;
+                batch.setPipeline(maskDeformedPipeline->pipeline);
+                for (const auto& key : deformedShapeKeys) {
                     renderItems(renderContext, inShapes.at(key));
                 }
             }
 
             // Reiterate to render the DQ skinned
-            if (skinnedDQShapeKeys.size() > 0) {
-                args->_shapePipeline = maskSkinnedDQPipeline;
-                batch.setPipeline(maskSkinnedDQPipeline->pipeline);
-                for (const auto& key : skinnedDQShapeKeys) {
+            if (deformedDQShapeKeys.size() > 0) {
+                args->_shapePipeline = maskDeformedDQPipeline;
+                batch.setPipeline(maskDeformedDQPipeline->pipeline);
+                for (const auto& key : deformedDQShapeKeys) {
                     renderItems(renderContext, inShapes.at(key));
                 }
             }
@@ -566,3 +566,4 @@ const render::Varying DrawHighlightTask::addSelectItemJobs(JobModel& task, const
     const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques, selectionName).asVarying();
     return task.addJob<SelectItems>("TransparentSelection", selectItemInput);
 }
+
