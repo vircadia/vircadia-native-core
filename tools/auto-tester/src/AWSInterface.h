@@ -37,8 +37,7 @@ public:
 
 private:
     QString _tempDirectory;
-
-    const QString resultsFolder{ "HTML" };
+    QString _resultsFolder;
 };
 
 #endif  // hifi_AWSInterface_h

@@ -32,8 +32,12 @@ void AWSInterface::createWebPageFromResults(const QString& testResults, const QS
 
 void AWSInterface::createHTMLFile(const QString& testResults, const QString& tempDirectory) {
     // For file named `D:/tt/snapshots/TestResults--2018-10-03_15-35-28(9433)[DESKTOP-PMKNLSQ].zip` 
-    //    - the HTML will be named `TestResults--2018-10-03_15-35-28(9433)[DESKTOP-PMKNLSQ]`
-    QString resultsPath = tempDirectory + "/" + resultsFolder + "/";
+    //    - the HTML will be in a folder named `TestResults--2018-10-03_15-35-28(9433)[DESKTOP-PMKNLSQ]`
+    QStringList pathComponents = testResults.split('/');
+    QString filename = pathComponents[pathComponents.length() - 1];
+    _resultsFolder = filename.left(filename.length() - 4);
+
+    QString resultsPath = tempDirectory + "/" + _resultsFolder + "/";
     QDir().mkdir(resultsPath);
     QStringList tokens = testResults.split('/');
     QString htmlFilename = resultsPath + tokens[tokens.length() - 1].split('.')[0] + ".html";
@@ -151,21 +155,23 @@ void AWSInterface::writeTable(QTextStream& stream) {
     
     for (int i = 0; i < newNames.length(); ++i) {
         QDir dir(originalNames[i]);
-        dir.rename(originalNames[i], _tempDirectory + "/" + resultsFolder + "/" + newNames[i]);
+        dir.rename(originalNames[i], _tempDirectory + "/" + _resultsFolder + "/" + newNames[i]);
     }
 
-    QDirIterator it2((_tempDirectory + "/" + resultsFolder).toStdString().c_str());
+    QDirIterator it2((_tempDirectory + "/" + _resultsFolder).toStdString().c_str());
     while (it2.hasNext()) {
         QString nextDirectory = it2.next();
 
         // Skip `.` and `..` directories, as well as the HTML directory
-        if (nextDirectory.right(1) == "." || nextDirectory.contains(QString("/") + resultsFolder + "/TestResults--")) {
+        if (nextDirectory.right(1) == "." || nextDirectory.contains(QString("/") + _resultsFolder + "/TestResults--")) {
             continue;
         }
 
-        int splitIndex = nextDirectory.lastIndexOf(".");
-        QString testName = nextDirectory.left(splitIndex).replace(".", " / ");
-        QString testNumber = nextDirectory.right(nextDirectory.length() - (splitIndex + 1));
+        QStringList pathComponents = nextDirectory.split('/');
+        QString filename = pathComponents[pathComponents.length() - 1];
+        int splitIndex = filename.lastIndexOf(".");
+        QString testName = filename.left(splitIndex).replace(".", " / ");
+        QString testNumber = filename.right(filename.length() - (splitIndex + 1));
 
         // The failures are ordered lexicographically, so we know that we can rely on the testName changing to create a new table
         if (testName != previousTestName) {
