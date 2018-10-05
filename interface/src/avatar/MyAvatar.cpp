@@ -4103,6 +4103,7 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     } else {
         // in the standing state
         // && (acosHead > COSINE_TEN_DEGREES)) {  //&& !(sensorHips.y > (0.4f * averageSensorSpaceHeight)
+        
         if ((sensorHeadPose.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * myAvatar._tippingPoint))) {
             myAvatar._sitStandStateCount++;
             if (myAvatar._sitStandStateCount > SITTING_COUNT_THRESHOLD) {
@@ -4111,14 +4112,15 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
                 returnValue = true;
             }
         } else {
+            returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
             myAvatar._tippingPoint = myAvatar.getCurrentStandingHeight();
             myAvatar._sitStandStateCount = 0;
             if (myAvatar._squatCount > SQUATTY_COUNT_THRESHOLD) {
-                // return true;
+                // returnValue = true;
                 myAvatar._squatCount = 0;
             }
         }
-        returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
+        
     }
     return returnValue;
 }
@@ -4151,10 +4153,20 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
                 }
             }
         }
-        if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
-            activate(Vertical);
-            qCDebug(interfaceapp) << "recenter vertically!!!!!!   " << hasDriveInput;
+        
+        qCDebug(interfaceapp) << "velocity of headset " << glm::length(myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD).getVelocity());
+        
+        if (_velocityCount > 60) {
+            if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
+                activate(Vertical);
+                qCDebug(interfaceapp) << "recenter vertically!!!!!!   " << hasDriveInput;
+            }
+        } else {
+            if ((glm::length(myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD).getVelocity()) > 0.1f)) {
+                _velocityCount++;
+            }
         }
+
     } else {
         if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
@@ -4223,7 +4235,11 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(MyAvatar& myAvatar, const gl
         if (myAvatar._sitStandStateChange) {
             myAvatar._sitStandStateChange = false;
             deactivate(Vertical);
-            newBodyMat = myAvatar.deriveBodyFromHMDSensor();
+            
+            qCDebug(interfaceapp) << "before snap " << extractTranslation(newBodyMat);
+            //newBodyMat = myAvatar.deriveBodyFromHMDSensor();
+            setTranslation(newBodyMat, extractTranslation(myAvatar.deriveBodyFromHMDSensor()));
+            qCDebug(interfaceapp) << "after snap " << extractTranslation(newBodyMat);
         }
         return newBodyMat;
     } else {
