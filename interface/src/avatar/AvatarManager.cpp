@@ -452,6 +452,17 @@ void AvatarManager::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction
     transaction.clear();
 }
 
+void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) {
+    for (auto entity : deadEntities) {
+        QUuid sessionID = entity->getOwningAvatarID();
+        AvatarSharedPointer avatar = getAvatarBySessionID(sessionID);
+        if (avatar) {
+            const bool REQUIRES_REMOVAL_FROM_TREE = false;
+            avatar->clearAvatarEntity(entity->getID(), REQUIRES_REMOVAL_FROM_TREE);
+        }
+    }
+}
+
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     auto avatar = std::static_pointer_cast<OtherAvatar>(removedAvatar);
     {
