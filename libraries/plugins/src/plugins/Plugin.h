@@ -75,8 +75,11 @@ public:
 
     virtual void saveSettings() const {}
     virtual void loadSettings() {}
+    virtual bool isRunning() const { return _active; }
 
 signals:
+    void deviceStatusChanged(const QString& deviceName, bool isRunning) const;
+
     // These signals should be emitted when a device is first known to be available. In some cases this will
     // be in `init()`, in other cases, like Neuron, this isn't known until activation.
     // SDL2 isn't a device itself, but can have 0+ subdevices. subdeviceConnected is used in this case.
@@ -85,6 +88,7 @@ signals:
 
 protected:
     bool _active { false };
+    bool _enabled { false };
     bool _sessionStatus { false };
     PluginContainer* _container { nullptr };
     static const char* UNKNOWN_PLUGIN_ID;
