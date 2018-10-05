@@ -472,7 +472,7 @@
 
             textureMemSizeAtLastCheck = textureResourceGPUMemSize;
 
-            if (textureMemSizeStabilityCount >= 15) {
+            if (textureMemSizeStabilityCount >= 20) {
 
                 if (textureResourceGPUMemSize > 0) {
                     // print((texturePopulatedGPUMemSize / textureResourceGPUMemSize));

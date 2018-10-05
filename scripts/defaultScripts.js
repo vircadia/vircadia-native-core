@@ -40,8 +40,8 @@ var DEFAULT_SCRIPTS_SEPARATE = [
 ];
 
 if (Window.interstitialModeEnabled) {
-    DEFAULT_SCRIPTS_SEPARATE.push("system/interstitialPage.js");
-    DEFAULT_SCRIPTS_SEPARATE.push("system/redirectOverlays.js");
+    DEFAULT_SCRIPTS_COMBINED.push("system/interstitialPage.js");
+    DEFAULT_SCRIPTS_COMBINED.push("system/redirectOverlays.js");
 }
 
 // add a menu item for debugging

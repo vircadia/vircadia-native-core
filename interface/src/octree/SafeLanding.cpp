@@ -83,8 +83,6 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
             }
             qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
         }
-    } else {
-        qCDebug(interfaceapp) << "Safe Landing: Null Entity: " << entityID;
     }
 }
 
@@ -109,12 +107,13 @@ void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
 }
 
 bool SafeLanding::isLoadSequenceComplete() {
+    qDebug() << "is sequence complete" << isSequenceNumbersComplete();
     if (isEntityLoadingComplete() && isSequenceNumbersComplete()) {
         Locker lock(_lock);
-        _trackedEntities.clear();
         _initialStart = INVALID_SEQUENCE;
         _initialEnd = INVALID_SEQUENCE;
         _entityTree = nullptr;
+        _trackingEntities = false; // Don't track anything else that comes in.
         EntityTreeRenderer::setEntityLoadingPriorityFunction(StandardPriority);
     }
 
@@ -148,7 +147,10 @@ bool SafeLanding::isSequenceNumbersComplete() {
             (startIter != _sequenceNumbers.end()
             && endIter != _sequenceNumbers.end()
             && distance(startIter, endIter) == sequenceSize - 1)) {
-            _trackingEntities = false; // Don't track anything else that comes in.
+            bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+            if (!enableInterstitial) {
+                _trackingEntities = false; // Don't track anything else that comes in.
+            }
             return true;
         }
     }
@@ -188,7 +190,14 @@ bool SafeLanding::isEntityLoadingComplete() {
         bool isVisuallyReady = true;
 
         if (enableInterstitial) {
-            isVisuallyReady = (entity->isVisuallyReady() || !entityTree->renderableForEntityId(entityMapIter->first));
+            bool hasRenderable = true;
+            auto entityRenderable = entityTree->renderableForEntityId(entityMapIter->first);
+            if (!entityRenderable) {
+                hasRenderable = false;
+                entityTree->addingEntity(entityMapIter->first);
+            }
+            qDebug() << EntityTypes::getEntityTypeName(entity->getType()) << entity->isVisuallyReady() << hasRenderable << entity->isParentPathComplete();
+            isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable && !entity->isParentPathComplete());
         }
 
         if (isEntityPhysicsReady(entity) && isVisuallyReady) {
@@ -200,6 +209,10 @@ bool SafeLanding::isEntityLoadingComplete() {
 
             entityMapIter++;
         }
+    }
+
+    if (!_trackedEntities.empty()) {
+        qDebug() << "\n";
     }
 
     if (enableInterstitial) {
