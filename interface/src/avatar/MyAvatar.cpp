@@ -4203,7 +4203,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
     myAvatar.getCharacterController()->setFollowParameters(followWorldPose, getMaxTimeRemaining());
 }
 
-glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix) {
+glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix) {
     if (isActive()) {
         float dt = myAvatar.getCharacterController()->getFollowTime();
         decrementTimeRemaining(dt);
@@ -4220,8 +4220,8 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, co
 
         glm::mat4 newBodyMat = createMatFromQuatAndPos(sensorAngularDisplacement * glmExtractRotation(currentBodyMatrix),
                                                        sensorLinearDisplacement + extractTranslation(currentBodyMatrix));
-        if (isActive(Vertical)) {
-            // myAvatar._sitStandStateChange = false;
+        if (myAvatar._sitStandStateChange) {
+            myAvatar._sitStandStateChange = false;
             deactivate(Vertical);
             newBodyMat = myAvatar.deriveBodyFromHMDSensor();
         }

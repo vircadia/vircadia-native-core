@@ -1725,7 +1725,7 @@ private:
         bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateHorizontalCG(MyAvatar& myAvatar) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
-        glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
+        glm::mat4 postPhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
         bool getForceActivateRotation() const;
         void setForceActivateRotation(bool val);
         bool getForceActivateVertical() const;
