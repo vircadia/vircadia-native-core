@@ -25,6 +25,9 @@ Python 3 can be downloaded from:
 3. Mac                 <https://www.python.org/downloads/release/python-370/> (**macOS 64-bit/32-bit installer** or **macOS 64-bit/32-bit installer**)
  
 After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
+### AWS interface
+Install the latest release of Boto3 via pip:
+>pip install boto3
 # Create
 ![](./Create.PNG)
 

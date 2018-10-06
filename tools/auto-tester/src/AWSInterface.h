@@ -19,27 +19,33 @@ class AWSInterface : public QObject {
 public:
     explicit AWSInterface(QObject* parent = 0);
 
-    void createWebPageFromResults(const QString& testResults, const QString& tempDirectory);
-
-    void createHTMLFile(const QString& testResults, const QString& tempDirectory);
+    void createWebPageFromResults(const QString& testResults, const QString& workingDirectory);
+    void extractTestFailuresFromZippedFolder();
+    void createHTMLFile();
 
     void startHTMLpage(QTextStream& stream);
     void writeHead(QTextStream& stream);
-    void writeBody(const QString& testResults, QTextStream& stream);
+    void writeBody(QTextStream& stream);
     void finishHTMLpage(QTextStream& stream);
 
-    void writeTitle(const QString& testResults, QTextStream& stream);
+    void writeTitle(QTextStream& stream);
     void writeTable(QTextStream& stream);
     void openTable(QTextStream& stream);
     void closeTable(QTextStream& stream);
 
     void createEntry(int index, const QString& testFailure, QTextStream& stream);
 
+    void updateAWS();
+
 private:
-    QString _tempDirectory;
+    QString _testResults;
+    QString _workingDirectory;
     QString _resultsFolder;
+    QString _htmlFolder;
+    QString _htmlFilename;
 
     const QString FAILURE_FOLDER{ "failures" };
+    const QString HTML_FILENAME{ "TestResults.html" };
 };
 
 #endif  // hifi_AWSInterface_h
