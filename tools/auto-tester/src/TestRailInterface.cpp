@@ -41,27 +41,13 @@ TestRailInterface::TestRailInterface() {
     _testRailResultsSelectorWindow.setProjectID(INTERFACE_AUTOMATION_PROJECT_ID);
 
     _testRailResultsSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
+
+    _pythonInterface = new PythonInterface();
+    _pythonCommand = _pythonInterface->getPythonCommand();
 }
 
 QString TestRailInterface::getObject(const QString& path) {
     return path.right(path.length() - path.lastIndexOf("/") - 1);
-}
-
-bool TestRailInterface::setPythonCommand() {
-    if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
-        QString _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
-        if (!QFile::exists(_pythonPath + "/" + _pythonExe)) {
-            QMessageBox::critical(0, _pythonExe, QString("Python executable not found in ") + _pythonPath);
-        }
-        _pythonCommand = _pythonPath + "/" + _pythonExe;
-        return true;
-    } else {
-        QMessageBox::critical(0, "PYTHON_PATH not defined",
-                              "Please set PYTHON_PATH to directory containing the Python executable");
-        return false;
-    }
-
-    return false;
 }
 
 // Creates the testrail.py script
@@ -770,10 +756,6 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     _userGitHub = userGitHub;
     _branchGitHub = branchGitHub;
 
-    if (!setPythonCommand()) {
-        return;
-    }
-
     if (!requestTestRailTestCasesDataFromUser()) {
         return;
     }
@@ -1127,10 +1109,6 @@ void TestRailInterface::getRunsFromTestRail() {
 void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
     _outputDirectory = outputDirectory;
 
-    if (!setPythonCommand()) {
-        return;
-    }
-
     if (!requestTestRailRunDataFromUser()) {
         return;
     }
@@ -1144,10 +1122,6 @@ void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
 
 void TestRailInterface::updateTestRailRunResults(const QString& testResults, const QString& tempDirectory) {
     _outputDirectory = tempDirectory;
-
-    if (!setPythonCommand()) {
-        return;
-    }
 
     if (!requestTestRailResultsDataFromUser()) {
         return;

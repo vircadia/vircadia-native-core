@@ -14,6 +14,10 @@
 #include <QObject>
 #include <QTextStream>
 
+#include "ui/BusyWindow.h"
+
+#include "PythonInterface.h"
+
 class AWSInterface : public QObject {
     Q_OBJECT
 public:
@@ -46,6 +50,11 @@ private:
 
     const QString FAILURE_FOLDER{ "failures" };
     const QString HTML_FILENAME{ "TestResults.html" };
+
+    BusyWindow _busyWindow;
+
+    PythonInterface* _pythonInterface;
+    QString _pythonCommand;
 };
 
 #endif  // hifi_AWSInterface_h

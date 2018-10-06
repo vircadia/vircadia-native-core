@@ -11,12 +11,14 @@
 
 #include <QDirIterator>
 #include <QMessageBox>
+#include <QProcess>
 
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
 
-AWSInterface::AWSInterface(QObject* parent) :
-    QObject(parent) {
+AWSInterface::AWSInterface(QObject* parent) : QObject(parent) {
+    _pythonInterface = new PythonInterface();
+    _pythonCommand = _pythonInterface->getPythonCommand();
 }
 
 void AWSInterface::createWebPageFromResults(const QString& testResults, const QString& workingDirectory) {
@@ -32,6 +34,16 @@ void AWSInterface::createWebPageFromResults(const QString& testResults, const QS
 }
 
 void AWSInterface::extractTestFailuresFromZippedFolder() {
+    // For a test results zip file called `D:/tt/TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ].zip`
+    //   the folder will be called `TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ]`
+    //   and, this folder will be in the workign directory
+    QStringList parts =_testResults.split('/');
+    QString zipFolderName =  _workingDirectory + "/" + parts[parts.length() - 1].split('.')[0];
+    if (QDir(zipFolderName).exists()) {
+        QDir dir = zipFolderName;
+        dir.removeRecursively();
+    }
+
     QDir().mkdir(_workingDirectory);
     JlCompress::extractDir(_testResults, _workingDirectory);
 }
@@ -272,4 +284,14 @@ void AWSInterface::updateAWS() {
     stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-content', Key='nissim/" << _resultsFolder << "/" << HTML_FILENAME << "', Body=data)\n";
 
     file.close();
+
+    QProcess* process = new QProcess();
+
+    connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
+    connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
+    connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
+            [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
+
+    QStringList parameters = QStringList() << filename ;
+    process->start(_pythonCommand, parameters);
 }

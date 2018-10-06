@@ -12,7 +12,6 @@
 #define hifi_test_testrail_interface_h
 
 #include "ui/BusyWindow.h"
-
 #include "ui/TestRailTestCasesSelectorWindow.h"
 #include "ui/TestRailRunSelectorWindow.h"
 #include "ui/TestRailResultsSelectorWindow.h"
@@ -22,7 +21,9 @@
 #include <QProcess>
 #include <QString>
 
-class TestRailInterface : public QObject{
+#include "PythonInterface.h"
+
+class TestRailInterface : public QObject {
     Q_OBJECT
 
 public:
@@ -65,9 +66,7 @@ public:
     bool requestTestRailRunDataFromUser();
     bool requestTestRailResultsDataFromUser();
 
-    void createAddTestCasesPythonScript(const QString& testDirectory,
-                                        const QString& userGitHub,
-                                        const QString& branchGitHub);
+    void createAddTestCasesPythonScript(const QString& testDirectory, const QString& userGitHub, const QString& branchGitHub);
 
     void processDirectoryPython(const QString& directory,
                                 QTextStream& stream,
@@ -88,7 +87,6 @@ public:
     void addRun();
     void updateRunWithResults();
 
-    bool setPythonCommand();
     void extractTestFailuresFromZippedFolder(const QString& testResults, const QString& tempDirectory);
 
 private:
@@ -117,9 +115,6 @@ private:
     QString _userGitHub;
     QString _branchGitHub;
 
-    const QString _pythonExe{ "python.exe" };
-    QString _pythonCommand;
-
     QStringList _releaseNames;
 
     QStringList _sectionNames;
@@ -129,6 +124,9 @@ private:
     std::vector<int> _runIDs;
 
     QString TEMP_NAME{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
+
+    PythonInterface* _pythonInterface;
+    QString _pythonCommand;
 };
 
 #endif
