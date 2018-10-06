@@ -83,7 +83,7 @@ android {
                 def renameHifiACTask = rootProject.getTasksByName("renameHifiACTask${variant.name.capitalize()}", false).first()
                 runDumpSymsTask.dependsOn(task)
                 variant.assemble.dependsOn(uploadDumpSymsTask)
-                variant.assemble.dependsOn(renameHifiACTask)
+                variant.mergeResources.dependsOn(renameHifiACTask)
             }
         }
 
