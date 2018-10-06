@@ -353,7 +353,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
             return false;
         }
 
-        if (model->getURL().isEmpty()) {
+        if (model->getURL().isEmpty() || !_dimensionsInitialized) {
             // we need a render geometry with a scale to proceed, so give up.
             return false;
         }
