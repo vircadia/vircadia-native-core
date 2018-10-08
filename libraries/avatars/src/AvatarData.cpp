@@ -206,11 +206,13 @@ float AvatarData::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) const
     if (distance < AVATAR_DISTANCE_LEVEL_1) {
         result = AVATAR_MIN_ROTATION_DOT;
     } else if (distance < AVATAR_DISTANCE_LEVEL_2) {
-        result = ROTATION_CHANGE_15D;
+        result = ROTATION_CHANGE_2D;
     } else if (distance < AVATAR_DISTANCE_LEVEL_3) {
-        result = ROTATION_CHANGE_45D;
+        result = ROTATION_CHANGE_4D;
     } else if (distance < AVATAR_DISTANCE_LEVEL_4) {
-        result = ROTATION_CHANGE_90D;
+        result = ROTATION_CHANGE_6D;
+    } else if (distance < AVATAR_DISTANCE_LEVEL_5) {
+        result = ROTATION_CHANGE_15D;
     }
     return result;
 }
