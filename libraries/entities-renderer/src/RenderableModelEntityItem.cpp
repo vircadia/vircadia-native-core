@@ -315,6 +315,14 @@ void RenderableModelEntityItem::getCollisionGeometryResource() {
     _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
 }
 
+bool RenderableModelEntityItem::computeShapeFailedToLoad() {
+    if (!_compoundShapeResource) {
+        getCollisionGeometryResource();
+    }
+
+    return (_compoundShapeResource && _compoundShapeResource->isFailed());
+}
+
 void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
@@ -343,7 +351,6 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
 
 bool RenderableModelEntityItem::isReadyToComputeShape() const {
     ShapeType type = getShapeType();
-
     auto model = getModel();
     if (type == SHAPE_TYPE_COMPOUND) {
         if (!model || getCompoundShapeURL().isEmpty()) {

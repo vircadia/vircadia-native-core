@@ -52,6 +52,9 @@ private:
     int _initialStart { INVALID_SEQUENCE };
     int _initialEnd { INVALID_SEQUENCE };
     int _maxTrackedEntityCount { 0 };
+    int _trackedEntityStabilityCount { 0 };
+
+    quint64 _startTime { 0 };
 
     struct SequenceLessThan {
         bool operator()(const int& a, const int& b) const;
