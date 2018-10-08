@@ -173,7 +173,6 @@ AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
     Status status = Status::IDLE;
     if (_isTransiting) {
         float nextTime = _currentTime + deltaTime;
-        glm::vec3 newPosition;
         if (nextTime >= _totalTime) {
             _currentPosition = _endPosition;
             _isTransiting = false;

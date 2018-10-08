@@ -497,7 +497,7 @@ void AudioMixerClientData::processStreamPacket(ReceivedMessage& message, Concurr
 
     if (newStream) {
         // whenever a stream is added, push it to the concurrent vector of streams added this frame
-        addedStreams.emplace_back(getNodeID(), getNodeLocalID(), matchingStream->getStreamIdentifier(), matchingStream.get());
+        addedStreams.push_back(AddedStream(getNodeID(), getNodeLocalID(), matchingStream->getStreamIdentifier(), matchingStream.get()));
     }
 }
 
