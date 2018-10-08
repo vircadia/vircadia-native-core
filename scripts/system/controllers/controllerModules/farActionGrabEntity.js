@@ -317,7 +317,7 @@ Script.include("/~/system/libraries/Xform.js");
         };
 
         this.restoreIgnoredEntities = function() {
-            for (var i = 0; i < this.ignoredEntities; i++) {
+            for (var i = 0; i < this.ignoredEntities.length; i++) {
                 var data = {
                     action: 'remove',
                     id: this.ignoredEntities[i]
