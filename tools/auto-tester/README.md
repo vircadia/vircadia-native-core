@@ -26,7 +26,15 @@ Python 3 can be downloaded from:
  
 After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
 ### AWS interface
-Install the latest release of Boto3 via pip:
+#### Windows
+1.  Download the AWS CLI from `https://aws.amazon.com/cli/`
+1.  Install (installer is named `AWSCLI64PY3.msi`)
+1.  Open a new command prompt and run `aws configure`
+1.  Enter the AWS account number
+1.  Enter the secret key
+1.  Leave region name and ouput format as default [None]
+
+1.  Install the latest release of Boto3 via pip:
 >pip install boto3
 # Create
 ![](./Create.PNG)
