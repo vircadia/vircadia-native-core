@@ -21,7 +21,7 @@ public:
             using Pointer = Payload::DataPointer;
 
             ParabolaRenderItem(const glm::vec3& color, float alpha, float width,
-                               bool isVisibleInSecondaryCamera, bool enabled);
+                               bool isVisibleInSecondaryCamera, bool drawInFront, bool enabled);
             ~ParabolaRenderItem() {}
 
             static gpu::PipelinePointer _parabolaPipeline;
@@ -46,11 +46,13 @@ public:
             void setAcceleration(const glm::vec3& acceleration) { _parabolaData.acceleration = acceleration; }
             void setOrigin(const glm::vec3& origin) { _origin = origin; }
             void setIsVisibleInSecondaryCamera(const bool& isVisibleInSecondaryCamera) { _isVisibleInSecondaryCamera = isVisibleInSecondaryCamera; }
+            void setDrawInFront(const bool& drawInFront) { _drawInFront = drawInFront; }
             void setEnabled(const bool& enabled) { _enabled = enabled; }
 
             static const glm::vec4 DEFAULT_PARABOLA_COLOR;
             static const float DEFAULT_PARABOLA_WIDTH;
             static const bool DEFAULT_PARABOLA_ISVISIBLEINSECONDARYCAMERA;
+            static const bool DEFAULT_PARABOLA_DRAWINFRONT;
 
         private:
             render::Item::Bound _bound;
@@ -58,6 +60,7 @@ public:
 
             glm::vec3 _origin { 0.0f };
             bool _isVisibleInSecondaryCamera { DEFAULT_PARABOLA_ISVISIBLEINSECONDARYCAMERA };
+            bool _drawInFront { DEFAULT_PARABOLA_DRAWINFRONT };
             bool _visible { false };
             bool _enabled { false };
 
@@ -76,18 +79,18 @@ public:
         };
 
         RenderState() {}
-        RenderState(const OverlayID& startID, const OverlayID& endID, const glm::vec3& pathColor, float pathAlpha, float pathWidth,
-                    bool isVisibleInSecondaryCamera, bool pathEnabled);
+        RenderState(const OverlayID& startID, const OverlayID& endID, const glm::vec3& pathColor, float pathAlpha, float parentScale,
+                    bool isVisibleInSecondaryCamera, bool drawInFront, bool pathEnabled);
 
         void setPathWidth(float width) { _pathWidth = width; }
         float getPathWidth() const { return _pathWidth; }
 
         void cleanup() override;
         void disable() override;
-        void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+        void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, float parentScale, bool distanceScaleEnd, bool centerEndY,
                     bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) override;
 
-        void editParabola(const glm::vec3& color, float alpha, float width, bool isVisibleInSecondaryCamera, bool enabled);
+        void editParabola(const glm::vec3& color, float alpha, float width, bool isVisibleInSecondaryCamera, bool drawInFront, bool enabled);
 
     private:
         int _pathID;
@@ -102,6 +105,8 @@ public:
     static std::shared_ptr<StartEndRenderState> buildRenderState(const QVariantMap& propMap);
 
 protected:
+    virtual PickResultPointer getPickResultCopy(const PickResultPointer& pickResult) const override;
+
     void editRenderStatePath(const std::string& state, const QVariant& pathProps) override;
 
     glm::vec3 getPickOrigin(const PickResultPointer& pickResult) const override;

@@ -152,6 +152,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                                                    });
 
                 if (!isDeleted && (sentInstanceIt == sentIDValuePairs.end() || receivedVersion > sentInstanceIt->value)) {
+
                     // this instance version exists and has never been sent or is newer so we need to send it
                     bytesWritten += sendingAvatar->packTraitInstance(traitType, instanceID, traitsPacketList, receivedVersion);
 
@@ -161,6 +162,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                         sentIDValuePairs.emplace_back(instanceID, receivedVersion);
                     }
                 } else if (isDeleted && sentInstanceIt != sentIDValuePairs.end() && absoluteReceivedVersion > sentInstanceIt->value) {
+
                     // this instance version was deleted and we haven't sent the delete to this client yet
                     bytesWritten += AvatarTraits::packInstancedTraitDelete(traitType, instanceID, traitsPacketList, absoluteReceivedVersion);
 
@@ -179,6 +181,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
         // to match the time of last traits change
         listeningNodeData->setLastOtherAvatarTraitsSendPoint(otherNodeLocalID, timeOfLastTraitsChange);
     }
+
 
     return bytesWritten;
 }
@@ -340,7 +343,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         } else {
             // Check to see if the space bubble is enabled
             // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
-            if (destinationNode->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
+            if (nodeData->isIgnoreRadiusEnabled() || (avatarClientNodeData->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
                 // Perform the collision check between the two bounding boxes
                 AABox otherNodeBox = avatarClientNodeData->getAvatar().getDefaultBubbleBox();
                 if (nodeBox.touches(otherNodeBox)) {

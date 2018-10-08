@@ -205,9 +205,12 @@ bool OffscreenUi::isPointOnDesktopWindow(QVariant point) {
 }
 
 void OffscreenUi::hide(const QString& name) {
-    QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
-    if (item) {
-        QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(false);
+    auto rootItem = getRootItem();
+    if (rootItem) {
+        QQuickItem* item = rootItem->findChild<QQuickItem*>(name);
+        if (item) {
+            QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(false);
+        }
     }
 }
 
@@ -672,6 +675,7 @@ void OffscreenUi::createDesktop(const QUrl& url) {
 
         new KeyboardFocusHack();
         connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
+        emit desktopReady();
     });
 }
 

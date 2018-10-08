@@ -122,8 +122,10 @@ class MyAvatar : public Avatar {
      *     zone may disallow collisionless avatars.
      * @property {boolean} characterControllerEnabled - Synonym of <code>collisionsEnabled</code>. 
      *     <strong>Deprecated:</strong> Use <code>collisionsEnabled</code> instead.
-     * @property {boolean} useAdvancedMovementControls - Returns the value of the Interface setting, Settings > Advanced 
-     *     Movement for Hand Controller. Note: Setting the value has no effect unless Interface is restarted.
+     * @property {boolean} useAdvancedMovementControls - Returns and sets the value of the Interface setting, Settings > 
+     *     Walking and teleporting. Note: Setting the value has no effect unless Interface is restarted.
+     * @property {boolean} showPlayArea - Returns and sets the value of the Interface setting, Settings > Show room boundaries 
+     *     while teleporting. Note: Setting the value has no effect unless Interface is restarted.
      * @property {number} yawSpeed=75
      * @property {number} pitchSpeed=50
      * @property {boolean} hmdRollControlEnabled=true - If <code>true</code>, the roll angle of your HMD turns your avatar 
@@ -223,6 +225,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
+    Q_PROPERTY(bool showPlayArea READ getShowPlayArea WRITE setShowPlayArea)
 
     Q_PROPERTY(float yawSpeed MEMBER _yawSpeed)
     Q_PROPERTY(float pitchSpeed MEMBER _pitchSpeed)
@@ -542,6 +545,9 @@ public:
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
         { _useAdvancedMovementControls.set(useAdvancedMovementControls); }
 
+    bool getShowPlayArea() const { return _showPlayArea.get(); }
+    void setShowPlayArea(bool showPlayArea) { _showPlayArea.set(showPlayArea); }
+
     void setHMDRollControlEnabled(bool value) { _hmdRollControlEnabled = value; }
     bool getHMDRollControlEnabled() const { return _hmdRollControlEnabled; }
     void setHMDRollControlDeadZone(float value) { _hmdRollControlDeadZone = value; }
@@ -550,6 +556,7 @@ public:
     float getHMDRollControlRate() const { return _hmdRollControlRate; }
 
     // get/set avatar data
+    void resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex);
     void saveData();
     void loadData();
 
@@ -1114,6 +1121,8 @@ public:
     virtual QVariantList getAttachmentsVariant() const override;
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
+    glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); };
+
 public slots:
 
     /**jsdoc
@@ -1628,6 +1637,7 @@ private:
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
+    Setting::Handle<bool> _showPlayArea;
 
     // Smoothing.
     const float SMOOTH_TIME_ORIENTATION = 0.5f;
@@ -1731,6 +1741,7 @@ private:
     bool _goToPending { false };
     bool _physicsSafetyPending { false };
     bool _goToSafe { true };
+    bool _goToFeetAjustment { false };
     glm::vec3 _goToPosition;
     glm::quat _goToOrientation;
 
@@ -1806,6 +1817,24 @@ private:
 
     bool _haveReceivedHeightLimitsFromDomain { false };
     int _disableHandTouchCount { 0 };
+    bool _skeletonModelLoaded { false };
+
+    Setting::Handle<QString> _dominantHandSetting;
+    Setting::Handle<float> _headPitchSetting;
+    Setting::Handle<float> _scaleSetting;
+    Setting::Handle<float> _yawSpeedSetting;
+    Setting::Handle<float> _pitchSpeedSetting;
+    Setting::Handle<QUrl> _fullAvatarURLSetting;
+    Setting::Handle<QUrl> _fullAvatarModelNameSetting;
+    Setting::Handle<QUrl> _animGraphURLSetting;
+    Setting::Handle<QString> _displayNameSetting;
+    Setting::Handle<QUrl> _collisionSoundURLSetting;
+    Setting::Handle<bool> _useSnapTurnSetting;
+    Setting::Handle<float> _userHeightSetting;
+    Setting::Handle<bool> _flyingHMDSetting;
+    Setting::Handle<int> _avatarEntityCountSetting;
+    std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
+    std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

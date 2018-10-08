@@ -23,7 +23,6 @@
 #include <QtGui/QImage>
 
 #include <QtWidgets/QApplication>
-#include <QtWidgets/QUndoStack>
 
 #include <ThreadHelpers.h>
 #include <AbstractScriptingServicesInterface.h>
@@ -70,7 +69,6 @@
 #include "ui/OctreeStatsDialog.h"
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
-#include "UndoStackScriptingInterface.h"
 
 #include "workload/GameWorkload.h"
 
@@ -185,11 +183,12 @@ public:
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
 
+    bool isMissingSequenceNumbers() { return _isMissingSequenceNumbers; }
+
     const ConicalViewFrustums& getConicalViews() const override { return _conicalViews; }
 
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
-    QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() const { return _window; }
     EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
@@ -232,6 +231,8 @@ public:
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
+
+     Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
@@ -432,7 +433,7 @@ public slots:
 
     void setIsServerlessMode(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL, bool errorDomain = false);
-    void setIsInterstitialMode(bool interstialMode);
+    void setIsInterstitialMode(bool interstitialMode);
 
     void updateVerboseLogging();
 
@@ -528,7 +529,7 @@ private:
     bool importFromZIP(const QString& filePath);
     bool importImage(const QString& urlString);
 
-    bool nearbyEntitiesAreReadyForPhysics();
+    bool gpuTextureMemSizeStable();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
     void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);
 
@@ -560,6 +561,8 @@ private:
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
 
+    bool _aboutToQuit { false };
+
     bool _previousSessionCrashed;
 
     DisplayPluginPointer _displayPlugin;
@@ -568,9 +571,6 @@ private:
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
-
-    QUndoStack _undoStack;
-    UndoStackScriptingInterface _undoStackScriptingInterface;
 
     uint32_t _renderFrameCount { 0 };
 
@@ -584,6 +584,8 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     QElapsedTimer _lastTimeRendered;
+
+    int _minimumGPUTextureMemSizeStabilityCount { 30 };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulationPointer _entitySimulation;
@@ -651,8 +653,6 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
-    bool _aboutToQuit;
-
     bool _notifiedPacketVersionMismatchThisDomain;
 
     ConditionalGuard _settingsGuard;
@@ -715,6 +715,8 @@ private:
 
     bool _fakedMouseEvent { false };
 
+    bool _isMissingSequenceNumbers { false };
+
     void checkChangeCursor();
     mutable QMutex _changeCursorLock { QMutex::Recursive };
     Qt::CursorShape _desiredCursor{ Qt::BlankCursor };
@@ -725,8 +727,10 @@ private:
 
     std::atomic<uint32_t> _fullSceneReceivedCounter { 0 }; // how many times have we received a full-scene octree stats packet
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
-    uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
-    uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
+
+    qint64 _gpuTextureMemSizeStabilityCount { 0 };
+    qint64 _gpuTextureMemSizeAtLastCheck { 0 };
+
     quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };

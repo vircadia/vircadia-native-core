@@ -21,6 +21,7 @@ class RotateFilter : public Filter {
 public:
     RotateFilter() { }
     RotateFilter(glm::quat rotation) : _rotation(rotation) {}
+    virtual ~RotateFilter() {}
 
     virtual float apply(float value) const override { return value; }
 

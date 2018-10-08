@@ -19,6 +19,9 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
+#include <shared/ReadWriteLockable.h>
+#include <SettingHandle.h>
+
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
 #include "NLPacket.h"
@@ -83,6 +86,8 @@ public:
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
+    bool getInterstitialModeEnabled() const;
+    void setInterstitialModeEnabled(bool enableInterstitialMode);
 
     void connectedToServerless(std::map<QString, QString> namedPaths);
 
@@ -171,7 +176,7 @@ public slots:
     void processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
     // sets domain handler in error state.
-    void setRedirectErrorState(QUrl errorUrl, int reasonCode);
+    void setRedirectErrorState(QUrl errorUrl, QString reasonMessage = "", int reason = -1, const QString& extraInfo = "");
 
     bool isInErrorState() { return _isInErrorState; }
 
@@ -181,8 +186,6 @@ private slots:
 
 signals:
     void domainURLChanged(QUrl domainURL);
-
-    void domainConnectionErrorChanged(int reasonCode);
 
     // NOTE: the emission of completedSocketDiscovery does not mean a connection to DS is established
     // It means that, either from DNS lookup or ICE, we think we have a socket we can talk to DS on
@@ -200,6 +203,7 @@ signals:
 
     void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
     void redirectToErrorDomainURL(QUrl errorDomainURL);
+    void redirectErrorStateChanged(bool isInErrorState);
 
     void limitOfSilentDomainCheckInsReached();
 
@@ -207,6 +211,8 @@ private:
     bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);
     void sendDisconnectPacket();
     void hardReset();
+
+    bool isHardRefusal(int reasonCode);
 
     QUuid _uuid;
     Node::LocalID _localID;
@@ -224,6 +230,8 @@ private:
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;
+    mutable ReadWriteLockable _interstitialModeSettingLock;
+    Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", true };
 
     QSet<QString> _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };

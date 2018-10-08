@@ -53,6 +53,8 @@ public:
     void setLastBroadcastSequenceNumber(NLPacket::LocalID nodeID, uint16_t sequenceNumber)
         { _lastBroadcastSequenceNumbers[nodeID] = sequenceNumber; }
     Q_INVOKABLE void removeLastBroadcastSequenceNumber(NLPacket::LocalID nodeID) { _lastBroadcastSequenceNumbers.erase(nodeID); }
+    bool isIgnoreRadiusEnabled() const { return _isIgnoreRadiusEnabled; }
+    void setIsIgnoreRadiusEnabled(bool enabled) { _isIgnoreRadiusEnabled = enabled; }
 
     uint64_t getLastBroadcastTime(NLPacket::LocalID nodeUUID) const;
     void setLastBroadcastTime(NLPacket::LocalID nodeUUID, uint64_t broadcastTime) { _lastBroadcastTimes[nodeUUID] = broadcastTime; }
@@ -180,6 +182,8 @@ private:
 
     std::unordered_map<Node::LocalID, TraitsCheckTimestamp> _lastSentTraitsTimestamps;
     std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions> _sentTraitVersions;
+
+    std::atomic_bool _isIgnoreRadiusEnabled { false };
 };
 
 #endif // hifi_AvatarMixerClientData_h

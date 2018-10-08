@@ -140,8 +140,7 @@ public:
      * </table>
      * @typedef {number} location.LookupTrigger
      */
-    enum LookupTrigger
-    {
+    enum LookupTrigger {
         UserInput,
         Back,
         Forward,
@@ -207,9 +206,8 @@ public slots:
     // functions and signals that should be exposed are moved to a scripting interface class.
     //
     // we currently expect this to be called from NodeList once handleLookupString has been called with a path
-    bool goToViewpointForPath(const QString& viewpointString, const QString& pathString) {
-        return handleViewpoint(viewpointString, false, DomainPathResponse, false, pathString);
-    }
+    bool goToViewpointForPath(const QString& viewpointString, const QString& pathString)
+        { return handleViewpoint(viewpointString, false, DomainPathResponse, false, pathString); }
 
     /**jsdoc
      * Go back to the previous location in your navigation history, if there is one.
@@ -231,8 +229,7 @@ public slots:
      *     location history is correctly maintained.
      */
     void goToLocalSandbox(QString path = "", LookupTrigger trigger = LookupTrigger::StartupFromSettings) {
-        handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger);
-    }
+        handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger); }
 
     /**jsdoc
      * Go to the default "welcome" metaverse address.
@@ -256,6 +253,12 @@ public slots:
     * @function location.goToLastAddress
     */
     void goToLastAddress() { handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh); }
+
+    /**jsdoc
+    * Returns if going back is possible.
+    * @function location.canGoBack
+    */
+    bool canGoBack() const;
 
     /**jsdoc
      * Refresh the current address, e.g., after connecting to a domain in order to position the user to the desired location.
@@ -364,8 +367,7 @@ signals:
      * location.locationChangeRequired.connect(onLocationChangeRequired);
      */
     void locationChangeRequired(const glm::vec3& newPosition,
-                                bool hasOrientationChange,
-                                const glm::quat& newOrientation,
+                                bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
 
     /**jsdoc
@@ -448,11 +450,8 @@ private:
 
     bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger, bool& hostChanged);
     void handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly = false);
-    bool handleViewpoint(const QString& viewpointString,
-                         bool shouldFace,
-                         LookupTrigger trigger,
-                         bool definitelyPathOnly = false,
-                         const QString& pathString = QString());
+    bool handleViewpoint(const QString& viewpointString, bool shouldFace, LookupTrigger trigger,
+                         bool definitelyPathOnly = false, const QString& pathString = QString());
     bool handleUsername(const QString& lookupString);
     bool handleDomainID(const QString& host);
 

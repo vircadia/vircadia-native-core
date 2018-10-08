@@ -20,6 +20,7 @@ class AbstractHMDScriptingInterface : public QObject {
     Q_PROPERTY(float eyeHeight READ getEyeHeight)
     Q_PROPERTY(float playerHeight READ getPlayerHeight)
     Q_PROPERTY(float ipdScale READ getIPDScale WRITE setIPDScale NOTIFY IPDScaleChanged)
+    Q_PROPERTY(bool mounted READ isMounted NOTIFY mountedChanged)
 
 public:
     AbstractHMDScriptingInterface();
@@ -29,6 +30,7 @@ public:
     float getIPDScale() const;
     void setIPDScale(float ipdScale);
     bool isHMDMode() const;
+    virtual bool isMounted() const = 0;
 
 signals:
     /**jsdoc

@@ -11,14 +11,27 @@
 import QtQuick 2.5
 
 import "../../controls-uit"
+import "../../styles-uit"
 
 Preference {
     id: root
-    
+
     height: control.height + hifi.dimensions.controlInterlineHeight
 
+    property int value: 0
+
     Component.onCompleted: {
-        repeater.itemAt(preference.value).checked = true
+        value = preference.value;
+        repeater.itemAt(preference.value).checked = true;
+    }
+
+    function updateValue() {
+        for (var i = 0; i < repeater.count; i++) {
+            if (repeater.itemAt(i).checked) {
+                value = i;
+                break;
+            }
+        }
     }
 
     function save() {
@@ -33,24 +46,36 @@ Preference {
         preference.save();
     }
 
-    Row {
+    Column {
         id: control
         anchors {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
         }
-        spacing: 5
+        spacing: 3
+
+        RalewaySemiBold {
+            id: heading
+            size: hifi.fontSizes.inputLabel
+            text: preference.heading
+            color: hifi.colors.lightGrayText
+            visible: text !== ""
+            bottomPadding: 3
+        }
 
         Repeater {
             id: repeater
             model: preference.items.length
             delegate: RadioButton {
                 text: preference.items[index]
+                letterSpacing: 0
                 anchors {
-                    verticalCenter: parent.verticalCenter
+                    left: parent.left
                 }
+                leftPadding: 0
                 colorScheme: hifi.colorSchemes.dark
+                onClicked: updateValue();
             }
         }
     }

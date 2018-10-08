@@ -320,7 +320,7 @@ public slots:
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
 
 protected:
-    static std::shared_ptr<TransformNode> createTransformNode(const QVariantMap& propMap);
+    static void setParentTransform(std::shared_ptr<PickQuery> pick, const QVariantMap& propMap);
 };
 
 #endif // hifi_PickScriptingInterface_h

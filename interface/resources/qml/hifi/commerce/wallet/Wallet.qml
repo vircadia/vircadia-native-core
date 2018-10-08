@@ -829,6 +829,7 @@ Rectangle {
         Commerce.getWalletAuthenticatedStatus(); // before writing security image, ensures that salt/account password is set.
         Commerce.chooseSecurityImage(securityImagePath);
         Commerce.generateKeyPair();
+        followReferrer({ referrer: walletSetup.referrer });
     }
 
     function addLeadingZero(n) {
@@ -836,7 +837,7 @@ Rectangle {
     }
 
     function followReferrer(msg) {
-        if (msg.referrer === '' || msg.referrer === 'marketplace cta') {
+        if (msg.referrer === '') {
             root.activeView = "initialize";
             Commerce.getWalletStatus();
         } else if (msg.referrer === 'purchases') {

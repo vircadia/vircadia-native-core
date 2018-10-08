@@ -25,6 +25,7 @@ struct GLFilterMode {
 
 class GLTextureTransferEngine {
 public:
+    virtual ~GLTextureTransferEngine() {}
     using Pointer = std::shared_ptr<GLTextureTransferEngine>;
     /// Called once per frame to perform any require memory management or transfer work
     virtual void manageMemory() = 0;

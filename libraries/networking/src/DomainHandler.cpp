@@ -15,6 +15,10 @@
 
 #include <PathUtils.h>
 
+#include <shared/QtHelpers.h>
+
+#include <QThread>
+
 #include <QtCore/QJsonDocument>
 #include <QtCore/QDataStream>
 
@@ -119,6 +123,7 @@ void DomainHandler::hardReset() {
 
     softReset();
     _isInErrorState = false;
+    emit redirectErrorStateChanged(_isInErrorState);
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
     _pendingDomainID = QUuid();
@@ -132,6 +137,23 @@ void DomainHandler::hardReset() {
 
     // clear any pending path we may have wanted to ask the previous DS about
     _pendingPath.clear();
+}
+
+bool DomainHandler::isHardRefusal(int reasonCode) {
+    return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch || reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
+        reasonCode == (int)ConnectionRefusedReason::TimedOut);
+}
+
+bool DomainHandler::getInterstitialModeEnabled() const {
+    return _interstitialModeSettingLock.resultWithReadLock<bool>([&] {
+        return _enableInterstitialMode.get();
+    });
+}
+
+void DomainHandler::setInterstitialModeEnabled(bool enableInterstitialMode) {
+    _interstitialModeSettingLock.withWriteLock([&] {
+        _enableInterstitialMode.set(enableInterstitialMode);
+    });
 }
 
 void DomainHandler::setErrorDomainURL(const QUrl& url) {
@@ -311,6 +333,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
         _isConnected = isConnected;
 
         if (_isConnected) {
+            _lastDomainConnectionError = -1;
             emit connectedToDomain(_domainURL);
 
             if (_domainURL.scheme() == URL_SCHEME_HIFI && !_domainURL.host().isEmpty()) {
@@ -340,11 +363,17 @@ void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
     DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, QString());
 }
 
-void DomainHandler::setRedirectErrorState(QUrl errorUrl, int reasonCode) {
-    _errorDomainURL = errorUrl;
+void DomainHandler::setRedirectErrorState(QUrl errorUrl, QString reasonMessage, int reasonCode, const QString& extraInfo) {
     _lastDomainConnectionError = reasonCode;
-    _isInErrorState = true;
-    emit redirectToErrorDomainURL(_errorDomainURL);
+    if (getInterstitialModeEnabled() && isHardRefusal(reasonCode)) {
+        _errorDomainURL = errorUrl;
+        _isInErrorState = true;
+        qCDebug(networking) << "Error connecting to domain: " << reasonMessage;
+        emit redirectErrorStateChanged(_isInErrorState);
+        emit redirectToErrorDomainURL(_errorDomainURL);
+    } else {
+        emit domainConnectionRefused(reasonMessage, reasonCode, extraInfo);
+    }
 }
 
 void DomainHandler::requestDomainSettings() {
@@ -485,13 +514,9 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 #if defined(Q_OS_ANDROID)
         emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
 #else
-        if (reasonCode == ConnectionRefusedReason::ProtocolMismatch || reasonCode == ConnectionRefusedReason::NotAuthorized) {
-            // ingest the error - this is a "hard" connection refusal.
-            setRedirectErrorState(_errorDomainURL, (int)reasonCode);
-        } else {
-            emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
-        }
-        _lastDomainConnectionError = (int)reasonCode;
+
+        // ingest the error - this is a "hard" connection refusal.
+        setRedirectErrorState(_errorDomainURL, reasonMessage, (int)reasonCode, extraInfo);
 #endif
     }
 

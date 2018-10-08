@@ -27,6 +27,7 @@
 
 #include "Application.h"
 #include "scripting/HMDScriptingInterface.h"
+#include "Constants.h"
 
 HIFI_QML_DEF(LoginDialog)
 
@@ -219,8 +220,6 @@ void LoginDialog::signup(const QString& email, const QString& username, const QS
     userObject.insert("password", password);
 
     payload.insert("user", userObject);
-
-    static const QString API_SIGNUP_PATH = "api/v1/users";
 
     qDebug() << "Sending a request to create an account for" << username;
 

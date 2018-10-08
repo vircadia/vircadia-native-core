@@ -208,9 +208,6 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
 
-    if (!model->getFBXGeometry().meshes[meshIndex].blendshapes.isEmpty()) {
-        _blendedVertexBuffer = model->_blendedVertexBuffers[meshIndex];
-    }
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
@@ -240,6 +237,23 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     updateTransformForSkinnedMesh(renderTransform, transform);
 
     initCache(model);
+
+    if (_isBlendShaped) {
+        auto buffer = model->_blendshapeBuffers.find(meshIndex);
+        if (buffer != model->_blendshapeBuffers.end()) {
+            _blendshapeBuffer = buffer->second;
+        }
+    }
+
+#ifdef Q_OS_MAC
+    // On mac AMD, we specifically need to have a _blendshapeBuffer bound when using a deformed mesh pipeline
+    // it cannot be null otherwise we crash in the drawcall using a deformed pipeline with a skinned only (not blendshaped) mesh
+    if ((_isBlendShaped || _isSkinned) && !_blendshapeBuffer) {
+        glm::vec4 data;
+        _blendshapeBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), reinterpret_cast<const gpu::Byte*>(&data));
+    }
+#endif
+
 }
 
 void ModelMeshPartPayload::initCache(const ModelPointer& model) {
@@ -348,10 +362,10 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     bool hasLightmap = drawMaterialKey.isLightmapMap();
     bool isUnlit = drawMaterialKey.isUnlit();
 
-    bool isSkinned = _isSkinned;
+    bool isDeformed = _isBlendShaped || _isSkinned;
 
     if (isWireframe) {
-        isTranslucent = hasTangents = hasLightmap = isSkinned = false;
+        isTranslucent = hasTangents = hasLightmap = false;
     }
 
     ShapeKey::Builder builder;
@@ -369,13 +383,13 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     if (isUnlit) {
         builder.withUnlit();
     }
-    if (isSkinned) {
-        builder.withSkinned();
+    if (isDeformed) {
+        builder.withDeformed();
     }
     if (isWireframe) {
         builder.withWireframe();
     }
-    if (isSkinned && useDualQuaternionSkinning) {
+    if (isDeformed && useDualQuaternionSkinning) {
         builder.withDualQuatSkinned();
     }
 
@@ -389,14 +403,10 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
     batch.setInputFormat((_drawMesh->getVertexFormat()));
-    if (_isBlendShaped && _blendedVertexBuffer) {
-        batch.setInputBuffer(0, _blendedVertexBuffer, 0, sizeof(glm::vec3));
-        // Stride is 2*sizeof(glm::vec3) because normal and tangents are interleaved
-        batch.setInputBuffer(1, _blendedVertexBuffer, _drawMesh->getNumVertices() * sizeof(glm::vec3), 2 * sizeof(NormalType));
-        batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
-    } else {
-        batch.setInputStream(0, _drawMesh->getVertexStream());
+    if (_blendshapeBuffer) {
+        batch.setResourceBuffer(0, _blendshapeBuffer);
     }
+    batch.setInputStream(0, _drawMesh->getVertexStream());
 }
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
@@ -419,6 +429,12 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
+
+    // IF deformed pass the mesh key
+    auto drawcallInfo = (uint16_t) (((_isBlendShaped && args->_enableBlendshape) << 0) | ((_isSkinned && args->_enableSkinning) << 1));
+    if (drawcallInfo) {
+        batch.setDrawcallUniform(drawcallInfo);
+    }
 
     // apply material properties
     if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {

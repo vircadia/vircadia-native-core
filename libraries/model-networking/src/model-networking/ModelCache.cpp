@@ -551,6 +551,11 @@ QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const FBXTexture& textu
 
 graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
                                                           image::TextureUsage::Type type, MapChannel channel) {
+
+    if (baseUrl.isEmpty()) {
+        return nullptr;
+    }
+
     const auto url = getTextureUrl(baseUrl, fbxTexture);
     const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, fbxTexture.content, fbxTexture.maxNumPixels);
     _textures[channel] = Texture { fbxTexture.name, texture };

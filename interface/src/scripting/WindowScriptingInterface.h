@@ -49,6 +49,7 @@ class WindowScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int innerHeight READ getInnerHeight)
     Q_PROPERTY(int x READ getX)
     Q_PROPERTY(int y READ getY)
+    Q_PROPERTY(bool interstitialModeEnabled READ getInterstitialModeEnabled WRITE setInterstitialModeEnabled)
 
 public:
     WindowScriptingInterface();
@@ -611,6 +612,14 @@ signals:
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode, const QString& extraInfo);
 
     /**jsdoc
+     * Triggered when you try to visit a domain but are redirected into the error state.
+     * @function Window.redirectErrorStateChanged
+     * @param {boolean} isInErrorState - If <code>true</code>, the user has been redirected to the error URL.
+     * @returns {Signal}
+     */
+    void redirectErrorStateChanged(bool isInErrorState);
+
+    /**jsdoc
      * Triggered when a still snapshot has been taken by calling {@link Window.takeSnapshot|takeSnapshot} with 
      *     <code>includeAnimated = false</code> or {@link Window.takeSecondaryCameraSnapshot|takeSecondaryCameraSnapshot}.
      * @function Window.stillSnapshotTaken
@@ -757,6 +766,9 @@ private:
 
     QString getPreviousBrowseAssetLocation() const;
     void setPreviousBrowseAssetLocation(const QString& location);
+
+    bool getInterstitialModeEnabled() const;
+    void setInterstitialModeEnabled(bool enableInterstitialMode);
 
     void ensureReticleVisible() const;
 

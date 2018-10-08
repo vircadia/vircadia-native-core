@@ -16,9 +16,9 @@
 /* global SelectionManager, SelectionDisplay, grid, rayPlaneIntersection, rayPlaneIntersection2, pushCommandForSelections,
    getMainTabletIDs, getControllerWorldLocation, TRIGGER_ON_VALUE */
 
-var SPACE_LOCAL = "local";
-var SPACE_WORLD = "world";
-var HIGHLIGHT_LIST_NAME = "editHandleHighlightList";
+const SPACE_LOCAL = "local";
+const SPACE_WORLD = "world";
+const HIGHLIGHT_LIST_NAME = "editHandleHighlightList";
 
 Script.include([
     "./controllers.js",
@@ -28,17 +28,6 @@ Script.include([
 
 SelectionManager = (function() {
     var that = {};
-
-    /**
-     * @description Removes known to be broken properties from a properties object
-     * @param properties
-     * @return properties
-     */
-    var fixRemoveBrokenProperties = function (properties) {
-        // Reason: Entity property is always set to 0,0,0 which causes it to override angularVelocity (see MS17131)
-        delete properties.localAngularVelocity;
-        return properties;
-    }
 
     // FUNCTION: SUBSCRIBE TO UPDATE MESSAGES
     function subscribeToUpdateMessages() {
@@ -130,7 +119,7 @@ SelectionManager = (function() {
         that.savedProperties = {};
         for (var i = 0; i < that.selections.length; i++) {
             var entityID = that.selections[i];
-            that.savedProperties[entityID] = fixRemoveBrokenProperties(Entities.getEntityProperties(entityID));
+            that.savedProperties[entityID] = Entities.getEntityProperties(entityID);
         }
     };
 
@@ -258,7 +247,7 @@ SelectionManager = (function() {
             var originalEntityID = entitiesToDuplicate[i];
             var properties = that.savedProperties[originalEntityID];
             if (properties === undefined) {
-                properties = fixRemoveBrokenProperties(Entities.getEntityProperties(originalEntityID));
+                properties = Entities.getEntityProperties(originalEntityID);
             }
             if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
                 if (nonDynamicEntityIsBeingGrabbedByAvatar(properties)) {
@@ -404,68 +393,73 @@ function normalizeDegrees(degrees) {
 SelectionDisplay = (function() {
     var that = {};
 
-    var NEGATE_VECTOR = -1;
+    const COLOR_GREEN = { red: 31, green: 198, blue: 166 };
+    const COLOR_BLUE = { red: 0, green: 147, blue: 197 };
+    const COLOR_RED = { red: 226, green: 51, blue: 77 };
+    const COLOR_HOVER = { red: 227, green: 227, blue: 227 };
+    const COLOR_ROTATE_CURRENT_RING = { red: 255, green: 99, blue: 9 };
+    const COLOR_BOUNDING_EDGE = { red: 87, green: 87, blue: 87 };
+    const COLOR_SCALE_CUBE = { red: 106, green: 106, blue: 106 };
+    const COLOR_SCALE_CUBE_SELECTED = { red: 18, green: 18, blue: 18 };
+    const COLOR_DEBUG_PICK_PLANE = { red: 255, green: 255, blue: 255 };
+    const COLOR_DEBUG_PICK_PLANE_HIT = { red: 255, green: 165, blue: 0 };
 
-    var COLOR_GREEN = { red: 31, green: 198, blue: 166 };
-    var COLOR_BLUE = { red: 0, green: 147, blue: 197 };
-    var COLOR_RED = { red: 226, green: 51, blue: 77 };
-    var COLOR_HOVER = { red: 227, green: 227, blue: 227 };
-    var COLOR_ROTATE_CURRENT_RING = { red: 255, green: 99, blue: 9 };
-    var COLOR_BOUNDING_EDGE = { red: 87, green: 87, blue: 87 };
-    var COLOR_SCALE_CUBE = { red: 106, green: 106, blue: 106 };
-    var COLOR_SCALE_CUBE_SELECTED = { red: 18, green: 18, blue: 18 };
+    const TRANSLATE_ARROW_CYLINDER_OFFSET = 0.1;
+    const TRANSLATE_ARROW_CYLINDER_CAMERA_DISTANCE_MULTIPLE = 0.005;
+    const TRANSLATE_ARROW_CYLINDER_Y_MULTIPLE = 7.5;
+    const TRANSLATE_ARROW_CONE_CAMERA_DISTANCE_MULTIPLE = 0.025;
+    const TRANSLATE_ARROW_CONE_OFFSET_CYLINDER_DIMENSION_MULTIPLE = 0.83;
 
-    var TRANSLATE_ARROW_CYLINDER_OFFSET = 0.1;
-    var TRANSLATE_ARROW_CYLINDER_CAMERA_DISTANCE_MULTIPLE = 0.005;
-    var TRANSLATE_ARROW_CYLINDER_Y_MULTIPLE = 7.5;
-    var TRANSLATE_ARROW_CONE_CAMERA_DISTANCE_MULTIPLE = 0.025;
-    var TRANSLATE_ARROW_CONE_OFFSET_CYLINDER_DIMENSION_MULTIPLE = 0.83;
-
-    var ROTATE_RING_CAMERA_DISTANCE_MULTIPLE = 0.15;
-    var ROTATE_CTRL_SNAP_ANGLE = 22.5;
-    var ROTATE_DEFAULT_SNAP_ANGLE = 1;
-    var ROTATE_DEFAULT_TICK_MARKS_ANGLE = 5;
-    var ROTATE_RING_IDLE_INNER_RADIUS = 0.92;
-    var ROTATE_RING_SELECTED_INNER_RADIUS = 0.9;
+    const ROTATE_RING_CAMERA_DISTANCE_MULTIPLE = 0.15;
+    const ROTATE_CTRL_SNAP_ANGLE = 22.5;
+    const ROTATE_DEFAULT_SNAP_ANGLE = 1;
+    const ROTATE_DEFAULT_TICK_MARKS_ANGLE = 5;
+    const ROTATE_RING_IDLE_INNER_RADIUS = 0.92;
+    const ROTATE_RING_SELECTED_INNER_RADIUS = 0.9;
 
     // These are multipliers for sizing the rotation degrees display while rotating an entity
-    var ROTATE_DISPLAY_DISTANCE_MULTIPLIER = 2;
-    var ROTATE_DISPLAY_SIZE_X_MULTIPLIER = 0.2;
-    var ROTATE_DISPLAY_SIZE_Y_MULTIPLIER = 0.09;
-    var ROTATE_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.07;
+    const ROTATE_DISPLAY_DISTANCE_MULTIPLIER = 2;
+    const ROTATE_DISPLAY_SIZE_X_MULTIPLIER = 0.2;
+    const ROTATE_DISPLAY_SIZE_Y_MULTIPLIER = 0.09;
+    const ROTATE_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.07;
 
-    var STRETCH_CUBE_OFFSET = 0.06;
-    var STRETCH_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.02;
-    var STRETCH_MINIMUM_DIMENSION = 0.001;
-    var STRETCH_ALL_MINIMUM_DIMENSION = 0.01;
-    var STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE = 2;
-    var STRETCH_PANEL_WIDTH = 0.01;
+    const STRETCH_CUBE_OFFSET = 0.06;
+    const STRETCH_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.02;
+    const STRETCH_MINIMUM_DIMENSION = 0.001;
+    const STRETCH_PANEL_WIDTH = 0.01;
 
-    var BOUNDING_EDGE_OFFSET = 0.5;
-    var SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.02;
-
-    var CLONER_OFFSET = { x: 0.9, y: -0.9, z: 0.9 };    
+    const SCALE_OVERLAY_CAMERA_DISTANCE_MULTIPLE = 0.02;
+    const SCALE_DIMENSIONS_CAMERA_DISTANCE_MULTIPLE = 0.5;
+    const SCALE_MINIMUM_DIMENSION = 0.01;
     
-    var CTRL_KEY_CODE = 16777249;
+    const BOUNDING_EDGE_OFFSET = 0.5;
 
-    var RAIL_AXIS_LENGTH = 10000;
-        
-    var NO_HAND = -1;
+    const DUPLICATOR_OFFSET = { x: 0.9, y: -0.9, z: 0.9 };    
+    
+    const CTRL_KEY_CODE = 16777249;
 
-    var TRANSLATE_DIRECTION = {
+    const RAIL_AXIS_LENGTH = 10000;
+    
+    const NEGATE_VECTOR = -1;
+    const NO_HAND = -1;
+    
+    const DEBUG_PICK_PLANE_HIT_LIMIT = 200;
+    const DEBUG_PICK_PLANE_HIT_CAMERA_DISTANCE_MULTIPLE = 0.01;
+
+    const TRANSLATE_DIRECTION = {
         X: 0,
         Y: 1,
         Z: 2
     };
 
-    var STRETCH_DIRECTION = {
+    const STRETCH_DIRECTION = {
         X: 0,
         Y: 1,
         Z: 2,
         ALL: 3
     };
 
-    var SCALE_DIRECTION = {
+    const SCALE_DIRECTION = {
         LBN: 0,
         RBN: 1,
         LBF: 2,
@@ -476,7 +470,7 @@ SelectionDisplay = (function() {
         RTF: 7
     };
 
-    var ROTATE_DIRECTION = {
+    const ROTATE_DIRECTION = {
         PITCH: 0,
         YAW: 1,
         ROLL: 2
@@ -488,10 +482,6 @@ SelectionDisplay = (function() {
         getControllerWorldLocation(Controller.Standard.LeftHand, true),
         getControllerWorldLocation(Controller.Standard.RightHand, true)
     ];
-
-    var rotationZero;
-    var rotationNormal;
-    var rotationDegreesPosition;
 
     var worldRotationX;
     var worldRotationY;
@@ -651,7 +641,7 @@ SelectionDisplay = (function() {
     var handleBoundingFREdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
     var handleBoundingFLEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
 
-    var handleCloner = Overlays.addOverlay("cube", {
+    var handleDuplicator = Overlays.addOverlay("cube", {
         alpha: 1,
         size: 0.05,
         color: COLOR_GREEN,
@@ -716,7 +706,7 @@ SelectionDisplay = (function() {
             blue: 255
         },
         ignoreRayIntersection: true // always ignore this
-});
+    });
 
     var allOverlays = [
         handleTranslateXCone,
@@ -749,7 +739,7 @@ SelectionDisplay = (function() {
         handleBoundingNLEdge,
         handleBoundingFREdge,
         handleBoundingFLEdge,
-        handleCloner,
+        handleDuplicator,
         selectionBox,
         iconSelectionBox,
         xRailOverlay,
@@ -757,7 +747,7 @@ SelectionDisplay = (function() {
         zRailOverlay
 
     ];
-    var maximumHandleInAllOverlays = handleCloner;
+    var maximumHandleInAllOverlays = handleDuplicator;
 
     overlayNames[handleTranslateXCone] = "handleTranslateXCone";
     overlayNames[handleTranslateXCylinder] = "handleTranslateXCylinder";
@@ -794,12 +784,24 @@ SelectionDisplay = (function() {
     overlayNames[handleBoundingFREdge] = "handleBoundingFREdge";
     overlayNames[handleBoundingFLEdge] = "handleBoundingFLEdge";
 
-    overlayNames[handleCloner] = "handleCloner";
+    overlayNames[handleDuplicator] = "handleDuplicator";
     overlayNames[selectionBox] = "selectionBox";
     overlayNames[iconSelectionBox] = "iconSelectionBox";
 
     var activeTool = null;
     var handleTools = {};
+    
+    var debugPickPlaneEnabled = false;
+    var debugPickPlane = Overlays.addOverlay("shape", {
+        shape: "Quad",
+        alpha: 0.25,
+        color: COLOR_DEBUG_PICK_PLANE,
+        solid: true,
+        visible: false,
+        ignoreRayIntersection: true,
+        drawInFront: false
+    });
+    var debugPickPlaneHits = [];
 
     // We get mouseMoveEvents from the handControllers, via handControllerPointer.
     // But we dont' get mousePressEvents.
@@ -937,6 +939,7 @@ SelectionDisplay = (function() {
             var hitTool = handleTools[ hitOverlayID ];
             if (hitTool) {
                 activeTool = hitTool;
+                that.clearDebugPickPlane();
                 if (activeTool.onBegin) {
                     activeTool.onBegin(event, pickRay, results);
                 } else {
@@ -1205,6 +1208,7 @@ SelectionDisplay = (function() {
         for (var i = 0; i < allOverlays.length; i++) {
             Overlays.deleteOverlay(allOverlays[i]);
         }
+        that.clearDebugPickPlane();
     };
 
     that.select = function(entityID, event) {
@@ -1308,6 +1312,7 @@ SelectionDisplay = (function() {
 
         if (SelectionManager.selections.length === 0) {
             that.setOverlaysVisible(false);
+            that.clearDebugPickPlane();
             return;
         }
 
@@ -1431,8 +1436,8 @@ SelectionDisplay = (function() {
 
             // UPDATE SCALE CUBE
             var scaleCubeRotation = spaceMode === SPACE_LOCAL ? rotation : Quat.IDENTITY;            
-            var scaleCubeDimension = rotateDimension * SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE / 
-                                                           ROTATE_RING_CAMERA_DISTANCE_MULTIPLE;
+            var scaleCubeDimension = rotateDimension * SCALE_OVERLAY_CAMERA_DISTANCE_MULTIPLE / 
+                                                       ROTATE_RING_CAMERA_DISTANCE_MULTIPLE;
             var scaleCubeDimensions = { x: scaleCubeDimension, y: scaleCubeDimension, z: scaleCubeDimension };
             Overlays.editOverlay(handleScaleCube, { 
                 position: position, 
@@ -1571,15 +1576,15 @@ SelectionDisplay = (function() {
                 Overlays.editOverlay(iconSelectionBox, { visible: false });
             }
 
-            // UPDATE CLONER (CURRENTLY HIDDEN FOR NOW)
-            var handleClonerOffset = { 
-                x: CLONER_OFFSET.x * dimensions.x, 
-                y: CLONER_OFFSET.y * dimensions.y, 
-                z: CLONER_OFFSET.z * dimensions.z 
+            // UPDATE DUPLICATOR (CURRENTLY HIDDEN FOR NOW)
+            var handleDuplicatorOffset = { 
+                x: DUPLICATOR_OFFSET.x * dimensions.x, 
+                y: DUPLICATOR_OFFSET.y * dimensions.y, 
+                z: DUPLICATOR_OFFSET.z * dimensions.z 
             };
-            var handleClonerPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, handleClonerOffset));
-            Overlays.editOverlay(handleCloner, {
-                position: handleClonerPos,
+            var handleDuplicatorPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, handleDuplicatorOffset));
+            Overlays.editOverlay(handleDuplicator, {
+                position: handleDuplicatorPos,
                 rotation: rotation,
                 dimensions: scaleCubeDimensions
             });
@@ -1599,7 +1604,7 @@ SelectionDisplay = (function() {
         that.setHandleStretchXVisible(showScaleStretch || isActiveTool(handleStretchXCube));
         that.setHandleStretchYVisible(showScaleStretch || isActiveTool(handleStretchYCube));
         that.setHandleStretchZVisible(showScaleStretch || isActiveTool(handleStretchZCube));
-        that.setHandleScaleCubeVisible(showScaleStretch || isActiveTool(handleScaleCube));
+        that.setHandleScaleVisible(showScaleStretch || isActiveTool(handleScaleCube));
 
         var showOutlineForZone = (SelectionManager.selections.length === 1 && 
                                     typeof SelectionManager.savedProperties[SelectionManager.selections[0]] !== "undefined" &&
@@ -1608,9 +1613,9 @@ SelectionDisplay = (function() {
                                                               !isActiveTool(handleRotateYawRing) &&
                                                               !isActiveTool(handleRotateRollRing)));
 
-        // keep cloner always hidden for now since you can hold Alt to clone while  
-        // translating an entity - we may bring cloner back for HMD only later
-        // that.setHandleClonerVisible(!activeTool || isActiveTool(handleCloner));
+        // keep duplicator always hidden for now since you can hold Alt to duplciate while  
+        // translating an entity - we may bring duplicator back for HMD only later
+        // that.setHandleDuplicatorVisible(!activeTool || isActiveTool(handleDuplicator));
 
         if (wantDebug) {
             print("====== Update Handles <=======");
@@ -1703,11 +1708,11 @@ SelectionDisplay = (function() {
     
     // FUNCTION: SET HANDLE SCALE VISIBLE
     that.setHandleScaleVisible = function(isVisible) {
-        that.setHandleScaleCubeVisible(isVisible);
+        that.setHandleScaleVisible(isVisible);
         that.setHandleBoundingEdgeVisible(isVisible);
     };
 
-    that.setHandleScaleCubeVisible = function(isVisible) {
+    that.setHandleScaleVisible = function(isVisible) {
         Overlays.editOverlay(handleScaleCube, { visible: isVisible });
     };
 
@@ -1726,186 +1731,126 @@ SelectionDisplay = (function() {
         Overlays.editOverlay(handleBoundingFLEdge, { visible: isVisible });
     };
 
-    // FUNCTION: SET HANDLE CLONER VISIBLE
-    that.setHandleClonerVisible = function(isVisible) {
-        Overlays.editOverlay(handleCloner, { visible: isVisible });
+    // FUNCTION: SET HANDLE DUPLICATOR VISIBLE
+    that.setHandleDuplicatorVisible = function(isVisible) {
+        Overlays.editOverlay(handleDuplicator, { visible: isVisible });
     };
 
-    // TOOL DEFINITION: TRANSLATE XZ TOOL
-    var initialXZPick = null;
-    var isConstrained = false;
-    var constrainMajorOnly = false;
-    var startPosition = null;
-    var duplicatedEntityIDs = null;
-    var translateXZTool = addHandleTool(selectionBox, {
-        mode: 'TRANSLATE_XZ',
-        pickPlanePosition: { x: 0, y: 0, z: 0 },
-        greatestDimension: 0.0,
-        startingDistance: 0.0,
-        startingElevation: 0.0,
-        onBegin: function(event, pickRay, pickResult, doClone) {
-            var wantDebug = false;
-            if (wantDebug) {
-                print("================== TRANSLATE_XZ(Beg) -> =======================");
-                Vec3.print("    pickRay", pickRay);
-                Vec3.print("    pickRay.origin", pickRay.origin);
-                Vec3.print("    pickResult.intersection", pickResult.intersection);
-            }
-
-            // Duplicate entities if alt is pressed.  This will make a
-            // copy of the selected entities and move the _original_ entities, not
-            // the new ones.
-            if (event.isAlt || doClone) {
-                duplicatedEntityIDs = SelectionManager.duplicateSelection();
-                var ids = [];
-                for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
-                    ids.push(duplicatedEntityIDs[i].entityID);
-                }
-                SelectionManager.setSelections(ids);
-            } else {
-                duplicatedEntityIDs = null;
-            }
-
-            SelectionManager.saveProperties();
-            that.resetPreviousHandleColor();
-
-            that.setHandleTranslateVisible(false);
-            that.setHandleRotateVisible(false);
-            that.setHandleScaleCubeVisible(false);
-            that.setHandleStretchVisible(false);
-            that.setHandleClonerVisible(false);
-
-            startPosition = SelectionManager.worldPosition;
-
-            translateXZTool.pickPlanePosition = pickResult.intersection;
-            translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, 
-                                                                  SelectionManager.worldDimensions.y),
-                                                                  SelectionManager.worldDimensions.z);
-            translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
-            translateXZTool.startingElevation = translateXZTool.elevation(pickRay.origin, translateXZTool.pickPlanePosition);
-            if (wantDebug) {
-                print("    longest dimension: " + translateXZTool.greatestDimension);
-                print("    starting distance: " + translateXZTool.startingDistance);
-                print("    starting elevation: " + translateXZTool.startingElevation);
-            }
-
-            initialXZPick = rayPlaneIntersection(pickRay, translateXZTool.pickPlanePosition, {
-                x: 0,
-                y: 1,
-                z: 0
-            });
-
-            isConstrained = false;
-            if (wantDebug) {
-                print("================== TRANSLATE_XZ(End) <- =======================");
-            }
-        },
-        onEnd: function(event, reason) {
-            pushCommandForSelections(duplicatedEntityIDs);
-            if (isConstrained) {
-                Overlays.editOverlay(xRailOverlay, {
-                    visible: false
-                });
-                Overlays.editOverlay(zRailOverlay, {
-                    visible: false
-                });
-            }
-        },
-        elevation: function(origin, intersection) {
-            return (origin.y - intersection.y) / Vec3.distance(origin, intersection);
-        },
-        onMove: function(event) {
-            var wantDebug = false;
-            var pickRay = generalComputePickRay(event.x, event.y);
-
-            var pick = rayPlaneIntersection2(pickRay, translateXZTool.pickPlanePosition, {
-                x: 0,
-                y: 1,
-                z: 0
-            });
-
-            // If the pick ray doesn't hit the pick plane in this direction, do nothing.
-            // this will happen when someone drags across the horizon from the side they started on.
-            if (!pick) {
+    // FUNCTION: DEBUG PICK PLANE
+    that.showDebugPickPlane = function(pickPlanePosition, pickPlaneNormal) {
+        var planePlusNormal = Vec3.sum(pickPlanePosition, pickPlaneNormal);
+        var rotation = Quat.lookAtSimple(planePlusNormal, pickPlanePosition);
+        var dimensionXZ = getDistanceToCamera(pickPlanePosition) * 1.25;   
+        var dimensions = { x:dimensionXZ, y:dimensionXZ, z:STRETCH_PANEL_WIDTH };
+        Overlays.editOverlay(debugPickPlane, {
+            position: pickPlanePosition,
+            rotation: rotation,
+            dimensions: dimensions,
+            visible: true 
+        });
+    };
+    
+    that.showDebugPickPlaneHit = function(pickHitPosition) {
+        var dimension = getDistanceToCamera(pickHitPosition) * DEBUG_PICK_PLANE_HIT_CAMERA_DISTANCE_MULTIPLE;
+        var pickPlaneHit = Overlays.addOverlay("shape", {
+            alpha: 0.5,
+            shape: "Sphere",
+            solid: true,
+            visible: true,
+            ignoreRayIntersection: true,
+            drawInFront: false,
+            color: COLOR_DEBUG_PICK_PLANE_HIT,
+            position: pickHitPosition,
+            dimensions: { x: dimension, y: dimension, z: dimension }
+        });
+        debugPickPlaneHits.push(pickPlaneHit);
+        if (debugPickPlaneHits.length > DEBUG_PICK_PLANE_HIT_LIMIT) {
+            var removedPickPlaneHit = debugPickPlaneHits.shift();
+            Overlays.deleteOverlay(removedPickPlaneHit);
+        }
+    };
+    
+    that.clearDebugPickPlane = function() {
+        Overlays.editOverlay(debugPickPlane, { visible: false });
+        for (var i = 0; i < debugPickPlaneHits.length; i++) {
+            Overlays.deleteOverlay(debugPickPlaneHits[i]);
+        }
+        debugPickPlaneHits = [];
+    };
+    
+    // TOOL DEFINITION: HANDLE TRANSLATE XZ TOOL
+    function addHandleTranslateXZTool(overlay, mode, doDuplicate) {
+        var initialPick = null;
+        var isConstrained = false;
+        var constrainMajorOnly = false;
+        var startPosition = null;
+        var duplicatedEntityIDs = null;
+        var pickPlanePosition = null;
+        var pickPlaneNormal = { x: 0, y: 1, z: 0 };
+        var greatestDimension = 0.0;
+        var startingDistance = 0.0;
+        var startingElevation = 0.0;
+        addHandleTool(overlay, {
+            mode: mode,
+            onBegin: function(event, pickRay, pickResult) {
+                var wantDebug = false;
                 if (wantDebug) {
-                    print("    "+ translateXZTool.mode + "Pick ray does not intersect XZ plane.");
-                }
-                
-                // EARLY EXIT--(Invalid ray detected.)
-                return;
-            }
-
-            var vector = Vec3.subtract(pick, initialXZPick);
-
-            // If the mouse is too close to the horizon of the pick plane, stop moving
-            var MIN_ELEVATION = 0.02; //  largest dimension of object divided by distance to it
-            var elevation = translateXZTool.elevation(pickRay.origin, pick);
-            if (wantDebug) {
-                print("Start Elevation: " + translateXZTool.startingElevation + ", elevation: " + elevation);
-            }
-            if ((translateXZTool.startingElevation > 0.0 && elevation < MIN_ELEVATION) ||
-                (translateXZTool.startingElevation < 0.0 && elevation > -MIN_ELEVATION)) {
-                if (wantDebug) {
-                    print("    "+ translateXZTool.mode + " - too close to horizon!");
+                    print("================== TRANSLATE_XZ(Beg) -> =======================");
+                    Vec3.print("    pickRay", pickRay);
+                    Vec3.print("    pickRay.origin", pickRay.origin);
+                    Vec3.print("    pickResult.intersection", pickResult.intersection);
                 }
 
-                // EARLY EXIT--(Don't proceed past the reached limit.)
-                return;
-            }
-
-            //  If the angular size of the object is too small, stop moving
-            var MIN_ANGULAR_SIZE = 0.01; //  Radians
-            if (translateXZTool.greatestDimension > 0) {
-                var angularSize = Math.atan(translateXZTool.greatestDimension / Vec3.distance(pickRay.origin, pick));
-                if (wantDebug) {
-                    print("Angular size = " + angularSize);
-                }
-                if (angularSize < MIN_ANGULAR_SIZE) {
-                    return;
-                }
-            }
-
-            // If shifted, constrain to one axis
-            if (event.isShifted) {
-                if (Math.abs(vector.x) > Math.abs(vector.z)) {
-                    vector.z = 0;
+                // Duplicate entities if alt is pressed.  This will make a
+                // copy of the selected entities and move the _original_ entities, not
+                // the new ones.
+                if (event.isAlt || doDuplicate) {
+                    duplicatedEntityIDs = SelectionManager.duplicateSelection();
+                    var ids = [];
+                    for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
+                        ids.push(duplicatedEntityIDs[i].entityID);
+                    }
+                    SelectionManager.setSelections(ids);
                 } else {
-                    vector.x = 0;
+                    duplicatedEntityIDs = null;
                 }
-                if (!isConstrained) {
-                    var xStart = Vec3.sum(startPosition, {
-                        x: -RAIL_AXIS_LENGTH,
-                        y: 0,
-                        z: 0
-                    });
-                    var xEnd = Vec3.sum(startPosition, {
-                        x: RAIL_AXIS_LENGTH,
-                        y: 0,
-                        z: 0
-                    });
-                    var zStart = Vec3.sum(startPosition, {
-                        x: 0,
-                        y: 0,
-                        z: -RAIL_AXIS_LENGTH
-                    });
-                    var zEnd = Vec3.sum(startPosition, {
-                        x: 0,
-                        y: 0,
-                        z: RAIL_AXIS_LENGTH
-                    });
-                    Overlays.editOverlay(xRailOverlay, {
-                        start: xStart,
-                        end: xEnd,
-                        visible: true
-                    });
-                    Overlays.editOverlay(zRailOverlay, {
-                        start: zStart,
-                        end: zEnd,
-                        visible: true
-                    });
-                    isConstrained = true;
+
+                SelectionManager.saveProperties();
+                that.resetPreviousHandleColor();
+
+                that.setHandleTranslateVisible(false);
+                that.setHandleRotateVisible(false);
+                that.setHandleScaleVisible(false);
+                that.setHandleStretchVisible(false);
+                that.setHandleDuplicatorVisible(false);
+
+                startPosition = SelectionManager.worldPosition;
+                pickPlanePosition = pickResult.intersection;
+                greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, 
+                                                      SelectionManager.worldDimensions.y),
+                                                      SelectionManager.worldDimensions.z);
+                startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
+                startingElevation = this.elevation(pickRay.origin, pickPlanePosition);
+                if (wantDebug) {
+                    print("    longest dimension: " + greatestDimension);
+                    print("    starting distance: " + startingDistance);
+                    print("    starting elevation: " + startingElevation);
                 }
-            } else {
+
+                initialPick = rayPlaneIntersection(pickRay, pickPlanePosition, pickPlaneNormal);
+                
+                if (debugPickPlaneEnabled) {
+                    that.showDebugPickPlane(pickPlanePosition, pickPlaneNormal);
+                    that.showDebugPickPlaneHit(initialPick);
+                }
+
+                isConstrained = false;
+                if (wantDebug) {
+                    print("================== TRANSLATE_XZ(End) <- =======================");
+                }
+            },
+            onEnd: function(event, reason) {
+                pushCommandForSelections(duplicatedEntityIDs);
                 if (isConstrained) {
                     Overlays.editOverlay(xRailOverlay, {
                         visible: false
@@ -1913,60 +1858,166 @@ SelectionDisplay = (function() {
                     Overlays.editOverlay(zRailOverlay, {
                         visible: false
                     });
-                    isConstrained = false;
                 }
-            }
+            },
+            elevation: function(origin, intersection) {
+                return (origin.y - intersection.y) / Vec3.distance(origin, intersection);
+            },
+            onMove: function(event) {
+                var wantDebug = false;
+                var pickRay = generalComputePickRay(event.x, event.y);
 
-            constrainMajorOnly = event.isControl;
-            var negateAndHalve = -0.5;
-            var cornerPosition = Vec3.sum(startPosition, Vec3.multiply(negateAndHalve, SelectionManager.worldDimensions));
-            vector = Vec3.subtract(
-                grid.snapToGrid(Vec3.sum(cornerPosition, vector), constrainMajorOnly),
-                cornerPosition);
+                var newPick = rayPlaneIntersection2(pickRay, pickPlanePosition, pickPlaneNormal);
 
-            // editing a parent will cause all the children to automatically follow along, so don't
-            // edit any entity who has an ancestor in SelectionManager.selections
-            var toMove = SelectionManager.selections.filter(function (selection) {
-                if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
-                    return false; // a parent is also being moved, so don't issue an edit for this entity
-                } else {
-                    return true;
+                // If the pick ray doesn't hit the pick plane in this direction, do nothing.
+                // this will happen when someone drags across the horizon from the side they started on.
+                if (!newPick) {
+                    if (wantDebug) {
+                        print("    "+ mode + "Pick ray does not intersect XZ plane.");
+                    }
+                    
+                    // EARLY EXIT--(Invalid ray detected.)
+                    return;
                 }
-            });
-
-            for (var i = 0; i < toMove.length; i++) {
-                var properties = SelectionManager.savedProperties[toMove[i]];
-                if (!properties) {
-                    continue;
+                
+                if (debugPickPlaneEnabled) {
+                    that.showDebugPickPlaneHit(newPick);
                 }
-                var newPosition = Vec3.sum(properties.position, {
-                    x: vector.x,
-                    y: 0,
-                    z: vector.z
-                });
-                Entities.editEntity(toMove[i], {
-                    position: newPosition
-                });
 
+                var vector = Vec3.subtract(newPick, initialPick);
+
+                // If the mouse is too close to the horizon of the pick plane, stop moving
+                var MIN_ELEVATION = 0.02; //  largest dimension of object divided by distance to it
+                var elevation = this.elevation(pickRay.origin, newPick);
                 if (wantDebug) {
-                    print("translateXZ... ");
-                    Vec3.print("                 vector:", vector);
-                    Vec3.print("            newPosition:", properties.position);
-                    Vec3.print("            newPosition:", newPosition);
+                    print("Start Elevation: " + startingElevation + ", elevation: " + elevation);
                 }
-            }
+                if ((startingElevation > 0.0 && elevation < MIN_ELEVATION) ||
+                    (startingElevation < 0.0 && elevation > -MIN_ELEVATION)) {
+                    if (wantDebug) {
+                        print("    "+ mode + " - too close to horizon!");
+                    }
 
-            SelectionManager._update();
-        }
-    });
+                    // EARLY EXIT--(Don't proceed past the reached limit.)
+                    return;
+                }
+
+                //  If the angular size of the object is too small, stop moving
+                var MIN_ANGULAR_SIZE = 0.01; //  Radians
+                if (greatestDimension > 0) {
+                    var angularSize = Math.atan(greatestDimension / Vec3.distance(pickRay.origin, newPick));
+                    if (wantDebug) {
+                        print("Angular size = " + angularSize);
+                    }
+                    if (angularSize < MIN_ANGULAR_SIZE) {
+                        return;
+                    }
+                }
+
+                // If shifted, constrain to one axis
+                if (event.isShifted) {
+                    if (Math.abs(vector.x) > Math.abs(vector.z)) {
+                        vector.z = 0;
+                    } else {
+                        vector.x = 0;
+                    }
+                    if (!isConstrained) {
+                        var xStart = Vec3.sum(startPosition, {
+                            x: -RAIL_AXIS_LENGTH,
+                            y: 0,
+                            z: 0
+                        });
+                        var xEnd = Vec3.sum(startPosition, {
+                            x: RAIL_AXIS_LENGTH,
+                            y: 0,
+                            z: 0
+                        });
+                        var zStart = Vec3.sum(startPosition, {
+                            x: 0,
+                            y: 0,
+                            z: -RAIL_AXIS_LENGTH
+                        });
+                        var zEnd = Vec3.sum(startPosition, {
+                            x: 0,
+                            y: 0,
+                            z: RAIL_AXIS_LENGTH
+                        });
+                        Overlays.editOverlay(xRailOverlay, {
+                            start: xStart,
+                            end: xEnd,
+                            visible: true
+                        });
+                        Overlays.editOverlay(zRailOverlay, {
+                            start: zStart,
+                            end: zEnd,
+                            visible: true
+                        });
+                        isConstrained = true;
+                    }
+                } else {
+                    if (isConstrained) {
+                        Overlays.editOverlay(xRailOverlay, {
+                            visible: false
+                        });
+                        Overlays.editOverlay(zRailOverlay, {
+                            visible: false
+                        });
+                        isConstrained = false;
+                    }
+                }
+
+                constrainMajorOnly = event.isControl;
+                var negateAndHalve = -0.5;
+                var cornerPosition = Vec3.sum(startPosition, Vec3.multiply(negateAndHalve, SelectionManager.worldDimensions));
+                vector = Vec3.subtract(
+                    grid.snapToGrid(Vec3.sum(cornerPosition, vector), constrainMajorOnly),
+                    cornerPosition);
+
+                // editing a parent will cause all the children to automatically follow along, so don't
+                // edit any entity who has an ancestor in SelectionManager.selections
+                var toMove = SelectionManager.selections.filter(function (selection) {
+                    if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                        return false; // a parent is also being moved, so don't issue an edit for this entity
+                    } else {
+                        return true;
+                    }
+                });
+
+                for (var i = 0; i < toMove.length; i++) {
+                    var properties = SelectionManager.savedProperties[toMove[i]];
+                    if (!properties) {
+                        continue;
+                    }
+                    var newPosition = Vec3.sum(properties.position, {
+                        x: vector.x,
+                        y: 0,
+                        z: vector.z
+                    });
+                    Entities.editEntity(toMove[i], {
+                        position: newPosition
+                    });
+
+                    if (wantDebug) {
+                        print("translateXZ... ");
+                        Vec3.print("                 vector:", vector);
+                        Vec3.print("            newPosition:", properties.position);
+                        Vec3.print("            newPosition:", newPosition);
+                    }
+                }
+
+                SelectionManager._update();
+            }
+        });
+    }
 
     // TOOL DEFINITION: HANDLE TRANSLATE TOOL    
     function addHandleTranslateTool(overlay, mode, direction) {
-        var pickNormal = null;
-        var lastPick = null;
-        var initialPosition = null;
+        var pickPlanePosition = null;
+        var pickPlaneNormal = null;
+        var initialPick = null;
         var projectionVector = null;
         var previousPickRay = null;
+        var rotation = null;
         addHandleTool(overlay, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
@@ -1992,13 +2043,12 @@ SelectionDisplay = (function() {
                 } else if (direction === TRANSLATE_DIRECTION.Z) {
                     axisVector = { x: 0, y: 0, z: 1 };
                 }
-
-                var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
+                
+                rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
                 axisVector = Vec3.multiplyQbyV(rotation, axisVector);
-                pickNormal = Vec3.cross(Vec3.cross(pickRay.direction, axisVector), axisVector);
-
-                lastPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
-                initialPosition = SelectionManager.worldPosition;
+                pickPlaneNormal = Vec3.cross(Vec3.cross(pickRay.direction, axisVector), axisVector);
+                pickPlanePosition = SelectionManager.worldPosition;
+                initialPick = rayPlaneIntersection(pickRay, pickPlanePosition, pickPlaneNormal);
     
                 SelectionManager.saveProperties();
                 that.resetPreviousHandleColor();
@@ -2008,10 +2058,15 @@ SelectionDisplay = (function() {
                 that.setHandleTranslateZVisible(direction === TRANSLATE_DIRECTION.Z);
                 that.setHandleRotateVisible(false);
                 that.setHandleStretchVisible(false);
-                that.setHandleScaleCubeVisible(false);
-                that.setHandleClonerVisible(false);
+                that.setHandleScaleVisible(false);
+                that.setHandleDuplicatorVisible(false);
                 
                 previousPickRay = pickRay;
+                
+                if (debugPickPlaneEnabled) {
+                    that.showDebugPickPlane(pickPlanePosition, pickPlaneNormal);
+                    that.showDebugPickPlaneHit(initialPick);
+                }
             },
             onEnd: function(event, reason) {
                 pushCommandForSelections(duplicatedEntityIDs);
@@ -2020,12 +2075,16 @@ SelectionDisplay = (function() {
                 var pickRay = generalComputePickRay(event.x, event.y);
                 
                 // Use previousPickRay if new pickRay will cause resulting rayPlaneIntersection values to wrap around
-                if (usePreviousPickRay(pickRay.direction, previousPickRay.direction, pickNormal)) {
+                if (usePreviousPickRay(pickRay.direction, previousPickRay.direction, pickPlaneNormal)) {
                     pickRay = previousPickRay;
                 }
     
-                var newIntersection = rayPlaneIntersection(pickRay, initialPosition, pickNormal);
-                var vector = Vec3.subtract(newIntersection, lastPick);
+                var newPick = rayPlaneIntersection(pickRay, pickPlanePosition, pickPlaneNormal);
+                if (debugPickPlaneEnabled) {
+                    that.showDebugPickPlaneHit(newPick);
+                }
+                
+                var vector = Vec3.subtract(newPick, initialPick);
                 
                 if (direction === TRANSLATE_DIRECTION.X) {
                     projectionVector = { x: 1, y: 0, z: 0 };
@@ -2034,8 +2093,6 @@ SelectionDisplay = (function() {
                 } else if (direction === TRANSLATE_DIRECTION.Z) {
                     projectionVector = { x: 0, y: 0, z: 1 };
                 }
-
-                var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
                 projectionVector = Vec3.multiplyQbyV(rotation, projectionVector);
 
                 var dotVector = Vec3.dot(vector, projectionVector);
@@ -2075,361 +2132,302 @@ SelectionDisplay = (function() {
         });
     }
 
-    // FUNCTION: VEC 3 MULT
-    var vec3Mult = function(v1, v2) {
-        return {
-            x: v1.x * v2.x,
-            y: v1.y * v2.y,
-            z: v1.z * v2.z
-        };
-    };
-
     // TOOL DEFINITION: HANDLE STRETCH TOOL   
-    function makeStretchTool(stretchMode, directionEnum, directionVec, pivot, offset, stretchPanel, cubeHandle) {
-        var directionFor3DStretch = directionVec;
-        var distanceFor3DStretch = 0;
-        var DISTANCE_INFLUENCE_THRESHOLD = 1.2;
-        
-        var signs = {
-            x: directionVec.x < 0 ? -1 : (directionVec.x > 0 ? 1 : 0),
-            y: directionVec.y < 0 ? -1 : (directionVec.y > 0 ? 1 : 0),
-            z: directionVec.z < 0 ? -1 : (directionVec.z > 0 ? 1 : 0)
-        };
-
-        var mask = {
-            x: Math.abs(directionVec.x) > 0 ? 1 : 0,
-            y: Math.abs(directionVec.y) > 0 ? 1 : 0,
-            z: Math.abs(directionVec.z) > 0 ? 1 : 0
-        };
-
-        var numDimensions = mask.x + mask.y + mask.z;
-
-        var planeNormal = null;
-        var lastPick = null;
-        var lastPick3D = null;
+    function addHandleStretchTool(overlay, mode, directionEnum) {
+        var initialPick = null;
         var initialPosition = null;
         var initialDimensions = null;
-        var initialProperties = null;
-        var registrationPoint = null;
-        var deltaPivot = null;
-        var deltaPivot3D = null;
-        var pickRayPosition = null;
-        var pickRayPosition3D = null;
         var rotation = null;
+        var registrationPoint = null;
+        var pickPlanePosition = null;
+        var pickPlaneNormal = null;
         var previousPickRay = null;
-        var beginMouseEvent = null;
-        var beginControllerPosition = null;
-
-        var onBegin = function(event, pickRay, pickResult) {     
-            var proportional = directionEnum === STRETCH_DIRECTION.ALL;     
-            
-            var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
-            initialProperties = properties;
-            rotation = (spaceMode === SPACE_LOCAL) ? properties.rotation : Quat.IDENTITY;
-
-            if (spaceMode === SPACE_LOCAL) {
+        var directionVector = null;
+        var axisVector = null;
+        var signs = null;
+        var mask = null;
+        var stretchPanel = null;
+        var handleStretchCube = null;
+        var deltaPivot = null;
+        addHandleTool(overlay, {
+            mode: mode,
+            onBegin: function(event, pickRay, pickResult) {             
+                if (directionEnum === STRETCH_DIRECTION.X) {
+                    stretchPanel = handleStretchXPanel;
+                    handleStretchCube = handleStretchXCube;
+                    directionVector = { x: -1, y: 0, z: 0 };
+                } else if (directionEnum === STRETCH_DIRECTION.Y) {
+                    stretchPanel = handleStretchYPanel;
+                    handleStretchCube = handleStretchYCube;
+                    directionVector = { x: 0, y: -1, z: 0 };
+                } else if (directionEnum === STRETCH_DIRECTION.Z) {
+                    stretchPanel = handleStretchZPanel;
+                    handleStretchCube = handleStretchZCube;
+                    directionVector = { x: 0, y: 0, z: -1 };
+                }
+                
                 rotation = SelectionManager.localRotation;
                 initialPosition = SelectionManager.localPosition;
                 initialDimensions = SelectionManager.localDimensions;
                 registrationPoint = SelectionManager.localRegistrationPoint;
-            } else {
-                rotation = SelectionManager.worldRotation;
-                initialPosition = SelectionManager.worldPosition;
-                initialDimensions = SelectionManager.worldDimensions;
-                registrationPoint = SelectionManager.worldRegistrationPoint;
-            }
-
-            // Modify range of registrationPoint to be [-0.5, 0.5]
-            var centeredRP = Vec3.subtract(registrationPoint, {
-                x: 0.5,
-                y: 0.5,
-                z: 0.5
-            });
-
-            // Scale pivot to be in the same range as registrationPoint
-            var scaledPivot = Vec3.multiply(0.5, pivot);
-            deltaPivot = Vec3.subtract(centeredRP, scaledPivot);
-
-            var scaledOffset = Vec3.multiply(0.5, offset);
-
-            // Offset from the registration point
-            var offsetRP = Vec3.subtract(scaledOffset, centeredRP);
-
-            // Scaled offset in world coordinates
-            var scaledOffsetWorld = vec3Mult(initialDimensions, offsetRP);
-            
-            pickRayPosition = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffsetWorld));
-            
-            if (directionFor3DStretch) {
-                // pivot, offset and pickPlanePosition for 3D manipulation
-                var scaledPivot3D = Vec3.multiply(0.5, Vec3.multiply(1.0, directionFor3DStretch));
-                deltaPivot3D = Vec3.subtract(centeredRP, scaledPivot3D);                
-                pickRayPosition3D = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffsetWorld));
-            }
-
-            if (numDimensions === 1) {
-                if (mask.x === 1) {
-                    planeNormal = {
-                        x: 0,
-                        y: 1,
-                        z: 0
-                    };
-                } else if (mask.y === 1) {
-                    planeNormal = {
-                        x: 1,
-                        y: 0,
-                        z: 0
-                    };
-                } else {
-                    planeNormal = {
-                        x: 0,
-                        y: 1,
-                        z: 0
-                    };
-                }
-            } else if (numDimensions === 2) {
-                if (mask.x === 0) {
-                    planeNormal = {
-                        x: 1,
-                        y: 0,
-                        z: 0
-                    };
-                } else if (mask.y === 0) {
-                    planeNormal = {
-                        x: 0,
-                        y: 1,
-                        z: 0
-                    };
-                } else {
-                    planeNormal = {
-                        x: 0,
-                        y: 0,
-                        z: 1
-                    };
-                }
-            }
-            
-            planeNormal = Vec3.multiplyQbyV(rotation, planeNormal);
-            lastPick = rayPlaneIntersection(pickRay, pickRayPosition, planeNormal);
                 
-            var planeNormal3D = {
-                x: 0,
-                y: 0,
-                z: 0
-            };
-            if (directionFor3DStretch) {
-                lastPick3D = rayPlaneIntersection(pickRay,
-                    pickRayPosition3D,
-                    planeNormal3D);
-                distanceFor3DStretch = Vec3.length(Vec3.subtract(pickRayPosition3D, pickRay.origin));
-            }
+                axisVector = Vec3.multiply(NEGATE_VECTOR, directionVector);
+                axisVector = Vec3.multiplyQbyV(rotation, axisVector);
+                
+                signs = {
+                    x: directionVector.x < 0 ? -1 : (directionVector.x > 0 ? 1 : 0),
+                    y: directionVector.y < 0 ? -1 : (directionVector.y > 0 ? 1 : 0),
+                    z: directionVector.z < 0 ? -1 : (directionVector.z > 0 ? 1 : 0)
+                };
+                mask = {
+                    x: Math.abs(directionVector.x) > 0 ? 1 : 0,
+                    y: Math.abs(directionVector.y) > 0 ? 1 : 0,
+                    z: Math.abs(directionVector.z) > 0 ? 1 : 0
+                };
+                
+                var pivot = directionVector;
+                var offset = Vec3.multiply(directionVector, NEGATE_VECTOR);
+                
+                // Modify range of registrationPoint to be [-0.5, 0.5]
+                var centeredRP = Vec3.subtract(registrationPoint, {
+                    x: 0.5,
+                    y: 0.5,
+                    z: 0.5
+                });
 
-            that.setHandleTranslateVisible(false);
-            that.setHandleRotateVisible(false);
-            that.setHandleScaleCubeVisible(true);
-            that.setHandleStretchXVisible(directionEnum === STRETCH_DIRECTION.X);
-            that.setHandleStretchYVisible(directionEnum === STRETCH_DIRECTION.Y);
-            that.setHandleStretchZVisible(directionEnum === STRETCH_DIRECTION.Z);
-            that.setHandleClonerVisible(false);
-        
-            SelectionManager.saveProperties();
-            that.resetPreviousHandleColor();
+                // Scale pivot to be in the same range as registrationPoint
+                var scaledPivot = Vec3.multiply(0.5, pivot);
+                deltaPivot = Vec3.subtract(centeredRP, scaledPivot);
 
-            if (stretchPanel !== null) {
-                Overlays.editOverlay(stretchPanel, { visible: true });
-            }
+                var scaledOffset = Vec3.multiply(0.5, offset);
 
-            var collisionToRemove = "myAvatar";
-            if (properties.collidesWith.indexOf(collisionToRemove) > -1) {
-                var newCollidesWith = properties.collidesWith.replace(collisionToRemove, "");
-                Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
-                that.replaceCollisionsAfterStretch = true;
-            }
+                // Offset from the registration point
+                var offsetRP = Vec3.subtract(scaledOffset, centeredRP);
+
+                // Scaled offset in world coordinates
+                var scaledOffsetWorld = Vec3.multiplyVbyV(initialDimensions, offsetRP);
+                
+                pickPlaneNormal = Vec3.cross(Vec3.cross(pickRay.direction, axisVector), axisVector);
+                pickPlanePosition = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffsetWorld));
+                initialPick = rayPlaneIntersection(pickRay, pickPlanePosition, pickPlaneNormal);
+
+                that.setHandleTranslateVisible(false);
+                that.setHandleRotateVisible(false);
+                that.setHandleScaleVisible(true);
+                that.setHandleStretchXVisible(directionEnum === STRETCH_DIRECTION.X);
+                that.setHandleStretchYVisible(directionEnum === STRETCH_DIRECTION.Y);
+                that.setHandleStretchZVisible(directionEnum === STRETCH_DIRECTION.Z);
+                that.setHandleDuplicatorVisible(false);
             
-            if (!proportional) {
-                var stretchCubePosition = Overlays.getProperty(cubeHandle, "position");
+                SelectionManager.saveProperties();
+                that.resetPreviousHandleColor();
+
+                var collisionToRemove = "myAvatar";
+                var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
+                if (properties.collidesWith.indexOf(collisionToRemove) > -1) {
+                    var newCollidesWith = properties.collidesWith.replace(collisionToRemove, "");
+                    Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
+                    that.replaceCollisionsAfterStretch = true;
+                }
+
+                if (stretchPanel !== null) {
+                    Overlays.editOverlay(stretchPanel, { visible: true });
+                }
+                var stretchCubePosition = Overlays.getProperty(handleStretchCube, "position");
                 var stretchPanelPosition = Overlays.getProperty(stretchPanel, "position");
                 activeStretchCubePanelOffset = Vec3.subtract(stretchPanelPosition, stretchCubePosition);
-            }
-            
-            previousPickRay = pickRay;
-            beginMouseEvent = event;
-            if (that.triggered()) {
-                beginControllerPosition = getControllerAvatarFramePositionFromPickRay(pickRay);
-            }
-        };
-
-        var onEnd = function(event, reason) {    
-            if (stretchPanel !== null) {
-                Overlays.editOverlay(stretchPanel, { visible: false });
-            }
-            
-            if (that.replaceCollisionsAfterStretch) {
-                var newCollidesWith = SelectionManager.savedProperties[SelectionManager.selections[0]].collidesWith;
-                Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
-                that.replaceCollisionsAfterStretch = false;
-            }
-            
-            activeStretchCubePanelOffset = null;
-            
-            pushCommandForSelections();
-        };
-
-        var onMove = function(event) {
-            var proportional = directionEnum === STRETCH_DIRECTION.ALL;
-            
-            var position, rotation;
-            if (spaceMode === SPACE_LOCAL) {
-                position = SelectionManager.localPosition;
-                rotation = SelectionManager.localRotation;
-            } else {
-                position = SelectionManager.worldPosition;
-                rotation = SelectionManager.worldRotation;
-            }
-            
-            var localDeltaPivot = deltaPivot;
-            var localSigns = signs;
-            var pickRay = generalComputePickRay(event.x, event.y);
-            
-            // Use previousPickRay if new pickRay will cause resulting rayPlaneIntersection values to wrap around
-            if (usePreviousPickRay(pickRay.direction, previousPickRay.direction, planeNormal)) {
-                pickRay = previousPickRay;
-            }
-            
-            var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
-            var controllerTrigger = HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && 
-                                    controllerPose.valid && that.triggered();
-
-            // Are we using handControllers or Mouse - only relevant for 3D tools
-            var vector = null;
-            var newPick = null;
-            if (controllerTrigger && directionFor3DStretch) {
-                localDeltaPivot = deltaPivot3D;
-                newPick = pickRay.origin;
-                vector = Vec3.subtract(newPick, lastPick3D);
-                vector = Vec3.multiplyQbyV(Quat.inverse(rotation), vector);
-                if (distanceFor3DStretch > DISTANCE_INFLUENCE_THRESHOLD) {
-                    // Range of Motion
-                    vector = Vec3.multiply(distanceFor3DStretch , vector);
-                }
-                localSigns = directionFor3DStretch;
-            } else {
-                newPick = rayPlaneIntersection(pickRay, pickRayPosition, planeNormal);
-                vector = Vec3.subtract(newPick, lastPick);
-                vector = Vec3.multiplyQbyV(Quat.inverse(rotation), vector);
-                vector = vec3Mult(mask, vector);
-            }
-            
-            vector = grid.snapToSpacing(vector);
-    
-            var changeInDimensions = Vec3.multiply(NEGATE_VECTOR, vec3Mult(localSigns, vector));
-            
-            var newDimensions;
-            if (proportional) {
-                var viewportDimensions = Controller.getViewportDimensions();
-                var toCameraDistance = getDistanceToCamera(position);   
-                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE; 
                 
-                var dimensionChange;
-                if (controllerTrigger) {
-                    var controllerPosition = getControllerAvatarFramePositionFromPickRay(pickRay);
-                    var vecControllerDifference = Vec3.subtract(controllerPosition, beginControllerPosition);
-                    var controllerDifference = vecControllerDifference.x + vecControllerDifference.y + 
-                                               vecControllerDifference.z;
-                    dimensionChange = controllerDifference * dimensionsMultiple;
-                } else {
-                    var mouseXDifference = (event.x - beginMouseEvent.x) / viewportDimensions.x;
-                    var mouseYDifference = (beginMouseEvent.y - event.y) / viewportDimensions.y;
-                    var mouseDifference = mouseXDifference + mouseYDifference;
-                    dimensionChange = mouseDifference * dimensionsMultiple;
+                previousPickRay = pickRay;
+
+                if (debugPickPlaneEnabled) {
+                    that.showDebugPickPlane(pickPlanePosition, pickPlaneNormal);
+                    that.showDebugPickPlaneHit(initialPick);
                 }
- 
-                var averageInitialDimension = (initialDimensions.x + initialDimensions.y + initialDimensions.z) / 3;
-                percentChange = dimensionChange / averageInitialDimension;
-                percentChange += 1.0;
-                newDimensions = Vec3.multiply(percentChange, initialDimensions);
-                newDimensions.x = Math.abs(newDimensions.x);
-                newDimensions.y = Math.abs(newDimensions.y);
-                newDimensions.z = Math.abs(newDimensions.z);
-            } else {
-                newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
-            }
-
-            var minimumDimension = directionEnum ===
-                STRETCH_DIRECTION.ALL ? STRETCH_ALL_MINIMUM_DIMENSION : STRETCH_MINIMUM_DIMENSION; 
-            if (newDimensions.x < minimumDimension) {
-                newDimensions.x = minimumDimension;
-                changeInDimensions.x = minimumDimension - initialDimensions.x;
-            }
-            if (newDimensions.y < minimumDimension) {
-                newDimensions.y = minimumDimension;
-                changeInDimensions.y = minimumDimension - initialDimensions.y;
-            }
-            if (newDimensions.z < minimumDimension) {
-                newDimensions.z = minimumDimension;
-                changeInDimensions.z = minimumDimension - initialDimensions.z;
-            }
-
-            var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(localDeltaPivot, changeInDimensions));
-            if (proportional) {
-                changeInPosition = { x: 0, y: 0, z: 0 };
-            }
-            var newPosition = Vec3.sum(initialPosition, changeInPosition);
-    
-            Entities.editEntity(SelectionManager.selections[0], {
-                position: newPosition,
-                dimensions: newDimensions
-            });
+            },
+            onEnd: function(event, reason) {                
+                if (that.replaceCollisionsAfterStretch) {
+                    var newCollidesWith = SelectionManager.savedProperties[SelectionManager.selections[0]].collidesWith;
+                    Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
+                    that.replaceCollisionsAfterStretch = false;
+                }
                 
-            var wantDebug = false;
-            if (wantDebug) {
-                print(stretchMode);
-                Vec3.print("                 vector:", vector);
-                Vec3.print("            changeInDimensions:", changeInDimensions);
-                Vec3.print("                 newDimensions:", newDimensions);
-                Vec3.print("              changeInPosition:", changeInPosition);
-                Vec3.print("                   newPosition:", newPosition);
+                if (stretchPanel !== null) {
+                    Overlays.editOverlay(stretchPanel, { visible: false });
+                }
+                activeStretchCubePanelOffset = null;
+                
+                pushCommandForSelections();
+            },
+            onMove: function(event) {            
+                var pickRay = generalComputePickRay(event.x, event.y);
+                
+                // Use previousPickRay if new pickRay will cause resulting rayPlaneIntersection values to wrap around
+                if (usePreviousPickRay(pickRay.direction, previousPickRay.direction, pickPlaneNormal)) {
+                    pickRay = previousPickRay;
+                }
+                
+                var newPick = rayPlaneIntersection(pickRay, pickPlanePosition, pickPlaneNormal);
+                if (debugPickPlaneEnabled) {
+                    that.showDebugPickPlaneHit(newPick);
+                }
+                
+                var changeInDimensions = Vec3.subtract(newPick, initialPick);
+                var dotVector = Vec3.dot(changeInDimensions, axisVector);
+                changeInDimensions = Vec3.multiply(dotVector, axisVector);
+                changeInDimensions = Vec3.multiplyQbyV(Quat.inverse(rotation), changeInDimensions);
+                changeInDimensions = Vec3.multiplyVbyV(mask, changeInDimensions);
+                changeInDimensions = grid.snapToSpacing(changeInDimensions);
+                changeInDimensions = Vec3.multiply(NEGATE_VECTOR, Vec3.multiplyVbyV(signs, changeInDimensions));    
+
+                var newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
+
+                var minimumDimension = STRETCH_MINIMUM_DIMENSION; 
+                if (newDimensions.x < minimumDimension) {
+                    newDimensions.x = minimumDimension;
+                    changeInDimensions.x = minimumDimension - initialDimensions.x;
+                }
+                if (newDimensions.y < minimumDimension) {
+                    newDimensions.y = minimumDimension;
+                    changeInDimensions.y = minimumDimension - initialDimensions.y;
+                }
+                if (newDimensions.z < minimumDimension) {
+                    newDimensions.z = minimumDimension;
+                    changeInDimensions.z = minimumDimension - initialDimensions.z;
+                }
+
+                var changeInPosition = Vec3.multiplyQbyV(rotation, Vec3.multiplyVbyV(deltaPivot, changeInDimensions));
+                var newPosition = Vec3.sum(initialPosition, changeInPosition);
+        
+                Entities.editEntity(SelectionManager.selections[0], {
+                    position: newPosition,
+                    dimensions: newDimensions
+                });
+                    
+                var wantDebug = false;
+                if (wantDebug) {
+                    print(mode);
+                    Vec3.print("            changeInDimensions:", changeInDimensions);
+                    Vec3.print("                 newDimensions:", newDimensions);
+                    Vec3.print("              changeInPosition:", changeInPosition);
+                    Vec3.print("                   newPosition:", newPosition);
+                }
+                
+                previousPickRay = pickRay;
+        
+                SelectionManager._update();
             }
-            
-            previousPickRay = pickRay;
-    
-            SelectionManager._update();
-        };// End of onMove def
-
-        return {
-            mode: stretchMode,
-            onBegin: onBegin,
-            onMove: onMove,
-            onEnd: onEnd
-        };
-    }
-
-    function addHandleStretchTool(overlay, mode, directionEnum) {
-        var directionVector, offset, stretchPanel, handleStretchCube;
-        if (directionEnum === STRETCH_DIRECTION.X) {
-            stretchPanel = handleStretchXPanel;
-            handleStretchCube = handleStretchXCube;
-            directionVector = { x: -1, y: 0, z: 0 };
-        } else if (directionEnum === STRETCH_DIRECTION.Y) {
-            stretchPanel = handleStretchYPanel;
-            handleStretchCube = handleStretchYCube;
-            directionVector = { x: 0, y: -1, z: 0 };
-        } else if (directionEnum === STRETCH_DIRECTION.Z) {
-            stretchPanel = handleStretchZPanel;
-            handleStretchCube = handleStretchZCube;
-            directionVector = { x: 0, y: 0, z: -1 };
-        }
-        offset = Vec3.multiply(directionVector, NEGATE_VECTOR);
-        var tool = makeStretchTool(mode, directionEnum, directionVector, directionVector, offset, stretchPanel, handleStretchCube);
-        return addHandleTool(overlay, tool);
+        });
     }
 
     // TOOL DEFINITION: HANDLE SCALE TOOL   
     function addHandleScaleTool(overlay, mode) {
-        var directionVector = { x:0, y:0, z:0 };
-        var offset = { x:0, y:0, z:0 };
-        var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVector, directionVector, offset, null, handleScaleCube);
-        return addHandleTool(overlay, tool);
+        var initialPick = null;
+        var initialPosition = null;
+        var initialDimensions = null;
+        var pickPlanePosition = null;
+        var pickPlaneNormal = null;
+        var previousPickRay = null;     
+        addHandleTool(overlay, {
+            mode: mode,
+            onBegin: function(event, pickRay, pickResult) {
+                initialPosition = SelectionManager.localPosition;
+                initialDimensions = SelectionManager.localDimensions;               
+                
+                pickPlanePosition = initialPosition;                
+                pickPlaneNormal = Vec3.subtract(pickRay.origin, pickPlanePosition);
+                initialPick = rayPlaneIntersection(pickRay, pickPlanePosition, pickPlaneNormal);
+
+                that.setHandleTranslateVisible(false);
+                that.setHandleRotateVisible(false);
+                that.setHandleScaleVisible(true);
+                that.setHandleStretchVisible(false);
+                that.setHandleDuplicatorVisible(false);
+            
+                SelectionManager.saveProperties();
+                that.resetPreviousHandleColor();
+
+                var collisionToRemove = "myAvatar";
+                var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
+                if (properties.collidesWith.indexOf(collisionToRemove) > -1) {
+                    var newCollidesWith = properties.collidesWith.replace(collisionToRemove, "");
+                    Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
+                    that.replaceCollisionsAfterStretch = true;
+                }
+
+                previousPickRay = pickRay;
+                
+                if (debugPickPlaneEnabled) {
+                    that.showDebugPickPlane(pickPlanePosition, pickPlaneNormal);
+                    that.showDebugPickPlaneHit(initialPick);
+                }
+            },
+            onEnd: function(event, reason) {                
+                if (that.replaceCollisionsAfterStretch) {
+                    var newCollidesWith = SelectionManager.savedProperties[SelectionManager.selections[0]].collidesWith;
+                    Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
+                    that.replaceCollisionsAfterStretch = false;
+                }
+                
+                pushCommandForSelections();
+            },
+            onMove: function(event) {            
+                var pickRay = generalComputePickRay(event.x, event.y);
+                
+                // Use previousPickRay if new pickRay will cause resulting rayPlaneIntersection values to wrap around
+                if (usePreviousPickRay(pickRay.direction, previousPickRay.direction, pickPlaneNormal)) {
+                    pickRay = previousPickRay;
+                }
+                
+                var newPick = rayPlaneIntersection(pickRay, pickPlanePosition, pickPlaneNormal);
+                if (debugPickPlaneEnabled) {
+                    that.showDebugPickPlaneHit(newPick);
+                }
+                
+                var toCameraDistance = getDistanceToCamera(initialPosition);  
+                var dimensionsMultiple = toCameraDistance * SCALE_DIMENSIONS_CAMERA_DISTANCE_MULTIPLE;
+                var changeInDimensions = Vec3.subtract(newPick, initialPick);                   
+                changeInDimensions = Vec3.multiplyQbyV(Quat.inverse(Camera.orientation), changeInDimensions);
+                changeInDimensions = grid.snapToSpacing(changeInDimensions);
+                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple);
+                
+                var averageDimensionChange = (changeInDimensions.x + changeInDimensions.y + changeInDimensions.z) / 3;
+                var averageInitialDimension = (initialDimensions.x + initialDimensions.y + initialDimensions.z) / 3;
+                percentChange = averageDimensionChange / averageInitialDimension;
+                percentChange += 1.0;
+                
+                var newDimensions = Vec3.multiply(percentChange, initialDimensions);
+                newDimensions.x = Math.abs(newDimensions.x);
+                newDimensions.y = Math.abs(newDimensions.y);
+                newDimensions.z = Math.abs(newDimensions.z);
+
+                var minimumDimension = SCALE_MINIMUM_DIMENSION; 
+                if (newDimensions.x < minimumDimension) {
+                    newDimensions.x = minimumDimension;
+                    changeInDimensions.x = minimumDimension - initialDimensions.x;
+                }
+                if (newDimensions.y < minimumDimension) {
+                    newDimensions.y = minimumDimension;
+                    changeInDimensions.y = minimumDimension - initialDimensions.y;
+                }
+                if (newDimensions.z < minimumDimension) {
+                    newDimensions.z = minimumDimension;
+                    changeInDimensions.z = minimumDimension - initialDimensions.z;
+                }
+                
+                Entities.editEntity(SelectionManager.selections[0], { dimensions: newDimensions });
+                    
+                var wantDebug = false;
+                if (wantDebug) {
+                    print(mode);
+                    Vec3.print("            changeInDimensions:", changeInDimensions);
+                    Vec3.print("                 newDimensions:", newDimensions);
+                }
+                
+                previousPickRay = pickRay;
+        
+                SelectionManager._update();
+            }
+        });
     }
 
     // FUNCTION: UPDATE ROTATION DEGREES OVERLAY
@@ -2494,8 +2492,11 @@ SelectionDisplay = (function() {
     function addHandleRotateTool(overlay, mode, direction) {
         var selectedHandle = null;
         var worldRotation = null;
-        var rotationCenter = null;
         var initialRotation = null;
+        var rotationCenter = null;
+        var rotationNormal = null;
+        var rotationZero = null;
+        var rotationDegreesPosition = null;
         addHandleTool(overlay, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
@@ -2503,18 +2504,7 @@ SelectionDisplay = (function() {
                 if (wantDebug) {
                     print("================== " + getMode() + "(addHandleRotateTool onBegin) -> =======================");
                 }
-
-                SelectionManager.saveProperties();
-                that.resetPreviousHandleColor();
-    
-                that.setHandleTranslateVisible(false);
-                that.setHandleRotatePitchVisible(direction === ROTATE_DIRECTION.PITCH);
-                that.setHandleRotateYawVisible(direction === ROTATE_DIRECTION.YAW);
-                that.setHandleRotateRollVisible(direction === ROTATE_DIRECTION.ROLL);
-                that.setHandleStretchVisible(false);
-                that.setHandleScaleCubeVisible(false);
-                that.setHandleClonerVisible(false);
-
+                
                 if (direction === ROTATE_DIRECTION.PITCH) {
                     rotationNormal = { x: 1, y: 0, z: 0 };
                     worldRotation = worldRotationY;
@@ -2528,17 +2518,27 @@ SelectionDisplay = (function() {
                     worldRotation = worldRotationX;
                     selectedHandle = handleRotateRollRing;
                 }
+                
+                initialRotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
+                rotationNormal = Vec3.multiplyQbyV(initialRotation, rotationNormal);
+                rotationCenter = SelectionManager.worldPosition;
+
+                SelectionManager.saveProperties();
+                that.resetPreviousHandleColor();
+    
+                that.setHandleTranslateVisible(false);
+                that.setHandleRotatePitchVisible(direction === ROTATE_DIRECTION.PITCH);
+                that.setHandleRotateYawVisible(direction === ROTATE_DIRECTION.YAW);
+                that.setHandleRotateRollVisible(direction === ROTATE_DIRECTION.ROLL);
+                that.setHandleStretchVisible(false);
+                that.setHandleScaleVisible(false);
+                that.setHandleDuplicatorVisible(false);
 
                 Overlays.editOverlay(selectedHandle, { 
                     hasTickMarks: true,
                     solid: false,
                     innerRadius: ROTATE_RING_SELECTED_INNER_RADIUS
                 });
-
-                initialRotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
-                rotationNormal = Vec3.multiplyQbyV(initialRotation, rotationNormal);
-
-                rotationCenter = SelectionManager.worldPosition;
 
                 Overlays.editOverlay(rotationDegreesDisplay, { visible: true });
                 Overlays.editOverlay(handleRotateCurrentRing, {
@@ -2551,16 +2551,21 @@ SelectionDisplay = (function() {
 
                 // editOverlays may not have committed rotation changes.
                 // Compute zero position based on where the overlay will be eventually.
-                var result = rayPlaneIntersection(pickRay, rotationCenter, rotationNormal);
+                var initialPick = rayPlaneIntersection(pickRay, rotationCenter, rotationNormal);
                 // In case of a parallel ray, this will be null, which will cause early-out
                 // in the onMove helper.
-                rotationZero = result;
+                rotationZero = initialPick;
 
                 var rotationCenterToZero = Vec3.subtract(rotationZero, rotationCenter);
                 var rotationCenterToZeroLength = Vec3.length(rotationCenterToZero);
                 rotationDegreesPosition = Vec3.sum(rotationCenter, Vec3.multiply(Vec3.normalize(rotationCenterToZero), 
                                                    rotationCenterToZeroLength * ROTATE_DISPLAY_DISTANCE_MULTIPLIER));
                 updateRotationDegreesOverlay(0, rotationDegreesPosition);
+                
+                if (debugPickPlaneEnabled) {
+                    that.showDebugPickPlane(rotationCenter, rotationNormal);
+                    that.showDebugPickPlaneHit(initialPick);
+                }
 
                 if (wantDebug) {
                     print("================== " + getMode() + "(addHandleRotateTool onBegin) <- =======================");
@@ -2622,6 +2627,10 @@ SelectionDisplay = (function() {
                     updateSelectionsRotation(rotationChange, rotationCenter);
                     updateRotationDegreesOverlay(-angleFromZero, rotationDegreesPosition);
 
+                    if (direction === ROTATE_DIRECTION.YAW) {
+                        angleFromZero *= -1;
+                    }
+
                     var startAtCurrent = 0;
                     var endAtCurrent = angleFromZero;
                     var maxDegrees = 360;
@@ -2633,17 +2642,9 @@ SelectionDisplay = (function() {
                         startAt: startAtCurrent,
                         endAt: endAtCurrent
                     });
-
-                    // not sure why but this seems to be needed to fix an reverse rotation for yaw ring only
-                    if (direction === ROTATE_DIRECTION.YAW) {
-                        if (spaceMode === SPACE_LOCAL) {
-                            Overlays.editOverlay(handleRotateCurrentRing, { rotation: worldRotationZ });
-                        } else {
-                            var rotationDegrees = 90;
-                            Overlays.editOverlay(handleRotateCurrentRing, { 
-                                rotation: Quat.fromPitchYawRollDegrees(-rotationDegrees, 0, 0) 
-                            });
-                        }
+                    
+                    if (debugPickPlaneEnabled) {
+                        that.showDebugPickPlaneHit(result);
                     }
                 }
 
@@ -2652,43 +2653,11 @@ SelectionDisplay = (function() {
                 }
             }
         });
-    }
+    }    
 
-    // TOOL DEFINITION: HANDLE CLONER
-    addHandleTool(handleCloner, {
-        mode: "CLONE",
-        onBegin: function(event, pickRay, pickResult) {
-            var doClone = true;
-            translateXZTool.onBegin(event,pickRay,pickResult,doClone);
-        },
-        elevation: function (event) {
-            translateXZTool.elevation(event);
-        },
-    
-        onEnd: function (event) {
-            translateXZTool.onEnd(event);
-        },
-    
-        onMove: function (event) {
-            translateXZTool.onMove(event);
-        }
-    });
-
-    addHandleTool(iconSelectionBox, {
-        mode: "TRANSLATE_XZ",
-        onBegin: function (event, pickRay, pickResult) {
-            translateXZTool.onBegin(event, pickRay, pickResult, false);
-        },
-        elevation: function (event) {
-            translateXZTool.elevation(event);
-        },
-        onEnd: function (event) {
-            translateXZTool.onEnd(event);
-        },
-        onMove: function (event) {
-            translateXZTool.onMove(event);
-        }
-    });
+    addHandleTranslateXZTool(selectionBox, "TRANSLATE_XZ", false);
+    addHandleTranslateXZTool(iconSelectionBox, "TRANSLATE_XZ", false);
+    addHandleTranslateXZTool(handleDuplicator, "DUPLICATE", true);
 
     addHandleTranslateTool(handleTranslateXCone, "TRANSLATE_X", TRANSLATE_DIRECTION.X);
     addHandleTranslateTool(handleTranslateXCylinder, "TRANSLATE_X", TRANSLATE_DIRECTION.X);
