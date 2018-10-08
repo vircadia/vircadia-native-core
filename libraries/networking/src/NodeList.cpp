@@ -332,7 +332,6 @@ void NodeList::sendDomainServerCheckIn() {
                 qCDebug(networking) << "Local domain-server port read from shared memory (or default) is" << domainPort;
                 _domainHandler.setPort(domainPort);
             }
-
         }
 
         // check if we're missing a keypair we need to verify ourselves with the domain-server

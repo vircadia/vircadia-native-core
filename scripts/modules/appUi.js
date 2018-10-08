@@ -139,8 +139,8 @@ function AppUi(properties) {
                 that.isOpen = false;
             }
         }
-        console.debug(that.buttonName + " app reports: Tablet screen changed.\nNew screen type: " + type +
-            "\nNew screen URL: " + url + "\nCurrent app open status: " + that.isOpen + "\n");
+        // console.debug(that.buttonName + " app reports: Tablet screen changed.\nNew screen type: " + type +
+        //    "\nNew screen URL: " + url + "\nCurrent app open status: " + that.isOpen + "\n");
     };
 
     // Overwrite with the given properties:
