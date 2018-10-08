@@ -36,7 +36,7 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
    _ui.statusLabel->setText("");
    _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Auto Tester - v6.2");
+   setWindowTitle("Auto Tester - v6.3");
 
    // Coming soon to an auto-tester near you...
    //// _helpWindow.textBrowser->setText()

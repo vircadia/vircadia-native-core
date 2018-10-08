@@ -278,12 +278,12 @@ void AWSInterface::updateAWS() {
 
         for (int i = 0; i < 3; ++i) {
             stream << "data = open('" << _workingDirectory << "/" << filename << "/" << imageNames[i] << "', 'rb')\n";
-            stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-content', Key='nissim/" << filename << "/" << imageNames[i] << "', Body=data)\n\n";
+            stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-qa', Key='" << filename << "/" << imageNames[i] << "', Body=data)\n\n";
         }
     }
 
     stream << "data = open('" << _workingDirectory << "/" << _resultsFolder << "/" << HTML_FILENAME << "', 'rb')\n";
-    stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-content', Key='nissim/" << _resultsFolder << "/" << HTML_FILENAME << "', Body=data, ContentType='text/html')\n";
+    stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-qa', Key='" << _resultsFolder << "/" << HTML_FILENAME << "', Body=data, ContentType='text/html')\n";
 
     file.close();
 
