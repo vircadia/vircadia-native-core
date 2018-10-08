@@ -283,7 +283,7 @@ void AWSInterface::updateAWS() {
     }
 
     stream << "data = open('" << _workingDirectory << "/" << _resultsFolder << "/" << HTML_FILENAME << "', 'rb')\n";
-    stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-content', Key='nissim/" << _resultsFolder << "/" << HTML_FILENAME << "', Body=data)\n";
+    stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-content', Key='nissim/" << _resultsFolder << "/" << HTML_FILENAME << "', Body=data, ContentType='text/html')\n";
 
     file.close();
 
