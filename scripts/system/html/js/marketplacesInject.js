@@ -96,7 +96,7 @@
         });
     }
 
-    var emitWalletSetupEvent = function () {
+    emitWalletSetupEvent = function () {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "WALLET_SETUP"
         }));
@@ -316,12 +316,16 @@
             if ($this.text() === buyString || $this.text() === getString) {
                 return;
             }
+            if ($this.text() === 'invalidated') {
+                return;
+            }
             $this.data('initialHtml', $this.html());
 
             var cost = $(this).parent().siblings().text();
             if (parseInt(cost) > 0) {
                 $this.text(buyString);
-            } else {
+            }
+            if (parseInt(cost) == 0) {
                 $this.text(getString);
             }
         });
@@ -333,6 +337,9 @@
 
 
         $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
+            if ($(this).closest('.grid-item').find('.price').text() === 'invalidated') {
+                return false;
+            }
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
                 $(this).closest('.grid-item').find('.item-title').text(),
                 $(this).closest('.grid-item').find('.creator').find('.value').text(),

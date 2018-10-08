@@ -15,6 +15,46 @@
 #include "DependencyManager.h"
 #include "PickManager.h"
 
+ParabolaPick::ParabolaPick(const glm::vec3& position, const glm::vec3& direction, float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, bool rotateAccelerationWithParent, bool scaleWithParent, const PickFilter& filter, float maxDistance, bool enabled) :
+    Pick(PickParabola(position, speed * direction, accelerationAxis), filter, maxDistance, enabled),
+    _rotateAccelerationWithAvatar(rotateAccelerationWithAvatar),
+    _rotateAccelerationWithParent(rotateAccelerationWithParent),
+    _scaleWithParent(scaleWithParent),
+    _speed(speed) {
+}
+
+PickParabola ParabolaPick::getMathematicalPick() const {
+    if (!parentTransform) {
+        PickParabola mathPick = _mathPick;
+        if (_rotateAccelerationWithAvatar) {
+            mathPick.acceleration = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * mathPick.acceleration;
+        }
+        return mathPick;
+    }
+
+    Transform currentParentTransform = parentTransform->getTransform();
+
+    glm::vec3 position = currentParentTransform.transform(_mathPick.origin);
+    glm::vec3 velocity = _mathPick.velocity;
+    if (_scaleWithParent) {
+        velocity = currentParentTransform.transformDirection(velocity);
+    } else {
+        glm::vec3 transformedVelocity = currentParentTransform.transformDirection(velocity);
+        velocity = glm::normalize(transformedVelocity) * _speed;
+    }
+    glm::vec3 acceleration = _mathPick.acceleration;
+    if (_scaleWithParent) {
+        acceleration *= currentParentTransform.getScale();
+    }
+    if (_rotateAccelerationWithAvatar) {
+        acceleration = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * acceleration;
+    } else if (_rotateAccelerationWithParent) {
+        acceleration = currentParentTransform.getRotation() * acceleration;
+    }
+
+    return PickParabola(position, velocity, acceleration);
+}
+
 PickResultPointer ParabolaPick::getEntityIntersection(const PickParabola& pick) {
     if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
         bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
@@ -58,18 +98,6 @@ PickResultPointer ParabolaPick::getHUDIntersection(const PickParabola& pick) {
         return std::make_shared<ParabolaPickResult>(IntersectionType::HUD, QUuid(), glm::distance(pick.origin, hudRes), parabolicDistance, hudRes, pick);
     }
     return std::make_shared<ParabolaPickResult>(pick.toVariantMap());
-}
-
-float ParabolaPick::getSpeed() const {
-    return (_scaleWithAvatar ? DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale() * _speed : _speed);
-}
-
-glm::vec3 ParabolaPick::getAcceleration() const {
-    float scale = (_scaleWithAvatar ? DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale() : 1.0f);
-    if (_rotateAccelerationWithAvatar) {
-        return scale * (DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * _accelerationAxis);
-    }
-    return scale * _accelerationAxis;
 }
 
 Transform ParabolaPick::getResultTransform() const {

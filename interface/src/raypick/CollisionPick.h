@@ -47,7 +47,7 @@ public:
 
 class CollisionPick : public Pick<CollisionRegion> {
 public:
-    CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine);
+    CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, bool scaleWithParent, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine);
 
     CollisionRegion getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override {
@@ -67,7 +67,8 @@ protected:
     void computeShapeInfoDimensionsOnly(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
     void filterIntersections(std::vector<ContactTestResult>& intersections) const;
 
-    CollisionRegion _mathPick;
+    bool _scaleWithParent;
+
     PhysicsEnginePointer _physicsEngine;
     QSharedPointer<GeometryResource> _cachedResource;
 

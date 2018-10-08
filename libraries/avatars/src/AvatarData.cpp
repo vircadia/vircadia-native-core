@@ -594,7 +594,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 // The dot product for larger rotations is a lower number.
                 // So if the dot() is less than the value, then the rotation is a larger angle of rotation
                 if (sendAll || last.rotationIsDefaultPose || (!cullSmallChanges && last.rotation != data.rotation)
-                    || (cullSmallChanges && glm::dot(last.rotation, data.rotation) < minRotationDOT) ) {
+                    || (cullSmallChanges && fabsf(glm::dot(last.rotation, data.rotation)) < minRotationDOT) ) {
                     validity |= (1 << validityBit);
 #ifdef WANT_DEBUG
                     rotationSentCount++;

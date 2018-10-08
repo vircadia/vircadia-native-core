@@ -215,7 +215,8 @@
 #include <raypick/LaserPointerScriptingInterface.h>
 #include <raypick/PickScriptingInterface.h>
 #include <raypick/PointerScriptingInterface.h>
-#include <raypick/MouseRayPick.h>
+#include <raypick/RayPick.h>
+#include <raypick/MouseTransformNode.h>
 
 #include <FadeEffect.h>
 
@@ -410,6 +411,10 @@ public:
         });
     }
 
+    void setMainThreadID(Qt::HANDLE threadID) {
+        _mainThreadID = threadID;
+    }
+
     static void updateHeartbeat() {
         auto now = usecTimestampNow();
         auto elapsed = now - _heartbeat;
@@ -417,7 +422,9 @@ public:
         _heartbeat = now;
     }
 
-    static void deadlockDetectionCrash() {
+    void deadlockDetectionCrash() {
+        setCrashAnnotation("_mod_faulting_tid", std::to_string((uint64_t)_mainThreadID));
+        setCrashAnnotation("deadlock", "1");
         uint32_t* crashTrigger = nullptr;
         *crashTrigger = 0xDEAD10CC;
     }
@@ -504,6 +511,8 @@ public:
     static ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
 
     bool _quit { false };
+
+    Qt::HANDLE _mainThreadID = nullptr;
 };
 
 std::atomic<bool> DeadlockWatchdogThread::_paused;
@@ -963,7 +972,7 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
-const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 70.0f;
+const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 60.0f;
 const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
@@ -976,7 +985,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
     _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
-    _undoStackScriptingInterface(&_undoStack),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
     _entityClipboard(new EntityTree()),
@@ -996,7 +1004,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _enableProcessOctreeThread(true),
     _lastNackTime(usecTimestampNow()),
     _lastSendDownstreamAudioStats(usecTimestampNow()),
-    _aboutToQuit(false),
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0),
@@ -1055,6 +1062,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     auto controllerScriptingInterface = DependencyManager::get<controller::ScriptingInterface>().data();
     _controllerScriptingInterface = dynamic_cast<ControllerScriptingInterface*>(controllerScriptingInterface);
+    connect(PluginManager::getInstance().data(), &PluginManager::inputDeviceRunningChanged,
+        controllerScriptingInterface, &controller::ScriptingInterface::updateRunningInputDevices);
 
     _entityClipboard->createRootElement();
 
@@ -1094,7 +1103,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
     // Set up a watchdog thread to intentionally crash the application on deadlocks
     if (!DISABLE_WATCHDOG) {
-        (new DeadlockWatchdogThread())->start();
+        auto deadlockWatchdogThread = new DeadlockWatchdogThread();
+        deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
+        deadlockWatchdogThread->start();
     }
 
     // Set File Logger Session UUID
@@ -1236,7 +1247,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 #if defined(Q_OS_ANDROID)
     connect(accountManager.data(), &AccountManager::authRequired, this, []() {
-        AndroidHelper::instance().showLoginDialog();
+        auto addressManager = DependencyManager::get<AddressManager>();
+        AndroidHelper::instance().showLoginDialog(addressManager->currentAddress());
     });
 #else
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
@@ -2275,8 +2287,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     // Setup the mouse ray pick and related operators
-    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<MouseRayPick>(
-        PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true)));
+    {
+        auto mouseRayPick = std::make_shared<RayPick>(Vectors::ZERO, Vectors::UP, PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true);
+        mouseRayPick->parentTransform = std::make_shared<MouseTransformNode>();
+        mouseRayPick->setJointState(PickQuery::JOINT_STATE_MOUSE);
+        auto mouseRayPickID = DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, mouseRayPick);
+        DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(mouseRayPickID);
+    }
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([](unsigned int rayPickID) {
         RayToEntityIntersectionResult entityResult;
         entityResult.intersects = false;
@@ -3095,7 +3112,6 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
     surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
-    surfaceContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
     surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
@@ -6766,8 +6782,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
 
     scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
-
-    scriptEngine->registerGlobalObject("UndoStack", &_undoStackScriptingInterface);
 
     scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
 

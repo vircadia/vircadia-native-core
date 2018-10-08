@@ -100,7 +100,11 @@ void qRectFromScriptValue(const QScriptValue& object, QRect& rect);
 QRect qRectFromVariant(const QVariant& object, bool& isValid);
 QRect qRectFromVariant(const QVariant& object);
 QVariant qRectToVariant(const QRect& rect);
-
+QScriptValue qRectFToScriptValue(QScriptEngine* engine, const QRectF& rect);
+void qRectFFromScriptValue(const QScriptValue& object, QRectF& rect);
+QRectF qRectFFromVariant(const QVariant& object, bool& isValid);
+QRectF qRectFFromVariant(const QVariant& object);
+QVariant qRectFToVariant(const QRectF& rect);
 
 // xColor
 QScriptValue xColorToScriptValue(QScriptEngine* engine, const xColor& color);
@@ -198,6 +202,8 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 class StylusTip : public MathPick {
 public:
     StylusTip() : position(NAN), velocity(NAN) {}
+    StylusTip(const bilateral::Side& side, const glm::vec3& position = Vectors::ZERO, const glm::quat& orientation = Quaternions::IDENTITY, const glm::vec3& velocity = Vectors::ZERO) :
+        side(side), position(position), orientation(orientation), velocity(velocity) {}
     StylusTip(const QVariantMap& pickVariant) : side(bilateral::Side(pickVariant["side"].toInt())), position(vec3FromVariant(pickVariant["position"])),
         orientation(quatFromVariant(pickVariant["orientation"])), velocity(vec3FromVariant(pickVariant["velocity"])) {}
 

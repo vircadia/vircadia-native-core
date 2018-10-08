@@ -1190,6 +1190,9 @@ public:
     void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
     int getReplicaIndex() { return _replicaIndex; }
 
+    void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
+    bool getIsNewAvatar() { return _isNewAvatar; }
+
 signals:
 
     /**jsdoc
@@ -1452,6 +1455,7 @@ protected:
     bool _hasProcessedFirstIdentity { false };
     float _density;
     int _replicaIndex { 0 };
+    bool _isNewAvatar { true };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;
