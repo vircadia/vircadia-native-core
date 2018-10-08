@@ -275,12 +275,12 @@ void AWSInterface::updateAWS() {
         const QString imageNames[] { "Actual Image.png", "Expected Image.png", "Difference Image.png" };
 
         for (int i = 0; i < 3; ++i) {
-            stream << "data = open('" << filename << "/" << imageNames[i] << "', 'rb')\n";
+            stream << "data = open('" << _workingDirectory << "/" << filename << "/" << imageNames[i] << "', 'rb')\n";
             stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-content', Key='nissim/" << filename << "/" << imageNames[i] << "', Body=data)\n\n";
         }
     }
 
-    stream << "data = open('" << _resultsFolder << "/" << HTML_FILENAME << "', 'rb')\n";
+    stream << "data = open('" << _workingDirectory << "/" << _resultsFolder << "/" << HTML_FILENAME << "', 'rb')\n";
     stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-content', Key='nissim/" << _resultsFolder << "/" << HTML_FILENAME << "', Body=data)\n";
 
     file.close();
