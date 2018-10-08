@@ -79,7 +79,7 @@ public:
         };
 
         RenderState() {}
-        RenderState(const OverlayID& startID, const OverlayID& endID, const glm::vec3& pathColor, float pathAlpha, float pathWidth,
+        RenderState(const OverlayID& startID, const OverlayID& endID, const glm::vec3& pathColor, float pathAlpha, float parentScale,
                     bool isVisibleInSecondaryCamera, bool drawInFront, bool pathEnabled);
 
         void setPathWidth(float width) { _pathWidth = width; }
@@ -87,7 +87,7 @@ public:
 
         void cleanup() override;
         void disable() override;
-        void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+        void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, float parentScale, bool distanceScaleEnd, bool centerEndY,
                     bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) override;
 
         void editParabola(const glm::vec3& color, float alpha, float width, bool isVisibleInSecondaryCamera, bool drawInFront, bool enabled);

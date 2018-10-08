@@ -84,6 +84,7 @@ void Context::appendFrameBatch(const BatchPointer& batch) {
 }
 
 FramePointer Context::endFrame() {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     assert(_frameActive);
     auto result = _currentFrame;
     _currentFrame.reset();
@@ -101,10 +102,12 @@ void Context::executeBatch(Batch& batch) const {
 }
 
 void Context::recycle() const {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     _backend->recycle();
 }
 
 void Context::consumeFrameUpdates(const FramePointer& frame) const {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     frame->preRender();
 }
 
