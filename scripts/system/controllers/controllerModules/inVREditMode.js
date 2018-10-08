@@ -19,9 +19,10 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     function InVREditMode(hand) {
         this.hand = hand;
         this.disableModules = false;
+        this.running = false;
         var NO_HAND_LASER = -1; // Invalid hand parameter so that standard laser is not displayed.
         this.parameters = makeDispatcherModuleParameters(
-            166, // Sllightly lower priority than inEditMode.
+            166, // Slightly lower priority than inEditMode.
             this.hand === RIGHT_HAND
                 ? ["rightHand", "rightHandEquip", "rightHandTrigger"]
                 : ["leftHand", "leftHandEquip", "leftHandTrigger"],
