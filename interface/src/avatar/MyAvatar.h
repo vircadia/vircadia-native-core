@@ -629,8 +629,6 @@ public:
 
     const MyHead* getMyHead() const;
 
-    Q_INVOKABLE void toggleSmoothPoleVectors() { _skeletonModel->getRig().toggleSmoothPoleVectors(); };
-
     /**jsdoc
      * Get the current position of the avatar's "Head" joint.
      * @function MyAvatar.getHeadPosition
