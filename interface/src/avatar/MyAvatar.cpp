@@ -1765,8 +1765,6 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 bool isWearableEntity(const EntityItemPointer& entity) {
     return entity->isVisible()
-        && (entity->getParentJointIndex() != INVALID_JOINT_INDEX
-            || (entity->getType() == EntityTypes::Model && (std::static_pointer_cast<ModelEntityItem>(entity))->getRelayParentJoints()))
         && (entity->getParentID() == DependencyManager::get<NodeList>()->getSessionUUID()
             || entity->getParentID() == AVATAR_SELF_ID);
 }
