@@ -52,7 +52,6 @@
 #include <RunningMarker.h>
 
 #include "avatar/MyAvatar.h"
-#include "BandwidthRecorder.h"
 #include "FancyCamera.h"
 #include "ConnectionMonitor.h"
 #include "CursorManager.h"
