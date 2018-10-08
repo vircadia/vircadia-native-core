@@ -516,13 +516,16 @@ void TestRailInterface::updateRunWithResults() {
 
     stream << "failed_tests = set()\n";
 
-    stream << "for entry in listdir('" + _outputDirectory + "/" + TEMP_NAME + "'):\n";
-    stream << "\tparts = entry.split('--tests.')[1].split('.')\n";
-    stream << "\tfailed_test = parts[0]\n";
-    stream << "\tfor i in range(1, len(parts) - 1):\n";
-    stream << "\t\tfailed_test = failed_test + '/' + parts[i]\n";
+    QDir dir(_outputDirectory + "/" + TEMP_NAME);
+    if (dir.exists()) {
+        stream << "for entry in listdir('" + _outputDirectory + "/" + TEMP_NAME + "'):\n";
+        stream << "\tparts = entry.split('--tests.')[1].split('.')\n";
+        stream << "\tfailed_test = parts[0]\n";
+        stream << "\tfor i in range(1, len(parts) - 1):\n";
+        stream << "\t\tfailed_test = failed_test + '/' + parts[i]\n";
 
-    stream << "\tfailed_tests.add(failed_test)\n\n";
+        stream << "\tfailed_tests.add(failed_test)\n\n";
+    }
 
     // Initialize the array of results that will be eventually used to update TestRail
     stream << "status_ids = []\n";
