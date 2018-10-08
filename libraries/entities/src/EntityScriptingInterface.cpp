@@ -562,14 +562,14 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     if (entity) {
         if (properties.hasSimulationRestrictedChanges()) {
             if (_bidOnSimulationOwnership) {
+                // flag for simulation ownership, or upgrade existing ownership priority
+                // (actual bids for simulation ownership are sent by the PhysicalEntitySimulation)
+                entity->upgradeScriptSimulationPriority(properties.computeSimulationBidPriority());
                 if (simulationOwner.getID() == sessionID) {
                     // we own the simulation --> copy ALL restricted properties
                     properties.copySimulationRestrictedProperties(entity);
                 } else {
                     // we don't own the simulation but think we would like to
-                    // --> flag the object for simulation ownership at at least POKE
-                    // (the bid for simulation ownership (if any) will be sent by the physics simulation)
-                    entity->upgradeScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
 
                     uint8_t desiredPriority = entity->getScriptSimulationPriority();
                     if (desiredPriority < simulationOwner.getPriority()) {

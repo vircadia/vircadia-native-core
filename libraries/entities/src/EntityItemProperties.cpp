@@ -3326,6 +3326,20 @@ void EntityItemProperties::setSimulationOwner(const QByteArray& data) {
     }
 }
 
+uint8_t EntityItemProperties::computeSimulationBidPriority() const {
+    uint8_t priority = 0;
+    if (_parentIDChanged || _parentJointIndexChanged) {
+        // we need higher simulation ownership priority to chang parenting info
+        priority = SCRIPT_GRAB_SIMULATION_PRIORITY;
+    } else if ( _positionChanged || _localPositionChanged
+            || _rotationChanged || _localRotationChanged
+            || _velocityChanged || _localVelocityChanged
+            || _angularVelocityChanged || _localAngularVelocityChanged) {
+        priority = SCRIPT_POKE_SIMULATION_PRIORITY;
+    }
+    return priority;
+}
+
 QList<QString> EntityItemProperties::listChangedProperties() {
     QList<QString> out;
     if (containsPositionChange()) {

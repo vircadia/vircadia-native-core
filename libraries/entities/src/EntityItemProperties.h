@@ -360,6 +360,7 @@ public:
     void setSimulationOwner(const QUuid& id, uint8_t priority);
     void setSimulationOwner(const QByteArray& data);
     void setSimulationPriority(uint8_t priority) { _simulationOwner.setPriority(priority); }
+    uint8_t computeSimulationBidPriority() const;
 
     void setActionDataDirty() { _actionDataChanged = true; }
 
