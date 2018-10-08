@@ -98,7 +98,7 @@ public:
 
     void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
-    void createWebPage();
+    void createWebPage(QCheckBox* updateAWSCheckBox);
 
 private:
     QProgressBar* _progressBar;

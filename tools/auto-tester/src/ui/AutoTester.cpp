@@ -213,7 +213,7 @@ void AutoTester::on_createXMLScriptRadioButton_clicked() {
 }
 
 void AutoTester::on_createWebPagePushButton_clicked() {
-    _test->createWebPage();
+    _test->createWebPage(_ui.updateAWSCheckBox);
 }
 
 void AutoTester::downloadFile(const QUrl& url) {

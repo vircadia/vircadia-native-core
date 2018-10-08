@@ -1028,7 +1028,7 @@ void Test::setTestRailCreateMode(TestRailCreateMode testRailCreateMode) {
     _testRailCreateMode = testRailCreateMode;
 }
 
-void Test::createWebPage() {
+void Test::createWebPage(QCheckBox* updateAWSCheckBox) {
     QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
                                                        "Zipped Test Results (*.zip)");
     if (testResults.isNull()) {
@@ -1041,5 +1041,5 @@ void Test::createWebPage() {
         return;
     }
 
-    _awsInterface.createWebPageFromResults(testResults, tempDirectory);
+    _awsInterface.createWebPageFromResults(testResults, tempDirectory, updateAWSCheckBox);
 }

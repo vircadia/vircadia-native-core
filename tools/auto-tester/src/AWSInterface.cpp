@@ -21,14 +21,16 @@ AWSInterface::AWSInterface(QObject* parent) : QObject(parent) {
     _pythonCommand = _pythonInterface->getPythonCommand();
 }
 
-void AWSInterface::createWebPageFromResults(const QString& testResults, const QString& workingDirectory) {
+void AWSInterface::createWebPageFromResults(const QString& testResults,
+                                            const QString& workingDirectory,
+                                            QCheckBox* updateAWSCheckBox) {
     _testResults = testResults;
     _workingDirectory = workingDirectory;
 
     extractTestFailuresFromZippedFolder();
     createHTMLFile();
 
-    if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "HTML has been created", "Do you want to update AWS?", QMessageBox::Yes | QMessageBox::No).exec()) {
+    if (updateAWSCheckBox->isChecked()) {
         updateAWS();
     }
 }

@@ -11,6 +11,7 @@
 #ifndef hifi_AWSInterface_h
 #define hifi_AWSInterface_h
 
+#include <QCheckBox>
 #include <QObject>
 #include <QTextStream>
 
@@ -23,7 +24,7 @@ class AWSInterface : public QObject {
 public:
     explicit AWSInterface(QObject* parent = 0);
 
-    void createWebPageFromResults(const QString& testResults, const QString& workingDirectory);
+    void createWebPageFromResults(const QString& testResults, const QString& workingDirectory, QCheckBox* updateAWSCheckBox);
     void extractTestFailuresFromZippedFolder();
     void createHTMLFile();
 
