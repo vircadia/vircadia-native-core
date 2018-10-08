@@ -74,9 +74,9 @@ public:
 class ParabolaPick : public Pick<PickParabola> {
 
 public:
-    ParabolaPick(float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, bool scaleWithAvatar, const PickFilter& filter, float maxDistance, bool enabled) :
-        Pick(filter, maxDistance, enabled), _speed(speed), _accelerationAxis(accelerationAxis), _rotateAccelerationWithAvatar(rotateAccelerationWithAvatar),
-        _scaleWithAvatar(scaleWithAvatar) {}
+    ParabolaPick(const glm::vec3& position, const glm::vec3& direction, float speed, const glm::vec3& acceleration, bool rotateAccelerationWithAvatar, bool rotateAccelerationWithParent, bool scaleWithParent, const PickFilter& filter, float maxDistance, bool enabled);
+
+    PickParabola getMathematicalPick() const override;
 
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override { return std::make_shared<ParabolaPickResult>(pickVariant); }
     PickResultPointer getEntityIntersection(const PickParabola& pick) override;
@@ -86,13 +86,11 @@ public:
     Transform getResultTransform() const override;
 
 protected:
-    float _speed;
-    glm::vec3 _accelerationAxis;
     bool _rotateAccelerationWithAvatar;
-    bool _scaleWithAvatar;
-
-    float getSpeed() const;
-    glm::vec3 getAcceleration() const;
+    bool _rotateAccelerationWithParent;
+    bool _scaleWithParent;
+    // Cached magnitude of _mathPick.velocity
+    float _speed;
 };
 
 #endif // hifi_ParabolaPick_h

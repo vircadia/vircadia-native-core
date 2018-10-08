@@ -585,7 +585,6 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     FBXMesh& fbxMesh = extractedMesh;
     graphics::MeshPointer mesh(new graphics::Mesh());
-    bool hasBlendShapes = !fbxMesh.blendshapes.empty();
     int numVerts = extractedMesh.vertices.size();
 
     if (!fbxMesh.normals.empty() && fbxMesh.tangents.empty()) {
@@ -618,7 +617,6 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         qWarning() << "Unexpected tangents in " << url;
     }
     const auto normalsAndTangentsSize = normalsSize + tangentsSize;
-    const int normalsAndTangentsStride = 2 * normalElement.getSize();
 
     // Color attrib
     const auto colorElement = FBX_COLOR_ELEMENT;
@@ -761,33 +759,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     bool interleavePositions = true;
     bool interleaveNormalsTangents = true;
 
-    // TODO: We are using the same vertex format layout for all meshes because this is more efficient
-    //       This work is going into rc73 release which is meant to be used for the SPot500 event and we are picking the format
-    //       that works best for blendshaped and skinned  meshes aka the avatars.
-    //       We will improve this technique in a hot fix to 73.
-    hasBlendShapes = true;
-
-    // If has blend shapes allocate and assign buffers for pos and tangents now
-    if (hasBlendShapes) {
-        auto posBuffer = std::make_shared<gpu::Buffer>();
-        posBuffer->setData(positionsSize, (const gpu::Byte*) vertBuffer->getData() + positionsOffset);
-        vertexBufferStream->addBuffer(posBuffer, 0, positionElement.getSize());
-
-        auto normalsAndTangentsBuffer = std::make_shared<gpu::Buffer>();
-        normalsAndTangentsBuffer->setData(normalsAndTangentsSize, (const gpu::Byte*) vertBuffer->getData() + normalsAndTangentsOffset);
-        vertexBufferStream->addBuffer(normalsAndTangentsBuffer, 0, normalsAndTangentsStride);
-
-        // update channels and attribBuffer size accordingly
-        interleavePositions = false;
-        interleaveNormalsTangents = false;
-
-        tangentChannel = 1;
-        attribChannel = 2;
-
-        totalAttribBufferSize = totalVertsSize - positionsSize - normalsAndTangentsSize;
-    }
-
-    // Define the vertex format, compute the offset for each attributes as we append them to the vertex format
+     // Define the vertex format, compute the offset for each attributes as we append them to the vertex format
     gpu::Offset bufOffset = 0;
     if (positionsSize) {
         vertexFormat->setAttribute(gpu::Stream::POSITION, posChannel, positionElement, bufOffset);

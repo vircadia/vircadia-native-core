@@ -43,6 +43,7 @@ public:
     void setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignore) const;
     void setIncludeItems(unsigned int uid, const QVector<QUuid>& include) const;
 
+    Transform getParentTransform(unsigned int uid) const;
     Transform getResultTransform(unsigned int uid) const;
 
     bool isLeftHand(unsigned int uid);

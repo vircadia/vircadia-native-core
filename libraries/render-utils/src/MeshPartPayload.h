@@ -26,6 +26,7 @@ class Model;
 
 class MeshPartPayload {
 public:
+
     MeshPartPayload() {}
     MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material);
     virtual ~MeshPartPayload() {}
@@ -136,7 +137,7 @@ public:
 private:
     void initCache(const ModelPointer& model);
 
-    gpu::BufferPointer _blendedVertexBuffer;
+    gpu::BufferPointer _blendshapeBuffer;
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
 };
 

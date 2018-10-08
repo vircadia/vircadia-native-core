@@ -162,6 +162,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     EntityItem(entityItemID)
 {
     _type = EntityTypes::ParticleEffect;
+    _visuallyReady = false;
 }
 
 void ParticleEffectEntityItem::setAlpha(float alpha) {

@@ -81,10 +81,10 @@
 
 
     function setDebugCursor(x, y) {
-        nx = (x / Window.innerWidth);
-        ny = 1.0 - ((y) / (Window.innerHeight - 32));
+        nx = 2.0 * (x / Window.innerWidth) - 1.0;
+        ny = 1.0 - 2.0 * ((y) / (Window.innerHeight));
 
-         Render.getConfig("RenderMainView").getConfig("Antialiasing").debugCursorTexcoord = { x: nx, y: ny };
+         Render.getConfig("RenderMainView").getConfig("DebugDeferredBuffer").size = { x: nx, y: ny, z: 1.0, w: 1.0 };
     }
 
 

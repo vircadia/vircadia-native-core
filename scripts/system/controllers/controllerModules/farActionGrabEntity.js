@@ -110,6 +110,8 @@ Script.include("/~/system/libraries/Xform.js");
         this.reticleMinY = MARGIN;
         this.reticleMaxY;
 
+        this.ignoredEntities = [];
+
         var ACTION_TTL = 15; // seconds
 
         var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
@@ -314,6 +316,17 @@ Script.include("/~/system/libraries/Xform.js");
             return point2d;
         };
 
+        this.restoreIgnoredEntities = function() {
+            for (var i = 0; i < this.ignoredEntities; i++) {
+                var data = {
+                    action: 'remove',
+                    id: this.ignoredEntities[i]
+                };
+                Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
+            }
+            this.ignoredEntities = [];
+        };
+
         this.notPointingAtEntity = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
             var entityProperty = Entities.getEntityProperties(intersection.objectID);
@@ -323,6 +336,15 @@ Script.include("/~/system/libraries/Xform.js");
             if ((intersection.type === Picks.INTERSECTED_ENTITY && entityType === "Web") ||
                 intersection.type === Picks.INTERSECTED_OVERLAY || Window.isPointOnDesktopWindow(point2d)) {
                 return true;
+            } else if (intersection.type === Picks.INTERSECTED_ENTITY && !Window.isPhysicsEnabled()) {
+                // add to ignored items.
+                var data = {
+                    action: 'add',
+                    id: intersection.objectID
+                };
+                Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
+                this.ignoredEntities.push(intersection.objectID);
+
             }
             return false;
         };
@@ -383,6 +405,7 @@ Script.include("/~/system/libraries/Xform.js");
         this.isReady = function (controllerData) {
             if (HMD.active) {
                 if (this.notPointingAtEntity(controllerData)) {
+                    this.restoreIgnoredEntities();
                     return makeRunningValues(false, [], []);
                 }
 
@@ -394,9 +417,11 @@ Script.include("/~/system/libraries/Xform.js");
                     return makeRunningValues(true, [], []);
                 } else {
                     this.destroyContextOverlay();
+                    this.restoreIgnoredEntities();
                     return makeRunningValues(false, [], []);
                 }
             }
+            this.restoreIgnoredEntities();
             return makeRunningValues(false, [], []);
         };
 
@@ -407,6 +432,7 @@ Script.include("/~/system/libraries/Xform.js");
                 Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                     this.highlightedEntity);
                 this.highlightedEntity = null;
+                this.restoreIgnoredEntities();
                 return makeRunningValues(false, [], []);
             }
             this.intersectionDistance = controllerData.rayPicks[this.hand].distance;
@@ -437,6 +463,7 @@ Script.include("/~/system/libraries/Xform.js");
                     if (nearGrabReadiness[k].active && (nearGrabReadiness[k].targets[0] === this.grabbedThingID
                         || HMD.tabletID && nearGrabReadiness[k].targets[0] === HMD.tabletID)) {
                         this.endFarGrabAction();
+                        this.restoreIgnoredEntities();
                         return makeRunningValues(false, [], []);
                     }
                 }
@@ -448,6 +475,7 @@ Script.include("/~/system/libraries/Xform.js");
                 for (var j = 0; j < nearGrabReadiness.length; j++) {
                     if (nearGrabReadiness[j].active) {
                         this.endFarGrabAction();
+                        this.restoreIgnoredEntities();
                         return makeRunningValues(false, [], []);
                     }
                 }
@@ -466,6 +494,7 @@ Script.include("/~/system/libraries/Xform.js");
                         ]);
                         if (targetProps.href !== "") {
                             AddressManager.handleLookupString(targetProps.href);
+                            this.restoreIgnoredEntities();
                             return makeRunningValues(false, [], []);
                         }
 
@@ -583,6 +612,7 @@ Script.include("/~/system/libraries/Xform.js");
                     Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                         this.highlightedEntity);
                     this.highlightedEntity = null;
+                    this.restoreIgnoredEntities();
                     return makeRunningValues(false, [], []);
                 }
             }

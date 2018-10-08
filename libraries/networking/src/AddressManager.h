@@ -255,6 +255,12 @@ public slots:
     void goToLastAddress() { handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh); }
 
     /**jsdoc
+    * Returns if going back is possible.
+    * @function location.canGoBack
+    */
+    bool canGoBack() const;
+
+    /**jsdoc
      * Refresh the current address, e.g., after connecting to a domain in order to position the user to the desired location.
      * @function location.refreshPreviousLookup
      * @deprecated This function is deprecated and will be removed.

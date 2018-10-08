@@ -37,6 +37,8 @@
     var tablet = null;
     var button = null;
 
+    var errorConnectingToDomain = false;
+
     // Tips have a character limit of 69
     var userTips = [
         "Tip: Visit TheSpot to explore featured domains!",
@@ -48,7 +50,7 @@
         "Tip: Use the Create app to import models and create custom entities.",
         "Tip: We're open source! Feel free to contribute to our code on GitHub!",
         "Tip: What emotes have you used in the Emote app?",
-        "Tip: Take and share your snapshots with the everyone using the Snap app.",
+        "Tip: Take and share your snapshots with everyone using the Snap app.",
         "Tip: Did you know you can show websites in-world by creating a web entity?",
         "Tip: Find out more information about domains by visiting our website!",
         "Tip: Did you know you can get cool new apps from the Marketplace?",
@@ -125,7 +127,7 @@
         localPosition: { x: 0.0 , y: -1.6, z: 0.0 },
         text: toolTip,
         textAlpha: 1,
-        backgroundAlpha: 1,
+        backgroundAlpha: 0.00393,
         lineHeight: 0.13,
         visible: isVisible,
         ignoreRayIntersection: true,
@@ -135,17 +137,47 @@
         parentID: anchorOverlay
     });
 
-    var loadingToTheSpotID = Overlays.addOverlay("image3d", {
+    var loadingToTheSpotText = Overlays.addOverlay("text3d", {
         name: "Loading-Destination-Card-Text",
-        localPosition: { x: 0.0 , y: -1.5, z: -0.3 },
-        url: Script.resourcesPath() + "images/interstitialPage/goTo_button.png",
+        localPosition: { x: 0.0 , y: -1.687, z: -0.3 },
+        text: "Go To TheSpot",
+        textAlpha: 1,
+        backgroundAlpha: 0.00393,
+        lineHeight: 0.10,
+        visible: isVisible,
+        ignoreRayIntersection: true,
+        dimensions: {x: 1, y: 0.17},
+        drawInFront: true,
+        grabbable: false,
+        localOrientation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+        parentID: anchorOverlay
+    });
+
+    var loadingToTheSpotID = Overlays.addOverlay("image3d", {
+        name: "Loading-Destination-Card-GoTo-Image",
+        localPosition: { x: 0.0 , y: -1.75, z: -0.3 },
+        url: Script.resourcesPath() + "images/interstitialPage/button.png",
         alpha: 1,
         visible: isVisible,
         emissive: true,
         ignoreRayIntersection: false,
         drawInFront: true,
         grabbable: false,
-        localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 180.0, z: 0.0 }),
+        localOrientation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+        parentID: anchorOverlay
+    });
+
+    var loadingToTheSpotHoverID = Overlays.addOverlay("image3d", {
+        name: "Loading-Destination-Card-GoTo-Image-Hover",
+        localPosition: { x: 0.0 , y: -1.75, z: -0.3 },
+        url: Script.resourcesPath() + "images/interstitialPage/button_hover.png",
+        alpha: 1,
+        visible: false,
+        emissive: true,
+        ignoreRayIntersection: false,
+        drawInFront: true,
+        grabbable: false,
+        localOrientation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
         parentID: anchorOverlay
     });
 
@@ -185,9 +217,10 @@
     var currentDomain = "no domain";
     var timer = null;
     var target = 0;
+    var textureMemSizeStabilityCount = 0;
+    var textureMemSizeAtLastCheck = 0;
 
     var connectionToDomainFailed = false;
-
 
     function getAnchorLocalYOffset() {
         var loadingSpherePosition = Overlays.getProperty(loadingSphereID, "position");
@@ -227,11 +260,20 @@
             updateOverlays(false);
             startAudio();
             target = 0;
+            textureMemSizeStabilityCount = 0;
+            textureMemSizeAtLastCheck = 0;
             currentProgress = 0.1;
             connectionToDomainFailed = false;
             previousCameraMode = Camera.mode;
             Camera.mode = "first person";
             timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
+        }
+    }
+
+    function toggleInterstitialPage(isInErrorState) {
+        errorConnectingToDomain = isInErrorState;
+        if (!errorConnectingToDomain) {
+            domainChanged(location);
         }
     }
 
@@ -251,11 +293,12 @@
     function domainChanged(domain) {
         if (domain !== currentDomain) {
             MyAvatar.restoreAnimation();
+            resetValues();
             var name = location.placename;
             domainName = name.charAt(0).toUpperCase() + name.slice(1);
             var doRequest = true;
             if (name.length === 0 && location.href === "file:///~/serverless/tutorial.json") {
-                domainName = "Serveless Domain (Tutorial)";
+                domainName = "Serverless Domain (Tutorial)";
                 doRequest = false;
             }
             var domainNameLeftMargin = getLeftMargin(domainNameTextID, domainName);
@@ -306,8 +349,30 @@
 
     var THE_PLACE = (HifiAbout.buildVersion === "dev") ? "hifi://TheSpot-dev": "hifi://TheSpot";
     function clickedOnOverlay(overlayID, event) {
-        if (loadingToTheSpotID === overlayID) {
+        if (loadingToTheSpotHoverID === overlayID) {
             location.handleLookupString(THE_PLACE);
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: false});
+            Overlays.editOverlay(loadingToTheSpotID, {visible: true});
+        }
+    }
+
+    function onEnterOverlay(overlayID, event) {
+        if (currentDomain === "no domain") {
+            return;
+        }
+        if (overlayID === loadingToTheSpotID) {
+            Overlays.editOverlay(loadingToTheSpotID, {visible: false});
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: true});
+        }
+    }
+
+    function onLeaveOverlay(overlayID, event) {
+        if (currentDomain === "no domain") {
+            return;
+        }
+        if (overlayID === loadingToTheSpotHoverID) {
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: false});
+            Overlays.editOverlay(loadingToTheSpotID, {visible: true});
         }
     }
 
@@ -340,6 +405,7 @@
         renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = physicsEnabled;
         renderViewTask.getConfig("LightingModel")["enablePointLight"] = physicsEnabled;
         Overlays.editOverlay(loadingSphereID, mainSphereProperties);
+        Overlays.editOverlay(loadingToTheSpotText, properties);
         Overlays.editOverlay(loadingToTheSpotID, properties);
         Overlays.editOverlay(domainNameTextID, properties);
         Overlays.editOverlay(domainDescription, domainTextProperties);
@@ -347,10 +413,11 @@
         Overlays.editOverlay(loadingBarPlacard, properties);
         Overlays.editOverlay(loadingBarProgress, loadingBarProperties);
 
-
-        Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
-        if (!HMD.active) {
-            toolbar.writeProperty("visible", physicsEnabled);
+        if (!DEBUG) {
+            Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
+            if (!HMD.active) {
+                toolbar.writeProperty("visible", physicsEnabled);
+            }
         }
 
         resetValues();
@@ -359,7 +426,6 @@
             Camera.mode = previousCameraMode;
         }
     }
-
 
     function scaleInterstitialPage(sensorToWorldScale) {
         var yOffset = getAnchorLocalYOffset();
@@ -372,17 +438,51 @@
         Overlays.editOverlay(anchorOverlay, { localPosition: localPosition });
     }
 
+    function sleep(milliseconds) {
+        var start = new Date().getTime();
+        for (var i = 0; i < 1e7; i++) {
+            if ((new Date().getTime() - start) > milliseconds){
+                break;
+            }
+        }
+    }
+
     function update() {
+        var renderStats = Render.getConfig("Stats");
         var physicsEnabled = Window.isPhysicsEnabled();
         var thisInterval = Date.now();
         var deltaTime = (thisInterval - lastInterval);
         lastInterval = thisInterval;
 
         var domainLoadingProgressPercentage = Window.domainLoadingProgress();
-
-        var progress = MIN_LOADING_PROGRESS * domainLoadingProgressPercentage;
+        var progress = ((TOTAL_LOADING_PROGRESS * 0.4) * domainLoadingProgressPercentage);
         if (progress >= target) {
             target = progress;
+        }
+
+        if (currentProgress >= (TOTAL_LOADING_PROGRESS * 0.4)) {
+            var textureResourceGPUMemSize = renderStats.textureResourceGPUMemSize;
+            var texturePopulatedGPUMemSize = renderStats.textureResourcePopulatedGPUMemSize;
+
+            if (textureMemSizeAtLastCheck === textureResourceGPUMemSize) {
+                textureMemSizeStabilityCount++;
+            } else {
+                textureMemSizeStabilityCount = 0;
+            }
+
+            textureMemSizeAtLastCheck = textureResourceGPUMemSize;
+
+            if (textureMemSizeStabilityCount >= 20) {
+
+                if (textureResourceGPUMemSize > 0) {
+                    // print((texturePopulatedGPUMemSize / textureResourceGPUMemSize));
+                    var gpuPercantage = (TOTAL_LOADING_PROGRESS * 0.6) * (texturePopulatedGPUMemSize / textureResourceGPUMemSize);
+                    var totalProgress = progress + gpuPercantage;
+                    if (totalProgress >= target) {
+                        target = totalProgress;
+                    }
+                }
+            }
         }
 
         if ((physicsEnabled && (currentProgress < TOTAL_LOADING_PROGRESS))) {
@@ -399,30 +499,40 @@
         };
 
         Overlays.editOverlay(loadingBarProgress, properties);
-        if ((physicsEnabled && (currentProgress >= (TOTAL_LOADING_PROGRESS - EPSILON)))) {
+
+        if (errorConnectingToDomain) {
+            updateOverlays(errorConnectingToDomain);
+            // setting hover id to invisible
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: false});
+            endAudio();
+            currentDomain = "no domain";
+            timer = null;
+            // The toolbar doesn't become visible in time to match the speed of
+            // the signal handling of redirectErrorStateChanged in both this script
+            // and the redirectOverlays.js script.  Use a sleep function to ensure
+            // the toolbar becomes visible again.
+            sleep(300);
+            if (!HMD.active) {
+                toolbar.writeProperty("visible", true);
+            }
+            return;
+        } else if ((physicsEnabled && (currentProgress >= (TOTAL_LOADING_PROGRESS - EPSILON)))) {
             updateOverlays((physicsEnabled || connectionToDomainFailed));
+            // setting hover id to invisible
+            Overlays.editOverlay(loadingToTheSpotHoverID, {visible: false});
             endAudio();
             currentDomain = "no domain";
             timer = null;
             return;
         }
-
         timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
     }
     var whiteColor = {red: 255, green: 255, blue: 255};
     var greyColor = {red: 125, green: 125, blue: 125};
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
-    Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
-        if (overlayID === loadingToTheSpotID) {
-            Overlays.editOverlay(loadingToTheSpotID, { color: greyColor });
-        }
-    });
+    Overlays.hoverEnterOverlay.connect(onEnterOverlay);
 
-    Overlays.hoverLeaveOverlay.connect(function(overlayID, event) {
-        if (overlayID === loadingToTheSpotID) {
-            Overlays.editOverlay(loadingToTheSpotID, { color: whiteColor });
-        }
-    });
+    Overlays.hoverLeaveOverlay.connect(onLeaveOverlay);
 
     location.hostChanged.connect(domainChanged);
     location.lookupResultsFinished.connect(function() {
@@ -430,6 +540,7 @@
             connectionToDomainFailed = !location.isConnected;
         }, 1200);
     });
+    Window.redirectErrorStateChanged.connect(toggleInterstitialPage);
 
     MyAvatar.sensorToWorldScaleChanged.connect(scaleInterstitialPage);
     MyAvatar.sessionUUIDChanged.connect(function() {
@@ -448,9 +559,17 @@
         });
     }
 
+    // set left margin of text.
+    var loadingTextProperties = {
+        leftMargin: getLeftMargin(loadingToTheSpotText, "Go To TheSpot") + 0.045
+    };
+
+    Overlays.editOverlay(loadingToTheSpotText, loadingTextProperties);
+
     function cleanup() {
         Overlays.deleteOverlay(loadingSphereID);
         Overlays.deleteOverlay(loadingToTheSpotID);
+        Overlays.deleteOverlay(loadingToTheSpotHoverID);
         Overlays.deleteOverlay(domainNameTextID);
         Overlays.deleteOverlay(domainDescription);
         Overlays.deleteOverlay(domainToolTip);

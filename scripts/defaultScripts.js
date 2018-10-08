@@ -39,8 +39,9 @@ var DEFAULT_SCRIPTS_SEPARATE = [
     //"system/chat.js"
 ];
 
-if (Settings.getValue("enableInterstitialMode", false)) {
-    DEFAULT_SCRIPTS_SEPARATE.push("system/interstitialPage.js");
+if (Window.interstitialModeEnabled) {
+    DEFAULT_SCRIPTS_COMBINED.push("system/interstitialPage.js");
+    DEFAULT_SCRIPTS_COMBINED.push("system/redirectOverlays.js");
 }
 
 // add a menu item for debugging
