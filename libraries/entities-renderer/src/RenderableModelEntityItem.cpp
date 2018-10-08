@@ -514,15 +514,16 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             return;
         }
 
-        std::vector<std::shared_ptr<const graphics::Mesh>> compoundMeshes;
+        std::vector<std::shared_ptr<const graphics::Mesh>> meshes;
         if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
             auto& fbxMeshes = _compoundShapeResource->getFBXGeometry().meshes;
-            compoundMeshes.reserve(fbxMeshes.size());
+            meshes.reserve(fbxMeshes.size());
             for (auto& fbxMesh : fbxMeshes) {
-                compoundMeshes.push_back(fbxMesh._mesh);
+                meshes.push_back(fbxMesh._mesh);
             }
+        } else {
+            meshes = model->getGeometry()->getMeshes();
         }
-        auto& meshes = (type == SHAPE_TYPE_SIMPLE_COMPOUND ? compoundMeshes : model->getGeometry()->getMeshes());
         int32_t numMeshes = (int32_t)(meshes.size());
 
         const int MAX_ALLOWED_MESH_COUNT = 1000;
