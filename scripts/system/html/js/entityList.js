@@ -13,7 +13,7 @@ const DESCENDING_STRING = '&#x25BE;';
 const LOCKED_GLYPH = "&#xe006;";
 const VISIBLE_GLYPH = "&#xe007;";
 const TRANSPARENCY_GLYPH = "&#xe00b;";
-const BAKED_GLYPH = "&#xe01a;"
+const BAKED_GLYPH = "&#xe01a;";
 const SCRIPT_GLYPH = "k";
 const BYTES_PER_MEGABYTE = 1024 * 1024;
 const IMAGE_MODEL_NAME = 'default-image-model.fbx';
@@ -54,10 +54,10 @@ const COMPARE_ASCENDING = function(a, b) {
     }
 
     return 1;
-}
+};
 const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
-}
+};
 
 // List of all entities
 var entities = [];
@@ -156,22 +156,22 @@ function loaded() {
         };
         elRefresh.onclick = function() {
             refreshEntities();
-        }
+        };
         elToggleLocked.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
-        }
+        };
         elToggleVisible.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
-        }
+        };
         elExport.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
-        }
+        };
         elPal.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
-        }
+        };
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
-        }
+        };
         elFilter.onkeyup = refreshEntityList;
         elFilter.onpaste = refreshEntityList;
         elFilter.onchange = onFilterChange;
@@ -227,7 +227,7 @@ function loaded() {
                 }
             }
             
-            updateSelectedEntities(selection);
+            updateSelectedEntities(selection, false);
 
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
@@ -289,7 +289,7 @@ function loaded() {
                         hasScript: entity.hasScript,
                         elRow: null, // if this entity has a visible row element assigned to it
                         selected: false // if this entity is selected for edit regardless of having a visible row
-                    }
+                    };
                     
                     entities.push(entityData);
                     entitiesByID[entityData.id] = entityData;
@@ -418,7 +418,7 @@ function loaded() {
             isBaked: document.querySelector('#entity-isBaked .sort-order'),
             drawCalls: document.querySelector('#entity-drawCalls .sort-order'),
             hasScript: document.querySelector('#entity-hasScript .sort-order'),
-        }
+        };
         function setSortColumn(column) {
             PROFILE("set-sort-column", function() {
                 if (currentSortColumn === column) {
@@ -454,9 +454,6 @@ function loaded() {
         }
         
         function updateSelectedEntities(selectedIDs, autoScroll) {
-            // force autoScroll to be a boolean
-            autoScroll = !!autoScroll;
-
             let notFound = false;
             
             // reset all currently selected entities and their rows first
@@ -663,7 +660,7 @@ function loaded() {
                 data = JSON.parse(data);
                 if (data.type === "clearEntityList") {
                     clearEntities();
-                } else if (data.type === "selectionUpdate" && data.caller !== "entityList") {
+                } else if (data.type === "selectionUpdate") {
                     let notFound = updateSelectedEntities(data.selectedIDs, true);
                     if (notFound) {
                         refreshEntities();

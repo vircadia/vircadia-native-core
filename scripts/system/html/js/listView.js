@@ -38,7 +38,7 @@ function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunctio
     this.lastRowShiftScrollTop = 0;
     
     this.initialize();
-};
+}
     
 ListView.prototype = {
     getNumRows: function() {
@@ -153,9 +153,15 @@ ListView.prototype = {
         }
     },
 
-    scrollToRow(rowIndex, lastRowIndex) {
-        lastRowIndex = lastRowIndex ? lastRowIndex : rowIndex;
-        let boundingTop = rowIndex * this.rowHeight;
+    /**
+     * Scrolls firstRowIndex with least effort, also tries to make the window include the other selections in case lastRowIndex is set.
+     * In the case that firstRowIndex and lastRowIndex are already within the visible bounds then nothing will happen.
+     * @param {number} firstRowIndex - The row that will be scrolled to.
+     * @param {number} lastRowIndex - The last index of the bound.
+     */
+    scrollToRow: function (firstRowIndex, lastRowIndex) {
+        lastRowIndex = lastRowIndex ? lastRowIndex : firstRowIndex;
+        let boundingTop = firstRowIndex * this.rowHeight;
         let boundingBottom = (lastRowIndex * this.rowHeight) + this.rowHeight;
         if ((boundingBottom - boundingTop) > this.elTableScroll.clientHeight) {
             boundingBottom = boundingTop + this.elTableScroll.clientHeight;

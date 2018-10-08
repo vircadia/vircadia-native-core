@@ -40,7 +40,7 @@ SelectionManager = (function() {
         Messages.messageReceived.connect(handleEntitySelectionToolUpdates);
     }
 
-    // FUNCTION: HANDLE ENTITY SELECTION TOOL UDPATES
+    // FUNCTION: HANDLE ENTITY SELECTION TOOL UPDATES
     function handleEntitySelectionToolUpdates(channel, message, sender) {
         if (channel !== 'entityToolUpdates') {
             return;
@@ -63,7 +63,7 @@ SelectionManager = (function() {
                 if (wantDebug) {
                     print("setting selection to " + messageParsed.entityID);
                 }
-                that.setSelections([messageParsed.entityID]);
+                that.setSelections([messageParsed.entityID], that);
             }
         } else if (messageParsed.method === "clearSelection") {
             if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
@@ -147,7 +147,7 @@ SelectionManager = (function() {
         that._update(true, caller);
     };
 
-    that.addEntity = function(entityID, toggleSelection) {
+    that.addEntity = function(entityID, toggleSelection, caller) {
         if (entityID) {
             var idx = -1;
             for (var i = 0; i < that.selections.length; i++) {
@@ -165,7 +165,7 @@ SelectionManager = (function() {
             }
         }
 
-        that._update(true);
+        that._update(true, caller);
     };
 
     function removeEntityByID(entityID) {
@@ -176,21 +176,21 @@ SelectionManager = (function() {
         }
     }
 
-    that.removeEntity = function (entityID) {
+    that.removeEntity = function (entityID, caller) {
         removeEntityByID(entityID);
-        that._update(true);
+        that._update(true, caller);
     };
 
-    that.removeEntities = function(entityIDs) {
+    that.removeEntities = function(entityIDs, caller) {
         for (var i = 0, length = entityIDs.length; i < length; i++) {
             removeEntityByID(entityIDs[i]);
         }
-        that._update(true);
+        that._update(true, caller);
     };
 
-    that.clearSelections = function() {
+    that.clearSelections = function(caller) {
         that.selections = [];
-        that._update(true);
+        that._update(true, caller);
     };
     
     that.addChildrenEntities = function(parentEntityID, entityList) {
@@ -985,7 +985,7 @@ SelectionDisplay = (function() {
     that.pressedHand = NO_HAND;
     that.triggered = function() {
         return that.triggeredHand !== NO_HAND;
-    }
+    };
     function pointingAtDesktopWindowOrTablet(hand) {
         var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
                                        SelectionManager.pointingAtDesktopWindowRight) ||
@@ -1032,7 +1032,7 @@ SelectionDisplay = (function() {
     that.disableTriggerMapping = function() {
         that.triggerClickMapping.disable();
         that.triggerPressMapping.disable();
-    }
+    };
     Script.scriptEnding.connect(that.disableTriggerMapping);
 
     // FUNCTION DEF(s): Intersection Check Helpers
@@ -1234,7 +1234,7 @@ SelectionDisplay = (function() {
             if (wantDebug) {
                 print("    Trigger SelectionManager::update");
             }
-            SelectionManager._update();
+            SelectionManager._update(false, that);
 
             if (wantDebug) {
                 print("=============== eST::MouseMoveEvent END =======================");
@@ -1299,7 +1299,7 @@ SelectionDisplay = (function() {
             lastMouseEvent.isControl = event.isControl;
             lastMouseEvent.isAlt = event.isAlt;
             activeTool.onMove(lastMouseEvent);
-            SelectionManager._update();
+            SelectionManager._update(false, this);
         }
     };
 
@@ -1315,7 +1315,7 @@ SelectionDisplay = (function() {
             lastMouseEvent.isControl = event.isControl;
             lastMouseEvent.isAlt = event.isAlt;
             activeTool.onMove(lastMouseEvent);
-            SelectionManager._update();
+            SelectionManager._update(false, this);
         }
     };
 
@@ -2179,7 +2179,7 @@ SelectionDisplay = (function() {
                     }
                 }
 
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
@@ -2301,7 +2301,7 @@ SelectionDisplay = (function() {
                 
                 previousPickRay = pickRay;
     
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
@@ -2488,7 +2488,7 @@ SelectionDisplay = (function() {
                 
                 previousPickRay = pickRay;
         
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
@@ -2599,7 +2599,7 @@ SelectionDisplay = (function() {
                 
                 previousPickRay = pickRay;
         
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
