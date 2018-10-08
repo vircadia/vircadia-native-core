@@ -84,7 +84,7 @@ void AutoTester::setup() {
     if (_testRunner) {
         delete _testRunner;
     }
-    _testRunner = new TestRunner(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlTextEdit, _ui.runNowButton);
+    _testRunner = new TestRunner(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlLineEdit, _ui.runNowButton);
 }
 
 void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
@@ -165,7 +165,7 @@ void AutoTester::on_runNowButton_clicked() {
 }
 
 void AutoTester::on_checkBoxRunLatest_clicked() {
-    _ui.urlTextEdit->setEnabled(!_ui.checkBoxRunLatest->isChecked());
+    _ui.urlLineEdit->setEnabled(!_ui.checkBoxRunLatest->isChecked());
 }
 
 void AutoTester::automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures) {
@@ -213,7 +213,7 @@ void AutoTester::on_createXMLScriptRadioButton_clicked() {
 }
 
 void AutoTester::on_createWebPagePushButton_clicked() {
-    _test->createWebPage(_ui.updateAWSCheckBox);
+    _test->createWebPage(_ui.updateAWSCheckBox, _ui.awsURLLineEdit);
 }
 
 void AutoTester::downloadFile(const QUrl& url) {

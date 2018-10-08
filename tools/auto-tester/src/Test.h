@@ -98,7 +98,7 @@ public:
 
     void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
-    void createWebPage(QCheckBox* updateAWSCheckBox);
+    void createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit);
 
 private:
     QProgressBar* _progressBar;

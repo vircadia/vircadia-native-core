@@ -23,9 +23,13 @@ AWSInterface::AWSInterface(QObject* parent) : QObject(parent) {
 
 void AWSInterface::createWebPageFromResults(const QString& testResults,
                                             const QString& workingDirectory,
-                                            QCheckBox* updateAWSCheckBox) {
+                                            QCheckBox* updateAWSCheckBox,
+                                            QLineEdit* urlLineEdit) {
     _testResults = testResults;
     _workingDirectory = workingDirectory;
+    
+    _urlLineEdit = urlLineEdit;
+    _urlLineEdit->setEnabled(false);
 
     extractTestFailuresFromZippedFolder();
     createHTMLFile();
@@ -278,14 +282,20 @@ void AWSInterface::updateAWS() {
 
         for (int i = 0; i < 3; ++i) {
             stream << "data = open('" << _workingDirectory << "/" << filename << "/" << imageNames[i] << "', 'rb')\n";
-            stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-qa', Key='" << filename << "/" << imageNames[i] << "', Body=data)\n\n";
+            stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << imageNames[i] << "', Body=data)\n\n";
         }
     }
 
     stream << "data = open('" << _workingDirectory << "/" << _resultsFolder << "/" << HTML_FILENAME << "', 'rb')\n";
-    stream << "s3.Bucket('hifi-content').put_object(Bucket='hifi-qa', Key='" << _resultsFolder << "/" << HTML_FILENAME << "', Body=data, ContentType='text/html')\n";
+    stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << _resultsFolder << "/"
+           << HTML_FILENAME << "', Body=data, ContentType='text/html')\n";
 
     file.close();
+
+    // Show user the URL
+    _urlLineEdit->setEnabled(true);
+    _urlLineEdit->setText(QString("https://") + AWS_BUCKET + ".s3.amazonaws.com/" + _resultsFolder + "/" + HTML_FILENAME);
+    _urlLineEdit->setCursorPosition(0);
 
     QProcess* process = new QProcess();
 

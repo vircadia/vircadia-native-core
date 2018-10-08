@@ -14,9 +14,9 @@
 #include <QCheckBox>
 #include <QDir>
 #include <QLabel>
+#include <QLineEdit>
 #include <QObject>
 #include <QPushButton>
-#include <QTextEdit>
 #include <QThread>
 #include <QTimeEdit>
 #include <QTimer>
@@ -38,7 +38,7 @@ public:
                         QLabel* workingFolderLabel,
                         QCheckBox* runServerless,
                         QCheckBox* runLatest,
-                        QTextEdit* url,
+                        QLineEdit* url,
                         QPushButton* runNow,
                         QObject* parent = 0);
 
@@ -116,7 +116,7 @@ private:
     QLabel* _workingFolderLabel;
     QCheckBox* _runServerless;
     QCheckBox* _runLatest;
-    QTextEdit* _url;
+    QLineEdit* _url;
     QPushButton* _runNow;
     QTimer* _timer;
 

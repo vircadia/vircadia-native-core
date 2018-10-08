@@ -12,6 +12,7 @@
 #define hifi_AWSInterface_h
 
 #include <QCheckBox>
+#include <QLineEdit>
 #include <QObject>
 #include <QTextStream>
 
@@ -24,7 +25,11 @@ class AWSInterface : public QObject {
 public:
     explicit AWSInterface(QObject* parent = 0);
 
-    void createWebPageFromResults(const QString& testResults, const QString& workingDirectory, QCheckBox* updateAWSCheckBox);
+    void createWebPageFromResults(const QString& testResults,
+                                  const QString& workingDirectory,
+                                  QCheckBox* updateAWSCheckBox,
+                                  QLineEdit* urlLineEdit);
+
     void extractTestFailuresFromZippedFolder();
     void createHTMLFile();
 
@@ -56,6 +61,10 @@ private:
 
     PythonInterface* _pythonInterface;
     QString _pythonCommand;
+
+    QString AWS_BUCKET{ "hifi-qa" };
+
+    QLineEdit* _urlLineEdit;
 };
 
 #endif  // hifi_AWSInterface_h

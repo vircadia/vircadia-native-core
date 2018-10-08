@@ -520,19 +520,6 @@
        <bool>true</bool>
       </property>
      </widget>
-     <widget class="QTextEdit" name="urlTextEdit">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="geometry">
-       <rect>
-        <x>150</x>
-        <y>98</y>
-        <width>461</width>
-        <height>28</height>
-       </rect>
-      </property>
-     </widget>
      <widget class="QLabel" name="workingFolderLabel_3">
       <property name="geometry">
        <rect>
@@ -544,6 +531,16 @@
       </property>
       <property name="text">
        <string>URL</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="urlLineEdit">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>100</y>
+        <width>451</width>
+        <height>21</height>
+       </rect>
       </property>
      </widget>
     </widget>
@@ -588,8 +585,8 @@
      <widget class="QPushButton" name="updateTestRailRunResultsButton">
       <property name="geometry">
        <rect>
-        <x>90</x>
-        <y>230</y>
+        <x>240</x>
+        <y>220</y>
         <width>160</width>
         <height>40</height>
        </rect>
@@ -601,8 +598,8 @@
      <widget class="QRadioButton" name="createPythonScriptRadioButton">
       <property name="geometry">
        <rect>
-        <x>20</x>
-        <y>110</y>
+        <x>170</x>
+        <y>100</y>
         <width>95</width>
         <height>20</height>
        </rect>
@@ -617,8 +614,8 @@
      <widget class="QPushButton" name="createTestRailRunButton">
       <property name="geometry">
        <rect>
-        <x>90</x>
-        <y>170</y>
+        <x>240</x>
+        <y>160</y>
         <width>160</width>
         <height>40</height>
        </rect>
@@ -630,8 +627,8 @@
      <widget class="QPushButton" name="createTestRailTestCasesButton">
       <property name="geometry">
        <rect>
-        <x>90</x>
-        <y>110</y>
+        <x>240</x>
+        <y>100</y>
         <width>160</width>
         <height>40</height>
        </rect>
@@ -643,8 +640,8 @@
      <widget class="QRadioButton" name="createXMLScriptRadioButton">
       <property name="geometry">
        <rect>
-        <x>20</x>
-        <y>130</y>
+        <x>170</x>
+        <y>120</y>
         <width>95</width>
         <height>20</height>
        </rect>
@@ -656,9 +653,9 @@
      <widget class="QGroupBox" name="groupBox">
       <property name="geometry">
        <rect>
-        <x>-20</x>
+        <x>10</x>
         <y>30</y>
-        <width>291</width>
+        <width>601</width>
         <height>300</height>
        </rect>
       </property>
@@ -669,10 +666,10 @@
      <widget class="QGroupBox" name="groupBox_2">
       <property name="geometry">
        <rect>
-        <x>329</x>
-        <y>30</y>
-        <width>291</width>
-        <height>300</height>
+        <x>10</x>
+        <y>350</y>
+        <width>601</width>
+        <height>151</height>
        </rect>
       </property>
       <property name="title">
@@ -684,8 +681,8 @@
        </property>
        <property name="geometry">
         <rect>
-         <x>110</x>
-         <y>80</y>
+         <x>240</x>
+         <y>30</y>
          <width>160</width>
          <height>40</height>
         </rect>
@@ -697,14 +694,24 @@
       <widget class="QCheckBox" name="updateAWSCheckBox">
        <property name="geometry">
         <rect>
-         <x>20</x>
-         <y>92</y>
+         <x>150</x>
+         <y>42</y>
          <width>81</width>
          <height>17</height>
         </rect>
        </property>
        <property name="text">
         <string>Update AWS</string>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="awsURLLineEdit">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>90</y>
+         <width>561</width>
+         <height>21</height>
+        </rect>
        </property>
       </widget>
      </widget>

@@ -28,7 +28,7 @@ TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
                        QLabel* workingFolderLabel,
                        QCheckBox* runServerless,
                        QCheckBox* runLatest,
-                       QTextEdit* url,
+                       QLineEdit* url,
                        QPushButton* runNow,
                        QObject* parent) :
     QObject(parent) {
@@ -142,7 +142,7 @@ void TestRunner::downloadComplete() {
             urls << _buildInformation.url;
             filenames << _installerFilename;
         } else {
-            QString urlText = _url->toPlainText();
+            QString urlText = _url->text();
             urls << urlText;
             _installerFilename = getInstallerNameFromURL(urlText);
             filenames << _installerFilename;
@@ -224,7 +224,7 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
         _appDataFolder = dataDirectory + "\\High Fidelity";
     } else {
         // We are running a PR build
-        _appDataFolder = dataDirectory + "\\High Fidelity - " + getPRNumberFromURL(_url->toPlainText());
+        _appDataFolder = dataDirectory + "\\High Fidelity - " + getPRNumberFromURL(_url->text());
     }
 
     _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
@@ -398,7 +398,7 @@ void TestRunner::addBuildNumberAndHostnameToResults(QString zippedFolderName) {
     if (!_runLatest->isChecked()) {
         QStringList filenameParts = zippedFolderName.split(".");
         augmentedFilename = 
-            filenameParts[0] + "(" + getPRNumberFromURL(_url->toPlainText()) + ")[" + QHostInfo::localHostName() + "]." + filenameParts[1];
+            filenameParts[0] + "(" + getPRNumberFromURL(_url->text()) + ")[" + QHostInfo::localHostName() + "]." + filenameParts[1];
     } else {
         QStringList filenameParts = zippedFolderName.split(".");
         augmentedFilename =
