@@ -138,7 +138,7 @@ public:
     void setCommandLine(const QString& commandLine);
 
 public slots:
-    void runCommand();
+    int runCommand();
 
 signals:
     void commandComplete();

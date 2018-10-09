@@ -463,13 +463,8 @@ void TestRunner::checkTime() {
     // Check the time
     bool timeToRun{ false };
     QTime time = now.time();
-    int h = time.hour();
-    int m = time.minute();
 
-    for (int i = 0; i < std::min(_timeEditCheckboxes.size(), _timeEdits.size()); ++i) {
-        bool is = _timeEditCheckboxes[i]->isChecked();
-        int hh = _timeEdits[i]->time().hour();
-        int mm = _timeEdits[i]->time().minute();
+    for (size_t i = 0; i < std::min(_timeEditCheckboxes.size(), _timeEdits.size()); ++i) {
         if (_timeEditCheckboxes[i]->isChecked() && (_timeEdits[i]->time().hour() == now.time().hour()) &&
             (_timeEdits[i]->time().minute() == now.time().minute())) {
             timeToRun = true;
@@ -543,7 +538,7 @@ void TestRunner::parseBuildInformation() {
         QString platformOfInterest;
 #ifdef Q_OS_WIN
         platformOfInterest = "windows";
-#else if Q_OS_MAC
+#elif Q_OS_MAC
         platformOfInterest = "mac";
 #endif
         QDomElement element = domDocument.documentElement();
@@ -611,7 +606,8 @@ void Worker::setCommandLine(const QString& commandLine) {
     _commandLine = commandLine;
 }
 
-void Worker::runCommand() {
-    system(_commandLine.toStdString().c_str());
+int Worker::runCommand() {
+    int result = system(_commandLine.toStdString().c_str());
     emit commandComplete();
+    return result;
 }
