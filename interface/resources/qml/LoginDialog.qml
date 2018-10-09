@@ -86,8 +86,4 @@ Windows.ModalWindow {
         }
     }
 
-    /* Component.onCompleted: {
-        root.implicitWidth = Window.innerWidth;
-        root.implicitHeight = Window.innerHeight;
-    } */
 }
