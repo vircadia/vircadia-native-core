@@ -614,6 +614,10 @@ hr {
     margin-top: 0;
 }
 
+.checkbox-sub-props {   
+    margin-top: 18px;   
+}
+
 .property .number {
     float: left;
 }
@@ -916,6 +920,14 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
     height: 28px;
     text-transform: uppercase;
     outline: none;
+}
+
+fieldset .checkbox-sub-props {  
+     margin-top: 0; 
+}   
+
+fieldset .checkbox-sub-props .property:first-child {    
+    margin-top: 0;  
 }
 
 .column {
@@ -1269,7 +1281,7 @@ th#entity-hasScript {
 
 #base #property-type {
     padding: 5px 24px 5px 0;
-	border-right: 1px solid #808080;
+    border-right: 1px solid #808080;
     width: auto;
     display: inline-block;
 }
@@ -1277,13 +1289,13 @@ th#entity-hasScript {
 #base #div-locked {
     position: absolute;
     top: 0px;
-	right: 140px;
+    right: 140px;
 }
 
 #base #div-visible {
     position: absolute;
     top: 20px;
-	right: 20px;
+    right: 20px;
 }
 
 #base .checkbox {
@@ -1361,9 +1373,9 @@ input#property-scale-button-reset {
 }
 
 #property-serverScripts-status {
-	position: relative;
-	top: -3px;
-	right: -20px;
+    position: relative;
+    top: -3px;
+    right: -20px;
 }
 
 #properties-list #collision-info > fieldset:first-of-type {
