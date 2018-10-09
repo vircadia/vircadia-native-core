@@ -149,6 +149,7 @@ public:
     void initializeGL();
     void initializeDisplayPlugins();
     void initializeRenderEngine();
+    void initializeQml();
     void initializeUi();
 
     void updateSecondaryCameraViewFrustum();

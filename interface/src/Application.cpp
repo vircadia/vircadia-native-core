@@ -1775,11 +1775,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
+    connect(offscreenUi.data(), &OffscreenUi::keyboardFocusActive, [this]() {
+        initializeQml();
+    });
+
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
-        // This needs to run on the settings thread, so we need to pass the `settingsTimer` as the 
+        // This needs to run on the settings thread, so we need to pass the `settingsTimer` as the
         // receiver object, otherwise it will run on the application thread and trigger a warning
         // about trying to kill the timer on the main thread.
         connect(qApp, &Application::beforeAboutToQuit, settingsTimer, [this, settingsTimer]{
@@ -2327,15 +2331,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
-#else
-    if (!accountManager->isLoggedIn()) {
-        Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
-        dialogsManager->showLoginDialog();
-        QJsonObject loginData = {};
-        loginData["action"] = "login dialog shown";
-        UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-    }
-    Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
 #endif
 }
 
@@ -2882,6 +2877,25 @@ void Application::initializeRenderEngine() {
 
 extern void setupPreferences();
 static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active = false);
+
+void Application::initializeQml() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "initializeQml");
+        return;
+    }
+#if !defined(Q_OS_ANDROID)
+    auto accountManager = DependencyManager::get<AccountManager>();
+    auto dialogsManager = DependencyManager::get<DialogsManager>();
+    if (!accountManager->isLoggedIn()) {
+        Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
+        dialogsManager->showLoginDialog();
+        QJsonObject loginData = {};
+        loginData["action"] = "login dialog shown";
+        UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
+    }
+    Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
+#endif
+}
 
 void Application::initializeUi() {
     AddressBarDialog::registerType();
