@@ -60,7 +60,10 @@ const HOME_CONTENT_URL = "http://cdn.highfidelity.com/content-sets/home-tutorial
 
 const buildInfo = GetBuildInfo();
 
-
+const NotificationState = {
+    UNNOTIFIED: 'unnotified',
+    NOTIFIED: 'notified'
+};
 
 // Update lock filepath
 const UPDATER_LOCK_FILENAME = ".updating";
@@ -104,12 +107,21 @@ userConfig.load(configPath);
 const ipcMain = electron.ipcMain;
 
 
-function isServerInstalled() {
-    return interfacePath && userConfig.get("serverInstalled", true);
+function isInterfaceInstalled () {
+    if (osType == "Darwin") {
+        // In OSX Sierra, the app translocation process moves
+        // the executable to a random location before starting it
+        // which makes finding the interface near impossible using
+        // relative paths.  For now, as there are no server-only
+        // installs, we just assume the interface is installed here 
+        return true;
+    } else {
+        return interfacePath;
+    }
 }
 
-function isInterfaceInstalled() {
-    return dsPath && acPath && userConfig.get("interfaceInstalled", true);
+function isServerInstalled () {
+    return dsPath && acPath;
 }
 
 var isShuttingDown = false;
@@ -259,9 +271,13 @@ var debug = argv.debug;
 
 var binaryType = argv.binaryType;
 
-interfacePath = pathFinder.discoveredPath("Interface", binaryType, buildInfo.releaseType);
+interfacePath = pathFinder.discoveredPath("interface", binaryType, buildInfo.releaseType);
 dsPath = pathFinder.discoveredPath("domain-server", binaryType, buildInfo.releaseType);
 acPath = pathFinder.discoveredPath("assignment-client", binaryType, buildInfo.releaseType);
+
+console.log("Domain Server Path: " + dsPath);
+console.log("Assignment Client Path: " + acPath);
+console.log("Interface Path: " + interfacePath);
 
 function binaryMissingMessage(displayName, executableName, required) {
     var message = "The " + displayName + " executable was not found.\n";
@@ -284,18 +300,6 @@ function binaryMissingMessage(displayName, executableName, required) {
     }
 
     return message;
-}
-
-// if at this point any of the paths are null, we're missing something we wanted to find
-
-if (!dsPath) {
-    dialog.showErrorBox("Domain Server Not Found", binaryMissingMessage("domain-server", "domain-server", true));
-    app.exit(0);
-}
-
-if (!acPath) {
-    dialog.showErrorBox("Assignment Client Not Found", binaryMissingMessage("assignment-client", "assignment-client", true));
-    app.exit(0);
 }
 
 function openFileBrowser(path) {
@@ -332,12 +336,21 @@ const HifiNotifications = hfNotifications.HifiNotifications;
 const HifiNotificationType = hfNotifications.NotificationType;
 
 var pendingNotifications = {}
-function notificationCallback(notificationType, pending = true) {
+var notificationState = NotificationState.UNNOTIFIED;
+
+function setNotificationState (notificationType, pending = true) {
     pendingNotifications[notificationType] = pending;
+    notificationState = NotificationState.UNNOTIFIED;
+    for (var key in pendingNotifications) {
+        if (pendingNotifications[key]) {
+            notificationState = NotificationState.NOTIFIED;
+            break;
+        }
+    }
     updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
 }
 
-var trayNotifications = new HifiNotifications(userConfig, notificationCallback);
+var trayNotifications = new HifiNotifications(userConfig, setNotificationState);
 
 var LogWindow = function(ac, ds) {
     this.ac = ac;
@@ -373,7 +386,7 @@ LogWindow.prototype = {
 };
 
 function visitSandboxClicked() {
-    if (interfacePath) {
+    if (isInterfaceInstalled()) {
         StartInterface('hifi://localhost');
     } else {
         // show an error to say that we can't go home without an interface instance
@@ -397,7 +410,7 @@ var labels = {
         type: 'checkbox',
         checked: true,
         click: function () {
-            trayNotifications.enable(!trayNotifications.enabled(), notificationCallback);
+            trayNotifications.enable(!trayNotifications.enabled(), setNotificationState);
             userConfig.save(configPath);
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
@@ -406,32 +419,28 @@ var labels = {
         label: 'GoTo',
         click: function () {
             StartInterface("hifiapp:GOTO");
-            pendingNotifications[HifiNotificationType.GOTO] = false;
-            updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
+            setNotificationState(HifiNotificationType.GOTO, false);
         }
     },
     people: {
         label: 'People',
         click: function () {
             StartInterface("hifiapp:PEOPLE");
-            pendingNotifications[HifiNotificationType.PEOPLE] = false;
-            updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
+            setNotificationState(HifiNotificationType.PEOPLE, false);
         }
     },
     wallet: {
         label: 'Wallet',
         click: function () {
             StartInterface("hifiapp:WALLET");
-            pendingNotifications[HifiNotificationType.WALLET] = false;
-            updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
+            setNotificationState(HifiNotificationType.WALLET, false);
         }
     },
     marketplace: {
         label: 'Market',
         click: function () {
             StartInterface("hifiapp:MARKET");
-            pendingNotifications[HifiNotificationType.MARKETPLACE] = false;
-            updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
+            setNotificationState(HifiNotificationType.MARKETPLACE, false);
         }
     },
     restart: {
@@ -517,11 +526,13 @@ function buildMenuArray(serverState) {
         menuArray.push(labels.share);
         menuArray.push(separator);
         if (isInterfaceInstalled()) {
-            menuArray.push(labels.goto);
-            menuArray.push(labels.people);
-            menuArray.push(labels.wallet);
-            menuArray.push(labels.marketplace);
-            menuArray.push(separator);
+            if (trayNotifications.enabled()) {
+                menuArray.push(labels.goto);
+                menuArray.push(labels.people);
+                menuArray.push(labels.wallet);
+                menuArray.push(labels.marketplace);
+                menuArray.push(separator);
+            }
             menuArray.push(labels.showNotifications);
             menuArray.push(separator);
         }
@@ -553,10 +564,6 @@ function updateLabels(serverState) {
     }
 
     labels.showNotifications.checked = trayNotifications.enabled();
-    labels.people.visible = trayNotifications.enabled();
-    labels.goto.visible = trayNotifications.enabled();
-    labels.wallet.visible = trayNotifications.enabled();
-    labels.marketplace.visible = trayNotifications.enabled();
     labels.goto.icon = pendingNotifications[HifiNotificationType.GOTO] ? menuNotificationIcon : null;
     labels.people.icon = pendingNotifications[HifiNotificationType.PEOPLE] ? menuNotificationIcon : null;
     labels.wallet.icon = pendingNotifications[HifiNotificationType.WALLET] ? menuNotificationIcon : null;
@@ -567,7 +574,7 @@ function updateLabels(serverState) {
 function updateTrayMenu(serverState) {
     if (tray) {
         var menuArray = buildMenuArray(isShuttingDown ? null : serverState);
-        tray.setImage(trayIcons[serverState]);
+        tray.setImage(trayIcons[notificationState]);
         tray.setContextMenu(Menu.buildFromTemplate(menuArray));
         if (isShuttingDown) {
             tray.setToolTip('High Fidelity - Shutting Down');
@@ -787,9 +794,8 @@ function maybeShowSplash() {
 
 const trayIconOS = (osType == "Darwin") ? "osx" : "win";
 var trayIcons = {};
-trayIcons[ProcessGroupStates.STARTED] = "console-tray-" + trayIconOS + ".png";
-trayIcons[ProcessGroupStates.STOPPED] = "console-tray-" + trayIconOS + "-stopped.png";
-trayIcons[ProcessGroupStates.STOPPING] = "console-tray-" + trayIconOS + "-stopping.png";
+trayIcons[NotificationState.UNNOTIFIED] = "console-tray-" + trayIconOS + ".png";
+trayIcons[NotificationState.NOTIFIED] = "console-tray-" + trayIconOS + "-stopped.png";
 for (var key in trayIcons) {
     var fullPath = path.join(__dirname, '../resources/' + trayIcons[key]);
     var img = nativeImage.createFromPath(fullPath);
@@ -815,33 +821,33 @@ function onContentLoaded() {
     // Disable splash window for now.
     // maybeShowSplash();
 
-    if (buildInfo.releaseType == 'PRODUCTION' && !argv.noUpdater) {
-
-        const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
-        var hasShownUpdateNotification = false;
-        const updateChecker = new updater.UpdateChecker(buildInfo, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
-        updateChecker.on('update-available', function(latestVersion, url) {
-            if (!hasShownUpdateNotification) {
-                notifier.notify({
-                    icon: notificationIcon,
-                    title: 'An update is available!',
-                    message: 'High Fidelity version ' + latestVersion + ' is available',
-                    wait: true,
-                    appID: buildInfo.appUserModelId,
-                    url: url
-                });
-                hasShownUpdateNotification = true;
-            }
-        });
-        notifier.on('click', function(notifierObject, options) {
-            log.debug("Got click", options.url);
-            shell.openExternal(options.url);
-        });
-    }
-
-    deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
-
     if (isServerInstalled()) {
+        if (buildInfo.releaseType == 'PRODUCTION' && !argv.noUpdater) {
+
+            const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
+            var hasShownUpdateNotification = false;
+            const updateChecker = new updater.UpdateChecker(buildInfo, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
+            updateChecker.on('update-available', function(latestVersion, url) {
+                if (!hasShownUpdateNotification) {
+                    notifier.notify({
+                        icon: notificationIcon,
+                        title: 'An update is available!',
+                        message: 'High Fidelity version ' + latestVersion + ' is available',
+                        wait: true,
+                        appID: buildInfo.appUserModelId,
+                        url: url
+                    });
+                    hasShownUpdateNotification = true;
+                }
+            });
+            notifier.on('click', function(notifierObject, options) {
+                log.debug("Got click", options.url);
+                shell.openExternal(options.url);
+            });
+        }
+
+        deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
+
         var dsArguments = ['--get-temp-name',
                            '--parent-pid', process.pid];
         domainServer = new Process('domain-server', dsPath, dsArguments, logPath);
@@ -902,13 +908,16 @@ app.on('ready', function() {
     }
 
     // Create tray icon
-    tray = new Tray(trayIcons[ProcessGroupStates.STOPPED]);
+    tray = new Tray(trayIcons[NotificationState.UNNOTIFIED]);
     tray.setToolTip('High Fidelity');
 
     tray.on('click', function() {
         tray.popUpContextMenu(tray.menu);
     });
 
+    if (isInterfaceInstalled()) {
+        trayNotifications.startPolling();
+    }
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
     maybeInstallDefaultContentSet(onContentLoaded);
