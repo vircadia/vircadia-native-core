@@ -559,7 +559,13 @@ void TestRailInterface::updateRunWithResults() {
     stream << "\tresults.append({'case_id': case_ids[i], 'status_id': status_ids[i] })\n\n";
 
     stream << "data = { 'results': results }\n";
-    stream << "section = client.send_post('add_results_for_cases/' + str(" << runID << "), data)\n";
+    stream << "client.send_post('add_results_for_cases/' + str(" << runID << "), data)\n";
+
+    // Also update the run
+    QStringList parts = _testResults.split('/');
+    QString resultName = parts[parts.length() - 1].split('.')[0];
+    stream << "client.send_post('update_run/'  + str(" << runID << "),"
+           << " { 'description' : 'https://hifi-qa.s3.amazonaws.com/" << resultName << "/TestResults.html' })\n";
 
     file.close();
 
@@ -1125,6 +1131,7 @@ void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
 
 void TestRailInterface::updateTestRailRunResults(const QString& testResults, const QString& tempDirectory) {
     _outputDirectory = tempDirectory;
+    _testResults = testResults;
 
     if (!requestTestRailResultsDataFromUser()) {
         return;
