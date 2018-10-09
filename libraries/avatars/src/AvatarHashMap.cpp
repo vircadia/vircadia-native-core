@@ -339,7 +339,7 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         // grab the last trait versions for this avatar
         auto& lastProcessedVersions = _processedTraitVersions[avatarID];
 
-        while (traitType != AvatarTraits::NullTrait) {
+        while (traitType != AvatarTraits::NullTrait && message->getBytesLeftToRead() > 0) {
             AvatarTraits::TraitVersion packetTraitVersion;
             message->readPrimitive(&packetTraitVersion);
 
@@ -380,7 +380,7 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                 }
             }
 
-            if (skipBinaryTrait) {
+            if (skipBinaryTrait && traitBinarySize > 0) {
                 // we didn't read this trait because it was older or because we didn't have an avatar to process it for
                 message->seek(message->getPosition() + traitBinarySize);
             }

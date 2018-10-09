@@ -104,6 +104,10 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
                 _networkTexture.reset();
             });
         }
+
+        withWriteLock([&] {
+            entity->setVisuallyReady(true);
+        });
     } else {
         bool textureNeedsUpdate = resultWithReadLock<bool>([&]{
             return !_networkTexture || _networkTexture->getURL() != QUrl(_particleProperties.textures);
@@ -111,6 +115,12 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
         if (textureNeedsUpdate) {
             withWriteLock([&] { 
                 _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_particleProperties.textures);
+            });
+        }
+
+        if (_networkTexture) {
+            withWriteLock([&] {
+                entity->setVisuallyReady(_networkTexture->isFailed() || _networkTexture->isLoaded());
             });
         }
     }

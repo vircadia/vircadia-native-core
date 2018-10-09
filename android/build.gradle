@@ -143,11 +143,9 @@ def packages = [
         includeLibs: ['libtbb.so', 'libtbbmalloc.so'],
     ],
     hifiAC: [
-        file: 'libplugins_libhifiCodec.zip',
-        versionId: 'i31pW.qNbvFOXRxbyiJUxg3sphaFNmZU',
-        checksum: '9412a8e12c88a4096c1fc843bb9fe52d',
-        sharedLibFolder: '',
-        includeLibs: ['libplugins_libhifiCodec.so']
+            baseUrl: 'http://s3.amazonaws.com/hifi-public/dependencies/',
+            file: 'codecSDK-android_armv8-2.0.zip',
+            checksum: '1cbef929675818fc64c4101b72f84a6a'
     ],
     etc2comp: [
         file: 'etc2comp-patched-armv8-libcpp.tgz',
@@ -367,7 +365,8 @@ task downloadDependencies {
     doLast {
         packages.each { entry ->
             def filename = entry.value['file'];
-            def url = baseUrl + filename;
+            def dependencyBaseUrl = entry.value['baseUrl']
+            def url = (dependencyBaseUrl?.trim() ? dependencyBaseUrl : baseUrl) + filename;
             if (entry.value.containsKey('versionId')) {
                 url = url + '?versionId=' + entry.value['versionId']
             }
@@ -665,6 +664,21 @@ task uploadBreakpadDumpSymsRelease(type:io.github.httpbuilderng.http.HttpTask, d
         response.success {
             println ("${appDir}/build/tmp/symbols-${RELEASE_NUMBER}-release.zip uploaded")
         }
+    }
+}
+
+task renameHifiACTaskDebug() {
+    doLast {
+        def sourceFile = new File("${appDir}/build/intermediates/cmake/debug/obj/arm64-v8a/","libhifiCodec.so")
+        def destinationFile = new File("${appDir}/src/main/jniLibs/arm64-v8a", "libplugins_libhifiCodec.so")
+        copy { from sourceFile;  into destinationFile.parent;  rename(sourceFile.name, destinationFile.name) }
+    }
+}
+task renameHifiACTaskRelease(type: Copy) {
+    doLast {
+        def sourceFile = new File("${appDir}/build/intermediates/cmake/release/obj/arm64-v8a/","libhifiCodec.so")
+        def destinationFile = new File("${appDir}/src/main/jniLibs/arm64-v8a", "libplugins_libhifiCodec.so")
+        copy { from sourceFile;  into destinationFile.parent;  rename(sourceFile.name, destinationFile.name) }
     }
 }
 
