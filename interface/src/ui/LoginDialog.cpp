@@ -82,7 +82,7 @@ void LoginDialog::toggleAction() {
         connection = connect(loginAction, &QAction::triggered, accountManager.data(), &AccountManager::logout);
     } else {
         // change the menu item to login
-        loginAction->setText("Login / Sign Up");
+        loginAction->setText("Log In / Sign Up");
         connection = connect(loginAction, &QAction::triggered, [] { LoginDialog::showWithSelection(); });
     }
 }
