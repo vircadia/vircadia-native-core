@@ -2328,23 +2328,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
 #else
-    static int CHECK_LOGIN_TIMER = 3000;
-    QTimer* checkLoginTimer = new QTimer(this);
-    checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
-    checkLoginTimer->setSingleShot(true);
-    connect(checkLoginTimer, &QTimer::timeout, this, []() {
-        auto accountManager = DependencyManager::get<AccountManager>();
-        auto dialogsManager = DependencyManager::get<DialogsManager>();
-        if (!accountManager->isLoggedIn()) {
-            Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
-            dialogsManager->showLoginDialog();
-            QJsonObject loginData = {};
-            loginData["action"] = "login dialog shown";
-            UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        }
-    });
+    if (!accountManager->isLoggedIn()) {
+        Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
+        dialogsManager->showLoginDialog();
+        QJsonObject loginData = {};
+        loginData["action"] = "login dialog shown";
+        UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
+    }
     Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
-    checkLoginTimer->start();
 #endif
 }
 
