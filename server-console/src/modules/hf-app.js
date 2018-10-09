@@ -7,6 +7,7 @@ const path = require('path');
 const argv = require('yargs').argv;
 const hfprocess = require('./hf-process');
 const osHomeDir = require('os-homedir');
+const childProcess = require('child_process');
 const Process = hfprocess.Process;
 
 const binaryType = argv.binaryType;
@@ -15,9 +16,9 @@ const osType = os.type();
 exports.getBuildInfo = function() {
     var buildInfoPath = null;
 
-    if (osType == 'Windows_NT') {
+    if (osType === 'Windows_NT') {
         buildInfoPath = path.join(path.dirname(process.execPath), 'build-info.json');
-    } else if (osType == 'Darwin') {
+    } else if (osType === 'Darwin') {
         var contentPath = ".app/Contents/";
         var contentEndIndex = __dirname.indexOf(contentPath);
 
@@ -34,7 +35,7 @@ exports.getBuildInfo = function() {
         buildNumber: "0",
         stableBuild: "0",
         organization: "High Fidelity - dev",
-        appUserModelId: "com.highfidelity.sandbox-dev"
+        appUserModelId: "com.highfidelity.console"
     };
     var buildInfo = DEFAULT_BUILD_INFO;
 
@@ -50,37 +51,59 @@ exports.getBuildInfo = function() {
 }
 
 const buildInfo = exports.getBuildInfo();
-const interfacePath = pathFinder.discoveredPath("Interface", binaryType, buildInfo.releaseType);
+const interfacePath = pathFinder.discoveredPath("interface", binaryType, buildInfo.releaseType);
 
 exports.startInterface = function(url) {
-    var argArray = [];
 
-    // check if we have a url parameter to include
-    if (url) {
-        argArray = ["--url", url];
+    if (osType === 'Darwin') {
+        if (!url) {
+            log.debug("No URL given for startInterface");
+            return;
+        }
+
+        // do this as a workaround for app translocation on osx, which makes
+        // it nearly impossible to find the interface executable
+        var bundle_id = 'com.highfidelity.interface-dev';
+        if (buildInfo.releaseType == 'PR') {
+            bundle_id = 'com.highfidelity.interface-pr';
+        } else if (buildInfo.releaseType == 'PRODUCTION') {
+            bundle_id = 'com.highfidelity.interface';
+        }
+        childProcess.exec('open -b ' + bundle_id + ' --args --url ' + url);
+    } else {
+        var argArray = [];
+
+        // check if we have a url parameter to include
+        if (url) {
+            argArray = ["--url", url];
+        }
+        console.log("Starting with " + url);
+        // create a new Interface instance - Interface makes sure only one is running at a time
+        var pInterface = new Process('Interface', interfacePath, argArray);
+        pInterface.detached = true;
+        pInterface.start();
     }
-    console.log("Starting with " + url);
-    // create a new Interface instance - Interface makes sure only one is running at a time
-    var pInterface = new Process('Interface', interfacePath, argArray);
-    pInterface.detached = true;
-    pInterface.start();
 }
 
 exports.isInterfaceRunning = function(done) {
-    var pInterface = new Process('interface', 'interface.exe');
+    if (osType === 'Windows_NT') {
+        var pInterface = new Process('interface', 'interface.exe');
+    } else if (osType === 'Darwin') {
+        var pInterface = new Process('interface', 'interface');
+    }
     return pInterface.isRunning(done);
 }
 
 
 exports.getRootHifiDataDirectory = function(local) {
     var organization = buildInfo.organization;
-    if (osType == 'Windows_NT') {
+    if (osType === 'Windows_NT') {
         if (local) {
             return path.resolve(osHomeDir(), 'AppData/Local', organization);
         } else {
             return path.resolve(osHomeDir(), 'AppData/Roaming', organization);
         }
-    } else if (osType == 'Darwin') {
+    } else if (osType === 'Darwin') {
         return path.resolve(osHomeDir(), 'Library/Application Support', organization);
     } else {
         return path.resolve(osHomeDir(), '.local/share/', organization);

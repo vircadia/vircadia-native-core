@@ -1103,5 +1103,3 @@ int main(int argc, char** argv) {
     app.exec();
     return 0;
 }
-
-#include "main.moc"

@@ -15,12 +15,27 @@ void AudioMixerStats::reset() {
     sumStreams = 0;
     sumListeners = 0;
     sumListenersSilent = 0;
+
     totalMixes = 0;
+
     hrtfRenders = 0;
-    hrtfSilentRenders = 0;
-    hrtfThrottleRenders = 0;
+    hrtfResets = 0;
+    hrtfUpdates = 0;
+
     manualStereoMixes = 0;
     manualEchoMixes = 0;
+
+    skippedToActive = 0;
+    skippedToInactive = 0;
+    inactiveToSkipped = 0;
+    inactiveToActive = 0;
+    activeToSkipped = 0;
+    activeToInactive = 0;
+
+    skipped = 0;
+    inactive = 0;
+    active = 0;
+
 #ifdef HIFI_AUDIO_MIXER_DEBUG
     mixTime = 0;
 #endif
@@ -30,12 +45,27 @@ void AudioMixerStats::accumulate(const AudioMixerStats& otherStats) {
     sumStreams += otherStats.sumStreams;
     sumListeners += otherStats.sumListeners;
     sumListenersSilent += otherStats.sumListenersSilent;
+
     totalMixes += otherStats.totalMixes;
+
     hrtfRenders += otherStats.hrtfRenders;
-    hrtfSilentRenders += otherStats.hrtfSilentRenders;
-    hrtfThrottleRenders += otherStats.hrtfThrottleRenders;
+    hrtfResets += otherStats.hrtfResets;
+    hrtfUpdates += otherStats.hrtfUpdates;
+
     manualStereoMixes += otherStats.manualStereoMixes;
     manualEchoMixes += otherStats.manualEchoMixes;
+
+    skippedToActive += otherStats.skippedToActive;
+    skippedToInactive += otherStats.skippedToInactive;
+    inactiveToSkipped += otherStats.inactiveToSkipped;
+    inactiveToActive += otherStats.inactiveToActive;
+    activeToSkipped += otherStats.activeToSkipped;
+    activeToInactive += otherStats.activeToInactive;
+
+    skipped += otherStats.skipped;
+    inactive += otherStats.inactive;
+    active += otherStats.active;
+
 #ifdef HIFI_AUDIO_MIXER_DEBUG
     mixTime += otherStats.mixTime;
 #endif

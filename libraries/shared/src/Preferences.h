@@ -340,10 +340,16 @@ public:
 
 class CheckPreference : public BoolPreference {
     Q_OBJECT
+    Q_PROPERTY(bool indented READ getIndented CONSTANT)
 public:
     CheckPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : BoolPreference(category, name, getter, setter) { }
     Type getType() override { return Checkbox; }
+
+    bool getIndented() { return _isIndented; }
+    void setIndented(const bool indented) { _isIndented = indented; }
+protected:
+    bool _isIndented { false };
 };
 
 class PrimaryHandPreference : public StringPreference {
@@ -356,16 +362,20 @@ public:
 
 class RadioButtonsPreference : public IntPreference {
     Q_OBJECT
+    Q_PROPERTY(QString heading READ getHeading CONSTANT)
     Q_PROPERTY(QStringList items READ getItems CONSTANT)
 public:
     RadioButtonsPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : IntPreference(category, name, getter, setter) { }
     Type getType() override { return RadioButtons; }
 
+    const QString& getHeading() { return _heading; }
     const QStringList& getItems() { return _items; }
+    void setHeading(const QString& heading) { _heading = heading; }
     void setItems(const QStringList& items) { _items = items; }
 
 protected:
+    QString _heading;
     QStringList _items;
 };
 #endif

@@ -206,11 +206,13 @@ float AvatarData::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) const
     if (distance < AVATAR_DISTANCE_LEVEL_1) {
         result = AVATAR_MIN_ROTATION_DOT;
     } else if (distance < AVATAR_DISTANCE_LEVEL_2) {
-        result = ROTATION_CHANGE_15D;
+        result = ROTATION_CHANGE_2D;
     } else if (distance < AVATAR_DISTANCE_LEVEL_3) {
-        result = ROTATION_CHANGE_45D;
+        result = ROTATION_CHANGE_4D;
     } else if (distance < AVATAR_DISTANCE_LEVEL_4) {
-        result = ROTATION_CHANGE_90D;
+        result = ROTATION_CHANGE_6D;
+    } else if (distance < AVATAR_DISTANCE_LEVEL_5) {
+        result = ROTATION_CHANGE_15D;
     }
     return result;
 }
@@ -369,7 +371,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAvatarGlobalPosition) {
         auto startSection = destinationBuffer;
-        AVATAR_MEMCPY(_globalPosition);
+        if (_overrideGlobalPosition) {
+            AVATAR_MEMCPY(_globalPositionOverride);
+        } else {
+            AVATAR_MEMCPY(_globalPosition);
+        }
+        
 
         int numBytes = destinationBuffer - startSection;
 
@@ -589,7 +596,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 // The dot product for larger rotations is a lower number.
                 // So if the dot() is less than the value, then the rotation is a larger angle of rotation
                 if (sendAll || last.rotationIsDefaultPose || (!cullSmallChanges && last.rotation != data.rotation)
-                    || (cullSmallChanges && glm::dot(last.rotation, data.rotation) < minRotationDOT) ) {
+                    || (cullSmallChanges && fabsf(glm::dot(last.rotation, data.rotation)) < minRotationDOT) ) {
                     validity |= (1 << validityBit);
 #ifdef WANT_DEBUG
                     rotationSentCount++;
@@ -2086,6 +2093,10 @@ void AvatarData::sendAvatarDataPacket(bool sendAll) {
                 return;
             }
         }
+    }
+
+    if (_overrideGlobalPosition) {
+        _overrideGlobalPosition = false;
     }
 
     doneEncoding(cullSmallData);

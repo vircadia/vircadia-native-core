@@ -7,12 +7,15 @@ const path = require('path');
 const AccountInfo = require('./hf-acctinfo').AccountInfo;
 const GetBuildInfo = hfApp.getBuildInfo;
 const buildInfo = GetBuildInfo();
+const osType = os.type();
 
 const notificationIcon = path.join(__dirname, '../../resources/console-notification.png');
 const STORIES_NOTIFICATION_POLL_TIME_MS = 120 * 1000;
 const PEOPLE_NOTIFICATION_POLL_TIME_MS = 120 * 1000;
 const WALLET_NOTIFICATION_POLL_TIME_MS = 600 * 1000;
 const MARKETPLACE_NOTIFICATION_POLL_TIME_MS = 600 * 1000;
+const OSX_CLICK_DELAY_TIMEOUT = 500;
+
 
 const METAVERSE_SERVER_URL= process.env.HIFI_METAVERSE_URL ? process.env.HIFI_METAVERSE_URL : 'https://metaverse.highfidelity.com'
 const STORIES_URL= '/api/v1/user_stories';
@@ -33,21 +36,22 @@ const NotificationType = {
     MARKETPLACE: 'marketplace'
 };
 
+
 function HifiNotification(notificationType, notificationData, menuNotificationCallback) {
     this.type = notificationType;
     this.data = notificationData;
 }
 
 HifiNotification.prototype = {
-    show: function () {
+    show: function (finished) {
         var text = "";
         var message = "";
         var url = null;
         var app = null;
         switch (this.type) {
             case NotificationType.GOTO:
-                if (typeof(this.data) == "number") {
-                    if (this.data == 1) {
+                if (typeof(this.data) === "number") {
+                    if (this.data === 1) {
                         text = "You have " + this.data + " event invitation pending."
                     } else {
                         text = "You have " + this.data + " event invitations pending."
@@ -62,8 +66,8 @@ HifiNotification.prototype = {
                 break;
 
             case NotificationType.PEOPLE:
-                if (typeof(this.data) == "number") {
-                    if (this.data == 1) {
+                if (typeof(this.data) === "number") {
+                    if (this.data === 1) {
                         text = this.data + " of your connections is online."
                     } else {
                         text = this.data + " of your connections are online."
@@ -78,8 +82,8 @@ HifiNotification.prototype = {
                 break;
 
             case NotificationType.WALLET:
-                if (typeof(this.data) == "number") {
-                    if (this.data == 1) {
+                if (typeof(this.data) === "number") {
+                    if (this.data === 1) {
                         text = "You have " + this.data + " unread Wallet transaction.";
                     } else {
                         text = "You have " + this.data + " unread Wallet transactions.";
@@ -94,8 +98,8 @@ HifiNotification.prototype = {
                 break;
 
             case NotificationType.MARKETPLACE:
-                if (typeof(this.data) == "number") {
-                    if (this.data == 1) {
+                if (typeof(this.data) === "number") {
+                    if (this.data === 1) {
                         text = this.data + " of your purchased items has an update available.";
                     } else {  
                         text = this.data + " of your purchased items have updates available.";
@@ -114,8 +118,18 @@ HifiNotification.prototype = {
             message: message,
             wait: true,
             appID: buildInfo.appUserModelId,
-            url: url
-        });
+            url: url,
+            timeout: 5
+            },
+            function (error, reason, metadata) {
+                if (finished) {
+                    if (osType === 'Darwin') {
+                        setTimeout(finished, OSX_CLICK_DELAY_TIMEOUT);
+                    } else {
+                        finished();
+                    }
+                }
+            });
     }
 }
 
@@ -128,7 +142,8 @@ function HifiNotifications(config, menuNotificationCallback) {
     this.walletSince = new Date(this.config.get("walletNotifySince", "1970-01-01T00:00:00.000Z"));
     this.marketplaceSince = new Date(this.config.get("marketplaceNotifySince", "1970-01-01T00:00:00.000Z"));  
 
-    this.enable(this.enabled());
+    this.pendingNotifications = [];
+
 
     var _menuNotificationCallback = menuNotificationCallback;
     notifier.on('click', function (notifierObject, options) {
@@ -139,7 +154,7 @@ function HifiNotifications(config, menuNotificationCallback) {
 
 HifiNotifications.prototype = {
     enable: function (enabled) {
-        this.config.set("enableTrayNotifications", enabled);
+        this.config.set("disableTrayNotifications", !enabled);
         if (enabled) {
             var _this = this;
             this.storiesPollTimer = setInterval(function () {
@@ -170,22 +185,14 @@ HifiNotifications.prototype = {
             },
             MARKETPLACE_NOTIFICATION_POLL_TIME_MS);
         } else {
-            if (this.storiesPollTimer) {
-                clearInterval(this.storiesPollTimer);
-            }
-            if (this.peoplePollTimer) {
-                clearInterval(this.peoplePollTimer);
-            }
-            if (this.walletPollTimer) {
-                clearInterval(this.walletPollTimer);
-            }
-            if (this.marketplacePollTimer) {
-                clearInterval(this.marketplacePollTimer);
-            }
+            this.stopPolling();
         }
     },
     enabled: function () {
-        return this.config.get("enableTrayNotifications", true);
+        return !this.config.get("disableTrayNotifications", false);
+    },
+    startPolling: function () {
+        this.enable(this.enabled());
     },
     stopPolling: function () {
         this.config.set("storiesNotifySince", this.storiesSince.toISOString());
@@ -193,7 +200,48 @@ HifiNotifications.prototype = {
         this.config.set("walletNotifySince", this.walletSince.toISOString());
         this.config.set("marketplaceNotifySince", this.marketplaceSince.toISOString());
 
-        this.enable(false);
+        if (this.storiesPollTimer) {
+            clearInterval(this.storiesPollTimer);
+        }
+        if (this.peoplePollTimer) {
+            clearInterval(this.peoplePollTimer);
+        }
+        if (this.walletPollTimer) {
+            clearInterval(this.walletPollTimer);
+        }
+        if (this.marketplacePollTimer) {
+            clearInterval(this.marketplacePollTimer);
+        }
+    },
+    _showNotification: function () {
+        var _this = this;
+
+        if (osType === 'Darwin') {
+            this.pendingNotifications[0].show(function () {
+                // For OSX
+                // Don't attempt to show the next notification
+                // until the current is clicked or times out
+                // as the OSX Notifier stuff will dismiss the
+                // previous notification immediately when a
+                // new one is submitted
+                _this.pendingNotifications.shift();
+                if(_this.pendingNotifications.length > 0) {
+                    _this._showNotification();
+                }
+            });
+        } else {
+            // For Windows
+            // All notifications are sent immediately as they are queued
+            // by windows in Tray Notifications and can be bulk seen and 
+            // dismissed
+            _this.pendingNotifications.shift().show();
+        }
+    },
+    _addNotification: function (notification) {
+        this.pendingNotifications.push(notification);
+        if (this.pendingNotifications.length === 1) {
+            this._showNotification();
+        }
     },
     _pollToDisableHighlight: function (notifyType, error, data) {
         if (error || !data.body) {
@@ -248,8 +296,7 @@ HifiNotifications.prototype = {
                 }
                 _this.menuNotificationCallback(notifyType, true);
                 if (content.total_entries >= maxNotificationItemCount) {
-                    var notification = new HifiNotification(notifyType, content.total_entries);
-                    notification.show();   
+                    _this._addNotification(new HifiNotification(notifyType, content.total_entries));
                 } else {
                     var notifyData = []
                     switch (notifyType) {
@@ -268,8 +315,7 @@ HifiNotifications.prototype = {
                     }
 
                     notifyData.forEach(function (notifyDataEntry) {
-                        var notification = new HifiNotification(notifyType, notifyDataEntry);
-                        notification.show();
+                        _this._addNotification(new HifiNotification(notifyType, notifyDataEntry));
                     });
                 }
                 finished(true, token);
@@ -376,13 +422,11 @@ HifiNotifications.prototype = {
                 }
 
                 if (newUsers.size >= maxNotificationItemCount) {
-                    var notification = new HifiNotification(NotificationType.PEOPLE, newUsers.size);
-                    notification.show();
+                    _this._addNotification(new HifiNotification(NotificationType.PEOPLE, newUsers.size));
                     return;
                 }
                 newUsers.forEach(function (user) {
-                    var notification = new HifiNotification(NotificationType.PEOPLE, user);
-                    notification.show();
+                    _this._addNotification(new HifiNotification(NotificationType.PEOPLE, user));
                 });
             });
         });

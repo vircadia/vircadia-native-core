@@ -26,10 +26,12 @@
 #include <avatars-renderer/ScriptAvatar.h>
 #include <AudioInjector.h>
 #include <workload/Space.h>
+#include <EntitySimulation.h> // for SetOfEntities
 
 #include "AvatarMotionState.h"
 #include "MyAvatar.h"
 #include "OtherAvatar.h"
+
 
 using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
 
@@ -186,6 +188,7 @@ public:
     void queuePhysicsChange(const OtherAvatarPointer& avatar);
     void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
     void handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction);
+    void removeDeadAvatarEntities(const SetOfEntities& deadEntities);
 
 public slots:
     /**jsdoc
@@ -232,6 +235,8 @@ private:
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space;
     std::vector<int32_t> _spaceProxiesToDelete;
+
+    AvatarTransit::TransitConfig  _transitConfig;
 };
 
 #endif // hifi_AvatarManager_h

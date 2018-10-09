@@ -345,7 +345,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         } else {
             // Check to see if the space bubble is enabled
             // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
-            if (destinationNode->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
+            if (nodeData->isIgnoreRadiusEnabled() || (avatarClientNodeData->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
                 // Perform the collision check between the two bounding boxes
                 const float OTHER_AVATAR_BUBBLE_EXPANSION_FACTOR = 2.4f; // magic number determined empirically
                 AABox otherNodeBox = computeBubbleBox(avatarClientNodeData->getAvatar(), OTHER_AVATAR_BUBBLE_EXPANSION_FACTOR);

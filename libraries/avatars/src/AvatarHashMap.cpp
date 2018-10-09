@@ -259,17 +259,20 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
         if (isNewAvatar) {
             QWriteLocker locker(&_hashLock);
             _pendingAvatars.insert(sessionUUID, { std::chrono::steady_clock::now(), 0, avatar });
+            avatar->setIsNewAvatar(true);
             auto replicaIDs = _replicas.getReplicaIDs(sessionUUID);
             for (auto replicaID : replicaIDs) {
                 auto replicaAvatar = addAvatar(replicaID, sendingNode);
+                replicaAvatar->setIsNewAvatar(true);
                 _replicas.addReplica(sessionUUID, replicaAvatar);
             }
         } 
-
+        
         // have the matching (or new) avatar parse the data from the packet
         int bytesRead = avatar->parseDataFromBuffer(byteArray);
         message->seek(positionBeforeRead + bytesRead);
         _replicas.parseDataFromBuffer(sessionUUID, byteArray);
+        
 
         return avatar;
     } else {
@@ -316,7 +319,6 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
         // In this case, the "sendingNode" is the Avatar Mixer.
         avatar->processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged);
         _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
-
     }
 }
 
@@ -329,6 +331,7 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         // grab the avatar so we can ask it to process trait data
         bool isNewAvatar;
         auto avatar = newOrExistingAvatar(avatarID, sendingNode, isNewAvatar);
+
         // read the first trait type for this avatar
         AvatarTraits::TraitType traitType;
         message->readPrimitive(&traitType);

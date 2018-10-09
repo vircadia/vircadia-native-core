@@ -15,6 +15,17 @@
 #include "DependencyManager.h"
 #include "PickManager.h"
 
+PickRay RayPick::getMathematicalPick() const {
+    if (!parentTransform) {
+        return _mathPick;
+    }
+
+    Transform currentParentTransform = parentTransform->getTransform();
+    glm::vec3 origin = currentParentTransform.transform(_mathPick.origin);
+    glm::vec3 direction = glm::normalize(currentParentTransform.transformDirection(_mathPick.direction));
+    return PickRay(origin, direction);
+}
+
 PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
     bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
     RayToEntityIntersectionResult entityRes =

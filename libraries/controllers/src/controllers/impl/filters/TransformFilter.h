@@ -21,6 +21,7 @@ class TransformFilter : public Filter {
 public:
     TransformFilter() { }
     TransformFilter(glm::mat4 transform) : _transform(transform) {}
+    virtual ~TransformFilter() {}
 
     virtual float apply(float value) const override { return value; }
     virtual Pose apply(Pose value) const override { return value.transform(_transform); }
