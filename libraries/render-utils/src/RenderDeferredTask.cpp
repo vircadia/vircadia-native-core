@@ -383,13 +383,13 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // Set the light
-        deferredLightingEffect->setupKeyLightBatch(args, batch, lightFrame);
+        deferredLightingEffect->setupKeyLightBatch(args, batch, *lightFrame);
         deferredLightingEffect->setupLocalLightsBatch(batch, lightClusters);
 
         // Setup haze if current zone has haze
         const auto& hazeStage = args->_scene->getStage<HazeStage>();
-        if (hazeStage && hazeFrame._hazes.size() > 0) {
-            const auto& hazePointer = hazeStage->getHaze(hazeFrame._hazes.front());
+        if (hazeStage && hazeFrame->_hazes.size() > 0) {
+            const auto& hazePointer = hazeStage->getHaze(hazeFrame->_hazes.front());
             if (hazePointer) {
                 batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             }

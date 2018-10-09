@@ -187,12 +187,12 @@ void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs
         graphics::LightPointer keySunLight;
         auto lightStage = args->_scene->getStage<LightStage>();
         if (lightStage) {
-            keySunLight = lightStage->getCurrentKeyLight(inputs);
+            keySunLight = lightStage->getCurrentKeyLight(*inputs);
         }
 
         graphics::LightPointer keyAmbiLight;
         if (lightStage) {
-            keyAmbiLight = lightStage->getCurrentAmbientLight(inputs);
+            keyAmbiLight = lightStage->getCurrentAmbientLight(*inputs);
         }
 
         if (keySunLight) {

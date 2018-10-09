@@ -43,7 +43,7 @@ protected:
 
 class DrawDeferred {
 public:
-    using Inputs = render::VaryingSet6<render::ItemBounds, HazeStage::Frame, LightStage::Frame, LightingModelPointer, LightClustersPointer, glm::vec2>;
+    using Inputs = render::VaryingSet6<render::ItemBounds, HazeStage::FramePointer, LightStage::FramePointer, LightingModelPointer, LightClustersPointer, glm::vec2>;
     using Config = DrawDeferredConfig;
     using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 

@@ -64,8 +64,8 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
     const auto& backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
     const auto& backgroundFrame = inputs.get1();
     graphics::SkyboxPointer skybox;
-    if (backgroundStage && backgroundFrame._backgrounds.size()) {
-        const auto& background = backgroundStage->getBackground(backgroundFrame._backgrounds.front());
+    if (backgroundStage && backgroundFrame->_backgrounds.size()) {
+        const auto& background = backgroundStage->getBackground(backgroundFrame->_backgrounds.front());
         if (background) {
             skybox = background->getSkybox();
         }   

@@ -72,7 +72,7 @@ public:
         Config(bool enabled = false) : JobConfig(enabled) {}
     };
 
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, LightStage::Frame, BackgroundStage::Frame>;
+    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, LightStage::FramePointer, BackgroundStage::FramePointer>;
     using JobModel = render::Job::ModelI<DebugZoneLighting, Inputs, Config>;
 
     DebugZoneLighting() {}

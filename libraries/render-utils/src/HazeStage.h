@@ -65,6 +65,7 @@ public:
 
         HazeStage::HazeIndices _hazes;
     };
+    using FramePointer = std::shared_ptr<Frame>;
     
     Frame _currentFrame;
 };

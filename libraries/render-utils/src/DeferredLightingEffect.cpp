@@ -373,8 +373,8 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
-    const LightStage::Frame& lightFrame,
-    const HazeStage::Frame& hazeFrame,
+    const LightStage::FramePointer& lightFrame,
+    const HazeStage::FramePointer& hazeFrame,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
     const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource,
@@ -434,7 +434,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
-        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow(lightFrame);
+        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow(*lightFrame);
         const auto& globalShadow = lightAndShadow.second;
 
         // Bind the shadow buffers
@@ -448,8 +448,8 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         auto keyLight = lightAndShadow.first;
 
         graphics::LightPointer ambientLight;
-        if (lightStage && lightFrame._ambientLights.size()) {
-            ambientLight = lightStage->getLight(lightFrame._ambientLights.front());
+        if (lightStage && lightFrame->_ambientLights.size()) {
+            ambientLight = lightStage->getLight(lightFrame->_ambientLights.front());
         }
         bool hasAmbientMap = (ambientLight != nullptr);
 
@@ -458,8 +458,8 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
             // Check if keylight casts shadows
             bool keyLightCastShadows { false };
 
-            if (renderShadows && lightStage && lightFrame._sunLights.size()) {
-                graphics::LightPointer keyLight = lightStage->getLight(lightFrame._sunLights.front());
+            if (renderShadows && lightStage && lightFrame->_sunLights.size()) {
+                graphics::LightPointer keyLight = lightStage->getLight(lightFrame->_sunLights.front());
                 if (keyLight) {
                     keyLightCastShadows = keyLight->getCastShadows();
                 }
@@ -496,12 +496,12 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         }
 
         // Setup the global lighting
-        deferredLightingEffect->setupKeyLightBatch(args, batch, lightFrame);
+        deferredLightingEffect->setupKeyLightBatch(args, batch, *lightFrame);
 
         // Haze
         const auto& hazeStage = args->_scene->getStage<HazeStage>();
-        if (hazeStage && hazeFrame._hazes.size() > 0) {
-            const auto& hazePointer = hazeStage->getHaze(hazeFrame._hazes.front());
+        if (hazeStage && hazeFrame->_hazes.size() > 0) {
+            const auto& hazePointer = hazeStage->getHaze(hazeFrame->_hazes.front());
             if (hazePointer) {
                 batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             }

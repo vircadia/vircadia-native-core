@@ -25,7 +25,7 @@ class ViewFrustum;
 
 class RenderShadowMap {
 public:
-    using Inputs = render::VaryingSet3<render::ShapeBounds, AABox, LightStage::Frame>;
+    using Inputs = render::VaryingSet3<render::ShapeBounds, AABox, LightStage::FramePointer>;
     using JobModel = render::Job::ModelI<RenderShadowMap, Inputs>;
 
     RenderShadowMap(render::ShapePlumberPointer shapePlumber, unsigned int cascadeIndex) : _shapePlumber{ shapePlumber }, _cascadeIndex{ cascadeIndex } {}
@@ -100,7 +100,7 @@ signals:
 
 class RenderShadowSetup {
 public:
-    using Inputs = LightStage::Frame;
+    using Inputs = LightStage::FramePointer;
     using Outputs = render::VaryingSet3<RenderArgs::RenderMode, glm::ivec2, ViewFrustumPointer>;
     using Config = RenderShadowSetupConfig;
     using JobModel = render::Job::ModelIO<RenderShadowSetup, Inputs, Outputs, Config>;
@@ -124,7 +124,7 @@ private:
 
 class RenderShadowCascadeSetup {
 public:
-    using Inputs = LightStage::Frame;
+    using Inputs = LightStage::FramePointer;
     using Outputs = render::VaryingSet3<render::ItemFilter, ViewFrustumPointer, RenderShadowTask::CullFunctor>;
     using JobModel = render::Job::ModelIO<RenderShadowCascadeSetup, Inputs, Outputs>;
 
@@ -155,7 +155,7 @@ public:
 
 class CullShadowBounds {
 public:
-    using Inputs = render::VaryingSet5<render::ShapeBounds, render::ItemFilter, ViewFrustumPointer, LightStage::Frame, RenderShadowTask::CullFunctor>;
+    using Inputs = render::VaryingSet5<render::ShapeBounds, render::ItemFilter, ViewFrustumPointer, LightStage::FramePointer, RenderShadowTask::CullFunctor>;
     using Outputs = render::VaryingSet2<render::ShapeBounds, AABox>;
     using JobModel = render::Job::ModelIO<CullShadowBounds, Inputs, Outputs>;
 

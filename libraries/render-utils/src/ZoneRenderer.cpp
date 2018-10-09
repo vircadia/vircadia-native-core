@@ -124,23 +124,23 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
 
     auto lightStage = context->_scene->getStage<LightStage>(LightStage::getName());
     std::vector<graphics::LightPointer> keyLightStack;
-    if (lightStage && lightFrame._sunLights.size()) {
-        for (auto index : lightFrame._sunLights) {
+    if (lightStage && lightFrame->_sunLights.size()) {
+        for (auto index : lightFrame->_sunLights) {
             keyLightStack.push_back(lightStage->getLight(index));
         }
     }
 
     std::vector<graphics::LightPointer> ambientLightStack;
-    if (lightStage && lightFrame._ambientLights.size()) {
-        for (auto index : lightFrame._ambientLights) {
+    if (lightStage && lightFrame->_ambientLights.size()) {
+        for (auto index : lightFrame->_ambientLights) {
             ambientLightStack.push_back(lightStage->getLight(index));
         }
     }
 
     auto backgroundStage = context->_scene->getStage<BackgroundStage>(BackgroundStage::getName());
     std::vector<graphics::SkyboxPointer> skyboxStack;
-    if (backgroundStage && backgroundFrame._backgrounds.size()) {
-        for (auto index : backgroundFrame._backgrounds) {
+    if (backgroundStage && backgroundFrame->_backgrounds.size()) {
+        for (auto index : backgroundFrame->_backgrounds) {
             auto background = backgroundStage->getBackground(index);
             if (background) {
                 skyboxStack.push_back(background->getSkybox());

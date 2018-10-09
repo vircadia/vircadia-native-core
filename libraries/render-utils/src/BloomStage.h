@@ -65,6 +65,7 @@ public:
 
         BloomStage::BloomIndices _blooms;
     };
+    using FramePointer = std::shared_ptr<Frame>;
     
     Frame _currentFrame;
 };

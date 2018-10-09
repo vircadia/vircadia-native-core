@@ -218,7 +218,7 @@ void ExtractFrustums::run(const render::RenderContextPointer& renderContext, con
     for (auto i = 0; i < SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
         auto& shadowFrustum = output[SHADOW_CASCADE0_FRUSTUM+i].edit<ViewFrustumPointer>();
         if (lightStage) {
-            auto globalShadow = lightStage->getCurrentKeyShadow(lightFrame);
+            auto globalShadow = lightStage->getCurrentKeyShadow(*lightFrame);
 
             if (globalShadow && i<(int)globalShadow->getCascadeCount()) {
                 auto& cascade = globalShadow->getCascade(i);
@@ -235,17 +235,17 @@ void ExtractFrustums::run(const render::RenderContextPointer& renderContext, con
 void FetchCurrentFrames::run(const render::RenderContextPointer& renderContext, Outputs& outputs) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
-    outputs.edit0() = lightStage->_currentFrame;
+    outputs.edit0() = std::make_shared<LightStage::Frame>(lightStage->_currentFrame);
 
     auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
     assert(backgroundStage);
-    outputs.edit1() = backgroundStage->_currentFrame;
+    outputs.edit1() = std::make_shared<BackgroundStage::Frame>(backgroundStage->_currentFrame);
 
     auto hazeStage = renderContext->_scene->getStage<HazeStage>();
     assert(hazeStage);
-    outputs.edit2() = hazeStage->_currentFrame;
+    outputs.edit2() = std::make_shared<HazeStage::Frame>(hazeStage->_currentFrame);
 
     auto bloomStage = renderContext->_scene->getStage<BloomStage>();
     assert(bloomStage);
-    outputs.edit3() = bloomStage->_currentFrame;
+    outputs.edit3() = std::make_shared<BloomStage::Frame>(bloomStage->_currentFrame);
 }

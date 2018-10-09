@@ -35,8 +35,8 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
     const auto hazeFrame = inputs.get0();
     const auto& hazeStage = renderContext->args->_scene->getStage<HazeStage>();
     graphics::HazePointer haze;
-    if (hazeStage && hazeFrame._hazes.size() > 0) {
-        haze = hazeStage->getHaze(hazeFrame._hazes.front());
+    if (hazeStage && hazeFrame->_hazes.size() > 0) {
+        haze = hazeStage->getHaze(hazeFrame->_hazes.front());
     }
 
     if (!haze) {
@@ -86,7 +86,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         auto lightStage = args->_scene->getStage<LightStage>();
         if (lightStage) {
             graphics::LightPointer keyLight;
-            keyLight = lightStage->getCurrentKeyLight(lightFrame);
+            keyLight = lightStage->getCurrentKeyLight(*lightFrame);
             if (keyLight) {
                 batch.setUniformBuffer(gr::Buffer::KeyLight, keyLight->getLightSchemaBuffer());
             }

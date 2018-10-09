@@ -180,6 +180,7 @@ public:
         LightStage::LightIndices _sunLights;
         LightStage::LightIndices _ambientLights;
     };
+    using FramePointer = std::shared_ptr<Frame>;
     
     Frame _currentFrame;
     

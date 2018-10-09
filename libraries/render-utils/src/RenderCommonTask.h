@@ -111,7 +111,7 @@ public:
         FRUSTUM_COUNT
     };
 
-    using Inputs = LightStage::Frame;
+    using Inputs = LightStage::FramePointer;
     using Outputs = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
     using JobModel = render::Job::ModelIO<ExtractFrustums, Inputs, Outputs>;
 
@@ -121,7 +121,7 @@ public:
 
 class FetchCurrentFrames {
 public:
-    using Outputs = render::VaryingSet4<LightStage::Frame, BackgroundStage::Frame, HazeStage::Frame, BloomStage::Frame>;
+    using Outputs = render::VaryingSet4<LightStage::FramePointer, BackgroundStage::FramePointer, HazeStage::FramePointer, BloomStage::FramePointer>;
     using JobModel = render::Job::ModelO<FetchCurrentFrames, Outputs>;
 
     FetchCurrentFrames() {}

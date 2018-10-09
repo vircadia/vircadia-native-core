@@ -41,7 +41,7 @@ private:
 
 class PrepareForward {
 public:
-    using Inputs = LightStage::Frame;
+    using Inputs = LightStage::FramePointer;
     using JobModel = render::Job::ModelI<PrepareForward, Inputs>;
 
     void run(const render::RenderContextPointer& renderContext,

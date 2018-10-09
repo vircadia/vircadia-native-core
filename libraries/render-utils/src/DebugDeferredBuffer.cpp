@@ -444,7 +444,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
-        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow(lightFrame);
+        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow(*lightFrame);
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
             batch.setResourceTexture(Textures::Shadow, globalShadow->map);

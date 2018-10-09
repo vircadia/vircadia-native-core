@@ -213,7 +213,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
 
-    auto shadow = lightStage->getCurrentKeyShadow(lightFrame);
+    auto shadow = lightStage->getCurrentKeyShadow(*lightFrame);
     if (!shadow || _cascadeIndex >= shadow->getCascadeCount()) {
         return;
     }
@@ -336,8 +336,9 @@ void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, const Inputs& input, Outputs& output) {
     // Abort all jobs if not casting shadows
     auto lightStage = renderContext->_scene->getStage<LightStage>();
+    auto lightFrame = *input;
     assert(lightStage);
-    if (!lightStage->getCurrentKeyLight(input) || !lightStage->getCurrentKeyLight(input)->getCastShadows()) {
+    if (!lightStage->getCurrentKeyLight(lightFrame) || !lightStage->getCurrentKeyLight(lightFrame)->getCastShadows()) {
         renderContext->taskFlow.abortTask();
         return;
     }
@@ -351,7 +352,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     *_cameraFrustum = args->getViewFrustum();
     output.edit2() = _cameraFrustum;
 
-    const auto globalShadow = lightStage->getCurrentKeyShadow(input);
+    const auto globalShadow = lightStage->getCurrentKeyShadow(lightFrame);
     if (globalShadow) {
         globalShadow->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
@@ -420,7 +421,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
 
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, const Inputs& input, Outputs& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
-    const auto& lightFrame = input;
+    const auto& lightFrame = *input;
     assert(lightStage);
 
     // Cache old render args
@@ -507,7 +508,7 @@ void CullShadowBounds::run(const render::RenderContextPointer& renderContext, co
     outShapes.clear();
     outBounds = AABox();
 
-    const auto& lightFrame = inputs.get3();
+    const auto& lightFrame = *inputs.get3();
     auto cullFunctor = inputs.get4();
 
     render::CullFunctor shadowCullFunctor = [cullFunctor](const RenderArgs* args, const AABox& bounds) {
