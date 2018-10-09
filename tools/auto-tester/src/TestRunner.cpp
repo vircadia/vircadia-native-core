@@ -462,7 +462,6 @@ void TestRunner::checkTime() {
 
     // Check the time
     bool timeToRun{ false };
-    QTime time = now.time();
 
     for (size_t i = 0; i < std::min(_timeEditCheckboxes.size(), _timeEdits.size()); ++i) {
         if (_timeEditCheckboxes[i]->isChecked() && (_timeEdits[i]->time().hour() == now.time().hour()) &&
