@@ -43,7 +43,7 @@ public:
     void openTable(QTextStream& stream);
     void closeTable(QTextStream& stream);
 
-    void createEntry(int index, const QString& testFailure, QTextStream& stream);
+    void createEntry(int index, const QString& testResult, QTextStream& stream);
 
     void updateAWS();
 

@@ -12,9 +12,9 @@
 
 #include <QtCore/QString>
 
-class TestFailure {
+class TestResult {
 public:
-    TestFailure(float error, QString pathname, QString expectedImageFilename, QString actualImageFilename) :
+    TestResult(float error, QString pathname, QString expectedImageFilename, QString actualImageFilename) :
         _error(error),
         _pathname(pathname),
         _expectedImageFilename(expectedImageFilename),

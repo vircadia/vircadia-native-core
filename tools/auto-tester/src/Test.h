@@ -84,7 +84,7 @@ public:
 
     void includeTest(QTextStream& textStream, const QString& testPathname);
 
-    void appendTestResultsToFile(const QString& testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
+    void appendTestResultsToFile(const QString& testResultsFolderPath, TestResult testResult, QPixmap comparisonImage, bool hasFailed);
 
     bool createTestResultsFolderPath(const QString& directory);
     QString zipAndDeleteTestResultsFolder();
@@ -120,7 +120,8 @@ private:
     ImageComparer _imageComparer;
 
     QString _testResultsFolderPath;
-    int _index { 1 };
+    int _failureIndex{ 1 };
+    int _successIndex{ 1 };
 
     // Expected images are in the format ExpectedImage_dddd.jpg (d == decimal digit)
     const int NUM_DIGITS { 5 };

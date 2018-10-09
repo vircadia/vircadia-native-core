@@ -58,7 +58,8 @@ QString Test::zipAndDeleteTestResultsFolder() {
 
     //In all cases, for the next evaluation
     _testResultsFolderPath = "";
-    _index = 1;
+    _failureIndex = 1;
+    _successIndex = 1;
 
     return zippedResultsFileName;
 }
@@ -90,19 +91,20 @@ int Test::compareImageLists() {
             similarityIndex = _imageComparer.compareImages(resultImage, expectedImage);
         }
 
+        TestResult testResult = TestResult{
+            (float)similarityIndex,
+            _expectedImagesFullFilenames[i].left(_expectedImagesFullFilenames[i].lastIndexOf("/") + 1),  // path to the test (including trailing /)
+            QFileInfo(_expectedImagesFullFilenames[i].toStdString().c_str()).fileName(),                 // filename of expected image
+            QFileInfo(_resultImagesFullFilenames[i].toStdString().c_str()).fileName()                    // filename of result image
+        };
+
         if (similarityIndex < THRESHOLD) {
             ++numberOfFailures;
-            TestFailure testFailure = TestFailure{
-                (float)similarityIndex,
-                _expectedImagesFullFilenames[i].left(_expectedImagesFullFilenames[i].lastIndexOf("/") + 1), // path to the test (including trailing /)
-                QFileInfo(_expectedImagesFullFilenames[i].toStdString().c_str()).fileName(),  // filename of expected image
-                QFileInfo(_resultImagesFullFilenames[i].toStdString().c_str()).fileName()     // filename of result image
-            };
 
-            _mismatchWindow.setTestFailure(testFailure);
+            _mismatchWindow.setTestResult(testResult);
 
             if (!isInteractiveMode) {
-                appendTestResultsToFile(_testResultsFolderPath, testFailure, _mismatchWindow.getComparisonImage());
+                appendTestResultsToFile(_testResultsFolderPath, testResult, _mismatchWindow.getComparisonImage(), true);
             } else {
                 _mismatchWindow.exec();
 
@@ -110,7 +112,7 @@ int Test::compareImageLists() {
                     case USER_RESPONSE_PASS:
                         break;
                     case USE_RESPONSE_FAIL:
-                        appendTestResultsToFile(_testResultsFolderPath, testFailure, _mismatchWindow.getComparisonImage());
+                        appendTestResultsToFile(_testResultsFolderPath, testResult, _mismatchWindow.getComparisonImage(), true);
                         break;
                     case USER_RESPONSE_ABORT:
                         keepOn = false;
@@ -120,6 +122,8 @@ int Test::compareImageLists() {
                         break;
                 }
             }
+        } else {
+            appendTestResultsToFile(_testResultsFolderPath, testResult, _mismatchWindow.getComparisonImage(), false);
         }
 
         _progressBar->setValue(i);
@@ -129,20 +133,32 @@ int Test::compareImageLists() {
     return numberOfFailures;
 }
 
-void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage) {
+void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestResult testResult, QPixmap comparisonImage, bool hasFailed) {
     if (!QDir().exists(_testResultsFolderPath)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Folder " + _testResultsFolderPath + " not found");
         exit(-1);
     }
 
-    QString failureFolderPath { _testResultsFolderPath + "/Failure_" + QString::number(_index) + "--" + testFailure._actualImageFilename.left(testFailure._actualImageFilename.length() - 4) };
-    if (!QDir().mkdir(failureFolderPath)) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create folder " + failureFolderPath);
+    QString resultFolderPath;
+    if (hasFailed) {
+        resultFolderPath = _testResultsFolderPath + "/Failure_" + QString::number(_failureIndex) + "--" +
+                           testResult._actualImageFilename.left(testResult._actualImageFilename.length() - 4);
+
+        ++_failureIndex;
+    } else {
+        resultFolderPath = _testResultsFolderPath + "/Success_" + QString::number(_successIndex) + "--" +
+                           testResult._actualImageFilename.left(testResult._actualImageFilename.length() - 4);
+
+        ++_successIndex;
+    }
+    
+    if (!QDir().mkdir(resultFolderPath)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Failed to create folder " + resultFolderPath);
         exit(-1);
     }
-    ++_index;
 
-    QFile descriptionFile(failureFolderPath + "/" + TEST_RESULTS_FILENAME);
+    QFile descriptionFile(resultFolderPath + "/" + TEST_RESULTS_FILENAME);
     if (!descriptionFile.open(QIODevice::ReadWrite)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + TEST_RESULTS_FILENAME);
         exit(-1);
@@ -150,10 +166,10 @@ void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestFa
 
     // Create text file describing the failure
     QTextStream stream(&descriptionFile);
-    stream << "Test failed in folder " << testFailure._pathname.left(testFailure._pathname.length() - 1) << endl; // remove trailing '/'
-    stream << "Expected image was    " << testFailure._expectedImageFilename << endl;
-    stream << "Actual image was      " << testFailure._actualImageFilename << endl;
-    stream << "Similarity index was  " << testFailure._error << endl;
+    stream << "Test failed in folder " << testResult._pathname.left(testResult._pathname.length() - 1) << endl; // remove trailing '/'
+    stream << "Expected image was    " << testResult._expectedImageFilename << endl;
+    stream << "Actual image was      " << testResult._actualImageFilename << endl;
+    stream << "Similarity index was  " << testResult._error << endl;
 
     descriptionFile.close();
 
@@ -161,21 +177,21 @@ void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestFa
     QString sourceFile;
     QString destinationFile;
 
-    sourceFile = testFailure._pathname + testFailure._expectedImageFilename;
-    destinationFile = failureFolderPath + "/" + "Expected Image.png";
+    sourceFile = testResult._pathname + testResult._expectedImageFilename;
+    destinationFile = resultFolderPath + "/" + "Expected Image.png";
     if (!QFile::copy(sourceFile, destinationFile)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
         exit(-1);
     }
 
-    sourceFile = testFailure._pathname + testFailure._actualImageFilename;
-    destinationFile = failureFolderPath + "/" + "Actual Image.png";
+    sourceFile = testResult._pathname + testResult._actualImageFilename;
+    destinationFile = resultFolderPath + "/" + "Actual Image.png";
     if (!QFile::copy(sourceFile, destinationFile)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
         exit(-1);
     }
 
-    comparisonImage.save(failureFolderPath + "/" + "Difference Image.png");
+    comparisonImage.save(resultFolderPath + "/" + "Difference Image.png");
 }
 
 void Test::startTestsEvaluation(const bool isRunningFromCommandLine,

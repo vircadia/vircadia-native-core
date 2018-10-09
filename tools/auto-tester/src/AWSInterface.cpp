@@ -231,13 +231,13 @@ void AWSInterface::closeTable(QTextStream& stream) {
     stream << "\t\t</table>\n";
 }
 
-void AWSInterface::createEntry(int index, const QString& testFailure, QTextStream& stream) {
+void AWSInterface::createEntry(int index, const QString& testResult, QTextStream& stream) {
     stream << "\t\t\t<tr>\n";
     stream << "\t\t\t\t<td><h1>" << QString::number(index) << "</h1></td>\n";
     
     // For a test named `D:/t/fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf/Failure_1--tests.engine.interaction.pick.collision.many.00000`
     // we need `Failure_1--tests.engine.interaction.pick.collision.many.00000`
-    QStringList failureNameComponents = testFailure.split('/');
+    QStringList failureNameComponents = testResult.split('/');
     QString failureName = failureNameComponents[failureNameComponents.length() - 1];
 
     stream << "\t\t\t\t<td><img src=\"./" << FAILURE_FOLDER << "/" << failureName << "/Actual Image.png\" width = \"576\" height = \"324\" ></td>\n";
