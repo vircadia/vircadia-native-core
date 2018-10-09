@@ -650,7 +650,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
         if (!_defaultSkyboxNetworkTexture) {
             PROFILE_RANGE(render, "Process Default Skybox");
             _defaultSkyboxNetworkTexture = DependencyManager::get<TextureCache>()->getTexture(
-                PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap/Default-Sky-9-cubemap.texmeta.json", image::TextureUsage::CUBE_TEXTURE);
+                PathUtils::resourcesUrl() + "images/Default-Sky-9-cubemap/Default-Sky-9-cubemap.texmeta.json", image::TextureUsage::CUBE_TEXTURE);
         }
 
         if (_defaultSkyboxNetworkTexture && _defaultSkyboxNetworkTexture->isLoaded() && _defaultSkyboxNetworkTexture->getGPUTexture()) {
