@@ -552,6 +552,14 @@ glm::vec2 vec2FromVariant(const QVariant &object) {
     return vec2FromVariant(object, valid);
 }
 
+/**jsdoc
+ * Defines a rectangular portion of an image or screen, or similar.
+ * @typedef {object} Rect
+ * @property {number} x - Left, x-coordinate value.
+ * @property {number} y - Top, y-coordinate value.
+ * @property {number} width - Width of the rectangle.
+ * @property {number} height - Height of the rectangle.
+ */
 QScriptValue qRectToScriptValue(QScriptEngine* engine, const QRect& rect) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("x", rect.x());
@@ -568,22 +576,6 @@ void qRectFromScriptValue(const QScriptValue &object, QRect& rect) {
     rect.setHeight(object.property("height").toVariant().toInt());
 }
 
-QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color) {
-    QScriptValue obj = engine->newObject();
-    obj.setProperty("red", color.red);
-    obj.setProperty("green", color.green);
-    obj.setProperty("blue", color.blue);
-    return obj;
-}
-
-/**jsdoc
- * Defines a rectangular portion of an image or screen.
- * @typedef {object} Rect
- * @property {number} x - Integer left, x-coordinate value.
- * @property {number} y - Integer top, y-coordinate value.
- * @property {number} width - Integer width of the rectangle.
- * @property {number} height - Integer height of the rectangle.
- */
 QVariant qRectToVariant(const QRect& rect) {
     QVariantMap obj;
     obj["x"] = rect.x();
@@ -615,6 +607,61 @@ QRect qRectFromVariant(const QVariant& object) {
     return qRectFromVariant(object, valid);
 }
 
+QScriptValue qRectFToScriptValue(QScriptEngine* engine, const QRectF& rect) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", rect.x());
+    obj.setProperty("y", rect.y());
+    obj.setProperty("width", rect.width());
+    obj.setProperty("height", rect.height());
+    return obj;
+}
+
+void qRectFFromScriptValue(const QScriptValue &object, QRectF& rect) {
+    rect.setX(object.property("x").toVariant().toFloat());
+    rect.setY(object.property("y").toVariant().toFloat());
+    rect.setWidth(object.property("width").toVariant().toFloat());
+    rect.setHeight(object.property("height").toVariant().toFloat());
+}
+
+QVariant qRectFToVariant(const QRectF& rect) {
+    QVariantMap obj;
+    obj["x"] = rect.x();
+    obj["y"] = rect.y();
+    obj["width"] = rect.width();
+    obj["height"] = rect.height();
+    return obj;
+}
+
+QRectF qRectFFromVariant(const QVariant& objectVar, bool& valid) {
+    QVariantMap object = objectVar.toMap();
+    QRectF rect;
+    valid = false;
+    rect.setX(object["x"].toFloat(&valid));
+    if (valid) {
+        rect.setY(object["y"].toFloat(&valid));
+    }
+    if (valid) {
+        rect.setWidth(object["width"].toFloat(&valid));
+    }
+    if (valid) {
+        rect.setHeight(object["height"].toFloat(&valid));
+    }
+    return rect;
+}
+
+QRectF qRectFFromVariant(const QVariant& object) {
+    bool valid;
+    return qRectFFromVariant(object, valid);
+}
+
+
+QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("red", color.red);
+    obj.setProperty("green", color.green);
+    obj.setProperty("blue", color.blue);
+    return obj;
+}
 
 void xColorFromScriptValue(const QScriptValue &object, xColor& color) {
     if (!object.isValid()) {

@@ -26,6 +26,7 @@
 #include <avatars-renderer/ScriptAvatar.h>
 #include <AudioInjector.h>
 #include <workload/Space.h>
+#include <EntitySimulation.h> // for SetOfEntities
 
 #include "AvatarMotionState.h"
 #include "MyAvatar.h"
@@ -187,6 +188,7 @@ public:
     void queuePhysicsChange(const OtherAvatarPointer& avatar);
     void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
     void handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction);
+    void removeDeadAvatarEntities(const SetOfEntities& deadEntities);
 
 public slots:
     /**jsdoc

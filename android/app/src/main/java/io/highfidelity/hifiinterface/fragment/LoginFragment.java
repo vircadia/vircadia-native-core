@@ -30,6 +30,7 @@ public class LoginFragment extends Fragment {
     private EditText mPassword;
     private TextView mError;
     private TextView mForgotPassword;
+    private TextView mSignup;
     private Button mLoginButton;
 
     private ProgressDialog mDialog;
@@ -58,10 +59,12 @@ public class LoginFragment extends Fragment {
         mError = rootView.findViewById(R.id.error);
         mLoginButton = rootView.findViewById(R.id.loginButton);
         mForgotPassword = rootView.findViewById(R.id.forgotPassword);
+        mSignup = rootView.findViewById(R.id.signupButton);
 
         mLoginButton.setOnClickListener(view -> login());
 
         mForgotPassword.setOnClickListener(view -> forgotPassword());
+        mSignup.setOnClickListener(view -> signup());
 
         mPassword.setOnEditorActionListener(
                 (textView, actionId, keyEvent) -> {
@@ -118,6 +121,12 @@ public class LoginFragment extends Fragment {
             hideError();
             showActivityIndicator();
             nativeLogin(username, password, getActivity());
+        }
+    }
+
+    public void signup() {
+        if (mListener != null) {
+            mListener.onSignupRequested();
         }
     }
 
@@ -182,6 +191,7 @@ public class LoginFragment extends Fragment {
 
     public interface OnLoginInteractionListener {
         void onLoginCompleted();
+        void onSignupRequested();
     }
 
 }

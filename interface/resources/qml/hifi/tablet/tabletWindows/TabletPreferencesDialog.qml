@@ -122,6 +122,22 @@ Item {
                         }
                     }
 
+                    // Runtime customization of preferences.
+                    var locomotionPreference = findPreference("VR Movement", "Teleporting only / Walking and teleporting");
+                    var flyingPreference = findPreference("VR Movement", "Jumping and flying");
+                    if (locomotionPreference && flyingPreference) {
+                        flyingPreference.visible = (locomotionPreference.value === 1);
+                        locomotionPreference.valueChanged.connect(function () {
+                            flyingPreference.visible = (locomotionPreference.value === 1);
+                        });
+                    }
+                    if (HMD.isHeadControllerAvailable("Oculus")) {
+                        var boundariesPreference = findPreference("VR Movement", "Show room boundaries while teleporting");
+                        if (boundariesPreference) {
+                            boundariesPreference.label = "Show room boundaries and sensors while teleporting";
+                        }
+                    }
+
                     if (sections.length) {
                         // Default sections to expanded/collapsed as appropriate for dialog.
                         if (sections.length === 1) {
@@ -233,5 +249,33 @@ Item {
                 scrollView.contentY += delta;
             }
         }
+    }
+
+    function findPreference(category, name) {
+        var section = null;
+        var preference = null;
+        var i;
+
+        // Find category section.
+        i = 0;
+        while (!section && i < sections.length) {
+            if (sections[i].name === category) {
+                section = sections[i];
+            }
+            i++;
+        }
+
+        // Find named preference.
+        if (section) {
+            i = 0;
+            while (!preference && i < section.preferences.length) {
+                if (section.preferences[i].preference && section.preferences[i].preference.name === name) {
+                    preference = section.preferences[i];
+                }
+                i++;
+            }
+        }
+
+        return preference;
     }
 }

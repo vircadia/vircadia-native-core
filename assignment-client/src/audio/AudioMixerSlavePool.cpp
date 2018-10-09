@@ -74,13 +74,11 @@ void AudioMixerSlavePool::processPackets(ConstIter begin, ConstIter end) {
     run(begin, end);
 }
 
-void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
+void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame, int numToRetain) {
     _function = &AudioMixerSlave::mix;
     _configure = [=](AudioMixerSlave& slave) {
-        slave.configureMix(_begin, _end, _frame, _throttlingRatio);
+        slave.configureMix(_begin, _end, frame, numToRetain);
     };
-    _frame = frame;
-    _throttlingRatio = throttlingRatio;
 
     run(begin, end);
 }
@@ -167,7 +165,7 @@ void AudioMixerSlavePool::resize(int numThreads) {
     if (numThreads > _numThreads) {
         // start new slaves
         for (int i = 0; i < numThreads - _numThreads; ++i) {
-            auto slave = new AudioMixerSlaveThread(*this);
+            auto slave = new AudioMixerSlaveThread(*this, _workerSharedData);
             slave->start();
             _slaves.emplace_back(slave);
         }

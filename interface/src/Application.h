@@ -183,6 +183,8 @@ public:
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
 
+    bool isMissingSequenceNumbers() { return _isMissingSequenceNumbers; }
+
     const ConicalViewFrustums& getConicalViews() const override { return _conicalViews; }
 
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
@@ -229,6 +231,8 @@ public:
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
+
+     Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
@@ -525,7 +529,7 @@ private:
     bool importFromZIP(const QString& filePath);
     bool importImage(const QString& urlString);
 
-    bool nearbyEntitiesAreReadyForPhysics();
+    bool gpuTextureMemSizeStable();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
     void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);
 
@@ -580,6 +584,8 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     QElapsedTimer _lastTimeRendered;
+
+    int _minimumGPUTextureMemSizeStabilityCount { 30 };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulationPointer _entitySimulation;
@@ -709,6 +715,8 @@ private:
 
     bool _fakedMouseEvent { false };
 
+    bool _isMissingSequenceNumbers { false };
+
     void checkChangeCursor();
     mutable QMutex _changeCursorLock { QMutex::Recursive };
     Qt::CursorShape _desiredCursor{ Qt::BlankCursor };
@@ -719,8 +727,10 @@ private:
 
     std::atomic<uint32_t> _fullSceneReceivedCounter { 0 }; // how many times have we received a full-scene octree stats packet
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
-    uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
-    uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
+
+    qint64 _gpuTextureMemSizeStabilityCount { 0 };
+    qint64 _gpuTextureMemSizeAtLastCheck { 0 };
+
     quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };

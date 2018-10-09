@@ -275,7 +275,11 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             if (inView && avatar->hasNewJointData()) {
                 numAvatarsUpdated++;
             }
-            avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
+            auto transitStatus = avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
+            if (avatar->getIsNewAvatar() && (transitStatus == AvatarTransit::Status::START_TRANSIT || transitStatus == AvatarTransit::Status::ABORT_TRANSIT)) {
+                avatar->_transit.reset();
+                avatar->setIsNewAvatar(false);
+            }
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(renderTransaction);
             avatar->updateSpaceProxy(workloadTransaction);
@@ -448,6 +452,17 @@ void AvatarManager::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction
     transaction.clear();
 }
 
+void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) {
+    for (auto entity : deadEntities) {
+        QUuid sessionID = entity->getOwningAvatarID();
+        AvatarSharedPointer avatar = getAvatarBySessionID(sessionID);
+        if (avatar) {
+            const bool REQUIRES_REMOVAL_FROM_TREE = false;
+            avatar->clearAvatarEntity(entity->getID(), REQUIRES_REMOVAL_FROM_TREE);
+        }
+    }
+}
+
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     auto avatar = std::static_pointer_cast<OtherAvatar>(removedAvatar);
     {
@@ -505,14 +520,16 @@ void AvatarManager::clearOtherAvatars() {
 
 void AvatarManager::deleteAllAvatars() {
     assert(_avatarsToChangeInPhysics.empty());
-
-    QWriteLocker locker(&_hashLock);
-    AvatarHash::iterator avatarIterator =  _avatarHash.begin();
+    QReadLocker locker(&_hashLock);
+    AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        auto avatar = std::static_pointer_cast<OtherAvatar>(avatarIterator.value());
+        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
         avatarIterator = _avatarHash.erase(avatarIterator);
         avatar->die();
-        assert(!avatar->_motionState);
+        if (avatar != _myAvatar) {
+            auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
+            assert(!otherAvatar->_motionState);
+        }
     }
 }
 

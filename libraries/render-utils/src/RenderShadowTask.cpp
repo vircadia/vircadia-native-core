@@ -249,22 +249,22 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
             batch.setViewTransform(viewMat, false);
 
             auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
-            auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
-            auto shadowSkinnedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned().withDualQuatSkinned());
+            auto shadowDeformedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withDeformed());
+            auto shadowDeformedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withDeformed().withDualQuatSkinned());
 
-            std::vector<ShapeKey> skinnedShapeKeys{};
-            std::vector<ShapeKey> skinnedDQShapeKeys{};
+            std::vector<ShapeKey> deformedShapeKeys{};
+            std::vector<ShapeKey> deformedDQShapeKeys{};
             std::vector<ShapeKey> ownPipelineShapeKeys{};
 
             // Iterate through all inShapes and render the unskinned
             args->_shapePipeline = shadowPipeline;
             batch.setPipeline(shadowPipeline->pipeline);
             for (auto items : inShapes) {
-                if (items.first.isSkinned()) {
+                if (items.first.isDeformed()) {
                     if (items.first.isDualQuatSkinned()) {
-                        skinnedDQShapeKeys.push_back(items.first);
+                        deformedDQShapeKeys.push_back(items.first);
                     } else {
-                        skinnedShapeKeys.push_back(items.first);
+                        deformedShapeKeys.push_back(items.first);
                     }
                 } else if (!items.first.hasOwnPipeline()) {
                     renderItems(renderContext, items.second);
@@ -274,16 +274,16 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
             }
 
             // Reiterate to render the skinned
-            args->_shapePipeline = shadowSkinnedPipeline;
-            batch.setPipeline(shadowSkinnedPipeline->pipeline);
-            for (const auto& key : skinnedShapeKeys) {
+            args->_shapePipeline = shadowDeformedPipeline;
+            batch.setPipeline(shadowDeformedPipeline->pipeline);
+            for (const auto& key : deformedShapeKeys) {
                 renderItems(renderContext, inShapes.at(key));
             }
 
             // Reiterate to render the DQ skinned
-            args->_shapePipeline = shadowSkinnedDQPipeline;
-            batch.setPipeline(shadowSkinnedDQPipeline->pipeline);
-            for (const auto& key : skinnedDQShapeKeys) {
+            args->_shapePipeline = shadowDeformedDQPipeline;
+            batch.setPipeline(shadowDeformedDQPipeline->pipeline);
+            for (const auto& key : deformedDQShapeKeys) {
                 renderItems(renderContext, inShapes.at(key));
             }
 
