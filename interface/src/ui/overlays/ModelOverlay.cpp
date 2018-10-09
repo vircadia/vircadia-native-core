@@ -127,6 +127,11 @@ void ModelOverlay::update(float deltatime) {
         _model->setGroupCulled(_isGroupCulled, scene);
         metaDirty = true;
     }
+    if (_lodEnabledDirty) {
+        _lodEnabledDirty = false;
+        _model->setLODEnabled(_isLODEnabled, scene);
+        metaDirty = true;
+    }
     if (metaDirty) {
         transaction.updateItem<Overlay>(getRenderItemID(), [](Overlay& data) {});
     }
@@ -191,6 +196,14 @@ void ModelOverlay::setGroupCulled(bool groupCulled) {
     }
 }
 
+void ModelOverlay::setLODEnabled(bool lodEnabled) {
+    if (lodEnabled != _isLODEnabled) {
+        _isLODEnabled = lodEnabled;
+        _lodEnabledDirty = true;
+    }
+}
+
+
 void ModelOverlay::setProperties(const QVariantMap& properties) {
     auto origPosition = getWorldPosition();
     auto origRotation = getWorldOrientation();
@@ -247,6 +260,12 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     if (groupCulledValue.isValid() && groupCulledValue.canConvert(QVariant::Bool)) {
         setGroupCulled(groupCulledValue.toBool());
     }
+
+    auto lodEnabledValue = properties["isLODEnabled"];
+    if (lodEnabledValue.isValid() && lodEnabledValue.canConvert(QVariant::Bool)) {
+        setLODEnabled(lodEnabledValue.toBool());
+    }
+
 
     // jointNames is read-only.
     // jointPositions is read-only.
@@ -764,6 +783,9 @@ render::ItemKey ModelOverlay::getKey() {
     auto builder = render::ItemKey::Builder(Base3DOverlay::getKey());
     if (_isGroupCulled) {
         builder.withMetaCullGroup();
+    }
+    if (!_isLODEnabled) {
+        builder.withLODDisabled();
     }
     return builder.build();
 }

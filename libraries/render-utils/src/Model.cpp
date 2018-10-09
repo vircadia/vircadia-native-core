@@ -973,6 +973,17 @@ bool Model::isGroupCulled() const {
     return _renderItemKeyGlobalFlags.isSubMetaCulled();
 }
 
+void Model::setLODEnabled(bool isLODEnabled, const render::ScenePointer& scene) {
+    if (Model::isLODEnabled() != isLODEnabled) {
+        auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
+        _renderItemKeyGlobalFlags = (isLODEnabled ? keyBuilder.withLODEnabled() : keyBuilder.withLODDisabled());
+        updateRenderItemsKey(scene);
+    }
+}
+bool Model::isLODEnabled() const {
+    return _renderItemKeyGlobalFlags.isLODEnabled();
+}
+
 const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
     return _renderItemKeyGlobalFlags;
 }
