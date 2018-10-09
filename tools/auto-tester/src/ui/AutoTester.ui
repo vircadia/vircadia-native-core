@@ -845,6 +845,53 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <tabstops>
+  <tabstop>userLineEdit</tabstop>
+  <tabstop>branchLineEdit</tabstop>
+  <tabstop>createTestsButton</tabstop>
+  <tabstop>createMDFileButton</tabstop>
+  <tabstop>createAllMDFilesButton</tabstop>
+  <tabstop>createTestsOutlineButton</tabstop>
+  <tabstop>createRecursiveScriptButton</tabstop>
+  <tabstop>createAllRecursiveScriptsButton</tabstop>
+  <tabstop>createTestAutoScriptButton</tabstop>
+  <tabstop>createAllTestAutoScriptsButton</tabstop>
+  <tabstop>hideTaskbarButton</tabstop>
+  <tabstop>showTaskbarButton</tabstop>
+  <tabstop>runNowButton</tabstop>
+  <tabstop>sundayCheckBox</tabstop>
+  <tabstop>wednesdayCheckBox</tabstop>
+  <tabstop>tuesdayCheckBox</tabstop>
+  <tabstop>thursdayCheckBox</tabstop>
+  <tabstop>fridayCheckBox</tabstop>
+  <tabstop>saturdayCheckBox</tabstop>
+  <tabstop>mondayCheckBox</tabstop>
+  <tabstop>timeEdit1</tabstop>
+  <tabstop>timeEdit2</tabstop>
+  <tabstop>timeEdit3</tabstop>
+  <tabstop>timeEdit4</tabstop>
+  <tabstop>timeEdit1checkBox</tabstop>
+  <tabstop>timeEdit2checkBox</tabstop>
+  <tabstop>timeEdit3checkBox</tabstop>
+  <tabstop>timeEdit4checkBox</tabstop>
+  <tabstop>setWorkingFolderButton</tabstop>
+  <tabstop>plainTextEdit</tabstop>
+  <tabstop>checkBoxServerless</tabstop>
+  <tabstop>checkBoxRunLatest</tabstop>
+  <tabstop>urlLineEdit</tabstop>
+  <tabstop>checkBoxInteractiveMode</tabstop>
+  <tabstop>evaluateTestsButton</tabstop>
+  <tabstop>updateTestRailRunResultsButton</tabstop>
+  <tabstop>createPythonScriptRadioButton</tabstop>
+  <tabstop>createTestRailRunButton</tabstop>
+  <tabstop>createTestRailTestCasesButton</tabstop>
+  <tabstop>createXMLScriptRadioButton</tabstop>
+  <tabstop>createWebPagePushButton</tabstop>
+  <tabstop>updateAWSCheckBox</tabstop>
+  <tabstop>awsURLLineEdit</tabstop>
+  <tabstop>closeButton</tabstop>
+  <tabstop>tabWidget</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
