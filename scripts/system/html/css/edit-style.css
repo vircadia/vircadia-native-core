@@ -448,10 +448,6 @@ input[type=checkbox]:checked + label:hover {
     border: 1.5pt solid black;
 }
 
-.shape-section, .light-section, .model-section, .web-section, .image-section, .hyperlink-section, .text-section, .zone-section, .material-section {
-    display: table;
-}
-
 #properties-list fieldset {
     position: relative;
     /* 0.1px on the top is to prevent margin collapsing between this and it's first child */
@@ -560,21 +556,6 @@ hr {
     padding-top: 2px;
 }
 
-.text-group[collapsed="true"] ~ .text-group,
-.zone-group[collapsed="true"] ~ .zone-group,
-.image-group[collapsed="true"] ~ .image-group,
-.web-group[collapsed="true"] ~ .web-group,
-.hyperlink-group[collapsed="true"] ~ .hyperlink-group,
-.spatial-group[collapsed="true"] ~ .spatial-group,
-.physical-group[collapsed="true"] ~ .physical-group,
-.behavior-group[collapsed="true"] ~ .behavior-group,
-.model-group[collapsed="true"] ~ .model-group,
-.material-group[collapsed="true"] ~ .material-group,
-.light-group[collapsed="true"] ~ .light-group {
-    display: none !important;
-}
-
-
 .property {
     display: table;
     width: 100%;
@@ -631,10 +612,6 @@ hr {
 
 .checkbox + .checkbox {
     margin-top: 0;
-}
-
-.checkbox-sub-props {
-    margin-top: 18px;
 }
 
 .property .number {
@@ -800,15 +777,6 @@ div.refresh input[type="button"] {
     display: none !important;
 }
 
-#property-color-control1 {
-    display: table-cell;
-    float: none;
-}
-
-#property-color-control1 + label  {
-    border-left: 20px transparent solid;
-}
-
 .rgb label {
     float: left;
     margin-top: 10px;
@@ -873,10 +841,10 @@ div.refresh input[type="button"] {
     font-family: FiraSans-SemiBold;
     font-size: 12px;
 }
-.tuple .red + label, .tuple .x + label, .tuple .pitch + label {
+.tuple .red + label, .tuple .x + label, .tuple .pitch + label, .tuple .width + label {
     color: #e2334d;
 }
-.tuple .green + label, .tuple .y + label, .tuple .yaw + label {
+.tuple .green + label, .tuple .y + label, .tuple .yaw + label, .tuple .height + label {
     color: #1ac567;
 }
 .tuple .blue + label, .tuple .z + label, .tuple .roll + label {
@@ -948,14 +916,6 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
     height: 28px;
     text-transform: uppercase;
     outline: none;
-}
-
-fieldset .checkbox-sub-props {
-     margin-top: 0;
- }
-
-fieldset .checkbox-sub-props .property:first-child {
-    margin-top: 0;
 }
 
 .column {
@@ -1298,51 +1258,48 @@ th#entity-hasScript {
     color: #afafaf;
 }
 
-
-#properties-list #properties-header {
-    display: table-row;
-    height: 28px;
-    border-top: none;
-    box-shadow: none;
-}
-
-#properties-header .property {
-    display: table-cell;
-    vertical-align: middle;
-}
-#properties-header .checkbox {
-    position: relative;
-    top: -1px;
-}
-
-#properties-header #type-icon {
+#base #property-type-icon {
     font-family: hifi-glyphs;
     font-size: 31px;
     color: #00b4ef;
     margin: -4px 12px -4px -2px;
     width: auto;
     display: none;
-    vertical-align: middle;
 }
 
-#properties-header #property-type {
+#base #property-type {
     padding: 5px 24px 5px 0;
-    border-right: 1px solid #808080;
-    height: 100%;
+	border-right: 1px solid #808080;
     width: auto;
     display: inline-block;
-    vertical-align: middle;
 }
 
-#properties-header .checkbox:last-child {
+#base #div-locked {
+    position: absolute;
+    top: 0px;
+	right: 140px;
+}
+
+#base #div-visible {
+    position: absolute;
+    top: 20px;
+	right: 20px;
+}
+
+#base .checkbox {
+    position: relative;
+    top: -1px;
+}
+
+#base .checkbox:last-child {
     padding-left: 24px;
 }
 
-#properties-header .checkbox label {
+#base .checkbox label {
     background-position-y: 1px;
 }
 
-#properties-header .checkbox label span {
+#base .checkbox label span {
     font-family: HiFi-Glyphs;
     font-size: 20px;
     padding-right: 6px;
@@ -1351,11 +1308,11 @@ th#entity-hasScript {
     top: -4px;
 }
 
-#properties-header input[type=checkbox]:checked + label span {
+#base input[type=checkbox]:checked + label span {
     color: #ffffff;
 }
 
-#properties-header + hr {
+#base + hr {
     margin-top: 12px;
 }
 
@@ -1371,30 +1328,21 @@ th#entity-hasScript {
     background-color: #00b4ef;
 }
 
-input#property-parent-id {
-    width: 340px;
-}
-
-input#dimension-rescale-button {
+input#property-scale-button-rescale {
     min-width: 50px;
     margin-left: 6px;
 }
-input#reset-to-natural-dimensions {
+input#property-scale-button-reset {
     margin-right: 0;
 }
 
-#animation-fps {
-    margin-top: 48px;
-}
-
-#userdata-clear,
-#materialdata-clear {
+#property-userData-button-clear,
+#property-materialData-button-clear {
     margin-bottom: 10px;
 }
 
-
-#static-userdata,
-#static-materialData {
+#property-userData-static,
+#property-materialData-static {
     display: none;
     z-index: 99;
     position: absolute;
@@ -1405,11 +1353,17 @@ input#reset-to-natural-dimensions {
     background-color: #2e2e2e;
 }
 
-#userdata-saved,
-#materialData-saved {
+#property-userData-saved,
+#property-materialData-saved {
     margin-top:5px;
     font-size:16px;
     display:none;
+}
+
+#property-serverScripts-status {
+	position: relative;
+	top: -3px;
+	right: -20px;
 }
 
 #properties-list #collision-info > fieldset:first-of-type {
@@ -1421,371 +1375,4 @@ input#reset-to-natural-dimensions {
 #properties-list {
     display: flex;
     flex-direction: column;
-}
-
-/* -----   Order of Menu items for Primitive   ----- */
-/* Entity Menu classes are specified by selected entity
-    within entityProperties.js
-*/
-#properties-list.ShapeMenu #general,
-#properties-list.BoxMenu #general,
-#properties-list.SphereMenu #general {
-    order: 1;
-}
-
-#properties-list.ShapeMenu #collision-info,
-#properties-list.BoxMenu #collision-info,
-#properties-list.SphereMenu #collision-info {
-    order: 2;
-}
-
-#properties-list.ShapeMenu #physical,
-#properties-list.BoxMenu #physical,
-#properties-list.SphereMenu #physical {
-    order: 3;
-}
-
-#properties-list.ShapeMenu #spatial,
-#properties-list.BoxMenu #spatial,
-#properties-list.SphereMenu #spatial {
-    order: 4;
-}
-
-#properties-list.ShapeMenu #behavior,
-#properties-list.BoxMenu #behavior,
-#properties-list.SphereMenu #behavior {
-    order: 5;
-}
-
-#properties-list.ShapeMenu #hyperlink,
-#properties-list.BoxMenu #hyperlink,
-#properties-list.SphereMenu #hyperlink {
-    order: 6;
-}
-
-#properties-list.ShapeMenu #material,
-#properties-list.BoxMenu #material,
-#properties-list.SphereMenu #material,
-#properties-list.ShapeMenu #light,
-#properties-list.BoxMenu #light,
-#properties-list.SphereMenu #light,
-#properties-list.ShapeMenu #model,
-#properties-list.BoxMenu #model,
-#properties-list.SphereMenu #model,
-#properties-list.ShapeMenu #zone,
-#properties-list.BoxMenu #zone,
-#properties-list.SphereMenu #zone,
-#properties-list.ShapeMenu #text,
-#properties-list.BoxMenu #text,
-#properties-list.SphereMenu #text,
-#properties-list.ShapeMenu #image,
-#properties-list.BoxMenu #image,
-#properties-list.SphereMenu #image,
-#properties-list.ShapeMenu #web,
-#properties-list.BoxMenu #web,
-#properties-list.SphereMenu #web {
-    display: none;
-}
-
-/* -----   ParticleEffectMenu   ----- */
-#properties-list.ParticleEffectMenu #general {
-    order: 1;
-}
-#properties-list.ParticleEffectMenu #collision-info {
-    order: 2;
-}
-#properties-list.ParticleEffectMenu #physical {
-    order: 3;
-}
-#properties-list.ParticleEffectMenu #spatial {
-    order: 4;
-}
-#properties-list.ParticleEffectMenu #behavior {
-    order: 5;
-}
-
-/* items to hide    */
-#properties-list.ParticleEffectMenu #material,
-#properties-list.ParticleEffectMenu #base-color-section,
-#properties-list.ParticleEffectMenu #hyperlink,
-#properties-list.ParticleEffectMenu #light,
-#properties-list.ParticleEffectMenu #model,
-#properties-list.ParticleEffectMenu #shape-list,
-#properties-list.ParticleEffectMenu #text,
-#properties-list.ParticleEffectMenu #web,
-#properties-list.ParticleEffectMenu #image,
-#properties-list.ParticleEffectMenu #zone {
-    display: none;
-}
-
-/* -----   Order of Menu items for Light   ----- */
-#properties-list.LightMenu #general {
-    order: 1;
-}
-#properties-list.LightMenu #light {
-    order: 2;
-}
-#properties-list.LightMenu #physical {
-    order: 3;
-}
-#properties-list.LightMenu #spatial {
-    order: 4;
-}
-#properties-list.LightMenu #behavior {
-    order: 5;
-}
-#properties-list.LightMenu #collision-info {
-    order: 6;
-}
-#properties-list.LightMenu #hyperlink {
-    order: 7;
-}
-/* sections to hide    */
-#properties-list.LightMenu #material,
-#properties-list.LightMenu #model,
-#properties-list.LightMenu #zone,
-#properties-list.LightMenu #text,
-#properties-list.LightMenu #image,
-#properties-list.LightMenu #web {
-    display: none;
-}
-/* items to hide */
-#properties-list.LightMenu #shape-list,
-#properties-list.LightMenu #base-color-section {
-    display: none
-}
-
-
-/* -----   Order of Menu items for Model   ----- */
-#properties-list.ModelMenu #general {
-    order: 1;
-}
-#properties-list.ModelMenu #model {
-    order: 2;
-}
-#properties-list.ModelMenu #collision-info {
-    order: 3;
-}
-#properties-list.ModelMenu #physical {
-    order: 4;
-}
-#properties-list.ModelMenu #spatial {
-    order: 5;
-}
-#properties-list.ModelMenu #behavior {
-    order: 6;
-}
-#properties-list.ModelMenu #hyperlink {
-    order: 7;
-}
-/* sections to hide    */
-#properties-list.ModelMenu #material,
-#properties-list.ModelMenu #light,
-#properties-list.ModelMenu #zone,
-#properties-list.ModelMenu #text,
-#properties-list.ModelMenu #image,
-#properties-list.ModelMenu #web {
-    display: none;
-}
-/* items to hide */
-#properties-list.ModelMenu #shape-list,
-#properties-list.ModelMenu #base-color-section {
-    display: none
-}
-
-
-/* -----   Order of Menu items for Zone   ----- */
-#properties-list.ZoneMenu #general {
-    order: 1;
-}
-#properties-list.ZoneMenu #zone {
-    order: 2;
-}
-#properties-list.ZoneMenu #physical {
-    order: 3;
-}
-#properties-list.ZoneMenu #spatial {
-    order: 4;
-}
-#properties-list.ZoneMenu #behavior {
-    order: 5;
-}
-#properties-list.ZoneMenu #collision-info {
-    order: 6;
-}
-#properties-list.ZoneMenu #hyperlink {
-    order: 7;
-}
-/* sections to hide    */
-#properties-list.ZoneMenu #material,
-#properties-list.ZoneMenu #light,
-#properties-list.ZoneMenu #model,
-#properties-list.ZoneMenu #text,
-#properties-list.ZoneMenu #image,
-#properties-list.ZoneMenu #web {
-    display: none;
-}
-/* items to hide */
-#properties-list.ZoneMenu #shape-list,
-#properties-list.ZoneMenu #base-color-section {
-    display: none
-}
-
-
-/* -----   Order of Menu items for Image   ----- */
-#properties-list.ImageMenu #general {
-    order: 1;
-}
-#properties-list.ImageMenu #image {
-    order: 2;
-}
-#properties-list.ImageMenu #collision-info {
-    order: 3;
-}
-#properties-list.ImageMenu #physical {
-    order: 4;
-}
-#properties-list.ImageMenu #spatial {
-    order: 5;
-}
-#properties-list.ImageMenu #behavior {
-    order: 6;
-}
-#properties-list.ImageMenu #hyperlink {
-    order: 7;
-}
-/* sections to hide    */
-#properties-list.ImageMenu #material,
-#properties-list.ImageMenu #light,
-#properties-list.ImageMenu #model,
-#properties-list.ImageMenu #zone,
-#properties-list.ImageMenu #web,
-#properties-list.ImageMenu #text {
-    display: none;
-}
-/* items to hide */
-#properties-list.ImageMenu #shape-list,
-#properties-list.ImageMenu #base-color-section {
-    display: none;
-}
-
-
-/* -----   Order of Menu items for Web   ----- */
-#properties-list.WebMenu #general {
-    order: 1;
-}
-#properties-list.WebMenu #web {
-    order: 2;
-}
-#properties-list.WebMenu #collision-info {
-    order: 3;
-}
-#properties-list.WebMenu #physical {
-    order: 4;
-}
-#properties-list.WebMenu #spatial {
-    order: 5;
-}
-#properties-list.WebMenu #behavior {
-    order: 6;
-}
-#properties-list.WebMenu #hyperlink {
-    order: 7;
-}
-/* sections to hide    */
-#properties-list.WebMenu #material,
-#properties-list.WebMenu #light,
-#properties-list.WebMenu #model,
-#properties-list.WebMenu #zone,
-#properties-list.WebMenu #image,
-#properties-list.WebMenu #text {
-    display: none;
-}
-/* items to hide */
-#properties-list.WebMenu #shape-list,
-#properties-list.WebMenu #base-color-section {
-    display: none;
-}
-
-
-
-/* -----   Order of Menu items for Text   ----- */
-#properties-list.TextMenu #general {
-    order: 1;
-}
-#properties-list.TextMenu #text {
-    order: 2;
-}
-#properties-list.TextMenu #collision-info {
-    order: 3;
-}
-#properties-list.TextMenu #physical {
-    order: 4;
-}
-#properties-list.TextMenu #spatial {
-    order: 5;
-}
-#properties-list.TextMenu #behavior {
-    order: 6;
-}
-#properties-list.TextMenu #hyperlink {
-    order: 7;
-}
-/* sections to hide    */
-#properties-list.TextMenu #material,
-#properties-list.TextMenu #light,
-#properties-list.TextMenu #model,
-#properties-list.TextMenu #zone,
-#properties-list.TextMenu #image,
-#properties-list.TextMenu #web {
-    display: none;
-}
-/* items to hide */
-#properties-list.TextMenu #shape-list,
-#properties-list.TextMenu #base-color-section {
-    display: none
-}
-
-/* -----   Order of Menu items for Material   ----- */
-#properties-list.MaterialMenu #general {
-    order: 1;
-}
-#properties-list.MaterialMenu #material {
-    order: 2;
-}
-#properties-list.MaterialMenu #spatial {
-    order: 3;
-}
-#properties-list.MaterialMenu #hyperlink {
-    order: 4;
-}
-#properties-list.MaterialMenu #behavior {
-    order: 5;
-}
-
-/* sections to hide    */
-#properties-list.MaterialMenu #physical,
-#properties-list.MaterialMenu #collision-info,
-#properties-list.MaterialMenu #model,
-#properties-list.MaterialMenu #light,
-#properties-list.MaterialMenu #zone,
-#properties-list.MaterialMenu #text,
-#properties-list.MaterialMenu #web,
-#properties-list.MaterialMenu #image {
-    display: none;
-}
-/* items to hide */
-#properties-list.MaterialMenu #shape-list,
-#properties-list.MaterialMenu #base-color-section {
-    display: none
-}
-
-
-/* Currently always hidden */
-#properties-list #polyvox {
-    display: none;
-}
-
-.skybox-section {
-    display: none;
 }
