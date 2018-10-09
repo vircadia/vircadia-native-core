@@ -775,7 +775,7 @@ const GROUPS = [
             {
                 label: "Can cast shadow",
                 type: "bool",
-                propertyName: "castShadow",
+                propertyName: "canCastShadow",
             },
             {
                 label: "Script",
@@ -954,12 +954,6 @@ function disableProperties() {
         if ($('#property-materialData-editor').css('display') === "block") {
             showStaticMaterialData();
         }
-    }
-}
-
-function showElements(els, show) {
-    for (var i = 0; i < els.length; i++) {
-        els[i].style.display = (show) ? 'table' : 'none';
     }
 }
 
@@ -1688,11 +1682,17 @@ function resetProperties() {
         for (let propertyToHide in propertyShowRules) {
             let elPropertyToHide = elPropertyElements[propertyToHide];
             if (elPropertyToHide) {
-                let parentNode = elPropertyToHide.parentNode;
-                if (parentNode === undefined && elPropertyToHide instanceof Array) {
-                    parentNode = elPropertyToHide[0].parentNode;
+                let nodeToHide = elPropertyToHide;
+                if (elPropertyToHide.nodeName !== "DIV") {
+                    let parentNode = elPropertyToHide.parentNode;
+                    if (parentNode === undefined && elPropertyToHide instanceof Array) {
+                        parentNode = elPropertyToHide[0].parentNode;
+                    }
+                    if (parentNode !== undefined) {
+                        nodeToHide = parentNode;
+                    }
                 }
-                parentNode.style.display = "none";
+                nodeToHide.style.display = "none";
             }
         }
     }
@@ -1705,13 +1705,13 @@ function loaded() {
         GROUPS.forEach(function(group) {            
             let elGroup;
             if (group.addToGroup !== undefined) {
-                let fieldset = document.getElementById(group.addToGroup);
+                let fieldset = document.getElementById("properties-" + group.addToGroup);
                 elGroup = document.createElement('div');
                 fieldset.appendChild(elGroup);
             } else {
                 elGroup = document.createElement('fieldset');
                 elGroup.setAttribute("class", "major");
-                elGroup.setAttribute("id", group.id);
+                elGroup.setAttribute("id", "properties-" + group.id);
                 elPropertiesList.appendChild(elGroup);
             }       
 
@@ -1739,7 +1739,7 @@ function loaded() {
                     elProperty.setAttribute("class", "sub-section-header");
                 } else {
                     elProperty = document.createElement('div');
-                    elProperty.setAttribute("id", "div-" + propertyName);
+                    elProperty.setAttribute("id", "div-" + propertyID);
                 }
                 
                 if (group.twoColumn && property.column !== undefined && property.column !== -1) {
@@ -1944,6 +1944,7 @@ function loaded() {
                         
                         let elInput = document.createElement('select');
                         elInput.setAttribute("id", propertyID);
+                        elInput.setAttribute("propertyName", propertyName);
                         
                         for (let optionKey in property.options) {
                             let option = document.createElement('option');
@@ -2035,7 +2036,7 @@ function loaded() {
                         break;
                     }
                     case 'buttons': {
-                        elProperty.setAttribute("class", "property Text");
+                        elProperty.setAttribute("class", "property text");
                         
                         let hasLabel = property.label !== undefined;
                         if (hasLabel) {
@@ -2234,7 +2235,7 @@ function loaded() {
                                         elProperty[0].value = (propertyValue.x * 1 / elProperty[0].getAttribute("multiplier")).toFixed(4);
                                         elProperty[1].value = (propertyValue.y * 1 / elProperty[1].getAttribute("multiplier")).toFixed(4);
                                         if (elProperty[2] !== undefined) {
-                                            elProperty[2].value = (propertyValue.z * 1 / elProperty[1].getAttribute("multiplier")).toFixed(4);
+                                            elProperty[2].value = (propertyValue.z * 1 / elProperty[2].getAttribute("multiplier")).toFixed(4);
                                         }
                                     } else if (elProperty.length === 4) {
                                         // color is array of color picker and 3 input numbers
@@ -2262,8 +2263,9 @@ function loaded() {
                             } else if (elProperty.nodeName === "TEXTAREA") {
                                 elProperty.value = propertyValue;
                                 setTextareaScrolling(elProperty);
-                            } else if (elProperty.nodeName === "SELECT") { // dropdown
+                            } else if (elProperty.nodeName === "DT") { // dropdown
                                 elProperty.value = propertyValue;
+                                setDropdownText(elProperty);
                             } else {
                                 elProperty.value = propertyValue;
                             }
@@ -2275,11 +2277,17 @@ function loaded() {
                                     let show = String(propertyValue) === String(showIfThisPropertyValue);
                                     let elPropertyToShow = elPropertyElements[propertyToShow];
                                     if (elPropertyToShow) {
-                                        let parentNode = elPropertyToShow.parentNode;
-                                        if (parentNode === undefined && elPropertyToShow instanceof Array) {
-                                            parentNode = elPropertyToShow[0].parentNode;
+                                        let nodeToShow = elPropertyToShow;
+                                        if (elPropertyToShow.nodeName !== "DIV") {
+                                            let parentNode = elPropertyToShow.parentNode;
+                                            if (parentNode === undefined && elPropertyToShow instanceof Array) {
+                                                parentNode = elPropertyToShow[0].parentNode;
+                                            }
+                                            if (parentNode !== undefined) {
+                                                nodeToShow = parentNode;
+                                            }
                                         }
-                                        parentNode.style.display = show ? "block" : "none";
+                                        nodeToShow.style.display = show ? "table" : "none";
                                     }
                                 }
                             }
@@ -2523,6 +2531,107 @@ function loaded() {
             /* FIXME: Detect and update textarea scrolling attribute on resize. Unfortunately textarea doesn't have a resize
             event; mouseup is a partial stand-in but doesn't handle resizing if mouse moves outside textarea rectangle. */
             curTextAreaElement.addEventListener("mouseup", textareaOnChangeEvent, false);
+        }
+        
+        // Dropdowns
+        // For each dropdown the following replacement is created in place of the original dropdown...
+        // Structure created:
+        //  <dl dropped="true/false">
+        //      <dt name="?" id="?" value="?"><span>display text</span><span>carat</span></dt>
+        //      <dd>
+        //          <ul>
+        //              <li value="??>display text</li>
+        //              <li>...</li>
+        //          </ul>
+        //      </dd>
+        //  </dl>
+        function setDropdownText(dropdown) {
+            let lis = dropdown.parentNode.getElementsByTagName("li");
+            let text = "";
+            for (let i = 0; i < lis.length; i++) {
+                if (String(lis[i].getAttribute("value")) === String(dropdown.value)) {
+                    text = lis[i].textContent;
+                }
+            }
+            dropdown.firstChild.textContent = text;
+        }
+
+        function toggleDropdown(event) {
+            let element = event.target;
+            if (element.nodeName !== "DT") {
+                element = element.parentNode;
+            }
+            element = element.parentNode;
+            let isDropped = element.getAttribute("dropped");
+            element.setAttribute("dropped", isDropped !== "true" ? "true" : "false");
+        }
+
+        function setDropdownValue(event) {
+            let dt = event.target.parentNode.parentNode.previousSibling;
+            dt.value = event.target.getAttribute("value");
+            dt.firstChild.textContent = event.target.textContent;
+
+            dt.parentNode.setAttribute("dropped", "false");
+
+            let evt = document.createEvent("HTMLEvents");
+            evt.initEvent("change", true, true);
+            dt.dispatchEvent(evt);
+        }
+    
+        let elDropdowns = document.getElementsByTagName("select");
+        for (let dropDownIndex = 0; dropDownIndex < elDropdowns.length; ++dropDownIndex) {
+            let options = elDropdowns[dropDownIndex].getElementsByTagName("option");
+            let selectedOption = 0;
+            for (let optionIndex = 0; optionIndex < options.length; ++optionIndex) {
+                if (options[optionIndex].getAttribute("selected") === "selected") {
+                    selectedOption = optionIndex;
+                    // TODO:  Shouldn't there be a break here?
+                }
+            }
+            let div = elDropdowns[dropDownIndex].parentNode;
+
+            let dl = document.createElement("dl");
+            div.appendChild(dl);
+
+            let dt = document.createElement("dt");
+            dt.name = elDropdowns[dropDownIndex].name;
+            dt.id = elDropdowns[dropDownIndex].id;
+            dt.addEventListener("click", toggleDropdown, true);
+            dl.appendChild(dt);
+
+            let span = document.createElement("span");
+            span.setAttribute("value", options[selectedOption].value);
+            span.textContent = options[selectedOption].firstChild.textContent;
+            dt.appendChild(span);
+
+            let spanCaratDown = document.createElement("span");
+            spanCaratDown.textContent = "5"; // caratDn
+            dt.appendChild(spanCaratDown);
+
+            let dd = document.createElement("dd");
+            dl.appendChild(dd);
+
+            let ul = document.createElement("ul");
+            dd.appendChild(ul);
+
+            for (let listOptionIndex = 0; listOptionIndex < options.length; ++listOptionIndex) {
+                let li = document.createElement("li");
+                li.setAttribute("value", options[listOptionIndex].value);
+                li.textContent = options[listOptionIndex].firstChild.textContent;
+                li.addEventListener("click", setDropdownValue);
+                ul.appendChild(li);
+            }
+            
+            let propertyName = elDropdowns[dropDownIndex].getAttribute("propertyName");
+            elPropertyElements[propertyName] = dt;
+            dt.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
+        }
+        
+        elDropdowns = document.getElementsByTagName("select");
+        while (elDropdowns.length > 0) {
+            var el = elDropdowns[0];
+            el.parentNode.removeChild(el);
+            elDropdowns = document.getElementsByTagName("select");
         }
             
         document.addEventListener("keydown", function (keyDown) {
