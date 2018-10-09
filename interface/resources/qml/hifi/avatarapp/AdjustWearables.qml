@@ -68,7 +68,7 @@ Rectangle {
                 wearable.text = extractTitleFromUrl(wearable.modelURL);
             } else if (wearable.materialURL) {
                 var materialUrlOrJson = '';
-                if (wearable.materialURL !== 'materialData') {
+                if (!wearable.materialURL.startsWith('materialData')) {
                     materialUrlOrJson = extractTitleFromUrl(wearable.materialURL);
                 } else if (wearable.materialData) {
                     materialUrlOrJson = JSON.stringify(JSON.parse(wearable.materialData))
