@@ -13,7 +13,9 @@
 
 #include <QtCore/QObject>
 #include <DependencyManager.h>
-
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <sapi.h>      // SAPI
 #include <sphelper.h>  // SAPI Helper
 
@@ -68,9 +70,6 @@ private:
 
     // Default voice token
     CComPtr<ISpObjectToken> m_voiceToken;
-
-    CComPtr<ISpStream> outputStream;
-    CComPtr<IStream> cpIStream;
 };
 
 #endif // hifi_SpeechScriptingInterface_h
