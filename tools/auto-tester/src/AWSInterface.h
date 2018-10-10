@@ -43,7 +43,7 @@ public:
     void openTable(QTextStream& stream);
     void closeTable(QTextStream& stream);
 
-    void createEntry(int index, const QString& testResult, QTextStream& stream);
+    void createEntry(int index, const QString& testResult, QTextStream& stream, const bool isFailure);
 
     void updateAWS();
 
@@ -51,10 +51,12 @@ private:
     QString _testResults;
     QString _workingDirectory;
     QString _resultsFolder;
-    QString _htmlFolder;
+    QString _htmlFailuresFolder;
+    QString _htmlSuccessesFolder;
     QString _htmlFilename;
 
-    const QString FAILURE_FOLDER{ "failures" };
+    const QString FAILURES_FOLDER{ "failures" };
+    const QString SUCCESSES_FOLDER{ "successes" };
     const QString HTML_FILENAME{ "TestResults.html" };
 
     BusyWindow _busyWindow;

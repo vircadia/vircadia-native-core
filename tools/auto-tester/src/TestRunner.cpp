@@ -9,7 +9,6 @@
 //
 #include "TestRunner.h"
 
-#include <QHostInfo>
 #include <QThread>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
@@ -368,7 +367,7 @@ void TestRunner::evaluateResults() {
 }
 
 void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder, int numberOfFailures) {
-    addBuildNumberAndHostnameToResults(zippedFolder);
+    addBuildNumberToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
 
     updateStatusLabel("Testing complete");
@@ -393,16 +392,12 @@ void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder, int nu
     _runNow->setEnabled(true);
 }
 
-void TestRunner::addBuildNumberAndHostnameToResults(QString zippedFolderName) {
+void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
     QString augmentedFilename;
     if (!_runLatest->isChecked()) {
-        QStringList filenameParts = zippedFolderName.split(".");
-        augmentedFilename = 
-            filenameParts[0] + "(" + getPRNumberFromURL(_url->text()) + ")[" + QHostInfo::localHostName() + "]." + filenameParts[1];
+        augmentedFilename = zippedFolderName.replace("local", getPRNumberFromURL(_url->text()));
     } else {
-        QStringList filenameParts = zippedFolderName.split(".");
-        augmentedFilename =
-            filenameParts[0] + "(" + _buildInformation.build + ")[" + QHostInfo::localHostName() + "]." + filenameParts[1];
+        augmentedFilename = zippedFolderName.replace("local", _buildInformation.build);
     }
     QFile::rename(zippedFolderName, augmentedFilename);
 }

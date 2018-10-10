@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <QtCore/QTextStream>
 #include <QDirIterator>
+#include <QHostInfo>
 #include <QImageReader>
 #include <QImageWriter>
 
@@ -37,7 +38,7 @@ Test::Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode) {
 
 bool Test::createTestResultsFolderPath(const QString& directory) {
     QDateTime now = QDateTime::currentDateTime();
-    _testResultsFolderPath =  directory + "/" + TEST_RESULTS_FOLDER + "--" + now.toString(DATETIME_FORMAT);
+    _testResultsFolderPath =  directory + "/" + TEST_RESULTS_FOLDER + "--" + now.toString(DATETIME_FORMAT) + "(local)[" + QHostInfo::localHostName() + "]";
     QDir testResultsFolder(_testResultsFolderPath);
 
     // Create a new test results folder
@@ -98,10 +99,10 @@ int Test::compareImageLists() {
             QFileInfo(_resultImagesFullFilenames[i].toStdString().c_str()).fileName()                    // filename of result image
         };
 
+        _mismatchWindow.setTestResult(testResult);
+
         if (similarityIndex < THRESHOLD) {
             ++numberOfFailures;
-
-            _mismatchWindow.setTestResult(testResult);
 
             if (!isInteractiveMode) {
                 appendTestResultsToFile(_testResultsFolderPath, testResult, _mismatchWindow.getComparisonImage(), true);

@@ -64,7 +64,7 @@ public:
 
     void evaluateResults();
     void automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures);
-    void addBuildNumberAndHostnameToResults(QString zippedFolderName);
+    void addBuildNumberToResults(QString zippedFolderName);
 
     void copyFolder(const QString& source, const QString& destination);
 
