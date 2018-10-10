@@ -73,11 +73,17 @@ HifiNotification.prototype = {
                         text = this.data + " of your connections are online."
                     }
                     message = "Click to open PEOPLE.";
-                    url="hifiapp:PEOPLE"
+                    url="hifiapp:PEOPLE";
                 } else {
-                    text = this.data.username + " is available in " + this.data.location.root.name + ".";
-                    message = "Click to join them.";
-                    url="hifi://" + this.data.location.root.name + this.data.location.path;
+                    if (this.data.location) {
+                        text = this.data.username + " is available in " + this.data.location.root.name + ".";
+                        message = "Click to join them.";
+                        url="hifi://" + this.data.location.root.name + this.data.location.path;
+                    } else {
+                        text = this.data.username + " is online.";
+                        message = "Click to open PEOPLE.";
+                        url="hifiapp:PEOPLE";
+                    }
                 }
                 break;
 
@@ -433,7 +439,6 @@ HifiNotifications.prototype = {
                     console.log("Error: unable to get " + url);
                     return false;
                 }
-                console.log(content);
                 if (!content.total_entries) {
                     _this.menuNotificationCallback(NotificationType.PEOPLE, false);
                     _this.onlineUsers = {};
@@ -445,7 +450,7 @@ HifiNotifications.prototype = {
                 content.data.users.forEach(function (user) {
                     currentUsers[user.username] = user;
                     if (!(user.username in _this.onlineUsers)) {
-                        newUsers.add(user.username);
+                        newUsers.add(user);
                         _this.onlineUsers[user.username] = user;     
                     }
                 });

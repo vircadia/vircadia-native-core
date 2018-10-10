@@ -569,20 +569,23 @@ function updateLabels(serverState) {
     labels.wallet.icon = pendingNotifications[HifiNotificationType.WALLET] ? menuNotificationIcon : null;
     labels.marketplace.icon = pendingNotifications[HifiNotificationType.MARKETPLACE] ? menuNotificationIcon : null;
     var onlineUsers = trayNotifications.getOnlineUsers();
-    if(onlineUsers) {
+    if (onlineUsers) {
         labels.people.submenu = [];        
         for (var name in onlineUsers) {
             labels.people.submenu.push({
                 label: name,
+                enabled: (onlineUsers[name].location != undefined),
                 click: function () {
-                    setNotificationState(HifiNotificationType.GOTO, false);
-                    StartInterface("hifi://" + onlineUsers[name].location.root.name + onlineUsers[name].location.path);
+                    setNotificationState(HifiNotificationType.PEOPLE, false);
+                    if(onlineUsers[name] && onlineUsers[name].location) {
+                        StartInterface("hifi://" + onlineUsers[name].location.root.name + onlineUsers[name].location.path);
+                    }
                 }
             });
         }
     }
     var currentStories = trayNotifications.getCurrentStories();
-    if(currentStories) {
+    if (currentStories && currentStories.length) {
         labels.goto.submenu = [];        
         for (var location in currentStories) {
             labels.goto.submenu.push({
