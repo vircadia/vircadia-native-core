@@ -532,7 +532,7 @@ void TestRunner::parseBuildInformation() {
         QString platformOfInterest;
 #ifdef Q_OS_WIN
         platformOfInterest = "windows";
-#elif Q_OS_MAC
+#elif defined(Q_OS_MAC)
         platformOfInterest = "mac";
 #endif
         QDomElement element = domDocument.documentElement();
