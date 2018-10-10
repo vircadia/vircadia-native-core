@@ -59,7 +59,7 @@ private:
 void SpeechScriptingInterface::speakText(const QString& textToSpeak) {
     WAVEFORMATEX fmt;
     fmt.wFormatTag = WAVE_FORMAT_PCM;
-    fmt.nSamplesPerSec = 44100;
+    fmt.nSamplesPerSec = 24000;
     fmt.wBitsPerSample = 16;
     fmt.nChannels = 1;
     fmt.nBlockAlign = fmt.nChannels * fmt.wBitsPerSample / 8;
