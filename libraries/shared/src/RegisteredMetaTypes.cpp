@@ -74,9 +74,7 @@ QScriptValue vec2ToScriptValue(QScriptEngine* engine, const glm::vec2& vec2) {
             "0: { set: function(nv) { return this.x = nv; }, get: function() { return this.x; } },"
             "1: { set: function(nv) { return this.y = nv; }, get: function() { return this.y; } },"
             "u: { set: function(nv) { return this.x = nv; }, get: function() { return this.x; } },"
-            "v: { set: function(nv) { return this.y = nv; }, get: function() { return this.y; } },"
-            "width: { set: function(nv) { return this.x = nv; }, get: function() { return this.x; } },"
-            "height: { set: function(nv) { return this.y = nv; }, get: function() { return this.y; } }"
+            "v: { set: function(nv) { return this.y = nv; }, get: function() { return this.y; } }"
             "})"
         );
     }
@@ -101,16 +99,10 @@ void vec2FromScriptValue(const QScriptValue& object, glm::vec2& vec2) {
         if (!x.isValid()) {
             x = object.property("u");
         }
-        if (!x.isValid()) {
-            x = object.property("width");
-        }
 
         QScriptValue y = object.property("y");
         if (!y.isValid()) {
             y = object.property("v");
-        }
-        if (!y.isValid()) {
-            y = object.property("height");
         }
 
         vec2.x = x.toVariant().toFloat();
@@ -146,16 +138,12 @@ glm::vec2 vec2FromVariant(const QVariant &object, bool& isValid) {
         if (!x.isValid()) {
             x = map["u"];
         }
-        if (!x.isValid()) {
-            x = map["width"];
-        }
+
         auto y = map["y"];
         if (!y.isValid()) {
             y = map["v"];
         }
-        if (!y.isValid()) {
-            y = map["height"];
-        }
+
         if (x.isValid() && y.isValid()) {
             result.x = x.toFloat(&isValid);
             if (isValid) {
@@ -185,10 +173,7 @@ QScriptValue vec3ToScriptValue(QScriptEngine* engine, const glm::vec3& vec3) {
             "b: { set: function(nv) { return this.z = nv; }, get: function() { return this.z; } },"
             "red: { set: function(nv) { return this.x = nv; }, get: function() { return this.x; } },"
             "green: { set: function(nv) { return this.y = nv; }, get: function() { return this.y; } },"
-            "blue: { set: function(nv) { return this.z = nv; }, get: function() { return this.z; } },"
-            "width: { set: function(nv) { return this.x = nv; }, get: function() { return this.x; } },"
-            "height: { set: function(nv) { return this.y = nv; }, get: function() { return this.y; } },"
-            "depth: { set: function(nv) { return this.z = nv; }, get: function() { return this.z; } }"
+            "blue: { set: function(nv) { return this.z = nv; }, get: function() { return this.z; } }"
             "})"
         );
     }
@@ -214,10 +199,7 @@ QScriptValue vec3ColorToScriptValue(QScriptEngine* engine, const glm::vec3& vec3
             "b: { set: function(nv) { return this.blue = nv; }, get: function() { return this.blue; } },"
             "x: { set: function(nv) { return this.red = nv; }, get: function() { return this.red; } },"
             "y: { set: function(nv) { return this.green = nv; }, get: function() { return this.green; } },"
-            "z: { set: function(nv) { return this.blue = nv; }, get: function() { return this.blue; } },"
-            "width: { set: function(nv) { return this.red = nv; }, get: function() { return this.red; } },"
-            "height: { set: function(nv) { return this.green = nv; }, get: function() { return this.green; } },"
-            "depth: { set: function(nv) { return this.blue = nv; }, get: function() { return this.blue; } }"
+            "z: { set: function(nv) { return this.blue = nv; }, get: function() { return this.blue; } }"
             "})"
         );
     }
@@ -254,9 +236,6 @@ void vec3FromScriptValue(const QScriptValue& object, glm::vec3& vec3) {
         if (!x.isValid()) {
             x = object.property("red");
         }
-        if (!x.isValid()) {
-            x = object.property("width");
-        }
 
         QScriptValue y = object.property("y");
         if (!y.isValid()) {
@@ -265,9 +244,6 @@ void vec3FromScriptValue(const QScriptValue& object, glm::vec3& vec3) {
         if (!y.isValid()) {
             y = object.property("green");
         }
-        if (!y.isValid()) {
-            y = object.property("height");
-        }
 
         QScriptValue z = object.property("z");
         if (!z.isValid()) {
@@ -275,9 +251,6 @@ void vec3FromScriptValue(const QScriptValue& object, glm::vec3& vec3) {
         }
         if (!z.isValid()) {
             z = object.property("blue");
-        }
-        if (!z.isValid()) {
-            z = object.property("depth");
         }
 
         vec3.x = x.toVariant().toFloat();
@@ -300,10 +273,7 @@ QScriptValue u8vec3ToScriptValue(QScriptEngine* engine, const glm::u8vec3& vec3)
             "b: { set: function(nv) { return this.z = nv; }, get: function() { return this.z; } },"
             "red: { set: function(nv) { return this.x = nv; }, get: function() { return this.x; } },"
             "green: { set: function(nv) { return this.y = nv; }, get: function() { return this.y; } },"
-            "blue: { set: function(nv) { return this.z = nv; }, get: function() { return this.z; } },"
-            "width: { set: function(nv) { return this.x = nv; }, get: function() { return this.x; } },"
-            "height: { set: function(nv) { return this.y = nv; }, get: function() { return this.y; } },"
-            "depth: { set: function(nv) { return this.z = nv; }, get: function() { return this.z; } }"
+            "blue: { set: function(nv) { return this.z = nv; }, get: function() { return this.z; } }"
             "})"
         );
     }
@@ -329,10 +299,7 @@ QScriptValue u8vec3ColorToScriptValue(QScriptEngine* engine, const glm::u8vec3& 
             "b: { set: function(nv) { return this.blue = nv; }, get: function() { return this.blue; } },"
             "x: { set: function(nv) { return this.red = nv; }, get: function() { return this.red; } },"
             "y: { set: function(nv) { return this.green = nv; }, get: function() { return this.green; } },"
-            "z: { set: function(nv) { return this.blue = nv; }, get: function() { return this.blue; } },"
-            "width: { set: function(nv) { return this.red = nv; }, get: function() { return this.red; } },"
-            "height: { set: function(nv) { return this.green = nv; }, get: function() { return this.green; } },"
-            "depth: { set: function(nv) { return this.blue = nv; }, get: function() { return this.blue; } }"
+            "z: { set: function(nv) { return this.blue = nv; }, get: function() { return this.blue; } }"
             "})"
         );
     }
@@ -369,9 +336,6 @@ void u8vec3FromScriptValue(const QScriptValue& object, glm::u8vec3& vec3) {
         if (!x.isValid()) {
             x = object.property("red");
         }
-        if (!x.isValid()) {
-            x = object.property("width");
-        }
 
         QScriptValue y = object.property("y");
         if (!y.isValid()) {
@@ -380,9 +344,6 @@ void u8vec3FromScriptValue(const QScriptValue& object, glm::u8vec3& vec3) {
         if (!y.isValid()) {
             y = object.property("green");
         }
-        if (!y.isValid()) {
-            y = object.property("height");
-        }
 
         QScriptValue z = object.property("z");
         if (!z.isValid()) {
@@ -390,9 +351,6 @@ void u8vec3FromScriptValue(const QScriptValue& object, glm::u8vec3& vec3) {
         }
         if (!z.isValid()) {
             z = object.property("blue");
-        }
-        if (!z.isValid()) {
-            z = object.property("depth");
         }
 
         vec3.x = x.toVariant().toUInt();
@@ -452,9 +410,7 @@ glm::vec3 vec3FromVariant(const QVariant& object, bool& valid) {
         if (!x.isValid()) {
             x = map["red"];
         }
-        if (!x.isValid()) {
-            x = map["width"];
-        }
+
         auto y = map["y"];
         if (!y.isValid()) {
             y = map["g"];
@@ -462,18 +418,13 @@ glm::vec3 vec3FromVariant(const QVariant& object, bool& valid) {
         if (!y.isValid()) {
             y = map["green"];
         }
-        if (!y.isValid()) {
-            y = map["height"];
-        }
+
         auto z = map["z"];
         if (!z.isValid()) {
             z = map["b"];
         }
         if (!z.isValid()) {
             z = map["blue"];
-        }
-        if (!z.isValid()) {
-            z = map["depth"];
         }
 
         if (x.canConvert<float>() && y.canConvert<float>() && z.canConvert<float>()) {

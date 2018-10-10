@@ -50,16 +50,15 @@ void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
 * A 2-dimensional vector.
 *
 * @typedef {object} Vec2
-* @property {number} x - X-coordinate of the vector. Synonyms: <code>u</code> and <code>width</code>.
-* @property {number} y - Y-coordinate of the vector. Synonyms: <code>v</code> and <code>height</code>.
+* @property {number} x - X-coordinate of the vector. Synonyms: <code>u</code>.
+* @property {number} y - Y-coordinate of the vector. Synonyms: <code>v</code>.
 * @example <caption>Vec2s can be set in multiple ways and modified with their aliases, but still stringify in the same way</caption>
 * Entities.editEntity(<id>, { materialMappingPos: { x: 0.1, y: 0.2 }});          // { x: 0.1, y: 0.2 }
 * Entities.editEntity(<id>, { materialMappingPos: { u: 0.3, v: 0.4 }});          // { x: 0.3, y: 0.4 }
-* Entities.editEntity(<id>, { materialMappingPos: { width: 0.5, height: 0.6 }}); // { x: 0.5, y: 0.6 }
-* Entities.editEntity(<id>, { materialMappingPos: [0.7, 0.8]});                  // { x: 0.7, y: 0.8 }
-* Entities.editEntity(<id>, { materialMappingPos: 0.9});                         // { x: 0.9, y: 0.9 }
-* var color = Entities.getEntityProperties(<id>).materialMappingPos;             // { x: 0.9, y: 0.9 }
-* color.v = 1.0;                                                                 // { x: 0.9, y: 1.0 }
+* Entities.editEntity(<id>, { materialMappingPos: [0.5, 0.6] });                 // { x: 0.5, y: 0.6 }
+* Entities.editEntity(<id>, { materialMappingPos: 0.7 });                        // { x: 0.7, y: 0.7 }
+* var color = Entities.getEntityProperties(<id>).materialMappingPos;             // { x: 0.7, y: 0.7 }
+* color.v = 0.8;                                                                 // { x: 0.7, y: 0.8 }
 */
 QScriptValue vec2ToScriptValue(QScriptEngine* engine, const glm::vec2& vec2);
 void vec2FromScriptValue(const QScriptValue& object, glm::vec2& vec2);
@@ -72,19 +71,18 @@ glm::vec2 vec2FromVariant(const QVariant& object);
 * A 3-dimensional vector. See also the {@link Vec3(0)|Vec3} object.
 *
 * @typedef {object} Vec3
-* @property {number} x - X-coordinate of the vector. Synonyms: <code>r</code>, <code>red</code>, and <code>width</code>.
-* @property {number} y - Y-coordinate of the vector. Synonyms: <code>g</code>, <code>green</code>, and <code>height</code>.
-* @property {number} z - Z-coordinate of the vector. Synonyms: <code>b</code>, <code>blue</code>, and <code>depth</code>.
+* @property {number} x - X-coordinate of the vector. Synonyms: <code>r</code>, <code>red</code>.
+* @property {number} y - Y-coordinate of the vector. Synonyms: <code>g</code>, <code>green</code>.
+* @property {number} z - Z-coordinate of the vector. Synonyms: <code>b</code>, <code>blue</code>.
 * @example <caption>Vec3s can be set in multiple ways and modified with their aliases, but still stringify in the same way</caption>
 * Entities.editEntity(<id>, { position: { x: 1, y: 2, z: 3 }});                 // { x: 1, y: 2, z: 3 }
 * Entities.editEntity(<id>, { position: { r: 4, g: 5, b: 6 }});                 // { x: 4, y: 5, z: 6 }
 * Entities.editEntity(<id>, { position: { red: 7, green: 8, blue: 9 }});        // { x: 7, y: 8, z: 9 }
-* Entities.editEntity(<id>, { position: { width: 10, height: 11, depth: 12 }}); // { x: 10, y: 11, z: 12 }
-* Entities.editEntity(<id>, { position: [13, 14, 15]});                         // { x: 13, y: 14, z: 15 }
-* Entities.editEntity(<id>, { position: 16});                                   // { x: 16, y: 16, z: 16 }
-* var position = Entities.getEntityProperties(<id>).position;                   // { x: 16, y: 16, z: 16 }
-* position.g = 17;                                                              // { x: 16, y: 17, z: 16 }
-* position.blue = 18;                                                           // { x: 16, y: 17, z: 18 }
+* Entities.editEntity(<id>, { position: [10, 11, 12] });                        // { x: 10, y: 11, z: 12 }
+* Entities.editEntity(<id>, { position: 13 });                                  // { x: 13, y: 13, z: 13 }
+* var position = Entities.getEntityProperties(<id>).position;                   // { x: 13, y: 13, z: 13 }
+* position.g = 14;                                                              // { x: 13, y: 14, z: 13 }
+* position.blue = 15;                                                           // { x: 13, y: 14, z: 15 }
 * Entities.editEntity(<id>, { position: "red"});                                // { x: 255, y: 0, z: 0 }
 * Entities.editEntity(<id>, { position: "#00FF00"});                            // { x: 0, y: 255, z: 0 }
 */
@@ -96,19 +94,18 @@ void vec3FromScriptValue(const QScriptValue& object, glm::vec3& vec3);
 * A color vector. See also the {@link Vec3(0)|Vec3} object.
 *
 * @typedef {object} Color
-* @property {number} red - Red component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>x</code>, and <code>width</code>.
-* @property {number} green - Green component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>y</code>, and <code>height</code>.
-* @property {number} blue - Blue component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>z</code>, and <code>depth</code>.
+* @property {number} red - Red component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>x</code>.
+* @property {number} green - Green component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>y</code>.
+* @property {number} blue - Blue component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>z</code>.
 * @example <caption>Colors can be set in multiple ways and modified with their aliases, but still stringify in the same way</caption>
 * Entities.editEntity(<id>, { color: { x: 1, y: 2, z: 3 }});                 // { red: 1, green: 2, blue: 3 }
 * Entities.editEntity(<id>, { color: { r: 4, g: 5, b: 6 }});                 // { red: 4, green: 5, blue: 6 }
 * Entities.editEntity(<id>, { color: { red: 7, green: 8, blue: 9 }});        // { red: 7, green: 8, blue: 9 }
-* Entities.editEntity(<id>, { color: { width: 10, height: 11, depth: 12 }}); // { red: 10, green: 11, blue: 12 }
-* Entities.editEntity(<id>, { color: [13, 14, 15]});                         // { red: 13, green: 14, blue: 15 }
-* Entities.editEntity(<id>, { color: 16});                                   // { red: 16, green: 16, blue: 16 }
-* var color = Entities.getEntityProperties(<id>).color;                      // { red: 16, green: 16, blue: 16 }
-* color.g = 17;                                                              // { red: 16, green: 17, blue: 16 }
-* color.blue = 18;                                                           // { red: 16, green: 17, blue: 18 }
+* Entities.editEntity(<id>, { color: [10, 11, 12] });                        // { red: 10, green: 11, blue: 12 }
+* Entities.editEntity(<id>, { color: 13 });                                  // { red: 13, green: 13, blue: 13 }
+* var color = Entities.getEntityProperties(<id>).color;                      // { red: 13, green: 13, blue: 13 }
+* color.g = 14;                                                              // { red: 13, green: 14, blue: 13 }
+* color.blue = 15;                                                           // { red: 13, green: 14, blue: 15 }
 * Entities.editEntity(<id>, { color: "red"});                                // { red: 255, green: 0, blue: 0 }
 * Entities.editEntity(<id>, { color: "#00FF00"});                            // { red: 0, green: 255, blue: 0 }
 */
@@ -116,19 +113,18 @@ void vec3FromScriptValue(const QScriptValue& object, glm::vec3& vec3);
 * A color vector. See also the {@link Vec3(0)|Vec3} object.
 *
 * @typedef {object} ColorFloat
-* @property {number} red - Red component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>x</code>, and <code>width</code>.
-* @property {number} green - Green component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>y</code>, and <code>height</code>.
-* @property {number} blue - Blue component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>z</code>, and <code>depth</code>.
+* @property {number} red - Red component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>x</code>.
+* @property {number} green - Green component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>y</code>.
+* @property {number} blue - Blue component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>z</code>.
 * @example <caption>ColorFloats can be set in multiple ways and modified with their aliases, but still stringify in the same way</caption>
 * Entities.editEntity(<id>, { color: { x: 1, y: 2, z: 3 }});                 // { red: 1, green: 2, blue: 3 }
 * Entities.editEntity(<id>, { color: { r: 4, g: 5, b: 6 }});                 // { red: 4, green: 5, blue: 6 }
 * Entities.editEntity(<id>, { color: { red: 7, green: 8, blue: 9 }});        // { red: 7, green: 8, blue: 9 }
-* Entities.editEntity(<id>, { color: { width: 10, height: 11, depth: 12 }}); // { red: 10, green: 11, blue: 12 }
-* Entities.editEntity(<id>, { color: [13, 14, 15]});                         // { red: 13, green: 14, blue: 15 }
-* Entities.editEntity(<id>, { color: 16});                                   // { red: 16, green: 16, blue: 16 }
-* var color = Entities.getEntityProperties(<id>).color;                      // { red: 16, green: 16, blue: 16 }
-* color.g = 17;                                                              // { red: 16, green: 17, blue: 16 }
-* color.blue = 18;                                                           // { red: 16, green: 17, blue: 18 }
+* Entities.editEntity(<id>, { color: [10, 11, 12] });                        // { red: 10, green: 11, blue: 12 }
+* Entities.editEntity(<id>, { color: 13 });                                  // { red: 13, green: 13, blue: 13 }
+* var color = Entities.getEntityProperties(<id>).color;                      // { red: 13, green: 13, blue: 13 }
+* color.g = 14;                                                              // { red: 13, green: 14, blue: 13 }
+* color.blue = 15;                                                           // { red: 13, green: 14, blue: 15 }
 * Entities.editEntity(<id>, { color: "red"});                                // { red: 255, green: 0, blue: 0 }
 * Entities.editEntity(<id>, { color: "#00FF00"});                            // { red: 0, green: 255, blue: 0 }
 */
