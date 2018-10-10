@@ -6,8 +6,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global alert, augmentSpinButtons, clearTimeout, console, document, Element, EventBridge, 
-    HifiEntityUI, JSONEditor, openEventBridge, setTimeout, window, _ $ */
+/* global alert, augmentSpinButtons, clearTimeout, console, document, Element, 
+   EventBridge, JSONEditor, openEventBridge, setTimeout, window, _ $ */
     
 const ICON_FOR_TYPE = {
     Box: "V",
@@ -40,6 +40,7 @@ const GROUPS = [
                 label: NO_SELECTION,
                 type: "icon",
                 icons: ICON_FOR_TYPE,
+                defaultValue: "Box",
                 propertyName: "type",
             },
             {
@@ -79,7 +80,10 @@ const GROUPS = [
             {
                 label: "Shape",
                 type: "dropdown",
-                options: { Cube: "Box", Sphere: "Sphere", Tetrahedron: "Tetrahedron", Octahedron: "Octahedron", Icosahedron: "Icosahedron", Dodecahedron: "Dodecahedron", Hexagon: "Hexagon", Triangle: "Triangle", Octagon: "Octagon", Cylinder: "Cylinder", Cone: "Cone", Circle: "Circle", Quad: "Quad" },
+                options: { Cube: "Box", Sphere: "Sphere", Tetrahedron: "Tetrahedron", Octahedron: "Octahedron", 
+                           Icosahedron: "Icosahedron", Dodecahedron: "Dodecahedron", Hexagon: "Hexagon", 
+                           Triangle: "Triangle", Octagon: "Octagon", Cylinder: "Cylinder", Cone: "Cone", 
+                           Circle: "Circle", Quad: "Quad" },
                 propertyName: "shape",
             },
             {
@@ -208,7 +212,8 @@ const GROUPS = [
             },
             {
                 type: "buttons",
-                buttons: [ { id: "copy", label: "Copy URL To Ambient", className: "black", onClick: copySkyboxURLToAmbientURL } ],
+                buttons: [ { id: "copy", label: "Copy URL To Ambient", 
+                             className: "black", onClick: copySkyboxURLToAmbientURL } ],
                 propertyName: "copyURLToAmbient",
                 showPropertyRule: { "skyboxMode": "enabled" },
             },
@@ -367,7 +372,9 @@ const GROUPS = [
             {
                 label: "Collision Shape",
                 type: "dropdown",
-                options: { "none": "No Collision", "box": "Box", "sphere": "Sphere", "compound": "Compound" , "simple-hull": "Basic - Whole model", "simple-compound": "Good - Sub-meshes" , "static-mesh": "Exact - All polygons (non-dynamic only)" },
+                options: { "none": "No Collision", "box": "Box", "sphere": "Sphere", "compound": "Compound" , 
+                           "simple-hull": "Basic - Whole model", "simple-compound": "Good - Sub-meshes" , 
+                           "static-mesh": "Exact - All polygons (non-dynamic only)" },
                 propertyName: "shapeType",
             },
             {
@@ -467,8 +474,8 @@ const GROUPS = [
             {
                 label: "Light Color",
                 type: "color",
-                propertyName: "lightColor", // this actually shares "color" property with shape Color
-                                            // but separating naming here to separate property fields
+                propertyName: "lightColor", // this actually shares "color" property with shape Color but
+                                            // separating naming here to distinguish property element/data
             },
             {
                 label: "Intensity",
@@ -521,8 +528,8 @@ const GROUPS = [
                 label: "Material Data",
                 type: "textarea",
                 buttons: [ { id: "clear", label: "Clear Material Data", className: "red", onClick: clearMaterialData }, 
-                            { id: "edit", label: "Edit as JSON", className: "blue", onClick: newJSONMaterialEditor },
-                            { id: "save", label: "Save Material Data", className: "black", onClick: saveMaterialData } ],
+                           { id: "edit", label: "Edit as JSON", className: "blue", onClick: newJSONMaterialEditor },
+                           { id: "save", label: "Save Material Data", className: "black", onClick: saveMaterialData } ],
                 propertyName: "materialData",
             },
             {
@@ -613,7 +620,7 @@ const GROUPS = [
                 defaultValue: 100,
                 unit: "%",
                 buttons: [ { id: "rescale", label: "Rescale", className: "blue", onClick: rescaleDimensions }, 
-                            { id: "reset", label: "Reset Dimensions", className: "red", onClick: resetToNaturalDimensions } ],
+                           { id: "reset", label: "Reset Dimensions", className: "red", onClick: resetToNaturalDimensions } ],
                 propertyName: "scale",
             },
             {
@@ -628,8 +635,8 @@ const GROUPS = [
             {
                 label: "Align",
                 type: "buttons",
-                buttons: [ { id: "selection", label: "Selection to Grid", className: "black", onClick: moveSelectionToGrid }, 
-                            { id: "all", label: "All to Grid", className: "black", onClick: moveAllToGrid } ],
+                buttons: [ { id: "selection", label: "Selection to Grid", className: "black", onClick: moveSelectionToGrid },
+                           { id: "all", label: "All to Grid", className: "black", onClick: moveAllToGrid } ],
                 propertyName: "alignToGrid",
             },
         ]
@@ -642,8 +649,8 @@ const GROUPS = [
             {
                 label: "Collides",
                 type: "bool",
-                propertyName: "collisionless",
                 inverse: true,
+                propertyName: "collisionless",
                 column: -1, // before two columns div
             },
             {
@@ -655,14 +662,14 @@ const GROUPS = [
             {
                 label: "Collides With",
                 type: "sub-header",
-                propertyName: "collidesWithHeader",
+                propertyName: "collidesWithHeader", // not actually a property but used for naming/storing this element
                 showPropertyRule: { "collisionless": "false" },
                 column: 1,
             },
             {
                 label: "",
                 type: "sub-header",
-                propertyName: "collidesWithHeaderHelper",
+                propertyName: "collidesWithHeaderHelper", // not actually a property but used for naming/storing this element
                 showPropertyRule: { "collisionless": "false" },
                 column: 2,
             },
@@ -711,6 +718,7 @@ const GROUPS = [
                 type: "string",
                 propertyName: "collisionSoundURL",
                 showPropertyRule: { "collisionless": "false" },
+                // having no column number means place this after two columns div
             },
         ]
     },
@@ -772,7 +780,7 @@ const GROUPS = [
                 showPropertyRule: { "cloneable": "true" },
                 column: 1,
             },
-            {
+            {   // below properties having no column number means place them after two columns div
                 label: "Can cast shadow",
                 type: "bool",
                 propertyName: "canCastShadow",
@@ -799,8 +807,8 @@ const GROUPS = [
                 label: "User Data",
                 type: "textarea",
                 buttons: [ { id: "clear", label: "Clear User Data", className: "red", onClick: clearUserData }, 
-                            { id: "edit", label: "Edit as JSON", className: "blue", onClick: newJSONEditor },
-                            { id: "save", label: "Save User Data", className: "black", onClick: saveUserData } ],
+                           { id: "edit", label: "Edit as JSON", className: "blue", onClick: newJSONEditor },
+                           { id: "save", label: "Save User Data", className: "black", onClick: saveUserData } ],
                 propertyName: "userData",
             },
         ]
@@ -898,11 +906,9 @@ const MATERIAL_PREFIX_STRING = "mat::";
 const PENDING_SCRIPT_STATUS = "[ Fetching status ]";
 
 var elGroups = {};
-var elPropertyElements = {};
-var showPropertyRules = {};
-var subProperties = [];
-var icons = {};
+var properties = {};
 var colorPickers = {};
+var selectedEntityProperties;
 var lastEntityID = null;
 
 function debugPrint(message) {
@@ -912,6 +918,17 @@ function debugPrint(message) {
             message: message
         })
     );
+}
+
+
+// GENERAL PROPERTY/GROUP FUNCTIONS
+
+function getPropertyElement(propertyName) {
+    return properties[propertyName].el;
+}
+
+function getPropertyElementID(propertyName) {
+    return "property-" + propertyName;
 }
 
 function enableChildren(el, selector) {
@@ -931,7 +948,7 @@ function disableChildren(el, selector) {
 function enableProperties() {
     enableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
     enableChildren(document, ".colpick");
-    var elLocked = elPropertyElements["locked"];
+    var elLocked = getPropertyElement("locked");
 
     if (elLocked.checked === false) {
         removeStaticUserData();
@@ -945,7 +962,7 @@ function disableProperties() {
     for (var pickKey in colorPickers) {
         colorPickers[pickKey].colpickHide();
     }
-    var elLocked = elPropertyElements["locked"];
+    var elLocked = getPropertyElement("locked");
 
     if (elLocked.checked === true) {
         if ($('#property-userData-editor').css('display') === "block") {
@@ -957,32 +974,146 @@ function disableProperties() {
     }
 }
 
+function showPropertyElement(propertyName, show) {
+    let elProperty = properties[propertyName].el;
+    let elNode = elProperty;
+    if (elNode.nodeName !== "DIV") {
+        let elParent = elProperty.parentNode;
+        if (elParent === undefined && elProperty instanceof Array) {
+            elParent = elProperty[0].parentNode;
+        }
+        if (elParent !== undefined) {
+            elNode = elParent;
+        }
+    }
+    elNode.style.display = show ? "table" : "none";
+}
+
+function resetProperties() {
+    for (let propertyName in properties) { 
+        let elProperty = properties[propertyName].el;      
+        let propertyData = properties[propertyName].data;
+        
+        switch (propertyData.type) {
+            case 'string': {
+                elProperty.value = "";
+                break;
+            }
+            case 'bool': {
+                elProperty.checked = false;
+                break;
+            }
+            case 'number': {
+                if (propertyData.defaultValue !== undefined) {
+                    elProperty.value = propertyData.defaultValue;
+                } else { 
+                    elProperty.value = "";
+                }
+                break;
+            }
+            case 'vec3': 
+            case 'vec2': {
+                // vec2/vec3 are array of 2/3 elInput numbers
+                elProperty[0].value = "";
+                elProperty[1].value = "";
+                if (elProperty[2] !== undefined) {
+                    elProperty[2].value = "";
+                }
+                break;
+            }
+            case 'color': {
+                // color is array of color picker and 3 elInput numbers
+                elProperty[0].style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                elProperty[1].value = "";
+                elProperty[2].value = "";
+                elProperty[3].value = "";
+                break;
+            }
+            case 'dropdown': {
+                elProperty.value = "";
+                setDropdownText(elProperty);
+                break;
+            }
+            case 'textarea': {
+                elProperty.value = "";
+                setTextareaScrolling(elProperty);
+                break;
+            }
+            case 'icon': {
+                // icon is array of elSpan (icon glyph) and elLabel
+                if (propertyData.defaultValue !== undefined) {  
+                    elProperty[0].innerHTML = propertyData.icons[propertyData.defaultValue];
+                    elProperty[0].style.display = "inline-block";
+                    elProperty[1].innerHTML = propertyData.defaultValue;
+                }
+                break;
+            }
+        }
+        
+        let showPropertyRules = properties[propertyName].showPropertyRules;
+        if (showPropertyRules !== undefined) {
+            for (let propertyToHide in showPropertyRules) {
+                showPropertyElement(propertyToHide, false);
+            }
+        }
+    }
+}
+
+function showGroupsForType(type) {
+    if (type === "Box" || type === "Sphere") {
+        type = "Shape";
+    }
+    
+    let typeGroups = GROUPS_PER_TYPE[type];
+
+    for (let groupKey in elGroups) {
+        let elGroup = elGroups[groupKey];
+        if (typeGroups && typeGroups.indexOf(groupKey) > -1) {
+            elGroup.style.display = "block";
+        } else {
+            elGroup.style.display = "none";
+        }
+    }
+}
+
+
+
+// PROPERTY UPDATE FUNCTIONS
+
 function updateProperty(propertyName, propertyValue) {
-    var properties = {};
+    let propertyUpdate = {};
+    // if this is a compound property name (i.e. animation.running) then split it by . up to 3 times
     let splitPropertyName = propertyName.split('.');
     if (splitPropertyName.length > 1) {
         let propertyGroupName = splitPropertyName[0];
         let subPropertyName = splitPropertyName[1];
-        properties[propertyGroupName] = {};
+        propertyUpdate[propertyGroupName] = {};
         if (splitPropertyName.length === 3) { 
             let subSubPropertyName = splitPropertyName[2];
-            properties[propertyGroupName][subPropertyName] = {};
-            properties[propertyGroupName][subPropertyName][subSubPropertyName] = propertyValue;
+            propertyUpdate[propertyGroupName][subPropertyName] = {};
+            propertyUpdate[propertyGroupName][subPropertyName][subSubPropertyName] = propertyValue;
         } else {
-            properties[propertyGroupName][subPropertyName] = propertyValue;
+            propertyUpdate[propertyGroupName][subPropertyName] = propertyValue;
         }
     } else {
-        properties[propertyName] = propertyValue;
+        propertyUpdate[propertyName] = propertyValue;
     }
-    updateProperties(properties);
+    updateProperties(propertyUpdate);
 }
 
-function updateProperties(properties) {
+function updateProperties(propertiesToUpdate) {
     EventBridge.emitWebEvent(JSON.stringify({
         id: lastEntityID,
         type: "update",
-        properties: properties
+        properties: propertiesToUpdate
     }));
+}
+
+
+function createEmitTextPropertyUpdateFunction(propertyName) {
+    return function() {
+        updateProperty(propertyName, this.value);
+    };
 }
 
 function createEmitCheckedPropertyUpdateFunction(propertyName, inverse) {
@@ -994,67 +1125,50 @@ function createEmitCheckedPropertyUpdateFunction(propertyName, inverse) {
 function createEmitNumberPropertyUpdateFunction(propertyName, decimals) {
     decimals = ((decimals === undefined) ? 4 : decimals);
     return function() {
-        var value = parseFloat(this.value).toFixed(decimals);
+        let value = parseFloat(this.value).toFixed(decimals);
         updateProperty(propertyName, value);
-    };
-}
-
-function createImageURLUpdateFunction(propertyName) {
-    return function () {
-        var newTextures = JSON.stringify({ "tex.picture": this.value });
-        updateProperty(propertyName, newTextures);
-    };
-}
-
-function createEmitTextPropertyUpdateFunction(propertyName) {
-    return function() {
-        updateProperty(propertyName, this.value);
     };
 }
 
 function createEmitVec2PropertyUpdateFunction(property, elX, elY) {
     return function () {
-        var properties = {};
-        properties[property] = {
+        let newValue = {
             x: elX.value,
             y: elY.value
         };
-        updateProperties(properties);
+        updateProperty(property, newValue);
     };
 }
 
 function createEmitVec2PropertyUpdateFunctionWithMultiplier(property, elX, elY, multiplier) {
     return function () {
-        var properties = {};
-        properties[property] = {
+        let newValue = {
             x: elX.value * multiplier,
             y: elY.value * multiplier
         };
-        updateProperties(properties);
+        updateProperty(property, newValue);
     };
 }
 
 function createEmitVec3PropertyUpdateFunction(property, elX, elY, elZ) {
     return function() {
-        var properties = {};
-        properties[property] = {
+        let newValue = {
             x: elX.value,
             y: elY.value,
             z: elZ ? elZ.value : 0
         };
-        updateProperties(properties);
+        updateProperty(property, newValue);
     };
 }
 
 function createEmitVec3PropertyUpdateFunctionWithMultiplier(property, elX, elY, elZ, multiplier) {
     return function() {
-        var properties = {};
-        properties[property] = {
+        let newValue = {
             x: elX.value * multiplier,
             y: elY.value * multiplier,
             z: elZ.value * multiplier
         };
-        updateProperties(properties);
+        updateProperty(property, newValue);
     };
 }
 
@@ -1064,23 +1178,13 @@ function createEmitColorPropertyUpdateFunction(property, elRed, elGreen, elBlue)
     };
 }
 
-function emitColorPropertyUpdate(property, red, green, blue, group) {
-    var properties = {};
-    if (group) {
-        properties[group] = {};
-        properties[group][property] = {
-            red: red,
-            green: green,
-            blue: blue
-        };
-    } else {
-        properties[property] = {
-            red: red,
-            green: green,
-            blue: blue
-        };
-    }
-    updateProperties(properties);
+function emitColorPropertyUpdate(property, red, green, blue) {
+    let newValue = {
+        red: red,
+        green: green,
+        blue: blue
+    };
+    updateProperty(property, newValue);
 }
 
 function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString) {
@@ -1095,8 +1199,440 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
     updateProperty(propertyName, propertyValue);
 }
 
+function createImageURLUpdateFunction(propertyName) {
+    return function () {
+        var newTextures = JSON.stringify({ "tex.picture": this.value });
+        updateProperty(propertyName, newTextures);
+    };
+}
+
+
+
+// PROPERTY ELEMENT CREATION FUNCTIONS
+
+function createStringProperty(elProperty, elLabel, propertyData) {
+    let propertyName = propertyData.propertyName;
+    let propertyElementID = getPropertyElementID(propertyName);
+    
+    elProperty.setAttribute("class", "property text");
+    
+    let elInput = document.createElement('input');
+    elInput.setAttribute("id", propertyElementID);
+    elInput.setAttribute("type", "text"); 
+    if (propertyData.readOnly) {
+        elInput.readOnly = true;
+    }
+    
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
+    
+    elProperty.appendChild(elLabel);
+    elProperty.appendChild(elInput);
+    
+    if (propertyData.buttons !== undefined) {
+        addButtons(elProperty, propertyElementID, propertyData.buttons, false);
+    }
+    
+    properties[propertyName].el = elInput;
+}
+
+function createBoolProperty(elProperty, elLabel, propertyData) {
+    let propertyName = propertyData.propertyName;
+    let propertyElementID = getPropertyElementID(propertyName);
+    
+    elProperty.setAttribute("class", "property checkbox");
+                        
+    if (propertyData.glyph !== undefined) {
+        elLabel.innerText = " " + propertyData.label;
+        let elSpan = document.createElement('span');
+        elSpan.innerHTML = propertyData.glyph;
+        elLabel.insertBefore(elSpan, elLabel.firstChild);
+    }
+    
+    let elInput = document.createElement('input');
+    elInput.setAttribute("id", propertyElementID);
+    elInput.setAttribute("type", "checkbox");
+    
+    elProperty.appendChild(elInput);
+    elProperty.appendChild(elLabel);
+    
+    let subPropertyOf = propertyData.subPropertyOf;
+    if (subPropertyOf !== undefined) {
+        elInput.addEventListener('change', function() {
+            updateCheckedSubProperty(subPropertyOf, selectedEntityProperties[subPropertyOf], elInput, propertyName);
+        });
+    } else {
+        elInput.addEventListener('change', createEmitCheckedPropertyUpdateFunction(propertyName, propertyData.inverse));
+    }
+    
+    properties[propertyName].el = elInput;
+}
+
+function createVec3Property(elProperty, elLabel, propertyData) {
+    let propertyName = propertyData.propertyName;
+    let propertyElementID = getPropertyElementID(propertyName);
+    
+    elProperty.setAttribute("class", "property " + propertyData.vec3Type + " fstuple");
+    
+    let elTuple = document.createElement('div');
+    elTuple.setAttribute("class", "tuple");
+    
+    addUnit(propertyData.unit, elLabel);
+    
+    elProperty.appendChild(elLabel);
+    elProperty.appendChild(elTuple);
+    
+    let elInputX = createTupleNumberInput(elTuple, propertyElementID, propertyData.subLabels[0], 
+                                          propertyData.min, propertyData.max, propertyData.step);
+    let elInputY = createTupleNumberInput(elTuple, propertyElementID, propertyData.subLabels[1], 
+                                          propertyData.min, propertyData.max, propertyData.step);
+    let elInputZ = createTupleNumberInput(elTuple, propertyElementID, propertyData.subLabels[2], 
+                                          propertyData.min, propertyData.max, propertyData.step);
+    
+    let inputChangeFunction;
+    if (propertyData.multiplier !==  undefined) { 
+        inputChangeFunction = createEmitVec3PropertyUpdateFunctionWithMultiplier(propertyName, elInputX, elInputY, 
+                                                                                 elInputZ, propertyData.multiplier);
+    } else {
+        inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elInputX, elInputY, elInputZ);
+    }
+    elInputX.addEventListener('change', inputChangeFunction);
+    elInputY.addEventListener('change', inputChangeFunction);
+    elInputZ.addEventListener('change', inputChangeFunction);
+    
+    properties[propertyName].el = [ elInputX, elInputY, elInputZ ];
+}
+
+function createVec2Property(elProperty, elLabel, propertyData) {
+    let propertyName = propertyData.propertyName;
+    let propertyElementID = getPropertyElementID(propertyName);
+    
+    elProperty.setAttribute("class", "property " + propertyData.vec2Type + " fstuple");
+                        
+    let elTuple = document.createElement('div');
+    elTuple.setAttribute("class", "tuple");
+    
+    addUnit(propertyData.unit, elLabel);
+    
+    elProperty.appendChild(elLabel);
+    elProperty.appendChild(elTuple);
+    
+    let elInputX = createTupleNumberInput(elTuple, propertyElementID, propertyData.subLabels[0], 
+                                          propertyData.min, propertyData.max, propertyData.step);
+    let elInputY = createTupleNumberInput(elTuple, propertyElementID, propertyData.subLabels[1], 
+                                          propertyData.min, propertyData.max, propertyData.step);
+    
+    let inputChangeFunction;    
+    if (propertyData.multiplier !==  undefined) { 
+        inputChangeFunction = createEmitVec2PropertyUpdateFunctionWithMultiplier(propertyName, elInputX, elInputY, 
+                                                                                 propertyData.multiplier);
+    } else {
+        inputChangeFunction = createEmitVec2PropertyUpdateFunctionWithMultiplier(propertyName, elInputX, elInputY);
+    }
+    elInputX.addEventListener('change', inputChangeFunction);
+    elInputY.addEventListener('change', inputChangeFunction);
+    
+    properties[propertyName].el = [elInputX, elInputY];
+}
+
+function createColorProperty(elProperty, elLabel, propertyData) {
+    let propertyName = propertyData.propertyName;
+    let propertyElementID = getPropertyElementID(propertyName);
+    
+    elProperty.setAttribute("class", "property rgb fstuple");
+    
+    let elColorPicker = document.createElement('div');
+    elColorPicker.setAttribute("class", "color-picker");
+    elColorPicker.setAttribute("id", propertyElementID);
+    
+    let elTuple = document.createElement('div');
+    elTuple.setAttribute("class", "tuple");
+    
+    elProperty.appendChild(elColorPicker);
+    elProperty.appendChild(elLabel);
+    elProperty.appendChild(elTuple);
+    
+    let elInputR = createTupleNumberInput(elTuple, propertyElementID, "red", 0, 255, 1);
+    let elInputG = createTupleNumberInput(elTuple, propertyElementID, "green", 0, 255, 1);
+    let elInputB = createTupleNumberInput(elTuple, propertyElementID, "blue", 0, 255, 1);
+    
+    let inputChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elInputR, elInputG, elInputB);  
+    elInputR.addEventListener('change', inputChangeFunction);
+    elInputG.addEventListener('change', inputChangeFunction);
+    elInputB.addEventListener('change', inputChangeFunction);
+    
+    let colorPickerID = "#" + propertyElementID;
+    colorPickers[colorPickerID] = $(colorPickerID).colpick({
+        colorScheme: 'dark',
+        layout: 'hex',
+        color: '000000',
+        submit: false, // We don't want to have a submission button
+        onShow: function(colpick) {
+            $(colorPickerID).attr('active', 'true');
+            // The original color preview within the picker needs to be updated on show because
+            // prior to the picker being shown we don't have access to the selections' starting color.
+            colorPickers[colorPickerID].colpickSetColor({
+                "r": elInputR.value,
+                "g": elInputG.value,
+                "b": elInputB.value
+            });
+        },
+        onHide: function(colpick) {
+            $(colorPickerID).attr('active', 'false');
+        },
+        onChange: function(hsb, hex, rgb, el) {
+            $(el).css('background-color', '#' + hex);
+            emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
+        }
+    });
+    
+    properties[propertyName].el = [elColorPicker, elInputR, elInputG, elInputB];
+}
+
+function createDropdownProperty(elProperty, elLabel, propertyData) {
+    let propertyName = propertyData.propertyName;
+    let propertyElementID = getPropertyElementID(propertyName);
+    
+    elProperty.setAttribute("class", "property dropdown");
+                        
+    let elInput = document.createElement('select');
+    elInput.setAttribute("id", propertyElementID);
+    elInput.setAttribute("propertyName", propertyName);
+    
+    for (let optionKey in propertyData.options) {
+        let option = document.createElement('option');
+        option.value = optionKey;
+        option.text = propertyData.options[optionKey];
+        elInput.add(option);
+    }
+    
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
+    
+    elProperty.appendChild(elLabel);
+    elProperty.appendChild(elInput);
+    
+    properties[propertyName].el = elInput;
+}
+
+function createNumberProperty(elProperty, elLabel, propertyData) {
+    let propertyName = propertyData.propertyName;
+    let propertyElementID = getPropertyElementID(propertyName);
+    
+    elProperty.setAttribute("class", "property number");
+                        
+    addUnit(propertyData.unit, elLabel);
+    
+    let elInput = document.createElement('input');
+    elInput.setAttribute("id", propertyElementID);
+    elInput.setAttribute("type", "number");
+    if (propertyData.min !== undefined) {
+        elInput.setAttribute("min", propertyData.min);
+    }
+    if (propertyData.max !== undefined) {
+        elInput.setAttribute("max", propertyData.max);
+    }
+    if (propertyData.step !== undefined) {
+        elInput.setAttribute("step", propertyData.step);
+    }
+    
+    let defaultValue = propertyData.defaultValue;
+    if (defaultValue !== undefined) {
+        elInput.setAttribute("defaultValue", defaultValue);
+        elInput.value = defaultValue;
+    }
+    
+    let fixedDecimals = propertyData.fixedDecimals !== undefined ? propertyData.fixedDecimals : 0;
+    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(propertyName, fixedDecimals));
+    
+    elProperty.appendChild(elLabel);
+    elProperty.appendChild(elInput);
+    
+    if (propertyData.buttons !== undefined) {
+        addButtons(elProperty, propertyElementID, propertyData.buttons, true);
+    }
+    
+    properties[propertyName].el = elInput;
+}
+
+function createTextareaProperty(elProperty, elLabel, propertyData) {
+    let propertyName = propertyData.propertyName;
+    let propertyElementID = getPropertyElementID(propertyName);
+    
+    elProperty.setAttribute("class", "property textarea");
+                        
+    elProperty.appendChild(elLabel);
+    
+    if (propertyData.buttons !== undefined) {
+        addButtons(elProperty, propertyElementID, propertyData.buttons, true);
+    }
+    
+    let elInput = document.createElement('textarea');
+    elInput.setAttribute("id", propertyElementID);
+    if (propertyData.readOnly) {
+        elInput.readOnly = true;
+    }                   
+    
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
+    
+    elProperty.appendChild(elInput);
+    
+    properties[propertyName].el = elInput;
+}
+
+function createIconProperty(elProperty, elLabel, propertyData) {
+    let propertyName = propertyData.propertyName;
+    let propertyElementID = getPropertyElementID(propertyName);
+    
+    elProperty.setAttribute("class", "property value");
+    
+    elLabel.setAttribute("id", propertyElementID);
+    elLabel.innerHTML = " " + propertyData.label;
+    
+    let elSpan = document.createElement('span');
+    elSpan.setAttribute("id", propertyElementID + "-icon");
+
+    elProperty.appendChild(elSpan);
+    elProperty.appendChild(elLabel);
+    
+    properties[propertyName].el = [ elSpan, elLabel ];
+}
+
+function createButtonsProperty(elProperty, elLabel, propertyData) {
+    let propertyName = propertyData.propertyName;
+    let propertyElementID = getPropertyElementID(propertyName);
+    
+    elProperty.setAttribute("class", "property text");
+                        
+    let hasLabel = propertyData.label !== undefined;
+    if (hasLabel) {
+        elProperty.appendChild(elLabel);
+    }
+    
+    if (propertyData.buttons !== undefined) {
+        addButtons(elProperty, propertyElementID, propertyData.buttons, hasLabel);
+    }
+    
+    properties[propertyName].el = elProperty;
+}
+
+function createTupleNumberInput(elTuple, propertyID, subLabel, min, max, step) {
+    let elementPropertyID = propertyID + "-" + subLabel.toLowerCase();
+    let elDiv = document.createElement('div');
+    let elLabel = document.createElement('label');
+    elLabel.innerText = subLabel[0].toUpperCase() + subLabel.slice(1) + ":";
+    elLabel.setAttribute("for", elementPropertyID);
+    let elInput = document.createElement('input');
+    elInput.setAttribute("id", elementPropertyID);
+    elInput.setAttribute("type", "number");
+    elInput.setAttribute("class", subLabel);
+    if (min !== undefined) {
+        elInput.setAttribute("min", min);
+    }
+    if (max !== undefined) {
+        elInput.setAttribute("max", max);
+    }
+    if (step !== undefined) {
+        elInput.setAttribute("step", step);
+    }
+    elDiv.appendChild(elInput);
+    elDiv.appendChild(elLabel);
+    elTuple.appendChild(elDiv);
+    return elInput;
+}
+
+function addUnit(unit, elLabel) {
+    if (unit !== undefined) {
+        let elSpan = document.createElement('span');
+        elSpan.setAttribute("class", "unit");
+        elSpan.innerHTML = unit;
+        elLabel.appendChild(elSpan);
+    }
+}
+
+function addButtons(elProperty, propertyID, buttons, newRow) {
+    let elDiv = document.createElement('div');
+    elDiv.setAttribute("class", "row");
+    
+    buttons.forEach(function(button) {
+        let elButton = document.createElement('input');
+        elButton.setAttribute("type", "button");
+        elButton.setAttribute("class", button.className);
+        elButton.setAttribute("id", propertyID + "-button-" + button.id);
+        elButton.setAttribute("value", button.label);
+        elButton.addEventListener("click", button.onClick);
+        if (newRow) {
+            elDiv.appendChild(elButton);
+        } else {
+            elProperty.appendChild(elButton);
+        }
+    });
+    
+    if (newRow) {
+        elProperty.appendChild(document.createElement('br'));
+        elProperty.appendChild(elDiv);
+    }
+}
+
+
+
+// BUTTON CALLBACKS
+
+function rescaleDimensions() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "rescaleDimensions",
+        percentage: parseFloat(document.getElementById("property-scale").value)
+    }));
+}
+
+function moveSelectionToGrid() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "moveSelectionToGrid"
+    }));
+}
+
+function moveAllToGrid() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "moveAllToGrid"
+    }));
+}
+
+function resetToNaturalDimensions() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "resetToNaturalDimensions"
+    }));
+}
+
+function reloadScripts() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "reloadClientScripts"
+    }));
+}
+
+function reloadServerScripts() {
+    // invalidate the current status (so that same-same updates can still be observed visually)
+    document.getElementById("property-serverScripts-status").innerText = PENDING_SCRIPT_STATUS;
+        EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "reloadServerScripts"
+    }));
+}
+
+function copySkyboxURLToAmbientURL() {
+    let skyboxURL = getPropertyElement("skybox.url").value;
+    getPropertyElement("ambientLight.ambientURL").value = skyboxURL;
+    updateProperty("ambientLight.ambientURL", skyboxURL);
+}
+
+
+
+// USER DATA FUNCTIONS
+
 function clearUserData() {
-    let elUserData = elPropertyElements["userData"];
+    let elUserData = getPropertyElement("userData");
     deleteJSONEditor();
     elUserData.value = "";
     showUserDataTextArea();
@@ -1148,7 +1684,7 @@ function setUserDataFromEditor(noUpdate) {
 }
 
 function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, removeKeys) {
-    var properties = {};
+    var propertyUpdate = {};
     var parsedData = {};
     var keysToBeRemoved = removeKeys ? removeKeys : [];
     try {
@@ -1192,14 +1728,14 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, r
         delete parsedData[groupName];
     }
     if (Object.keys(parsedData).length > 0) {
-        properties.userData = JSON.stringify(parsedData);
+        propertyUpdate.userData = JSON.stringify(parsedData);
     } else {
-        properties.userData = '';
+        propertyUpdate.userData = '';
     }
 
-    userDataElement.value = properties.userData;
+    userDataElement.value = propertyUpdate.userData;
 
-    updateProperties(properties);
+    updateProperties(propertyUpdate);
 }
 function userDataChanger(groupName, keyName, values, userDataElement, defaultValue, removeKeys) {
     var val = {}, def = {};
@@ -1313,8 +1849,12 @@ function saveJSONUserData(noUpdate) {
     }, EDITOR_TIMEOUT_DURATION);
 }
 
+
+
+// MATERIAL DATA FUNCTIONS
+
 function clearMaterialData() {
-    let elMaterialData = elPropertyElements["materialData"];
+    let elMaterialData = getPropertyElement("materialData");
     deleteJSONMaterialEditor();
     elMaterialData.value = "";
     showMaterialDataTextArea();
@@ -1479,7 +2019,8 @@ function bindAllNonJSONEditorElements() {
         // TODO FIXME: (JSHint) Functions declared within loops referencing 
         //             an outer scoped variable may lead to confusing semantics.
         field.on('focus', function(e) {
-            if (e.target.id === "property-userData-button-edit" || e.target.id === "property-userData-button-clear" || e.target.id === "property-materialData-button-edit" || e.target.id === "property-materialData-button-clear") {
+            if (e.target.id === "property-userData-button-edit" || e.target.id === "property-userData-button-clear" || 
+                e.target.id === "property-materialData-button-edit" || e.target.id === "property-materialData-button-clear") {
                 return;
             } else {
                 if ($('#property-userData-editor').css('height') !== "0px") {
@@ -1493,14 +2034,41 @@ function bindAllNonJSONEditorElements() {
     }
 }
 
-function unbindAllInputs() {
-    var inputs = $('input');
-    var i;
-    for (i = 0; i < inputs.length; i++) {
-        var input = inputs[i];
-        var field = $(input);
-        field.unbind();
+
+
+// DROPDOWNS / TEXTAREAS / PARENT MATERIAL NAME FUNCTIONS
+
+function setDropdownText(dropdown) {
+    let lis = dropdown.parentNode.getElementsByTagName("li");
+    let text = "";
+    for (let i = 0; i < lis.length; i++) {
+        if (String(lis[i].getAttribute("value")) === String(dropdown.value)) {
+            text = lis[i].textContent;
+        }
     }
+    dropdown.firstChild.textContent = text;
+}
+
+function toggleDropdown(event) {
+    let element = event.target;
+    if (element.nodeName !== "DT") {
+        element = element.parentNode;
+    }
+    element = element.parentNode;
+    let isDropped = element.getAttribute("dropped");
+    element.setAttribute("dropped", isDropped !== "true" ? "true" : "false");
+}
+
+function setDropdownValue(event) {
+    let dt = event.target.parentNode.parentNode.previousSibling;
+    dt.value = event.target.getAttribute("value");
+    dt.firstChild.textContent = event.target.textContent;
+
+    dt.parentNode.setAttribute("dropped", "false");
+
+    let evt = document.createEvent("HTMLEvents");
+    evt.initEvent("change", true, true);
+    dt.dispatchEvent(evt);
 }
 
 function setTextareaScrolling(element) {
@@ -1520,183 +2088,7 @@ function showParentMaterialNameBox(number, elNumber, elString) {
     }
 }
 
-function rescaleDimensions() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: "action",
-        action: "rescaleDimensions",
-        percentage: parseFloat(document.getElementById("property-scale").value)
-    }));
-}
 
-function moveSelectionToGrid() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: "action",
-        action: "moveSelectionToGrid"
-    }));
-}
-
-function moveAllToGrid() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: "action",
-        action: "moveAllToGrid"
-    }));
-}
-
-function resetToNaturalDimensions() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: "action",
-        action: "resetToNaturalDimensions"
-    }));
-}
-
-function reloadScripts() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: "action",
-        action: "reloadClientScripts"
-    }));
-}
-
-function reloadServerScripts() {
-    // invalidate the current status (so that same-same updates can still be observed visually)
-    document.getElementById("property-serverScripts-status").innerText = PENDING_SCRIPT_STATUS;
-        EventBridge.emitWebEvent(JSON.stringify({
-        type: "action",
-        action: "reloadServerScripts"
-    }));
-}
-
-function copySkyboxURLToAmbientURL() {
-    let skyboxURL = elPropertyElements["skybox.url"].value;
-    elPropertyElements["ambientLight.ambientURL"].value = skyboxURL;
-    updateProperty("ambientLight.ambientURL", skyboxURL);
-}
-
-function createTupleNumberInput(elTuple, propertyID, subLabel, min, max, step) {
-    let elementPropertyID = propertyID + "-" + subLabel.toLowerCase();
-    let elDiv = document.createElement('div');
-    let elLabel = document.createElement('label');
-    elLabel.innerText = subLabel[0].toUpperCase() + subLabel.slice(1) + ":";
-    elLabel.setAttribute("for", elementPropertyID);
-    let elInput = document.createElement('input');
-    elInput.setAttribute("id", elementPropertyID);
-    elInput.setAttribute("type", "number");
-    elInput.setAttribute("class", subLabel);
-    if (min !== undefined) {
-        elInput.setAttribute("min", min);
-    }
-    if (max !== undefined) {
-        elInput.setAttribute("max", max);
-    }
-    if (step !== undefined) {
-        elInput.setAttribute("step", step);
-    }
-    elDiv.appendChild(elInput);
-    elDiv.appendChild(elLabel);
-    elTuple.appendChild(elDiv);
-    return elInput;
-}
-
-function addUnit(unit, elLabel) {
-    if (unit !== undefined) {
-        let elSpan = document.createElement('span');
-        elSpan.setAttribute("class", "unit");
-        elSpan.innerHTML = unit;
-        elLabel.appendChild(elSpan);
-    }
-}
-
-function addButtons(elProperty, propertyID, buttons, newRow) {
-    let elDiv = document.createElement('div');
-    elDiv.setAttribute("class", "row");
-    
-    buttons.forEach(function(button) {
-        let elButton = document.createElement('input');
-        elButton.setAttribute("type", "button");
-        elButton.setAttribute("class", button.className);
-        elButton.setAttribute("id", propertyID + "-button-" + button.id);
-        elButton.setAttribute("value", button.label);
-        elButton.addEventListener("click", button.onClick);
-        if (newRow) {
-            elDiv.appendChild(elButton);
-        } else {
-            elProperty.appendChild(elButton);
-        }
-    });
-    
-    if (newRow) {
-        elProperty.appendChild(document.createElement('br'));
-        elProperty.appendChild(elDiv);
-    }
-}
-
-function showGroupsForType(type) {
-    if (type === "Box" || type === "Sphere") {
-        type = "Shape";
-    }
-    
-    let typeGroups = GROUPS_PER_TYPE[type];
-
-    for (let groupKey in elGroups) {
-        let elGroup = elGroups[groupKey];
-        if (typeGroups && typeGroups.indexOf(groupKey) > -1) {
-            elGroup.style.display = "block";
-        } else {
-            elGroup.style.display = "none";
-        }
-    }
-}
-
-function resetProperties() {
-    for (let propertyName in elPropertyElements) {
-        let elProperty = elPropertyElements[propertyName];                          
-        if (elProperty instanceof Array) {
-            if (elProperty.length === 2 || elProperty.length === 3) {
-                // vec2/vec3 are array of 2/3 input numbers
-                elProperty[0].value = "";
-                elProperty[1].value = "";
-                if (elProperty[2] !== undefined) {
-                    elProperty[2].value = "";
-                }
-            } else if (elProperty.length === 4) {
-                // color is array of color picker and 3 input numbers
-                elProperty[0].style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
-                elProperty[1].value = "";
-                elProperty[2].value = "";
-                elProperty[3].value = "";
-            }
-        } else if (elProperty.getAttribute("type") === "number") {
-            if (elProperty.getAttribute("defaultValue")) {
-                elProperty.value = elProperty.getAttribute("defaultValue");
-            } else { 
-                elProperty.value = "";
-            }
-        } else if (elProperty.getAttribute("type") === "checkbox") {
-            elProperty.checked = false;
-        } else {
-            elProperty.value = "";
-        }
-    }
-    
-    for (let showPropertyRule in showPropertyRules) {
-        let propertyShowRules = showPropertyRules[showPropertyRule];
-        for (let propertyToHide in propertyShowRules) {
-            let elPropertyToHide = elPropertyElements[propertyToHide];
-            if (elPropertyToHide) {
-                let nodeToHide = elPropertyToHide;
-                if (elPropertyToHide.nodeName !== "DIV") {
-                    let parentNode = elPropertyToHide.parentNode;
-                    if (parentNode === undefined && elPropertyToHide instanceof Array) {
-                        parentNode = elPropertyToHide[0].parentNode;
-                    }
-                    if (parentNode !== undefined) {
-                        nodeToHide = parentNode;
-                    }
-                }
-                nodeToHide.style.display = "none";
-            }
-        }
-    }
-}
 
 function loaded() {
     openEventBridge(function() {    
@@ -1729,8 +2121,8 @@ function loaded() {
             group.properties.forEach(function(property) {
                 let propertyType = property.type;
                 let propertyName = property.propertyName;
-                let propertyID = "property-" + propertyName;
-                propertyID = propertyID.replace(".", "-");
+                let propertyElementID = getPropertyElementID(propertyName);
+                propertyElementID = propertyElementID.replace(".", "-");
                 
                 let elProperty;
                 if (propertyType === "sub-header") {
@@ -1739,7 +2131,7 @@ function loaded() {
                     elProperty.setAttribute("class", "sub-section-header");
                 } else {
                     elProperty = document.createElement('div');
-                    elProperty.setAttribute("id", "div-" + propertyID);
+                    elProperty.setAttribute("id", "div-" + propertyElementID);
                 }
                 
                 if (group.twoColumn && property.column !== undefined && property.column !== -1) {
@@ -1766,294 +2158,58 @@ function loaded() {
                 
                 let elLabel = document.createElement('label');
                 elLabel.innerText = property.label;
-                elLabel.setAttribute("for", propertyID);
+                elLabel.setAttribute("for", propertyElementID);
+                
+                properties[propertyName] = { data: property };
                 
                 switch (propertyType) {
-                    case 'vec3': {
-                        elProperty.setAttribute("class", "property " + property.vec3Type + " fstuple");
-                        
-                        let elTuple = document.createElement('div');
-                        elTuple.setAttribute("class", "tuple");
-                        
-                        addUnit(property.unit, elLabel);
-                        
-                        elProperty.appendChild(elLabel);
-                        elProperty.appendChild(elTuple);
-                        
-                        let elInputX = createTupleNumberInput(elTuple, propertyID, property.subLabels[0], property.min, property.max, property.step);
-                        let elInputY = createTupleNumberInput(elTuple, propertyID, property.subLabels[1], property.min, property.max, property.step);
-                        let elInputZ = createTupleNumberInput(elTuple, propertyID, property.subLabels[2], property.min, property.max, property.step);
-                        
-                        let inputChangeFunction;
-                        let multiplier = 1;
-                        if (property.multiplier !==  undefined) { 
-                            multiplier = property.multiplier;
-                            inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elInputX, elInputY, elInputZ);
-                        } else {
-                            inputChangeFunction = createEmitVec3PropertyUpdateFunctionWithMultiplier(propertyName, elInputX, elInputY, elInputZ, property.multiplier);
-                        }
-                        elInputX.setAttribute("multiplier", multiplier);
-                        elInputY.setAttribute("multiplier", multiplier);
-                        elInputZ.setAttribute("multiplier", multiplier);
-                        elInputX.addEventListener('change', inputChangeFunction);
-                        elInputY.addEventListener('change', inputChangeFunction);
-                        elInputZ.addEventListener('change', inputChangeFunction);
-                        
-                        elPropertyElements[propertyName] = [elInputX, elInputY, elInputZ];
-                        break;
-                    }
-                    case 'vec2': {
-                        elProperty.setAttribute("class", "property " + property.vec2Type + " fstuple");
-                        
-                        let elTuple = document.createElement('div');
-                        elTuple.setAttribute("class", "tuple");
-                        
-                        addUnit(property.unit, elLabel);
-                        
-                        elProperty.appendChild(elLabel);
-                        elProperty.appendChild(elTuple);
-                        
-                        let elInputX = createTupleNumberInput(elTuple, propertyID, property.subLabels[0], property.min, property.max, property.step);
-                        let elInputY = createTupleNumberInput(elTuple, propertyID, property.subLabels[1], property.min, property.max, property.step);
-                        
-                        let inputChangeFunction;    
-                        let multiplier = 1;
-                        if (property.multiplier !==  undefined) { 
-                            multiplier = property.multiplier;
-                            inputChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elInputX, elInputY);
-                        } else {
-                            inputChangeFunction = createEmitVec2PropertyUpdateFunctionWithMultiplier(propertyName, elInputX, elInputY, property.multiplier);
-                        }
-                        elInputX.setAttribute("multiplier", multiplier);
-                        elInputY.setAttribute("multiplier", multiplier);
-                        elInputX.addEventListener('change', inputChangeFunction);
-                        elInputY.addEventListener('change', inputChangeFunction);
-                        
-                        elPropertyElements[propertyName] = [elInputX, elInputY];
-                        break;
-                    }
-                    case 'color': {
-                        elProperty.setAttribute("class", "property rgb fstuple");
-                        
-                        let elColorPicker = document.createElement('div');
-                        elColorPicker.setAttribute("class", "color-picker");
-                        elColorPicker.setAttribute("id", propertyID);
-                        
-                        let elTuple = document.createElement('div');
-                        elTuple.setAttribute("class", "tuple");
-                        
-                        elProperty.appendChild(elColorPicker);
-                        elProperty.appendChild(elLabel);
-                        elProperty.appendChild(elTuple);
-                        
-                        let elInputR = createTupleNumberInput(elTuple, propertyID, "red", 0, 255, 1);
-                        let elInputG = createTupleNumberInput(elTuple, propertyID, "green", 0, 255, 1);
-                        let elInputB = createTupleNumberInput(elTuple, propertyID, "blue", 0, 255, 1);
-                        
-                        let inputChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elInputR, elInputG, elInputB);    
-                        elInputR.addEventListener('change', inputChangeFunction);
-                        elInputG.addEventListener('change', inputChangeFunction);
-                        elInputB.addEventListener('change', inputChangeFunction);
-                        
-                        let colorPickerID = "#" + propertyID;
-                        colorPickers[colorPickerID] = $(colorPickerID).colpick({
-                            colorScheme: 'dark',
-                            layout: 'hex',
-                            color: '000000',
-                            submit: false, // We don't want to have a submission button
-                            onShow: function(colpick) {
-                                $(colorPickerID).attr('active', 'true');
-                                // The original color preview within the picker needs to be updated on show because
-                                // prior to the picker being shown we don't have access to the selections' starting color.
-                                colorPickers[colorPickerID].colpickSetColor({
-                                    "r": elInputR.value,
-                                    "g": elInputG.value,
-                                    "b": elInputB.value
-                                });
-                            },
-                            onHide: function(colpick) {
-                                $(colorPickerID).attr('active', 'false');
-                            },
-                            onChange: function(hsb, hex, rgb, el) {
-                                $(el).css('background-color', '#' + hex);
-                                emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
-                            }
-                        });
-                        
-                        elPropertyElements[propertyName] = [elColorPicker, elInputR, elInputG, elInputB];
-                        break;
-                    }
                     case 'string': {
-                        elProperty.setAttribute("class", "property text");
-                        
-                        let elInput = document.createElement('input');
-                        elInput.setAttribute("id", propertyID);
-                        elInput.setAttribute("type", "text"); 
-                        if (property.readOnly) {
-                            elInput.readOnly = true;
-                        }
-                        
-                        elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
-                        
-                        elProperty.appendChild(elLabel);
-                        elProperty.appendChild(elInput);
-                        
-                        if (property.buttons !== undefined) {
-                            addButtons(elProperty, propertyID, property.buttons, false);
-                        }
-                        
-                        elPropertyElements[propertyName] = elInput;
+                        createStringProperty(elProperty, elLabel, property);
                         break;
                     }
                     case 'bool': {
-                        elProperty.setAttribute("class", "property checkbox");
-                        
-                        if (property.glyph !== undefined) {
-                            elLabel.innerText = " " + property.label;
-                            let elSpan = document.createElement('span');
-                            elSpan.innerHTML = property.glyph;
-                            elLabel.insertBefore(elSpan, elLabel.firstChild);
-                        }
-                        
-                        let elInput = document.createElement('input');
-                        elInput.setAttribute("id", propertyID);
-                        elInput.setAttribute("type", "checkbox");
-                        
-                        let inverse = property.inverse;
-                        elInput.setAttribute("inverse", inverse ? "true" : "false");
-                        
-                        elProperty.appendChild(elInput);
-                        elProperty.appendChild(elLabel);
-                        
-                        let subPropertyOf = property.subPropertyOf;
-                        if (subPropertyOf !== undefined) {
-                            elInput.setAttribute("subPropertyOf", subPropertyOf);
-                            elPropertyElements[propertyName] = elInput;
-                            subProperties.push(propertyName);
-                            elInput.addEventListener('change', function() {
-                                updateCheckedSubProperty(subPropertyOf, properties[subPropertyOf], elInput, propertyName);
-                            });
-                        } else {
-                            elPropertyElements[propertyName] = elInput;
-                            elInput.addEventListener('change', createEmitCheckedPropertyUpdateFunction(propertyName, inverse));
-                        }
-                        break;
-                    }
-                    case 'dropdown': {
-                        elProperty.setAttribute("class", "property dropdown");
-                        
-                        let elInput = document.createElement('select');
-                        elInput.setAttribute("id", propertyID);
-                        elInput.setAttribute("propertyName", propertyName);
-                        
-                        for (let optionKey in property.options) {
-                            let option = document.createElement('option');
-                            option.value = optionKey;
-                            option.text = property.options[optionKey];
-                            elInput.add(option);
-                        }
-                        
-                        elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
-                        
-                        elProperty.appendChild(elLabel);
-                        elProperty.appendChild(elInput);
-                        elPropertyElements[propertyName] = elInput;
+                        createBoolProperty(elProperty, elLabel, property);
                         break;
                     }
                     case 'number': {
-                        elProperty.setAttribute("class", "property number");
-                        
-                        addUnit(property.unit, elLabel);
-                        
-                        let elInput = document.createElement('input');
-                        elInput.setAttribute("id", propertyID);
-                        elInput.setAttribute("type", "number");
-                        if (property.min !== undefined) {
-                            elInput.setAttribute("min", property.min);
-                        }
-                        if (property.max !== undefined) {
-                            elInput.setAttribute("max", property.max);
-                        }
-                        if (property.step !== undefined) {
-                            elInput.setAttribute("step", property.step);
-                        }
-                        
-                        let fixedDecimals = property.fixedDecimals !== undefined ? property.fixedDecimals : 0;
-                        elInput.setAttribute("fixedDecimals", fixedDecimals);
-                        
-                        let defaultValue = property.defaultValue;
-                        if (defaultValue !== undefined) {
-                            elInput.setAttribute("defaultValue", defaultValue);
-                            elInput.value = defaultValue;
-                        }
-                        
-                        elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(propertyName, fixedDecimals));
-                        
-                        elProperty.appendChild(elLabel);
-                        elProperty.appendChild(elInput);
-                        
-                        if (property.buttons !== undefined) {
-                            addButtons(elProperty, propertyID, property.buttons, true);
-                        }
-                        
-                        elPropertyElements[propertyName] = elInput;
+                        createNumberProperty(elProperty, elLabel, property);
+                        break;
+                    }
+                    case 'vec3': {
+                        createVec3Property(elProperty, elLabel, property);  
+                        break;
+                    }
+                    case 'vec2': {
+                        createVec2Property(elProperty, elLabel, property);  
+                        break;
+                    }
+                    case 'color': {
+                        createColorProperty(elProperty, elLabel, property);  
+                        break;
+                    }
+                    case 'dropdown': {
+                        createDropdownProperty(elProperty, elLabel, property);
                         break;
                     }
                     case 'textarea': {
-                        elProperty.setAttribute("class", "property textarea");
-                        
-                        elProperty.appendChild(elLabel);
-                        
-                        if (property.buttons !== undefined) {
-                            addButtons(elProperty, propertyID, property.buttons, true);
-                        }
-                        
-                        let elInput = document.createElement('textarea');
-                        elInput.setAttribute("id", propertyID);
-                        if (property.readOnly) {
-                            elInput.readOnly = true;
-                        }                   
-                        
-                        elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
-                        
-                        elProperty.appendChild(elInput);
-                        elPropertyElements[propertyName] = elInput;
+                        createTextareaProperty(elProperty, elLabel, property);
                         break;
                     }
                     case 'icon': {
-                        elProperty.setAttribute("class", "property value");
-                        
-                        elLabel.setAttribute("id", propertyID);
-                        elLabel.innerHTML = " " + property.label;
-                        
-                        let elSpan = document.createElement('span');
-                        elSpan.setAttribute("id", propertyID + "-icon");
-                        icons[propertyName] = property.icons;
-
-                        elProperty.appendChild(elSpan);
-                        elProperty.appendChild(elLabel);
-                        elPropertyElements[propertyName] = [ elSpan, elLabel ];
+                        createIconProperty(elProperty, elLabel, property);
                         break;
                     }
                     case 'buttons': {
-                        elProperty.setAttribute("class", "property text");
-                        
-                        let hasLabel = property.label !== undefined;
-                        if (hasLabel) {
-                            elProperty.appendChild(elLabel);
-                        }
-                        
-                        if (property.buttons !== undefined) {
-                            addButtons(elProperty, propertyID, property.buttons, hasLabel);
-                        }
-                        
-                        elPropertyElements[propertyName] = elProperty;
+                        createButtonsProperty(elProperty, elLabel, property);
                         break;
                     }
                     case 'sub-header': {
-                        if (propertyName !== undefined) {
-                            elPropertyElements[propertyName] = elProperty;
-                        }
+                        properties[propertyName].el = elProperty;
+                        break;
+                    }
+                    default: {
+                        console.log("EntityProperties - Unknown property type " + 
+                                    propertyType + " set to property " + propertyName);
                         break;
                     }
                 }
@@ -2062,10 +2218,13 @@ function loaded() {
                 if (showPropertyRule !== undefined) {
                     let dependentProperty = Object.keys(showPropertyRule)[0];
                     let dependentPropertyValue = showPropertyRule[dependentProperty];
-                    if (!showPropertyRules[dependentProperty]) {
-                        showPropertyRules[dependentProperty] = [];
+                    if (properties[dependentProperty] === undefined) {
+                        properties[dependentProperty] = {};
                     }
-                    showPropertyRules[dependentProperty][propertyName] = dependentPropertyValue;
+                    if (properties[dependentProperty].showPropertyRules === undefined) {
+                        properties[dependentProperty].showPropertyRules = {};
+                    }
+                    properties[dependentProperty].showPropertyRules[propertyName] = dependentPropertyValue;
                 }
             });
             
@@ -2073,7 +2232,6 @@ function loaded() {
         });
         
         if (window.EventBridge !== undefined) {
-            var properties;
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
                 if (data.type === "server_script_status") {
@@ -2112,21 +2270,21 @@ function loaded() {
                             }
                         }
                         
-                        elPropertyElements["type"][0].style.display = "none";
-                        elPropertyElements["type"][1].innerHTML = NO_SELECTION;
+                        resetProperties();
+                        
+                        getPropertyElement("type")[0].style.display = "none";
+                        getPropertyElement("type")[1].innerHTML = NO_SELECTION;
                         elPropertiesList.className = '';
                         showGroupsForType("None");
-                        
-                        resetProperties();
                 
                         deleteJSONEditor();
-                        elPropertyElements["userData"].value = "";
+                        getPropertyElement("userData").value = "";
                         showUserDataTextArea();
                         showSaveUserDataButton();
                         showNewJSONEditorButton();
                         
                         deleteJSONMaterialEditor();
-                        elPropertyElements["materialData"].value = "";
+                        getPropertyElement("materialData").value = "";
                         showMaterialDataTextArea();
                         showSaveMaterialDataButton();
                         showNewJSONMaterialEditorButton();
@@ -2157,18 +2315,19 @@ function loaded() {
                             type = selections[0].properties.type;
                         }
                         
-                        elPropertyElements["type"][0].innerHTML = ICON_FOR_TYPE[type];
-                        elPropertyElements["type"][0].style.display = "inline-block";
-                        elPropertyElements["type"][1].innerHTML = type + " (" + data.selections.length + ")";
+                        resetProperties();
+                        
+                        getPropertyElement("type")[0].innerHTML = ICON_FOR_TYPE[type];
+                        getPropertyElement("type")[0].style.display = "inline-block";
+                        getPropertyElement("type")[1].innerHTML = type + " (" + data.selections.length + ")";
                         elPropertiesList.className = '';
                         showGroupsForType(type);
                         
-                        resetProperties();
                         disableProperties();
                     } else {
-                        properties = data.selections[0].properties;
+                        selectedEntityProperties = data.selections[0].properties;
                         
-                        if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null) {
+                        if (lastEntityID !== '"' + selectedEntityProperties.id + '"' && lastEntityID !== null) {
                             if (editor !== null) {
                                saveUserData();
                             }
@@ -2177,132 +2336,144 @@ function loaded() {
                             }
                         }
 
-                        let doSelectElement = lastEntityID === '"' + properties.id + '"';
+                        let doSelectElement = lastEntityID === '"' + selectedEntityProperties.id + '"';
 
                         // the event bridge and json parsing handle our avatar id string differently.
-                        lastEntityID = '"' + properties.id + '"';
+                        lastEntityID = '"' + selectedEntityProperties.id + '"';
 
                         // HTML workaround since image is not yet a separate entity type
                         let IMAGE_MODEL_NAME = 'default-image-model.fbx';
-                        if (properties.type === "Model") {
-                            let urlParts = properties.modelURL.split('/');
+                        if (selectedEntityProperties.type === "Model") {
+                            let urlParts = selectedEntityProperties.modelURL.split('/');
                             let propsFilename = urlParts[urlParts.length - 1];
 
                             if (propsFilename === IMAGE_MODEL_NAME) {
-                                properties.type = "Image";
+                                selectedEntityProperties.type = "Image";
                             }
                         }
                         
                         // Create class name for css ruleset filtering
-                        elPropertiesList.className = properties.type + 'Menu';
-                        showGroupsForType(properties.type);
+                        elPropertiesList.className = selectedEntityProperties.type + 'Menu';
+                        showGroupsForType(selectedEntityProperties.type);
                         
-                        for (let propertyName in elPropertyElements) {
-                            let elProperty = elPropertyElements[propertyName];
+                        for (let propertyName in properties) {
+                            let property = properties[propertyName];
+                            let elProperty = property.el;
+                            let propertyData = property.data;
                             
+                            // if this is a compound property name (i.e. animation.running) 
+                            // then split it by . up to 3 times to find property value
                             let propertyValue;
                             let splitPropertyName = propertyName.split('.');
                             if (splitPropertyName.length > 1) {
                                 let propertyGroupName = splitPropertyName[0];
                                 let subPropertyName = splitPropertyName[1];
-                                if (properties[propertyGroupName] === undefined || properties[propertyGroupName][subPropertyName] === undefined) {
+                                let groupProperties = selectedEntityProperties[propertyGroupName];
+                                if (groupProperties === undefined || groupProperties[subPropertyName] === undefined) {
                                     continue;
                                 }
                                 if (splitPropertyName.length === 3) { 
                                     let subSubPropertyName = splitPropertyName[2];
-                                    propertyValue = properties[propertyGroupName][subPropertyName][subSubPropertyName];
+                                    propertyValue = groupProperties[subPropertyName][subSubPropertyName];
                                 } else {
-                                    propertyValue = properties[propertyGroupName][subPropertyName];
+                                    propertyValue = groupProperties[subPropertyName];
                                 }
                             } else {
-                                propertyValue = properties[propertyName];
+                                propertyValue = selectedEntityProperties[propertyName];
                             }
 
                             // workaround for shape Color & Light Color property fields sharing same property value "color"
                             if (propertyValue === undefined && propertyName === "lightColor") {
-                                propertyValue = properties["color"]
+                                propertyValue = selectedEntityProperties["color"]
                             }
                             
-                            let isSubProperty = subProperties.indexOf(propertyName) > -1;
+                            let isSubProperty = propertyData.subPropertyOf !== undefined;
                             if (elProperty === undefined || (propertyValue === undefined && !isSubProperty)) {
                                 continue;
                             }
                             
-                            if (elProperty instanceof Array) {
-                                if (elProperty[1].getAttribute("type") === "number") { // vectors
-                                    if (elProperty.length === 2 || elProperty.length === 3) {
-                                        // vec2/vec3 are array of 2/3 input numbers
-                                        elProperty[0].value = (propertyValue.x * 1 / elProperty[0].getAttribute("multiplier")).toFixed(4);
-                                        elProperty[1].value = (propertyValue.y * 1 / elProperty[1].getAttribute("multiplier")).toFixed(4);
-                                        if (elProperty[2] !== undefined) {
-                                            elProperty[2].value = (propertyValue.z * 1 / elProperty[2].getAttribute("multiplier")).toFixed(4);
-                                        }
-                                    } else if (elProperty.length === 4) {
-                                        // color is array of color picker and 3 input numbers
-                                        elProperty[0].style.backgroundColor = "rgb(" + propertyValue.red + "," + propertyValue.green + "," + propertyValue.blue + ")";
-                                        elProperty[1].value = propertyValue.red;
-                                        elProperty[2].value = propertyValue.green;
-                                        elProperty[3].value = propertyValue.blue;
-                                    }
-                                } else if (elProperty[0].nodeName === "SPAN") { // icons
-                                    // icon is array of elSpan (icon glyph) and elLabel
-                                    elProperty[0].innerHTML = icons[propertyName][propertyValue];
-                                    elProperty[0].style.display = "inline-block";
-                                    elProperty[1].innerHTML = propertyValue; //+ " (" + data.selections.length + ")";
+                            switch (propertyData.type) {
+                                case 'string': {
+                                    elProperty.value = propertyValue;
+                                    break;
                                 }
-                            } else if (elProperty.getAttribute("subPropertyOf")) {
-                                let propertyValue = properties[elProperty.getAttribute("subPropertyOf")];
-                                let subProperties = propertyValue.split(",");
-                                elProperty.checked = subProperties.indexOf(propertyName) > -1;
-                            } else if (elProperty.getAttribute("type") === "number") {
-                                let fixedDecimals = elProperty.getAttribute("fixedDecimals");
-                                elProperty.value = propertyValue.toFixed(fixedDecimals);
-                            } else if (elProperty.getAttribute("type") === "checkbox") {
-                                let inverse = elProperty.getAttribute("inverse") === "true";
-                                elProperty.checked = inverse ? !propertyValue : propertyValue;
-                            } else if (elProperty.nodeName === "TEXTAREA") {
-                                elProperty.value = propertyValue;
-                                setTextareaScrolling(elProperty);
-                            } else if (elProperty.nodeName === "DT") { // dropdown
-                                elProperty.value = propertyValue;
-                                setDropdownText(elProperty);
-                            } else {
-                                elProperty.value = propertyValue;
+                                case 'bool': {
+                                    let inverse = propertyData.inverse !== undefined ? propertyData.inverse : false;
+                                    if (isSubProperty) {
+                                        let propertyValue = selectedEntityProperties[propertyData.subPropertyOf];
+                                        let subProperties = propertyValue.split(",");
+                                        let subPropertyValue = subProperties.indexOf(propertyName) > -1;
+                                        elProperty.checked = inverse ? !subPropertyValue : subPropertyValue;
+                                    } else {
+                                        elProperty.checked = inverse ? !propertyValue : propertyValue;
+                                    }
+                                    break;
+                                }
+                                case 'number': {
+                                    let fixedDecimals = propertyData.fixedDecimals !== undefined ? propertyData.fixedDecimals : 0;
+                                    elProperty.value = propertyValue.toFixed(fixedDecimals);
+                                    break;
+                                }
+                                case 'vec3':
+                                case 'vec2': {
+                                    // vec2/vec3 are array of 2/3 elInput numbers
+                                    let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
+                                    elProperty[0].value = (propertyValue.x / multiplier).toFixed(4);
+                                    elProperty[1].value = (propertyValue.y / multiplier).toFixed(4);
+                                    if (elProperty[2] !== undefined) {
+                                        elProperty[2].value = (propertyValue.z / multiplier).toFixed(4);
+                                    }
+                                    break;
+                                }
+                                case 'color': {
+                                    // color is array of color picker and 3 elInput numbers
+                                    elProperty[0].style.backgroundColor = "rgb(" + propertyValue.red + "," + 
+                                                                          propertyValue.green + "," + 
+                                                                          propertyValue.blue + ")";
+                                    elProperty[1].value = propertyValue.red;
+                                    elProperty[2].value = propertyValue.green;
+                                    elProperty[3].value = propertyValue.blue;
+                                    break;
+                                }
+                                case 'dropdown': {
+                                    elProperty.value = propertyValue;
+                                    setDropdownText(elProperty);
+                                    break;
+                                }
+                                case 'textarea': {
+                                    elProperty.value = propertyValue;
+                                    setTextareaScrolling(elProperty);
+                                    break;
+                                }
+                                case 'icon': {
+                                    // icon is array of elSpan (icon glyph) and elLabel
+                                    elProperty[0].innerHTML = propertyData.icons[propertyValue];
+                                    elProperty[0].style.display = "inline-block";
+                                    elProperty[1].innerHTML = propertyValue;
+                                    break;
+                                }
                             }
                             
-                            let propertyShowRules = showPropertyRules[propertyName];
-                            if (propertyShowRules !== undefined) {
-                                for (let propertyToShow in propertyShowRules) {
-                                    let showIfThisPropertyValue = propertyShowRules[propertyToShow];
+                            let showPropertyRules = property.showPropertyRules;
+                            if (showPropertyRules !== undefined) {
+                                for (let propertyToShow in showPropertyRules) {
+                                    let showIfThisPropertyValue = showPropertyRules[propertyToShow];
                                     let show = String(propertyValue) === String(showIfThisPropertyValue);
-                                    let elPropertyToShow = elPropertyElements[propertyToShow];
-                                    if (elPropertyToShow) {
-                                        let nodeToShow = elPropertyToShow;
-                                        if (elPropertyToShow.nodeName !== "DIV") {
-                                            let parentNode = elPropertyToShow.parentNode;
-                                            if (parentNode === undefined && elPropertyToShow instanceof Array) {
-                                                parentNode = elPropertyToShow[0].parentNode;
-                                            }
-                                            if (parentNode !== undefined) {
-                                                nodeToShow = parentNode;
-                                            }
-                                        }
-                                        nodeToShow.style.display = show ? "table" : "none";
-                                    }
+                                    showPropertyElement(propertyToShow, show);
                                 }
                             }
                         }
                         
-                        let elGrabbable = elPropertyElements["grabbable"];
-                        let elTriggerable = elPropertyElements["triggerable"];
-                        let elIgnoreIK = elPropertyElements["ignoreIK"];
-                        elGrabbable.checked = elPropertyElements["dynamic"].checked;
+                        let elGrabbable = getPropertyElement("grabbable");
+                        let elTriggerable = getPropertyElement("triggerable");
+                        let elIgnoreIK = getPropertyElement("ignoreIK");
+                        elGrabbable.checked = getPropertyElement("dynamic").checked;
                         elTriggerable.checked = false;
                         elIgnoreIK.checked = true;
                         let grabbablesSet = false;
                         let parsedUserData = {};
                         try {
-                            parsedUserData = JSON.parse(properties.userData);
+                            parsedUserData = JSON.parse(selectedEntityProperties.userData);
                             if ("grabbableKey" in parsedUserData) {
                                 grabbablesSet = true;
                                 let grabbableData = parsedUserData.grabbableKey;
@@ -2333,19 +2504,20 @@ function loaded() {
                             elIgnoreIK.checked = true;
                         }
                         
-                        if (properties.type === "Image") {
-                            var imageLink = JSON.parse(properties.textures)["tex.picture"];
-                            elPropertyElements["image"].value = imageLink;
-                        } else if (properties.type === "Material") {
-                            let elParentMaterialNameString = elPropertyElements["materialNameToReplace"];
-                            let elParentMaterialNameNumber = elPropertyElements["submeshToReplace"];
-                            let elParentMaterialNameCheckbox = elPropertyElements["selectSubmesh"];
-                            if (properties.parentMaterialName.startsWith(MATERIAL_PREFIX_STRING)) {
-                                elParentMaterialNameString.value = properties.parentMaterialName.replace(MATERIAL_PREFIX_STRING, "");
+                        if (selectedEntityProperties.type === "Image") {
+                            let imageLink = JSON.parse(selectedEntityProperties.textures)["tex.picture"];
+                            getPropertyElement("image").value = imageLink;
+                        } else if (selectedEntityProperties.type === "Material") {
+                            let elParentMaterialNameString = getPropertyElement("materialNameToReplace");
+                            let elParentMaterialNameNumber = getPropertyElement("submeshToReplace");
+                            let elParentMaterialNameCheckbox = getPropertyElement("selectSubmesh");
+                            let parentMaterialName = selectedEntityProperties.parentMaterialName;
+                            if (parentMaterialName.startsWith(MATERIAL_PREFIX_STRING)) {
+                                elParentMaterialNameString.value = parentMaterialName.replace(MATERIAL_PREFIX_STRING, "");
                                 showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
                                 elParentMaterialNameCheckbox.checked = false;
                             } else {
-                                elParentMaterialNameNumber.value = parseInt(properties.parentMaterialName);
+                                elParentMaterialNameNumber.value = parseInt(parentMaterialName);
                                 showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
                                 elParentMaterialNameCheckbox.checked = true;
                             }
@@ -2353,11 +2525,11 @@ function loaded() {
                         
                         let json = null;
                         try {
-                            json = JSON.parse(properties.userData);
+                            json = JSON.parse(selectedEntityProperties.userData);
                         } catch (e) {
                             // normal text
                             deleteJSONEditor();
-                            elPropertyElements["userData"].value = properties.userData;
+                            getPropertyElement("userData").value = selectedEntityProperties.userData;
                             showUserDataTextArea();
                             showNewJSONEditorButton();
                             hideSaveUserDataButton();
@@ -2376,11 +2548,11 @@ function loaded() {
 
                         let materialJson = null;
                         try {
-                            materialJson = JSON.parse(properties.materialData);
+                            materialJson = JSON.parse(selectedEntityProperties.materialData);
                         } catch (e) {
                             // normal text
                             deleteJSONMaterialEditor();
-                            elPropertyElements["materialData"].value = properties.materialData;
+                            getPropertyElement("materialData").value = selectedEntityProperties.materialData;
                             showMaterialDataTextArea();
                             showNewJSONMaterialEditorButton();
                             hideSaveMaterialDataButton();
@@ -2397,16 +2569,16 @@ function loaded() {
                             hideMaterialDataSaved();
                         }
                         
-                        if (properties.locked) {
+                        if (selectedEntityProperties.locked) {
                             disableProperties();
-                            elPropertyElements["locked"].removeAttribute('disabled');
+                            getPropertyElement("locked").removeAttribute('disabled');
                         } else {
                             enableProperties();
                             disableSaveUserDataButton();
                             disableSaveMaterialDataButton()
                         }
                         
-                        var activeElement = document.activeElement;
+                        let activeElement = document.activeElement;
                         if (doSelectElement && typeof activeElement.select !== "undefined") {
                             activeElement.select();
                         }
@@ -2416,14 +2588,15 @@ function loaded() {
         }
         
         // Server Script Status
-        let elServerScript = elPropertyElements["serverScripts"];
+        let elServerScript = getPropertyElement("serverScripts");
+        let serverScriptElementID = getPropertyElementID("serverScripts");
         let elDiv = document.createElement('div');
         elDiv.setAttribute("class", "property");
         let elLabel = document.createElement('label');
-        elLabel.setAttribute("for", "property-serverScripts-status");
+        elLabel.setAttribute("for", serverScriptElementID + "-status");
         elLabel.innerText = "Server Script Status";
         let elServerScriptStatus = document.createElement('span');
-        elServerScriptStatus.setAttribute("id", "property-serverScripts-status");
+        elServerScriptStatus.setAttribute("id", serverScriptElementID + "-status");
         elDiv.appendChild(elLabel);
         elDiv.appendChild(elServerScriptStatus);
         elServerScript.parentNode.appendChild(elDiv);
@@ -2432,46 +2605,48 @@ function loaded() {
         elDiv = document.createElement('div');
         elDiv.setAttribute("class", "property");
         let elServerScriptError = document.createElement('textarea');
-        elServerScriptError.setAttribute("id", "property-serverScripts-error");
+        elServerScriptError.setAttribute("id", serverScriptElementID + "-error");
         elDiv.appendChild(elServerScriptError);
         elServerScript.parentNode.appendChild(elDiv);
         
-        let elScript = elPropertyElements["script"];
+        let elScript = getPropertyElement("script");
         elScript.parentNode.setAttribute("class", "property url refresh");
         elServerScript.parentNode.setAttribute("class", "property url refresh");
             
         // User Data
-        let elUserData = elPropertyElements["userData"];
+        let elUserData = getPropertyElement("userData");
+        let userDataElementID = getPropertyElementID("userData");
         elDiv = elUserData.parentNode;
         let elStaticUserData = document.createElement('div');
-        elStaticUserData.setAttribute("id", "property-userData-static");
+        elStaticUserData.setAttribute("id", userDataElementID + "-static");
         let elUserDataEditor = document.createElement('div');
-        elUserDataEditor.setAttribute("id", "property-userData-editor");
+        elUserDataEditor.setAttribute("id", userDataElementID + "-editor");
         let elUserDataSaved = document.createElement('span');
-        elUserDataSaved.setAttribute("id", "property-userData-saved");
+        elUserDataSaved.setAttribute("id", userDataElementID + "-saved");
         elUserDataSaved.innerText = "Saved!";
         elDiv.childNodes[2].appendChild(elUserDataSaved);
         elDiv.insertBefore(elStaticUserData, elUserData);
         elDiv.insertBefore(elUserDataEditor, elUserData);
         
         // Material Data
-        let elMaterialData = elPropertyElements["materialData"];
+        let elMaterialData = getPropertyElement("materialData");
+        let materialDataElementID = getPropertyElementID("materialData");
         elDiv = elMaterialData.parentNode;
         let elStaticMaterialData = document.createElement('div');
-        elStaticMaterialData.setAttribute("id", "property-materialData-static");
+        elStaticMaterialData.setAttribute("id", materialDataElementID + "-static");
         let elMaterialDataEditor = document.createElement('div');
-        elMaterialDataEditor.setAttribute("id", "property-materialData-editor");
+        elMaterialDataEditor.setAttribute("id", materialDataElementID + "-editor");
         let elMaterialDataSaved = document.createElement('span');
-        elMaterialDataSaved.setAttribute("id", "property-materialData-saved");
+        elMaterialDataSaved.setAttribute("id", materialDataElementID + "-saved");
         elMaterialDataSaved.innerText = "Saved!";
         elDiv.childNodes[2].appendChild(elMaterialDataSaved);
         elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
         
         // User Data Fields
-        let elGrabbable = elPropertyElements["grabbable"];
-        let elTriggerable = elPropertyElements["triggerable"];
-        let elIgnoreIK = elPropertyElements["ignoreIK"];
+        let elGrabbable = getPropertyElement("grabbable");
+        let elTriggerable = getPropertyElement("triggerable");
+        let elIgnoreIK = getPropertyElement("ignoreIK");
         elGrabbable.addEventListener('change', function() {
             userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, true);
         });
@@ -2483,11 +2658,15 @@ function loaded() {
         });
         
         // Special Property Callbacks
-        let elParentMaterialNameString = elPropertyElements["materialNameToReplace"];
-        let elParentMaterialNameNumber = elPropertyElements["submeshToReplace"];
-        let elParentMaterialNameCheckbox = elPropertyElements["selectSubmesh"];
-        elParentMaterialNameString.addEventListener('change', function () { updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + this.value); });
-        elParentMaterialNameNumber.addEventListener('change', function () { updateProperty("parentMaterialName", this.value); });
+        let elParentMaterialNameString = getPropertyElement("materialNameToReplace");
+        let elParentMaterialNameNumber = getPropertyElement("submeshToReplace");
+        let elParentMaterialNameCheckbox = getPropertyElement("selectSubmesh");
+        elParentMaterialNameString.addEventListener('change', function () { 
+            updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + this.value); 
+        });
+        elParentMaterialNameNumber.addEventListener('change', function () { 
+            updateProperty("parentMaterialName", this.value); 
+        });
         elParentMaterialNameCheckbox.addEventListener('change', function () {
             if (this.checked) {
                 updateProperty("parentMaterialName", elParentMaterialNameNumber.value);
@@ -2498,7 +2677,7 @@ function loaded() {
             }
         });
         
-        elPropertyElements["image"].addEventListener('change', createImageURLUpdateFunction('textures'));
+        getPropertyElement("image").addEventListener('change', createImageURLUpdateFunction('textures'));
         
         // Collapsible sections
         let elCollapsible = document.getElementsByClassName("section-header");
@@ -2544,40 +2723,7 @@ function loaded() {
         //              <li>...</li>
         //          </ul>
         //      </dd>
-        //  </dl>
-        function setDropdownText(dropdown) {
-            let lis = dropdown.parentNode.getElementsByTagName("li");
-            let text = "";
-            for (let i = 0; i < lis.length; i++) {
-                if (String(lis[i].getAttribute("value")) === String(dropdown.value)) {
-                    text = lis[i].textContent;
-                }
-            }
-            dropdown.firstChild.textContent = text;
-        }
-
-        function toggleDropdown(event) {
-            let element = event.target;
-            if (element.nodeName !== "DT") {
-                element = element.parentNode;
-            }
-            element = element.parentNode;
-            let isDropped = element.getAttribute("dropped");
-            element.setAttribute("dropped", isDropped !== "true" ? "true" : "false");
-        }
-
-        function setDropdownValue(event) {
-            let dt = event.target.parentNode.parentNode.previousSibling;
-            dt.value = event.target.getAttribute("value");
-            dt.firstChild.textContent = event.target.textContent;
-
-            dt.parentNode.setAttribute("dropped", "false");
-
-            let evt = document.createEvent("HTMLEvents");
-            evt.initEvent("change", true, true);
-            dt.dispatchEvent(evt);
-        }
-    
+        //  </dl>    
         let elDropdowns = document.getElementsByTagName("select");
         for (let dropDownIndex = 0; dropDownIndex < elDropdowns.length; ++dropDownIndex) {
             let options = elDropdowns[dropDownIndex].getElementsByTagName("option");
@@ -2623,7 +2769,7 @@ function loaded() {
             }
             
             let propertyName = elDropdowns[dropDownIndex].getAttribute("propertyName");
-            elPropertyElements[propertyName] = dt;
+            properties[propertyName].el = dt;
             dt.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
         }
         
