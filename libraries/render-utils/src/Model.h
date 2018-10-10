@@ -137,7 +137,8 @@ public:
     bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction,
                     std::function<void(int, QVector<BlendshapeOffset>, QVector<int>, render::ItemIDs)> modelBlendshapeOperator) {
-        return addToScene(scene, transaction, render::Item::Status::Getters(0), modelBlendshapeOperator);
+        auto getters = render::Item::Status::Getters(0);
+        return addToScene(scene, transaction, getters, modelBlendshapeOperator);
     }
     bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction,
