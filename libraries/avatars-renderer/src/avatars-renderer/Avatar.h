@@ -54,9 +54,11 @@ class AvatarTransit {
 public:
     enum Status {
         IDLE = 0,
+        START_FRAME,
         START_TRANSIT,
         TRANSITING,
         END_TRANSIT,
+        END_FRAME,
         ABORT_TRANSIT
     };
 
@@ -67,6 +69,15 @@ public:
         EASE_IN_OUT
     };
 
+    struct TransitAnimation {
+        TransitAnimation(){};
+        TransitAnimation(const QString& animationUrl, int firstFrame, int frameCount) :
+            _firstFrame(firstFrame), _frameCount(frameCount), _animationUrl(animationUrl){};
+        int _firstFrame;
+        int _frameCount;
+        QString _animationUrl;
+    };
+
     struct TransitConfig {
         TransitConfig() {};
         int _totalFrames { 0 };
@@ -74,6 +85,9 @@ public:
         bool _isDistanceBased { false };
         float _triggerDistance { 0 };
         EaseType _easeType { EaseType::EASE_OUT };
+        TransitAnimation _startTransitAnimation;
+        TransitAnimation _middleTransitAnimation;
+        TransitAnimation _endTransitAnimation;
     };
 
     AvatarTransit() {};

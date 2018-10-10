@@ -83,10 +83,18 @@ AvatarManager::AvatarManager(QObject* parent) :
     const int AVATAR_TRANSIT_FRAME_COUNT = 11; // Based on testing
     const int AVATAR_TRANSIT_FRAMES_PER_METER = 1; // Based on testing
 
+    const QString START_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
+    const QString MIDDLE_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
+    const QString END_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
+
     _transitConfig._totalFrames = AVATAR_TRANSIT_FRAME_COUNT;
     _transitConfig._triggerDistance = AVATAR_TRANSIT_TRIGGER_DISTANCE;
     _transitConfig._framesPerMeter = AVATAR_TRANSIT_FRAMES_PER_METER;
     _transitConfig._isDistanceBased = true;
+
+    _transitConfig._startTransitAnimation = AvatarTransit::TransitAnimation(START_ANIMATION_URL, 0, 14);
+    _transitConfig._middleTransitAnimation = AvatarTransit::TransitAnimation(MIDDLE_ANIMATION_URL, 15, 0);
+    _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 16, 38);
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -132,6 +140,39 @@ void AvatarManager::init() {
 void AvatarManager::setSpace(workload::SpacePointer& space ) {
     assert(!_space);
     _space = space;
+}
+
+void AvatarManager::playTransitAnimations(AvatarTransit::Status status) {
+    auto startAnimation = _transitConfig._startTransitAnimation;
+    auto middleAnimation = _transitConfig._middleTransitAnimation;
+    auto endAnimation = _transitConfig._endTransitAnimation;
+
+    const float REFERENCE_FPS = 30.0f;
+    switch (status) {
+        case AvatarTransit::Status::START_FRAME:
+            qDebug() << "START_FRAME";
+            _myAvatar->overrideAnimation(startAnimation._animationUrl, REFERENCE_FPS, false, startAnimation._firstFrame,
+                                         startAnimation._firstFrame + startAnimation._frameCount);
+            break;
+        case AvatarTransit::Status::START_TRANSIT:
+            qDebug() << "START_TRANSIT";
+            _myAvatar->overrideAnimation(middleAnimation._animationUrl, REFERENCE_FPS, false, middleAnimation._firstFrame,
+                                         middleAnimation._firstFrame + middleAnimation._frameCount);
+            break;
+        case AvatarTransit::Status::END_TRANSIT:
+            qDebug() << "END_TRANSIT";
+            _myAvatar->overrideAnimation(endAnimation._animationUrl, REFERENCE_FPS, false, endAnimation._firstFrame,
+                                         endAnimation._firstFrame + endAnimation._frameCount);
+            break;
+        case AvatarTransit::Status::END_FRAME:
+            qDebug() << "END_FRAME";
+            _myAvatar->restoreAnimation();
+            break;
+        case AvatarTransit::Status::IDLE:
+            break;
+        case AvatarTransit::Status::TRANSITING:
+            break;
+    }
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
