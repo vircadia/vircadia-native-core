@@ -135,6 +135,11 @@ public:
 
     bool needsReload() const { return _needsReload; }
     bool addToScene(const render::ScenePointer& scene,
+                    render::Transaction& transaction) {
+        auto getters = render::Item::Status::Getters(0);
+        return addToScene(scene, transaction, getters);
+    }
+    bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction,
                     std::function<void(int, QVector<BlendshapeOffset>, QVector<int>, render::ItemIDs)> modelBlendshapeOperator) {
         auto getters = render::Item::Status::Getters(0);
@@ -142,7 +147,7 @@ public:
     }
     bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction,
-                    render::Item::Status::Getters& statusGetters = render::Item::Status::Getters(0),
+                    render::Item::Status::Getters& statusGetters,
                     std::function<void(int, QVector<BlendshapeOffset>, QVector<int>, render::ItemIDs)> modelBlendshapeOperator = [](int, QVector<BlendshapeOffset>, QVector<int>, render::ItemIDs) {});
     void removeFromScene(const render::ScenePointer& scene, render::Transaction& transaction);
     bool isRenderable() const;
