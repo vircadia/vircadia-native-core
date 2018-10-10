@@ -54,7 +54,7 @@ WebEntityRenderer::ContentType WebEntityRenderer::getContentType(const QString& 
 
     const QUrl url(urlString);
     auto scheme = url.scheme();
-    if (scheme == URL_SCHEME_ABOUT || scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS ||
+    if (scheme == HIFI_URL_SCHEME_ABOUT || scheme == HIFI_URL_SCHEME_HTTP || scheme == HIFI_URL_SCHEME_HTTPS ||
         urlString.toLower().endsWith(".htm") || urlString.toLower().endsWith(".html")) {
         return ContentType::HtmlContent;
     }

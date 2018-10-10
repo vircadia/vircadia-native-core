@@ -182,6 +182,7 @@
 #include "scripting/RatesScriptingInterface.h"
 #include "scripting/SelectionScriptingInterface.h"
 #include "scripting/WalletScriptingInterface.h"
+#include "scripting/SpeechScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -528,11 +529,11 @@ bool isDomainURL(QUrl url) {
     if (url.scheme() == URL_SCHEME_HIFI) {
         return true;
     }
-    if (url.scheme() != URL_SCHEME_FILE) {
+    if (url.scheme() != HIFI_URL_SCHEME_FILE) {
         // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
         // be loaded over http(s)
-        // && url.scheme() != URL_SCHEME_HTTP &&
-        // url.scheme() != URL_SCHEME_HTTPS
+        // && url.scheme() != HIFI_URL_SCHEME_HTTP &&
+        // url.scheme() != HIFI_URL_SCHEME_HTTPS
         return false;
     }
     if (url.path().endsWith(".json", Qt::CaseInsensitive) ||
@@ -943,6 +944,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
     DependencyManager::set<WalletScriptingInterface>();
+    DependencyManager::set<SpeechScriptingInterface>();
 
     DependencyManager::set<FadeEffect>();
 
@@ -1024,8 +1026,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
                 // If the URL scheme is http(s) or ftp, then use as is, else - treat it as a local file
                 // This is done so as not break previous command line scripts
-                if (testScriptPath.left(URL_SCHEME_HTTP.length()) == URL_SCHEME_HTTP ||
-                    testScriptPath.left(URL_SCHEME_FTP.length()) == URL_SCHEME_FTP) {
+                if (testScriptPath.left(HIFI_URL_SCHEME_HTTP.length()) == HIFI_URL_SCHEME_HTTP ||
+                    testScriptPath.left(HIFI_URL_SCHEME_FTP.length()) == HIFI_URL_SCHEME_FTP) {
 
                     setProperty(hifi::properties::TEST, QUrl::fromUserInput(testScriptPath));
                 } else if (QFileInfo(testScriptPath).exists()) {
@@ -3127,6 +3129,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+    surfaceContext->setContextProperty("Speech", DependencyManager::get<SpeechScriptingInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -6797,6 +6800,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
+    scriptEngine->registerGlobalObject("Speech", DependencyManager::get<SpeechScriptingInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
