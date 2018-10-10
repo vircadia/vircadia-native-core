@@ -302,7 +302,6 @@ HifiNotifications.prototype = {
                     finished(false);
                     return;
                 }
-                console.log(content);
                 if (!content.total_entries) {
                     finished(true, token);
                     return;
@@ -326,7 +325,6 @@ HifiNotifications.prototype = {
                             notifyData = content.data.updates;
                             break;
                     }
-
                     notifyData.forEach(function (notifyDataEntry) {
                         _this._addNotification(new HifiNotification(notifyType, notifyDataEntry));
                     });
@@ -381,13 +379,13 @@ HifiNotifications.prototype = {
                                 finished(false);
                                 return;
                             }
-                            console.log(content);
+
                             if (!content.total_entries) {
                                 finished(true, token);
                                 return;
                             }
                             if (!content.total_entries) {
-                                this.menuNotificationCallback(NotificationType.GOTO, false);
+                                _this.menuNotificationCallback(NotificationType.GOTO, false);
                             }
                             _this.currentStories = {};
                             content.user_stories.forEach(function (story) {
@@ -397,6 +395,7 @@ HifiNotifications.prototype = {
                                 // for each story.
                                 _this.currentStories[story.place_name] = story;
                             });
+                            _this.menuNotificationCallback(NotificationType.GOTO);
                     });
                 }
         });

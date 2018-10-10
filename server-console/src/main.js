@@ -338,13 +338,15 @@ const HifiNotificationType = hfNotifications.NotificationType;
 var pendingNotifications = {}
 var notificationState = NotificationState.UNNOTIFIED;
 
-function setNotificationState (notificationType, pending = true) {
-    pendingNotifications[notificationType] = pending;
-    notificationState = NotificationState.UNNOTIFIED;
-    for (var key in pendingNotifications) {
-        if (pendingNotifications[key]) {
-            notificationState = NotificationState.NOTIFIED;
-            break;
+function setNotificationState (notificationType, pending = undefined) {
+    if (pending !== undefined) {
+        pendingNotifications[notificationType] = pending;
+        notificationState = NotificationState.UNNOTIFIED;
+        for (var key in pendingNotifications) {
+            if (pendingNotifications[key]) {
+                notificationState = NotificationState.NOTIFIED;
+                break;
+            }
         }
     }
     updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
@@ -569,9 +571,12 @@ function updateLabels(serverState) {
     labels.wallet.icon = pendingNotifications[HifiNotificationType.WALLET] ? menuNotificationIcon : null;
     labels.marketplace.icon = pendingNotifications[HifiNotificationType.MARKETPLACE] ? menuNotificationIcon : null;
     var onlineUsers = trayNotifications.getOnlineUsers();
+    delete labels.people.submenu;
     if (onlineUsers) {
-        labels.people.submenu = [];        
         for (var name in onlineUsers) {
+            if(labels.people.submenu == undefined) {
+                labels.people.submenu = [];
+            }
             labels.people.submenu.push({
                 label: name,
                 enabled: (onlineUsers[name].location != undefined),
@@ -585,14 +590,17 @@ function updateLabels(serverState) {
         }
     }
     var currentStories = trayNotifications.getCurrentStories();
-    if (currentStories && currentStories.length) {
-        labels.goto.submenu = [];        
+    delete labels.goto.submenu;
+    if (currentStories) {
         for (var location in currentStories) {
+            if(labels.goto.submenu == undefined) {
+                labels.goto.submenu = [];
+            }
             labels.goto.submenu.push({
                 label: "event in " + location,
                 click: function () {
                     setNotificationState(HifiNotificationType.GOTO, false);
-                    StartInterface("hifi://" + location + getCurrentStories[location].path);
+                    StartInterface("hifi://" + location + currentStories[location].path);
                 }
             });
         }
