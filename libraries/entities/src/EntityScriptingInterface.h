@@ -149,6 +149,21 @@ public:
         const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
         bool visibleOnly, bool collidableOnly);
 
+    /**jsdoc
+    * Get the properties of multiple entities.
+    * @function Entities.getMultipleEntityProperties
+    * @param {Uuid[]} entityIDs - The IDs of the entities to get the properties of.
+    * @param {string[]|string} [desiredProperties=[]] - Either string with property name or array of the names of the properties
+    *     to get. If the array is empty, all properties are returned.
+    * @returns {Entities.EntityProperties[]} The properties of the entity if the entity can be found, otherwise an empty object.
+    * @example <caption>Retrieve the names of the nearby entities</caption>
+    * var SEARCH_RADIUS = 50; // meters
+    * var entityIds = Entities.findEntities(MyAvatar.position, SEARCH_RADIUS);
+    * var propertySets = Entities.getMultipleEntityProperties(entityIds, "name");
+    * print("Nearby entity names: " + JSON.stringify(propertySets));
+    */
+    static QScriptValue getMultipleEntityProperties(QScriptContext* context, QScriptEngine* engine);
+    QScriptValue getMultipleEntityPropertiesInternal(QScriptEngine* engine, QVector<QUuid> entityIDs, const QScriptValue& extendedDesiredProperties);
 public slots:
 
     /**jsdoc
@@ -270,7 +285,7 @@ public slots:
      * print("Entity color: " + JSON.stringify(properties.color));
      */
     Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid entityID);
-    Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid identity, EntityPropertyFlags desiredProperties);
+    Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid entityID, EntityPropertyFlags desiredProperties);
 
     /**jsdoc
      * Update an entity with specified properties.

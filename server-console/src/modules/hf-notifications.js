@@ -44,7 +44,6 @@ function HifiNotification(notificationType, notificationData, menuNotificationCa
 
 HifiNotification.prototype = {
     show: function (finished) {
-        var _finished = finished;
         var text = "";
         var message = "";
         var url = null;
@@ -123,11 +122,11 @@ HifiNotification.prototype = {
             timeout: 5
             },
             function (error, reason, metadata) {
-                if (_finished) {
+                if (finished) {
                     if (osType === 'Darwin') {
-                        setTimeout(_finished, OSX_CLICK_DELAY_TIMEOUT);
+                        setTimeout(finished, OSX_CLICK_DELAY_TIMEOUT);
                     } else {
-                        _finished();
+                        finished();
                     }
                 }
             });
@@ -247,7 +246,7 @@ HifiNotifications.prototype = {
     },
     _addNotification: function (notification) {
         this.pendingNotifications.push(notification);
-        if(this.pendingNotifications.length === 1) {
+        if (this.pendingNotifications.length === 1) {
             this._showNotification();
         }
     },

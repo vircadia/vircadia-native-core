@@ -109,6 +109,7 @@ class PickResult {
 public:
     PickResult() {}
     PickResult(const QVariantMap& pickVariant) : pickVariant(pickVariant) {}
+    virtual ~PickResult() {}
 
     virtual QVariantMap toVariantMap() const {
         return pickVariant;
@@ -170,6 +171,13 @@ public:
     };
     Q_ENUM(PickType)
 
+    enum JointState {
+        JOINT_STATE_NONE = 0,
+        JOINT_STATE_LEFT_HAND,
+        JOINT_STATE_RIGHT_HAND,
+        JOINT_STATE_MOUSE
+    };
+
     void enable(bool enabled = true);
     void disable() { enable(false); }
 
@@ -210,9 +218,11 @@ public:
     void setIgnoreItems(const QVector<QUuid>& items);
     void setIncludeItems(const QVector<QUuid>& items);
 
-    virtual bool isLeftHand() const { return false; }
-    virtual bool isRightHand() const { return false; }
-    virtual bool isMouse() const { return false; }
+    virtual bool isLeftHand() const { return _jointState == JOINT_STATE_LEFT_HAND; }
+    virtual bool isRightHand() const { return _jointState == JOINT_STATE_RIGHT_HAND; }
+    virtual bool isMouse() const { return _jointState == JOINT_STATE_MOUSE; }
+
+    void setJointState(JointState jointState) { _jointState = jointState; }
 
     virtual Transform getResultTransform() const = 0;
 
@@ -226,13 +236,16 @@ private:
 
     QVector<QUuid> _ignoreItems;
     QVector<QUuid> _includeItems;
+
+    JointState _jointState { JOINT_STATE_NONE };
 };
 Q_DECLARE_METATYPE(PickQuery::PickType)
 
 template<typename T>
 class Pick : public PickQuery {
 public:
-    Pick(const PickFilter& filter, const float maxDistance, const bool enabled) : PickQuery(filter, maxDistance, enabled) {}
+    Pick(const T& mathPick, const PickFilter& filter, const float maxDistance, const bool enabled) : PickQuery(filter, maxDistance, enabled), _mathPick(mathPick) {}
+    virtual ~Pick() {}
 
     virtual T getMathematicalPick() const = 0;
     virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;
@@ -240,6 +253,9 @@ public:
     virtual PickResultPointer getOverlayIntersection(const T& pick) = 0;
     virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
     virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
+
+protected:
+    T _mathPick;
 };
 
 namespace std {

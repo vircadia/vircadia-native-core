@@ -305,7 +305,7 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
     }
 
     doRenderUpdateSynchronous(scene, transaction, _entity);
-    transaction.updateItem<EntityRenderer>(_renderItemID, [this](EntityRenderer& self) {
+    transaction.updateItem<PayloadProxyInterface>(_renderItemID, [this](PayloadProxyInterface& self) {
         if (!isValidRenderItem()) {
             return;
         }

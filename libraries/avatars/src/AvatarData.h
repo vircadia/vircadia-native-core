@@ -309,16 +309,19 @@ const float AVATAR_SEND_FULL_UPDATE_RATIO = 0.02f;
 const float AVATAR_MIN_ROTATION_DOT = 0.9999999f;
 const float AVATAR_MIN_TRANSLATION = 0.0001f;
 
-const float ROTATION_CHANGE_15D = 0.9914449f;
-const float ROTATION_CHANGE_45D = 0.9238795f;
-const float ROTATION_CHANGE_90D = 0.7071068f;
-const float ROTATION_CHANGE_179D = 0.0087266f;
+// quaternion dot products
+const float ROTATION_CHANGE_2D = 0.99984770f; // 2 degrees
+const float ROTATION_CHANGE_4D = 0.99939083f; // 4 degrees
+const float ROTATION_CHANGE_6D = 0.99862953f; // 6 degrees
+const float ROTATION_CHANGE_15D = 0.99144486f; // 15 degrees
+const float ROTATION_CHANGE_179D = 0.00872653f; // 179 degrees
 
-const float AVATAR_DISTANCE_LEVEL_1 = 10.0f;
-const float AVATAR_DISTANCE_LEVEL_2 = 100.0f;
-const float AVATAR_DISTANCE_LEVEL_3 = 1000.0f;
-const float AVATAR_DISTANCE_LEVEL_4 = 10000.0f;
-
+// rotation culling distance thresholds
+const float AVATAR_DISTANCE_LEVEL_1 = 12.5f; // meters
+const float AVATAR_DISTANCE_LEVEL_2 = 16.6f; // meters
+const float AVATAR_DISTANCE_LEVEL_3 = 25.0f; // meters
+const float AVATAR_DISTANCE_LEVEL_4 = 50.0f; // meters
+const float AVATAR_DISTANCE_LEVEL_5 = 200.0f; // meters
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
@@ -1190,6 +1193,9 @@ public:
     void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
     int getReplicaIndex() { return _replicaIndex; }
 
+    void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
+    bool getIsNewAvatar() { return _isNewAvatar; }
+
 signals:
 
     /**jsdoc
@@ -1372,7 +1378,8 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition { 0, 0, 0 };
-
+    glm::vec3 _globalPositionOverride { 0, 0, 0 };
+    bool _overrideGlobalPosition { false };
 
     quint64 _globalPositionChanged { 0 };
     quint64 _avatarBoundingBoxChanged { 0 };
@@ -1451,6 +1458,7 @@ protected:
     bool _hasProcessedFirstIdentity { false };
     float _density;
     int _replicaIndex { 0 };
+    bool _isNewAvatar { true };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;

@@ -345,9 +345,9 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
     }
 }
 
-CollisionPick::CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine) :
-    Pick(filter, maxDistance, enabled),
-    _mathPick(collisionRegion),
+CollisionPick::CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, bool scaleWithParent, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine) :
+    Pick(collisionRegion, filter, maxDistance, enabled),
+    _scaleWithParent(scaleWithParent),
     _physicsEngine(physicsEngine) {
     if (collisionRegion.shouldComputeShapeInfo()) {
         _cachedResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(collisionRegion.modelURL);
@@ -361,9 +361,15 @@ CollisionRegion CollisionPick::getMathematicalPick() const {
     if (parentTransform) {
         Transform parentTransformValue = parentTransform->getTransform();
         mathPick.transform = parentTransformValue.worldTransform(mathPick.transform);
-        glm::vec3 scale = parentTransformValue.getScale();
-        float largestDimension = glm::max(glm::max(scale.x, scale.y), scale.z);
-        mathPick.threshold *= largestDimension;
+
+        if (_scaleWithParent) {
+            glm::vec3 scale = parentTransformValue.getScale();
+            float largestDimension = glm::max(glm::max(scale.x, scale.y), scale.z);
+            mathPick.threshold *= largestDimension;
+        } else {
+            // We need to undo parent scaling after-the-fact because the parent's scale was needed to calculate this mathPick's position
+            mathPick.transform.setScale(_mathPick.transform.getScale());
+        }
     }
     return mathPick;
 }
@@ -424,5 +430,7 @@ PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick)
 }
 
 Transform CollisionPick::getResultTransform() const {
-    return Transform(getMathematicalPick().transform);
+    Transform transform;
+    transform.setTranslation(_mathPick.transform.getTranslation());
+    return transform;
 }

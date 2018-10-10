@@ -28,7 +28,7 @@ if (BUILD_CLIENT)
 endif()
 
 if (BUILD_SERVER)
-  add_dependencies(${TARGET_NAME} assignment-client domain-server interface)
+  add_dependencies(${TARGET_NAME} assignment-client domain-server)
 endif()
 
 # set the packaged console folder depending on platform, so we can copy it
@@ -50,13 +50,6 @@ if (APPLE)
     DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}"
     USE_SOURCE_PERMISSIONS
     DESTINATION ${CONSOLE_INSTALL_DIR}
-    COMPONENT ${SERVER_COMPONENT}
-  )
-  install(
-    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}/"
-    USE_SOURCE_PERMISSIONS
-    DESTINATION ${CONSOLE_INSTALL_DIR}/${CONSOLE_EXEC_NAME}
-    COMPONENT ${CLIENT_COMPONENT}
   )
 elseif (WIN32)
   set(CONSOLE_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}")
@@ -64,12 +57,6 @@ elseif (WIN32)
   install(
     DIRECTORY "${CONSOLE_DESTINATION}/"
     DESTINATION ${CONSOLE_INSTALL_DIR}
-    COMPONENT ${SERVER_COMPONENT}
-  )
-  install(
-    DIRECTORY "${CONSOLE_DESTINATION}/"
-    DESTINATION ${CONSOLE_INSTALL_DIR}
-    COMPONENT ${CLIENT_COMPONENT}
   )
 
   # sign the copied server console executable after install

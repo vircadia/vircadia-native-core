@@ -18,7 +18,7 @@ macro(SET_PACKAGING_PARAMETERS)
   set(BUILD_GLOBAL_SERVICES "DEVELOPMENT")
   set(USE_STABLE_GLOBAL_SERVICES 0)
   set(BUILD_NUMBER 0)
-  set(APP_USER_MODEL_ID "com.highfidelity.console")
+  set(APP_USER_MODEL_ID "com.highfidelity.console-dev")
 
   set_from_env(RELEASE_TYPE RELEASE_TYPE "DEV")
   set_from_env(RELEASE_NUMBER RELEASE_NUMBER "")

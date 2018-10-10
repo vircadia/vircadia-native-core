@@ -88,7 +88,7 @@ public:
     EntityItemID getEntityItemID() const { return EntityItemID(_id); }
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties = EntityPropertyFlags(), bool allowEmptyDesiredProperties = false) const;
 
     /// returns true if something changed
     // This function calls setSubClass properties and detects if any property changes value.
@@ -441,6 +441,8 @@ public:
 
     void setDynamicDataNeedsTransmit(bool value) const { _dynamicDataNeedsTransmit = value; }
     bool dynamicDataNeedsTransmit() const { return _dynamicDataNeedsTransmit; }
+    void setTransitingWithAvatar(bool value) { _transitingWithAvatar = value; }
+    bool getTransitingWithAvatar() { return _transitingWithAvatar; }
 
     bool shouldSuppressLocationEdits() const;
 
@@ -668,6 +670,7 @@ protected:
     QUuid _sourceUUID; /// the server node UUID we came from
 
     bool _clientOnly { false };
+    bool _transitingWithAvatar{ false };
     QUuid _owningAvatarID;
 
     // physics related changes from the network to suppress any duplicates and make

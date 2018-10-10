@@ -18,6 +18,7 @@ namespace controller {
 class EndpointConditional : public Conditional {
 public:
     EndpointConditional(Endpoint::Pointer endpoint) : _endpoint(endpoint) {}
+    virtual ~EndpointConditional() {}
     virtual bool satisfied() override { return _endpoint && _endpoint->peek() != 0.0f; }
 private:
     Endpoint::Pointer _endpoint;

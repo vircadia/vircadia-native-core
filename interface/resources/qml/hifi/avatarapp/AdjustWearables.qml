@@ -100,6 +100,25 @@ Rectangle {
         wearablesModel.setProperty(wearableIndex, 'properties', wearableModelItemProperties);
     }
 
+    function entityHasAvatarJoints(entityID) {
+        var hasAvatarJoint = false;
+
+        var props = Entities.getEntityProperties(entityID);
+        var avatarJointsCount = MyAvatar.getJointNames().length;
+        if (props && avatarJointsCount >= 0 ) {
+            var entityJointNames = Entities.getJointNames(entityID);
+            for (var index = 0; index < entityJointNames.length; index++) {
+                var avatarJointIndex = MyAvatar.getJointIndex(entityJointNames[index]);
+                if (avatarJointIndex >= 0) {
+                    hasAvatarJoint = true;
+                    break;
+                }
+            }
+        }
+
+        return hasAvatarJoint;
+    }
+
     function getCurrentWearable() {
         return wearablesCombobox.currentIndex !== -1 ? wearablesCombobox.model.get(wearablesCombobox.currentIndex) : null;
     }
@@ -109,6 +128,7 @@ Rectangle {
             var wearable = wearablesCombobox.model.get(i);
             if (wearable.id === entityID) {
                 wearablesCombobox.currentIndex = i;
+                softWearableTimer.restart();
                 break;
             }
         }
@@ -118,6 +138,7 @@ Rectangle {
         visible = false;
         adjustWearablesClosed(status, avatarName);
     }
+    
 
     HifiConstants { id: hifi }
 
@@ -128,6 +149,20 @@ Rectangle {
         anchors.fill: parent;
         propagateComposedEvents: false;
         hoverEnabled: true;
+    }
+
+    Timer {
+        id: softWearableTimer
+        interval: 1000
+        running: false
+        repeat: true
+        onTriggered: {
+            var currentWearable = getCurrentWearable();
+            var soft = currentWearable ? currentWearable.relayParentJoints : false;
+            var softEnabled = currentWearable ? entityHasAvatarJoints(currentWearable.id) : false;
+            isSoft.set(soft);
+            isSoft.enabled = softEnabled;
+        }
     }
 
     Column {
@@ -247,13 +282,13 @@ Rectangle {
                     var rotation = currentWearable ? currentWearable.localRotationAngles : { x : 0, y : 0, z : 0 };
                     var scale = currentWearable ? currentWearable.dimensions.x / currentWearable.naturalDimensions.x : 1.0;
                     var joint = currentWearable ? currentWearable.parentJointIndex : -1;
-                    var soft = currentWearable ? currentWearable.relayParentJoints : false;
+                    softWearableTimer.restart();
 
                     positionVector.set(position);
                     rotationVector.set(rotation);
                     scalespinner.set(scale);
                     jointsCombobox.set(joint);
-                    isSoft.set(soft);
+
 
                     if (currentWearable) {
                         wearableSelected(currentWearable.id);
@@ -314,7 +349,7 @@ Rectangle {
                         }
                     };
 
-                    wearableUpdated(getCurrentWearable().id, jointIndex, properties);
+                    wearableUpdated(getCurrentWearable().id, wearablesCombobox.currentIndex, properties);
                 }
 
                 onCurrentIndexChanged: {

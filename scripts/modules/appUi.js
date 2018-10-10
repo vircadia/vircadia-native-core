@@ -42,8 +42,7 @@ function AppUi(properties) {
     that.additionalAppScreens = [];
     that.checkIsOpen = function checkIsOpen(type, tabletUrl) { // Are we active? Value used to set isOpen.
         // Actual url may have prefix or suffix.
-        return (type === that.currentVisibleScreenType) &&
-            that.currentVisibleUrl &&
+        return that.currentVisibleUrl &&
             ((that.home.indexOf(that.currentVisibleUrl) > -1) ||
             (that.additionalAppScreens.indexOf(that.currentVisibleUrl) > -1));
     };
@@ -140,8 +139,8 @@ function AppUi(properties) {
                 that.isOpen = false;
             }
         }
-        console.debug(that.buttonName + " app reports: Tablet screen changed.\nNew screen type: " + type +
-            "\nNew screen URL: " + url + "\nCurrent app open status: " + that.isOpen + "\n");
+        // console.debug(that.buttonName + " app reports: Tablet screen changed.\nNew screen type: " + type +
+        //    "\nNew screen URL: " + url + "\nCurrent app open status: " + that.isOpen + "\n");
     };
 
     // Overwrite with the given properties:
