@@ -20,7 +20,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.hand = hand;
         this.otherHand = this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND;
         this.running = false;
-        this.ignoredOverlays = [];
+        this.ignoredObjects = [];
 
         this.parameters = makeDispatcherModuleParameters(
             160,
@@ -68,35 +68,43 @@ Script.include("/~/system/libraries/controllers.js");
             return this.hand === RIGHT_HAND ? leftOverlayLaserInput : rightOverlayLaserInput;
         };
 
-        this.addOverlayToIgnoreList = function(controllerData) {
+        this.addObjectToIgnoreList = function(controllerData) {
             if (Window.interstitialModeEnabled && !Window.isPhysicsEnabled()) {
                 var intersection = controllerData.rayPicks[this.hand];
                 var objectID = intersection.objectID;
 
                 if (intersection.type === Picks.INTERSECTED_OVERLAY) {
-                    var overlayIndex = this.ignoredOverlays.indexOf(objectID);
+                    var overlayIndex = this.ignoredObjects.indexOf(objectID);
 
-                    if (overlayIndex === -1) {
-                        var overlayName = Overlays.getProperty(objectID, "name");
-                        if (overlayName !== "Loading-Destination-Card-Text" && overlayName !== "Loading-Destination-Card-GoTo-Image" &&
-                            overlayName !== "Loading-Destination-Card-GoTo-Image-Hover") {
-                            var data = {
-                                action: 'add',
-                                id: objectID
-                            };
-                            Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
-                            this.ignoredOverlays.push(objectID);
-                        }
+                    var overlayName = Overlays.getProperty(objectID, "name");
+                    if (overlayName !== "Loading-Destination-Card-Text" && overlayName !== "Loading-Destination-Card-GoTo-Image" &&
+                        overlayName !== "Loading-Destination-Card-GoTo-Image-Hover") {
+                        var data = {
+                            action: 'add',
+                            id: objectID
+                        };
+                        Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
+                        this.ignoredObjects.push(objectID);
                     }
+                } else if (intersection.type === Picks.INTERSECTED_ENTITY) {
+                    var entityIndex = this.ignoredObjects.indexOf(objectID);
+                    var data = {
+                        action: 'add',
+                        id: objectID
+                    };
+                    print("ignoreing entity " + entityIndex);
+                    Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
+                    this.ignoredObjects.push(objectID);
                 }
             }
         };
 
-        this.restoreIgnoredOverlays = function() {
-            for (var index = 0; index < this.ignoredOverlays.length; index++) {
+        this.restoreIgnoredObjects = function() {
+            for (var index = 0; index < this.ignoredObjects.length; index++) {
+                print("removing");
                 var data = {
                     action: 'remove',
-                    id: this.ignoredOverlays[index]
+                    id: this.ignoredObjects[index]
                 };
                 Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
             }
@@ -168,6 +176,10 @@ Script.include("/~/system/libraries/controllers.js");
                     return makeRunningValues(true, [], []);
                 }
             }
+
+            if (Window.interstitialModeEnabled && Window.isPhysicsEnabled()) {
+                this.restoreIgnoredObjects();
+            }
             return makeRunningValues(false, [], []);
         };
 
@@ -180,7 +192,7 @@ Script.include("/~/system/libraries/controllers.js");
             var allowThisModule = !otherModuleRunning && !grabModuleNeedsToRun;
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
             var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
-            this.addOverlayToIgnoreList(controllerData);
+            this.addObjectToIgnoreList(controllerData);
             if (allowThisModule) {
                 if (isTriggerPressed && !this.isPointingAtTriggerable(controllerData, isTriggerPressed, true)) {
                     // if trigger is down + not pointing at a web entity, keep running web surface laser
@@ -194,7 +206,6 @@ Script.include("/~/system/libraries/controllers.js");
                     this.deleteContextOverlay();
                     this.running = false;
                     this.dominantHandOverride = false;
-                    this.restoreIgnoredOverlays();
                     return makeRunningValues(false, [], []);
                 }
             }
@@ -202,7 +213,6 @@ Script.include("/~/system/libraries/controllers.js");
             this.deleteContextOverlay();
             this.running = false;
             this.dominantHandOverride = false;
-            this.restoreIgnoredOverlays();
             return makeRunningValues(false, [], []);
         };
     }
