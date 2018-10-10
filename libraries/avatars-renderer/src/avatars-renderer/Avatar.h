@@ -28,6 +28,8 @@
 #include "Rig.h"
 #include <ThreadSafeValueCache.h>
 
+#include "MetaModelPayload.h"
+
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
@@ -108,7 +110,7 @@ private:
     float _scale { 1.0f };
 };
 
-class Avatar : public AvatarData, public scriptable::ModelProvider {
+class Avatar : public AvatarData, public scriptable::ModelProvider, public MetaModelPayload {
     Q_OBJECT
 
     // This property has JSDoc in MyAvatar.h.

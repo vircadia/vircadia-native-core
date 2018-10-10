@@ -713,7 +713,17 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     // INitialize the _render bound as we are creating the avatar render item
     _renderBound = getBounds();
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
-    _skeletonModel->addToScene(scene, transaction);
+    auto metaBlendshapeOperator = [this](int blendshapeNumber, QVector<BlendshapeOffset> blendshapeOffsets, QVector<int> blendedMeshSizes, render::ItemIDs subItemIDs) {
+        render::Transaction transaction;
+        transaction.updateItem<AvatarData>(_renderItemID, [blendshapeNumber, blendshapeOffsets, blendedMeshSizes, subItemIDs](AvatarData& avatar) {
+            auto avatarPtr = dynamic_cast<Avatar*>(&avatar);
+            if (avatarPtr) {
+                avatarPtr->setBlendedVertices(blendshapeNumber, blendshapeOffsets, blendedMeshSizes, subItemIDs);
+            }
+        });
+        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+    };
+    _skeletonModel->addToScene(scene, transaction, metaBlendshapeOperator);
     _skeletonModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
     _skeletonModel->setGroupCulled(true);
     _skeletonModel->setCanCastShadow(true);
@@ -792,7 +802,7 @@ void Avatar::updateRenderItem(render::Transaction& transaction) {
                     avatarPtr->_renderBound = renderBound;
                 }
             }
-      );
+        );
     }
 }
 
@@ -936,7 +946,17 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     render::Transaction transaction;
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
-        _skeletonModel->addToScene(scene, transaction);
+        auto metaBlendshapeOperator = [this](int blendshapeNumber, QVector<BlendshapeOffset> blendshapeOffsets, QVector<int> blendedMeshSizes, render::ItemIDs subItemIDs) {
+            render::Transaction transaction;
+            transaction.updateItem<AvatarData>(_renderItemID, [blendshapeNumber, blendshapeOffsets, blendedMeshSizes, subItemIDs](AvatarData& avatar) {
+                auto avatarPtr = dynamic_cast<Avatar*>(&avatar);
+                if (avatarPtr) {
+                    avatarPtr->setBlendedVertices(blendshapeNumber, blendshapeOffsets, blendedMeshSizes, subItemIDs);
+                }
+            });
+            AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+        };
+        _skeletonModel->addToScene(scene, transaction, metaBlendshapeOperator);
 
         _skeletonModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
         _skeletonModel->setGroupCulled(true);

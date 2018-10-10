@@ -24,8 +24,6 @@
 
 #include "RenderableEntityItem.h"
 
-
-
 class Model;
 class EntityTreeRenderer;
 
