@@ -582,8 +582,6 @@ function updateLabels(serverState) {
         }
     }
     var currentStories = trayNotifications.getCurrentStories();
-    console.log("CURRENT STORIES");
-    console.log(currentStories);
     if(currentStories) {
         labels.goto.submenu = [];        
         for (var location in currentStories) {
