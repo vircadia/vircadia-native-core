@@ -512,6 +512,8 @@ void TestRailInterface::updateRunWithResults() {
     // The failed tests are read, formatted and inserted into a set
     //      A failure named 'Failure_1--tests.content.entity.material.apply.avatars.00000' is formatted to 'content/entity/material/apply/avatars'
     //      This is the name of the test in TestRail
+    //
+    //      A success is named `Success_<n>-tests. ...
     stream << "from os import listdir\n";
 
     stream << "failed_tests = set()\n";
@@ -519,6 +521,11 @@ void TestRailInterface::updateRunWithResults() {
     QDir dir(_outputDirectory + "/" + TEMP_NAME);
     if (dir.exists()) {
         stream << "for entry in listdir('" + _outputDirectory + "/" + TEMP_NAME + "'):\n";
+        
+        // skip over successes
+        stream << "\tif entry.split('_')[0] == 'Success':\n";
+        stream << "\t\tcontinue\n";
+        
         stream << "\tparts = entry.split('--tests.')[1].split('.')\n";
         stream << "\tfailed_test = parts[0]\n";
         stream << "\tfor i in range(1, len(parts) - 1):\n";
