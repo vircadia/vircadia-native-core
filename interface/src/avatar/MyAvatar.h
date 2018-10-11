@@ -1824,6 +1824,7 @@ private:
     float _sumUserHeightSensorSpace{ DEFAULT_AVATAR_HEIGHT };
     int _averageUserHeightCount{ 1 };
     bool _sitStandStateChange{ false };
+    bool _lockSitStandState { true };
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };

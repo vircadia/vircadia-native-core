@@ -239,7 +239,8 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
 
         // set spine2 if we have hand controllers
-        if (myAvatar->getHMDLeanRecenterEnabled() && myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid() &&
+        // myAvatar->getHMDLeanRecenterEnabled() &&
+        if (myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid() &&
                 myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() &&
                 !(params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] & (uint8_t)Rig::ControllerFlags::Enabled)) {
 
