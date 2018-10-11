@@ -591,7 +591,14 @@ void MyAvatar::update(float deltaTime) {
         // draw hand azimuth vector
         glm::vec3 handAzimuthMidpoint = transformPoint(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
         DebugDraw::getInstance().drawRay(getWorldPosition(), handAzimuthMidpoint, glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
+
+        
     }
+
+    // temp: draw spine 2 position for hand azimuth purposes.
+    int spine2Index = getJointIndex("Spine2");
+    glm::vec3 spine2WorldPosition = transformPoint(getTransform().getMatrix(), getAbsoluteJointTranslationInObjectFrame(spine2Index));
+    DebugDraw::getInstance().addMarker("spine2 location", Quaternions::IDENTITY, spine2WorldPosition, glm::vec4(1));
 
     if (_goToPending) {
         setWorldPosition(_goToPosition);
