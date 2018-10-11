@@ -114,19 +114,18 @@ void Avatar::setShowNamesAboveHeads(bool show) {
 }
 
 AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
-    glm::vec3 currentPosition = _isTransiting ? _currentPosition : avatarPosition;
-    float oneFrameDistance = glm::length(currentPosition - _lastPosition);
+    float oneFrameDistance = _isTransiting ? glm::length(avatarPosition - _endPosition) : glm::length(avatarPosition - _lastPosition);
     const float MAX_TRANSIT_DISTANCE = 30.0f;
     float scaledMaxTransitDistance = MAX_TRANSIT_DISTANCE * _scale;
-    if (oneFrameDistance > config._triggerDistance && !_isTransiting) {
+    if (oneFrameDistance > config._triggerDistance) {
         if (oneFrameDistance < scaledMaxTransitDistance) {
-            start(deltaTime, _lastPosition, currentPosition, config);
+            start(deltaTime, _lastPosition, avatarPosition, config);
         } else {
-            _lastPosition = currentPosition;
-            return Status::ABORT_TRANSIT;
+            _lastPosition = avatarPosition;
+            _status = Status::ABORT_TRANSIT;
         }        
     }
-    _lastPosition = currentPosition;
+    _lastPosition = avatarPosition;
     _status = updatePosition(deltaTime);
     return _status;
 }
@@ -150,7 +149,7 @@ void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const
     int transitFrames = (!config._isDistanceBased) ? config._totalFrames : config._framesPerMeter * _totalDistance;
     _transitTime = (float)transitFrames / REFERENCE_FRAMES_PER_SECOND;
     _totalTime = _transitTime + _preTime + _postTime;
-    _currentTime = 0.0f;
+    _currentTime = _isTransiting ? _preTime : 0.0f;
     _isTransiting = true;
 }
 

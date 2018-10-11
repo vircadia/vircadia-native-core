@@ -896,7 +896,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
         if (_globalPosition != newValue) {
-            _globalPosition = newValue;
+            _lastPosition = _globalPosition = newValue;
             _globalPositionChanged = now;
         }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
