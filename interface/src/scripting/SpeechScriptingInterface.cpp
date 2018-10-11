@@ -11,7 +11,6 @@
 
 #include "SpeechScriptingInterface.h"
 #include "avatar/AvatarManager.h"
-#include <AudioInjector.h>
 
 SpeechScriptingInterface::SpeechScriptingInterface() {
     //
@@ -94,7 +93,7 @@ void SpeechScriptingInterface::speakText(const QString& textToSpeak) {
 
     ULONG streamNumber;
     hr = m_tts->Speak(reinterpret_cast<LPCWSTR>(textToSpeak.utf16()),
-        SPF_IS_NOT_XML | SPF_ASYNC | SPF_PURGEBEFORESPEAK,
+        SPF_IS_XML | SPF_ASYNC | SPF_PURGEBEFORESPEAK,
         &streamNumber);
     if (FAILED(hr)) {
         qDebug() << "Speak failed.";
@@ -130,5 +129,9 @@ void SpeechScriptingInterface::speakText(const QString& textToSpeak) {
     AudioInjectorOptions options;
     options.position = DependencyManager::get<AvatarManager>()->getMyAvatarPosition();
 
-    AudioInjector::playSound(byteArray, options);
+    lastSound = AudioInjector::playSound(byteArray, options);
+}
+
+void SpeechScriptingInterface::stopLastSpeech() {
+    lastSound->stop();
 }

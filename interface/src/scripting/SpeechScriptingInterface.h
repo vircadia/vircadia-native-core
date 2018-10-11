@@ -18,6 +18,7 @@
 #endif
 #include <sapi.h>      // SAPI
 #include <sphelper.h>  // SAPI Helper
+#include <AudioInjector.h>
 
 class SpeechScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -27,9 +28,9 @@ public:
     ~SpeechScriptingInterface();
 
     Q_INVOKABLE void speakText(const QString& textToSpeak);
+    Q_INVOKABLE void stopLastSpeech();
 
 private:
-
     class CComAutoInit {
     public:
         // Initializes COM using CoInitialize.
@@ -70,6 +71,8 @@ private:
 
     // Default voice token
     CComPtr<ISpObjectToken> m_voiceToken;
+
+    AudioInjectorPointer lastSound;
 };
 
 #endif // hifi_SpeechScriptingInterface_h
