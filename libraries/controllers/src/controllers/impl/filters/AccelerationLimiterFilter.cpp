@@ -18,9 +18,9 @@
 #include <StreamUtils.h>
 
 static const QString JSON_ROTATION_ACCELERATION_LIMIT = QStringLiteral("rotationAccelerationLimit");
-static const QString JSON_ROTATION_DECELERATION_LIMIT = QStringLiteral("rotationDecelerationLimit");
 static const QString JSON_TRANSLATION_ACCELERATION_LIMIT = QStringLiteral("translationAccelerationLimit");
-static const QString JSON_TRANSLATION_DECELERATION_LIMIT = QStringLiteral("translationDecelerationLimit");
+static const QString JSON_TRANSLATION_SNAP_THRESHOLD = QStringLiteral("translationSnapThreshold");
+static const QString JSON_ROTATION_SNAP_THRESHOLD = QStringLiteral("rotationSnapThreshold");
 
 static glm::vec3 angularVelFromDeltaRot(const glm::quat& deltaQ, float dt) {
     // Measure the angular velocity of a delta rotation quaternion by using quaternion logarithm.
@@ -39,7 +39,7 @@ static glm::quat deltaRotFromAngularVel(const glm::vec3& omega, float dt) {
 }
 
 static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, const glm::vec3& x2, const glm::vec3& x3,
-                                   float dt, const float accLimit) {
+                                   float dt, float accLimit, float snapThreshold) {
 
     // measure the linear velocities of this step and the previoius step
     glm::vec3 v1 = (x3 - x1) / (2.0f * dt);
@@ -52,7 +52,8 @@ static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, con
     float aLen = glm::length(a);
 
     // pick limit based on if we are moving faster then our target
-    if (aLen > accLimit) {
+    float distToTarget = glm::length(x3 - x2);
+    if (aLen > accLimit && distToTarget > snapThreshold) {
         // Solve for a new `v1`, such that `a` does not exceed `aLimit`
         // This combines two steps:
         // 1) Computing a limited accelration in the direction of `a`, but with a magnitute of `aLimit`:
@@ -71,7 +72,7 @@ static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, con
 }
 
 static glm::quat filterRotation(const glm::quat& q0In, const glm::quat& q1In, const glm::quat& q2In, const glm::quat& q3In,
-                                float dt, const float accLimit) {
+                                float dt, float accLimit, float snapThreshold) {
 
     // ensure quaternions have the same polarity
     glm::quat q0 = q0In;
@@ -87,7 +88,8 @@ static glm::quat filterRotation(const glm::quat& q0In, const glm::quat& q1In, co
     float aLen = glm::length(a);
 
     // clamp the acceleration if it is over the limit
-    if (aLen > accLimit) {
+    float angleToTarget = glm::angle(q3 * glm::inverse(q2));
+    if (aLen > accLimit && angleToTarget > snapThreshold) {
         // solve for a new w1, such that a does not exceed the accLimit
         w1 = a * ((accLimit * dt) / aLen) + w0;
 
@@ -120,10 +122,10 @@ namespace controller {
 
                 glm::vec3 unfilteredTranslation = sensorValue.translation;
                 sensorValue.translation = filterTranslation(_prevPos[0], _prevPos[1], _prevPos[2], sensorValue.translation,
-                                                            DELTA_TIME, _translationAccelerationLimit);
+                                                            DELTA_TIME, _translationAccelerationLimit, _translationSnapThreshold);
                 glm::quat unfilteredRot = sensorValue.rotation;
                 sensorValue.rotation = filterRotation(_prevRot[0], _prevRot[1], _prevRot[2], sensorValue.rotation,
-                                                      DELTA_TIME, _rotationAccelerationLimit);
+                                                      DELTA_TIME, _rotationAccelerationLimit, _rotationSnapThreshold);
 
                 // remember previous values.
                 _prevPos[0] = _prevPos[1];
@@ -175,9 +177,12 @@ namespace controller {
     bool AccelerationLimiterFilter::parseParameters(const QJsonValue& parameters) {
         if (parameters.isObject()) {
             auto obj = parameters.toObject();
-            if (obj.contains(JSON_ROTATION_ACCELERATION_LIMIT) && obj.contains(JSON_TRANSLATION_ACCELERATION_LIMIT)) {
+            if (obj.contains(JSON_ROTATION_ACCELERATION_LIMIT) && obj.contains(JSON_TRANSLATION_ACCELERATION_LIMIT) &&
+                obj.contains(JSON_ROTATION_SNAP_THRESHOLD) && obj.contains(JSON_TRANSLATION_SNAP_THRESHOLD)) {
                 _rotationAccelerationLimit = (float)obj[JSON_ROTATION_ACCELERATION_LIMIT].toDouble();
                 _translationAccelerationLimit = (float)obj[JSON_TRANSLATION_ACCELERATION_LIMIT].toDouble();
+                _rotationSnapThreshold = (float)obj[JSON_ROTATION_SNAP_THRESHOLD].toDouble();
+                _translationSnapThreshold = (float)obj[JSON_TRANSLATION_SNAP_THRESHOLD].toDouble();
                 return true;
             }
         }

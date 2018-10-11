@@ -25,9 +25,9 @@ namespace controller {
 
     private:
         float _rotationAccelerationLimit { FLT_MAX };
-        float _rotationDecelerationLimit { FLT_MAX };
         float _translationAccelerationLimit { FLT_MAX };
-        float _translationDecelerationLimit { FLT_MAX };
+        float _rotationSnapThreshold { 0.0f };
+        float _translationSnapThreshold { 0.0f };
 
         mutable glm::vec3 _prevPos[3];  // sensor space
         mutable glm::quat _prevRot[3];  // sensor space

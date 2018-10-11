@@ -101,6 +101,8 @@ var DEFAULT_ROTATION_SMOOTHING_CONSTANT = 1.0; // no smoothing
 var DEFAULT_TRANSLATION_SMOOTHING_CONSTANT = 1.0; // no smoothing
 var DEFAULT_TRANSLATION_ACCELERATION_LIMIT = 1000; // only extreme accelerations are smoothed
 var DEFAULT_ROTATION_ACCELERATION_LIMIT = 10000; // only extreme accelerations are smoothed
+var DEFAULT_TRANSLATION_SNAP_THRESHOLD = 0; // no snapping
+var DEFAULT_ROTATION_SNAP_THRESHOLD = 0; // no snapping
 
 function buildMappingJson() {
     var obj = {name: "com.highfidelity.testing.filteredPuckAttach", channels: []};
@@ -113,7 +115,9 @@ function buildMappingJson() {
                 {
                     type: "accelerationLimiter",
                     translationAccelerationLimit: DEFAULT_TRANSLATION_ACCELERATION_LIMIT,
-                    rotationAccelerationLimit: DEFAULT_ROTATION_ACCELERATION_LIMIT
+                    rotationAccelerationLimit: DEFAULT_ROTATION_ACCELERATION_LIMIT,
+                    translationSnapThreshold: DEFAULT_TRANSLATION_SNAP_THRESHOLD,
+                    rotationSnapThreshold: DEFAULT_ROTATION_SNAP_THRESHOLD,
                 },
                 {
                     type: "exponentialSmoothing",
@@ -154,7 +158,14 @@ function setTranslationAccelerationLimit(value) {
 }
 
 function setTranslationSnapThreshold(value) {
-    // TODO: convert from mm
+    // convert from mm
+    var MM_PER_M = 1000;
+    var meters = value / MM_PER_M;
+    var i;
+    for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
+        mappingJson.channels[i].filters[0].translationSnapThreshold = meters;
+    }
+    mappingChanged();
 }
 
 function setRotationAccelerationLimit(value) {
@@ -166,21 +177,25 @@ function setRotationAccelerationLimit(value) {
 }
 
 function setRotationSnapThreshold(value) {
-    // TODO: convert from degrees
+    // convert from degrees
+    var PI_IN_DEGREES = 180;
+    var radians = value * (Math.pi / PI_IN_DEGREES);
+    var i;
+    for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
+        mappingJson.channels[i].filters[0].translationSnapThreshold = radians;
+    }
+    mappingChanged();
 }
 
 function setTranslationSmoothingConstant(value) {
-    print("AJT: setting translation smoothing constant = " + value);
     var i;
     for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
         mappingJson.channels[i].filters[1].translation = value;
     }
     mappingChanged();
-    print("AJT: done, value = " + value);
 }
 
 function setRotationSmoothingConstant(value) {
-    print("AJT: setRotationSmoothingConstant =" + value);
     var i;
     for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
         mappingJson.channels[i].filters[1].rotation = value;
@@ -365,8 +380,6 @@ function onWebEventReceived(msg) {
     } catch (err) {
         return;
     }
-
-    print("AJT: onWebEventReceived = " + msg);
 
     switch (obj.cmd) {
     case "ready":
