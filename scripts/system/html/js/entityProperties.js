@@ -474,9 +474,8 @@ const GROUPS = [
             {
                 label: "Light Color",
                 type: "color",
-                propertyID: "lightColor", // this actually shares "color" property with shape Color but
-                                            // separating naming here to distinguish property element/data
-                propertyName: "color",
+                propertyID: "lightColor",
+                propertyName: "color", // actual entity property name
             },
             {
                 label: "Intensity",
