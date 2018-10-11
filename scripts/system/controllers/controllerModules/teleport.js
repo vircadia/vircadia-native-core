@@ -701,6 +701,10 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function(controllerData, deltaTime) {
+            if (Window.interstitialModeEnabled && !Window.isPhysicsEnabled()) {
+                return makeRunningValues(false, [], []);
+            }
+
             var otherModule = this.getOtherModule();
             if (!this.disabled && this.buttonValue !== 0 && !otherModule.active) {
                 this.active = true;
