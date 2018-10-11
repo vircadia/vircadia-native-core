@@ -928,7 +928,9 @@ function getPropertyElement(propertyName) {
 }
 
 function getPropertyElementID(propertyName) {
-    return "property-" + propertyName;
+    let propertyElementID = "property-" + propertyName;
+    propertyElementID = propertyElementID.replace(".", "-");
+    return propertyElementID;
 }
 
 function enableChildren(el, selector) {
@@ -1077,7 +1079,6 @@ function showGroupsForType(type) {
 }
 
 
-
 // PROPERTY UPDATE FUNCTIONS
 
 function updateProperty(propertyName, propertyValue) {
@@ -1205,7 +1206,6 @@ function createImageURLUpdateFunction(propertyName) {
         updateProperty(propertyName, newTextures);
     };
 }
-
 
 
 // PROPERTY ELEMENT CREATION FUNCTIONS
@@ -1381,7 +1381,7 @@ function createColorProperty(elProperty, elLabel, propertyData) {
         },
         onChange: function(hsb, hex, rgb, el) {
             $(el).css('background-color', '#' + hex);
-            emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
+            emitColorPropertyUpdate(propertyName, rgb.r, rgb.g, rgb.b);
         }
     });
     
@@ -1573,7 +1573,6 @@ function addButtons(elProperty, propertyID, buttons, newRow) {
 }
 
 
-
 // BUTTON CALLBACKS
 
 function rescaleDimensions() {
@@ -1626,7 +1625,6 @@ function copySkyboxURLToAmbientURL() {
     getPropertyElement("ambientLight.ambientURL").value = skyboxURL;
     updateProperty("ambientLight.ambientURL", skyboxURL);
 }
-
 
 
 // USER DATA FUNCTIONS
@@ -1850,7 +1848,6 @@ function saveJSONUserData(noUpdate) {
 }
 
 
-
 // MATERIAL DATA FUNCTIONS
 
 function clearMaterialData() {
@@ -2035,7 +2032,6 @@ function bindAllNonJSONEditorElements() {
 }
 
 
-
 // DROPDOWNS / TEXTAREAS / PARENT MATERIAL NAME FUNCTIONS
 
 function setDropdownText(dropdown) {
@@ -2122,7 +2118,6 @@ function loaded() {
                 let propertyType = property.type;
                 let propertyName = property.propertyName;
                 let propertyElementID = getPropertyElementID(propertyName);
-                propertyElementID = propertyElementID.replace(".", "-");
                 
                 let elProperty;
                 if (propertyType === "sub-header") {
