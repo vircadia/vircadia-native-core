@@ -580,10 +580,10 @@ function updateLabels(serverState) {
             labels.people.submenu.push({
                 label: name,
                 enabled: (onlineUsers[name].location != undefined),
-                click: function () {
+                click: function (item) {
                     setNotificationState(HifiNotificationType.PEOPLE, false);
-                    if(onlineUsers[name] && onlineUsers[name].location) {
-                        StartInterface("hifi://" + onlineUsers[name].location.root.name + onlineUsers[name].location.path);
+                    if(onlineUsers[item.label] && onlineUsers[item.label].location) {
+                        StartInterface("hifi://" + onlineUsers[item.label].location.root.name + onlineUsers[item.label].location.path);
                     }
                 }
             });
@@ -598,9 +598,10 @@ function updateLabels(serverState) {
             }
             labels.goto.submenu.push({
                 label: "event in " + location,
-                click: function () {
+                location: location,
+                click: function (item) {
                     setNotificationState(HifiNotificationType.GOTO, false);
-                    StartInterface("hifi://" + location + currentStories[location].path);
+                    StartInterface("hifi://" + item.location + currentStories[item.location].path);
                 }
             });
         }
