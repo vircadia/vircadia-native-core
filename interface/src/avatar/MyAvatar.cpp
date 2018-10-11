@@ -26,6 +26,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AudioClient.h>
+#include <ClientTraitsHandler.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <FSTReader.h>
 #include <GeometryUtil.h>
