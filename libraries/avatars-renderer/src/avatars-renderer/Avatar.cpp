@@ -144,9 +144,12 @@ void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const
     _totalDistance = glm::length(_transitLine);
     _easeType = config._easeType;
     const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
-        
+    _preTime = (float)config._startTransitAnimation._frameCount / REFERENCE_FRAMES_PER_SECOND;
+    _postTime = (float)config._endTransitAnimation._frameCount / REFERENCE_FRAMES_PER_SECOND;
+
     int transitFrames = (!config._isDistanceBased) ? config._totalFrames : config._framesPerMeter * _totalDistance;
-    _totalTime = (float)transitFrames / REFERENCE_FRAMES_PER_SECOND;
+    _transitTime = (float)transitFrames / REFERENCE_FRAMES_PER_SECOND;
+    _totalTime = _transitTime + _preTime + _postTime;
     _currentTime = 0.0f;
     _isTransiting = true;
 }
@@ -173,19 +176,27 @@ AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
     Status status = Status::IDLE;
     if (_isTransiting) {
         float nextTime = _currentTime + deltaTime;
-        glm::vec3 newPosition;
-        if (nextTime >= _totalTime) {
-            _currentPosition = _endPosition;
-            _isTransiting = false;
-            status = Status::END_TRANSIT;
-        } else {
+        if (nextTime < _preTime) {
+            _currentPosition = _startPosition;
             if (_currentTime == 0) {
+                status = Status::START_FRAME;
+            } 
+        } else if (nextTime < _totalTime - _postTime){
+            if (_currentTime <= _preTime) {
                 status = Status::START_TRANSIT;
             } else {
+                float percentageIntoTransit = (nextTime - _preTime) / _transitTime;
+                _currentPosition = _startPosition + getEaseValue(_easeType, percentageIntoTransit) * _transitLine;
                 status = Status::TRANSITING;
             }
-            float percentageIntoTransit = nextTime / _totalTime;
-            _currentPosition = _startPosition + getEaseValue(_easeType, percentageIntoTransit) * _transitLine;
+        } else {
+            _currentPosition = _endPosition;
+            if (nextTime >= _totalTime) {
+                _isTransiting = false;
+                status = Status::END_FRAME;
+            } else if (_currentTime < _totalTime - _postTime) {
+                status = Status::END_TRANSIT;
+            }
         }
         _currentTime = nextTime;
     }

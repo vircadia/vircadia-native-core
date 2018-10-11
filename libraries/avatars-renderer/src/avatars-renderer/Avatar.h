@@ -81,7 +81,7 @@ public:
     struct TransitConfig {
         TransitConfig() {};
         int _totalFrames { 0 };
-        int _framesPerMeter { 0 };
+        float _framesPerMeter { 0.0f };
         bool _isDistanceBased { false };
         float _triggerDistance { 0 };
         EaseType _easeType { EaseType::EASE_OUT };
@@ -115,7 +115,10 @@ private:
 
     glm::vec3 _transitLine;
     float _totalDistance { 0.0f };
+    float _preTime { 0.0f };
     float _totalTime { 0.0f };
+    float _transitTime { 0.0f };
+    float _postTime { 0.0f };
     float _currentTime { 0.0f };
     EaseType _easeType { EaseType::EASE_OUT };
     Status _status { Status::IDLE };

@@ -81,7 +81,7 @@ AvatarManager::AvatarManager(QObject* parent) :
 
     const float AVATAR_TRANSIT_TRIGGER_DISTANCE = 1.0f;
     const int AVATAR_TRANSIT_FRAME_COUNT = 11; // Based on testing
-    const int AVATAR_TRANSIT_FRAMES_PER_METER = 1; // Based on testing
+    const float AVATAR_TRANSIT_FRAMES_PER_METER = 0.5f; // Based on testing
 
     const QString START_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
     const QString MIDDLE_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
@@ -92,9 +92,9 @@ AvatarManager::AvatarManager(QObject* parent) :
     _transitConfig._framesPerMeter = AVATAR_TRANSIT_FRAMES_PER_METER;
     _transitConfig._isDistanceBased = true;
 
-    _transitConfig._startTransitAnimation = AvatarTransit::TransitAnimation(START_ANIMATION_URL, 0, 14);
+    _transitConfig._startTransitAnimation = AvatarTransit::TransitAnimation(START_ANIMATION_URL, 0, 10);
     _transitConfig._middleTransitAnimation = AvatarTransit::TransitAnimation(MIDDLE_ANIMATION_URL, 15, 0);
-    _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 16, 38);
+    _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 22, 49);
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -180,8 +180,9 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
     AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _transitConfig);
-    bool sendFirstTransitPackage = (status == AvatarTransit::Status::START_TRANSIT);
-    bool blockTransitData = (status == AvatarTransit::Status::TRANSITING);
+    if (status != AvatarTransit::Status::IDLE) {
+        playTransitAnimations(status);
+    }
 
     _myAvatar->update(deltaTime);
     render::Transaction transaction;
@@ -191,13 +192,9 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
 
-
-    if (sendFirstTransitPackage || (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused && !blockTransitData)) {
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused) {
         // send head/hand data to the avatar mixer and voxel server
-        PerformanceTimer perfTimer("send");
-        if (sendFirstTransitPackage) {
-            _myAvatar->overrideNextPackagePositionData(_myAvatar->getTransit()->getEndPosition());
-        }       
+        PerformanceTimer perfTimer("send");      
         _myAvatar->sendAvatarDataPacket();
         _lastSendAvatarDataTime = now;
         _myAvatarSendRate.increment();
