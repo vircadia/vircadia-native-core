@@ -70,6 +70,8 @@ var selectedEntities = [];
 
 var entityList = null; // The ListView
 
+var entityListContextMenu = new EntityListContextMenu();
+
 var currentSortColumn = 'type';
 var currentSortOrder = ASCENDING_SORT;
 var isFilterInView = false;
@@ -184,7 +186,83 @@ function loaded() {
         
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
                                   createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
-        
+
+        entityListContextMenu.initialize();
+
+
+        function startRenamingEntity(entityID) {
+            if (!entitiesByID[entityID] || !entitiesByID[entityID].elRow) {
+                return;
+            }
+
+            let elCell = entitiesByID[entityID].elRow.childNodes[COLUMN_INDEX.NAME];
+            let elRenameInput = document.createElement("input");
+            elRenameInput.setAttribute('class', 'rename-entity');
+            elRenameInput.value = entitiesByID[entityID].name;
+            elRenameInput.onclick = function(event) {
+                event.stopPropagation();
+            };
+            elRenameInput.onkeyup = function(keyEvent) {
+                if (keyEvent.key === "Enter") {
+                    elRenameInput.blur();
+                }
+            };
+
+            elRenameInput.onblur = function(event) {
+                let value = elRenameInput.value;
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: 'rename',
+                    entityID: entityID,
+                    name: value
+                }));
+                entitiesByID[entityID].name = value;
+                elCell.innerText = value;
+            };
+
+            elCell.innerHTML = "";
+            elCell.appendChild(elRenameInput);
+
+            elRenameInput.select();
+        }
+
+        entityListContextMenu.setCallback(function(optionName, selectedEntityID) {
+            switch (optionName) {
+                case "Copy":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
+                    break;
+                case "Paste":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'paste' }));
+                    break;
+                case "Rename":
+                    startRenamingEntity(selectedEntityID);
+                    break;
+                case "Duplicate":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
+                    break;
+                case "Delete":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+                    break;
+            }
+        });
+
+        function onRowContextMenu(clickEvent) {
+            let entityID = this.dataset.entityID;
+
+            if (!selectedEntities.includes(entityID)) {
+                let selection = [entityID];
+                updateSelectedEntities(selection);
+
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "selectionUpdate",
+                    focus: false,
+                    entityIds: selection,
+                }));
+
+                refreshFooter();
+            }
+            entityListContextMenu.open(clickEvent, entityID);
+        }
+
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
             let selection = [entityID];
@@ -221,9 +299,9 @@ function loaded() {
                     }
                 }
             } else if (!clickEvent.ctrlKey && !clickEvent.shiftKey && selectedEntities.length === 1) {
-                // if reselecting the same entity then deselect it
+                // if reselecting the same entity then start renaming it
                 if (selectedEntities[0] === entityID) {
-                    selection = [];
+                    startRenamingEntity(entityID);
                 }
             }
             
@@ -502,6 +580,7 @@ function loaded() {
                 }
                 row.appendChild(column);
             }
+            row.oncontextmenu = onRowContextMenu;
             row.onclick = onRowClicked;
             row.ondblclick = onRowDoubleClicked;
             return row;
@@ -672,8 +751,15 @@ function loaded() {
     
     augmentSpinButtons();
 
-    // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function (event) {
+        entityListContextMenu.close.call(entityListContextMenu);
+
+        // Disable default right-click context menu which is not visible in the HMD and makes it seem like the app has locked
         event.preventDefault();
     }, false);
+
+    // close context menu when switching focus to another window
+    $(window).blur(function(){
+        entityListContextMenu.close.call(entityListContextMenu);
+    });
 }
