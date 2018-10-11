@@ -878,14 +878,24 @@ bool Octree::toJSONDocument(QJsonDocument* doc, const OctreeElementPointer& elem
         return false;
     }
 
-    *doc = QJsonDocument::fromVariant(entityDescription);
+
+    bool noEntities = entityDescription["Entities"].toList().empty();
+    QJsonDocument jsonDocTree = QJsonDocument::fromVariant(entityDescription);
+    QJsonValue entitiesJson = jsonDocTree["Entities"];
+    if (entitiesJson.isNull() || (entitiesJson.toArray().empty() && !noEntities)) {
+        // Json version of entities too large.
+        return false;
+    } else {
+        *doc = jsonDocTree;
+    }
+
     return true;
 }
 
 bool Octree::toJSON(QByteArray* data, const OctreeElementPointer& element, bool doGzip) {
     QJsonDocument doc;
     if (!toJSONDocument(&doc, element)) {
-        qCritical("Failed to convert Entities to QVariantMap while converting to json.");
+        qCritical("Failed to convert Entities to JSON document.");
         return false;
     }
 
