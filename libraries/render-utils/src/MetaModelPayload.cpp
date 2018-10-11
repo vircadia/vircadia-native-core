@@ -20,7 +20,7 @@ void MetaModelPayload::setBlendedVertices(int blendNumber, const QVector<Blendsh
     _appliedBlendNumber = blendNumber;
 
     // We have fewer meshes than before.  Invalidate everything
-    if (blendedMeshSizes.length() < _blendshapeBuffers.size()) {
+    if (blendedMeshSizes.length() < (int)_blendshapeBuffers.size()) {
         _blendshapeBuffers.clear();
     }
 
