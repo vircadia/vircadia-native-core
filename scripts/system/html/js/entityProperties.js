@@ -1383,7 +1383,7 @@ function createColorProperty(property, elProperty, elLabel) {
     return [elColorPicker, elInputR, elInputG, elInputB];
 }
 
-function createDropdownProperty(property, elProperty, elLabel) { 
+function createDropdownProperty(property, propertyID, elProperty, elLabel) { 
     let propertyName = property.name;
     let elementID = property.elementID;
     let propertyData = property.data;
@@ -1392,7 +1392,7 @@ function createDropdownProperty(property, elProperty, elLabel) {
                         
     let elInput = document.createElement('select');
     elInput.setAttribute("id", elementID);
-    elInput.setAttribute("propertyID", propertyData.propertyID);
+    elInput.setAttribute("propertyID", propertyID);
     
     for (let optionKey in propertyData.options) {
         let option = document.createElement('option');
@@ -2015,7 +2015,7 @@ function bindAllNonJSONEditorElements() {
 }
 
 
-// DROPDOWNS / TEXTAREAS / PARENT MATERIAL NAME FUNCTIONS
+// DROPDOWN FUNCTIONS
 
 function setDropdownText(dropdown) {
     let lis = dropdown.parentNode.getElementsByTagName("li");
@@ -2049,6 +2049,9 @@ function setDropdownValue(event) {
     evt.initEvent("change", true, true);
     dt.dispatchEvent(evt);
 }
+
+
+// TEXTAREA / PARENT MATERIAL NAME FUNCTIONS
 
 function setTextareaScrolling(element) {
     var isScrolling = element.scrollHeight > element.offsetHeight;
@@ -2169,7 +2172,7 @@ function loaded() {
                         break;
                     }
                     case 'dropdown': {
-                        properties[propertyID].el = createDropdownProperty(property, elProperty, elLabel);
+                        properties[propertyID].el = createDropdownProperty(property, propertyID, elProperty, elLabel);
                         break;
                     }
                     case 'textarea': {
@@ -2252,10 +2255,6 @@ function loaded() {
                         }
                         
                         resetProperties();
-                        
-                        getPropertyElement("type")[0].style.display = "none";
-                        getPropertyElement("type")[1].innerHTML = NO_SELECTION;
-                        elPropertiesList.className = '';
                         showGroupsForType("None");
                 
                         deleteJSONEditor();
@@ -2297,16 +2296,19 @@ function loaded() {
                         }
                         
                         resetProperties();
-                        
-                        getPropertyElement("type")[0].innerHTML = ICON_FOR_TYPE[type];
-                        getPropertyElement("type")[0].style.display = "inline-block";
-                        getPropertyElement("type")[1].innerHTML = type + " (" + data.selections.length + ")";
-                        elPropertiesList.className = '';
                         showGroupsForType(type);
+                        
+                        let typeProperty = properties["type"];
+                        let elTypeProperty = typeProperty.el;
+                        elTypeProperty[0].innerHTML = typeProperty.data.icons[type];
+                        elTypeProperty[0].style.display = "inline-block";
+                        elTypeProperty[1].innerHTML = type + " (" + data.selections.length + ")";
                         
                         disableProperties();
                     } else {
                         selectedEntityProperties = data.selections[0].properties;
+                        
+                        showGroupsForType(selectedEntityProperties.type);
                         
                         if (lastEntityID !== '"' + selectedEntityProperties.id + '"' && lastEntityID !== null) {
                             if (editor !== null) {
@@ -2332,10 +2334,6 @@ function loaded() {
                                 selectedEntityProperties.type = "Image";
                             }
                         }
-                        
-                        // Create class name for css ruleset filtering
-                        elPropertiesList.className = selectedEntityProperties.type + 'Menu';
-                        showGroupsForType(selectedEntityProperties.type);
                         
                         for (let propertyID in properties) {
                             let property = properties[propertyID];
