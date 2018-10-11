@@ -5801,6 +5801,44 @@ void Application::update(float deltaTime) {
             controller::Pose pose = userInputMapper->getPoseState(action);
             myAvatar->setControllerPoseInSensorFrame(action, pose.transform(avatarToSensorMatrix));
         }
+
+        // AJT: TODO put a nice menu around this.
+        // Make sure to remove all markers when menu is turned off.
+        {
+            static const std::vector<controller::Action> trackedObjectActions = {
+                controller::Action::TRACKED_OBJECT_00,
+                controller::Action::TRACKED_OBJECT_01,
+                controller::Action::TRACKED_OBJECT_02,
+                controller::Action::TRACKED_OBJECT_03,
+                controller::Action::TRACKED_OBJECT_04,
+                controller::Action::TRACKED_OBJECT_05,
+                controller::Action::TRACKED_OBJECT_06,
+                controller::Action::TRACKED_OBJECT_07,
+                controller::Action::TRACKED_OBJECT_08,
+                controller::Action::TRACKED_OBJECT_09,
+                controller::Action::TRACKED_OBJECT_10,
+                controller::Action::TRACKED_OBJECT_11,
+                controller::Action::TRACKED_OBJECT_12,
+                controller::Action::TRACKED_OBJECT_13,
+                controller::Action::TRACKED_OBJECT_14,
+                controller::Action::TRACKED_OBJECT_15
+            };
+
+            int i = 0;
+            glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+            for (auto& action : trackedObjectActions) {
+                QString key = QString("_TrackedObject%1").arg(i);
+                controller::Pose pose = userInputMapper->getPoseState(action);
+                if (pose.valid) {
+                    glm::vec3 pos = transformPoint(myAvatarMatrix, pose.translation);
+                    glm::quat rot = glmExtractRotation(myAvatarMatrix) * pose.rotation;
+                    DebugDraw::getInstance().addMarker(key, rot, pos, BLUE);
+                } else {
+                    DebugDraw::getInstance().removeMarker(key);
+                }
+                i++;
+            }
+        }
     }
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...

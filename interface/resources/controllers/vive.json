@@ -51,30 +51,15 @@
         { "from": "Vive.RSCenter", "to": "Standard.RightPrimaryThumb" },
         { "from": "Vive.RightApplicationMenu", "to": "Standard.RightSecondaryThumb" },
 
-        { "from": "Vive.LeftHand", "to": "Standard.LeftHand"},
-        { "from": "Vive.RightHand", "to": "Standard.RightHand"},
+        { "from": "Vive.LeftHand", "to": "Standard.LeftHand" },
+        { "from": "Vive.RightHand", "to": "Standard.RightHand" },
 
-        {
-            "from": "Vive.LeftFoot", "to" : "Standard.LeftFoot",
-            "filters" : [{"type" :  "exponentialSmoothing", "rotation" : 0.15, "translation": 0.3}]
-        },
+        { "from": "Vive.LeftFoot", "to" : "Standard.LeftFoot" },
+        { "from": "Vive.RightFoot", "to" : "Standard.RightFoot" },
+        { "from": "Vive.Hips", "to" : "Standard.Hips" },
+        { "from": "Vive.Spine2", "to" : "Standard.Spine2" },
 
-        {
-            "from": "Vive.RightFoot", "to" : "Standard.RightFoot",
-            "filters" : [{"type" :  "exponentialSmoothing", "rotation" : 0.15, "translation": 0.3}]
-        },
-
-        {
-            "from": "Vive.Hips", "to" : "Standard.Hips",
-            "filters" : [{"type" :  "exponentialSmoothing", "rotation" : 0.15, "translation": 0.3}]
-        },
-
-        {
-            "from": "Vive.Spine2", "to" : "Standard.Spine2",
-            "filters" : [{"type" :  "exponentialSmoothing", "rotation" : 0.15, "translation": 0.3}]
-        },
-
-        { "from": "Vive.Head", "to" : "Standard.Head"},
+        { "from": "Vive.Head", "to" : "Standard.Head" },
         { "from": "Vive.RightArm", "to" : "Standard.RightArm" },
         { "from": "Vive.LeftArm", "to" : "Standard.LeftArm" },
 
