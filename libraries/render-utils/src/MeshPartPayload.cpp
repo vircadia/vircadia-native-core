@@ -209,7 +209,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
 
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
-    _meshNumVertices = modelMesh->getNumVertices();
+    _meshNumVertices = (int)modelMesh->getNumVertices();
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
