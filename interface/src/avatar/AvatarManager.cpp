@@ -94,7 +94,7 @@ AvatarManager::AvatarManager(QObject* parent) :
 
     _transitConfig._startTransitAnimation = AvatarTransit::TransitAnimation(START_ANIMATION_URL, 0, 10);
     _transitConfig._middleTransitAnimation = AvatarTransit::TransitAnimation(MIDDLE_ANIMATION_URL, 15, 0);
-    _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 22, 49);
+    _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 22, 27);
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
