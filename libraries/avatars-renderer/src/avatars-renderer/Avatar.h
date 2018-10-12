@@ -55,9 +55,11 @@ public:
     enum Status {
         IDLE = 0,
         START_FRAME,
+        PRE_TRANSIT_IDLE,
         START_TRANSIT,
         TRANSITING,
         END_TRANSIT,
+        POST_TRANSIT_IDLE,
         END_FRAME,
         ABORT_TRANSIT
     };

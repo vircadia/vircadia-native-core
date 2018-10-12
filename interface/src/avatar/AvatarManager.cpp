@@ -168,6 +168,10 @@ void AvatarManager::playTransitAnimations(AvatarTransit::Status status) {
             qDebug() << "END_FRAME";
             _myAvatar->restoreAnimation();
             break;
+        case AvatarTransit::Status::PRE_TRANSIT_IDLE:
+            break;
+        case AvatarTransit::Status::POST_TRANSIT_IDLE:
+            break;
         case AvatarTransit::Status::IDLE:
             break;
         case AvatarTransit::Status::TRANSITING:
@@ -180,7 +184,7 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
     AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _transitConfig);
-    if (status != AvatarTransit::Status::IDLE) {
+    if (status != AvatarTransit::Status::IDLE && status != AvatarTransit::Status::PRE_TRANSIT_IDLE && status != AvatarTransit::Status::POST_TRANSIT_IDLE) {
         playTransitAnimations(status);
     }
 

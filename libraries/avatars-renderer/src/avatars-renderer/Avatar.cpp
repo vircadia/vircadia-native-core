@@ -127,6 +127,10 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
     }
     _lastPosition = avatarPosition;
     _status = updatePosition(deltaTime);
+    if (_isTransiting && oneFrameDistance > 0.1f && _status == Status::POST_TRANSIT_IDLE) {
+        reset();
+        _status = Status::END_FRAME;
+    }
     return _status;
 }
 
@@ -177,18 +181,20 @@ AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
         float nextTime = _currentTime + deltaTime;
         if (nextTime < _preTime) {
             _currentPosition = _startPosition;
+            status = Status::PRE_TRANSIT_IDLE;
             if (_currentTime == 0) {
                 status = Status::START_FRAME;
             } 
         } else if (nextTime < _totalTime - _postTime){
+            status = Status::TRANSITING;
             if (_currentTime <= _preTime) {
                 status = Status::START_TRANSIT;
             } else {
                 float percentageIntoTransit = (nextTime - _preTime) / _transitTime;
                 _currentPosition = _startPosition + getEaseValue(_easeType, percentageIntoTransit) * _transitLine;
-                status = Status::TRANSITING;
             }
         } else {
+            status = Status::POST_TRANSIT_IDLE;
             _currentPosition = _endPosition;
             if (nextTime >= _totalTime) {
                 _isTransiting = false;
