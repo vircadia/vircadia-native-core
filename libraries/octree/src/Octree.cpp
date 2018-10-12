@@ -51,7 +51,6 @@
 #include "OctreeQueryNode.h"
 #include "OctreeUtils.h"
 
-
 QVector<QString> PERSIST_EXTENSIONS = {"json", "json.gz"};
 
 Octree::Octree(bool shouldReaverage) :
@@ -892,12 +891,60 @@ bool Octree::toJSONDocument(QJsonDocument* doc, const OctreeElementPointer& elem
     return true;
 }
 
+bool Octree::toJSONString(QString& jsonString, const OctreeElementPointer& element) {
+    OctreeElementPointer top;
+    if (element) {
+        top = element;
+    } else {
+        top = _rootElement;
+    }
+
+    jsonString += QString(R"({
+  "DataVersion": %1,
+  "Entities": [)").arg(_persistDataVersion);
+
+    writeToJSON(jsonString, top);
+
+    // include the "bitstream" version
+    PacketType expectedType = expectedDataPacketType();
+    PacketVersion expectedVersion = versionForPacketType(expectedType);
+
+    jsonString += QString(R"(
+    ],
+  "Id": "%1",
+  "Version": %2
+}
+)").arg(_persistID.toString()).arg((int)expectedVersion);
+
+    return true;
+}
+
 bool Octree::toJSON(QByteArray* data, const OctreeElementPointer& element, bool doGzip) {
+#define HIFI_USE_DIRECT_TO_JSON
+#ifdef HIFI_USE_DIRECT_TO_JSON
+
+    QString jsonString;
+    toJSONString(jsonString);
+
+    if (doGzip) {
+        if (!gzip(jsonString.toUtf8(), *data, -1)) {
+            qCritical("Unable to gzip data while saving to json.");
+            return false;
+        }
+    } else {
+        *data = jsonString.toUtf8();
+    }
+
+#else
+
     QJsonDocument doc;
     if (!toJSONDocument(&doc, element)) {
         qCritical("Failed to convert Entities to JSON document.");
         return false;
     }
+
+    QString jsonString;
+    toJSONString(jsonString);
 
     if (doGzip) {
         QByteArray jsonData = doc.toJson();
@@ -909,6 +956,7 @@ bool Octree::toJSON(QByteArray* data, const OctreeElementPointer& element, bool 
     } else {
         *data = doc.toJson();
     }
+#endif  // HIFI_USE_DIRECT_TO_JSON
 
     return true;
 }

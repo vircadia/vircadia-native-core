@@ -202,11 +202,13 @@ public:
 
     // Octree exporters
     bool toJSONDocument(QJsonDocument* doc, const OctreeElementPointer& element = nullptr);
+    bool toJSONString(QString& jsonString, const OctreeElementPointer& element = nullptr);
     bool toJSON(QByteArray* data, const OctreeElementPointer& element = nullptr, bool doGzip = false);
     bool writeToFile(const char* filename, const OctreeElementPointer& element = nullptr, QString persistAsFileType = "json.gz");
     bool writeToJSONFile(const char* filename, const OctreeElementPointer& element = nullptr, bool doGzip = false);
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) = 0;
+    virtual bool writeToJSON(QString& jsonString, const OctreeElementPointer& element) = 0;
 
     // Octree importers
     bool readFromFile(const char* filename);
