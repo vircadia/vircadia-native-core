@@ -17,10 +17,11 @@
     var DEBUG = false;
     var MIN_LOADING_PROGRESS = 3.6;
     var TOTAL_LOADING_PROGRESS = 3.8;
-    var EPSILON = 0.01;
+    var EPSILON = 0.05;
+    var TEXTURE_EPSILON = 0.01;
     var isVisible = false;
     var VOLUME = 0.4;
-    var tune = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/crystals_and_voices.wav");
+    var tune = SoundCache.getSound(Script.resourcesPath() + "sounds/crystals_and_voices.mp3");
     var sample = null;
     var MAX_LEFT_MARGIN = 1.9;
     var INNER_CIRCLE_WIDTH = 4.7;
@@ -211,7 +212,7 @@
         parentID: anchorOverlay
     });
 
-    var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
+    var TARGET_UPDATE_HZ = 30;
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
     var lastInterval = Date.now();
     var currentDomain = "no domain";
@@ -240,7 +241,7 @@
     }
 
     function lerp(a, b, t) {
-        return ((1 - t) * a + t * b);
+        return (((1 - t) * a) + (t * b));
     }
 
     function resetValues() {
@@ -266,7 +267,7 @@
             connectionToDomainFailed = false;
             previousCameraMode = Camera.mode;
             Camera.mode = "first person";
-            timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
+            timer = Script.setTimeout(update, 2000);
         }
     }
 
@@ -453,6 +454,7 @@
         var thisInterval = Date.now();
         var deltaTime = (thisInterval - lastInterval);
         lastInterval = thisInterval;
+        var deltaTimeMS = deltaTime / 1000;
 
         var domainLoadingProgressPercentage = Window.domainLoadingProgress();
         var progress = ((TOTAL_LOADING_PROGRESS * 0.4) * domainLoadingProgressPercentage);
@@ -460,7 +462,7 @@
             target = progress;
         }
 
-        if (currentProgress >= (TOTAL_LOADING_PROGRESS * 0.4)) {
+        if (currentProgress >= ((TOTAL_LOADING_PROGRESS * 0.4) - TEXTURE_EPSILON)) {
             var textureResourceGPUMemSize = renderStats.textureResourceGPUMemSize;
             var texturePopulatedGPUMemSize = renderStats.textureResourcePopulatedGPUMemSize;
 
@@ -472,10 +474,9 @@
 
             textureMemSizeAtLastCheck = textureResourceGPUMemSize;
 
-            if (textureMemSizeStabilityCount >= 20) {
+            if (textureMemSizeStabilityCount >= 30) {
 
                 if (textureResourceGPUMemSize > 0) {
-                    // print((texturePopulatedGPUMemSize / textureResourceGPUMemSize));
                     var gpuPercantage = (TOTAL_LOADING_PROGRESS * 0.6) * (texturePopulatedGPUMemSize / textureResourceGPUMemSize);
                     var totalProgress = progress + gpuPercantage;
                     if (totalProgress >= target) {
@@ -489,7 +490,11 @@
             target = TOTAL_LOADING_PROGRESS;
         }
 
-        currentProgress = lerp(currentProgress, target, 0.2);
+        if (deltaTime > 1.0) {
+            deltaTimeMS = 0.02;
+        }
+
+        currentProgress = lerp(currentProgress, target, (deltaTimeMS * 2.0));
         var properties = {
             localPosition: { x: (1.85 - (currentProgress / 2) - (-0.029 * (currentProgress / TOTAL_LOADING_PROGRESS))), y: -0.935, z: 0.0 },
             dimensions: {
