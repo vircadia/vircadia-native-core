@@ -109,7 +109,7 @@ Script.include("/~/system/libraries/controllers.js");
                 Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
             }
 
-            this.ignoredOverlays = [];
+            this.ignoredObjects = [];
         };
 
         this.isPointingAtTriggerable = function(controllerData, triggerPressed, checkEntitiesOnly) {
