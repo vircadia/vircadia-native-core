@@ -77,7 +77,7 @@ private:
     CComPtr<ISpObjectToken> m_voiceToken;
 
     QByteArray _lastSoundByteArray;
-    AudioInjectorPointer _lastSoundByteArray;
+    AudioInjectorPointer _lastSoundAudioInjector;
 };
 
 #endif // hifi_SpeechScriptingInterface_h

@@ -1167,7 +1167,7 @@ void AudioClient::processAudioAndAddToRingBuffer(QByteArray& inputByteArray, con
                                numNetworkSamples, channelCount, _desiredInputFormat.channelCount());
         }
         int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * AudioConstants::SAMPLE_SIZE;
-        float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
+        float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(bytesForDuration);
         _stats.updateInputMsUnplayed(msecsInInputRingBuffer);
 
         QByteArray audioBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
@@ -1204,7 +1204,12 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
 
 void AudioClient::handleTTSAudioInput(const QByteArray& audio) {
     QByteArray audioBuffer(audio);
-    processAudioAndAddToRingBuffer(audioBuffer, 1, 48);
+    while (audioBuffer.size() > 0) {
+        QByteArray part;
+        part.append(audioBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        audioBuffer.remove(0, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        processAudioAndAddToRingBuffer(part, 1,  48);
+    }
 }
 
 void AudioClient::prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock) {
