@@ -22,7 +22,7 @@ struct ItemBound {
     vec4 boundDim_s;
 };
 
-#if !defined(GPU_GL450)
+#if !defined(GPU_SSBO_TRANSFORM_OBJECT)
 layout(binding=0) uniform samplerBuffer ssbo0Buffer;
 ItemBound getItemBound(int i) {
     int offset = 2 * i;
