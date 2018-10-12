@@ -1909,6 +1909,31 @@ signals:
     void addingEntity(const EntityItemID& entityID);
 
     /**jsdoc
+    * Triggered when an 'wearable' entity is deleted.
+    * @function Entities.deletingWearable
+    * @param {Uuid} entityID - The ID of the 'wearable' entity deleted.
+    * @returns {Signal}
+    * @example <caption>Report when an 'wearable' entity is deleted.</caption>
+    * Entities.deletingWearable.connect(function (entityID) {
+    *     print("Deleted wearable: " + entityID);
+    * });
+    */
+    void deletingWearable(const EntityItemID& entityID);
+
+    /**jsdoc
+    * Triggered when an 'wearable' entity is added to Interface's local in-memory tree of entities it knows about. This may occur when
+    * 'wearable' entities are added to avatar
+    * @function Entities.addingWearable
+    * @param {Uuid} entityID - The ID of the 'wearable' entity added.
+    * @returns {Signal}
+    * @example <caption>Report when an 'wearable' entity is added.</caption>
+    * Entities.addingWearable.connect(function (entityID) {
+    *     print("Added wearable: " + entityID);
+    * });
+    */
+    void addingWearable(const EntityItemID& entityID);
+
+    /**jsdoc
      * Triggered when you disconnect from a domain, at which time Interface's local in-memory tree of entities it knows about
      * is cleared.
      * @function Entities.clearingEntities
@@ -1938,6 +1963,8 @@ protected:
 
 private slots:
     void handleEntityScriptCallMethodPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode);
+    void onAddingEntity(EntityItem* entity);
+    void onDeletingEntity(EntityItem* entity);
 
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor);

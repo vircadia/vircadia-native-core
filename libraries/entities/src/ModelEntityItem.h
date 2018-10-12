@@ -123,6 +123,7 @@ public:
     QVector<glm::vec3> getJointTranslations() const;
     QVector<bool> getJointTranslationsSet() const;
 
+    virtual bool isWearable() const override;
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
