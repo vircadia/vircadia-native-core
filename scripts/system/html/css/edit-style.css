@@ -1036,38 +1036,74 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     padding-bottom: 24px;
 }
 
-#filter-type-multiselect {
-	position: relative;
+#filter-area .multiselect {
+    position: relative;
 }
-#filter-type-selectBox {
-	position: absolute;
+#filter-area .selectBox {
+    position: absolute;
 }
-#filter-type-selectBox select {
-	font-weight: bold;
-	font-family: FiraSans-SemiBold;
-	color: #404040;
-	background-color: #afafaf;
+#filter-area .selectBox select {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    color: #afafaf;
+    background-color: #252525;
+    border: none;
+    height: 28px;
+    width: 107px;
+    text-align-last: center;
+}
+#filter-area .overSelect {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
 }
 #filter-type-checkboxes {
-	position: absolute;
-	top: 20px;
-	display: none;
-	border: 1px #dadada solid;
+    position: absolute;
+    z-index: 2;
+    top: 15px;
+    display: none;
+    border: none;
+}
+#filter-type-checkboxes div {
+    height: 19px;
+}
+#filter-type-checkboxes span {
+    font-family: hifi-glyphs;
+    font-size: 16px;
+    color: #404040;
+    padding: 12px 12px;
+    vertical-align: middle;
 }
 #filter-type-checkboxes label {
-	display: block;
-	font-family: FiraSans-SemiBold;
-	color: #404040;
-	background-color: #afafaf;
+    display: block;
+    font-family: FiraSans-SemiBold;
+    color: #404040;
+    background-color: #afafaf;
+    padding: 0 20px;
+    vertical-align: middle;
 }
 #filter-type-checkboxes label:hover {
-	background-color: #1e90ff;
+    background-color: #1e90ff;
+}
+#filter-type-checkboxes input[type=checkbox] {
+    display: block;
+    position: relative;
+    top: 17px;
+    right: -10px;
+}
+#filter-type-checkboxes input[type=checkbox] + label {
+    background-image: none;
+}
+#filter-type-checkboxes input[type=checkbox]:checked + label {
+    background-image: none;
 }
 
 #filter-search-and-icon {
-	position: absolute;
-	left: 100px;
-    width: 60%;
+    position: absolute;
+    left: 120px;
+    width: calc(100% - 300px);
 }
 
 #filter-in-view {
@@ -1076,7 +1112,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 #filter-radius-and-unit {
-	position: relative;
+    position: relative;
     float: right;
     margin-right: -168px;
     top: -17px;
