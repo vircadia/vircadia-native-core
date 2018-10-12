@@ -142,6 +142,7 @@ class MyAvatar : public Avatar {
      * @property {number} walkSpeed
      * @property {number} walkBackwardSpeed
      * @property {number} sprintSpeed
+     * @property {number} isInSittingState
      *
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
      *     registration point of the 3D model.
@@ -242,6 +243,8 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float walkSpeed READ getWalkSpeed WRITE setWalkSpeed);
     Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed);
     Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed);
+    Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
+    Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -1101,12 +1104,18 @@ public:
 
     void setIsInWalkingState(bool isWalking);
     bool getIsInWalkingState() const;
+    void setIsInSittingState(bool isSitting);
+    bool getIsInSittingState() const;
+    void setIsSitStandStateLocked(bool isLocked);
+    bool getIsSitStandStateLocked() const;
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
     void setWalkBackwardSpeed(float value);
     float getWalkBackwardSpeed() const;
     void setSprintSpeed(float value);
     float getSprintSpeed() const;
+    void setSitStandStateChange(bool stateChanged);
+    float getSitStandStateChange() const;
 
     QVector<QString> getScriptUrls();
 
@@ -1512,6 +1521,22 @@ signals:
      */
     void disableHandTouchForIDChanged(const QUuid& entityID, bool disable);
 
+    /**jsdoc
+    * Triggered when the sit state is enabled or disabled
+    * @function MyAvatar.sittingEnabledChanged
+    * @param {boolean} enabled
+    * @returns {Signal}
+    */
+    void sittingEnabledChanged(bool enabled);
+
+    /**jsdoc
+    * Triggered when the sit state is enabled or disabled
+    * @function MyAvatar.sitStandStateLockEnabledChanged
+    * @param {boolean} enabled
+    * @returns {Signal}
+    */
+    void sitStandStateLockEnabledChanged(bool enabled);
+
 private slots:
     void leaveDomain();
     void updateCollisionCapsuleCache();
@@ -1718,11 +1743,11 @@ private:
         float getMaxTimeRemaining() const;
         void decrementTimeRemaining(float dt);
         bool shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
-        bool shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateVertical(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateHorizontalCG(MyAvatar& myAvatar) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
-        glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
+        glm::mat4 postPhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
         bool getForceActivateRotation() const;
         void setForceActivateRotation(bool val);
         bool getForceActivateVertical() const;
@@ -1735,6 +1760,7 @@ private:
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
         std::atomic<bool> _toggleHipsFollowing { true };
+        int _velocityCount { 0 };
     };
     FollowHelper _follow;
 
@@ -1800,10 +1826,16 @@ private:
     std::mutex _pinnedJointsMutex;
     std::vector<int> _pinnedJoints;
 
-    // height of user in sensor space, when standing erect.
-    ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
-
     void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
+
+    const float DEFAULT_FLOOR_HEIGHT = 0.0f;
+
+    // height of user in sensor space, when standing erect.
+    ThreadSafeValueCache<float> _userHeight{ DEFAULT_AVATAR_HEIGHT };
+    float _sumUserHeightSensorSpace{ DEFAULT_AVATAR_HEIGHT };
+    int _averageUserHeightCount{ 1 };
+    bool _sitStandStateChange{ false };
+    ThreadSafeValueCache<bool> _lockSitStandState { true };
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
@@ -1811,6 +1843,10 @@ private:
     ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
     bool _isInWalkingState { false };
+    ThreadSafeValueCache<bool> _isInSittingState { false };
+    int _sitStandStateCount { 0 };
+    int _squatCount { 0 };
+    float _tippingPoint { DEFAULT_FLOOR_HEIGHT };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
