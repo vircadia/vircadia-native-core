@@ -3904,6 +3904,10 @@ void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
     _sumUserHeightSensorSpace = DEFAULT_AVATAR_HEIGHT;
     _tippingPoint = DEFAULT_FLOOR_HEIGHT;
     _averageUserHeightCount = 1;
+    if (!isLocked) {
+        // always start the auto transition mode in standing state.
+        setIsInSittingState(false);
+    }
     emit sitStandStateLockEnabledChanged(isLocked);
 }
 
