@@ -10,7 +10,7 @@
 
 <@func declareBlendshape(USE_NORMAL, USE_TANGENT)@>
 
-#if defined(GPU_GL410)
+#if !defined(GPU_GL450)
 layout(binding=0) uniform samplerBuffer blendshapeOffsetsBuffer;
 uvec4 getPackedBlendshapeOffset(int i) {
     return floatBitsToUint(texelFetch(blendshapeOffsetsBuffer, i));

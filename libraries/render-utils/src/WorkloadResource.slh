@@ -25,7 +25,7 @@ struct WorkloadProxy {
     vec4 region;
 };
 
-#if defined(GPU_GL410)
+#if !defined(GPU_GL450)
 layout(binding=0) uniform samplerBuffer workloadProxiesBuffer;
 WorkloadProxy getWorkloadProxy(int i) {
     int offset = 2 * i;
@@ -57,7 +57,7 @@ struct WorkloadView {
     vec4 regions[3];
 };
 
-#if defined(GPU_GL410)
+#if !defined(GPU_GL450)
 layout(binding=1) uniform samplerBuffer workloadViewsBuffer;
 WorkloadView getWorkloadView(int i) {
     int offset = 2 * i;
