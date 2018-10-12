@@ -846,7 +846,7 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
-QVariantMap AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers) {
+QVariantMap AvatarManager::getPalData(const QStringList& specificAvatarIdentifiers) {
     QJsonArray palData;
 
     auto avatarMap = getHashCopy();
