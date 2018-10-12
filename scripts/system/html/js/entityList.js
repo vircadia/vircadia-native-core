@@ -59,6 +59,18 @@ const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
 }
 
+const FILTER_TYPES = [
+	"Shape",
+	"Model",
+	"Image",
+	"Light",
+	"Zone",
+	"Web",
+	"Material",
+	"ParticleEffect",
+	"Text",
+];
+
 // List of all entities
 var entities = []
 // List of all entities, indexed by Entity ID
@@ -72,6 +84,7 @@ var entityList = null; // The ListView
 
 var currentSortColumn = 'type';
 var currentSortOrder = ASCENDING_SORT;
+var typeFilters = [];
 var isFilterInView = false;
 var showExtraInfo = false;
 
@@ -105,9 +118,11 @@ function loaded() {
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
         elDelete = document.getElementById("delete");
-        elFilter = document.getElementById("filter");
-        elInView = document.getElementById("in-view")
-        elRadius = document.getElementById("radius");
+		elFilterTypeSelectBox = document.getElementById("filter-type-selectBox");
+		elFilterTypeCheckboxes = document.getElementById("filter-type-checkboxes");
+        elFilterSearch = document.getElementById("filter-search");
+        elFilterInView = document.getElementById("filter-in-view")
+        elFilterRadius = document.getElementById("filter-radius");
         elExport = document.getElementById("export");
         elPal = document.getElementById("pal");
         elInfoToggle = document.getElementById("info-toggle");
@@ -171,13 +186,33 @@ function loaded() {
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         }
-        elFilter.onkeyup = refreshEntityList;
-        elFilter.onpaste = refreshEntityList;
-        elFilter.onchange = onFilterChange;
-        elFilter.onblur = refreshFooter;
-        elInView.onclick = toggleFilterInView;
-        elRadius.onchange = onRadiusChange;
+        elFilterSearch.onkeyup = refreshEntityList;
+        elFilterSearch.onpaste = refreshEntityList;
+        elFilterSearch.onchange = onFilterChange;
+        elFilterSearch.onblur = refreshFooter;
+        elFilterInView.onclick = toggleFilterInView;
+        elFilterRadius.onchange = onRadiusChange;
         elInfoToggle.onclick = toggleInfo;
+		
+		// create filter type dropdown checkboxes w/ label for each type
+		elFilterTypeSelectBox.onclick = toggleTypeDropdown;
+		for (let i = 0; i < FILTER_TYPES.length; ++i) {
+			let type = FILTER_TYPES[i];
+			let typeFilterID = "filter-type-" + type;
+			let elDiv = document.createElement('div');
+			let elLabel = document.createElement('label');
+			elLabel.setAttribute("for", typeFilterID);
+			elLabel.innerText = type;
+			let elInput = document.createElement('input');
+			elInput.setAttribute("type", "checkbox");
+			elInput.setAttribute("id", typeFilterID);
+			elInput.checked = true; // all types are checked initially
+			toggleTypeFilter(type, false); // add all types to the initial type filter
+			elInput.onclick = onToggleTypeFilter(type);
+			elDiv.appendChild(elInput);
+			elDiv.appendChild(elLabel);
+			elFilterTypeCheckboxes.appendChild(elDiv);
+		}
         
         elNoEntitiesInView.style.display = "none";
         
@@ -301,17 +336,16 @@ function loaded() {
         function refreshEntityList() {
             PROFILE("refresh-entity-list", function() {
                 PROFILE("filter", function() {
-                    let searchTerm = elFilter.value.toLowerCase();
-                    if (searchTerm === '') {
-                        visibleEntities = entities.slice(0);
-                    } else {
-                        visibleEntities = entities.filter(function(e) {
-                            return e.name.toLowerCase().indexOf(searchTerm) > -1
-                                || e.type.toLowerCase().indexOf(searchTerm) > -1
-                                || e.fullUrl.toLowerCase().indexOf(searchTerm) > -1
-                                || e.id.toLowerCase().indexOf(searchTerm) > -1;
-                        });
-                    }
+					let searchTerm = elFilterSearch.value.toLowerCase();
+					visibleEntities = entities.filter(function(e) {
+						let type = e.type === "Box" || e.type === "Sphere" ? "Shape" : e.type;
+						let typeFilter = typeFilters.indexOf(type) > -1;
+						let searchFilter = searchTerm === '' || (e.name.toLowerCase().indexOf(searchTerm) > -1 ||
+																 e.type.toLowerCase().indexOf(searchTerm) > -1 ||
+																 e.fullUrl.toLowerCase().indexOf(searchTerm) > -1 ||
+																 e.id.toLowerCase().indexOf(searchTerm) > -1);
+						return typeFilter && searchFilter;
+					});
                 });
                 
                 PROFILE("sort", function() {
@@ -588,10 +622,10 @@ function loaded() {
         function toggleFilterInView() {
             isFilterInView = !isFilterInView;
             if (isFilterInView) {
-                elInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
+                elFilterInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
                 elNoEntitiesInView.style.display = "inline";
             } else {
-                elInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
+                elFilterInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
                 elNoEntitiesInView.style.display = "none";
             }
             EventBridge.emitWebEvent(JSON.stringify({ type: "filterInView", filterInView: isFilterInView }));
@@ -604,12 +638,34 @@ function loaded() {
         }
         
         function onRadiusChange() {
-            elRadius.value = Math.max(elRadius.value, 0);
-            elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
+            elFilterRadius.value = Math.max(elFilterRadius.value, 0);
+            elNoEntitiesRadius.firstChild.nodeValue = elFilterRadius.value;
             elNoEntitiesMessage.style.display = "none";
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elFilterRadius.value }));
             refreshEntities();
         }
+		
+		function toggleTypeDropdown() {
+			elFilterTypeCheckboxes.style.display = elFilterTypeCheckboxes.style.display === "block" ? "none" : "block";
+		}
+		
+		function toggleTypeFilter(type, refresh) {
+			let typeFilterIndex = typeFilters.indexOf(type);
+			if (typeFilterIndex > -1) {
+				typeFilters.splice(typeFilterIndex, 1);
+			} else {
+				typeFilters.push(type);
+			}
+			if (refresh) {
+				refreshEntityList();
+			}
+		}
+		
+		function onToggleTypeFilter(type) {
+			return function() {
+				toggleTypeFilter(type, true);
+			};
+		}
 
         function toggleInfo(event) {
             showExtraInfo = !showExtraInfo;
@@ -623,7 +679,7 @@ function loaded() {
             entityList.resize();
             event.stopPropagation();
         }
-
+	
         document.addEventListener("keydown", function (keyDownEvent) {
             if (keyDownEvent.target.nodeName === "INPUT") {
                 return;
@@ -675,6 +731,7 @@ function loaded() {
         refreshSortOrder();
         refreshEntities();
     });
+	
     
     augmentSpinButtons();
 

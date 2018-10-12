@@ -1031,30 +1031,60 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     position: relative; /* New positioning context. */
 }
 
-#search-area {
+#filter-area {
     padding-right: 168px;
     padding-bottom: 24px;
 }
 
-#filter {
-    width: 98%;
+#filter-type-multiselect {
+	position: relative;
+}
+#filter-type-selectBox {
+	position: absolute;
+}
+#filter-type-selectBox select {
+	font-weight: bold;
+	font-family: FiraSans-SemiBold;
+	color: #404040;
+	background-color: #afafaf;
+}
+#filter-type-checkboxes {
+	position: absolute;
+	top: 20px;
+	display: none;
+	border: 1px #dadada solid;
+}
+#filter-type-checkboxes label {
+	display: block;
+	font-family: FiraSans-SemiBold;
+	color: #404040;
+	background-color: #afafaf;
+}
+#filter-type-checkboxes label:hover {
+	background-color: #1e90ff;
 }
 
-#in-view {
+#filter-search-and-icon {
+	position: absolute;
+	left: 100px;
+    width: 60%;
+}
+
+#filter-in-view {
     position: absolute;
     right: 126px;
 }
 
-#radius-and-unit {
+#filter-radius-and-unit {
+	position: relative;
     float: right;
     margin-right: -168px;
-    position: relative;
     top: -17px;
 }
-#radius-and-unit label {
+#filter-radius-and-unit label {
     margin-left: 2px;
 }
-#radius-and-unit input {
+#filter-radius-and-unit input {
     width: 120px;
 }
 

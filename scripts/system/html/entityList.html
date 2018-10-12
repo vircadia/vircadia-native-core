@@ -30,12 +30,22 @@
             <input type="button" class="red" id="delete" value="Delete" />
         </div>
         <div id="entity-list">
-            <div id="search-area">
-                <span class="icon-input"><input type="text" class="search" id="filter" placeholder="Filter" /><span>Y</span></span>
-                <input type="button" id="in-view" class="glyph" value="&#xe007;" />
-                <div id="radius-and-unit" class="number">
+            <div id="filter-area">
+				<div class="filter-type-multiselect">
+					<div class="selectBox" id="filter-type-selectBox">
+						<select><option>Types...</option></select>
+					</div>
+					<div id="filter-type-checkboxes">
+						<!-- each type checkbox/label is added at runtime in entityList -->
+					</div>
+				</div>
+				<div id="filter-search-and-icon">
+					<span class="icon-input"><input type="text" class="search" id="filter-search" placeholder="Filter" /><span>Y</span></span>
+				</div>
+                <input type="button" id="filter-in-view" class="glyph" value="&#xe007;" />
+                <div id="filter-radius-and-unit" class="number">
                     <label for="radius">Search radius <span class="unit">m</span></label>
-                    <input type="number" id="radius" value="100" />
+                    <input type="number" id="filter-radius" value="100" />
                 </div>
             </div>
             <div id="entity-table-scroll">
