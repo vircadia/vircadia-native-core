@@ -956,8 +956,8 @@ bool Octree::toJSON(QByteArray* data, const OctreeElementPointer& element, bool 
     } else {
         *data = doc.toJson();
     }
-#endif  // HIFI_USE_DIRECT_TO_JSON
 
+#endif  // HIFI_USE_DIRECT_TO_JSON
     return true;
 }
 

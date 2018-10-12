@@ -10,14 +10,14 @@
 //
 
 #include "RecurseOctreeToJSONOperator.h"
-
 #include "EntityItemProperties.h"
 
 RecurseOctreeToJSONOperator::RecurseOctreeToJSONOperator(const OctreeElementPointer& top, QScriptEngine* engine,
-    QString jsonPrefix /* = QString() */)
+    QString jsonPrefix /* = QString() */, bool skipDefaults /* = true */)
     : _top(top)
     , _engine(engine)
     , _json(jsonPrefix)
+    , _skipDefaults(skipDefaults)
 {
     _toStringMethod = _engine->evaluate("(function() { return JSON.stringify(this, null, '    ') })");
 }
@@ -30,7 +30,10 @@ bool RecurseOctreeToJSONOperator::postRecursion(const OctreeElementPointer& elem
 }
 
 void RecurseOctreeToJSONOperator::processEntity(const EntityItemPointer& entity) {
-    QScriptValue qScriptValues = EntityItemNonDefaultPropertiesToScriptValue(_engine, entity->getProperties());
+    QScriptValue qScriptValues = _skipDefaults
+        ? EntityItemNonDefaultPropertiesToScriptValue(_engine, entity->getProperties())
+        : EntityItemPropertiesToScriptValue(_engine, entity->getProperties());
+
     if (comma) {
         _json += ',';
     };
@@ -39,7 +42,6 @@ void RecurseOctreeToJSONOperator::processEntity(const EntityItemPointer& entity)
 
     // Override default toString():
     qScriptValues.setProperty("toString", _toStringMethod);
-    QString jsonResult = qScriptValues.toString();
+    _json += qScriptValues.toString();
     //auto exceptionString2 = _engine->uncaughtException().toString();
-    _json += jsonResult;
 }

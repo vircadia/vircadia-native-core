@@ -2659,7 +2659,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     return success;
 }
 
-bool EntityTree::writeToJSON(QString & jsonString, const OctreeElementPointer & element) {
+bool EntityTree::writeToJSON(QString& jsonString, const OctreeElementPointer& element) {
     QScriptEngine scriptEngine;
     RecurseOctreeToJSONOperator theOperator(element, &scriptEngine, jsonString);
     withReadLock([&] {

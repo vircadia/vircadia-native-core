@@ -13,7 +13,7 @@
 
 class RecurseOctreeToJSONOperator : public RecurseOctreeOperator {
 public:
-    RecurseOctreeToJSONOperator(const OctreeElementPointer& top, QScriptEngine* engine, QString jsonPrefix = QString());
+    RecurseOctreeToJSONOperator(const OctreeElementPointer& top, QScriptEngine* engine, QString jsonPrefix = QString(), bool skipDefaults = true);
     virtual bool preRecursion(const OctreeElementPointer& element) override { return true; };
     virtual bool postRecursion(const OctreeElementPointer& element) override;
 
@@ -27,5 +27,6 @@ private:
     QScriptValue _toStringMethod;
 
     QString _json;
+    const bool _skipDefaults;
     bool comma { false };
 };

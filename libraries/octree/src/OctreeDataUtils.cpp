@@ -35,7 +35,11 @@ bool readOctreeFile(QString path, QJsonDocument* doc) {
         jsonData = data;
     }
 
-    *doc = QJsonDocument::fromJson(jsonData);
+    QJsonParseError parserError;
+    *doc = QJsonDocument::fromJson(jsonData, &parserError);
+    if (parserError.error != QJsonParseError::NoError) {
+        qWarning() << "Error reading JSON file" << path << "-" << parserError.errorString();
+    }
     return !doc->isNull();
 }
 
