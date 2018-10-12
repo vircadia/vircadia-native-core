@@ -467,7 +467,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         });
         this.mouseRayPick = Pointers.createPointer(PickType.Ray, {
             joint: "Mouse",
-            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
+            filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
             enabled: true
         });
         this.handleHandMessage = function(channel, data, sender) {
