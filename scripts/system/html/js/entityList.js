@@ -146,7 +146,6 @@ function loaded() {
         elNoEntitiesRadius = document.getElementById("no-entities-radius");
         
         document.body.onclick = onBodyClick;
-        
         document.getElementById("entity-name").onclick = function() {
             setSortColumn('name');
         };
@@ -209,7 +208,7 @@ function loaded() {
         elFilterRadius.onchange = onRadiusChange;
         elInfoToggle.onclick = toggleInfo;
         
-        // create filter type dropdown checkboxes w/ label for each type
+        // create filter type dropdown checkboxes with label and icon for each type
         elFilterTypeSelectBox.onclick = toggleTypeDropdown;
         for (let i = 0; i < FILTER_TYPES.length; ++i) {
             let type = FILTER_TYPES[i];
@@ -225,7 +224,7 @@ function loaded() {
             elInput.setAttribute("type", "checkbox");
             elInput.setAttribute("id", typeFilterID);
             elInput.checked = true; // all types are checked initially
-            toggleTypeFilter(type, false); // add all types to the initial type filter
+            toggleTypeFilter(type, false); // add all types to the initial types filter
             elInput.onclick = onToggleTypeFilter(type);
             elDiv.appendChild(elInput);
             elLabel.insertBefore(elSpan, elLabel.childNodes[0]);
@@ -664,8 +663,12 @@ function loaded() {
             refreshEntities();
         }
         
+        function isTypeDropdownVisible() {
+            return elFilterTypeCheckboxes.style.display === "block";
+        }
+        
         function toggleTypeDropdown() {
-            elFilterTypeCheckboxes.style.display = elFilterTypeCheckboxes.style.display === "block" ? "none" : "block";
+            elFilterTypeCheckboxes.style.display = isTypeDropdownVisible() ? "none" : "block";
         }
         
         function toggleTypeFilter(type, refresh) {
@@ -695,6 +698,15 @@ function loaded() {
             };
         }
         
+        function onBodyClick(event) {
+            // if clicking anywhere outside of the type filter dropdown and it's open then close it
+            let elTarget = event.target;
+            if (isTypeDropdownVisible() && !elFilterTypeSelectBox.contains(elTarget) && 
+                                           !elFilterTypeCheckboxes.contains(elTarget)) {
+                toggleTypeDropdown();
+            }
+        }
+        
         function toggleInfo(event) {
             showExtraInfo = !showExtraInfo;
             if (showExtraInfo) {
@@ -706,14 +718,6 @@ function loaded() {
             }
             entityList.resize();
             event.stopPropagation();
-        }
-        
-        function onBodyClick(event) {
-            let targetNode = event.target;
-            if (!elFilterTypeSelectBox.contains(targetNode) && !elFilterTypeCheckboxes.contains(targetNode) && 
-                elFilterTypeCheckboxes.style.display === "block") {
-                toggleTypeDropdown();
-            }
         }
     
         document.addEventListener("keydown", function (keyDownEvent) {
