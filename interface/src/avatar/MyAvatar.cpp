@@ -470,7 +470,6 @@ void MyAvatar::update(float deltaTime) {
     const float PERCENTAGE_WEIGHT_HEAD_VS_SHOULDERS_AZIMUTH = 0.0f; // 100 percent shoulders
     const float STANDING_HEIGHT_MULTIPLE = 1.2f;
     const float SITTING_HEIGHT_MULTIPLE = 0.833f;
-    const float COSINE_TEN_DEGREES = 0.98f;
     const float COSINE_THIRTY_DEGREES = 0.866f;
     const int SITTING_COUNT_THRESHOLD = 300;
     const int SQUATTY_COUNT_THRESHOLD = 600;
@@ -545,12 +544,8 @@ void MyAvatar::update(float deltaTime) {
                         _tippingPoint = newHeightReading.getTranslation().y;
                     }
                     _averageUserHeightCount = 1;
-                    // setResetMode(true);
                     setIsInSittingState(false);
-                    // setCenterOfGravityModelEnabled(true);
-                    // setSitStandStateChange(true);
                 }
-                qCDebug(interfaceapp) << "going to stand state";
             } else {
                 _sitStandStateCount = 0;
                 // tipping point is average height when sitting.
@@ -568,19 +563,13 @@ void MyAvatar::update(float deltaTime) {
                         _tippingPoint = newHeightReading.getTranslation().y;
                     }
                     _averageUserHeightCount = 1;
-                    // setResetMode(true);
                     setIsInSittingState(true);
-                    // setCenterOfGravityModelEnabled(false);
-                    // setSitStandStateChange(true);
                 }
-                qCDebug(interfaceapp) << "going to sit state";
             } else {
-                // returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
                 // use the mode height for the tipping point when we are standing.
                 _tippingPoint = getCurrentStandingHeight();
                 _sitStandStateCount = 0;
             }
-
         }
     }
 
@@ -594,7 +583,7 @@ void MyAvatar::update(float deltaTime) {
 
         // draw hand azimuth vector
         glm::vec3 handAzimuthMidpoint = transformPoint(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
-        DebugDraw::getInstance().drawRay(getWorldPosition(), handAzimuthMidpoint, glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));    
+        DebugDraw::getInstance().drawRay(getWorldPosition(), handAzimuthMidpoint, glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
     }
 
     if (_goToPending) {
@@ -3909,7 +3898,12 @@ void MyAvatar::setIsInSittingState(bool isSitting) {
 }
 
 void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
+    const float DEFAULT_FLOOR_HEIGHT = 0.0f;
     _lockSitStandState.set(isLocked);
+    _sitStandStateCount = 0;
+    _sumUserHeightSensorSpace = DEFAULT_AVATAR_HEIGHT;
+    _tippingPoint = DEFAULT_FLOOR_HEIGHT;
+    _averageUserHeightCount = 1;
     emit sitStandStateLockEnabledChanged(isLocked);
 }
 
@@ -4156,21 +4150,17 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     const int SQUATTY_COUNT_THRESHOLD = 1800;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
-    
     bool returnValue = false;
 
     if (myAvatar.getSitStandStateChange()) {
-        // qCDebug(interfaceapp) << "sit state change";
         returnValue = true;
-        
     }
     if (myAvatar.getIsInSittingState()) {
         if (myAvatar.getIsSitStandStateLocked()) {
             returnValue = (offset.y > CYLINDER_TOP);
         }
         if (offset.y < SITTING_BOTTOM) {
-            // we recenter when sitting.
-            // qCDebug(interfaceapp) << "lean back sitting ";
+            // we recenter more easily when in sitting state.
             returnValue = true;
         }
     } else {
@@ -4179,7 +4169,6 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
         // finally check for squats in standing
         if ((myAvatar._squatCount > SQUATTY_COUNT_THRESHOLD) && !myAvatar.getIsSitStandStateLocked()) {
             myAvatar._squatCount = 0;
-            // qCDebug(interfaceapp) << "squatting ";
             returnValue = true;
         }
     }
@@ -4194,7 +4183,6 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
-            qCDebug(interfaceapp) << "should activate rotation true ";
             myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
         }
         if (myAvatar.getCenterOfGravityModelEnabled()) {
@@ -4210,28 +4198,22 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             if (!isActive(Horizontal) && (shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
                 activate(Horizontal);
                 if (myAvatar.getEnableStepResetRotation() && !myAvatar.getIsInSittingState()) {
-                    qCDebug(interfaceapp) << "step recenter rotation true ";
                     activate(Rotation);
                     myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
                 }
             }
         }
-
-        if (_velocityCount > 60) {
+        const int VELOCITY_COUNT_THRESHOLD = 60;
+        const float MINIMUM_HMD_VELOCITY = 0.1f;
+        if (_velocityCount > VELOCITY_COUNT_THRESHOLD) {
             if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
                 activate(Vertical);
             }
         } else {
-            if ((glm::length(myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD).getVelocity()) > 0.1f)) {
+            if ((glm::length(myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD).getVelocity()) > MINIMUM_HMD_VELOCITY)) {
                 _velocityCount++;
             }
-            if (_velocityCount > 60) {
-                qCDebug(interfaceapp) << "reached velocity count ";
-            }
-            
         }
-
-
     } else {
         if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
