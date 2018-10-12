@@ -21,6 +21,7 @@ Rectangle {
     property alias dominantHandIsLeft: leftHandRadioButton.checked
     property alias avatarCollisionsOn: collisionsEnabledRadiobutton.checked
     property alias avatarSittingOn: sitRadiobutton.checked
+    property alias avatarLockSitStandStateOn: lockSitStandStateCheckbox.checked
     property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
     property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
@@ -50,6 +51,12 @@ Rectangle {
             sitRadiobutton.checked = true;
         } else {
             standRadioButton.checked = true;
+        }
+
+        if (settings.lockStateEnabled) {
+            lockSitStandStateCheckbox.checked = true;
+        } else {
+            lockSitStandStateCheckbox.checked = false;
         }
 
         avatarAnimationJSON = settings.animGraphUrl;
@@ -342,6 +349,18 @@ Rectangle {
                 letterSpacing: 1.4
                 text: "Stand"
                 boxSize: 20
+            }
+
+            // "Lock State" Checkbox
+
+            HifiControlsUit.CheckBox {
+                id: lockSitStandStateCheckbox;
+                visible: activeTab == "nearbyTab";
+                anchors.right: reloadNearbyContainer.left;
+                anchors.rightMargin: 20;
+                checked: settings.lockStateEnabled;
+                text: "lock";
+                boxSize: 24;
             }
         }
 

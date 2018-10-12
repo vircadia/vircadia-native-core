@@ -253,6 +253,7 @@ Rectangle {
                 dominantHand : settings.dominantHandIsLeft ? 'left' : 'right',
                 collisionsEnabled : settings.avatarCollisionsOn,
                 sittingEnabled : settings.avatarSittingOn,
+                lockStateEnabled : settings.avatarLockSitStandStateOn,
                 animGraphOverrideUrl : settings.avatarAnimationOverrideJSON,
                 collisionSoundUrl : settings.avatarCollisionSoundUrl
             };

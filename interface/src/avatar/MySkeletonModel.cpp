@@ -239,7 +239,6 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
 
         // set spine2 if we have hand controllers
-        // myAvatar->getHMDLeanRecenterEnabled() &&
         if (myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid() &&
                 myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() &&
                 !(params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] & (uint8_t)Rig::ControllerFlags::Enabled)) {
@@ -251,7 +250,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             bool headExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Head"), currentHeadPose);
             bool hipsExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Hips"), currentHipsPose);
             if (spine2Exists && headExists && hipsExists) {
-                // qCDebug(interfaceapp) << "hips forward direction "<< (currentHipsPose.rot() * glm::vec3(0.0f, 0.0f, 1.0f));
+
                 AnimPose rigSpaceYaw(myAvatar->getSpine2RotationRigSpace());
                 glm::vec3 u, v, w;
                 glm::vec3 fwd = rigSpaceYaw.rot() * glm::vec3(0.0f, 0.0f, 1.0f);

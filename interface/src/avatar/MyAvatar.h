@@ -244,6 +244,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed);
     Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed);
     Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
+    Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -1105,6 +1106,8 @@ public:
     bool getIsInWalkingState() const;
     void setIsInSittingState(bool isSitting);
     bool getIsInSittingState() const;
+    void setIsSitStandStateLocked(bool isLocked);
+    bool getIsSitStandStateLocked() const;
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
     void setWalkBackwardSpeed(float value);
@@ -1526,6 +1529,14 @@ signals:
     */
     void sittingEnabledChanged(bool enabled);
 
+    /**jsdoc
+    * Triggered when the sit state is enabled or disabled
+    * @function MyAvatar.sitStandStateLockEnabledChanged
+    * @param {boolean} enabled
+    * @returns {Signal}
+    */
+    void sitStandStateLockEnabledChanged(bool enabled);
+
 private slots:
     void leaveDomain();
     void updateCollisionCapsuleCache();
@@ -1824,7 +1835,7 @@ private:
     float _sumUserHeightSensorSpace{ DEFAULT_AVATAR_HEIGHT };
     int _averageUserHeightCount{ 1 };
     bool _sitStandStateChange{ false };
-    bool _lockSitStandState { true };
+    ThreadSafeValueCache<bool> _lockSitStandState { true };
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };

@@ -531,7 +531,7 @@ void MyAvatar::update(float deltaTime) {
     glm::vec3 sensorHips = transformPoint(glm::inverse(getSensorToWorldMatrix()), worldHips);
 
     // put update sit stand state counts here
-    if (!_lockSitStandState) {
+    if (getIsSitStandStateLocked()) {
         if (getIsInSittingState()) {
             if (newHeightReading.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
                 // if we recenter upwards then no longer in sitting state
@@ -584,7 +584,6 @@ void MyAvatar::update(float deltaTime) {
         }
     }
 
-
     if (_drawAverageFacingEnabled) {
         auto sensorHeadPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
         glm::vec3 worldHeadPos = transformPoint(getSensorToWorldMatrix(), sensorHeadPose.getTranslation());
@@ -595,15 +594,8 @@ void MyAvatar::update(float deltaTime) {
 
         // draw hand azimuth vector
         glm::vec3 handAzimuthMidpoint = transformPoint(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
-        DebugDraw::getInstance().drawRay(getWorldPosition(), handAzimuthMidpoint, glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
-
-        
+        DebugDraw::getInstance().drawRay(getWorldPosition(), handAzimuthMidpoint, glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));    
     }
-
-    // temp: draw spine 2 position for hand azimuth purposes.
-    int spine2Index = getJointIndex("Spine2");
-    glm::vec3 spine2WorldPosition = transformPoint(getTransform().getMatrix(), getAbsoluteJointTranslationInObjectFrame(spine2Index));
-    DebugDraw::getInstance().addMarker("spine2 location", Quaternions::IDENTITY, spine2WorldPosition, glm::vec4(1));
 
     if (_goToPending) {
         setWorldPosition(_goToPosition);
@@ -949,8 +941,6 @@ glm::vec2 MyAvatar::computeHandAzimuth() const {
     if (!(spine2Index < 0)) {
         // use the spine for the azimuth origin.
         azimuthOrigin = getAbsoluteJointTranslationInObjectFrame(spine2Index);
-    } else {
-        // use the avatar root as the azimuth origin.  
     }
 
     controller::Pose leftHandPoseAvatarSpace = getLeftHandPose();
@@ -3882,6 +3872,10 @@ bool MyAvatar::getIsInSittingState() const {
     return _isInSittingState.get();
 }
 
+bool MyAvatar::getIsSitStandStateLocked() const {
+    return _lockSitStandState.get();
+}
+
 float MyAvatar::getWalkSpeed() const {
     return _walkSpeed.get() * _walkSpeedScalar;
 }
@@ -3905,6 +3899,11 @@ void MyAvatar::setIsInWalkingState(bool isWalking) {
 void MyAvatar::setIsInSittingState(bool isSitting) {
     _isInSittingState.set(isSitting);
     emit sittingEnabledChanged(isSitting);
+}
+
+void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
+    _lockSitStandState.set(isLocked);
+    emit sitStandStateLockEnabledChanged(isLocked);
 }
 
 void MyAvatar::setWalkSpeed(float value) {
@@ -4152,7 +4151,7 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
     
     bool returnValue = false;
-    returnValue = (offset.y > CYLINDER_TOP);// || (offset.y < CYLINDER_BOTTOM);
+    returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
 
     if (myAvatar.getSitStandStateChange()) {
         qCDebug(interfaceapp) << "sit state change";
@@ -4206,7 +4205,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
                 }
             }
         }
-        
+
         if (_velocityCount > 60) {
             if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
                 activate(Vertical);
@@ -4216,7 +4215,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
                 _velocityCount++;
             }
         }
-        
+
 
     } else {
         if (!isActive(Rotation) && getForceActivateRotation()) {
