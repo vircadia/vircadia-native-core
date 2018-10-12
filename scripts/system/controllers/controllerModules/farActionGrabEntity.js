@@ -102,7 +102,6 @@ Script.include("/~/system/libraries/Xform.js");
         this.potentialEntityWithContextOverlay = false;
         this.entityWithContextOverlay = false;
         this.contextOverlayTimer = false;
-        this.previousCollisionStatus = false;
         this.locked = false;
         this.highlightedEntity = null;
         this.reticleMinX = MARGIN;
@@ -490,7 +489,8 @@ Script.include("/~/system/libraries/Xform.js");
                         var targetProps = Entities.getEntityProperties(entityID, [
                             "dynamic", "shapeType", "position",
                             "rotation", "dimensions", "density",
-                            "userData", "locked", "type", "href"
+                            "userData", "locked", "type", "href",
+                            "collisionless"
                         ]);
                         if (targetProps.href !== "") {
                             AddressManager.handleLookupString(targetProps.href);
@@ -543,7 +543,8 @@ Script.include("/~/system/libraries/Xform.js");
                             var selectionTargetProps = Entities.getEntityProperties(targetEntityID, [
                                 "dynamic", "shapeType", "position",
                                 "rotation", "dimensions", "density",
-                                "userData", "locked", "type", "href"
+                                "userData", "locked", "type", "href",
+                                "collisionless"
                             ]);
 
                             var selectionTargetObject = new TargetObject(targetEntityID, selectionTargetProps);
