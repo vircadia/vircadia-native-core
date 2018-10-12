@@ -471,6 +471,7 @@ void MyAvatar::update(float deltaTime) {
     const float STANDING_HEIGHT_MULTIPLE = 1.2f;
     const float SITTING_HEIGHT_MULTIPLE = 0.833f;
     const float COSINE_TEN_DEGREES = 0.98f;
+    const float COSINE_THIRTY_DEGREES = 0.866f;
     const int SITTING_COUNT_THRESHOLD = 300;
     const int SQUATTY_COUNT_THRESHOLD = 600;
 
@@ -518,7 +519,7 @@ void MyAvatar::update(float deltaTime) {
         upSpine2 = glm::normalize(upSpine2);
     }
     float angleSpine2 = glm::dot(upSpine2, glm::vec3(0.0f, 1.0f, 0.0f));
-    if (getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y < (headDefaultPositionAvatarSpace.y - SQUAT_THRESHOLD) && (angleSpine2 > COSINE_TEN_DEGREES)) {
+    if (getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y < (headDefaultPositionAvatarSpace.y - SQUAT_THRESHOLD) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
         _squatCount++;
     } else {
         _squatCount = 0;
@@ -531,7 +532,7 @@ void MyAvatar::update(float deltaTime) {
     glm::vec3 sensorHips = transformPoint(glm::inverse(getSensorToWorldMatrix()), worldHips);
 
     // put update sit stand state counts here
-    if (getIsSitStandStateLocked()) {
+    if (!getIsSitStandStateLocked() && (_follow._velocityCount > 60)) {
         if (getIsInSittingState()) {
             if (newHeightReading.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
                 // if we recenter upwards then no longer in sitting state
@@ -544,10 +545,10 @@ void MyAvatar::update(float deltaTime) {
                         _tippingPoint = newHeightReading.getTranslation().y;
                     }
                     _averageUserHeightCount = 1;
-                    setResetMode(true);
+                    // setResetMode(true);
                     setIsInSittingState(false);
-                    setCenterOfGravityModelEnabled(true);
-                    setSitStandStateChange(true);
+                    // setCenterOfGravityModelEnabled(true);
+                    // setSitStandStateChange(true);
                 }
                 qCDebug(interfaceapp) << "going to stand state";
             } else {
@@ -557,7 +558,7 @@ void MyAvatar::update(float deltaTime) {
             }
         } else {
             // in the standing state
-            if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint))) {// && (angleSpine2 > COSINE_TEN_DEGREES) && !(sensorHips.y > (0.4f * averageSensorSpaceHeight))) {
+            if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
                 _sitStandStateCount++;
                 if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
                     _sitStandStateCount = 0;
@@ -567,11 +568,10 @@ void MyAvatar::update(float deltaTime) {
                         _tippingPoint = newHeightReading.getTranslation().y;
                     }
                     _averageUserHeightCount = 1;
-                    setResetMode(true);
+                    // setResetMode(true);
                     setIsInSittingState(true);
-                    setCenterOfGravityModelEnabled(false);
-
-                    setSitStandStateChange(true);
+                    // setCenterOfGravityModelEnabled(false);
+                    // setSitStandStateChange(true);
                 }
                 qCDebug(interfaceapp) << "going to sit state";
             } else {
@@ -3898,6 +3898,13 @@ void MyAvatar::setIsInWalkingState(bool isWalking) {
 
 void MyAvatar::setIsInSittingState(bool isSitting) {
     _isInSittingState.set(isSitting);
+    setResetMode(true);
+    if (isSitting) {
+        setCenterOfGravityModelEnabled(false);
+    } else {
+        setCenterOfGravityModelEnabled(true);
+    }
+    setSitStandStateChange(true);
     emit sittingEnabledChanged(isSitting);
 }
 
@@ -4146,32 +4153,34 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     const float CYLINDER_TOP = 0.1f;
     const float CYLINDER_BOTTOM = -1.5f;
     const float SITTING_BOTTOM = -0.02f;
-    const int SQUATTY_COUNT_THRESHOLD = 600;
+    const int SQUATTY_COUNT_THRESHOLD = 1800;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
     
     bool returnValue = false;
-    returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
 
     if (myAvatar.getSitStandStateChange()) {
-        qCDebug(interfaceapp) << "sit state change";
+        // qCDebug(interfaceapp) << "sit state change";
         returnValue = true;
+        
     }
     if (myAvatar.getIsInSittingState()) {
+        if (myAvatar.getIsSitStandStateLocked()) {
+            returnValue = (offset.y > CYLINDER_TOP);
+        }
         if (offset.y < SITTING_BOTTOM) {
             // we recenter when sitting.
-            qCDebug(interfaceapp) << "lean back sitting ";
+            // qCDebug(interfaceapp) << "lean back sitting ";
             returnValue = true;
         }
     } else {
         // in the standing state
-        if (myAvatar._squatCount > SQUATTY_COUNT_THRESHOLD) {
+        returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
+        // finally check for squats in standing
+        if ((myAvatar._squatCount > SQUATTY_COUNT_THRESHOLD) && !myAvatar.getIsSitStandStateLocked()) {
             myAvatar._squatCount = 0;
-            qCDebug(interfaceapp) << "squatting ";
-            // returnValue = true;
-        }
-        if (returnValue == true) {
-            qCDebug(interfaceapp) << "above or below capsule in standing";
+            // qCDebug(interfaceapp) << "squatting ";
+            returnValue = true;
         }
     }
     return returnValue;
@@ -4185,6 +4194,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
+            qCDebug(interfaceapp) << "should activate rotation true ";
             myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
         }
         if (myAvatar.getCenterOfGravityModelEnabled()) {
@@ -4199,7 +4209,8 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             // center of gravity model is not enabled
             if (!isActive(Horizontal) && (shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
                 activate(Horizontal);
-                if (myAvatar.getEnableStepResetRotation()) {
+                if (myAvatar.getEnableStepResetRotation() && !myAvatar.getIsInSittingState()) {
+                    qCDebug(interfaceapp) << "step recenter rotation true ";
                     activate(Rotation);
                     myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
                 }
@@ -4214,6 +4225,10 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             if ((glm::length(myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD).getVelocity()) > 0.1f)) {
                 _velocityCount++;
             }
+            if (_velocityCount > 60) {
+                qCDebug(interfaceapp) << "reached velocity count ";
+            }
+            
         }
 
 
