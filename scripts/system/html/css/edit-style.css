@@ -1812,7 +1812,7 @@ body#entity-list-body {
 }
 .context-menu li {
     list-style-type: none;
-    padding: 0 5px 0 5px;
+    padding: 4px 18px 4px 18px;
     margin: 0;
     white-space: nowrap;
 }
@@ -1820,8 +1820,9 @@ body#entity-list-body {
     background-color: #e3e3e3;
 }
 .context-menu li.separator {
-    border-top: 1px solid #000000;
+    border-top: 1px solid #333333;
     margin: 5px 5px;
+    padding: 0 0;
 }
 .context-menu li.disabled {
     color: #333333;

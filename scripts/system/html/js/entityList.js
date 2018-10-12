@@ -70,7 +70,10 @@ var selectedEntities = [];
 
 var entityList = null; // The ListView
 
-var entityListContextMenu = new EntityListContextMenu();
+/**
+ * @type EntityListContextMenu
+ */
+var entityListContextMenu = null;
 
 var currentSortColumn = 'type';
 var currentSortOrder = ASCENDING_SORT;
@@ -187,21 +190,24 @@ function loaded() {
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
                                   createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
 
-        entityListContextMenu.initialize();
+        entityListContextMenu = new EntityListContextMenu();
 
 
         function startRenamingEntity(entityID) {
-            if (!entitiesByID[entityID] || !entitiesByID[entityID].elRow) {
+            let entity = entitiesByID[entityID];
+            if (!entity || entity.locked || !entity.elRow) {
                 return;
             }
 
-            let elCell = entitiesByID[entityID].elRow.childNodes[COLUMN_INDEX.NAME];
+            let elCell = entity.elRow.childNodes[COLUMN_INDEX.NAME];
             let elRenameInput = document.createElement("input");
             elRenameInput.setAttribute('class', 'rename-entity');
-            elRenameInput.value = entitiesByID[entityID].name;
-            elRenameInput.onclick = function(event) {
+            elRenameInput.value = entity.name;
+            let ignoreClicks = function(event) {
                 event.stopPropagation();
             };
+            elRenameInput.onclick = ignoreClicks;
+            elRenameInput.ondblclick = ignoreClicks;
             elRenameInput.onkeyup = function(keyEvent) {
                 if (keyEvent.key === "Enter") {
                     elRenameInput.blur();
@@ -215,7 +221,7 @@ function loaded() {
                     entityID: entityID,
                     name: value
                 }));
-                entitiesByID[entityID].name = value;
+                entity.name = value;
                 elCell.innerText = value;
             };
 
@@ -260,13 +266,20 @@ function loaded() {
 
                 refreshFooter();
             }
-            entityListContextMenu.open(clickEvent, entityID);
+
+            let enabledContextMenuItems = [];
+            if (entitiesByID[entityID] && !entitiesByID[entityID].locked) {
+                enabledContextMenuItems.push('Rename');
+                enabledContextMenuItems.push('Delete');
+            }
+
+            entityListContextMenu.open(clickEvent, entityID, enabledContextMenuItems);
         }
 
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
             let selection = [entityID];
-            
+
             if (clickEvent.ctrlKey) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
@@ -759,7 +772,7 @@ function loaded() {
     }, false);
 
     // close context menu when switching focus to another window
-    $(window).blur(function(){
+    $(window).blur(function() {
         entityListContextMenu.close.call(entityListContextMenu);
     });
 }

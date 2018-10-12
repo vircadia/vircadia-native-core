@@ -19,6 +19,8 @@ const CONTEXT_MENU_CLASS = "context-menu";
 function EntityListContextMenu() {
     this._elContextMenu = null;
     this._callback = null;
+    this._listItems = [];
+    this._initialize();
 }
 
 EntityListContextMenu.prototype = {
@@ -39,6 +41,11 @@ EntityListContextMenu.prototype = {
     _selectedEntityID: null,
 
     /**
+     * @private
+     */
+    _listItems: null,
+
+    /**
      * Close the context menu
      */
     close: function() {
@@ -55,10 +62,17 @@ EntityListContextMenu.prototype = {
      * Open the context menu
      * @param clickEvent
      * @param selectedEntityID
+     * @param enabledOptions
      */
-    open: function(clickEvent, selectedEntityID) {
+    open: function(clickEvent, selectedEntityID, enabledOptions) {
         this._selectedEntityID = selectedEntityID;
-        // If the right-clicked item has a context menu open it.
+
+        this._listItems.forEach(function(listItem) {
+            let enabled = enabledOptions.includes(listItem.label);
+            listItem.enabled = enabled;
+            listItem.element.setAttribute('class', enabled ? '' : 'disabled');
+        });
+
         this._elContextMenu.style.display = "block";
         this._elContextMenu.style.left
             = Math.min(clickEvent.pageX, document.body.offsetWidth - this._elContextMenu.offsetWidth).toString() + "px";
@@ -85,15 +99,21 @@ EntityListContextMenu.prototype = {
         let elListItem = document.createElement("li");
         elListItem.innerText = itemLabel;
 
-        if (isEnabled === undefined || isEnabled) {
-            elListItem.addEventListener("click", function () {
-                if (this._callback) {
-                    this._callback.call(this, itemLabel, this._selectedEntityID);
-                }
-            }.bind(this), false);
-        } else {
-            elListItem.setAttribute('class', 'disabled');
-        }
+        let listItem = {
+            label: itemLabel,
+            element: elListItem,
+            enabled: false
+        };
+
+        elListItem.addEventListener("click", function () {
+            if (listItem.enabled && this._callback) {
+                this._callback.call(this, itemLabel, this._selectedEntityID);
+            }
+        }.bind(this), false);
+
+        elListItem.setAttribute('class', 'disabled');
+
+        this._listItems.push(listItem);
         this._elContextMenu.appendChild(elListItem);
     },
 
@@ -109,8 +129,9 @@ EntityListContextMenu.prototype = {
 
     /**
      * Initialize the context menu.
+     * @private
      */
-    initialize: function() {
+    _initialize: function() {
         this._elContextMenu = document.createElement("ul");
         this._elContextMenu.setAttribute("class", CONTEXT_MENU_CLASS);
         document.body.appendChild(this._elContextMenu);
