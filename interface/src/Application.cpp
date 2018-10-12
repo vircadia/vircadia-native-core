@@ -182,7 +182,7 @@
 #include "scripting/RatesScriptingInterface.h"
 #include "scripting/SelectionScriptingInterface.h"
 #include "scripting/WalletScriptingInterface.h"
-#include "scripting/SpeechScriptingInterface.h"
+#include "scripting/TTSScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -944,7 +944,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
     DependencyManager::set<WalletScriptingInterface>();
-    DependencyManager::set<SpeechScriptingInterface>();
+    DependencyManager::set<TTSScriptingInterface>();
 
     DependencyManager::set<FadeEffect>();
 
@@ -1179,6 +1179,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [&audioIO](recording::Frame::ConstPointer frame) {
             audioIO->handleRecordedAudioInput(frame->data);
         });
+        
+        auto TTS = DependencyManager::get<TTSScriptingInterface>().data();
+        connect(TTS, &TTSScriptingInterface::ttsSampleCreated, audioIO, &AudioClient::handleTTSAudioInput);
 
         connect(audioIO, &AudioClient::inputReceived, [](const QByteArray& audio) {
             static auto recorder = DependencyManager::get<recording::Recorder>();
@@ -3129,7 +3132,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
-    surfaceContext->setContextProperty("Speech", DependencyManager::get<SpeechScriptingInterface>().data());
+    surfaceContext->setContextProperty("TextToSpeech", DependencyManager::get<TTSScriptingInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -6800,7 +6803,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
-    scriptEngine->registerGlobalObject("Speech", DependencyManager::get<SpeechScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("TextToSpeech", DependencyManager::get<TTSScriptingInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 

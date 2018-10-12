@@ -1,5 +1,5 @@
-//  SpeechScriptingInterface.h
-//  interface/src/scripting
+//  TTSScriptingInterface.h
+//  libraries/audio-client/src/scripting
 //
 //  Created by Zach Fox on 2018-10-10.
 //  Copyright 2018 High Fidelity, Inc.
@@ -20,15 +20,19 @@
 #include <sphelper.h>  // SAPI Helper
 #include <AudioInjector.h>
 
-class SpeechScriptingInterface : public QObject, public Dependency {
+class TTSScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
 public:
-    SpeechScriptingInterface();
-    ~SpeechScriptingInterface();
+    TTSScriptingInterface();
+    ~TTSScriptingInterface();
 
-    Q_INVOKABLE void speakText(const QString& textToSpeak);
+    Q_INVOKABLE void testTone(const bool& alsoInject = false);
+    Q_INVOKABLE void speakText(const QString& textToSpeak, const bool& alsoInject = false);
     Q_INVOKABLE void stopLastSpeech();
+
+signals:
+    void ttsSampleCreated(QByteArray outputArray);
 
 private:
     class CComAutoInit {
@@ -72,7 +76,8 @@ private:
     // Default voice token
     CComPtr<ISpObjectToken> m_voiceToken;
 
-    AudioInjectorPointer lastSound;
+    QByteArray _lastSoundByteArray;
+    AudioInjectorPointer _lastSoundByteArray;
 };
 
 #endif // hifi_SpeechScriptingInterface_h

@@ -1,6 +1,6 @@
 ﻿//
-//  SpeechScriptingInterface.cpp
-//  interface/src/scripting
+//  TTSScriptingInterface.cpp
+//  libraries/audio-client/src/scripting
 //
 //  Created by Zach Fox on 2018-10-10.
 //  Copyright 2018 High Fidelity, Inc.
@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "SpeechScriptingInterface.h"
+#include "TTSScriptingInterface.h"
 #include "avatar/AvatarManager.h"
 
-SpeechScriptingInterface::SpeechScriptingInterface() {
+TTSScriptingInterface::TTSScriptingInterface() {
     //
     // Create text to speech engine
     //
@@ -38,8 +38,7 @@ SpeechScriptingInterface::SpeechScriptingInterface() {
     }
 }
 
-SpeechScriptingInterface::~SpeechScriptingInterface() {
-
+TTSScriptingInterface::~TTSScriptingInterface() {
 }
 
 class ReleaseOnExit {
@@ -55,7 +54,28 @@ private:
     IUnknown* m_p;
 };
 
-void SpeechScriptingInterface::speakText(const QString& textToSpeak) {
+void TTSScriptingInterface::testTone(const bool& alsoInject) {
+    QByteArray byteArray(480000, 0);
+    _lastSoundByteArray.resize(0);
+    _lastSoundByteArray.resize(480000);
+
+    int32_t a = 0;
+    int16_t* samples = reinterpret_cast<int16_t*>(byteArray.data());
+    for (a = 0; a < 240000; a++) {
+        int16_t temp = (glm::sin(glm::radians((float)a))) * 32768;
+        samples[a] = temp;
+    }
+    emit ttsSampleCreated(_lastSoundByteArray);
+
+    if (alsoInject) {
+        AudioInjectorOptions options;
+        options.position = DependencyManager::get<AvatarManager>()->getMyAvatarPosition();
+
+        _lastSoundAudioInjector = AudioInjector::playSound(_lastSoundByteArray, options);
+    }
+}
+
+void TTSScriptingInterface::speakText(const QString& textToSpeak, const bool& alsoInject) {
     WAVEFORMATEX fmt;
     fmt.wFormatTag = WAVE_FORMAT_PCM;
     fmt.nSamplesPerSec = 24000;
@@ -92,9 +112,8 @@ void SpeechScriptingInterface::speakText(const QString& textToSpeak) {
     ReleaseOnExit rStream(pStream);
 
     ULONG streamNumber;
-    hr = m_tts->Speak(reinterpret_cast<LPCWSTR>(textToSpeak.utf16()),
-        SPF_IS_XML | SPF_ASYNC | SPF_PURGEBEFORESPEAK,
-        &streamNumber);
+    hr = m_tts->Speak(reinterpret_cast<LPCWSTR>(textToSpeak.utf16()), SPF_IS_XML | SPF_ASYNC | SPF_PURGEBEFORESPEAK,
+                      &streamNumber);
     if (FAILED(hr)) {
         qDebug() << "Speak failed.";
     }
@@ -124,14 +143,21 @@ void SpeechScriptingInterface::speakText(const QString& textToSpeak) {
         qDebug() << "Couldn't read from stream.";
     }
 
-    QByteArray byteArray = QByteArray::QByteArray(buf1, dwSize);
+    _lastSoundByteArray.resize(0);
+    _lastSoundByteArray.append(buf1, dwSize);
 
-    AudioInjectorOptions options;
-    options.position = DependencyManager::get<AvatarManager>()->getMyAvatarPosition();
+    emit ttsSampleCreated(_lastSoundByteArray);
 
-    lastSound = AudioInjector::playSound(byteArray, options);
+    if (alsoInject) {
+        AudioInjectorOptions options;
+        options.position = DependencyManager::get<AvatarManager>()->getMyAvatarPosition();
+
+        _lastSoundAudioInjector = AudioInjector::playSound(_lastSoundByteArray, options);
+    }
 }
 
-void SpeechScriptingInterface::stopLastSpeech() {
-    lastSound->stop();
+void TTSScriptingInterface::stopLastSpeech() {
+    if (_lastSoundAudioInjector) {
+        _lastSoundAudioInjector->stop();
+    }
 }

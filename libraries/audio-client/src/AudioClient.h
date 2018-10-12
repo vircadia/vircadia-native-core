@@ -197,6 +197,7 @@ public slots:
     void checkInputTimeout();
     void handleDummyAudioInput();
     void handleRecordedAudioInput(const QByteArray& audio);
+    void handleTTSAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
 
@@ -288,6 +289,8 @@ private:
     bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
+
+    void processAudioAndAddToRingBuffer(QByteArray& inputByteArray, const uchar& channelCount, const qint32& bytesForDuration);
 
 #ifdef Q_OS_ANDROID
     QTimer _checkInputTimer;

@@ -1135,6 +1135,46 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
     }
 }
 
+void AudioClient::processAudioAndAddToRingBuffer(QByteArray& inputByteArray, const uchar& channelCount, const qint32& bytesForDuration) {
+    // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
+    const int inputSamplesRequired =
+        (_inputToNetworkResampler ? _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL)
+                                  : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) *
+        channelCount;
+
+    const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
+
+    handleLocalEchoAndReverb(inputByteArray);
+
+    _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
+
+    float audioInputMsecsRead = inputByteArray.size() / (float)(bytesForDuration);
+    _stats.updateInputMsRead(audioInputMsecsRead);
+
+    const int numNetworkBytes =
+        _isStereoInput ? AudioConstants::NETWORK_FRAME_BYTES_STEREO : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+    const int numNetworkSamples =
+        _isStereoInput ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+
+    static int16_t networkAudioSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+
+    while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
+        if (_muted) {
+            _inputRingBuffer.shiftReadPosition(inputSamplesRequired);
+        } else {
+            _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
+            possibleResampling(_inputToNetworkResampler, inputAudioSamples.get(), networkAudioSamples, inputSamplesRequired,
+                               numNetworkSamples, channelCount, _desiredInputFormat.channelCount());
+        }
+        int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * AudioConstants::SAMPLE_SIZE;
+        float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
+        _stats.updateInputMsUnplayed(msecsInInputRingBuffer);
+
+        QByteArray audioBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
+        handleAudioInput(audioBuffer);
+    }
+}
+
 void AudioClient::handleMicAudioInput() {
     if (!_inputDevice || _isPlayingBackRecording) {
         return;
@@ -1144,47 +1184,8 @@ void AudioClient::handleMicAudioInput() {
     _inputReadsSinceLastCheck++;
 #endif
 
-    // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
-    const int inputSamplesRequired = (_inputToNetworkResampler ?
-                                      _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) :
-                                      AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) * _inputFormat.channelCount();
-
-    const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
-    QByteArray inputByteArray = _inputDevice->readAll();
-
-    handleLocalEchoAndReverb(inputByteArray);
-
-    _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
-
-    float audioInputMsecsRead = inputByteArray.size() / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
-    _stats.updateInputMsRead(audioInputMsecsRead);
-
-    const int numNetworkBytes = _isStereoInput
-        ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
-        : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
-    const int numNetworkSamples = _isStereoInput
-        ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
-        : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
-
-    static int16_t networkAudioSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-
-    while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
-        if (_muted) {
-            _inputRingBuffer.shiftReadPosition(inputSamplesRequired);
-        } else {
-            _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
-            possibleResampling(_inputToNetworkResampler,
-                inputAudioSamples.get(), networkAudioSamples,
-                inputSamplesRequired, numNetworkSamples,
-                _inputFormat.channelCount(), _desiredInputFormat.channelCount());
-        }
-        int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * AudioConstants::SAMPLE_SIZE;
-        float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
-        _stats.updateInputMsUnplayed(msecsInInputRingBuffer);
-
-        QByteArray audioBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
-        handleAudioInput(audioBuffer);
-    }
+    processAudioAndAddToRingBuffer(_inputDevice->readAll(), _inputFormat.channelCount(),
+                                   _inputFormat.bytesForDuration(USECS_PER_MSEC));
 }
 
 void AudioClient::handleDummyAudioInput() {
@@ -1199,6 +1200,11 @@ void AudioClient::handleDummyAudioInput() {
 void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     QByteArray audioBuffer(audio);
     handleAudioInput(audioBuffer);
+}
+
+void AudioClient::handleTTSAudioInput(const QByteArray& audio) {
+    QByteArray audioBuffer(audio);
+    processAudioAndAddToRingBuffer(audioBuffer, 1, 48);
 }
 
 void AudioClient::prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock) {
