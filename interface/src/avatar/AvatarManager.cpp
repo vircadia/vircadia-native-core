@@ -142,14 +142,14 @@ void AvatarManager::setSpace(workload::SpacePointer& space ) {
     _space = space;
 }
 
-void AvatarManager::playTransitAnimations(AvatarTransit::Status status) {
+void AvatarManager::handleTransitAnimations(AvatarTransit::Status status) {
     auto startAnimation = _transitConfig._startTransitAnimation;
     auto middleAnimation = _transitConfig._middleTransitAnimation;
     auto endAnimation = _transitConfig._endTransitAnimation;
 
     const float REFERENCE_FPS = 30.0f;
     switch (status) {
-        case AvatarTransit::Status::START_FRAME:
+        case AvatarTransit::Status::STARTED:
             qDebug() << "START_FRAME";
             _myAvatar->overrideAnimation(startAnimation._animationUrl, REFERENCE_FPS, false, startAnimation._firstFrame,
                                          startAnimation._firstFrame + startAnimation._frameCount);
@@ -164,17 +164,19 @@ void AvatarManager::playTransitAnimations(AvatarTransit::Status status) {
             _myAvatar->overrideAnimation(endAnimation._animationUrl, REFERENCE_FPS, false, endAnimation._firstFrame,
                                          endAnimation._firstFrame + endAnimation._frameCount);
             break;
-        case AvatarTransit::Status::END_FRAME:
+        case AvatarTransit::Status::ENDED:
             qDebug() << "END_FRAME";
             _myAvatar->restoreAnimation();
             break;
-        case AvatarTransit::Status::PRE_TRANSIT_IDLE:
+        case AvatarTransit::Status::PRE_TRANSIT:
             break;
-        case AvatarTransit::Status::POST_TRANSIT_IDLE:
+        case AvatarTransit::Status::POST_TRANSIT:
             break;
         case AvatarTransit::Status::IDLE:
             break;
         case AvatarTransit::Status::TRANSITING:
+            break;
+        case AvatarTransit::Status::ABORT_TRANSIT:
             break;
     }
 }
@@ -184,9 +186,10 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
     AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _transitConfig);
-    if (status != AvatarTransit::Status::IDLE && status != AvatarTransit::Status::PRE_TRANSIT_IDLE && status != AvatarTransit::Status::POST_TRANSIT_IDLE) {
-        playTransitAnimations(status);
-    }
+    handleTransitAnimations(status);
+
+    bool sendFirstTransitPacket = (status == AvatarTransit::Status::STARTED);
+    bool sendCurrentTransitPacket = (status != AvatarTransit::Status::IDLE && (status != AvatarTransit::Status::POST_TRANSIT || status != AvatarTransit::Status::ENDED));
 
     _myAvatar->update(deltaTime);
     render::Transaction transaction;
@@ -196,9 +199,14 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
 
-    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused) {
+    if (sendFirstTransitPacket || (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused)) {
         // send head/hand data to the avatar mixer and voxel server
         PerformanceTimer perfTimer("send");      
+        if (sendFirstTransitPacket) {
+            _myAvatar->overrideNextPacketPositionData(_myAvatar->getTransit()->getEndPosition());
+        } else if (sendCurrentTransitPacket) {
+            _myAvatar->overrideNextPacketPositionData(_myAvatar->getTransit()->getCurrentPosition());
+        }
         _myAvatar->sendAvatarDataPacket();
         _lastSendAvatarDataTime = now;
         _myAvatarSendRate.increment();

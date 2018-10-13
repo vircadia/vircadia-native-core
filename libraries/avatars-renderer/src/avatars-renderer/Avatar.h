@@ -54,13 +54,13 @@ class AvatarTransit {
 public:
     enum Status {
         IDLE = 0,
-        START_FRAME,
-        PRE_TRANSIT_IDLE,
+        STARTED,
+        PRE_TRANSIT,
         START_TRANSIT,
         TRANSITING,
         END_TRANSIT,
-        POST_TRANSIT_IDLE,
-        END_FRAME,
+        POST_TRANSIT,
+        ENDED,
         ABORT_TRANSIT
     };
 
@@ -95,11 +95,9 @@ public:
     AvatarTransit() {};
     Status update(float deltaTime, const glm::vec3& avatarPosition, const TransitConfig& config);
     Status getStatus() { return _status; }
-    bool isTransiting() { return _isTransiting; }
+    bool isActive() { return _isActive; }
     glm::vec3 getCurrentPosition() { return _currentPosition; }
-    bool getNextPosition(glm::vec3& nextPosition);
     glm::vec3 getEndPosition() { return _endPosition; }
-    float getTransitTime() { return _totalTime; }
     void setScale(float scale) { _scale = scale; }
     void reset();
 
@@ -107,7 +105,7 @@ private:
     Status updatePosition(float deltaTime);
     void start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const TransitConfig& config);
     float getEaseValue(AvatarTransit::EaseType type, float value);
-    bool _isTransiting { false };
+    bool _isActive { false };
 
     glm::vec3 _startPosition;
     glm::vec3 _endPosition;
@@ -117,10 +115,10 @@ private:
 
     glm::vec3 _transitLine;
     float _totalDistance { 0.0f };
-    float _preTime { 0.0f };
+    float _preTransitTime { 0.0f };
     float _totalTime { 0.0f };
     float _transitTime { 0.0f };
-    float _postTime { 0.0f };
+    float _postTransitTime { 0.0f };
     float _currentTime { 0.0f };
     EaseType _easeType { EaseType::EASE_OUT };
     Status _status { Status::IDLE };
@@ -452,7 +450,7 @@ public:
     AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
     void setTransitScale(float scale);
 
-    void overrideNextPackagePositionData(const glm::vec3& position);
+    void overrideNextPacketPositionData(const glm::vec3& position);
 
 signals:
     void targetScaleChanged(float targetScale);

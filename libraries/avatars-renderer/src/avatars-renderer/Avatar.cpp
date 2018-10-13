@@ -114,10 +114,12 @@ void Avatar::setShowNamesAboveHeads(bool show) {
 }
 
 AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
-    float oneFrameDistance = _isTransiting ? glm::length(avatarPosition - _endPosition) : glm::length(avatarPosition - _lastPosition);
-    const float MAX_TRANSIT_DISTANCE = 30.0f;
-    float scaledMaxTransitDistance = MAX_TRANSIT_DISTANCE * _scale;
-    if (oneFrameDistance > config._triggerDistance) {
+    bool checkDistance = (!_isActive || (_status == Status::POST_TRANSIT || _status == Status::ENDED));
+    float oneFrameDistance = _isActive ? glm::length(avatarPosition - _endPosition) : glm::length(avatarPosition - _lastPosition);
+    
+    const float TRANSIT_TRIGGER_MAX_DISTANCE = 30.0f;
+    float scaledMaxTransitDistance = TRANSIT_TRIGGER_MAX_DISTANCE * _scale;
+    if (oneFrameDistance > config._triggerDistance && checkDistance) {
         if (oneFrameDistance < scaledMaxTransitDistance) {
             start(deltaTime, _lastPosition, avatarPosition, config);
         } else {
@@ -127,9 +129,12 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
     }
     _lastPosition = avatarPosition;
     _status = updatePosition(deltaTime);
-    if (_isTransiting && oneFrameDistance > 0.1f && _status == Status::POST_TRANSIT_IDLE) {
+
+    const float SETTLE_ABORT_DISTANCE = 0.1f;
+    float scaledSettleAbortDistance = SETTLE_ABORT_DISTANCE * _scale;
+    if (_isActive && oneFrameDistance > scaledSettleAbortDistance && _status == Status::POST_TRANSIT) {
         reset();
-        _status = Status::END_FRAME;
+        _status = Status::ENDED;
     }
     return _status;
 }
@@ -137,7 +142,7 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
 void AvatarTransit::reset() {
     _lastPosition = _endPosition;
     _currentPosition = _endPosition;
-    _isTransiting = false;
+    _isActive = false;
 }
 void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const AvatarTransit::TransitConfig& config) {
     _startPosition = startPosition;
@@ -147,14 +152,14 @@ void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const
     _totalDistance = glm::length(_transitLine);
     _easeType = config._easeType;
     const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
-    _preTime = (float)config._startTransitAnimation._frameCount / REFERENCE_FRAMES_PER_SECOND;
-    _postTime = (float)config._endTransitAnimation._frameCount / REFERENCE_FRAMES_PER_SECOND;
+    _preTransitTime = (float)config._startTransitAnimation._frameCount / REFERENCE_FRAMES_PER_SECOND;
+    _postTransitTime = (float)config._endTransitAnimation._frameCount / REFERENCE_FRAMES_PER_SECOND;
 
     int transitFrames = (!config._isDistanceBased) ? config._totalFrames : config._framesPerMeter * _totalDistance;
     _transitTime = (float)transitFrames / REFERENCE_FRAMES_PER_SECOND;
-    _totalTime = _transitTime + _preTime + _postTime;
-    _currentTime = _isTransiting ? _preTime : 0.0f;
-    _isTransiting = true;
+    _totalTime = _transitTime + _preTransitTime + _postTransitTime;
+    _currentTime = _isActive ? _preTransitTime : 0.0f;
+    _isActive = true;
 }
 
 float AvatarTransit::getEaseValue(AvatarTransit::EaseType type, float value) {
@@ -177,40 +182,35 @@ float AvatarTransit::getEaseValue(AvatarTransit::EaseType type, float value) {
 
 AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
     Status status = Status::IDLE;
-    if (_isTransiting) {
+    if (_isActive) {
         float nextTime = _currentTime + deltaTime;
-        if (nextTime < _preTime) {
+        if (nextTime < _preTransitTime) {
             _currentPosition = _startPosition;
-            status = Status::PRE_TRANSIT_IDLE;
+            status = Status::PRE_TRANSIT;
             if (_currentTime == 0) {
-                status = Status::START_FRAME;
+                status = Status::STARTED;
             } 
-        } else if (nextTime < _totalTime - _postTime){
+        } else if (nextTime < _totalTime - _postTransitTime){
             status = Status::TRANSITING;
-            if (_currentTime <= _preTime) {
+            if (_currentTime <= _preTransitTime) {
                 status = Status::START_TRANSIT;
             } else {
-                float percentageIntoTransit = (nextTime - _preTime) / _transitTime;
+                float percentageIntoTransit = (nextTime - _preTransitTime) / _transitTime;
                 _currentPosition = _startPosition + getEaseValue(_easeType, percentageIntoTransit) * _transitLine;
             }
         } else {
-            status = Status::POST_TRANSIT_IDLE;
+            status = Status::POST_TRANSIT;
             _currentPosition = _endPosition;
             if (nextTime >= _totalTime) {
-                _isTransiting = false;
-                status = Status::END_FRAME;
-            } else if (_currentTime < _totalTime - _postTime) {
+                _isActive = false;
+                status = Status::ENDED;
+            } else if (_currentTime < _totalTime - _postTransitTime) {
                 status = Status::END_TRANSIT;
             }
         }
         _currentTime = nextTime;
     }
     return status;
-}
-
-bool AvatarTransit::getNextPosition(glm::vec3& nextPosition) {
-    nextPosition = _currentPosition;
-    return _isTransiting;
 }
 
 Avatar::Avatar(QThread* thread) :
@@ -554,14 +554,11 @@ void Avatar::relayJointDataToChildren() {
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
     
-    if (_transit.isTransiting()) {
-        glm::vec3 nextPosition;
-        if (_transit.getNextPosition(nextPosition)) {
-            _globalPosition = nextPosition;
-            _globalPositionChanged = usecTimestampNow();
-            if (!hasParent()) {
-                setLocalPosition(nextPosition);
-            }
+    if (_transit.isActive()) {
+        _globalPosition = _transit.getCurrentPosition();
+        _globalPositionChanged = usecTimestampNow();
+        if (!hasParent()) {
+            setLocalPosition(_transit.getCurrentPosition());
         }
     }
     
@@ -575,7 +572,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView) {
             Head* head = getHead();
-            if (_hasNewJointData || _transit.isTransiting()) {
+            if (_hasNewJointData || _transit.isActive()) {
                 _skeletonModel->getRig().copyJointsFromJointData(_jointData);
                 glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
                 _skeletonModel->getRig().computeExternalPoses(rootTransform);
@@ -2006,7 +2003,7 @@ void Avatar::setTransitScale(float scale) {
     return _transit.setScale(scale);
 }
 
-void Avatar::overrideNextPackagePositionData(const glm::vec3& position) {
+void Avatar::overrideNextPacketPositionData(const glm::vec3& position) {
     std::lock_guard<std::mutex> lock(_transitLock);
     _overrideGlobalPosition = true;
     _globalPositionOverride = position;
