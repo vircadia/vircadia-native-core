@@ -201,9 +201,7 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         }
         elFilterSearch.onkeyup = refreshEntityList;
-        elFilterSearch.onpaste = refreshEntityList;
-        elFilterSearch.onchange = onFilterChange;
-        elFilterSearch.onblur = refreshFooter;
+        elFilterSearch.onsearch = refreshEntityList;
         elFilterInView.onclick = toggleFilterInView;
         elFilterRadius.onchange = onRadiusChange;
         elInfoToggle.onclick = toggleInfo;
@@ -648,11 +646,6 @@ function loaded() {
             }
             EventBridge.emitWebEvent(JSON.stringify({ type: "filterInView", filterInView: isFilterInView }));
             refreshEntities();
-        }
-        
-        function onFilterChange() {
-            refreshEntityList();
-            entityList.resize();
         }
         
         function onRadiusChange() {
