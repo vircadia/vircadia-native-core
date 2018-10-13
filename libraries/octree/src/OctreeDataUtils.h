@@ -46,6 +46,7 @@ public:
 };
 
 class RawEntityData : public RawOctreeData {
+public:
     PacketType dataPacketType() const override;
     void readSubclassData(const QJsonObject& root) override;
     void writeSubclassData(QJsonObject& root) const override;

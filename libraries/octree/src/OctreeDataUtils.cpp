@@ -18,30 +18,32 @@
 #include <QJsonDocument>
 #include <QFile>
 
-// Reads octree file and parses it into a QJsonDocument. Handles both gzipped and non-gzipped files.
-// Returns true if the file was successfully opened and parsed, otherwise false.
-// Example failures: file does not exist, gzipped file cannot be unzipped, invalid JSON.
-bool readOctreeFile(QString path, QJsonDocument* doc) {
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        qCritical() << "Cannot open json file for reading: " << path;
-        return false;
-    }
+namespace {
+    // Reads octree file and parses it into a QJsonDocument. Handles both gzipped and non-gzipped files.
+    // Returns true if the file was successfully opened and parsed, otherwise false.
+    // Example failures: file does not exist, gzipped file cannot be unzipped, invalid JSON.
+    bool readOctreeFile(QString path, QJsonDocument* doc) {
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly)) {
+            qCritical() << "Cannot open json file for reading: " << path;
+            return false;
+        }
 
-    QByteArray data = file.readAll();
-    QByteArray jsonData;
+        QByteArray data = file.readAll();
+        QByteArray jsonData;
 
-    if (!gunzip(data, jsonData)) {
-        jsonData = data;
-    }
+        if (!gunzip(data, jsonData)) {
+            jsonData = data;
+        }
 
-    QJsonParseError parserError;
-    *doc = QJsonDocument::fromJson(jsonData, &parserError);
-    if (parserError.error != QJsonParseError::NoError) {
-        qWarning() << "Error reading JSON file" << path << "-" << parserError.errorString();
+        QJsonParseError parserError;
+        *doc = QJsonDocument::fromJson(jsonData, &parserError);
+        if (parserError.error != QJsonParseError::NoError) {
+            qWarning() << "Error reading JSON file" << path << "-" << parserError.errorString();
+        }
+        return !doc->isNull();
     }
-    return !doc->isNull();
-}
+}  // Anon namespace.
 
 bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromJSON(QJsonObject root) {
     if (root.contains("Id") && root.contains("DataVersion") && root.contains("Version")) {
