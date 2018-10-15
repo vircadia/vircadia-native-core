@@ -1095,7 +1095,8 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
 
 void AudioClient::processAudioAndAddToRingBuffer(QByteArray& inputByteArray,
                                                  const uchar& channelCount,
-                                                 const qint32& bytesForDuration) {
+                                                 const qint32& bytesForDuration,
+                                                 QByteArray& rollingBuffer) {
     // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
     const int inputSamplesRequired =
         (_inputToNetworkResampler ? _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL)
@@ -1131,6 +1132,7 @@ void AudioClient::processAudioAndAddToRingBuffer(QByteArray& inputByteArray,
         _stats.updateInputMsUnplayed(msecsInInputRingBuffer);
 
         QByteArray audioBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
+        rollingBuffer.append(audioBuffer);
         handleAudioInput(audioBuffer);
     }
 }
@@ -1144,8 +1146,10 @@ void AudioClient::handleMicAudioInput() {
     _inputReadsSinceLastCheck++;
 #endif
 
+    QByteArray temp;
+
     processAudioAndAddToRingBuffer(_inputDevice->readAll(), _inputFormat.channelCount(),
-                                   _inputFormat.bytesForDuration(USECS_PER_MSEC));
+                                   _inputFormat.bytesForDuration(USECS_PER_MSEC), temp);
 }
 
 void AudioClient::handleDummyAudioInput() {
@@ -1161,9 +1165,7 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     handleAudioInput(audioBuffer);
 }
 
- int rawToWav(const char* rawData, const int& rawLength, const char* wavfn, long frequency) {
-    long chunksize = 0x10;
-
+int rawToWav(const char* rawData, const int& rawLength, const char* wavfn, long frequency, unsigned short channels) {
     struct {
         unsigned short wFormatTag;
         unsigned short wChannels;
@@ -1174,47 +1176,59 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     } fmt;
 
     long samplecount = rawLength / 2;
-    long riffsize = samplecount * 2 + 0x24;
-    long datasize = samplecount * 2;
 
     FILE* wav = fopen(wavfn, "wb");
     if (!wav) {
-        return -3;
+        return -1;
     }
 
     fwrite("RIFF", 1, 4, wav);
+
+    long riffsize = samplecount * 2 + 0x24;
     fwrite(&riffsize, 4, 1, wav);
+
     fwrite("WAVEfmt ", 1, 8, wav);
+
+    long chunksize = 0x10;
     fwrite(&chunksize, 4, 1, wav);
 
-    fmt.wFormatTag = 1;  // PCM
-    fmt.wChannels = 1;   // MONO
+    fmt.wFormatTag = 1; // WAVE_FORMAT_PCM
+    fmt.wChannels = channels;
     fmt.dwSamplesPerSec = frequency * 1;
-    fmt.dwAvgBytesPerSec = frequency * 1 * 2;  // 16 bit
-    fmt.wBlockAlign = 2;
     fmt.wBitsPerSample = 16;
-
+    fmt.wBlockAlign = fmt.wChannels * fmt.wBitsPerSample / 8;
+    fmt.dwAvgBytesPerSec = fmt.dwSamplesPerSec * fmt.wBlockAlign;
     fwrite(&fmt, sizeof(fmt), 1, wav);
+
     fwrite("data", 1, 4, wav);
+    long datasize = samplecount * 2;
     fwrite(&datasize, 4, 1, wav);
     fwrite(rawData, 1, rawLength, wav);
+
     fclose(wav);
+
+    return 0;
 }
 
 void AudioClient::handleTTSAudioInput(const QByteArray& audio) {
     QByteArray audioBuffer(audio);
-    QVector<int16_t> audioBufferReal;
 
     QString filename = QString::number(usecTimestampNow());
-    QString path = PathUtils::getAppDataPath() + "Audio/" + filename + ".wav";
-    rawToWav(audioBuffer.data(), audioBuffer.size(), path.toLocal8Bit(), 24000);
+    QString path = PathUtils::getAppDataPath() + "Audio/" + filename + "-before.wav";
+    rawToWav(audioBuffer.data(), audioBuffer.size(), path.toLocal8Bit(), 24000, 1);
+
+    QByteArray temp;
 
     while (audioBuffer.size() > 0) {
         QByteArray part;
         part.append(audioBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
         audioBuffer.remove(0, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-        processAudioAndAddToRingBuffer(part, 1, 48);
+        processAudioAndAddToRingBuffer(part, 1, 48, temp);
     }
+
+    filename = QString::number(usecTimestampNow());
+    path = PathUtils::getAppDataPath() + "Audio/" + filename + "-after.wav";
+    rawToWav(temp.data(), temp.size(), path.toLocal8Bit(), 12000, 1);
 }
 
 void AudioClient::prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock) {

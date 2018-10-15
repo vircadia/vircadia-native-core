@@ -290,7 +290,10 @@ private:
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
 
-    void processAudioAndAddToRingBuffer(QByteArray& inputByteArray, const uchar& channelCount, const qint32& bytesForDuration);
+    void processAudioAndAddToRingBuffer(QByteArray& inputByteArray,
+                                        const uchar& channelCount,
+                                        const qint32& bytesForDuration,
+                                        QByteArray& rollingBuffer);
 
 #ifdef Q_OS_ANDROID
     QTimer _checkInputTimer;
