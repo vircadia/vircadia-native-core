@@ -335,7 +335,7 @@ signals:
 
     void uploadRequest(QString path);
 
-    void loginDialogPoppedUp();
+    void loginScreenStateChanged(bool isInLoginScreenState);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
@@ -345,6 +345,7 @@ public slots:
     void updateThreadPoolCount() const;
     void updateSystemTabletMode();
     void goToErrorDomainURL(QUrl errorDomainURL);
+    void goToLoginScreenDomainURL(QUrl loginScreenDomainURL);
 
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
@@ -356,6 +357,8 @@ public slots:
     Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
+
+    void showLoginScreen();
 
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
@@ -433,7 +436,11 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
     void setIsServerlessMode(bool serverlessDomain);
-    void loadServerlessDomain(QUrl domainURL, bool errorDomain = false);
+    std::map<QString, QString> prepareServerlessDomainContents(QUrl domainURL);
+
+    void loadServerlessDomain(QUrl domainURL);
+    void loadErrorDomain(QUrl domainURL);
+    void loadLoginScreenDomain(QUrl domainURL);
     void setIsInterstitialMode(bool interstitialMode);
 
     void updateVerboseLogging();

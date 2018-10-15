@@ -32,6 +32,7 @@
 
 const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
+const QString LOGIN_SCREEN_HIFI_ADDRESS = "file:///~/serverless/login.json";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
@@ -162,11 +163,15 @@ void AddressManager::storeCurrentAddress() {
         // url.scheme() == URL_SCHEME_HTTP ||
         // url.scheme() == URL_SCHEME_HTTPS ||
         bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
+        bool isInLoginScreenState = DependencyManager::get<NodeList>()->getDomainHandler().isInLoginScreenState();
+        if (isInLoginScreenState) {
+            qCWarning(networking) << "Ignoring attempt to save current address because in login screen domain:" << url;
+        }
         if (isConnected()) {
             if (isInErrorState) {
                 // save the last address visited before the problem url.
                 currentAddressHandle.set(lastAddress());
-            } else {
+            }  else {
                 currentAddressHandle.set(url);
             }
         } else {
@@ -824,8 +829,10 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     bool emitHostChanged { false };
     // Check if domain handler is in error state. always emit host changed if true.
     bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
+    // Check if domain handler is in login screen state. always emit host changed if true.
+    bool isInLoginScreenState = DependencyManager::get<NodeList>()->getDomainHandler().isInLoginScreenState();
 
-    if (domainURL != _domainURL || isInErrorState) {
+    if (domainURL != _domainURL || isInErrorState || isInLoginScreenState) {
         addCurrentAddressToHistory(trigger);
         emitHostChanged = true;
     }

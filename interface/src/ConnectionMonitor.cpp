@@ -33,6 +33,7 @@ void ConnectionMonitor::init() {
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &ConnectionMonitor::stopTimer);
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ConnectionMonitor::stopTimer);
     connect(&domainHandler, &DomainHandler::redirectToErrorDomainURL, this, &ConnectionMonitor::stopTimer);
+    connect(&domainHandler, &DomainHandler::redirectToLoginScreenDomainURL, this, &ConnectionMonitor::stopTimer);
     connect(this, &ConnectionMonitor::setRedirectErrorState, &domainHandler, &DomainHandler::setRedirectErrorState);
 
     _timer.setSingleShot(true);

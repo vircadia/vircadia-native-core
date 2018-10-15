@@ -1198,6 +1198,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainURLChanged(QUrl)));
     connect(&domainHandler, SIGNAL(redirectToErrorDomainURL(QUrl)), SLOT(goToErrorDomainURL(QUrl)));
+    connect(this, SIGNAL(loginScreenStateChanged(bool)), &domainHandler, SLOT((loginScreenStateChanged(bool))));
     connect(&domainHandler, &DomainHandler::domainURLChanged, [](QUrl domainURL){
         setCrashAnnotation("domain", domainURL.toString().toStdString());
     });
@@ -1212,6 +1213,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
 
     nodeList->getDomainHandler().setErrorDomainURL(QUrl(REDIRECT_HIFI_ADDRESS));
+    nodeList->getDomainHandler().setLoginScreenDomainURL(QUrl(LOGIN_SCREEN_HIFI_ADDRESS));
 
     // We could clear ATP assets only when changing domains, but it's possible that the domain you are connected
     // to has gone down and switched to a new content set, so when you reconnect the cached ATP assets will no longer be valid.
@@ -2277,6 +2279,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
     connect(&domainHandler, &DomainHandler::domainURLChanged, this, &Application::addAssetToWorldMessageClose);
     connect(&domainHandler, &DomainHandler::redirectToErrorDomainURL, this, &Application::addAssetToWorldMessageClose);
+    connect(&domainHandler, &DomainHandler::redirectToLoginScreenDomainURL, this, &Application::addAssetToWorldMessageClose);
 
     updateSystemTabletMode();
 
@@ -2878,22 +2881,31 @@ void Application::initializeRenderEngine() {
 extern void setupPreferences();
 static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active = false);
 
+void Application::showLoginScreen() {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (!accountManager->isLoggedIn()) {
+        Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
+//         dialogsManager->showLoginScreenDialog();
+        QJsonObject loginData = {};
+        loginData["action"] = "login dialog shown";
+        UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
+        if (qApp->isHMDMode()) {
+            // create web overlay.
+            auto nodeList = DependencyManager::get<NodeList>();
+            auto loginScreenDomainURL = nodeList->getDomainHandler().getLoginScreenDomainURL();
+            goToLoginScreenDomainURL(loginScreenDomainURL);
+        }
+    }
+    Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
+}
+
 void Application::initializeQml() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "initializeQml");
         return;
     }
 #if !defined(Q_OS_ANDROID)
-    auto accountManager = DependencyManager::get<AccountManager>();
-    auto dialogsManager = DependencyManager::get<DialogsManager>();
-    if (!accountManager->isLoggedIn()) {
-        Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
-        dialogsManager->showLoginDialog();
-        QJsonObject loginData = {};
-        loginData["action"] = "login dialog shown";
-        UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-    }
-    Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
+    showLoginScreen();
 #endif
 }
 
@@ -3551,13 +3563,9 @@ void Application::setIsServerlessMode(bool serverlessDomain) {
     }
 }
 
-void Application::loadServerlessDomain(QUrl domainURL, bool errorDomain) {
+std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl domainURL) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadServerlessDomain", Q_ARG(QUrl, domainURL), Q_ARG(bool, errorDomain));
-        return;
-    }
-
-    if (domainURL.isEmpty()) {
+        QMetaObject::invokeMethod(this, "prepareServerlessDomainContents", Q_ARG(QUrl, domainURL));
         return;
     }
 
@@ -3584,12 +3592,60 @@ void Application::loadServerlessDomain(QUrl domainURL, bool errorDomain) {
         tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
     }
 
-    std::map<QString, QString> namedPaths = tmpTree->getNamedPaths();
-    if (errorDomain) {
-        nodeList->getDomainHandler().loadedErrorDomain(namedPaths);
-    } else {
-        nodeList->getDomainHandler().connectedToServerless(namedPaths);
+    return tmpTree->getNamedPaths();
+
+}
+
+void Application::loadServerlessDomain(QUrl domainURL) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadServerlessDomain", Q_ARG(QUrl, domainURL));
+        return;
     }
+
+    if (domainURL.isEmpty()) {
+        return;
+    }
+
+    auto namedPaths = prepareServerlessDomainContents(domainURL);
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    nodeList->getDomainHandler().connectedToServerless(namedPaths);
+
+    _fullSceneReceivedCounter++;
+}
+
+void Application::loadErrorDomain(QUrl domainURL) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadErrorDomain", Q_ARG(QUrl, domainURL));
+        return;
+    }
+
+    if (domainURL.isEmpty()) {
+        return;
+    }
+
+    auto namedPaths = prepareServerlessDomainContents(domainURL);
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    nodeList->getDomainHandler().loadedErrorDomain(namedPaths);
+
+    _fullSceneReceivedCounter++;
+}
+
+void Application::loadLoginScreenDomain(QUrl domainURL) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadLoginScreenDomain", Q_ARG(QUrl, domainURL));
+        return;
+    }
+
+    if (domainURL.isEmpty()) {
+        return;
+    }
+
+    auto namedPaths = prepareServerlessDomainContents(domainURL);
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    nodeList->getDomainHandler().loadedLoginScreenDomain(namedPaths);
 
     _fullSceneReceivedCounter++;
 }
@@ -6410,6 +6466,7 @@ void Application::updateWindowTitle() const {
     auto nodeList = DependencyManager::get<NodeList>();
     auto accountManager = DependencyManager::get<AccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
+    auto isInLoginScreenState = nodeList->getDomainHandler().isInLoginScreenState();
 
     QString buildVersion = " - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
@@ -6419,6 +6476,8 @@ void Application::updateWindowTitle() const {
 
     QString connectionStatus = isInErrorState ? " (ERROR CONNECTING)" :
         nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
+    // check for login state - login state needs empty connection status
+    connectionStatus = isInLoginScreenState ? "" : connectionStatus;
     QString username = accountManager->getAccountInfo().getUsername();
 
     setCrashAnnotation("username", username.toStdString());
@@ -6427,6 +6486,8 @@ void Application::updateWindowTitle() const {
     if (isServerlessMode()) {
         if (isInErrorState) {
             currentPlaceName = "serverless: " + nodeList->getDomainHandler().getErrorDomainURL().toString();
+        } else if (isInLoginScreenState) {
+            currentPlaceName = "High Fidelity Interface";
         } else {
             currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
         }
@@ -6497,11 +6558,27 @@ void Application::goToErrorDomainURL(QUrl errorDomainURL) {
     resetPhysicsReadyInformation();
     setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
-        loadServerlessDomain(errorDomainURL, true);
+        loadErrorDomain(errorDomainURL);
     }
     updateWindowTitle();
 }
 
+void Application::goToLoginScreenDomainURL(QUrl loginScreenDomainURL) {
+    // disable physics until we have enough information about our new location to not cause craziness.
+    resetPhysicsReadyInformation();
+    setIsServerlessMode(loginScreenDomainURL.scheme() != URL_SCHEME_HIFI);
+
+    // show avatar as a mesh and show hand controllers.
+    qApp->getMyAvatar()->setEnableMeshVisible(false);
+    DependencyManager::get<HMDScriptingInterface>()->requestShowHandControllers();
+    // set into login screen state.
+    emit loginScreenStateChanged(true);
+
+    if (isServerlessMode()) {
+        loadLoginScreenDomain(loginScreenDomainURL);
+    }
+    updateWindowTitle();
+}
 
 void Application::resettingDomain() {
     _notifiedPacketVersionMismatchThisDomain = false;

@@ -62,6 +62,9 @@ DomainHandler::DomainHandler(QObject* parent) :
 
     // stop the refresh timer if redirected to the error domain
     connect(this, &DomainHandler::redirectToErrorDomainURL, &_apiRefreshTimer, &QTimer::stop);
+
+    // stop the refresh timer if redirected to the login screen domain
+    connect(this, &DomainHandler::redirectToLoginScreenDomainURL, &_apiRefreshTimer, &QTimer::stop);
 }
 
 void DomainHandler::disconnect() {
@@ -113,7 +116,7 @@ void DomainHandler::softReset() {
     QMetaObject::invokeMethod(&_settingsTimer, "stop");
 
     // restart the API refresh timer in case we fail to connect and need to refresh information
-    if (!_isInErrorState) {
+    if (!_isInErrorState || !_isInLoginScreenState) {
         QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
     }
 }
@@ -124,6 +127,9 @@ void DomainHandler::hardReset() {
     softReset();
     _isInErrorState = false;
     emit redirectErrorStateChanged(_isInErrorState);
+
+    _isInLoginScreenState = false;
+    emit loginScreenStateChanged(_isInLoginScreenState);
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
     _pendingDomainID = QUuid();
@@ -363,6 +369,17 @@ void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
     DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, QString());
 }
 
+void DomainHandler::loadedLoginScreenDomain(std::map<QString, QString> namedPaths) {
+    auto lookup = namedPaths.find("/");
+    QString viewpoint;
+    if (lookup != namedPaths.end()) {
+        viewpoint = lookup->second;
+    } else {
+        viewpoint = DOMAIN_SPAWNING_POINT;
+    }
+    DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, QString());
+}
+
 void DomainHandler::setRedirectErrorState(QUrl errorUrl, QString reasonMessage, int reasonCode, const QString& extraInfo) {
     _lastDomainConnectionError = reasonCode;
     if (getInterstitialModeEnabled() && isHardRefusal(reasonCode)) {
@@ -374,6 +391,12 @@ void DomainHandler::setRedirectErrorState(QUrl errorUrl, QString reasonMessage, 
     } else {
         emit domainConnectionRefused(reasonMessage, reasonCode, extraInfo);
     }
+}
+
+void DomainHandler::redirectToLoginScreenDomainURL() {
+    _isInLoginScreenState = true;
+    qCDebug(networking) << "Redirecting user to " << _loginScreenDomainURL;
+
 }
 
 void DomainHandler::requestDomainSettings() {

@@ -24,6 +24,7 @@
 
 extern const QString DEFAULT_HIFI_ADDRESS;
 extern const QString REDIRECT_HIFI_ADDRESS;
+extern const QString LOGIN_SCREEN_HIFI_ADDRESS;
 
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
 const QString INDEX_PATH = "/";

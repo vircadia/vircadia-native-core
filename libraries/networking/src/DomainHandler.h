@@ -58,6 +58,9 @@ public:
 
     int getLastDomainConnectionError() { return _lastDomainConnectionError; }
 
+    QUrl getLoginScreenDomainURL(){ return _loginScreenDomainURL; }
+    void setLoginScreenDomainURL(const QUrl& url);
+
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
 
@@ -92,6 +95,8 @@ public:
     void connectedToServerless(std::map<QString, QString> namedPaths);
 
     void loadedErrorDomain(std::map<QString, QString> namedPaths);
+
+    void loadedLoginScreenDomain(std::map<QString, QString> namedPaths);
 
     QString getViewPointFromNamedPath(QString namedPath);
 
@@ -179,6 +184,7 @@ public slots:
     void setRedirectErrorState(QUrl errorUrl, QString reasonMessage = "", int reason = -1, const QString& extraInfo = "");
 
     bool isInErrorState() { return _isInErrorState; }
+    bool isInLoginScreenState() { return _isInLoginScreenState; }
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
@@ -205,6 +211,9 @@ signals:
     void redirectToErrorDomainURL(QUrl errorDomainURL);
     void redirectErrorStateChanged(bool isInErrorState);
 
+    void redirectToLoginScreenDomainURL();
+    void loginScreenStateChanged(bool isInLoginScreenState);
+
     void limitOfSilentDomainCheckInsReached();
 
 private:
@@ -218,6 +227,7 @@ private:
     Node::LocalID _localID;
     QUrl _domainURL;
     QUrl _errorDomainURL;
+    QUrl _loginScreenDomainURL;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
     QUuid _connectionToken;
@@ -227,6 +237,7 @@ private:
     NetworkPeer _icePeer;
     bool _isConnected { false };
     bool _isInErrorState { false };
+    bool _isInLoginScreenState { false };
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;

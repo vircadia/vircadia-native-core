@@ -917,6 +917,7 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
             Menu.setIsOptionChecked("Disable Preview", true);
             setTabletVisibleInSecondaryCamera(false);
         }
+<<<<<<< Updated upstream
         break;
     case 'maybeEnableHmdPreview':
         maybeEnableHMDPreview();
@@ -962,6 +963,47 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
                 Script.update.connect(updateOverlays);
                 isUpdateOverlaysWired = true;
             }
+=======
+    }
+
+<<<<<<< Updated upstream
+    // Function Name: onTabletScreenChanged()
+    //
+    // Description:
+    //   -Called when the TabletScriptingInterface::screenChanged() signal is emitted. The "type" argument can be either the string
+    //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
+    var onWalletScreen = false;
+    var onCommerceScreen = false;
+    function onTabletScreenChanged(type, url) {
+        onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
+        var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
+        var onCommerceScreenNow = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
+            || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
+
+        if ((!onWalletScreenNow && onWalletScreen) || (!onCommerceScreenNow && onCommerceScreen)) { // exiting wallet or commerce screen
+            maybeEnableHMDPreview();
+        }
+=======
+    // console.debug(ui.buttonName + " app reports: Tablet screen changed.\nNew screen type: " + type +
+    //     "\nNew screen URL: " + url + "\nCurrent app open status: " + ui.isOpen + "\n");
+};
+
+function notificationDataProcessPage(data) {
+    return data.data.updates;
+}
+>>>>>>> Stashed changes
+
+        onCommerceScreen = onCommerceScreenNow;
+        onWalletScreen = onWalletScreenNow;
+        wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
+
+        if (url === MARKETPLACE_PURCHASES_QML_PATH) {
+            sendToQml({
+                method: 'updatePurchases',
+                referrerURL: referrerURL,
+                filterText: filterText
+            });
+>>>>>>> Stashed changes
         }
         break;
     case 'disable_ChooseRecipientNearbyMode':

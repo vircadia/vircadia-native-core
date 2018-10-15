@@ -25,6 +25,7 @@
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
+#include "LoginScreenDialog.h"
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
 #include "UpdateDialog.h"
@@ -115,6 +116,10 @@ void DialogsManager::toggleLoginDialog() {
 
 void DialogsManager::showLoginDialog() {
     LoginDialog::showWithSelection();
+}
+
+void DialogsManager::showLoginScreenDialog() {
+    LoginScreenDialog::showWithSelection();
 }
 
 void DialogsManager::showUpdateDialog() {
