@@ -18,7 +18,7 @@
         <script type="text/javascript" src="js/listView.js"></script>
         <script type="text/javascript" src="js/entityList.js"></script>
     </head>
-    <body onload='loaded();'>
+    <body onload='loaded();' id="entity-list-body">
         <div id="entity-list-header">
             <input type="button" class="glyph" id="refresh" value="F" />
             <div>
@@ -86,11 +86,6 @@
                             <td class="id" style="display: none"></td>
                         </tr>
                     </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="12"></td>
-                        </tr>
-                    </tfoot>
                 </table>
 
                 <div id="no-entities">
