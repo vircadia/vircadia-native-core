@@ -471,7 +471,9 @@ void MyAvatar::update(float deltaTime) {
     const float STANDING_HEIGHT_MULTIPLE = 1.2f;
     const float SITTING_HEIGHT_MULTIPLE = 0.833f;
     const float COSINE_THIRTY_DEGREES = 0.866f;
-    const int SITTING_COUNT_THRESHOLD = 300;
+    const float COSINE_TEN_DEGREES = 0.9848f;
+    const int SITTING_COUNT_THRESHOLD = 100;
+    const int STANDING_COUNT_THRESHOLD = 10;
     const int SQUATTY_COUNT_THRESHOLD = 600;
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
@@ -530,59 +532,70 @@ void MyAvatar::update(float deltaTime) {
     glm::vec3 worldHips = transformPoint(getTransform().getMatrix(), avatarHips);
     glm::vec3 sensorHips = transformPoint(glm::inverse(getSensorToWorldMatrix()), worldHips);
 
+    glm::vec3 headUp = newHeightReading.getRotation() * glm::vec3(0.0f, 1.0f, 0.0f);
+    if (glm::length(headUp) > 0.0f) {
+        headUp = glm::normalize(headUp);
+    }
+    float angleHeadUp = glm::dot(headUp, glm::vec3(0.0f, 1.0f, 0.0f));
+
     const int VELOCITY_COUNT_THRESHOLD = 60;
     // put update sit stand state counts here
-    if (!getIsSitStandStateLocked() && (_follow._velocityCount > VELOCITY_COUNT_THRESHOLD)) {
+    if (!getIsSitStandStateLocked()) {
         if (!getIsAway()) {
-            if (getIsInSittingState()) {
-                if (newHeightReading.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
-                    // if we recenter upwards then no longer in sitting state
-                    _sitStandStateCount++;
-                    if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
-                        _sitStandStateCount = 0;
-                        _squatCount = 0;
-                        if (newHeightReading.isValid()) {
-                            _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
-                            _tippingPoint = newHeightReading.getTranslation().y;
+            if ((_follow._velocityCount > VELOCITY_COUNT_THRESHOLD) || (qApp->isHMDMode() && (qApp->getActiveDisplayPlugin()->getName() == "Oculus Rift"))) {
+                if (getIsInSittingState()) {
+                    if (newHeightReading.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
+                        // if we recenter upwards then no longer in sitting state
+                        _sitStandStateCount++;
+                        if (_sitStandStateCount > STANDING_COUNT_THRESHOLD) {
+                            _sitStandStateCount = 0;
+                            _squatCount = 0;
+                            if (newHeightReading.isValid()) {
+                                _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
+                                _tippingPoint = newHeightReading.getTranslation().y;
+                            }
+                            _averageUserHeightCount = 1;
+                            setIsInSittingState(false);
                         }
-                        _averageUserHeightCount = 1;
-                        setIsInSittingState(false);
-                    }
-                } else if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
-                    _sitStandStateCount++;
-                    if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
-                        _sitStandStateCount = 0;
-                        _squatCount = 0;
-                        if (newHeightReading.isValid()) {
-                            _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
-                            _tippingPoint = newHeightReading.getTranslation().y;
+                    } else if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) && (angleHeadUp > COSINE_THIRTY_DEGREES)) {
+                        // if we are mis labelled as sitting but we are standing in the real world this will 
+                        // make sure that a real sit is still recognized so we won't be stuck in sitting unable to change state
+                        _sitStandStateCount++;
+                        if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+                            _sitStandStateCount = 0;
+                            _squatCount = 0;
+                            if (newHeightReading.isValid()) {
+                                _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
+                                _tippingPoint = newHeightReading.getTranslation().y;
+                            }
+                            _averageUserHeightCount = 1;
+                            // here we stay in sit state but reset the average height 
+                            setIsInSittingState(true);
                         }
-                        _averageUserHeightCount = 1;
-                        setIsInSittingState(true);
-                    }
-                } else {
-                    _sitStandStateCount = 0;
-                    // tipping point is average height when sitting.
-                    _tippingPoint = averageSensorSpaceHeight;
-                }
-            } else {
-                // in the standing state
-                if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
-                    _sitStandStateCount++;
-                    if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+                    } else {
                         _sitStandStateCount = 0;
-                        _squatCount = 0;
-                        if (newHeightReading.isValid()) {
-                            _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
-                            _tippingPoint = newHeightReading.getTranslation().y;
-                        }
-                        _averageUserHeightCount = 1;
-                        setIsInSittingState(true);
+                        // tipping point is average height when sitting.
+                        _tippingPoint = averageSensorSpaceHeight;
                     }
                 } else {
-                    // use the mode height for the tipping point when we are standing.
-                    _tippingPoint = getCurrentStandingHeight();
-                    _sitStandStateCount = 0;
+                    // in the standing state
+                    if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) && (angleHeadUp > COSINE_THIRTY_DEGREES)) {
+                        _sitStandStateCount++;
+                        if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+                            _sitStandStateCount = 0;
+                            _squatCount = 0;
+                            if (newHeightReading.isValid()) {
+                                _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
+                                _tippingPoint = newHeightReading.getTranslation().y;
+                            }
+                            _averageUserHeightCount = 1;
+                            setIsInSittingState(true);
+                        }
+                    } else {
+                        // use the mode height for the tipping point when we are standing.
+                        _tippingPoint = getCurrentStandingHeight();
+                        _sitStandStateCount = 0;
+                    }
                 }
             }
         } else {
@@ -4240,6 +4253,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         } else {
             if ((glm::length(myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD).getVelocity()) > MINIMUM_HMD_VELOCITY)) {
                 _velocityCount++;
+                qCDebug(interfaceapp) << "velocity count is " << _velocityCount << " is away " << myAvatar.getIsAway() <<  " hmd mode "<< qApp->isHMDMode() << "  " << qApp->getActiveDisplayPlugin()->getName();
             }
         }
     } else {
