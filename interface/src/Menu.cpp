@@ -570,6 +570,8 @@ Menu::Menu() {
         avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowTrackedObjects, 0, false, qApp, SLOT(setShowTrackedObjects(bool)));
+
     // Developer > Hands >>>
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false,

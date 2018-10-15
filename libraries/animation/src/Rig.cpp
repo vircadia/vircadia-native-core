@@ -1666,7 +1666,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
         // This should help smooth out problems with the vive tracker when the sensor is occluded.
         if (prevHipsEnabled && hipsEstimated != prevHipsEstimated) {
             // blend from a snapshot of the previous hips.
-            const float HIPS_BLEND_DURATION = 0.3f;
+            const float HIPS_BLEND_DURATION = 0.5f;
             _hipsBlendHelper.setBlendDuration(HIPS_BLEND_DURATION);
             _hipsBlendHelper.setSnapshot(_previousControllerParameters.primaryControllerPoses[PrimaryControllerType_Hips]);
         } else if (!prevHipsEnabled) {

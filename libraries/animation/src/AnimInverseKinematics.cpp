@@ -24,7 +24,7 @@
 #include "AnimUtil.h"
 
 static const int MAX_TARGET_MARKERS = 30;
-static const float JOINT_CHAIN_INTERP_TIME = 0.25f;
+static const float JOINT_CHAIN_INTERP_TIME = 0.5f;
 
 static void lookupJointInfo(const AnimInverseKinematics::JointChainInfo& jointChainInfo,
                             int indexA, int indexB,
