@@ -20,7 +20,7 @@ const IMAGE_MODEL_NAME = 'default-image-model.fbx';
 const COLLAPSE_EXTRA_INFO = "E";
 const EXPAND_EXTRA_INFO = "D";
 const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
-const WINDOW_NONVARIABLE_HEIGHT = 257;
+const WINDOW_NONVARIABLE_HEIGHT = 227;
 const NUM_COLUMNS = 12;
 const EMPTY_ENTITY_ID = "0";
 const DELETE = 46; // Key code for the delete key.
@@ -640,7 +640,7 @@ function loaded() {
                 data = JSON.parse(data);
                 if (data.type === "clearEntityList") {
                     clearEntities();
-                } else if (data.type == "selectionUpdate") {
+                } else if (data.type === "selectionUpdate") {
                     let notFound = updateSelectedEntities(data.selectedIDs);
                     if (notFound) {
                         refreshEntities();
