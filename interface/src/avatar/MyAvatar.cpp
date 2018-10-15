@@ -546,6 +546,18 @@ void MyAvatar::update(float deltaTime) {
                     _averageUserHeightCount = 1;
                     setIsInSittingState(false);
                 }
+            } else if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
+                _sitStandStateCount++;
+                if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+                    _sitStandStateCount = 0;
+                    _squatCount = 0;
+                    if (newHeightReading.isValid()) {
+                        _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
+                        _tippingPoint = newHeightReading.getTranslation().y;
+                    }
+                    _averageUserHeightCount = 1;
+                    setIsInSittingState(true);
+                }
             } else {
                 _sitStandStateCount = 0;
                 // tipping point is average height when sitting.

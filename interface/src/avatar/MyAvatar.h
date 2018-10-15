@@ -1846,7 +1846,7 @@ private:
     ThreadSafeValueCache<bool> _isInSittingState { false };
     int _sitStandStateCount { 0 };
     int _squatCount { 0 };
-    float _tippingPoint { DEFAULT_FLOOR_HEIGHT };
+    float _tippingPoint { DEFAULT_AVATAR_HEIGHT };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
