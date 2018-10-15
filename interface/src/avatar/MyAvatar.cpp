@@ -530,58 +530,70 @@ void MyAvatar::update(float deltaTime) {
     glm::vec3 worldHips = transformPoint(getTransform().getMatrix(), avatarHips);
     glm::vec3 sensorHips = transformPoint(glm::inverse(getSensorToWorldMatrix()), worldHips);
 
+    const int VELOCITY_COUNT_THRESHOLD = 60;
     // put update sit stand state counts here
-    if (!getIsSitStandStateLocked() && (_follow._velocityCount > 60)) {
-        if (getIsInSittingState()) {
-            if (newHeightReading.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
-                // if we recenter upwards then no longer in sitting state
-                _sitStandStateCount++;
-                if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
-                    _sitStandStateCount = 0;
-                    _squatCount = 0;
-                    if (newHeightReading.isValid()) {
-                        _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
-                        _tippingPoint = newHeightReading.getTranslation().y;
+    if (!getIsSitStandStateLocked() && (_follow._velocityCount > VELOCITY_COUNT_THRESHOLD)) {
+        if (!getIsAway()) {
+            if (getIsInSittingState()) {
+                if (newHeightReading.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
+                    // if we recenter upwards then no longer in sitting state
+                    _sitStandStateCount++;
+                    if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+                        _sitStandStateCount = 0;
+                        _squatCount = 0;
+                        if (newHeightReading.isValid()) {
+                            _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
+                            _tippingPoint = newHeightReading.getTranslation().y;
+                        }
+                        _averageUserHeightCount = 1;
+                        setIsInSittingState(false);
                     }
-                    _averageUserHeightCount = 1;
-                    setIsInSittingState(false);
-                }
-            } else if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
-                _sitStandStateCount++;
-                if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
-                    _sitStandStateCount = 0;
-                    _squatCount = 0;
-                    if (newHeightReading.isValid()) {
-                        _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
-                        _tippingPoint = newHeightReading.getTranslation().y;
+                } else if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
+                    _sitStandStateCount++;
+                    if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+                        _sitStandStateCount = 0;
+                        _squatCount = 0;
+                        if (newHeightReading.isValid()) {
+                            _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
+                            _tippingPoint = newHeightReading.getTranslation().y;
+                        }
+                        _averageUserHeightCount = 1;
+                        setIsInSittingState(true);
                     }
-                    _averageUserHeightCount = 1;
-                    setIsInSittingState(true);
+                } else {
+                    _sitStandStateCount = 0;
+                    // tipping point is average height when sitting.
+                    _tippingPoint = averageSensorSpaceHeight;
                 }
             } else {
-                _sitStandStateCount = 0;
-                // tipping point is average height when sitting.
-                _tippingPoint = averageSensorSpaceHeight;
+                // in the standing state
+                if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
+                    _sitStandStateCount++;
+                    if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+                        _sitStandStateCount = 0;
+                        _squatCount = 0;
+                        if (newHeightReading.isValid()) {
+                            _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
+                            _tippingPoint = newHeightReading.getTranslation().y;
+                        }
+                        _averageUserHeightCount = 1;
+                        setIsInSittingState(true);
+                    }
+                } else {
+                    // use the mode height for the tipping point when we are standing.
+                    _tippingPoint = getCurrentStandingHeight();
+                    _sitStandStateCount = 0;
+                }
             }
         } else {
-            // in the standing state
-            if ((newHeightReading.getTranslation().y < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
-                _sitStandStateCount++;
-                if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
-                    _sitStandStateCount = 0;
-                    _squatCount = 0;
-                    if (newHeightReading.isValid()) {
-                        _sumUserHeightSensorSpace = newHeightReading.getTranslation().y;
-                        _tippingPoint = newHeightReading.getTranslation().y;
-                    }
-                    _averageUserHeightCount = 1;
-                    setIsInSittingState(true);
-                }
-            } else {
-                // use the mode height for the tipping point when we are standing.
-                _tippingPoint = getCurrentStandingHeight();
-                _sitStandStateCount = 0;
-            }
+            // if you are away then reset the average and set state to standing.
+            _squatCount = 0;
+            _sitStandStateCount = 0;
+            _follow._velocityCount = 0;
+            _averageUserHeightCount = 1;
+            _sumUserHeightSensorSpace = DEFAULT_AVATAR_HEIGHT;
+            _tippingPoint = DEFAULT_AVATAR_HEIGHT;
+            setIsInSittingState(false);
         }
     }
 
