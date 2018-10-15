@@ -128,7 +128,7 @@ public:
 
     public:
         DepthTest(bool enabled = false, bool writeMask = true, ComparisonFunction func = LESS) :
-            function(func), writeMask(writeMask), enabled(enabled) {}
+            writeMask(writeMask), enabled(enabled), function(func) {}
 
         bool isEnabled() const { return enabled != 0; }
         ComparisonFunction getFunction() const { return function; }

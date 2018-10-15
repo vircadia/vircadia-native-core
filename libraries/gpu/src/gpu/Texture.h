@@ -189,6 +189,8 @@ public:
     }
 protected:
     Desc _desc;
+
+    friend class Deserializer;
 };
 
 enum class TextureUsageType : uint8 {
@@ -371,6 +373,8 @@ public:
 
         ktx::KTXDescriptorPointer _ktxDescriptor;
         friend class Texture;
+        friend class Serializer;
+        friend class Deserializer;
     };
 
     uint16 minAvailableMipLevel() const { return _storage->minAvailableMipLevel(); };
@@ -628,6 +632,9 @@ protected:
     static TexturePointer create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, uint16 numMips, const Sampler& sampler);
 
     Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, uint16 numMips);
+
+    friend class Serializer;
+    friend class Deserializer;
 };
 
 typedef std::shared_ptr<Texture> TexturePointer;

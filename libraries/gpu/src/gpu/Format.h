@@ -322,7 +322,7 @@ public:
     uint8 getLocationScalarCount() const { return DIMENSION_SCALAR_COUNT_PER_LOCATION[(Dimension)_dimension]; }
     uint32 getLocationSize() const { return DIMENSION_SCALAR_COUNT_PER_LOCATION[_dimension] * TYPE_SIZE[_type]; }
 
-    uint16 getRaw() const { return *((uint16*) (this)); }
+    uint16 getRaw() const { return *((const uint16*) (this)); }
 
     
     bool operator ==(const Element& right) const {
