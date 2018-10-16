@@ -941,13 +941,6 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 // Find the vector halfway between the hip to hand azimuth vectors
 // This midpoint hand azimuth is in Avatar space
 glm::vec2 MyAvatar::computeHandAzimuth() const {
-    int spine2Index = _skeletonModel->getRig().indexOfJoint("Spine2");
-    glm::vec3 azimuthOrigin(0.0f,0.0f,0.0f);
-    if (!(spine2Index < 0)) {
-        // use the spine for the azimuth origin.
-        azimuthOrigin = getAbsoluteJointTranslationInObjectFrame(spine2Index);
-    }
-
     controller::Pose leftHandPoseAvatarSpace = getLeftHandPose();
     controller::Pose rightHandPoseAvatarSpace = getRightHandPose();
     controller::Pose headPoseAvatarSpace = getControllerPoseInAvatarFrame(controller::Action::HEAD);
@@ -955,13 +948,11 @@ glm::vec2 MyAvatar::computeHandAzimuth() const {
     glm::vec2 latestHipToHandController = _hipToHandController;
 
     if (leftHandPoseAvatarSpace.isValid() && rightHandPoseAvatarSpace.isValid() && headPoseAvatarSpace.isValid()) {
-        glm::vec3 rightHandOffset = rightHandPoseAvatarSpace.translation - azimuthOrigin;
-        glm::vec3 leftHandOffset = leftHandPoseAvatarSpace.translation - azimuthOrigin;
         // we need the old azimuth reading to prevent flipping the facing direction 180
         // in the case where the hands go from being slightly less than 180 apart to slightly more than 180 apart.
         glm::vec2 oldAzimuthReading = _hipToHandController;
-        if ((glm::length(glm::vec2(rightHandOffset.x, rightHandOffset.z)) > 0.0f) && (glm::length(glm::vec2(leftHandOffset.x, leftHandOffset.z)) > 0.0f)) {
-            latestHipToHandController = lerp(glm::normalize(glm::vec2(rightHandOffset.x, rightHandOffset.z)), glm::normalize(glm::vec2(leftHandOffset.x, leftHandOffset.z)), HALFWAY);
+        if ((glm::length(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)) > 0.0f) && (glm::length(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)) > 0.0f)) {
+            latestHipToHandController = lerp(glm::normalize(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)), glm::normalize(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)), HALFWAY);
         } else {
             latestHipToHandController = glm::vec2(0.0f, -1.0f);
         }
