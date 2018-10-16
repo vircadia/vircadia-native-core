@@ -781,11 +781,13 @@ Script.include("/~/system/libraries/controllers.js");
             if (target === TARGET.NONE || target === TARGET.INVALID) {
                 // Do nothing
             } else if (target === TARGET.SEAT) {
+                MyAvatar.setTransitPurpose(2);
                 Entities.callEntityMethod(result.objectID, 'sit');
             } else if (target === TARGET.SURFACE || target === TARGET.DISCREPANCY) {
                 var offset = getAvatarFootOffset();
                 result.intersection.y += offset;
                 var shouldLandSafe = target === TARGET.DISCREPANCY;
+                MyAvatar.setTransitPurpose(1);
                 MyAvatar.goToLocation(result.intersection, true, HMD.orientation, false, shouldLandSafe);
                 HMD.centerUI();
                 MyAvatar.centerBody();

@@ -71,6 +71,12 @@ public:
         EASE_IN_OUT
     };
 
+    enum Purpose {
+        UNDEFINED = 0,
+        TELEPORT,
+        SIT
+    };
+
     struct TransitAnimation {
         TransitAnimation(){};
         TransitAnimation(const QString& animationUrl, int firstFrame, int frameCount) :
@@ -99,6 +105,7 @@ public:
     glm::vec3 getCurrentPosition() { return _currentPosition; }
     glm::vec3 getEndPosition() { return _endPosition; }
     void setScale(float scale) { _scale = scale; }
+    void setPurpose(const Purpose& purpose) { _purpose = purpose; }
     void reset();
 
 private:
@@ -123,6 +130,7 @@ private:
     EaseType _easeType { EaseType::EASE_OUT };
     Status _status { Status::IDLE };
     float _scale { 1.0f };
+    Purpose _purpose { Purpose::UNDEFINED };
 };
 
 class Avatar : public AvatarData, public scriptable::ModelProvider {
@@ -449,6 +457,7 @@ public:
 
     AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
     void setTransitScale(float scale);
+    Q_INVOKABLE void setTransitPurpose(int purpose);
 
     void overrideNextPacketPositionData(const glm::vec3& position);
 

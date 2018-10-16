@@ -116,6 +116,7 @@ public:
     void overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreAnimation();
     void restoreNetworkAnimation();
+
     QStringList getAnimationRoles() const;
     void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreRoleAnimation(const QString& role);

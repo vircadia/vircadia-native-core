@@ -162,7 +162,7 @@ void AvatarManager::handleTransitAnimations(AvatarTransit::Status status) {
         case AvatarTransit::Status::END_TRANSIT:
             qDebug() << "END_TRANSIT";
             _myAvatar->overrideNetworkAnimation(endAnimation._animationUrl, REFERENCE_FPS, false, endAnimation._firstFrame,
-                                         endAnimation._firstFrame + endAnimation._frameCount);
+                endAnimation._firstFrame + endAnimation._frameCount);
             break;
         case AvatarTransit::Status::ENDED:
             qDebug() << "END_FRAME";
