@@ -72,9 +72,7 @@ int AvatarMixerSlave::sendIdentityPacket(NLPacketList& packetList, const AvatarM
     if (destinationNode.getType() == NodeType::Agent && !destinationNode.isUpstream()) {
         QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-        packetList.startSegment();
         packetList.write(individualData);
-        packetList.endSegment();
         _stats.numIdentityPackets++;
         return individualData.size();
     } else {
@@ -248,7 +246,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     distribution.reset();
 
     // Estimate number to sort on number sent last frame (with min. of 20).
-    const int numToSendEst = std::max(nodeData->getNumAvatarsSentLastFrame() * 2, 20);
+    const int numToSendEst = std::max(int(nodeData->getNumAvatarsSentLastFrame() * 2.5f), 20);
 
     // reset the number of sent avatars
     nodeData->resetNumAvatarsSentLastFrame();
@@ -455,6 +453,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         const bool distanceAdjust = true;
         const bool dropFaceTracking = false;
         AvatarDataPacket::SendStatus sendStatus;
+        sendStatus.sendUUID = true;
 
         do {
             auto startSerialize = chrono::high_resolution_clock::now();

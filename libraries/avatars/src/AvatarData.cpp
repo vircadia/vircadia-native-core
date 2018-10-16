@@ -229,8 +229,7 @@ QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail, bool dro
     AvatarDataPacket::SendStatus sendStatus;
     auto avatarByteArray = AvatarData::toByteArray(dataDetail, lastSentTime, getLastSentJointData(),
         sendStatus, dropFaceTracking, false, glm::vec3(0), nullptr, 0, &_outboundDataRate);
-    // Strip UUID
-    return avatarByteArray.right(avatarByteArray.size() - NUM_BYTES_RFC4122_UUID);
+    return avatarByteArray;
 }
 
 QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime,
@@ -255,7 +254,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (dataDetail == NoData) {
         sendStatus.itemFlags = wantedFlags;
 
-        QByteArray avatarDataByteArray(getSessionUUID().toRfc4122().data(), NUM_BYTES_RFC4122_UUID + sizeof wantedFlags);
+        QByteArray avatarDataByteArray;
+        if (sendStatus.sendUUID) {
+            avatarDataByteArray.append(getSessionUUID().toRfc4122().data(), NUM_BYTES_RFC4122_UUID);
+        }
+
         avatarDataByteArray.append((char*) &wantedFlags, sizeof wantedFlags);
         return avatarDataByteArray;
     }
@@ -392,13 +395,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     const unsigned char* const startPosition = destinationBuffer;
     const unsigned char* const packetEnd = destinationBuffer + maxDataSize;
 
-    // Packets always have UUID.
-    memcpy(destinationBuffer, getSessionUUID().toRfc4122(), NUM_BYTES_RFC4122_UUID);
-    destinationBuffer += NUM_BYTES_RFC4122_UUID;
-
-    unsigned char * packetFlagsLocation = destinationBuffer;
-    destinationBuffer += sizeof(wantedFlags);
-
 #define AVATAR_MEMCPY(src)                          \
     memcpy(destinationBuffer, &(src), sizeof(src)); \
     destinationBuffer += sizeof(src);
@@ -409,6 +405,14 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         && (packetEnd - destinationBuffer) >= (ptrdiff_t)(space)  \
         && (includedFlags |= AvatarDataPacket::flag))
 
+    if (sendStatus.sendUUID) {
+        memcpy(destinationBuffer, getSessionUUID().toRfc4122(), NUM_BYTES_RFC4122_UUID);
+        destinationBuffer += NUM_BYTES_RFC4122_UUID;
+    }
+
+    unsigned char * packetFlagsLocation = destinationBuffer;
+    destinationBuffer += sizeof(wantedFlags);
+
     IF_AVATAR_SPACE(PACKET_HAS_AVATAR_GLOBAL_POSITION, sizeof _globalPosition) {
         auto startSection = destinationBuffer;
         if (_overrideGlobalPosition) {
@@ -417,7 +421,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             AVATAR_MEMCPY(_globalPosition);
         }
         
-
         int numBytes = destinationBuffer - startSection;
 
         if (outboundDataRateOut) {
