@@ -1760,7 +1760,6 @@ private:
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
         std::atomic<bool> _toggleHipsFollowing { true };
-        int _velocityCount { 0 };
     };
     FollowHelper _follow;
 

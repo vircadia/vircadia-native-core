@@ -542,7 +542,7 @@ void MyAvatar::update(float deltaTime) {
     // put update sit stand state counts here
     if (!getIsSitStandStateLocked()) {
         if (!getIsAway()) {
-            if ((_follow._velocityCount > VELOCITY_COUNT_THRESHOLD) || (qApp->isHMDMode() && (qApp->getActiveDisplayPlugin()->getName() == "Oculus Rift"))) {
+            if (qApp->isHMDMode()) { 
                 if (getIsInSittingState()) {
                     if (newHeightReading.getTranslation().y > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
                         // if we recenter upwards then no longer in sitting state
@@ -602,7 +602,6 @@ void MyAvatar::update(float deltaTime) {
             // if you are away then reset the average and set state to standing.
             _squatCount = 0;
             _sitStandStateCount = 0;
-            _follow._velocityCount = 0;
             _averageUserHeightCount = 1;
             _sumUserHeightSensorSpace = DEFAULT_AVATAR_HEIGHT;
             _tippingPoint = DEFAULT_AVATAR_HEIGHT;
@@ -4242,18 +4241,6 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
                     activate(Rotation);
                     myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
                 }
-            }
-        }
-        const int VELOCITY_COUNT_THRESHOLD = 60;
-        const float MINIMUM_HMD_VELOCITY = 0.1f;
-        if (_velocityCount > VELOCITY_COUNT_THRESHOLD) {
-            if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
-                activate(Vertical);
-            }
-        } else {
-            if ((glm::length(myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD).getVelocity()) > MINIMUM_HMD_VELOCITY)) {
-                _velocityCount++;
-                qCDebug(interfaceapp) << "velocity count is " << _velocityCount << " is away " << myAvatar.getIsAway() <<  " hmd mode "<< qApp->isHMDMode() << "  " << qApp->getActiveDisplayPlugin()->getName();
             }
         }
     } else {
