@@ -275,7 +275,7 @@ template<typename T> T fromVariant(const QVariant& v, bool& valid) {
 }
 
 template<> glm::u8vec3 fromVariant(const QVariant& v, bool& valid) {
-    return vec3FromVariant(v, valid);
+    return u8vec3FromVariant(v, valid);
 }
 
 template<typename T>
@@ -472,16 +472,16 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
         return _innerRadius;
     }
     if (property == "innerStartColor") {
-        return vec3toVariant(_innerStartColor);
+        return u8vec3ColortoVariant(_innerStartColor);
     }
     if (property == "innerEndColor") {
-        return vec3toVariant(_innerEndColor);
+        return u8vec3ColortoVariant(_innerEndColor);
     }
     if (property == "outerStartColor") {
-        return vec3toVariant(_outerStartColor);
+        return u8vec3ColortoVariant(_outerStartColor);
     }
     if (property == "outerEndColor") {
-        return vec3toVariant(_outerEndColor);
+        return u8vec3ColortoVariant(_outerEndColor);
     }
     if (property == "innerStartAlpha") {
         return _innerStartAlpha;
@@ -511,10 +511,10 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
         return _minorTickMarksLength;
     }
     if (property == "majorTickMarksColor") {
-        return vec3toVariant(_majorTickMarksColor);
+        return u8vec3ColortoVariant(_majorTickMarksColor);
     }
     if (property == "minorTickMarksColor") {
-        return vec3toVariant(_minorTickMarksColor);
+        return u8vec3ColortoVariant(_minorTickMarksColor);
     }
 
     return Planar3DOverlay::getProperty(property);

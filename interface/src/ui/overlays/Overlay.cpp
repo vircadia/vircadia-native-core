@@ -57,7 +57,7 @@ Overlay::~Overlay() {
 
 void Overlay::setProperties(const QVariantMap& properties) {
     bool valid;
-    auto color = vec3FromVariant(properties["color"], valid);
+    auto color = u8vec3FromVariant(properties["color"], valid);
     if (valid) {
         _color = color;
     }
@@ -116,7 +116,7 @@ QVariant Overlay::getProperty(const QString& property) {
         return QVariant(getType());
     }
     if (property == "color") {
-        return vec3toVariant(_color);
+        return u8vec3ColortoVariant(_color);
     }
     if (property == "alpha") {
         return _alpha;

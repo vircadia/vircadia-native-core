@@ -442,6 +442,93 @@ glm::vec3 vec3FromVariant(const QVariant& object) {
     return vec3FromVariant(object, valid);
 }
 
+QVariant u8vec3toVariant(const glm::u8vec3& vec3) {
+    QVariantMap result;
+    result["x"] = vec3.x;
+    result["y"] = vec3.y;
+    result["z"] = vec3.z;
+    return result;
+}
+
+QVariant u8vec3ColortoVariant(const glm::u8vec3& vec3) {
+    QVariantMap result;
+    result["red"] = vec3.x;
+    result["green"] = vec3.y;
+    result["blue"] = vec3.z;
+    return result;
+}
+
+glm::u8vec3 u8vec3FromVariant(const QVariant& object, bool& valid) {
+    glm::u8vec3 v;
+    valid = false;
+    if (!object.isValid() || object.isNull()) {
+        return v;
+    } else if (object.canConvert<uint>()) {
+        v = glm::vec3(object.toUInt());
+        valid = true;
+    } else if (object.canConvert<QVector3D>()) {
+        auto qvec3 = qvariant_cast<QVector3D>(object);
+        v.x = (uint8_t)qvec3.x();
+        v.y = (uint8_t)qvec3.y();
+        v.z = (uint8_t)qvec3.z();
+        valid = true;
+    } else if (object.canConvert<QString>()) {
+        QColor qColor(object.toString());
+        if (qColor.isValid()) {
+            v.x = (uint8_t)qColor.red();
+            v.y = (uint8_t)qColor.green();
+            v.z = (uint8_t)qColor.blue();
+            valid = true;
+        }
+    } else if (object.canConvert<QColor>()) {
+        QColor qColor = qvariant_cast<QColor>(object);
+        if (qColor.isValid()) {
+            v.x = (uint8_t)qColor.red();
+            v.y = (uint8_t)qColor.green();
+            v.z = (uint8_t)qColor.blue();
+            valid = true;
+        }
+    } else {
+        auto map = object.toMap();
+        auto x = map["x"];
+        if (!x.isValid()) {
+            x = map["r"];
+        }
+        if (!x.isValid()) {
+            x = map["red"];
+        }
+
+        auto y = map["y"];
+        if (!y.isValid()) {
+            y = map["g"];
+        }
+        if (!y.isValid()) {
+            y = map["green"];
+        }
+
+        auto z = map["z"];
+        if (!z.isValid()) {
+            z = map["b"];
+        }
+        if (!z.isValid()) {
+            z = map["blue"];
+        }
+
+        if (x.canConvert<uint>() && y.canConvert<uint>() && z.canConvert<uint>()) {
+            v.x = x.toUInt();
+            v.y = y.toUInt();
+            v.z = z.toUInt();
+            valid = true;
+        }
+    }
+    return v;
+}
+
+glm::u8vec3 u8vec3FromVariant(const QVariant& object) {
+    bool valid = false;
+    return u8vec3FromVariant(object, valid);
+}
+
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("x", vec4.x);

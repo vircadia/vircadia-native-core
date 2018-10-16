@@ -161,7 +161,7 @@ void Text3DOverlay::setProperties(const QVariantMap& properties) {
     bool valid;
     auto backgroundColor = properties["backgroundColor"];
     if (backgroundColor.isValid()) {
-        auto color = vec3FromVariant(backgroundColor, valid);
+        auto color = u8vec3FromVariant(backgroundColor, valid);
         if (valid) {
             _backgroundColor = color;
         }
@@ -257,7 +257,7 @@ QVariant Text3DOverlay::getProperty(const QString& property) {
         return _textAlpha;
     }
     if (property == "backgroundColor") {
-        return vec3toVariant(_backgroundColor);
+        return u8vec3ColortoVariant(_backgroundColor);
     }
     if (property == "backgroundAlpha") {
         return Billboard3DOverlay::getProperty("alpha");

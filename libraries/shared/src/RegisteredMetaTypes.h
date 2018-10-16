@@ -90,6 +90,10 @@ QScriptValue vec3ToScriptValue(QScriptEngine* engine, const glm::vec3& vec3);
 QScriptValue vec3ColorToScriptValue(QScriptEngine* engine, const glm::vec3& vec3);
 void vec3FromScriptValue(const QScriptValue& object, glm::vec3& vec3);
 
+QVariant vec3toVariant(const glm::vec3& vec3);
+glm::vec3 vec3FromVariant(const QVariant &object, bool& valid);
+glm::vec3 vec3FromVariant(const QVariant &object);
+
 /**jsdoc
 * A color vector. See also the {@link Vec3(0)|Vec3} object.
 *
@@ -132,9 +136,10 @@ QScriptValue u8vec3ToScriptValue(QScriptEngine* engine, const glm::u8vec3& vec3)
 QScriptValue u8vec3ColorToScriptValue(QScriptEngine* engine, const glm::u8vec3& vec3);
 void u8vec3FromScriptValue(const QScriptValue& object, glm::u8vec3& vec3);
 
-QVariant vec3toVariant(const glm::vec3& vec3);
-glm::vec3 vec3FromVariant(const QVariant &object, bool& valid);
-glm::vec3 vec3FromVariant(const QVariant &object);
+QVariant u8vec3toVariant(const glm::u8vec3& vec3);
+QVariant u8vec3ColortoVariant(const glm::u8vec3& vec3);
+glm::u8vec3 u8vec3FromVariant(const QVariant &object, bool& valid);
+glm::u8vec3 u8vec3FromVariant(const QVariant &object);
 
 /**jsdoc
  * A 4-dimensional vector.
