@@ -112,6 +112,11 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
 
+            if (traitSize < -1 || traitSize > message.getBytesLeftToRead()) {
+                qWarning() << "Refusing to process simple trait of size" << traitSize << "from" << message.getSenderSockAddr();
+                break;
+            }
+
             if (packetTraitVersion > _lastReceivedTraitVersions[traitType]) {
                 _avatar->processTrait(traitType, message.read(traitSize));
                 _lastReceivedTraitVersions[traitType] = packetTraitVersion;
@@ -128,26 +133,41 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
         } else {
             AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
+            if (message.getBytesLeftToRead() == 0) {
+                qWarning () << "Received an instanced trait with no size from" << message.getSenderSockAddr();
+                break;
+            }
+
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
 
-            auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
+            if (traitSize < -1 || traitSize > message.getBytesLeftToRead()) {
+                qWarning() << "Refusing to process instanced trait of size" << traitSize << "from" << message.getSenderSockAddr();
+                break;
+            }
 
-            if (packetTraitVersion > instanceVersionRef) {
-                if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
-                    _avatar->processDeletedTraitInstance(traitType, instanceID);
+            if (traitType == AvatarTraits::AvatarEntity) {
+                auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
 
-                    // to track a deleted instance but keep version information
-                    // the avatar mixer uses the negative value of the sent version
-                    instanceVersionRef = -packetTraitVersion;
+                if (packetTraitVersion > instanceVersionRef) {
+                    if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
+                        _avatar->processDeletedTraitInstance(traitType, instanceID);
+
+                        // to track a deleted instance but keep version information
+                        // the avatar mixer uses the negative value of the sent version
+                        instanceVersionRef = -packetTraitVersion;
+                    } else {
+                        _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
+                        instanceVersionRef = packetTraitVersion;
+                    }
+
+                    anyTraitsChanged = true;
                 } else {
-                    _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
-                    instanceVersionRef = packetTraitVersion;
+                    message.seek(message.getPosition() + traitSize);
                 }
-
-                anyTraitsChanged = true;
             } else {
-                message.seek(message.getPosition() + traitSize);
+                qWarning() << "Refusing to process traits packet with instanced trait of unprocessable type from" << message.getSenderSockAddr();
+                break;
             }
         }
     }
