@@ -50,6 +50,7 @@
 #include "OctreeLogging.h"
 #include "OctreeQueryNode.h"
 #include "OctreeUtils.h"
+#include "OctreeEntitiesFileParser.h"
 
 QVector<QString> PERSIST_EXTENSIONS = {"json", "json.gz"};
 
@@ -827,12 +828,19 @@ bool Octree::readJSONFromStream(uint64_t streamLength, QDataStream& inputStream,
         jsonBuffer += QByteArray(rawData, got);
     }
 
+    OctreeEntitiesFileParser octreeParser;
+    octreeParser.setEntitiesString(jsonBuffer);
+    QVariantMap asMap;
+    bool parseSuccess = octreeParser.parseEntities(asMap);
+
+    /*
     QJsonDocument asDocument = QJsonDocument::fromJson(jsonBuffer);
     if (!marketplaceID.isEmpty()) {
         asDocument = addMarketplaceIDToDocumentEntities(asDocument, marketplaceID);
     }
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
+    */
     bool success = readFromMap(asMap);
     delete[] rawData;
     return success;
