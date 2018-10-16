@@ -88,7 +88,7 @@ if (APPLE)
   set(OSX_SDK "${OSX_VERSION}" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
 
   # set our OS X deployment target
-  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.9)
 
   # find the SDK path for the desired SDK
   find_path(
