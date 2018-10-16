@@ -157,6 +157,7 @@ public:
      * @param {PickParabola} pick
      * @param {Uuid[]} avatarsToInclude
      * @param {Uuid[]} avatarsToDiscard
+     * @returns {ParabolaToAvatarIntersectionResult}
      */
     Q_INVOKABLE ParabolaToAvatarIntersectionResult findParabolaIntersectionVector(const PickParabola& pick,
                                                                                   const QVector<EntityItemID>& avatarsToInclude,
