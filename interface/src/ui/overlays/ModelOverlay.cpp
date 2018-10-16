@@ -571,8 +571,24 @@ void ModelOverlay::locationChanged(bool tellPhysics) {
 
     // FIXME Start using the _renderTransform instead of calling for Transform and Dimensions from here, do the custom things needed in evalRenderTransform()
     if (_model && _model->isActive()) {
-        _model->setRotation(getWorldOrientation());
-        _model->setTranslation(getWorldPosition());
+        if (!_isLODEnabled) {
+            auto rot = _model->getRotation();
+            auto tra = _model->getTranslation();
+
+            auto nrot = getWorldOrientation();
+            auto ntra = getWorldPosition();
+            if (glm::any(glm::notEqual(rot, nrot))) {
+                rot = nrot;
+                _model->setRotation(rot);
+            }
+            if (glm::any(glm::notEqual(tra, ntra))) {
+                tra = ntra;
+                _model->setTranslation(tra);
+            }
+        } else {
+            _model->setRotation(getWorldOrientation());
+            _model->setTranslation(getWorldPosition());
+        }
     }
 }
 
