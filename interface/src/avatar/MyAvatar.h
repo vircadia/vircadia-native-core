@@ -1116,6 +1116,7 @@ public:
     float getSprintSpeed() const;
     void setSitStandStateChange(bool stateChanged);
     float getSitStandStateChange() const;
+    void updateSitStandState(float newHeightReading, float angleHeadUp);
 
     QVector<QString> getScriptUrls();
 
@@ -1830,10 +1831,9 @@ private:
     const float DEFAULT_FLOOR_HEIGHT = 0.0f;
 
     // height of user in sensor space, when standing erect.
-    ThreadSafeValueCache<float> _userHeight{ DEFAULT_AVATAR_HEIGHT };
-    float _sumUserHeightSensorSpace{ DEFAULT_AVATAR_HEIGHT };
-    int _averageUserHeightCount{ 1 };
-    bool _sitStandStateChange{ false };
+    ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
+    float _sumUserHeightSensorSpace { _userHeight.get() };
+    bool _sitStandStateChange { false };
     ThreadSafeValueCache<bool> _lockSitStandState { false };
 
     // max unscaled forward movement speed
@@ -1845,7 +1845,7 @@ private:
     ThreadSafeValueCache<bool> _isInSittingState { false };
     int _sitStandStateCount { 0 };
     int _squatCount { 0 };
-    float _tippingPoint { DEFAULT_AVATAR_HEIGHT };
+    float _tippingPoint { _userHeight.get() };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
