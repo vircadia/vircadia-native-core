@@ -41,8 +41,8 @@ void PickManager::removePick(unsigned int uid) {
         auto type = _typeMap.find(uid);
         if (type != _typeMap.end()) {
             _picks[type->second].erase(uid);
-            _typeMap.erase(uid);
             _totalPickCounts[type->second]--;
+            _typeMap.erase(uid);
         }
     });
 }
