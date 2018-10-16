@@ -470,8 +470,8 @@ void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
     const int SITTING_COUNT_THRESHOLD = 180;
     const int STANDING_COUNT_THRESHOLD = 60;
     const int SQUATTY_COUNT_THRESHOLD = 600;
+    const float SITTING_UPPER_BOUND = 1.52f;
 
-    // qCDebug(interfaceapp) << "locked " << getIsSitStandStateLocked() <<  " away " << getIsAway() << " hmd " << qApp->isHMDMode() << " user height " << _userHeight.get();
     if (!getIsSitStandStateLocked() && !getIsAway() && qApp->isHMDMode()) {
         if (getIsInSittingState()) {
             if (newHeightReading > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
@@ -494,7 +494,7 @@ void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
                 }
             } else {
                 // sanity check if average height greater than 5ft they are not sitting(or get off your dangerous barstool please)
-                if (_sumUserHeightSensorSpace > 1.52f) {
+                if (_sumUserHeightSensorSpace > SITTING_UPPER_BOUND) {
                     setIsInSittingState(true);
                 } else {
                     // tipping point is average height when sitting.
