@@ -1124,12 +1124,29 @@ void MyAvatar::overrideAnimation(const QString& url, float fps, bool loop, float
     _skeletonModel->getRig().overrideAnimation(url, fps, loop, firstFrame, lastFrame);
 }
 
+void MyAvatar::overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "overrideNetworkAnimation", Q_ARG(const QString&, url), Q_ARG(float, fps),
+            Q_ARG(bool, loop), Q_ARG(float, firstFrame), Q_ARG(float, lastFrame));
+        return;
+    }
+    _skeletonModel->getRig().overrideNetworkAnimation(url, fps, loop, firstFrame, lastFrame);
+}
+
 void MyAvatar::restoreAnimation() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "restoreAnimation");
         return;
     }
     _skeletonModel->getRig().restoreAnimation();
+}
+
+void MyAvatar::restoreNetworkAnimation() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "restoreNetworkAnimation");
+        return;
+    }
+    _skeletonModel->getRig().restoreNetworkAnimation();
 }
 
 QStringList MyAvatar::getAnimationRoles() {
