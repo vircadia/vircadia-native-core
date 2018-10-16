@@ -86,9 +86,14 @@ void GLBackend::do_generateTextureMipsWithPipeline(const Batch& batch, size_t pa
         return;
     }
 
-    // Do not transfer the texture, this call is expected for rendering texture
+    // Always make sure the GLObject is in sync
     GLTexture* object = syncGPUObject(resourceTexture);
-    if (!object) {
+    if (object) {
+        GLuint to = object->_texture;
+        glActiveTexture(GL_TEXTURE0 + gpu::slot::texture::MipCreationInput);
+        glBindTexture(object->_target, to);
+        (void)CHECK_GL_ERROR();
+    } else {
         return;
     }
 
