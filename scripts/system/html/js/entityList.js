@@ -60,16 +60,28 @@ const COMPARE_DESCENDING = function(a, b) {
 }
 
 const FILTER_TYPES = [
-	"Shape",
-	"Model",
-	"Image",
-	"Light",
-	"Zone",
-	"Web",
-	"Material",
-	"ParticleEffect",
-	"Text",
+    "Shape",
+    "Model",
+    "Image",
+    "Light",
+    "Zone",
+    "Web",
+    "Material",
+    "ParticleEffect",
+    "Text",
 ];
+
+const ICON_FOR_TYPE = {
+    Shape: "n",
+    Model: "&#xe008;",
+    Image: "&#xe02a;",
+    Light: "p",
+    Zone: "o",
+    Web: "q",
+    Material: "&#xe00b;",
+    ParticleEffect: "&#xe004;",
+    Text: "l",
+};
 
 // List of all entities
 var entities = []
@@ -118,8 +130,9 @@ function loaded() {
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
         elDelete = document.getElementById("delete");
-		elFilterTypeSelectBox = document.getElementById("filter-type-selectBox");
-		elFilterTypeCheckboxes = document.getElementById("filter-type-checkboxes");
+        elFilterTypeSelectBox = document.getElementById("filter-type-selectBox");
+        elFilterTypeText = document.getElementById("filter-type-text");
+        elFilterTypeCheckboxes = document.getElementById("filter-type-checkboxes");
         elFilterSearch = document.getElementById("filter-search");
         elFilterInView = document.getElementById("filter-in-view")
         elFilterRadius = document.getElementById("filter-radius");
@@ -132,6 +145,7 @@ function loaded() {
         elNoEntitiesInView = document.getElementById("no-entities-in-view");
         elNoEntitiesRadius = document.getElementById("no-entities-radius");
         
+        document.body.onclick = onBodyClick;
         document.getElementById("entity-name").onclick = function() {
             setSortColumn('name');
         };
@@ -187,32 +201,34 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         }
         elFilterSearch.onkeyup = refreshEntityList;
-        elFilterSearch.onpaste = refreshEntityList;
-        elFilterSearch.onchange = onFilterChange;
-        elFilterSearch.onblur = refreshFooter;
+        elFilterSearch.onsearch = refreshEntityList;
         elFilterInView.onclick = toggleFilterInView;
         elFilterRadius.onchange = onRadiusChange;
         elInfoToggle.onclick = toggleInfo;
-		
-		// create filter type dropdown checkboxes w/ label for each type
-		elFilterTypeSelectBox.onclick = toggleTypeDropdown;
-		for (let i = 0; i < FILTER_TYPES.length; ++i) {
-			let type = FILTER_TYPES[i];
-			let typeFilterID = "filter-type-" + type;
-			let elDiv = document.createElement('div');
-			let elLabel = document.createElement('label');
-			elLabel.setAttribute("for", typeFilterID);
-			elLabel.innerText = type;
-			let elInput = document.createElement('input');
-			elInput.setAttribute("type", "checkbox");
-			elInput.setAttribute("id", typeFilterID);
-			elInput.checked = true; // all types are checked initially
-			toggleTypeFilter(type, false); // add all types to the initial type filter
-			elInput.onclick = onToggleTypeFilter(type);
-			elDiv.appendChild(elInput);
-			elDiv.appendChild(elLabel);
-			elFilterTypeCheckboxes.appendChild(elDiv);
-		}
+        
+        // create filter type dropdown checkboxes with label and icon for each type
+        elFilterTypeSelectBox.onclick = toggleTypeDropdown;
+        for (let i = 0; i < FILTER_TYPES.length; ++i) {
+            let type = FILTER_TYPES[i];
+            let typeFilterID = "filter-type-" + type;
+            let elDiv = document.createElement('div');
+            let elLabel = document.createElement('label');
+            elLabel.setAttribute("for", typeFilterID);
+            elLabel.innerText = type;
+            let elSpan = document.createElement('span');
+            elSpan.setAttribute("class", "typeIcon");
+            elSpan.innerHTML = ICON_FOR_TYPE[type];
+            let elInput = document.createElement('input');
+            elInput.setAttribute("type", "checkbox");
+            elInput.setAttribute("id", typeFilterID);
+            elInput.checked = true; // all types are checked initially
+            toggleTypeFilter(type, false); // add all types to the initial types filter
+            elInput.onclick = onToggleTypeFilter(type);
+            elDiv.appendChild(elInput);
+            elLabel.insertBefore(elSpan, elLabel.childNodes[0]);
+            elDiv.appendChild(elLabel);
+            elFilterTypeCheckboxes.appendChild(elDiv);
+        }
         
         elNoEntitiesInView.style.display = "none";
         
@@ -336,16 +352,16 @@ function loaded() {
         function refreshEntityList() {
             PROFILE("refresh-entity-list", function() {
                 PROFILE("filter", function() {
-					let searchTerm = elFilterSearch.value.toLowerCase();
-					visibleEntities = entities.filter(function(e) {
-						let type = e.type === "Box" || e.type === "Sphere" ? "Shape" : e.type;
-						let typeFilter = typeFilters.indexOf(type) > -1;
-						let searchFilter = searchTerm === '' || (e.name.toLowerCase().indexOf(searchTerm) > -1 ||
-																 e.type.toLowerCase().indexOf(searchTerm) > -1 ||
-																 e.fullUrl.toLowerCase().indexOf(searchTerm) > -1 ||
-																 e.id.toLowerCase().indexOf(searchTerm) > -1);
-						return typeFilter && searchFilter;
-					});
+                    let searchTerm = elFilterSearch.value.toLowerCase();
+                    visibleEntities = entities.filter(function(e) {
+                        let type = e.type === "Box" || e.type === "Sphere" ? "Shape" : e.type;
+                        let typeFilter = typeFilters.indexOf(type) > -1;
+                        let searchFilter = searchTerm === '' || (e.name.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 e.type.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 e.fullUrl.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 e.id.toLowerCase().indexOf(searchTerm) > -1);
+                        return typeFilter && searchFilter;
+                    });
                 });
                 
                 PROFILE("sort", function() {
@@ -632,11 +648,6 @@ function loaded() {
             refreshEntities();
         }
         
-        function onFilterChange() {
-            refreshEntityList();
-            entityList.resize();
-        }
-        
         function onRadiusChange() {
             elFilterRadius.value = Math.max(elFilterRadius.value, 0);
             elNoEntitiesRadius.firstChild.nodeValue = elFilterRadius.value;
@@ -644,29 +655,51 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elFilterRadius.value }));
             refreshEntities();
         }
-		
-		function toggleTypeDropdown() {
-			elFilterTypeCheckboxes.style.display = elFilterTypeCheckboxes.style.display === "block" ? "none" : "block";
-		}
-		
-		function toggleTypeFilter(type, refresh) {
-			let typeFilterIndex = typeFilters.indexOf(type);
-			if (typeFilterIndex > -1) {
-				typeFilters.splice(typeFilterIndex, 1);
-			} else {
-				typeFilters.push(type);
-			}
-			if (refresh) {
-				refreshEntityList();
-			}
-		}
-		
-		function onToggleTypeFilter(type) {
-			return function() {
-				toggleTypeFilter(type, true);
-			};
-		}
-
+        
+        function isTypeDropdownVisible() {
+            return elFilterTypeCheckboxes.style.display === "block";
+        }
+        
+        function toggleTypeDropdown() {
+            elFilterTypeCheckboxes.style.display = isTypeDropdownVisible() ? "none" : "block";
+        }
+        
+        function toggleTypeFilter(type, refresh) {
+            let typeFilterIndex = typeFilters.indexOf(type);
+            if (typeFilterIndex > -1) {
+                typeFilters.splice(typeFilterIndex, 1);
+            } else {
+                typeFilters.push(type);
+            }
+            
+            if (typeFilters.length === 0) {
+                elFilterTypeText.innerText = "No Types";
+            } else if (typeFilters.length === FILTER_TYPES.length) {
+                elFilterTypeText.innerText = "All Types";
+            } else {
+                elFilterTypeText.innerText = "Types...";
+            }
+            
+            if (refresh) {
+                refreshEntityList();
+            }
+        }
+        
+        function onToggleTypeFilter(type) {
+            return function() {
+                toggleTypeFilter(type, true);
+            };
+        }
+        
+        function onBodyClick(event) {
+            // if clicking anywhere outside of the type filter dropdown and it's open then close it
+            let elTarget = event.target;
+            if (isTypeDropdownVisible() && !elFilterTypeSelectBox.contains(elTarget) && 
+                                           !elFilterTypeCheckboxes.contains(elTarget)) {
+                toggleTypeDropdown();
+            }
+        }
+        
         function toggleInfo(event) {
             showExtraInfo = !showExtraInfo;
             if (showExtraInfo) {
@@ -679,7 +712,7 @@ function loaded() {
             entityList.resize();
             event.stopPropagation();
         }
-	
+    
         document.addEventListener("keydown", function (keyDownEvent) {
             if (keyDownEvent.target.nodeName === "INPUT") {
                 return;
@@ -731,7 +764,7 @@ function loaded() {
         refreshSortOrder();
         refreshEntities();
     });
-	
+    
     
     augmentSpinButtons();
 
