@@ -142,8 +142,6 @@ function loaded() {
         elInfoToggleGlyph = elInfoToggle.firstChild;
         elFooter = document.getElementById("footer-text");
         elNoEntitiesMessage = document.getElementById("no-entities");
-        elNoEntitiesInView = document.getElementById("no-entities-in-view");
-        elNoEntitiesRadius = document.getElementById("no-entities-radius");
         
         document.body.onclick = onBodyClick;
         document.getElementById("entity-name").onclick = function() {
@@ -229,8 +227,6 @@ function loaded() {
             elDiv.appendChild(elLabel);
             elFilterTypeCheckboxes.appendChild(elDiv);
         }
-        
-        elNoEntitiesInView.style.display = "none";
         
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
                                   createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
@@ -639,10 +635,8 @@ function loaded() {
             isFilterInView = !isFilterInView;
             if (isFilterInView) {
                 elFilterInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
-                elNoEntitiesInView.style.display = "inline";
             } else {
                 elFilterInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
-                elNoEntitiesInView.style.display = "none";
             }
             EventBridge.emitWebEvent(JSON.stringify({ type: "filterInView", filterInView: isFilterInView }));
             refreshEntities();
@@ -650,8 +644,6 @@ function loaded() {
         
         function onRadiusChange() {
             elFilterRadius.value = Math.max(elFilterRadius.value, 0);
-            elNoEntitiesRadius.firstChild.nodeValue = elFilterRadius.value;
-            elNoEntitiesMessage.style.display = "none";
             EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elFilterRadius.value }));
             refreshEntities();
         }
@@ -764,7 +756,6 @@ function loaded() {
         refreshSortOrder();
         refreshEntities();
     });
-    
     
     augmentSpinButtons();
 
