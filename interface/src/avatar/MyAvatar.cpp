@@ -510,6 +510,7 @@ void MyAvatar::update(float deltaTime) {
         setCurrentStandingHeight(computeStandingHeightMode(newHeightReading));
         setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
     }
+    float averageSensorSpaceHeight = _sumUserHeightSensorSpace / _averageUserHeightCount;
 
     // if the spine is straight and the head is below the default position by 5 cm then increment squatty count.
     const float SQUAT_THRESHOLD = 0.05f;
@@ -525,12 +526,6 @@ void MyAvatar::update(float deltaTime) {
     } else {
         _squatCount = 0;
     }
-
-    float averageSensorSpaceHeight = _sumUserHeightSensorSpace / _averageUserHeightCount;
-
-    glm::vec3 avatarHips = getAbsoluteJointTranslationInObjectFrame(getJointIndex("Hips"));
-    glm::vec3 worldHips = transformPoint(getTransform().getMatrix(), avatarHips);
-    glm::vec3 sensorHips = transformPoint(glm::inverse(getSensorToWorldMatrix()), worldHips);
 
     glm::vec3 headUp = newHeightReading.getRotation() * glm::vec3(0.0f, 1.0f, 0.0f);
     if (glm::length(headUp) > 0.0f) {
