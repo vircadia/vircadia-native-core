@@ -198,17 +198,17 @@ const unsigned char* OctreePacketData::getFinalizedData() {
 
 int OctreePacketData::getFinalizedSize() {
     if (!_enableCompression) {
-        return _bytesInUse; 
+        return _bytesInUse;
     }
 
     if (_dirty) {
         if (_debug) {
             qCDebug(octree, "getFinalizedSize() _compressedBytes=%d _bytesInUse=%d",_compressedBytes, _bytesInUse);
         }
-        compressContent(); 
+        compressContent();
     }
 
-    return _compressedBytes; 
+    return _compressedBytes;
 }
 
 
@@ -604,6 +604,9 @@ bool OctreePacketData::compressContent() {
         memcpy(_compressed, compressedData.constData(), _compressedBytes);
         _dirty = false;
         success = true;
+    } else {
+        qCWarning(octree) << "OctreePacketData::compressContent -- compressedData.size >= MAX_OCTREE_PACKET_DATA_SIZE";
+        assert(false);
     }
     return success;
 }
@@ -623,11 +626,16 @@ void OctreePacketData::loadFinalizedContent(const unsigned char* data, int lengt
             memcpy(compressedData.data(), data, _compressedBytes);
 
             QByteArray uncompressedData = qUncompress(compressedData);
-            if (uncompressedData.size() <= _bytesAvailable) {
-                _bytesInUse = uncompressedData.size();
-                _bytesAvailable -= uncompressedData.size();
-                memcpy(_uncompressed, uncompressedData.constData(), _bytesInUse);
+            if (uncompressedData.size() > _bytesAvailable) {
+                int moreNeeded = uncompressedData.size() - _bytesAvailable;
+                _uncompressedByteArray.resize(_uncompressedByteArray.size() + moreNeeded);
+                _uncompressed = (unsigned char*)_uncompressedByteArray.data();
+                _bytesAvailable += moreNeeded;
             }
+
+            _bytesInUse = uncompressedData.size();
+            _bytesAvailable -= uncompressedData.size();
+            memcpy(_uncompressed, uncompressedData.constData(), _bytesInUse);
         } else {
             memcpy(_uncompressed, data, length);
             memcpy(_compressed, data, length);
