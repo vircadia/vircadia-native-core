@@ -62,11 +62,7 @@
             position: originalProps.position,
             shapeType: originalProps.shapeType,
             visible: true,
-            userData:JSON.stringify({
-                grabbableKey:{
-                    grabbable:false
-                }
-            })
+            grab: { grabbable: false }
         };
         _this.copy = Entities.addEntity(props);
     }
