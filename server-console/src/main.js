@@ -919,6 +919,8 @@ app.on('ready', function() {
         trayNotifications.startPolling();
     }
     updateTrayMenu(ProcessGroupStates.STOPPED);
-
-    maybeInstallDefaultContentSet(onContentLoaded);
+    
+    if (isServerInstalled()) {
+        maybeInstallDefaultContentSet(onContentLoaded);
+    }
 });
