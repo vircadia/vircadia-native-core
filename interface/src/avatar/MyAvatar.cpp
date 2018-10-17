@@ -478,7 +478,7 @@ void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
                 // if we recenter upwards then no longer in sitting state
                 _sitStandStateCount++;
                 if (_sitStandStateCount > STANDING_COUNT_THRESHOLD) {
-                    _sumUserHeightSensorSpace = newHeightReading;
+                    _averageUserHeightSensorSpace = newHeightReading;
                     _tippingPoint = newHeightReading;
                     setIsInSittingState(false);
                 }
@@ -487,18 +487,18 @@ void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
                 // make sure that a real sit is still recognized so we won't be stuck in sitting unable to change state
                 _sitStandStateCount++;
                 if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
-                    _sumUserHeightSensorSpace = newHeightReading;
+                    _averageUserHeightSensorSpace = newHeightReading;
                     _tippingPoint = newHeightReading;
                     // here we stay in sit state but reset the average height
                     setIsInSittingState(true);
                 }
             } else {
                 // sanity check if average height greater than 5ft they are not sitting(or get off your dangerous barstool please)
-                if (_sumUserHeightSensorSpace > SITTING_UPPER_BOUND) {
+                if (_averageUserHeightSensorSpace > SITTING_UPPER_BOUND) {
                     setIsInSittingState(false);
                 } else {
                     // tipping point is average height when sitting.
-                    _tippingPoint = _sumUserHeightSensorSpace;
+                    _tippingPoint = _averageUserHeightSensorSpace;
                     _sitStandStateCount = 0;
                 }
             }
@@ -507,7 +507,7 @@ void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
             if (newHeightReading < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) {
                 _sitStandStateCount++;
                 if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
-                    _sumUserHeightSensorSpace = newHeightReading;
+                    _averageUserHeightSensorSpace = newHeightReading;
                     _tippingPoint = newHeightReading;
                     setIsInSittingState(true);
                 }
@@ -519,7 +519,7 @@ void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
         }
     } else {
         // if you are away then reset the average and set state to standing.
-        _sumUserHeightSensorSpace = _userHeight.get();
+        _averageUserHeightSensorSpace = _userHeight.get();
         _tippingPoint = _userHeight.get();
         setIsInSittingState(false);
     }
@@ -559,7 +559,7 @@ void MyAvatar::update(float deltaTime) {
     controller::Pose newHeightReading = getControllerPoseInSensorFrame(controller::Action::HEAD);
     if (newHeightReading.isValid()) {
         int newHeightReadingInCentimeters = glm::floor(newHeightReading.getTranslation().y * CENTIMETERS_PER_METER);
-        _sumUserHeightSensorSpace = lerp(_sumUserHeightSensorSpace, newHeightReading.getTranslation().y, 0.01f);
+        _averageUserHeightSensorSpace = lerp(_averageUserHeightSensorSpace, newHeightReading.getTranslation().y, 0.01f);
         _recentModeReadings.insert(newHeightReadingInCentimeters);
         setCurrentStandingHeight(computeStandingHeightMode(newHeightReading));
         setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
@@ -3910,7 +3910,7 @@ void MyAvatar::setIsInSittingState(bool isSitting) {
 void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
     _lockSitStandState.set(isLocked);
     _sitStandStateCount = 0;
-    _sumUserHeightSensorSpace = _userHeight.get();
+    _averageUserHeightSensorSpace = _userHeight.get();
     _tippingPoint = _userHeight.get();
     if (!isLocked) {
         // always start the auto transition mode in standing state.

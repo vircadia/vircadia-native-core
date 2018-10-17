@@ -1832,7 +1832,7 @@ private:
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
-    float _sumUserHeightSensorSpace { _userHeight.get() };
+    float _averageUserHeightSensorSpace { _userHeight.get() };
     bool _sitStandStateChange { false };
     ThreadSafeValueCache<bool> _lockSitStandState { false };
 
