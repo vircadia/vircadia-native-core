@@ -1933,6 +1933,14 @@ void EntityTree::fixupNeedsParentFixups() {
                 }
             });
             entity->locationChanged(true);
+
+            // Update our parent's bounding box
+            bool success = false;
+            auto parent = entity->getParentPointer(success);
+            if (success && parent) {
+                parent->updateQueryAACube();
+            }
+
             entity->postParentFixup();
         } else if (getIsServer() || _avatarIDs.contains(entity->getParentID())) {
             // this is a child of an avatar, which the entity server will never have
