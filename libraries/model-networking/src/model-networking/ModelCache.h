@@ -177,6 +177,9 @@ public:
     void setScatteringMap(const QUrl& url);
     void setLightmapMap(const QUrl& url);
 
+    bool isMissingTexture();
+    void checkResetOpacityMap();
+
 protected:
     friend class Geometry;
 
