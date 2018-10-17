@@ -178,6 +178,17 @@ namespace controller {
         return inputRecorder->getSaveDirectory();
     }
 
+    QStringList ScriptingInterface::getRunningInputDeviceNames() {
+        QMutexLocker locker(&_runningDevicesMutex);
+        return _runningInputDeviceNames;
+    }
+
+    void ScriptingInterface::updateRunningInputDevices(const QString& deviceName, bool isRunning, const QStringList& runningDevices) {
+        QMutexLocker locker(&_runningDevicesMutex);
+        _runningInputDeviceNames = runningDevices;
+        emit inputDeviceRunningChanged(deviceName, isRunning);
+    }
+
     bool ScriptingInterface::triggerHapticPulseOnDevice(unsigned int device, float strength, float duration, controller::Hand hand) const {
         return DependencyManager::get<UserInputMapper>()->triggerHapticPulseOnDevice(device, strength, duration, hand);
     }

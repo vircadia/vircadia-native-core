@@ -35,7 +35,7 @@ public:
     virtual bool setSubClassProperties(const EntityItemProperties& properties) override;
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 

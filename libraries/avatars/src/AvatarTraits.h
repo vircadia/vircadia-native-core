@@ -39,6 +39,7 @@ namespace AvatarTraits {
 
     using TraitWireSize = int16_t;
     const TraitWireSize DELETED_TRAIT_SIZE = -1;
+    const TraitWireSize MAXIMUM_TRAIT_SIZE = INT16_MAX;
 
     inline qint64 packInstancedTraitDelete(TraitType traitType, TraitInstanceID instanceID, ExtendedIODevice& destination,
                                          TraitVersion traitVersion = NULL_TRAIT_VERSION) {

@@ -19,7 +19,7 @@ module.exports = {
 
     // ------------------------------------------------------------------
     request: function (options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
-            var httpRequest = new XMLHttpRequest(), key;
+        var httpRequest = new XMLHttpRequest(), key;
         // QT bug: apparently doesn't handle onload. Workaround using readyState.
         httpRequest.onreadystatechange = function () {
             var READY_STATE_DONE = 4;
@@ -72,7 +72,7 @@ module.exports = {
         }
         httpRequest.open(options.method, options.uri, true);
         httpRequest.send(options.body || null);
-        }
+    }
 };
 
 // ===========================================================================================

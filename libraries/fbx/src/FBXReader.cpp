@@ -1923,7 +1923,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     };
 
     // now that all joints have been scanned compute a k-Dop bounding volume of mesh
-    glm::vec3 defaultCapsuleAxis(0.0f, 1.0f, 0.0f);
     for (int i = 0; i < geometry.joints.size(); ++i) {
         FBXJoint& joint = geometry.joints[i];
 

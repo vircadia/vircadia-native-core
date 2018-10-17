@@ -104,6 +104,10 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
                 _networkTexture.reset();
             });
         }
+
+        withWriteLock([&] {
+            entity->setVisuallyReady(true);
+        });
     } else {
         bool textureNeedsUpdate = resultWithReadLock<bool>([&]{
             return !_networkTexture || _networkTexture->getURL() != QUrl(_particleProperties.textures);
@@ -111,6 +115,12 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
         if (textureNeedsUpdate) {
             withWriteLock([&] { 
                 _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_particleProperties.textures);
+            });
+        }
+
+        if (_networkTexture) {
+            withWriteLock([&] {
+                entity->setVisuallyReady(_networkTexture->isFailed() || _networkTexture->isLoaded());
             });
         }
     }
@@ -310,7 +320,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
 }
 
 void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
-    if (!_visible) {
+    if (!_visible || !(_networkTexture && _networkTexture->isLoaded())) {
         return;
     }
 
@@ -318,11 +328,7 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     stepSimulation();
 
     gpu::Batch& batch = *args->_batch;
-    if (_networkTexture && _networkTexture->isLoaded()) {
-        batch.setResourceTexture(0, _networkTexture->getGPUTexture());
-    } else {
-        batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
-    }
+    batch.setResourceTexture(0, _networkTexture->getGPUTexture());
 
     Transform transform; 
     // The particles are in world space, so the transform is unused, except for the rotation, which we use

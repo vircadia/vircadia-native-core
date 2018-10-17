@@ -88,7 +88,7 @@ public:
     EntityItemID getEntityItemID() const { return EntityItemID(_id); }
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties = EntityPropertyFlags(), bool allowEmptyDesiredProperties = false) const;
 
     /// returns true if something changed
     // This function calls setSubClass properties and detects if any property changes value.
@@ -441,6 +441,8 @@ public:
 
     void setDynamicDataNeedsTransmit(bool value) const { _dynamicDataNeedsTransmit = value; }
     bool dynamicDataNeedsTransmit() const { return _dynamicDataNeedsTransmit; }
+    void setTransitingWithAvatar(bool value) { _transitingWithAvatar = value; }
+    bool getTransitingWithAvatar() { return _transitingWithAvatar; }
 
     bool shouldSuppressLocationEdits() const;
 
@@ -470,10 +472,11 @@ public:
     /// We only want to preload if:
     ///    there is some script, and either the script value or the scriptTimestamp
     ///    value have changed since our last preload
-    bool shouldPreloadScript() const { return !_script.isEmpty() &&
-                                              ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
-    void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
-    void scriptHasUnloaded() { _loadedScript = ""; _loadedScriptTimestamp = 0; }
+    bool shouldPreloadScript() const;
+    void scriptHasPreloaded();
+    void scriptHasUnloaded();
+    void setScriptHasFinishedPreload(bool value);
+    bool isScriptPreloadFinished();
 
     bool getClientOnly() const { return _clientOnly; }
     virtual void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
@@ -584,6 +587,7 @@ protected:
     QString _script { ENTITY_ITEM_DEFAULT_SCRIPT }; /// the value of the script property
     QString _loadedScript; /// the value of _script when the last preload signal was sent
     quint64 _scriptTimestamp { ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
+    bool _scriptPreloadFinished { false };
 
     QString _serverScripts;
     /// keep track of time when _serverScripts property was last changed
@@ -666,6 +670,7 @@ protected:
     QUuid _sourceUUID; /// the server node UUID we came from
 
     bool _clientOnly { false };
+    bool _transitingWithAvatar{ false };
     QUuid _owningAvatarID;
 
     // physics related changes from the network to suppress any duplicates and make

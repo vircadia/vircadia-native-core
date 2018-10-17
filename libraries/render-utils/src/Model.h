@@ -75,6 +75,18 @@ struct SortedTriangleSet {
     int subMeshIndex;
 };
 
+struct BlendshapeOffsetPacked {
+    glm::uvec4 packedPosNorTan;
+};
+
+struct BlendshapeOffsetUnpacked {
+    glm::vec3 positionOffset;
+    glm::vec3 normalOffset;
+    glm::vec3 tangentOffset;
+};
+
+using BlendshapeOffset = BlendshapeOffsetPacked;
+
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
     Q_OBJECT
@@ -144,7 +156,7 @@ public:
     bool maybeStartBlender();
 
     /// Sets blended vertices computed in a separate thread.
-    void setBlendedVertices(int blendNumber, const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
+    void setBlendedVertices(int blendNumber, const QVector<BlendshapeOffset>& blendshapeOffsets);
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
@@ -344,7 +356,7 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
-    std::unordered_map<int, QVector<NormalType>> _normalsAndTangents;
+    std::unordered_map<int, QVector<BlendshapeOffset>> _blendshapeOffsets;
 
 public slots:
     void loadURLFinished(bool success);
@@ -424,8 +436,8 @@ protected:
 
     QUrl _url;
 
-    std::unordered_map<int, gpu::BufferPointer> _blendedVertexBuffers;
-    bool _blendedVertexBuffersInitialized { false };
+    std::unordered_map<int, gpu::BufferPointer> _blendshapeBuffers;
+    bool _blendshapeBuffersInitialized{ false };
 
     QVector<QVector<QSharedPointer<Texture>>> _dilatedTextures;
 
@@ -506,6 +518,7 @@ private:
 
 Q_DECLARE_METATYPE(ModelPointer)
 Q_DECLARE_METATYPE(Geometry::WeakPointer)
+Q_DECLARE_METATYPE(BlendshapeOffset)
 
 /// Handle management of pending models that need blending
 class ModelBlender : public QObject, public Dependency {
@@ -520,7 +533,7 @@ public:
     bool shouldComputeBlendshapes() { return _computeBlendshapes; }
 
 public slots:
-    void setBlendedVertices(ModelPointer model, int blendNumber, QVector<glm::vec3> vertices, QVector<NormalType> normalsAndTangents);
+    void setBlendedVertices(ModelPointer model, int blendNumber, QVector<BlendshapeOffset> blendshapeOffsets); 
     void setComputeBlendshapes(bool computeBlendshapes) { _computeBlendshapes = computeBlendshapes; }
 
 private:
@@ -530,7 +543,8 @@ private:
     ModelBlender();
     virtual ~ModelBlender();
 
-    std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlends;
+    std::queue<ModelWeakPointer> _modelsRequiringBlendsQueue;
+    std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlendsSet;
     int _pendingBlenders;
     Mutex _mutex;
 

@@ -131,7 +131,7 @@ Rectangle {
                             print("Marketplace item tester unsupported assetType " + assetType);
                     }
                 },
-                "trash": function(){
+                "trash": function(resource, assetType){
                     if ("application" === assetType) {
                         Commerce.uninstallApp(resource);
                     }

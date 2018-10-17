@@ -36,6 +36,7 @@ public:
 
     Geometry() = default;
     Geometry(const Geometry& geometry);
+    virtual ~Geometry() {}
 
     // Immutable over lifetime
     using GeometryMeshes = std::vector<std::shared_ptr<const graphics::Mesh>>;

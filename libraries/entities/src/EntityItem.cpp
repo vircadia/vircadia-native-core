@@ -1251,9 +1251,10 @@ quint64 EntityItem::getExpiry() const {
     return getCreated() + (quint64)(getLifetime() * (float)USECS_PER_SECOND);
 }
 
-EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EncodeBitstreamParams params; // unknown
-    EntityPropertyFlags propertyFlags = desiredProperties.isEmpty() ? getEntityProperties(params) : desiredProperties;
+    const EntityPropertyFlags propertyFlags = !allowEmptyDesiredProperties && desiredProperties.isEmpty() ?
+        getEntityProperties(params) : desiredProperties;
     EntityItemProperties properties(propertyFlags);
     properties._id = getID();
     properties._idSet = true;
@@ -3196,4 +3197,27 @@ void EntityItem::setCloneIDs(const QVector<QUuid>& cloneIDs) {
     withWriteLock([&] {
         _cloneIDs = cloneIDs;
     });
+}
+
+bool EntityItem::shouldPreloadScript() const {
+    return !_script.isEmpty() && ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp));
+}
+
+void EntityItem::scriptHasPreloaded() {
+    _loadedScript = _script;
+    _loadedScriptTimestamp = _scriptTimestamp;
+}
+
+void EntityItem::scriptHasUnloaded() {
+    _loadedScript = "";
+    _loadedScriptTimestamp = 0;
+    _scriptPreloadFinished = false;
+}
+
+void EntityItem::setScriptHasFinishedPreload(bool value) {
+    _scriptPreloadFinished = value;
+}
+
+bool EntityItem::isScriptPreloadFinished() {
+    return _scriptPreloadFinished;
 }

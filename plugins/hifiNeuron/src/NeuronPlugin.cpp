@@ -369,7 +369,11 @@ void NeuronPlugin::init() {
     static const QString NEURON_PLUGIN { "Perception Neuron" };
     {
         auto getter = [this]()->bool { return _enabled; };
-        auto setter = [this](bool value) { _enabled = value; saveSettings(); };
+        auto setter = [this](bool value) { 
+            _enabled = value; 
+            saveSettings(); 
+            emit deviceStatusChanged(getName(), _enabled && _active);
+        };
         auto preference = new CheckPreference(NEURON_PLUGIN, "Enabled", getter, setter);
         preferences->addPreference(preference);
     }
@@ -493,7 +497,7 @@ void NeuronPlugin::loadSettings() {
     {
         // enabled
         _enabled = settings.value("enabled", QVariant(DEFAULT_ENABLED)).toBool();
-
+        emit deviceStatusChanged(getName(), _enabled && _active);
         // serverAddress
         _serverAddress = settings.value("serverAddress", QVariant(DEFAULT_SERVER_ADDRESS)).toString();
 

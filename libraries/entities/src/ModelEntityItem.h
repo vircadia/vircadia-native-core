@@ -27,7 +27,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -69,6 +69,9 @@ public:
 
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     QString getCompoundShapeURL() const;
+
+    // Returns the URL used for the collision shape
+    QString getCollisionShapeURL() const;
 
     void setColor(const rgbColor& value);
     void setColor(const xColor& value);

@@ -1110,7 +1110,36 @@ function moveTableRow(row, move_up) {
   }
 
   // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
-  badgeForDifferences($(table))
+  badgeForDifferences($(table));
+
+  // figure out which group this row is in
+  var panelParentID = row.closest('.panel').attr('id');
+
+  // get the short name for the setting from the table
+  var tableShortName = row.closest('table').data('short-name');
+
+  var changed = tableHasChanged(panelParentID, tableShortName);
+  $(table).find('.' + Settings.DATA_ROW_CLASS).each(function(){
+    var hiddenInput = $(this).find('td.' + Settings.DATA_COL_CLASS + ' input');
+    if (changed) {
+      hiddenInput.attr('data-changed', true);
+    } else {
+      hiddenInput.removeAttr('data-changed');
+    }
+  });
+
+}
+
+function tableHasChanged(panelParentID, tableShortName) {
+  // get a JSON representation of that section
+  var panelSettingJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID][tableShortName]
+  if (Settings.initialValues[panelParentID]) {
+    var initialPanelSettingJSON = Settings.initialValues[panelParentID][tableShortName]
+  } else {
+    var initialPanelSettingJSON = {};
+  }
+
+  return !_.isEqual(panelSettingJSON, initialPanelSettingJSON);
 }
 
 function updateDataChangedForSiblingRows(row, forceTrue) {
@@ -1123,16 +1152,8 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
     // get the short name for the setting from the table
     var tableShortName = row.closest('table').data('short-name')
 
-    // get a JSON representation of that section
-    var panelSettingJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID][tableShortName]
-    if (Settings.initialValues[panelParentID]) {
-      var initialPanelSettingJSON = Settings.initialValues[panelParentID][tableShortName]
-    } else {
-      var initialPanelSettingJSON = {};
-    }
-
     // if they are equal, we don't need data-changed
-    isTrue = !_.isEqual(panelSettingJSON, initialPanelSettingJSON)
+    isTrue = tableHasChanged(panelParentID, tableShortName);
   } else {
     isTrue = true
   }
@@ -1140,9 +1161,9 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
   row.siblings('.' + Settings.DATA_ROW_CLASS).each(function(){
     var hiddenInput = $(this).find('td.' + Settings.DATA_COL_CLASS + ' input')
     if (isTrue) {
-      hiddenInput.attr('data-changed', isTrue)
+      hiddenInput.attr('data-changed', isTrue);
     } else {
-      hiddenInput.removeAttr('data-changed')
+      hiddenInput.removeAttr('data-changed');
     }
   })
 }

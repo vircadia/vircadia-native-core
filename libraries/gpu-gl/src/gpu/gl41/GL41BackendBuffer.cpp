@@ -20,7 +20,10 @@ namespace gpu {
 
             ~GL41Buffer() { 
                 if (_texBuffer) {
-                    glDeleteTextures(1, &_texBuffer);
+                    auto backend = _backend.lock();
+                    if (backend) {
+                        backend->releaseTexture(_texBuffer, 0);
+                    }
                 }
             }
 

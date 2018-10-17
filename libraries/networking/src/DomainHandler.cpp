@@ -123,6 +123,7 @@ void DomainHandler::hardReset() {
 
     softReset();
     _isInErrorState = false;
+    emit redirectErrorStateChanged(_isInErrorState);
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
     _pendingDomainID = QUuid();
@@ -136,6 +137,11 @@ void DomainHandler::hardReset() {
 
     // clear any pending path we may have wanted to ask the previous DS about
     _pendingPath.clear();
+}
+
+bool DomainHandler::isHardRefusal(int reasonCode) {
+    return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch || reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
+        reasonCode == (int)ConnectionRefusedReason::TimedOut);
 }
 
 bool DomainHandler::getInterstitialModeEnabled() const {
@@ -327,6 +333,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
         _isConnected = isConnected;
 
         if (_isConnected) {
+            _lastDomainConnectionError = -1;
             emit connectedToDomain(_domainURL);
 
             if (_domainURL.scheme() == URL_SCHEME_HIFI && !_domainURL.host().isEmpty()) {
@@ -358,9 +365,11 @@ void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
 
 void DomainHandler::setRedirectErrorState(QUrl errorUrl, QString reasonMessage, int reasonCode, const QString& extraInfo) {
     _lastDomainConnectionError = reasonCode;
-    if (getInterstitialModeEnabled()) {
+    if (getInterstitialModeEnabled() && isHardRefusal(reasonCode)) {
         _errorDomainURL = errorUrl;
         _isInErrorState = true;
+        qCDebug(networking) << "Error connecting to domain: " << reasonMessage;
+        emit redirectErrorStateChanged(_isInErrorState);
         emit redirectToErrorDomainURL(_errorDomainURL);
     } else {
         emit domainConnectionRefused(reasonMessage, reasonCode, extraInfo);

@@ -6,8 +6,10 @@
     <color name="colorAccent">#54D7FD</color>
     <color name="backgroundEditText">#E3E3E3</color>
     <color name="editTextColor">#575757</color>
+    <color name="showPasswordColor">#3D3D3D</color>
     <color name="tabs">#1EB5EC</color>
     <color name="colorButton1">#00B4EF</color>
+    <color name="colorButton2">#828282</color>
     <color name="backgroundDark">#333333</color>
     <color name="backgroundLight">#4F4F4F</color>
     <color name="backgroundSearch">#33999999</color>
@@ -22,4 +24,6 @@
     <color name="starSelectedTint">#FBD92A</color>
     <color name="starUnselectedTint">#8A8A8A</color>
     <color name="slidingUpPanelFadeColor">#40000000</color>
+    <color name="clearText">#F2F2F2</color>
+
 </resources>

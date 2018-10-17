@@ -106,6 +106,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", true),
+    _showPlayArea("showPlayArea", true),
     _smoothOrientationTimer(std::numeric_limits<float>::max()),
     _smoothOrientationInitial(),
     _smoothOrientationTarget(),
@@ -116,6 +117,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _bodySensorMatrix(),
     _goToPending(false),
     _goToSafe(true),
+    _goToFeetAjustment(false),
     _goToPosition(),
     _goToOrientation(),
     _prevShouldDrawHead(true),
@@ -135,7 +137,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _useSnapTurnSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "useSnapTurn", _useSnapTurn),
     _userHeightSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userHeight", DEFAULT_AVATAR_HEIGHT),
     _flyingHMDSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "flyingHMD", _flyingPrefHMD),
-    _avatarEntityCountSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData" << "size", _flyingPrefHMD)
+    _avatarEntityCountSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData" << "size", 0)
 {
     _clientTraitsHandler = std::unique_ptr<ClientTraitsHandler>(new ClientTraitsHandler(this));
 
@@ -498,7 +500,7 @@ void MyAvatar::update(float deltaTime) {
     setCurrentStandingHeight(computeStandingHeightMode(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
     setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
 
-   if (_drawAverageFacingEnabled) {
+    if (_drawAverageFacingEnabled) {
         auto sensorHeadPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
         glm::vec3 worldHeadPos = transformPoint(getSensorToWorldMatrix(), sensorHeadPose.getTranslation());
         glm::vec3 worldFacingAverage = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacingMovingAverage.x, 0.0f, _headControllerFacingMovingAverage.y));
@@ -525,6 +527,12 @@ void MyAvatar::update(float deltaTime) {
         // Run safety tests as soon as we can after goToLocation, or clear if we're not colliding.
         _physicsSafetyPending = getCollisionsEnabled();
         _characterController.recomputeFlying(); // In case we've gone to into the sky.
+    }
+    if (_goToFeetAjustment && _skeletonModelLoaded) {
+        auto feetAjustment = getWorldPosition() - getWorldFeetPosition();
+        _goToPosition = getWorldPosition() + feetAjustment;
+        setWorldPosition(_goToPosition);
+        _goToFeetAjustment = false;
     }
     if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) {
         // When needed and ready, arrange to check and fix.
@@ -632,9 +640,8 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
-    
     animateScaleChanges(deltaTime);
-
+    
     setFlyingEnabled(getFlyingEnabled());
 
     if (_cauterizationNeedsUpdate) {
@@ -922,6 +929,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
     
     if (hasSensorToWorldScaleChanged) {
+        setTransitScale(sensorToWorldScale);
         emit sensorToWorldScaleChanged(sensorToWorldScale);
     }
     
@@ -1728,6 +1736,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     _headBoneSet.clear();
     _cauterizationNeedsUpdate = true;
+    _skeletonModelLoaded = false;
 
     std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
     *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
@@ -1745,6 +1754,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
            _skeletonModel->setCauterizeBoneSet(_headBoneSet);
            _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
            initAnimGraph();
+           _skeletonModelLoaded = true;
        }
        QObject::disconnect(*skeletonConnection);
     });
@@ -1932,7 +1942,7 @@ void MyAvatar::updateMotors() {
         horizontalMotorTimescale = FLYING_MOTOR_TIMESCALE;
         verticalMotorTimescale = FLYING_MOTOR_TIMESCALE;
     } else {
-        horizontalMotorTimescale = WALKING_MOTOR_TIMESCALE;
+        horizontalMotorTimescale = WALKING_MOTOR_TIMESCALE * getSensorToWorldScale();
         verticalMotorTimescale = INVALID_MOTOR_TIMESCALE;
     }
 
@@ -2945,46 +2955,10 @@ void MyAvatar::goToLocation(const QVariant& propertiesVar) {
 }
 
 void MyAvatar::goToFeetLocation(const glm::vec3& newPosition,
-    bool hasOrientation, const glm::quat& newOrientation,
-    bool shouldFaceLocation) {
-
-    qCDebug(interfaceapp).nospace() << "MyAvatar goToFeetLocation - moving to " << newPosition.x << ", "
-        << newPosition.y << ", " << newPosition.z;
-
-    ShapeInfo shapeInfo;
-    computeShapeInfo(shapeInfo);
-    glm::vec3 halfExtents = shapeInfo.getHalfExtents();
-    glm::vec3 localFeetPos = shapeInfo.getOffset() - glm::vec3(0.0f, halfExtents.y + halfExtents.x, 0.0f);
-    glm::mat4 localFeet = createMatFromQuatAndPos(Quaternions::IDENTITY, localFeetPos);
-    
-    glm::mat4 worldFeet = createMatFromQuatAndPos(Quaternions::IDENTITY, newPosition);
-    
-    glm::mat4 avatarMat = worldFeet * glm::inverse(localFeet);
-
-    glm::vec3 adjustedPosition = extractTranslation(avatarMat);
-
-    _goToPending = true;
-    _goToPosition = adjustedPosition;
-    _goToOrientation = getWorldOrientation();
-    if (hasOrientation) {
-        qCDebug(interfaceapp).nospace() << "MyAvatar goToFeetLocation - new orientation is "
-            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
-
-        // orient the user to face the target
-        glm::quat quatOrientation = cancelOutRollAndPitch(newOrientation);
-
-        if (shouldFaceLocation) {
-            quatOrientation = newOrientation * glm::angleAxis(PI, Vectors::UP);
-
-            // move the user a couple units away
-            const float DISTANCE_TO_USER = 2.0f;
-            _goToPosition = adjustedPosition - quatOrientation * IDENTITY_FORWARD * DISTANCE_TO_USER;
-        }
-
-        _goToOrientation = quatOrientation;
-    }
-
-    emit transformChanged();
+                                bool hasOrientation, const glm::quat& newOrientation,
+                                bool shouldFaceLocation) {
+    _goToFeetAjustment = true;
+    goToLocation(newPosition, hasOrientation, newOrientation, shouldFaceLocation);
 }
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
@@ -3334,7 +3308,7 @@ float MyAvatar::getRawDriveKey(DriveKeys key) const {
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (getDriveKey(TRANSLATE_Y) > 0.0f) {
+    if (getDriveKey(TRANSLATE_Y) > 0.0f && (!qApp->isHMDMode() || (useAdvancedMovementControls() && getFlyingHMDPref()))) {
         _characterController.jump();
     }
 }

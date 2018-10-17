@@ -52,7 +52,7 @@ public:
     //ALLOW_INSTANTIATION 
     
     // methods for getting/setting all properties of an entity
-    EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     bool setProperties(const EntityItemProperties& properties) override;
 
     EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;

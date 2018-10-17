@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/backgroundLight">
+
+    <ImageView
+        android:id="@+id/header"
+        android:layout_width="@dimen/header_hifi_width"
+        android:layout_height="@dimen/header_hifi_height"
+        android:layout_marginTop="@dimen/header_hifi_margin_top"
+        android:contentDescription="HighFidelity"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/hifi_header" />
+
+    <TextView
+        android:id="@+id/error"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:layout_marginLeft="9dp"
+        android:layout_marginRight="9dp"
+        android:fontFamily="@font/raleway"
+        android:textColor="@color/colorLoginError"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toTopOf="@id/email"
+        app:layout_constraintLeft_toLeftOf="@id/email"
+        app:layout_constraintRight_toRightOf="@id/email"
+        android:visibility="invisible"/>
+
+    <EditText
+        android:id="@+id/email"
+        android:layout_width="match_parent"
+        android:layout_height="35dp"
+        android:layout_marginLeft="46dp"
+        android:layout_marginRight="46dp"
+        android:background="@drawable/rounded_edit"
+        android:padding="7dp"
+        android:paddingRight="12dp"
+        android:paddingTop="14dp"
+        android:ems="10"
+        android:fontFamily="@font/raleway"
+        android:textSize="17sp"
+        android:inputType="textEmailAddress"
+        android:textStyle="italic"
+        android:textColor="@color/editTextColor"
+        android:textColorHint="@color/editTextColor"
+        android:gravity="left|center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/header"
+        android:layout_marginTop="70dp"
+        android:hint="@string/email" />
+
+    <EditText
+        android:id="@+id/username"
+        android:layout_width="match_parent"
+        android:layout_height="35dp"
+        android:layout_marginLeft="46dp"
+        android:layout_marginRight="46dp"
+        android:background="@drawable/rounded_edit"
+        android:padding="7dp"
+        android:paddingRight="12dp"
+        android:paddingTop="14dp"
+        android:ems="10"
+        android:fontFamily="@font/raleway"
+        android:textSize="17sp"
+        android:inputType="text"
+        android:textStyle="italic"
+        android:textColor="@color/editTextColor"
+        android:textColorHint="@color/editTextColor"
+        android:gravity="left|center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/email"
+        android:layout_marginTop="7dp"
+        android:hint="@string/username" />
+
+
+    <android.support.design.widget.TextInputLayout
+        android:id="@+id/passwordLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="46dp"
+        android:layout_marginRight="46dp"
+        app:passwordToggleTint="@color/showPasswordColor"
+        app:passwordToggleEnabled="true"
+        app:hintAnimationEnabled="false"
+        app:passwordToggleDrawable="@drawable/selector_show_password"
+        app:hintEnabled="false"
+        app:layout_constraintTop_toBottomOf="@id/username"
+        android:layout_marginTop="7dp"
+        >
+    <android.support.design.widget.TextInputEditText
+        android:id="@+id/password"
+        android:layout_width="match_parent"
+        android:layout_height="35dp"
+        android:background="@drawable/rounded_edit"
+        android:padding="7dp"
+        android:drawablePadding="55dp"
+        android:paddingTop="14dp"
+        android:drawableEnd="@drawable/ic_eye_noshow"
+        android:ems="10"
+        android:fontFamily="@font/raleway"
+        android:textSize="17sp"
+        android:textStyle="italic"
+        android:textColor="@color/editTextColor"
+        android:textColorHint="@color/editTextColor"
+        android:gravity="left|center_vertical"
+        android:imeOptions="actionDone"
+        android:hint="@string/password"
+        android:inputType="textPassword" />
+    </android.support.design.widget.TextInputLayout>
+
+    <Button
+        android:id="@+id/signupButton"
+        android:layout_width="154dp"
+        android:layout_height="38dp"
+        android:layout_marginTop="44dp"
+        android:background="@drawable/rounded_button"
+        android:fontFamily="@font/raleway_semibold"
+        android:paddingBottom="0dp"
+        android:paddingTop="0dp"
+        android:text="@string/signup"
+        android:textColor="@color/white_opaque"
+        android:textAllCaps="false"
+        android:textSize="18sp"
+        app:layout_constraintRight_toRightOf="@id/username"
+        app:layout_constraintTop_toBottomOf="@id/passwordLayout"
+        app:layout_goneMarginTop="4dp"/>
+
+    <Button
+        android:id="@+id/cancelButton"
+        android:layout_width="0dp"
+        app:layout_constraintWidth_default="spread"
+        android:layout_height="38dp"
+        android:background="@drawable/rounded_secondary_button"
+        android:fontFamily="@font/raleway_semibold"
+        android:paddingBottom="0dp"
+        android:paddingTop="0dp"
+        android:layout_marginRight="15dp"
+        android:text="@string/cancel"
+        android:textColor="@color/white_opaque"
+        android:textAllCaps="false"
+        android:textSize="18sp"
+        app:layout_constraintLeft_toLeftOf="@id/passwordLayout"
+        app:layout_constraintTop_toTopOf="@id/signupButton"
+        app:layout_constraintRight_toLeftOf="@id/signupButton"
+        app:layout_goneMarginTop="4dp"/>
+
+</android.support.constraint.ConstraintLayout>
