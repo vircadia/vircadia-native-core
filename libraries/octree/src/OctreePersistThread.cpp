@@ -158,7 +158,7 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
             persistentFileRead = _tree->readFromFile(_filename.toLocal8Bit().constData());
         } else {
             QDataStream jsonStream(_cachedJSONData);
-            persistentFileRead = _tree->readFromStream(-1, QDataStream(_cachedJSONData));
+            persistentFileRead = _tree->readFromStream(-1, jsonStream);
         }
         _tree->pruneTree();
     });

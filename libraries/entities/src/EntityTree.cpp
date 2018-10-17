@@ -35,7 +35,7 @@
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
-#include "RecurseOctreeToJsonOperator.h"
+#include "RecurseOctreeToJSONOperator.h"
 #include "LogHandler.h"
 #include "EntityEditFilters.h"
 #include "EntityDynamicFactoryInterface.h"

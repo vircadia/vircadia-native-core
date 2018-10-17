@@ -10,10 +10,10 @@
 //
 
 #include <sstream>
+#include <cctype>
 #include <QUuid>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QVariantList>
 
 #include "OctreeEntitiesFileParser.h"
 
@@ -171,12 +171,12 @@ string OctreeEntitiesFileParser::readString() {
 
 int OctreeEntitiesFileParser::readInteger() {
     const char* currentPosition = _entitiesContents.constData() + _position;
-    int i = atoi(currentPosition);
+    int i = std::atoi(currentPosition);
 
     int token;
     do {
         token = nextToken();
-    } while (token == '-' || token == '+' || (token >= '0' && token <= '9'));
+    } while (token == '-' || token == '+' || std::isdigit(token));
 
     --_position;
     return i;

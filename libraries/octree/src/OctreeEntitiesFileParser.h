@@ -14,8 +14,8 @@
 #ifndef hifi_OctreeEntitiesFileParser_h
 #define hifi_OctreeEntitiesFileParser_h
 
-#include <QVariantMap>
 #include <QByteArray>
+#include <QVariant>
 
 class OctreeEntitiesFileParser {
 public:

@@ -785,28 +785,26 @@ bool Octree::readFromStream(uint64_t streamLength, QDataStream& inputStream, con
 }
 
 
+namespace {
 // hack to get the marketplace id into the entities.  We will create a way to get this from a hash of
 // the entity later, but this helps us move things along for now
-QJsonDocument addMarketplaceIDToDocumentEntities(QJsonDocument& doc, const QString& marketplaceID) {
+QVariantMap addMarketplaceIDToDocumentEntities(QVariantMap& doc, const QString& marketplaceID) {
     if (!marketplaceID.isEmpty()) {
-        QJsonDocument newDoc;
-        QJsonObject rootObj = doc.object();
-        QJsonArray newEntitiesArray;
+        QVariantList newEntitiesArray;
 
         // build a new entities array
-        auto entitiesArray = rootObj["Entities"].toArray();
-        for(auto it = entitiesArray.begin(); it != entitiesArray.end(); it++) {
-            auto entity = (*it).toObject();
+        auto entitiesArray = doc["Entities"].toList();
+        for (auto it = entitiesArray.begin(); it != entitiesArray.end(); it++) {
+            auto entity = (*it).toMap();
             entity["marketplaceID"] = marketplaceID;
             newEntitiesArray.append(entity);
         }
-        rootObj["Entities"] = newEntitiesArray;
-        newDoc.setObject(rootObj);
-        return newDoc;
+        doc["Entities"] = newEntitiesArray;
     }
     return doc;
 }
 
+}  // Unnamed namepsace
 const int READ_JSON_BUFFER_SIZE = 2048;
 
 bool Octree::readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID /*=""*/) {
@@ -831,16 +829,15 @@ bool Octree::readJSONFromStream(uint64_t streamLength, QDataStream& inputStream,
     OctreeEntitiesFileParser octreeParser;
     octreeParser.setEntitiesString(jsonBuffer);
     QVariantMap asMap;
-    bool parseSuccess = octreeParser.parseEntities(asMap);
-
-    /*
-    QJsonDocument asDocument = QJsonDocument::fromJson(jsonBuffer);
-    if (!marketplaceID.isEmpty()) {
-        asDocument = addMarketplaceIDToDocumentEntities(asDocument, marketplaceID);
+    if (!octreeParser.parseEntities(asMap)) {
+        qCritical() << "Couldn't parse Entities JSON:" << octreeParser.getErrorString().c_str();
+        return false;
     }
-    QVariant asVariant = asDocument.toVariant();
-    QVariantMap asMap = asVariant.toMap();
-    */
+
+    if (!marketplaceID.isEmpty()) {
+        addMarketplaceIDToDocumentEntities(asMap, marketplaceID);
+    }
+
     bool success = readFromMap(asMap);
     delete[] rawData;
     return success;
