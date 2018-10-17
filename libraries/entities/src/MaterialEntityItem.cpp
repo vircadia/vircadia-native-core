@@ -324,9 +324,9 @@ AACube MaterialEntityItem::calculateInitialQueryAACube(bool& success) {
         if (success) {
             aaCube += parentQueryAACube.getMinimumPoint();
             aaCube += parentQueryAACube.getMaximumPoint();
-            return aaCube;
         }
     }
+    return aaCube;
 }
 
 void MaterialEntityItem::postParentFixup() {
