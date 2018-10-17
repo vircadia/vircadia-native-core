@@ -14,7 +14,7 @@ Auto-tester has 5 functions, separated into 4 tabs:
 
 ## Installation
 ### Executable
-1. Download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/autoTester/AutoTester-Installer.exe>).
+1. Download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/autoTester/AutoTester-Installer-v6.6.exe>).
 2. Double click on the installer and install to a convenient location  
 ![](./setup_7z.PNG)
 3. To run the auto-tester, double click **auto-tester.exe**.
