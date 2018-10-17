@@ -5,11 +5,13 @@ The auto-tester is a stand alone application that provides a mechanism for regre
 * The snapshots are compared to a 'canonical' set of images that have been produced beforehand.
 * The result, if any test failed, is a zipped folder describing the failure.
 
-Auto-tester has 4 functions, separated into 4 tabs:
+Auto-tester has 5 functions, separated into 4 tabs:
 1. Creating tests, MD files and recursive scripts
-2. Evaluating the results of running tests
-3. TestRail interface
-4. Windows task bar utility (Windows only)
+1. Windows task bar utility (Windows only)
+1. Running tests
+1. Evaluating the results of running tests
+1. Web interface
+
 ## Installation
 ### Executable
 1. Download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/autoTester/AutoTester-Installer.exe>).
@@ -113,6 +115,34 @@ autoTester.runRecursive();
 In this case all recursive scripts, from the selected folder down, are created.
 
 Running this function in the tests root folder will create (or update) all the recursive scripts.
+# Windows
+![](./Windows.PNG)
+
+This tab is Windows-specific.  It provides buttons to hide and show the task bar.
+
+The task bar should be hidden for all tests that use the primary camera.  This is required to ensure that the snapshots are the right size.
+# Run
+![](./Run.PNG)
+The run tab is used to run tests in automatic mode.  The tests require the location of a folder to store files in; this folder can safely be re-used for any number of runs (the "Working Folder"). 
+The test script that is run is `https://github.com/highfidelity/hifi_tests/blob/master/tests/testRecursive.js`.  The user can use a different branch' or even repository, if required.  
+Tests can be run server-less, or with the local host.  In the second case, the domain-server and assignment-clients are run before starting Interface.  
+The default is to run the latest build.  The user can select a specific build or PR if desired.
+Testing can be started immediately, or run on a schedule.  
+
+A test run is performed in a number of steps:  
+1.  If the latest run has been selected then the `dev-builds.xml` file is downloaded to identify the latest build.  
+1.  The installer is then downloaded.  
+1.  After downloading the High Fidelity application is installed.  This requires that UAC be disabled!
+1.  Any instances of the server-console, assignment-client, domain-server or Interface are killed before running the tests.  
+1.  Interface is run with the appropriate command line parameters.  
+1.  The expected images are then downloaded from GitHub and compared to the actual images from the tests.
+
+The working folder will ultimately contain the following:  
+1.  A folder named `High Fidelity`.  This is where High Fidelity is installed.  
+1.  A folder named `snapshots`.  This folder contains the zipped results folders (one for each run).  It also contains both the actual images and the expected images from the last run; note that these are deleted before running tests (All PNG files in the folder are deleted.  In addition - a text file named `tests_completed.txt` is created at the end of the test script - this signals that Interface did not crash during the test run.  
+1.  The `dev-builds.xml` file, if it was downloaded.  
+1.  The HighFidelity installer.  Note that this is always named `HighFidelity-Beta-latest-dev` so as not to store too many installers over time.  
+1.  A log file describing the runs.  This file is appended to after each run.
 # Evaluate
 ![](./Evaluate.PNG)
 
@@ -140,8 +170,10 @@ Evaluation proceeds in a number of steps:
 1.  If not in interactive mode, or the user has defined the results as an error, an error is written into the error folder.  The error itself is a folder with the 3 images and a small text file containing details.
 
 1.  At the end of the test, the folder is zipped and the original folder is deleted.  If there are no errors then the zipped folder will be empty.
-# TestRail
-![](./TestRail.PNG)
+
+# Web Interface
+![](./WebInterface.PNG)
+This tab has two functions:  updating the TestRail cases, runs and results, and creating web page reports that are stored on AWS.  
 
 Before updating TestRail, make sure the GitHub user and branch are set correctly.  The user should not normally be changed, but the branch may need to be set to the appropriate RC.
 
@@ -209,10 +241,7 @@ A number of Python scripts are created:
 - `getRuns.py` reads the release names from TestRail
 - `addRun` is the script that writes to TestRail.
 
-In addition - a file containing all the releases will be created - `runs.txt`
-# Windows
-![](./Windows.PNG)
-
-This tab is Windows-specific.  It provides buttons to hide and show the task bar.
-
-The task bar should be hidden for all tests that use the primary camera.  This is required to ensure that the snapshots are the right size.
+In addition - a file containing all the releases will be created - `runs.txt`.
+## Create Web Page
+This function requests a zipped results folder and converts it to a web page.  The page is created in a user-selecetd working folder.  
+If the `Update AWS` checkbox is checked then the page will also be copied to AWS, and the appropriate URL will be displayed in the window below the button.
