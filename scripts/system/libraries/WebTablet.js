@@ -129,9 +129,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         url: modelURL, // for overlay
         grabbable: true, // for overlay
         loadPriority: 10.0, // for overlay
-        userData: JSON.stringify({
-            "grabbableKey": {"grabbable": true}
-        }),
+        grab: { grabbable: true },
         dimensions: { x: tabletWidth, y: tabletHeight, z: tabletDepth },
         parentID: MyAvatar.SELF_ID,
         visible: visible,

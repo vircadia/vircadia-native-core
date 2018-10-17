@@ -11,6 +11,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/* global Script, MyAvatar, Messages, Controller */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -20,7 +21,7 @@ var lastRightTrigger = 0;
 var leftHandOverlayAlpha = 0;
 var rightHandOverlayAlpha = 0;
 
-var CONTROLLER_DEAD_SPOT = 0.25;
+// var CONTROLLER_DEAD_SPOT = 0.25;
 var TRIGGER_SMOOTH_TIMESCALE = 0.1;
 var OVERLAY_RAMP_RATE = 8.0;
 
@@ -42,9 +43,9 @@ function clamp(val, min, max) {
     return Math.min(Math.max(val, min), max);
 }
 
-function normalizeControllerValue(val) {
-    return clamp((val - CONTROLLER_DEAD_SPOT) / (1 - CONTROLLER_DEAD_SPOT), 0, 1);
-}
+// function normalizeControllerValue(val) {
+//     return clamp((val - CONTROLLER_DEAD_SPOT) / (1 - CONTROLLER_DEAD_SPOT), 0, 1);
+// }
 
 function lerp(a, b, alpha) {
     return a * (1 - alpha) + b * alpha;
