@@ -1,0 +1,8 @@
+{
+    "compressed": {
+        "COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT": "Default-Sky-9-cubemap_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT.ktx",
+        "COMPRESSED_SRGB8_ETC2": "Default-Sky-9-cubemap_COMPRESSED_SRGB8_ETC2.ktx"
+    },
+    "original": "Default-Sky-9-cubemap.jpg",
+    "uncompressed": "Default-Sky-9-cubemap.ktx"
+}
