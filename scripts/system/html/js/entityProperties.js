@@ -1307,6 +1307,7 @@ var colorPickers = {};
 var particlePropertyUpdates = {};
 var selectedEntityProperties;
 var lastEntityID = null;
+var createAppTooltip = new CreateAppTooltip();
 
 function debugPrint(message) {
     EventBridge.emitWebEvent(
@@ -2659,7 +2660,7 @@ function showParentMaterialNameBox(number, elNumber, elString) {
 
 
 function loaded() {
-    openEventBridge(function() {    
+    openEventBridge(function() {
         let elPropertiesList = document.getElementById("properties-list");
         
         GROUPS.forEach(function(group) {            
@@ -2728,6 +2729,8 @@ function loaded() {
                 let elLabel = document.createElement('label');
                 elLabel.innerText = propertyData.label;
                 elLabel.setAttribute("for", propertyElementID);
+
+                createAppTooltip.registerTooltipElement(elLabel, propertyID);
                 
                 let property = { 
                     data: propertyData, 
@@ -3150,6 +3153,8 @@ function loaded() {
                             activeElement.select();
                         }
                     }
+                } else if (data.type === 'tooltipsReply') {
+                    createAppTooltip.setTooltipData(data.tooltips);
                 }
             });
         }
@@ -3381,5 +3386,6 @@ function loaded() {
 
     setTimeout(function() {
         EventBridge.emitWebEvent(JSON.stringify({ type: 'propertiesPageReady' }));
+        EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
     }, 1000);
 }
