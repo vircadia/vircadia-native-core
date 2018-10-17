@@ -554,6 +554,10 @@ QString ModelEntityItem::getCompoundShapeURL() const {
     return _compoundShapeURL.get();
 }
 
+QString ModelEntityItem::getCollisionShapeURL() const {
+    return getShapeType() == SHAPE_TYPE_COMPOUND ? getCompoundShapeURL() : getModelURL();
+}
+
 void ModelEntityItem::setColor(const rgbColor& value) { 
     withWriteLock([&] {
         memcpy(_color, value, sizeof(_color));
