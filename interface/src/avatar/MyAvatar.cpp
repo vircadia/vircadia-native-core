@@ -467,8 +467,8 @@ void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
     const float STANDING_HEIGHT_MULTIPLE = 1.2f;
     const float SITTING_HEIGHT_MULTIPLE = 0.833f;
-    const int SITTING_COUNT_THRESHOLD = 180;
-    const int STANDING_COUNT_THRESHOLD = 60;
+    const int SITTING_COUNT_THRESHOLD = 240;
+    const int STANDING_COUNT_THRESHOLD = 20;
     const int SQUATTY_COUNT_THRESHOLD = 600;
     const float SITTING_UPPER_BOUND = 1.52f;
 
@@ -495,7 +495,7 @@ void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
             } else {
                 // sanity check if average height greater than 5ft they are not sitting(or get off your dangerous barstool please)
                 if (_sumUserHeightSensorSpace > SITTING_UPPER_BOUND) {
-                    setIsInSittingState(true);
+                    setIsInSittingState(false);
                 } else {
                     // tipping point is average height when sitting.
                     _tippingPoint = _sumUserHeightSensorSpace;
@@ -4192,7 +4192,6 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 
     if (myAvatar.getHMDLeanRecenterEnabled() &&
         qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
-
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
             myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
