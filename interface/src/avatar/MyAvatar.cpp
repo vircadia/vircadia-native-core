@@ -122,7 +122,6 @@ MyAvatar::MyAvatar(QThread* thread) :
     _goToOrientation(),
     _prevShouldDrawHead(true),
     _audioListenerMode(FROM_HEAD),
-    _hmdAtRestDetector(glm::vec3(0), glm::quat()),
     _dominantHandSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "dominantHand", DOMINANT_RIGHT_HAND),
     _headPitchSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "", 0.0f),
     _scaleSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "scale", _targetScale),
@@ -701,6 +700,46 @@ void MyAvatar::simulate(float deltaTime) {
     // update sensorToWorldMatrix for camera and hand controllers
     // before we perform rig animations and IK.
     updateSensorToWorldMatrix();
+
+    // if we detect the hand controller is at rest, i.e. lying on the table, or the hand is too far away from the hmd
+    // disable the associated hand controller input.
+    {
+        // NOTE: all poses are in sensor space.
+        auto leftHandIter = _controllerPoseMap.find(controller::Action::LEFT_HAND);
+        if (leftHandIter != _controllerPoseMap.end() && leftHandIter->second.isValid()) {
+            _leftHandAtRestDetector.update(leftHandIter->second.getTranslation(), leftHandIter->second.getRotation());
+            if (_leftHandAtRestDetector.isAtRest()) {
+                leftHandIter->second.valid = false;
+            }
+        } else {
+            _leftHandAtRestDetector.invalidate();
+        }
+
+        auto rightHandIter = _controllerPoseMap.find(controller::Action::RIGHT_HAND);
+        if (rightHandIter != _controllerPoseMap.end() && rightHandIter->second.isValid()) {
+            _rightHandAtRestDetector.update(rightHandIter->second.getTranslation(), rightHandIter->second.getRotation());
+            if (_rightHandAtRestDetector.isAtRest()) {
+                rightHandIter->second.valid = false;
+            }
+        } else {
+            _rightHandAtRestDetector.invalidate();
+        }
+
+        auto headIter = _controllerPoseMap.find(controller::Action::HEAD);
+
+        // The 99th percentile man has a spine to fingertip to height ratio of 0.45.  Lets increase that by about 10% to 0.5
+        // then measure the distance the center of the eyes to the finger tips.  To come up with this ratio.
+        // From "The Measure of Man and Woman: Human Factors in Design, Revised Edition" by Alvin R. Tilley, Henry Dreyfuss Associates
+        const float MAX_HEAD_TO_HAND_DISTANCE_RATIO = 0.52f;
+
+        float maxHeadHandDistance = getUserHeight() * MAX_HEAD_TO_HAND_DISTANCE_RATIO;
+        if (glm::length(headIter->second.getTranslation() - leftHandIter->second.getTranslation()) > maxHeadHandDistance) {
+            leftHandIter->second.valid = false;
+        }
+        if (glm::length(headIter->second.getTranslation() - rightHandIter->second.getTranslation()) > maxHeadHandDistance) {
+            rightHandIter->second.valid = false;
+        }
+    }
 
     {
         PerformanceTimer perfTimer("skeleton");
