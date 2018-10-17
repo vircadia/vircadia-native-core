@@ -372,36 +372,36 @@ LightStage::LightPointer LightStage::removeLight(Index index) {
     return removedLight;
 }
 
-LightStage::LightPointer LightStage::getCurrentKeyLight() const {
-    Index keyLightId{ _defaultLightId };
-    if (!_currentFrame._sunLights.empty()) {
-        keyLightId = _currentFrame._sunLights.front();
+LightStage::LightPointer LightStage::getCurrentKeyLight(const LightStage::Frame& frame) const {
+    Index keyLightId { _defaultLightId };
+    if (!frame._sunLights.empty()) {
+        keyLightId = frame._sunLights.front();
     }
     return _lights.get(keyLightId);
 }
 
-LightStage::LightPointer LightStage::getCurrentAmbientLight() const {
+LightStage::LightPointer LightStage::getCurrentAmbientLight(const LightStage::Frame& frame) const {
     Index keyLightId { _defaultLightId };
-    if (!_currentFrame._ambientLights.empty()) {
-        keyLightId = _currentFrame._ambientLights.front();
+    if (!frame._ambientLights.empty()) {
+        keyLightId = frame._ambientLights.front();
     }
     return _lights.get(keyLightId);
 }
 
-LightStage::ShadowPointer LightStage::getCurrentKeyShadow() const {
+LightStage::ShadowPointer LightStage::getCurrentKeyShadow(const LightStage::Frame& frame) const {
     Index keyLightId { _defaultLightId };
-    if (!_currentFrame._sunLights.empty()) {
-        keyLightId = _currentFrame._sunLights.front();
+    if (!frame._sunLights.empty()) {
+        keyLightId = frame._sunLights.front();
     }
     auto shadow = getShadow(keyLightId);
     assert(shadow == nullptr || shadow->getLight() == getLight(keyLightId));
     return shadow;
 }
 
-LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow() const {
+LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow(const LightStage::Frame& frame) const {
     Index keyLightId { _defaultLightId };
-    if (!_currentFrame._sunLights.empty()) {
-        keyLightId = _currentFrame._sunLights.front();
+    if (!frame._sunLights.empty()) {
+        keyLightId = frame._sunLights.front();
     }
     auto shadow = getShadow(keyLightId);
     auto light = getLight(keyLightId);
