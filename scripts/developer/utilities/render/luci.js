@@ -88,35 +88,123 @@
     }
 
 
-    function fromQml(message) {
-        switch (message.method) {
-        case "openEngineView":
-            openEngineTaskView();
-            break;
-        }            
-    }
+ 
+    var Page = function(title, qmlurl, width, height) {
+       
+        this.title = title;
+        this.qml = Script.resolvePath(qmlurl);
+        this.width = width;
+        this.height = height;
 
+        this.window = null;
+    };
+
+    Page.prototype.createView = function() {
+        if (this.window == null) {
+            var window = Desktop.createWindow(this.qml, {
+                title: this.title,
+                presentationMode: Desktop.PresentationMode.NATIVE,
+                size: {x: this.width, y: this.height}
+            });
+            this.window = window
+            this.window.closed.connect(this.killView);
+        }  
+    };
+
+    Page.prototype.killView = function() {
+        if (this.window !==  undefined) { 
+            this.window.closed.disconnect(this.killView);
+            this.window.close()
+            this.window = undefined
+        }
+    };
+
+    var pages = []
+    pages.push_back(new Page('Render Engine', 'engineInspector.qml', 300, 400))
+
+ 
 
     var engineInspectorView = null 
-    function openEngineTaskView() {
-        if (engineInspectorView == null) {
+    function openEngineInspectorView() {
+        
+   /*        if (engineInspectorView == null) {
             var qml = Script.resolvePath('engineInspector.qml');
-            var window = new OverlayWindow({
+            var window = Desktop.createWindow(qml, {
                 title: 'Render Engine',
-                source: qml,
-                width: 300, 
-                height: 400
+                presentationMode: Desktop.PresentationMode.NATIVE,
+                size: {x: 300, y: 400}
             });
-            window.setPosition(200, 50);
             engineInspectorView = window
-            window.closed.connect(function() { engineInspectorView = null; });
-        } else {
-            engineInspectorView.setPosition(200, 50);          
+            window.closed.connect(killEngineInspectorView);
         }
     }
 
+    function killEngineInspectorView() {
+        if (engineInspectorView !==  undefined) { 
+            engineInspectorView.closed.disconnect(killEngineInspectorView);
+            engineInspectorView.close()
+            engineInspectorView = undefined
+        }
+    }
+*/
+    var cullInspectorView = null 
+    function openCullInspectorView() {
+        if (cullInspectorView == null) {
+            var qml = Script.resolvePath('culling.qml');
+            var window = Desktop.createWindow(qml, {
+                title: 'Cull Inspector',
+                presentationMode: Desktop.PresentationMode.NATIVE,
+                size: {x: 400, y: 600}
+            });
+            cullInspectorView = window
+            window.closed.connect(killCullInspectorView);
+        }
+    }
 
+    function killCullInspectorView() {
+        if (cullInspectorView !==  undefined) { 
+            cullInspectorView.closed.disconnect(killCullInspectorView);
+            cullInspectorView.close()
+            cullInspectorView = undefined
+        }
+    }
+
+    var engineLODView = null
+    function openEngineLODView() {
+        if (engineLODView == null) {
+            engineLODView = Desktop.createWindow(Script.resolvePath('lod.qml'), {
+                title: 'Render LOD',
+                flags: Desktop.ALWAYS_ON_TOP,
+                presentationMode: Desktop.PresentationMode.NATIVE,
+                size: {x: 300, y: 500},
+            });
+            engineLODView.closed.connect(killEngineLODView);
+        }
+    }
+     function killEngineLODView() {
+        if (engineLODView !==  undefined) { 
+            engineLODView.closed.disconnect(killEngineLODView);
+            engineLODView.close()
+            engineLODView = undefined
+        }
+    }
     
+    
+
+    function fromQml(message) {
+        switch (message.method) {
+        case "openEngineView":
+            openEngineInspectorView();
+            break;
+        case "openCullInspectorView":
+            openCullInspectorView();
+            break;
+        case "openEngineLODView":
+            openEngineLODView();
+            break;
+        }               
+    }
+
     Script.scriptEnding.connect(function () {
         if (onLuciScreen) {
             tablet.gotoHomeScreen();
@@ -125,8 +213,8 @@
         tablet.screenChanged.disconnect(onScreenChanged);
         tablet.removeButton(button);
 
-        if (engineInspectorView !== null) {
-            engineInspectorView.close()
-        }
+        killEngineInspectorView();
+        killCullInspectorView();
+        killEngineLODWindow();
     });
 }()); 
