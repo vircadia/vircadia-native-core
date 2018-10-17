@@ -40,6 +40,7 @@ HazePropertyGroup EntityItemProperties::_staticHaze;
 BloomPropertyGroup EntityItemProperties::_staticBloom;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
+GrabPropertyGroup EntityItemProperties::_staticGrab;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -86,6 +87,7 @@ void EntityItemProperties::debugDump() const {
     getKeyLight().debugDump();
     getAmbientLight().debugDump();
     getBloom().debugDump();
+    getGrab().debugDump();
 
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
@@ -471,6 +473,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     changedProperties += _skybox.getChangedProperties();
     changedProperties += _haze.getChangedProperties();
     changedProperties += _bloom.getChangedProperties();
+    changedProperties += _grab.getChangedProperties();
 
     return changedProperties;
 }
@@ -627,6 +630,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} cloneAvatarEntity=false - If <code>true</code> then clones created from this entity will be created as 
  *     avatar entities: their <code>clientOnly</code> property will be set to <code>true</code>.
  * @property {Uuid} cloneOriginID - The ID of the entity that this entity was cloned from.
+ *
+ * @property {Entities.Grab} grab - The grab-related properties.
  *
  * @property {string} itemName="" - Certifiable name of the Marketplace item.
  * @property {string} itemDescription="" - Certifiable description of the Marketplace item.
@@ -1530,6 +1535,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_AVATAR_ENTITY, cloneAvatarEntity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_ORIGIN_ID, cloneOriginID);
 
+    _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
     // Rendering info
     if (!skipDefaults && !strictSemantics &&
         (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::RenderInfo))) {
@@ -1700,7 +1707,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeColors, qVectorVec3, setStrokeColors);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeWidths,qVectorFloat, setStrokeWidths);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isUVModeStretch, bool, setIsUVModeStretch);
-    
+
 
     if (!honorReadOnly) {
         // this is used by the json reader to set things that we don't want javascript to able to affect.
@@ -1718,6 +1725,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _skybox.copyFromScriptValue(object, _defaultSettings);
     _haze.copyFromScriptValue(object, _defaultSettings);
     _bloom.copyFromScriptValue(object, _defaultSettings);
+    _grab.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(yTextureURL, QString, setYTextureURL);
@@ -1883,6 +1891,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     _skybox.merge(other._skybox);
     _haze.merge(other._haze);
     _bloom.merge(other._bloom);
+    _grab.merge(other._grab);
 
     COPY_PROPERTY_IF_CHANGED(xTextureURL);
     COPY_PROPERTY_IF_CHANGED(yTextureURL);
@@ -2171,6 +2180,26 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_CLONE_DYNAMIC, CloneDynamic, cloneDynamic, bool);
         ADD_PROPERTY_TO_MAP(PROP_CLONE_AVATAR_ENTITY, CloneAvatarEntity, cloneAvatarEntity, bool);
         ADD_PROPERTY_TO_MAP(PROP_CLONE_ORIGIN_ID, CloneOriginID, cloneOriginID, QUuid);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_FOLLOWS_CONTROLLER, Grab, grab, GrabFollowsController, grabFollowsController);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_TRIGGERABLE, Grab, grab, Triggerable, triggerable);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE, Grab, grab, Equippable, equippable);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, Grab, grab,
+                                  EquippableLeftPosition, equippableLeftPosition);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, Grab, grab,
+                                  EquippableLeftRotation, equippableLeftRotation);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET, Grab, grab,
+                                  EquippableRightPosition, equippableRightPosition);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_RIGHT_EQUIPPABLE_ROTATION_OFFSET, Grab, grab,
+                                  EquippableRightRotation, equippableRightRotation);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_URL, Grab, grab,
+                                  EquippableIndicatorURL, equippableIndicatorURL);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_SCALE, Grab, grab,
+                                  EquippableIndicatorScale, equippableIndicatorScale);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_OFFSET, Grab, grab,
+                                  EquippableIndicatorOffset, equippableIndicatorOffset);
 
         // FIXME - these are not yet handled
         //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
@@ -2501,6 +2530,10 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, properties.getCloneLimit());
             APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, properties.getCloneDynamic());
             APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, properties.getCloneAvatarEntity());
+
+            _staticGrab.setProperties(properties);
+            _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                                           propertiesDidntFit, propertyCount, appendState);
         }
 
         if (propertyCount > 0) {
@@ -2794,7 +2827,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FILTER_URL, QString, setFilterURL);
- 
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
@@ -2880,6 +2913,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_LIMIT, float, setCloneLimit);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
+
+    properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
     return valid;
 }
@@ -3120,6 +3155,7 @@ void EntityItemProperties::markAllChanged() {
     _skybox.markAllChanged();
     _haze.markAllChanged();
     _bloom.markAllChanged();
+    _grab.markAllChanged();
 
     _sourceUrlChanged = true;
     _voxelVolumeSizeChanged = true;
@@ -3654,6 +3690,7 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     getSkybox().listChangedProperties(out);
     getHaze().listChangedProperties(out);
     getBloom().listChangedProperties(out);
+    getGrab().listChangedProperties(out);
 
     return out;
 }

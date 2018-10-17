@@ -32,7 +32,7 @@
         range: DEFAULT_RANGE,
         maxVolume: DEFAULT_VOLUME,
         disabled: true,
-        grabbableKey: { wantsTrigger: true },
+        grab: { triggerable: true }
     };
 
     var soundURL = "";
@@ -182,7 +182,7 @@
         entity = entityID;
         _this = this;
 
-        var props = Entities.getEntityProperties(entity, [ "userData" ]);
+        var props = Entities.getEntityProperties(entity, [ "userData", "grab.triggerable" ]);
         var data = {};
         if (props.userData) {
             data = JSON.parse(props.userData);
@@ -194,14 +194,15 @@
                 changed = true;
             }
         }
-        if (!data.grabbableKey.wantsTrigger) {
-            data.grabbableKey.wantsTrigger = true;
-            changed = true;
-        }
         if (changed) {
             debugPrint("applying default values to userData");
             Entities.editEntity(entity, { userData: JSON.stringify(data) });
         }
+
+        if (!props.grab.triggerable) {
+            Entities.editEntity(entity, { grab: { triggerable: true } });
+        }
+
         this._updateColor(data.disabled);
         this.updateSettings();
 
