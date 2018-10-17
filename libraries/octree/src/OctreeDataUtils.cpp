@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 #include "OctreeDataUtils.h"
+#include "OctreeEntitiesFileParser.h"
 
 #include <Gzip.h>
 #include <udt/PacketHeaders.h>
@@ -55,19 +56,30 @@ bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromJSON(QJsonObject root) {
     return true;
 }
 
+bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromMap(QVariantMap map) {
+    if (map.contains("Id") && map.contains("DataVersion") && map.contains("Version")) {
+        id = map["Id"].toUuid();
+        dataVersion = map["DataVersion"].toInt();
+        version = map["Version"].toInt();
+    }
+    return true;
+}
+
 bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromData(QByteArray data) {
     QByteArray jsonData;
     if (gunzip(data, jsonData)) {
         data = jsonData;
     }
 
-    auto doc = QJsonDocument::fromJson(data);
-    if (doc.isNull()) {
+    OctreeEntitiesFileParser jsonParser;
+    jsonParser.setEntitiesString(data);
+    QVariantMap entitiesMap;
+    if (!jsonParser.parseEntities(entitiesMap)) {
+        qCritical() << "Can't parse Entities JSON: " << jsonParser.getErrorString().c_str();
         return false;
     }
 
-    auto root = doc.object();
-    return readOctreeDataInfoFromJSON(root);
+    return readOctreeDataInfoFromMap(entitiesMap);
 }
 
 // Reads octree file and parses it into a RawOctreeData object.

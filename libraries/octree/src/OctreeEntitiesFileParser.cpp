@@ -189,23 +189,25 @@ bool OctreeEntitiesFileParser::readEntitiesArray(QVariantList& entitiesArray) {
     }
 
     while (true) {
-        QJsonParseError parseError;
-        QByteArray entitiesJson(_entitiesContents.right(_entitiesLength - _position));
-        QJsonDocument entity = QJsonDocument::fromJson(entitiesJson, &parseError);
-        if (parseError.error != QJsonParseError::GarbageAtEnd) {
-            _errorString = "Ill-formed entity array";
+        if (nextToken() != '{') {
+            _errorString = "Entity array item is not an object";
             return false;
         }
-        int entityLength = parseError.offset;
-        entitiesJson.truncate(entityLength);
-        _position += entityLength;
+        int matchingBrace = findMatchingBrace();
+        if (matchingBrace < 0) {
+            _errorString = "Unterminated entity object";
+            return false;
+        }
 
-        entity = QJsonDocument::fromJson(entitiesJson, &parseError);
-        if (parseError.error != QJsonParseError::NoError) {
-            _errorString = "Entity item parse error";
+        QByteArray jsonEntity = _entitiesContents.mid(_position - 1, matchingBrace - _position + 1);
+        QJsonDocument entity = QJsonDocument::fromJson(jsonEntity);
+        if (entity.isNull()) {
+            _errorString = "Ill-formed entity";
             return false;
         }
+
         entitiesArray.append(entity.object());
+        _position = matchingBrace;
         char c = nextToken();
         if (c == ']') {
             return true;
@@ -215,4 +217,38 @@ bool OctreeEntitiesFileParser::readEntitiesArray(QVariantList& entitiesArray) {
         }
     }
     return true;
+}
+
+int OctreeEntitiesFileParser::findMatchingBrace() const {
+    int index = _position;
+    int nestCount = 1;
+    while (index < _entitiesLength && nestCount != 0) {
+        switch (_entitiesContents[index++]) {
+        case '{':
+            ++nestCount;
+            break;
+
+        case '}':
+            --nestCount;
+            break;
+
+        case '"':
+            // Skip string
+            while (index < _entitiesLength) {
+                if (_entitiesContents[index] == '"') {
+                    ++index;
+                    break;
+                } else if (_entitiesContents[index] == '\\' && _entitiesContents[++index] == 'u') {
+                    index += 4;
+                }
+                ++index;
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    return nestCount == 0 ? index : -1;
 }

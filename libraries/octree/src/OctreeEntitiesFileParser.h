@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// Parse the top-level of the Models object ourselves - use QJsonDocument for each Entity object.
+
 #ifndef hifi_OctreeEntitiesFileParser_h
 #define hifi_OctreeEntitiesFileParser_h
 
@@ -27,6 +29,7 @@ private:
     std::string readString();
     int readInteger();
     bool readEntitiesArray(QVariantList& entitiesArray);
+    int findMatchingBrace() const;
 
     QByteArray _entitiesContents;
     int _position { 0 };

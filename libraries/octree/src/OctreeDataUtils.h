@@ -43,6 +43,7 @@ public:
     bool readOctreeDataInfoFromData(QByteArray data);
     bool readOctreeDataInfoFromFile(QString path);
     bool readOctreeDataInfoFromJSON(QJsonObject root);
+    bool readOctreeDataInfoFromMap(QVariantMap map);
 };
 
 class RawEntityData : public RawOctreeData {
