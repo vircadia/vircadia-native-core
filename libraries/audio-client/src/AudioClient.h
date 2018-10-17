@@ -197,7 +197,11 @@ public slots:
     void checkInputTimeout();
     void handleDummyAudioInput();
     void handleRecordedAudioInput(const QByteArray& audio);
-    void handleTTSAudioInput(const QByteArray& audio);
+    void handleTTSAudioInput(const QByteArray& audio,
+                             const int& newChunkSize,
+                             const int& timerInterval);
+    void clearTTSBuffer();
+    void processTTSBuffer();
     void reset();
     void audioMixerKilled();
 
@@ -289,11 +293,12 @@ private:
     bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
-
-    void processAudioAndAddToRingBuffer(QByteArray& inputByteArray,
-                                        const uchar& channelCount,
-                                        const qint32& bytesForDuration,
-                                        QByteArray& rollingBuffer);
+    
+    Mutex _TTSMutex;
+    QTimer _TTSTimer;
+    bool _isProcessingTTS {false};
+    QByteArray _TTSAudioBuffer;
+    int _TTSChunkSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * 50;
 
 #ifdef Q_OS_ANDROID
     QTimer _checkInputTimer;
@@ -401,7 +406,7 @@ private:
     void configureReverb();
     void updateReverbOptions();
 
-    void handleLocalEchoAndReverb(QByteArray& inputByteArray);
+    void handleLocalEchoAndReverb(QByteArray& inputByteArray, const int& sampleRate, const int& channelCount);
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);

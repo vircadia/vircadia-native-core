@@ -65,7 +65,7 @@ void TTSScriptingInterface::testTone(const bool& alsoInject) {
         int16_t temp = (glm::sin(glm::radians((float)a))) * 32768;
         samples[a] = temp;
     }
-    emit ttsSampleCreated(_lastSoundByteArray);
+    emit ttsSampleCreated(_lastSoundByteArray, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * 50, 96);
 
     if (alsoInject) {
         AudioInjectorOptions options;
@@ -75,11 +75,16 @@ void TTSScriptingInterface::testTone(const bool& alsoInject) {
     }
 }
 
-void TTSScriptingInterface::speakText(const QString& textToSpeak, const bool& alsoInject) {
+void TTSScriptingInterface::speakText(const QString& textToSpeak,
+                                      const int& newChunkSize,
+                                      const int& timerInterval,
+                                      const int& sampleRate,
+                                      const int& bitsPerSample,
+                                      const bool& alsoInject) {
     WAVEFORMATEX fmt;
     fmt.wFormatTag = WAVE_FORMAT_PCM;
-    fmt.nSamplesPerSec = 24000;
-    fmt.wBitsPerSample = 16;
+    fmt.nSamplesPerSec = sampleRate;
+    fmt.wBitsPerSample = bitsPerSample;
     fmt.nChannels = 1;
     fmt.nBlockAlign = fmt.nChannels * fmt.wBitsPerSample / 8;
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
@@ -146,7 +151,7 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak, const bool& al
     _lastSoundByteArray.resize(0);
     _lastSoundByteArray.append(buf1, dwSize);
 
-    emit ttsSampleCreated(_lastSoundByteArray);
+    emit ttsSampleCreated(_lastSoundByteArray, newChunkSize, timerInterval);
 
     if (alsoInject) {
         AudioInjectorOptions options;
@@ -160,4 +165,6 @@ void TTSScriptingInterface::stopLastSpeech() {
     if (_lastSoundAudioInjector) {
         _lastSoundAudioInjector->stop();
     }
+
+    emit clearTTSBuffer();
 }

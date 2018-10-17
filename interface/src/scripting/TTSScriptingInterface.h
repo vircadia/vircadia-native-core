@@ -19,6 +19,7 @@
 #include <sapi.h>      // SAPI
 #include <sphelper.h>  // SAPI Helper
 #include <AudioInjector.h>
+#include <AudioConstants.h>
 
 class TTSScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -28,11 +29,17 @@ public:
     ~TTSScriptingInterface();
 
     Q_INVOKABLE void testTone(const bool& alsoInject = false);
-    Q_INVOKABLE void speakText(const QString& textToSpeak, const bool& alsoInject = false);
+    Q_INVOKABLE void speakText(const QString& textToSpeak,
+                               const int& newChunkSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * 50),
+                               const int& timerInterval = 96,
+                               const int& sampleRate = 24000,
+                               const int& bitsPerSample = 16,
+                               const bool& alsoInject = false);
     Q_INVOKABLE void stopLastSpeech();
 
 signals:
-    void ttsSampleCreated(QByteArray outputArray);
+    void ttsSampleCreated(QByteArray outputArray, const int& newChunkSize, const int& timerInterval);
+    void clearTTSBuffer();
 
 private:
     class CComAutoInit {
