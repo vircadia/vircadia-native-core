@@ -354,14 +354,36 @@ Rectangle {
             // "Lock State" Checkbox
 
             HifiControlsUit.CheckBox {
-                id: lockSitStandStateCheckbox;
-                visible: activeTab == "nearbyTab";
-                anchors.right: reloadNearbyContainer.left;
-                anchors.rightMargin: 20;
-                checked: settings.lockStateEnabled;
-                text: "lock";
-                boxSize: 24;
+                id: lockSitStandStateCheckbox
+                visible: activeTab == "nearbyTab"
+                anchors.right: reloadNearbyContainer.left
+                anchors.rightMargin: 20
+                checked: settings.lockStateEnabled
+                text: "lock"
+                boxSize: 24
             }
+            
+            // sit stand combo box
+            HifiControlsUit.ComboBox {
+                id: boxy
+                //textRole: "text"
+                currentIndex: 2
+                model: ListModel {
+                    id: cbItems
+                    ListElement { text: "Force Sitting"; color: "Yellow" }
+                    ListElement { text: "Force Standing"; color: "Green" }
+                    ListElement { text: "Auto Mode"; color: "Brown" }
+                    ListElement { text: "Disable Recentering"; color: "Red" }
+                }
+                //displayText: "fred"
+                //label: cbItems.get(currentIndex).text
+                width: 200
+                onCurrentIndexChanged: { 
+                    console.debug(cbItems.get(currentIndex).text + ", " + cbItems.get(currentIndex).color)
+                    console.debug("line 2")
+                }
+            }
+            
         }
 
         ColumnLayout {

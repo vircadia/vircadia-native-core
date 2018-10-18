@@ -464,20 +464,19 @@ void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
     }
 }
 
-void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
+void MyAvatar::updateSitStandState(float newHeightReading, float dt) {
     const float STANDING_HEIGHT_MULTIPLE = 1.2f;
     const float SITTING_HEIGHT_MULTIPLE = 0.833f;
-    const int SITTING_COUNT_THRESHOLD = 240;
-    const int STANDING_COUNT_THRESHOLD = 20;
-    const int SQUATTY_COUNT_THRESHOLD = 600;
+    const float SITTING_TIMEOUT = 4.0f;  // 4 seconds
+    const float STANDING_TIMEOUT = 0.3333f; // 1/3 second
     const float SITTING_UPPER_BOUND = 1.52f;
 
     if (!getIsSitStandStateLocked() && !getIsAway() && qApp->isHMDMode()) {
         if (getIsInSittingState()) {
             if (newHeightReading > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
                 // if we recenter upwards then no longer in sitting state
-                _sitStandStateCount++;
-                if (_sitStandStateCount > STANDING_COUNT_THRESHOLD) {
+                _sitStandStateTimer += dt;
+                if (_sitStandStateTimer > STANDING_TIMEOUT) {
                     _averageUserHeightSensorSpace = newHeightReading;
                     _tippingPoint = newHeightReading;
                     setIsInSittingState(false);
@@ -485,8 +484,8 @@ void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
             } else if (newHeightReading < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) {
                 // if we are mis labelled as sitting but we are standing in the real world this will
                 // make sure that a real sit is still recognized so we won't be stuck in sitting unable to change state
-                _sitStandStateCount++;
-                if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+                _sitStandStateTimer += dt;
+                if (_sitStandStateTimer > SITTING_TIMEOUT) {
                     _averageUserHeightSensorSpace = newHeightReading;
                     _tippingPoint = newHeightReading;
                     // here we stay in sit state but reset the average height
@@ -499,14 +498,14 @@ void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
                 } else {
                     // tipping point is average height when sitting.
                     _tippingPoint = _averageUserHeightSensorSpace;
-                    _sitStandStateCount = 0;
+                    _sitStandStateTimer = 0.0f;
                 }
             }
         } else {
             // in the standing state
             if (newHeightReading < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) {
-                _sitStandStateCount++;
-                if (_sitStandStateCount > SITTING_COUNT_THRESHOLD) {
+                _sitStandStateTimer += dt;
+                if (_sitStandStateTimer > SITTING_TIMEOUT) {
                     _averageUserHeightSensorSpace = newHeightReading;
                     _tippingPoint = newHeightReading;
                     setIsInSittingState(true);
@@ -514,7 +513,7 @@ void MyAvatar::updateSitStandState(float newHeightReading, float angleHeadUp) {
             } else {
                 // use the mode height for the tipping point when we are standing.
                 _tippingPoint = getCurrentStandingHeight();
-                _sitStandStateCount = 0;
+                _sitStandStateTimer = 0.0f;
             }
         }
     } else {
@@ -530,6 +529,7 @@ void MyAvatar::update(float deltaTime) {
     const float HMD_FACING_TIMESCALE = getRotationRecenterFilterLength();
     const float PERCENTAGE_WEIGHT_HEAD_VS_SHOULDERS_AZIMUTH = 0.0f; // 100 percent shoulders
     const float COSINE_THIRTY_DEGREES = 0.866f;
+    const float SQUATTY_TIMEOUT = 30.0f; // 30 seconds
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     setHipToHandController(computeHandAzimuth());
@@ -575,19 +575,17 @@ void MyAvatar::update(float deltaTime) {
     }
     float angleSpine2 = glm::dot(upSpine2, glm::vec3(0.0f, 1.0f, 0.0f));
     if (getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y < (headDefaultPositionAvatarSpace.y - SQUAT_THRESHOLD) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
-        _squatCount++;
+        _squatTimer += deltaTime;
+        if (_squatTimer > SQUATTY_TIMEOUT) {
+            _squatTimer = 0.0f;
+            _follow._squatDetected = true;
+        }
     } else {
-        _squatCount = 0;
+        _squatTimer = 0.0f;
     }
-
-    glm::vec3 headUp = newHeightReading.getRotation() * glm::vec3(0.0f, 1.0f, 0.0f);
-    if (glm::length(headUp) > 0.0f) {
-        headUp = glm::normalize(headUp);
-    }
-    float angleHeadUp = glm::dot(headUp, glm::vec3(0.0f, 1.0f, 0.0f));
 
     // put update sit stand state counts here
-    updateSitStandState(newHeightReading.getTranslation().y, angleHeadUp);
+    updateSitStandState(newHeightReading.getTranslation().y, deltaTime);
 
     if (_drawAverageFacingEnabled) {
         auto sensorHeadPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
@@ -3893,8 +3891,8 @@ void MyAvatar::setIsInWalkingState(bool isWalking) {
 }
 
 void MyAvatar::setIsInSittingState(bool isSitting) {
-    _sitStandStateCount = 0;
-    _squatCount = 0;
+    _sitStandStateTimer = 0.0f;
+    _squatTimer = 0.0f;
     // on reset height we need the count to be more than one in case the user sits and stands up quickly.
     _isInSittingState.set(isSitting);
     setResetMode(true);
@@ -3909,7 +3907,8 @@ void MyAvatar::setIsInSittingState(bool isSitting) {
 
 void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
     _lockSitStandState.set(isLocked);
-    _sitStandStateCount = 0;
+    _sitStandStateTimer = 0.0f;
+    _squatTimer = 0.0f;
     _averageUserHeightSensorSpace = _userHeight.get();
     _tippingPoint = _userHeight.get();
     if (!isLocked) {
@@ -4155,7 +4154,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
     return stepDetected;
 }
 
-bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
+bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
     const float CYLINDER_TOP = 0.1f;
     const float CYLINDER_BOTTOM = -1.5f;
     const float SITTING_BOTTOM = -0.02f;
@@ -4179,8 +4178,7 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
         // in the standing state
         returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
         // finally check for squats in standing
-        if ((myAvatar._squatCount > SQUATTY_COUNT_THRESHOLD) && !myAvatar.getIsSitStandStateLocked()) {
-            myAvatar._squatCount = 0;
+        if (_squatDetected) {
             returnValue = true;
         }
     }
@@ -4216,6 +4214,9 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         }
         if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Vertical);
+            if (_squatDetected) {
+                _squatDetected = false;
+            }
         }
     } else {
         if (!isActive(Rotation) && getForceActivateRotation()) {
