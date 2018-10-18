@@ -32,12 +32,6 @@ AnimationCache::AnimationCache(QObject* parent) :
 }
 
 AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
-    if (QThread::currentThread() != thread()) {
-        AnimationPointer result;
-        BLOCKING_INVOKE_METHOD(this, "getAnimation",
-            Q_RETURN_ARG(AnimationPointer, result), Q_ARG(const QUrl&, url));
-        return result;
-    }
     return getResource(url).staticCast<Animation>();
 }
 

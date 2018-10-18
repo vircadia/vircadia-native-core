@@ -448,16 +448,15 @@ glm::vec2 toGlm(const QPointF& pt) {
     return glm::vec2(pt.x(), pt.y());
 }
 
-glm::vec3 toGlm(const xColor& color) {
+glm::vec3 toGlm(const glm::u8vec3& color) {
     static const float MAX_COLOR = 255.0f;
-    return glm::vec3(color.red, color.green, color.blue) / MAX_COLOR;
+    return glm::vec3(color) / MAX_COLOR;
 }
 
-xColor xColorFromGlm(const glm::vec3 & color) {
+vec4 toGlm(const glm::u8vec3& color, float alpha) {
     static const float MAX_COLOR = 255.0f;
-    return { (uint8_t)(color.x * MAX_COLOR), (uint8_t)(color.y * MAX_COLOR), (uint8_t)(color.z * MAX_COLOR) };
+    return vec4(glm::vec3(color) / MAX_COLOR, alpha);
 }
-
 
 glm::vec4 toGlm(const QColor& color) {
     return glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF());
@@ -473,10 +472,6 @@ QMatrix4x4 fromGlm(const glm::mat4 & m) {
 
 QSize fromGlm(const glm::ivec2 & v) {
     return QSize(v.x, v.y);
-}
-
-vec4 toGlm(const xColor& color, float alpha) {
-    return vec4((float)color.red / 255.0f, (float)color.green / 255.0f, (float)color.blue / 255.0f, alpha);
 }
 
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
