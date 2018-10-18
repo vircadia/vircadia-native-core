@@ -23,6 +23,7 @@ const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
 const WINDOW_NONVARIABLE_HEIGHT = 227;
 const NUM_COLUMNS = 12;
 const EMPTY_ENTITY_ID = "0";
+const MAX_LENGTH_RADIUS = 9;
 const DELETE = 46; // Key code for the delete key.
 const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 
@@ -203,7 +204,11 @@ function loaded() {
         elFilterSearch.onsearch = refreshEntityList;
         elFilterInView.onclick = toggleFilterInView;
         elFilterRadius.onchange = onRadiusChange;
-        elInfoToggle.onclick = toggleInfo;
+        elFilterRadius.oninput = function(event) {
+            if (event.target.value.length > MAX_LENGTH_RADIUS) {
+                event.target.value = event.target.value.slice(0, MAX_LENGTH_RADIUS); 
+            }
+        }
         
         // create filter type dropdown checkboxes with label and icon for each type
         elFilterTypeSelectBox.onclick = toggleTypeDropdown;
