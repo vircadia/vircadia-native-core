@@ -701,7 +701,7 @@ void CharacterController::updateState() {
     const btScalar GROUND_TO_FLY_THRESHOLD = 0.8f * _radius + _halfHeight;
     const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
     const btScalar MIN_HOVER_HEIGHT = _scaleFactor * DEFAULT_AVATAR_MIN_HOVER_HEIGHT;
-    const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
+    const quint64 JUMP_TO_HOVER_PERIOD = _scaleFactor < 1.0f ? _scaleFactor * 1100 * MSECS_PER_SECOND : 1100 * MSECS_PER_SECOND;
 
     // scan for distant floor
     // rayStart is at center of bottom sphere

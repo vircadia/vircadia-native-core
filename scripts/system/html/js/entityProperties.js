@@ -2197,12 +2197,6 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, r
 
     updateProperties(propertyUpdate);
 }
-function userDataChanger(groupName, keyName, values, userDataElement, defaultValue, removeKeys) {
-    var val = {}, def = {};
-    val[keyName] = values;
-    def[keyName] = defaultValue;
-    multiDataUpdater(groupName, val, userDataElement, def, removeKeys);
-}
 
 var editor = null;
 
@@ -2773,7 +2767,7 @@ function loaded() {
                         showUserDataTextArea();
                         showSaveUserDataButton();
                         showNewJSONEditorButton();
-                        
+                      
                         deleteJSONMaterialEditor();
                         getPropertyInputElement("materialData").value = "";
                         showMaterialDataTextArea();
@@ -2842,7 +2836,7 @@ function loaded() {
                                 selectedEntityProperties.type = "Image";
                             }
                         }
-                        
+
                         showGroupsForType(selectedEntityProperties.type);
                         
                         for (let propertyID in properties) {

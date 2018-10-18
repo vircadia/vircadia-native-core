@@ -112,6 +112,7 @@ public:
     virtual glm::vec3 getParentAngularVelocity(bool& success) const;
 
     virtual AACube getMaximumAACube(bool& success) const;
+    virtual AACube calculateInitialQueryAACube(bool& success);
 
     virtual void setQueryAACube(const AACube& queryAACube);
     virtual bool queryAACubeNeedsUpdate() const;
