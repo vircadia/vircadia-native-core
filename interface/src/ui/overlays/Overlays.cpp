@@ -557,8 +557,8 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
                                                           thisFace, thisSurfaceNormal, thisExtraInfo, precisionPicking)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
                 bool isTablet = tabletIDs.contains(thisID);
-                if (isDrawInFront && !bestIsFront && !bestIsTablet
-                        || (isTablet || isDrawInFront || !bestIsFront) && thisDistance < bestDistance) {
+                if ((isDrawInFront && !bestIsFront && !bestIsTablet)
+                        || ((isTablet || isDrawInFront || !bestIsFront) && thisDistance < bestDistance)) {
                     bestIsFront = isDrawInFront;
                     bestIsTablet = isTablet;
                     bestDistance = thisDistance;
