@@ -754,8 +754,6 @@ private:
     OverlayID _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
     OverlayID _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
 
-    RayToOverlayIntersectionResult findRayIntersectionForMouseEvent(PickRay ray);
-
 private slots:
     void mousePressPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
     void mouseMovePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
