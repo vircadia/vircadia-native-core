@@ -57,6 +57,7 @@
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
 #include "AgentScriptingInterface.h"
+#include "ResourceRequestObserver.h"
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
@@ -98,6 +99,8 @@ Agent::Agent(ReceivedMessage& message) :
 
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
+
+    DependencyManager::set<ResourceRequestObserver>();
 
     // Needed to ensure the creation of the DebugDraw instance on the main thread
     DebugDraw::getInstance();
