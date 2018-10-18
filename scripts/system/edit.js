@@ -345,11 +345,15 @@ var toolBar = (function () {
 
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
+
+            if (!properties.grab) {
+                properties.grab = {};
+            }
             if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
                 !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
-                properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
+                properties.grab.grabbable = true;
             } else {
-                properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
+                properties.grab.grabbable = false;
             }
 
             SelectionManager.saveProperties();

@@ -14,8 +14,9 @@
 #include <qscriptengine.h>
 #include <qscriptvalue.h>
 
-#include <RegisteredMetaTypes.h>
 #include <NumericalConstants.h>
+
+#include "RegisteredMetaTypes.h"
 
 TouchEvent::TouchEvent() :
     x(0.0f),
@@ -220,7 +221,7 @@ QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& 
     QScriptValue pointsObj = engine->newArray();
     int index = 0;
     foreach (glm::vec2 point, event.points) {
-        QScriptValue thisPoint = vec2toScriptValue(engine, point);
+        QScriptValue thisPoint = vec2ToScriptValue(engine, point);
         pointsObj.setProperty(index, thisPoint);
         index++;
     }

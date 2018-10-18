@@ -131,6 +131,10 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_CLONE_AVATAR_ENTITY;
     requestedProperties += PROP_CLONE_ORIGIN_ID;
 
+    withReadLock([&] {
+        requestedProperties += _grabProperties.getEntityProperties(params);
+    });
+
     return requestedProperties;
 }
 
@@ -167,6 +171,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
+
+    requestedProperties -= PROP_CLIENT_ONLY;
+    requestedProperties -= PROP_OWNING_AVATAR_ID;
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
@@ -300,7 +307,12 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, getCloneLimit());
         APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, getCloneDynamic());
         APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, getCloneAvatarEntity());
-        APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID()); 
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID());
+
+        withReadLock([&] {
+            _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+                                               propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        });
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -892,7 +904,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_CLONE_LIMIT, float, setCloneLimit);
     READ_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
     READ_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
-    READ_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID); 
+    READ_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID);
+
+    withWriteLock([&] {
+        int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+                                                                             propertyFlags, overwriteLocalData,
+                                                                             somethingChanged);
+        bytesRead += bytesFromGrab;
+        dataAt += bytesFromGrab;
+    });
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
@@ -1329,6 +1349,10 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneAvatarEntity, getCloneAvatarEntity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneOriginID, getCloneOriginID);
 
+    withReadLock([&] {
+        _grabProperties.getProperties(properties);
+    });
+
     properties._defaultSettings = false;
 
     return properties;
@@ -1464,6 +1488,11 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneDynamic, setCloneDynamic);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneAvatarEntity, setCloneAvatarEntity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneOriginID, setCloneOriginID);
+
+    withWriteLock([&] {
+        bool grabPropertiesChanged = _grabProperties.setProperties(properties);
+        somethingChanged |= grabPropertiesChanged;
+    });
 
     if (updateQueryAACube()) {
         somethingChanged = true;
@@ -1782,6 +1811,12 @@ void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
             _queryAACubeSet = false;
         });
     }
+}
+
+glm::vec3 EntityItem::getUnscaledDimensions() const {
+   return resultWithReadLock<glm::vec3>([&] {
+        return _unscaledDimensions;
+    });
 }
 
 void EntityItem::setRotation(glm::quat rotation) {

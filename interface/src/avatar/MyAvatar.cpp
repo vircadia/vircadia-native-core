@@ -1942,7 +1942,7 @@ void MyAvatar::updateMotors() {
         horizontalMotorTimescale = FLYING_MOTOR_TIMESCALE;
         verticalMotorTimescale = FLYING_MOTOR_TIMESCALE;
     } else {
-        horizontalMotorTimescale = WALKING_MOTOR_TIMESCALE;
+        horizontalMotorTimescale = WALKING_MOTOR_TIMESCALE * getSensorToWorldScale();
         verticalMotorTimescale = INVALID_MOTOR_TIMESCALE;
     }
 

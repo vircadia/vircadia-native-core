@@ -49,11 +49,8 @@ void Cube3DOverlay::render(RenderArgs* args) {
     }
 
     float alpha = getAlpha();
-    xColor color = getColor();
-    const float MAX_COLOR = 255.0f;
-    glm::vec4 cubeColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
-
-
+    glm::u8vec3 color = getColor();
+    glm::vec4 cubeColor(toGlm(color), alpha);
 
     auto batch = args->_batch;
     if (batch) {

@@ -55,85 +55,46 @@ BackgroundStage::BackgroundPointer BackgroundStage::removeBackground(Index index
 
 
 void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
-    const auto& lightingModel = inputs;
+    const auto& lightingModel = inputs.get0();
     if (!lightingModel->isBackgroundEnabled()) {
         return;
     }
 
     // Background rendering decision
-    auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
-    assert(backgroundStage);
-
-    graphics::SunSkyStagePointer background;
+    const auto& backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
+    const auto& backgroundFrame = inputs.get1();
     graphics::SkyboxPointer skybox;
-    if (backgroundStage->_currentFrame._backgrounds.size()) {
-        auto backgroundId = backgroundStage->_currentFrame._backgrounds.front();
-        auto background = backgroundStage->getBackground(backgroundId);
+    if (backgroundStage && backgroundFrame->_backgrounds.size()) {
+        const auto& background = backgroundStage->getBackground(backgroundFrame->_backgrounds.front());
         if (background) {
             skybox = background->getSkybox();
         }   
     }
-  /*  auto backgroundMode = skyStage->getBackgroundMode();
 
-    switch (backgroundMode) {
-    case graphics::SunSkyStage::SKY_DEFAULT: {
-        auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-        auto sceneKeyLight = scene->getKeyLight();
-
-        scene->setSunModelEnable(false);
-        sceneKeyLight->setColor(ColorUtils::toVec3(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_COLOR));
-        sceneKeyLight->setIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_INTENSITY);
-        sceneKeyLight->setAmbientIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY);
-        sceneKeyLight->setDirection(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_DIRECTION);
-        // fall through: render a skybox (if available), or the defaults (if requested)
-    }
-
-    case graphics::SunSkyStage::SKY_BOX: {*/
     if (skybox && !skybox->empty()) {
-            PerformanceTimer perfTimer("skybox");
-            auto args = renderContext->args;
+        PerformanceTimer perfTimer("skybox");
+        auto args = renderContext->args;
 
-            gpu::doInBatch("DrawBackgroundStage::run", args->_context, [&](gpu::Batch& batch) {
-                args->_batch = &batch;
+        gpu::doInBatch("DrawBackgroundStage::run", args->_context, [&](gpu::Batch& batch) {
+            args->_batch = &batch;
 
-                batch.enableSkybox(true);
+            batch.enableSkybox(true);
 
-                batch.setViewportTransform(args->_viewport);
-                batch.setStateScissorRect(args->_viewport);
+            batch.setViewportTransform(args->_viewport);
+            batch.setStateScissorRect(args->_viewport);
 
-                glm::mat4 projMat;
-                Transform viewMat;
-                args->getViewFrustum().evalProjectionMatrix(projMat);
-                args->getViewFrustum().evalViewTransform(viewMat);
+            glm::mat4 projMat;
+            Transform viewMat;
+            args->getViewFrustum().evalProjectionMatrix(projMat);
+            args->getViewFrustum().evalViewTransform(viewMat);
 
-                batch.setProjectionTransform(projMat);
-                batch.setViewTransform(viewMat);
+            batch.setProjectionTransform(projMat);
+            batch.setViewTransform(viewMat);
 
-                skybox->render(batch, args->getViewFrustum());
-            });
-            args->_batch = nullptr;
-
-             // break;
-        }
-        // fall through: render defaults (if requested)
-//    }
-/*
-    case graphics::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
-            auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-            auto sceneKeyLight = scene->getKeyLight();
-            auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-            if (defaultSkyboxAmbientTexture) {
-                sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
-                sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
-            }
-            // fall through: render defaults skybox
-        } else {
-            break;
-        }
+            skybox->render(batch, args->getViewFrustum());
+        });
+        args->_batch = nullptr;
     }
-    */
-
 }
 
 BackgroundStageSetup::BackgroundStageSetup() {

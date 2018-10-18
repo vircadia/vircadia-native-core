@@ -10,6 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* global Script, HMD, Reticle, Vec3, Controller */
+
 (function() {
     var ControllerDispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
 
@@ -121,7 +123,7 @@
             if (this.mouseActivity.expired(now) || this.triggersPressed(controllerData, now) || !hmdActive) {
                 if (!hmdActive) {
                     Reticle.visible = true;
-                } else { 
+                } else {
                     Reticle.visible = false;
                 }
 
