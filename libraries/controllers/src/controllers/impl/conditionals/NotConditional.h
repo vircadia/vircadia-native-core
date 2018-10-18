@@ -19,6 +19,7 @@ namespace controller {
         using Pointer = std::shared_ptr<NotConditional>;
 
         NotConditional(Conditional::Pointer operand) : _operand(operand) { }
+        virtual ~NotConditional() {}
 
         virtual bool satisfied() override;
 

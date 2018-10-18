@@ -39,6 +39,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.highfidelity.hifiinterface.fragment.WebViewFragment;
 import io.highfidelity.hifiinterface.receiver.HeadsetStateReceiver;
@@ -68,6 +69,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     private native void nativeEnterBackground();
     private native void nativeEnterForeground();
     private native long nativeOnExitVr();
+    private native void nativeInitAfterAppLoaded();
 
     private AssetManager assetManager;
 
@@ -303,14 +305,22 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         switch (activityName) {
             case "Home":
             case "Privacy Policy":
-            case "Login": {
                 nativeBeforeEnterBackground();
                 Intent intent = new Intent(this, MainActivity.class);
                 intent.putExtra(MainActivity.EXTRA_FRAGMENT, activityName);
                 intent.putExtra(MainActivity.EXTRA_BACK_TO_SCENE, backToScene);
                 startActivity(intent);
                 break;
-            }
+            case "Login":
+                nativeBeforeEnterBackground();
+                Intent loginIntent = new Intent(this, MainActivity.class);
+                loginIntent.putExtra(MainActivity.EXTRA_FRAGMENT, activityName);
+                loginIntent.putExtra(MainActivity.EXTRA_BACK_TO_SCENE, backToScene);
+                if (args != null && args.containsKey(DOMAIN_URL)) {
+                    loginIntent.putExtra(DOMAIN_URL, (String) args.get(DOMAIN_URL));
+                }
+                startActivity(loginIntent);
+                break;
             case "WebView":
                 runOnUiThread(() -> {
                     webSlidingDrawer.setVisibility(View.VISIBLE);
@@ -342,6 +352,9 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         if (nativeEnterBackgroundCallEnqueued) {
             nativeEnterBackground();
         }
+        runOnUiThread(() -> {
+            nativeInitAfterAppLoaded();
+        });
     }
 
     public void performHapticFeedback(int duration) {

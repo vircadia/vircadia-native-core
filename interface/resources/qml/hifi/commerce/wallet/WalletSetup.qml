@@ -28,7 +28,7 @@ Item {
     property string activeView: "step_1";
     property string lastPage;
     property bool hasShownSecurityImageTip: false;
-    property string referrer;
+    property string referrer: '';
     property string keyFilePath;
     property date startingTimestamp;
     property string setupAttemptID;

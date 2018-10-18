@@ -214,6 +214,18 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
+<@func transformModelToWorldAndEyeAndClipPos(cameraTransform, objectTransform, modelPos, worldPos, eyePos, clipPos)@>
+    { // transformModelToEyeAndClipPos
+        vec4 eyeWAPos;
+        <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+        <$worldPos$> = vec4(eyeWAPos.xyz + <$cameraTransform$>._viewInverse[3].xyz, 1.0);
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+        
+        <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
+    }
+<@endfunc@>
+
 <@func transformModelToEyePos(cameraTransform, objectTransform, modelPos, eyePos)@>
     { // transformModelToEyePos
         vec4 eyeWAPos;

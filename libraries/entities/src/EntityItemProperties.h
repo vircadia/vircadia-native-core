@@ -35,6 +35,7 @@
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
+#include "EntityPsuedoPropertyFlags.h"
 #include "LightEntityItem.h"
 #include "LineEntityItem.h"
 #include "ParticleEffectEntityItem.h"
@@ -86,7 +87,8 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false, bool strictSemantics = false) const;
+    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false,
+        bool strictSemantics = false, EntityPsuedoPropertyFlags psueudoPropertyFlags = EntityPsuedoPropertyFlags()) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
 
     static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
@@ -289,6 +291,8 @@ public:
     DEFINE_PROPERTY(PROP_CLONE_DYNAMIC, CloneDynamic, cloneDynamic, bool, ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC);
     DEFINE_PROPERTY(PROP_CLONE_AVATAR_ENTITY, CloneAvatarEntity, cloneAvatarEntity, bool, ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY);
     DEFINE_PROPERTY_REF(PROP_CLONE_ORIGIN_ID, CloneOriginID, cloneOriginID, QUuid, ENTITY_ITEM_DEFAULT_CLONE_ORIGIN_ID);
+
+    DEFINE_PROPERTY_GROUP(Grab, grab, GrabPropertyGroup);
 
     static QString getComponentModeString(uint32_t mode);
     static QString getComponentModeAsString(uint32_t mode);

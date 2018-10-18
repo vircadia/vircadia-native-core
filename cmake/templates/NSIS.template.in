@@ -405,6 +405,14 @@ Var GAClientID
 Section "-Previous Install Cleanup"
   ; Remove the resources folder so we don't end up including removed QML files
   RMDir /r "$INSTDIR\resources"
+
+  ; delete old assignment-client and domain-server so they're no longer present
+  ; in client only installs.
+  Delete "$INSTDIR\@DS_EXEC_NAME@" 
+  Delete "$INSTDIR\@AC_EXEC_NAME@" 
+  
+  ; delete interface so it's not there for server-only installs
+  Delete "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@" 
 SectionEnd
 
 @CPACK_NSIS_INSTALLATION_TYPES@
@@ -532,9 +540,9 @@ SectionEnd
 
 Var PostInstallDialog
 Var DesktopClientCheckbox
-Var DesktopServerCheckbox
-Var ServerStartupCheckbox
-Var LaunchServerNowCheckbox
+Var DesktopConsoleCheckbox
+Var ConsoleStartupCheckbox
+Var LaunchConsoleNowCheckbox
 Var LaunchClientNowCheckbox
 Var CleanInstallCheckbox
 Var CurrentOffset
@@ -747,32 +755,20 @@ Function PostInstallOptionsPage
   ${EndIf}
 
   ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @SANDBOX_HF_SHORTCUT_NAME@"
+  ${Else}
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @CONSOLE_HF_SHORTCUT_NAME@"
-    Pop $DesktopServerCheckbox
-    IntOp $CurrentOffset $CurrentOffset + 15
-
-    ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetInstallOption $DesktopServerCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
   ${EndIf}
-
-  ${If} @SERVER_COMPONENT_CONDITIONAL@
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ after install"
-    Pop $LaunchServerNowCheckbox
-
-    ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetInstallOption $LaunchServerNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
-    ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
-    ${IfNot} $substringResult == ""
-        ${NSD_SetState} $LaunchServerNowCheckbox ${BST_UNCHECKED}
-    ${EndIf}
-
-    IntOp $CurrentOffset $CurrentOffset + 15
-  ${EndIf}
+  
+  Pop $DesktopConsoleCheckbox
+  IntOp $CurrentOffset $CurrentOffset + 15  
+  ; set the checkbox state depending on what is present in the registry
+  !insertmacro SetInstallOption $DesktopConsoleCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
 
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
     Pop $LaunchClientNowCheckbox
-    IntOp $CurrentOffset $CurrentOffset + 30
+    IntOp $CurrentOffset $CurrentOffset + 15
 
     ; set the checkbox state depending on what is present in the registry
     !insertmacro SetInstallOption $LaunchClientNowCheckbox @CLIENT_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
@@ -783,27 +779,44 @@ Function PostInstallOptionsPage
   ${EndIf}
 
   ${If} @SERVER_COMPONENT_CONDITIONAL@
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
-    Pop $ServerStartupCheckbox
-    IntOp $CurrentOffset $CurrentOffset + 15
-
-    ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetInstallOption $ServerStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @SANDBOX_HF_SHORTCUT_NAME@ after install"
+  ${Else}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ after install"
   ${EndIf}
+  Pop $LaunchConsoleNowCheckbox
+
+  ; set the checkbox state depending on what is present in the registry
+  !insertmacro SetInstallOption $LaunchConsoleNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+  ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
+  ${IfNot} $substringResult == ""
+      ${NSD_SetState} $LaunchConsoleNowCheckbox ${BST_UNCHECKED}
+  ${EndIf}
+  IntOp $CurrentOffset $CurrentOffset + 30
+
+  ${If} @SERVER_COMPONENT_CONDITIONAL@  
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @SANDBOX_HF_SHORTCUT_NAME@ on startup"
+  ${Else}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
+  ${EndIf}
+  Pop $ConsoleStartupCheckbox
+  IntOp $CurrentOffset $CurrentOffset + 15
+
+  ; set the checkbox state depending on what is present in the registry
+  !insertmacro SetInstallOption $ConsoleStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
 
   ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
   Pop $CleanInstallCheckbox
   IntOp $CurrentOffset $CurrentOffset + 15
 
   ${If} @PR_BUILD@ == 1
-    ; a PR build defaults all install options expect LaunchServerNowCheckbox, LaunchClientNowCheckbox and the settings copy to unchecked
+    ; a PR build defaults all install options expect LaunchConsoleNowCheckbox, LaunchClientNowCheckbox and the settings copy to unchecked
     ${If} @CLIENT_COMPONENT_CONDITIONAL@
       ${NSD_SetState} $DesktopClientCheckbox ${BST_UNCHECKED}
     ${EndIf}
 
     ${If} @SERVER_COMPONENT_CONDITIONAL@
-      ${NSD_SetState} $DesktopServerCheckbox ${BST_UNCHECKED}
-      ${NSD_SetState} $ServerStartupCheckbox ${BST_UNCHECKED}
+      ${NSD_SetState} $DesktopConsoleCheckbox ${BST_UNCHECKED}
+      ${NSD_SetState} $ConsoleStartupCheckbox ${BST_UNCHECKED}
     ${EndIf}
 
     ; push the offset
@@ -824,9 +837,9 @@ FunctionEnd
 !macroend
 
 Var DesktopClientState
-Var DesktopServerState
-Var ServerStartupState
-Var LaunchServerNowState
+Var DesktopConsoleState
+Var ConsoleStartupState
+Var LaunchConsoleNowState
 Var LaunchClientNowState
 Var CopyFromProductionState
 Var CleanInstallState
@@ -842,11 +855,11 @@ Function ReadInstallTypes
     StrCpy $Express "1"
 
     StrCpy $DesktopClientState ${BST_CHECKED}
-    StrCpy $ServerStartupState ${BST_CHECKED}
-    StrCpy $LaunchServerNowState ${BST_CHECKED}
+    StrCpy $ConsoleStartupState ${BST_CHECKED}
+    StrCpy $LaunchConsoleNowState ${BST_CHECKED}
     StrCpy $LaunchClientNowState ${BST_CHECKED}
     StrCpy $CleanInstallState ${BST_UNCHECKED}
-    StrCpy $DesktopServerState ${BST_UNCHECKED}
+    StrCpy $DesktopConsoleState ${BST_UNCHECKED}
 
     ${If} @PR_BUILD@ == 1
       StrCpy $CopyFromProductionState ${BST_UNCHECKED}
@@ -860,17 +873,16 @@ Function ReadInstallTypes
 FunctionEnd
 
 Function ReadPostInstallOptions
+
+  ; check if the user asked for a desktop shortcut to console
+  ${NSD_GetState} $DesktopConsoleCheckbox $DesktopConsoleState
+
+  ; check if the user asked to have console launched every startup
+  ${NSD_GetState} $ConsoleStartupCheckbox $ConsoleStartupState
+
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
-  ${EndIf}
-
-  ${If} @SERVER_COMPONENT_CONDITIONAL@
-    ; check if the user asked for a desktop shortcut to Sandbox
-    ${NSD_GetState} $DesktopServerCheckbox $DesktopServerState
-
-    ; check if the user asked to have Sandbox launched every startup
-    ${NSD_GetState} $ServerStartupCheckbox $ServerStartupState
   ${EndIf}
 
   ${If} @PR_BUILD@ == 1
@@ -878,10 +890,8 @@ Function ReadPostInstallOptions
     ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
   ${EndIf}
 
-  ${If} @SERVER_COMPONENT_CONDITIONAL@
-    ; check if we need to launch the server post-install
-    ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
-  ${EndIf}
+  ; check if we need to launch the console post-install
+  ${NSD_GetState} $LaunchConsoleNowCheckbox $LaunchConsoleNowState
 
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if we need to launch the client post-install
@@ -893,6 +903,31 @@ Function ReadPostInstallOptions
 FunctionEnd
 
 Function HandlePostInstallOptions
+
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ; check if the user asked for a desktop shortcut to the console
+    ${If} $DesktopConsoleState == ${BST_CHECKED}
+      Delete "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk"
+      CreateShortCut "$DESKTOP\@SANDBOX_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+      !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
+      ; Set appUserModelId
+      ApplicationID::Set "$DESKTOP\@SANDBOX_HF_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
+    ${Else}
+      !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
+    ${EndIf}
+  ${Else}
+    ; check if the user asked for a desktop shortcut to the console
+    ${If} $DesktopConsoleState == ${BST_CHECKED}
+      Delete "$DESKTOP\@SANDBOX_HF_SHORTCUT_NAME@.lnk"
+      CreateShortCut "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+      !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
+      ; Set appUserModelId
+      ApplicationID::Set "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
+    ${Else}
+      !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
+    ${EndIf}
+  ${EndIf}
+
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${If} $DesktopClientState == ${BST_CHECKED}
@@ -901,38 +936,25 @@ Function HandlePostInstallOptions
     ${Else}
       !insertmacro WriteInstallOption @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ NO
     ${EndIf}
-
   ${EndIf}
 
-  ${If} @SERVER_COMPONENT_CONDITIONAL@
-    ; check if the user asked for a desktop shortcut to Sandbox
-    ${If} $DesktopServerState == ${BST_CHECKED}
-      CreateShortCut "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
-      !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
-      ; Set appUserModelId
-      ApplicationID::Set "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
-    ${Else}
-      !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
-    ${EndIf}
+  ; check if the user asked to have Console launched every startup
+  ${If} $ConsoleStartupState == ${BST_CHECKED}
+    ; in case we added a shortcut in the global context, pull that now
+    SetShellVarContext all
+    Delete "$SMSTARTUP\@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@.lnk"
 
+    ; make a startup shortcut in this user's current context
+    ; use the console shortcut name regardless of server/interface install
+    SetShellVarContext current
+    CreateShortCut "$SMSTARTUP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
 
-    ; check if the user asked to have Sandbox launched every startup
-    ${If} $ServerStartupState == ${BST_CHECKED}
-      ; in case we added a shortcut in the global context, pull that now
-      SetShellVarContext all
-      Delete "$SMSTARTUP\@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@.lnk"
+    ; reset the shell var context back
+    SetShellVarContext all
 
-      ; make a startup shortcut in this user's current context
-      SetShellVarContext current
-      CreateShortCut "$SMSTARTUP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
-
-      ; reset the shell var context back
-      SetShellVarContext all
-
-      !insertmacro WriteInstallOption @CONSOLE_STARTUP_REG_KEY@ YES
-    ${Else}
-      !insertmacro WriteInstallOption @CONSOLE_STARTUP_REG_KEY@ NO
-    ${EndIf}
+    !insertmacro WriteInstallOption @CONSOLE_STARTUP_REG_KEY@ YES
+  ${Else}
+    !insertmacro WriteInstallOption @CONSOLE_STARTUP_REG_KEY@ NO
   ${EndIf}
 
   ; check if the user asked for a clean install
@@ -982,32 +1004,38 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ${If} @SERVER_COMPONENT_CONDITIONAL@
-  ${AndIf} $LaunchServerNowState == ${BST_CHECKED}
-    !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ YES
-
-    ; both launches use the explorer trick in case the user has elevated permissions for the installer
-    ${If} $LaunchClientNowState == ${BST_CHECKED}
+  ${If} $LaunchClientNowState == ${BST_CHECKED}
       !insertmacro WriteInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ YES
-      ; create shortcut with ARGUMENTS
-      CreateShortCut "$TEMP\SandboxShortcut.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@" "-- --launchInterface"
-      Exec '"$WINDIR\explorer.exe" "$TEMP\SandboxShortcut.lnk"'
-    ${Else}
+  ${Else}
       !insertmacro WriteInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ NO
+  ${EndIf}
+
+  ${If} $LaunchConsoleNowState == ${BST_CHECKED}
+      !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ YES
+  ${Else}
+      !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ NO
+  ${EndIf}
+
+  ${If} $LaunchConsoleNowState == ${BST_CHECKED}
+    ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ${AndIf} $LaunchClientNowState == ${BST_CHECKED}
+    ${AndIf} @CLIENT_COMPONENT_CONDITIONAL@
+      ; both launches use the explorer trick in case the user has elevated permissions for the installer
+      ; create shortcut with ARGUMENTS
+      CreateShortCut "$TEMP\ConsoleShortcut.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@" "-- --launchInterface"
+      Exec '"$WINDIR\explorer.exe" "$TEMP\ConsoleShortcut.lnk"'
+    ${Else}
       Exec '"$WINDIR\explorer.exe" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"'
     ${EndIf}
+  ${EndIf}
 
-  ${ElseIf} @CLIENT_COMPONENT_CONDITIONAL@
-    !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ NO
-
-    ; launch uses the explorer trick in case the user has elevated permissions for the installer
-    ${If} $LaunchClientNowState == ${BST_CHECKED}
-      !insertmacro WriteInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ YES
+  ${If} $LaunchClientNowState == ${BST_CHECKED}
+  ${AndIf} @CLIENT_COMPONENT_CONDITIONAL@
+    ${Unless} $LaunchConsoleNowState == ${BST_CHECKED}
+    ${OrUnless} @SERVER_COMPONENT_CONDITIONAL@
+      ; launch uses the explorer trick in case the user has elevated permissions for the installer
       Exec '"$WINDIR\explorer.exe" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"'
-    ${Else}
-      !insertmacro WriteInstallOption @CLIENT_LAUNCH_NOW_REG_KEY@ NO
     ${EndIf}
-
   ${EndIf}
 FunctionEnd
 
@@ -1164,8 +1192,16 @@ Section "-Core installation"
 
   ${EndIf}
 
-  ; Conditional handling for server console shortcut
   ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ; handling for server console shortcut
+    Delete "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk"
+    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@SANDBOX_SHORTCUT_NAME@.lnk" \
+      "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+    ; Set appUserModelId
+    ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@SANDBOX_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
+  ${Else}
+    ; handling for interface only console shortcut
+    Delete "$SMPROGRAMS\$STARTMENU_FOLDER\@SANDBOX_SHORTCUT_NAME@.lnk"
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
     ; Set appUserModelId
@@ -1376,12 +1412,15 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
   Delete "$SMPROGRAMS\$MUI_TEMP\@INTERFACE_SHORTCUT_NAME@.lnk"
   Delete "$SMPROGRAMS\$MUI_TEMP\@CONSOLE_SHORTCUT_NAME@.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\@SANDBOX_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@INTERFACE_HF_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk"
+  Delete "$DESKTOP\@SANDBOX_HF_SHORTCUT_NAME@.lnk"
 
   ; if it exists, delete the startup shortcut for the current user
   SetShellVarContext current
   Delete "$SMSTARTUP\@CONSOLE_HF_SHORTCUT_NAME@.lnk"
+  Delete "$SMSTARTUP\@SANDBOX_HF_SHORTCUT_NAME@.lnk"
   SetShellVarContext all
 
 @CPACK_NSIS_DELETE_ICONS@
@@ -1414,6 +1453,7 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
   Delete "$SMPROGRAMS\$MUI_TEMP\@INTERFACE_SHORTCUT_NAME@.lnk"
   Delete "$SMPROGRAMS\$MUI_TEMP\@CONSOLE_SHORTCUT_NAME@.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\@SANDBOX_SHORTCUT_NAME@.lnk"
 @CPACK_NSIS_DELETE_ICONS_EXTRA@
 
   ;Delete empty start menu parent diretories

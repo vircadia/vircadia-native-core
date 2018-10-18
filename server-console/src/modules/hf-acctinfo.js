@@ -66,7 +66,7 @@ AccountInfo.prototype = {
             case VariantTypes.USER_TYPE:
               //user type
               var userTypeName = this._parseByteArray().toString('ascii').slice(0,-1);
-              if (userTypeName == "DataServerAccountInfo") {
+              if (userTypeName === "DataServerAccountInfo") {
                   return this._parseDataServerAccountInfo();
               }
               else {
@@ -77,7 +77,7 @@ AccountInfo.prototype = {
     },
     _parseByteArray: function () {
         var length = this._parseUInt32();
-        if (length == 0xffffffff) {
+        if (length === 0xffffffff) {
             return null;
         }
         var result = this.rawData.slice(this.parseOffset, this.parseOffset+length);
@@ -91,7 +91,7 @@ AccountInfo.prototype = {
         }
         // length in bytes;
         var length = this._parseUInt32();
-        if (length == 0xFFFFFFFF) {
+        if (length === 0xFFFFFFFF) {
             return null;
         }
 

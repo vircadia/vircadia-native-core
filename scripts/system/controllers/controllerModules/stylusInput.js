@@ -5,11 +5,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   enableDispatcherModule, disableDispatcherModule, makeRunningValues,
-   Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, ZERO_VEC,
-   HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
-   getEnabledModuleByName, Pointers, Picks, PickType
+/* global Script, MyAvatar, Controller, Uuid, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
+   makeRunningValues, Vec3, makeDispatcherModuleParameters, Overlays, HMD, Settings, getEnabledModuleByName, Pointers,
+   Picks, PickType
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -32,13 +30,6 @@ Script.include("/~/system/libraries/controllers.js");
         return {
             id: overlayID,
             distance: Vec3.distance(position, controllerPosition)
-        };
-    }
-
-    function getEntityDistance(controllerPosition, entityProps) {
-        return {
-            id: entityProps.id,
-            distance: Vec3.distance(entityProps.position, controllerPosition)
         };
     }
 
@@ -123,6 +114,14 @@ Script.include("/~/system/libraries/controllers.js");
                 }
             }
 
+            // Add the mini tablet.
+            if (HMD.miniTabletScreenID && Overlays.getProperty(HMD.miniTabletScreenID, "visible")) {
+                stylusTarget = getOverlayDistance(controllerPosition, HMD.miniTabletScreenID);
+                if (stylusTarget) {
+                    stylusTargets.push(stylusTarget);
+                }
+            }
+
             var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
             var nearStylusTarget = isNearStylusTarget(stylusTargets, WEB_DISPLAY_STYLUS_DISTANCE * sensorScaleFactor);
 
@@ -199,7 +198,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     Overlays.hoverEnterOverlay.connect(mouseHoverEnter);
     Overlays.hoverLeaveOverlay.connect(mouseHoverLeave);
-    Overlays.mousePressOnOverlay.connect(mousePress); 
+    Overlays.mousePressOnOverlay.connect(mousePress);
 
     this.cleanup = function () {
         leftTabletStylusInput.cleanup();

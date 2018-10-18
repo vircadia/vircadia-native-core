@@ -97,7 +97,7 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
  * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the pointer is pointing.
  * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
- * @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
+ * @property {boolean} [scaleWithParent=false] If true, the width of the Pointer's path will scale linearly with the pick parent's scale. scaleWithAvatar is an alias but is deprecated.
  * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
  * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
  * the normal will follow exactly.
@@ -134,9 +134,11 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
         distanceScaleEnd = propertyMap["distanceScaleEnd"].toBool();
     }
 
-    bool scaleWithAvatar = false;
-    if (propertyMap["scaleWithAvatar"].isValid()) {
-        scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
+    bool scaleWithParent = false;
+    if (propertyMap["scaleWithParent"].isValid()) {
+        scaleWithParent = propertyMap["scaleWithParent"].toBool();
+    } else if (propertyMap["scaleWithAvatar"].isValid()) {
+        scaleWithParent = propertyMap["scaleWithAvatar"].toBool();
     }
 
     bool followNormal = false;
@@ -207,7 +209,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
                                                                                                faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd,
-                                                                                               distanceScaleEnd, scaleWithAvatar, enabled));
+                                                                                               distanceScaleEnd, scaleWithParent, enabled));
 }
 
 /**jsdoc
@@ -218,6 +220,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * @property {number} alpha=1.0 The alpha of the parabola.
 * @property {number} width=0.01 The width of the parabola, in meters.
 * @property {boolean} isVisibleInSecondaryCamera=false The width of the parabola, in meters.
+* @property {boolean} drawInFront=false If <code>true</code>, the parabola is rendered in front of other items in the scene.
 */
 /**jsdoc
 * A set of properties used to define the visual aspect of a Parabola Pointer in the case that the Pointer is not intersecting something.  Same as a {@link Pointers.ParabolaPointerRenderState},
@@ -248,7 +251,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
 * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the pointer is pointing.
 * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
-* @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
+* @property {boolean} [scaleWithParent=true] If true, the width of the Pointer's path will scale linearly with the pick parent's scale. scaleWithAvatar is an alias but is deprecated.
 * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
 * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
 * the normal will follow exactly.
@@ -285,9 +288,11 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
         distanceScaleEnd = propertyMap["distanceScaleEnd"].toBool();
     }
 
-    bool scaleWithAvatar = false;
-    if (propertyMap["scaleWithAvatar"].isValid()) {
-        scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
+    bool scaleWithParent = true;
+    if (propertyMap["scaleWithParent"].isValid()) {
+        scaleWithParent = propertyMap["scaleWithParent"].toBool();
+    } else if (propertyMap["scaleWithAvatar"].isValid()) {
+        scaleWithParent = propertyMap["scaleWithAvatar"].toBool();
     }
 
     bool followNormal = false;
@@ -358,7 +363,7 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
 
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<ParabolaPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
                                                                                                   faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd, distanceScaleEnd,
-                                                                                                  scaleWithAvatar, enabled));
+                                                                                                  scaleWithParent, enabled));
 }
 
 void PointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {
