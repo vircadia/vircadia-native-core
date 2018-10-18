@@ -21,6 +21,8 @@
 #include "AmbientOcclusionEffect.h"
 #include "VelocityBufferPass.h"
 
+#include "LightStage.h"
+
 class DebugDeferredBufferConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled)
@@ -39,12 +41,13 @@ signals:
 
 class DebugDeferredBuffer {
 public:
-    using Inputs = render::VaryingSet6<DeferredFramebufferPointer,
+    using Inputs = render::VaryingSet7<DeferredFramebufferPointer,
                                        LinearDepthFramebufferPointer,
                                        SurfaceGeometryFramebufferPointer,
                                        AmbientOcclusionFramebufferPointer,
                                        VelocityFramebufferPointer,
-                                       DeferredFrameTransformPointer>;
+                                       DeferredFrameTransformPointer,
+                                       LightStage::FramePointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
 

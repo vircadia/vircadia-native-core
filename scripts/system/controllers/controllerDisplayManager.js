@@ -7,8 +7,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* globals ControllerDisplayManager:true createControllerDisplay deleteControllerDisplay
-   VIVE_CONTROLLER_CONFIGURATION_LEFT VIVE_CONTROLLER_CONFIGURATION_RIGHT */
+/* globals ControllerDisplayManager:true, createControllerDisplay, deleteControllerDisplay,
+   VIVE_CONTROLLER_CONFIGURATION_LEFT, VIVE_CONTROLLER_CONFIGURATION_RIGHT, Script, HMD, Controller,
+   MyAvatar, Overlays, TOUCH_CONTROLLER_CONFIGURATION_LEFT, TOUCH_CONTROLLER_CONFIGURATION_RIGHT, Messages */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function () {
@@ -93,7 +94,7 @@ ControllerDisplayManager = function() {
         if (controllerRight) {
             controllerRight.resize(sensorScaleFactor);
         }
-    };
+    }
 
     var handleMessages = function(channel, message, sender) {
         var i, data, name, visible;
