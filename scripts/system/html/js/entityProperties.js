@@ -6,8 +6,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global alert, augmentSpinButtons, clearTimeout, console, document, Element, EventBridge, 
-    HifiEntityUI, JSONEditor, openEventBridge, setTimeout, window, _ $ */
+/* global alert, augmentSpinButtons, clearTimeout, document, Element, EventBridge,
+    JSONEditor, openEventBridge, setTimeout, window, $ */
 
 var PI = 3.14159265358979;
 var DEGREES_TO_RADIANS = PI / 180.0;
@@ -364,12 +364,6 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, r
 
     updateProperties(properties);
 }
-function userDataChanger(groupName, keyName, values, userDataElement, defaultValue, removeKeys) {
-    var val = {}, def = {};
-    val[keyName] = values;
-    def[keyName] = defaultValue;
-    multiDataUpdater(groupName, val, userDataElement, def, removeKeys);
-}
 
 function setMaterialDataFromEditor(noUpdate) {
     var json = null;
@@ -712,6 +706,8 @@ function loaded() {
         var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
 
         var elGrabbable = document.getElementById("property-grabbable");
+        var elTriggerable = document.getElementById("property-triggerable");
+        var elGrabFollowsController = document.getElementById("property-grab-follows-controller");
 
         var elCloneable = document.getElementById("property-cloneable");
         var elCloneableDynamic = document.getElementById("property-cloneable-dynamic");
@@ -719,9 +715,6 @@ function loaded() {
         var elCloneableGroup = document.getElementById("group-cloneable-group");
         var elCloneableLifetime = document.getElementById("property-cloneable-lifetime");
         var elCloneableLimit = document.getElementById("property-cloneable-limit");
-
-        var elTriggerable = document.getElementById("property-triggerable");
-        var elIgnoreIK = document.getElementById("property-ignore-ik");
 
         var elLifetime = document.getElementById("property-lifetime");
         var elScriptURL = document.getElementById("property-script-url");
@@ -992,7 +985,7 @@ function loaded() {
 
                         elGrabbable.checked = false;
                         elTriggerable.checked = false;
-                        elIgnoreIK.checked = false;
+                        elGrabFollowsController.checked = false;
 
                         elCloneable.checked = false;
                         elCloneableDynamic.checked = false;
@@ -1037,7 +1030,7 @@ function loaded() {
                         elCompoundShapeURL.value = "";
                         elShapeType.value = "none";
                         setDropdownText(elShapeType);
-                        elModelAnimationURL.value = ""
+                        elModelAnimationURL.value = "";
                         elModelAnimationPlaying.checked = false;
                         elModelAnimationFPS.value = "";
                         elModelAnimationFrame.value = "";
@@ -1254,10 +1247,9 @@ function loaded() {
                         elCollideMyAvatar.checked = properties.collidesWith.indexOf("myAvatar") > -1;
                         elCollideOtherAvatar.checked = properties.collidesWith.indexOf("otherAvatar") > -1;
 
-                        elGrabbable.checked = properties.dynamic;
-
-                        elTriggerable.checked = false;
-                        elIgnoreIK.checked = true;
+                        elGrabbable.checked = properties.grab.grabbable;
+                        elTriggerable.checked = properties.grab.triggerable;
+                        elGrabFollowsController.checked = properties.grab.grabFollowsController;
 
                         elCloneable.checked = properties.cloneable;
                         elCloneableDynamic.checked = properties.cloneDynamic;
@@ -1265,42 +1257,6 @@ function loaded() {
                         elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
                         elCloneableLimit.value = properties.cloneLimit;
                         elCloneableLifetime.value = properties.cloneLifetime;
-
-                        var grabbablesSet = false;
-                        var parsedUserData = {};
-                        try {
-                            parsedUserData = JSON.parse(properties.userData);
-
-                            if ("grabbableKey" in parsedUserData) {
-                                grabbablesSet = true;
-                                var grabbableData = parsedUserData.grabbableKey;
-                                if ("grabbable" in grabbableData) {
-                                    elGrabbable.checked = grabbableData.grabbable;
-                                } else {
-                                    elGrabbable.checked = true;
-                                }
-                                if ("triggerable" in grabbableData) {
-                                    elTriggerable.checked = grabbableData.triggerable;
-                                } else if ("wantsTrigger" in grabbableData) {
-                                    elTriggerable.checked = grabbableData.wantsTrigger;
-                                } else {
-                                    elTriggerable.checked = false;
-                                }
-                                if ("ignoreIK" in grabbableData) {
-                                    elIgnoreIK.checked = grabbableData.ignoreIK;
-                                } else {
-                                    elIgnoreIK.checked = true;
-                                }
-                            }
-                        } catch (e) {
-                            // TODO:  What should go here?
-                        }
-                        if (!grabbablesSet) {
-                            elGrabbable.checked = true;
-                            elTriggerable.checked = false;
-                            elIgnoreIK.checked = true;
-                            elCloneable.checked = false;
-                        }
 
                         elCollisionSoundURL.value = properties.collisionSoundURL;
                         elLifetime.value = properties.lifetime;
@@ -1669,25 +1625,17 @@ function loaded() {
             updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideOtherAvatar, 'otherAvatar');
         });
 
-        elGrabbable.addEventListener('change', function() {
-            if (elCloneable.checked) {
-                elGrabbable.checked = false;
-            }
-            userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, true);
-        });
-        
+
+        elGrabbable.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('grab', 'grabbable'));
+        elTriggerable.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('grab', 'triggerable'));
+        elGrabFollowsController.addEventListener('change',
+                                                 createEmitGroupCheckedPropertyUpdateFunction('grab', 'grabFollowsController'));
+
         elCloneable.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneable'));
         elCloneableDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneDynamic'));
         elCloneableAvatarEntity.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneAvatarEntity'));
         elCloneableLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneLifetime'));
         elCloneableLimit.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneLimit'));
-
-        elTriggerable.addEventListener('change', function() {
-            userDataChanger("grabbableKey", "triggerable", elTriggerable, elUserData, false, ['wantsTrigger']);
-        });
-        elIgnoreIK.addEventListener('change', function() {
-            userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData, true);
-        });
 
         elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
 

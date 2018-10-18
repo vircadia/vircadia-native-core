@@ -262,6 +262,19 @@ enum EntityPropertyList {
     PROP_BLOOM_THRESHOLD,
     PROP_BLOOM_SIZE,
 
+    PROP_GRAB_GRABBABLE,
+    PROP_GRAB_KINEMATIC,
+    PROP_GRAB_FOLLOWS_CONTROLLER,
+    PROP_GRAB_TRIGGERABLE,
+    PROP_GRAB_EQUIPPABLE,
+    PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET,
+    PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET,
+    PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET,
+    PROP_GRAB_RIGHT_EQUIPPABLE_ROTATION_OFFSET,
+    PROP_GRAB_EQUIPPABLE_INDICATOR_URL,
+    PROP_GRAB_EQUIPPABLE_INDICATOR_SCALE,
+    PROP_GRAB_EQUIPPABLE_INDICATOR_OFFSET,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
@@ -303,6 +316,11 @@ typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 // this is set at the top of EntityItemProperties.cpp to PROP_AFTER_LAST_ITEM - 1.  PROP_AFTER_LAST_ITEM is always
 // one greater than the last item property due to the enum's auto-incrementing.
 extern EntityPropertyList PROP_LAST_ITEM;
+
+QString EntityPropertyFlagsToString(EntityPropertyFlags propertiesFlags);
+
+
+QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f);
 
 
 #endif // hifi_EntityPropertyFlags_h

@@ -16,7 +16,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
     function entityWantsNearTrigger(props) {
         var grabbableData = getGrabbableData(props);
-        return grabbableData.triggerable || grabbableData.wantsTrigger;
+        return grabbableData.triggerable;
     }
 
     function NearTriggerEntity(hand) {

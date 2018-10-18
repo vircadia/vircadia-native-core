@@ -79,7 +79,7 @@ public:
 
     void updateLightStage(const LightStagePointer& lightStage);
 
-    void updateLightFrame(const LightStage::Frame& lightFrame, bool points = true, bool spots = true);
+    void updateLightFrame(const LightStage::FramePointer& lightFrame, bool points = true, bool spots = true);
 
     glm::ivec3  updateClusters();
 
@@ -167,7 +167,7 @@ protected:
 
 class LightClusteringPass {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, LightingModelPointer, LinearDepthFramebufferPointer>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, LightingModelPointer, LightStage::FramePointer, LinearDepthFramebufferPointer>;
     using Outputs = LightClustersPointer;
     using Config = LightClusteringPassConfig;
     using JobModel = render::Job::ModelIO<LightClusteringPass, Inputs, Outputs, Config>;
