@@ -21,6 +21,9 @@
 
 #define GPU_TEXTURE_TRANSFORM_OBJECT 31
 
+// Mip creation
+#define GPU_TEXTURE_MIP_CREATION_INPUT 30
+
 #define GPU_STORAGE_TRANSFORM_OBJECT 7
 
 #define GPU_ATTR_POSITION 0
@@ -67,7 +70,8 @@ enum Buffer {
 namespace texture {
 enum Texture {
     ObjectTransforms = GPU_TEXTURE_TRANSFORM_OBJECT,
-}; 
+    MipCreationInput = GPU_TEXTURE_MIP_CREATION_INPUT,
+};
 } // namespace texture
 
 namespace storage {
