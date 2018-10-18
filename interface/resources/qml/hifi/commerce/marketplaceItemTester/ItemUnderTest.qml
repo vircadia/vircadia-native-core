@@ -52,7 +52,7 @@ Rectangle {
             }
             sendToScript({
                 method: "tester_deleteResourceObject",
-                objectId: resourceListModel.get(index).id});
+                objectId: resourceListModel.get(index).resourceObjectId});
             resourceListModel.remove(index);
         }
     }
@@ -83,7 +83,7 @@ Rectangle {
                 color: hifi.colors.white
                 wrapMode: Text.WrapAnywhere
             }
-        
+
             HifiStylesUit.RalewayRegular {
                 id: resourceUrl
                 anchors.top: resourceName.bottom;
@@ -311,7 +311,7 @@ Rectangle {
                 }
                 font: Qt.font({ family: "Courier", pointSize: 8, weight: Font.Normal })
                 wrapMode: TextEdit.NoWrap
-            
+
                 background: Rectangle {
                     anchors.fill: parent;
                     color: hifi.colors.baseGrayShadow;
