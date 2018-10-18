@@ -1813,6 +1813,12 @@ void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
     }
 }
 
+glm::vec3 EntityItem::getUnscaledDimensions() const {
+   return resultWithReadLock<glm::vec3>([&] {
+        return _unscaledDimensions;
+    });
+}
+
 void EntityItem::setRotation(glm::quat rotation) {
     if (getLocalOrientation() != rotation) {
         setLocalOrientation(rotation);

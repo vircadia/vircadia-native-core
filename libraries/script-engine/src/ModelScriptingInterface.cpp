@@ -192,7 +192,7 @@ QScriptValue ModelScriptingInterface::getVertex(MeshProxy* meshProxy, int vertex
     }
 
     glm::vec3 pos = vertexBufferView.get<glm::vec3>(vertexIndex);
-    return vec3toScriptValue(_modelScriptEngine, pos);
+    return vec3ToScriptValue(_modelScriptEngine, pos);
 }
 
 

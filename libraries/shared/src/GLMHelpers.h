@@ -24,6 +24,7 @@ using glm::ivec2;
 using glm::ivec3;
 using glm::ivec4;
 using glm::uvec2;
+using glm::u8vec3;
 using glm::uvec3;
 using glm::uvec4;
 using glm::mat3;
@@ -174,12 +175,10 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
 uvec2 toGlm(const QSize& size);
 ivec2 toGlm(const QPoint& pt);
 vec2 toGlm(const QPointF& pt);
-vec3 toGlm(const xColor& color);
+vec3 toGlm(const glm::u8vec3& color);
 vec4 toGlm(const QColor& color);
 ivec4 toGlm(const QRect& rect);
-vec4 toGlm(const xColor& color, float alpha);
-
-xColor xColorFromGlm(const glm::vec3 & c);
+vec4 toGlm(const glm::u8vec3& color, float alpha);
 
 QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);
