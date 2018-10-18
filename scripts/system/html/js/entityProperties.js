@@ -346,7 +346,7 @@ const GROUPS = [
                 label: "Bloom Threshold",
                 type: "slider",
                 min: 0,
-                min: 1,
+                max: 1,
                 step: 0.01,
                 decimals: 2,
                 propertyID: "bloom.bloomThreshold",
@@ -356,7 +356,7 @@ const GROUPS = [
                 label: "Bloom Size",
                 type: "slider",
                 min: 0,
-                min: 2,
+                max: 2,
                 step: 0.01,
                 decimals: 2,
                 propertyID: "bloom.bloomSize",
@@ -1000,7 +1000,8 @@ const GROUPS = [
             {
                 label: "Static Entities",
                 type: "bool",
-                propertyID: "static",
+                propertyID: "collidesWithStatic",
+                propertyName: "static", // actual subProperty name
                 subPropertyOf: "collidesWith",
                 showPropertyRule: { "collisionless": "false" },
                 column: 1,
@@ -1008,7 +1009,8 @@ const GROUPS = [
             {
                 label: "Dynamic Entities",
                 type: "bool",
-                propertyID: "dynamic",
+                propertyID: "collidesWithDynamic",
+                propertyName: "dynamic", // actual subProperty name
                 subPropertyOf: "collidesWith",
                 showPropertyRule: { "collisionless": "false" },
                 column: 2,
@@ -1016,7 +1018,8 @@ const GROUPS = [
             {
                 label: "Kinematic Entities",
                 type: "bool",
-                propertyID: "kinematic",
+                propertyID: "collidesWithKinematic",
+                propertyName: "kinematic", // actual subProperty name
                 subPropertyOf: "collidesWith",
                 showPropertyRule: { "collisionless": "false" },
                 column: 1,
@@ -1024,7 +1027,8 @@ const GROUPS = [
             {
                 label: "My Avatar",
                 type: "bool",
-                propertyID: "myAvatar",
+                propertyID: "collidesWithMyAvatar",
+                propertyName: "myAvatar", // actual subProperty name
                 subPropertyOf: "collidesWith",
                 showPropertyRule: { "collisionless": "false" },
                 column: 2,
@@ -1032,7 +1036,8 @@ const GROUPS = [
             {
                 label: "Other Avatars",
                 type: "bool",
-                propertyID: "otherAvatar",
+                propertyID: "collidesWithOtherAvatar",
+                propertyName: "otherAvatar", // actual subProperty name
                 subPropertyOf: "collidesWith",
                 showPropertyRule: { "collisionless": "false" },
                 column: 1,
@@ -2865,7 +2870,7 @@ function loaded() {
                                     if (isSubProperty) {
                                         let propertyValue = selectedEntityProperties[propertyData.subPropertyOf];
                                         let subProperties = propertyValue.split(",");
-                                        let subPropertyValue = subProperties.indexOf(propertyID) > -1;
+                                        let subPropertyValue = subProperties.indexOf(propertyName) > -1;
                                         property.elInput.checked = inverse ? !subPropertyValue : subPropertyValue;
                                     } else {
                                         property.elInput.checked = inverse ? !propertyValue : propertyValue;
