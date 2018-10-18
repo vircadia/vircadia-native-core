@@ -44,8 +44,7 @@ void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPro
 const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
 
 /**jsdoc
- * The result of a {@link PickRay} search using {@link Overlays.findRayIntersection|findRayIntersection} or 
- * {@link Overlays.findRayIntersectionVector|findRayIntersectionVector}.
+ * The result of a {@link PickRay} search using {@link Overlays.findRayIntersection|findRayIntersection}.
  * @typedef {object} Overlays.RayToOverlayIntersectionResult
  * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected with a 3D overlay, otherwise
  *     <code>false</code>.
