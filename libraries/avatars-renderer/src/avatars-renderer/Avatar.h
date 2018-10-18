@@ -622,6 +622,9 @@ protected:
     static const float ATTACHMENT_LOADING_PRIORITY;
 
     LoadingStatus _loadingStatus { LoadingStatus::NoModel };
+
+    void metaBlendshapeOperator(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets, const QVector<int>& blendedMeshSizes,
+                                const render::ItemIDs& subItemIDs);
 };
 
 #endif // hifi_Avatar_h

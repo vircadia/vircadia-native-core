@@ -978,7 +978,7 @@ const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
 bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters,
-                       std::function<void(int, QVector<BlendshapeOffset>, QVector<int>, render::ItemIDs)> modelBlendshapeOperator) {
+                       BlendShapeOperator modelBlendshapeOperator) {
     if (!_addedToScene && isLoaded()) {
         updateClusterMatrices();
         if (_modelMeshRenderItems.empty()) {
@@ -1777,7 +1777,10 @@ void ModelBlender::noteRequiresBlend(ModelPointer model) {
 
 void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, QVector<BlendshapeOffset> blendshapeOffsets, QVector<int> blendedMeshSizes) {
     if (model) {
-        model->getModelBlendshapeOperator()(blendNumber, blendshapeOffsets, blendedMeshSizes, model->fetchRenderItemIDs());
+        auto blendshapeOperator = model->getModelBlendshapeOperator();
+        if (blendshapeOperator) {
+            blendshapeOperator(blendNumber, blendshapeOffsets, blendedMeshSizes, model->fetchRenderItemIDs());
+        }
     }
 
     {
