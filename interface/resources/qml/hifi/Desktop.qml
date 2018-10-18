@@ -70,8 +70,8 @@ OriginalDesktop.Desktop {
         anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
         // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
         x: sysToolbar.x
-        buttonModel: tablet.buttons;
-        shown: tablet.toolbarMode;
+        buttonModel: tablet ? tablet.buttons : null;
+        shown: tablet ? tablet.toolbarMode : false;
     }
 
     Settings {

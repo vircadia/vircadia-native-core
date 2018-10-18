@@ -387,8 +387,16 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         if (!parent) {
             parent = getRootItem();
         }
-        // Allow child windows to be destroyed from JS
-        QQmlEngine::setObjectOwnership(newObject, QQmlEngine::JavaScriptOwnership);
+        // manually control children items lifetime
+        QQmlEngine::setObjectOwnership(newObject, QQmlEngine::CppOwnership);
+        // some objects we are going to delete might be already deleted (children of parent we already deleted) so use QPointer to track lifetime
+        QPointer<QObject> trackedObject(newObject);
+        connect(_sharedObject, &SharedObject::onBeforeDestroyed, [trackedObject]() {
+            if (trackedObject) {
+                delete trackedObject.data();
+            }
+        });
+
         newObject->setParent(parent);
         newItem->setParentItem(parent);
     } else {

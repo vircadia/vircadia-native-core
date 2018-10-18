@@ -79,9 +79,11 @@ SharedObject::SharedObject() {
 
 
 SharedObject::~SharedObject() {
+
+    emit onBeforeDestroyed();
+
     // After destroy returns, the rendering thread should be gone
     destroy();
-
     // _renderTimer is created with `this` as the parent, so need no explicit destruction
 #ifndef DISABLE_QML
     // Destroy the event hand

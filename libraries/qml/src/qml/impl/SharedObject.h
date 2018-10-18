@@ -67,6 +67,8 @@ public:
     bool isPaused() const;
     bool fetchTexture(TextureAndFence& textureAndFence);
 
+signals:
+    void onBeforeDestroyed();
 
 private:
     bool event(QEvent* e) override;
