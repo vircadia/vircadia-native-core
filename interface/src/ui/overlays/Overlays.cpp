@@ -629,9 +629,9 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
     obj.setProperty("distance", value.distance);
     obj.setProperty("face", boxFaceToString(value.face));
 
-    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    QScriptValue intersection = vec3ToScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
-    QScriptValue surfaceNormal = vec3toScriptValue(engine, value.surfaceNormal);
+    QScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
     obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;

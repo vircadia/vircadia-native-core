@@ -70,7 +70,7 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID) : EntityI
     _type = EntityTypes::PolyVox;
 }
 
-void PolyVoxEntityItem::setVoxelVolumeSize(const vec3& voxelVolumeSize) {
+void PolyVoxEntityItem::setVoxelVolumeSize(const glm::vec3& voxelVolumeSize) {
     withWriteLock([&] {
         assert(!glm::any(glm::isnan(voxelVolumeSize)));
 

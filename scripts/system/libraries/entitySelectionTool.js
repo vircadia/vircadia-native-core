@@ -215,7 +215,9 @@ SelectionManager = (function() {
         var grabJointNames = [
             'RightHand', 'LeftHand',
             '_CONTROLLER_RIGHTHAND', '_CONTROLLER_LEFTHAND',
-            '_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND', '_CAMERA_RELATIVE_CONTROLLER_LEFTHAND'];
+            '_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND', '_CAMERA_RELATIVE_CONTROLLER_LEFTHAND',
+            '_FARGRAB_RIGHTHAND', '_FARGRAB_LEFTHAND', '_FARGRAB_MOUSE'
+        ];
 
         for (var i = 0; i < grabJointNames.length; ++i) {
             if (avatar.getJointIndex(grabJointNames[i]) === properties.parentJointIndex) {
