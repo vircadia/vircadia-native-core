@@ -532,6 +532,8 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
                                                                    bool visibleOnly, bool collidableOnly) {
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
+    bool bestIsTablet = false;
+    auto tabletIDs = qApp->getTabletIDs();
 
     QMutexLocker locker(&_mutex);
     RayToOverlayIntersectionResult result;
@@ -554,10 +556,11 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
                                                           thisFace, thisSurfaceNormal, thisExtraInfo, precisionPicking)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
-                if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
-                    || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {
-
+                bool isTablet = tabletIDs.contains(thisID);
+                if (isDrawInFront && !bestIsFront && !bestIsTablet
+                        || (isTablet || isDrawInFront || !bestIsFront) && thisDistance < bestDistance) {
                     bestIsFront = isDrawInFront;
+                    bestIsTablet = isTablet;
                     bestDistance = thisDistance;
                     result.intersects = true;
                     result.distance = thisDistance;

@@ -383,7 +383,11 @@ public slots:
     OverlayPropertyResult getOverlaysProperties(const QVariant& overlaysProperties);
 
     /**jsdoc
-     * Find the closest 3D overlay intersected by a {@link PickRay}.
+     *  Find the closest 3D overlay intersected by a {@link PickRay}. Overlays with their <code>drawInFront</code> property set  
+     * to <code>true</code> have priority over overlays that don't, except that tablet overlays have priority over any  
+     * <code>drawInFront</code> overlays behind them. I.e., if a <code>drawInFront</code> overlay is behind one that isn't  
+     * <code>drawInFront</code>, the <code>drawInFront</code> overlay is returned, but if a tablet overlay is in front of a  
+     * <code>drawInFront</code> overlay, the tablet overlay is returned.
      * @function Overlays.findRayIntersection
      * @param {PickRay} pickRay - The PickRay to use for finding overlays.
      * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
