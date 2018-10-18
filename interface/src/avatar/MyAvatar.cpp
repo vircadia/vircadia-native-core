@@ -877,7 +877,8 @@ glm::vec2 MyAvatar::computeHandAzimuth() const {
     glm::quat spine2Rotation(0.0f, 0.0f, 0.0f, 1.0f);
     if (!(spine2Index < 0)) {
         // use the spine for the azimuth origin.
-       spine2Position = getAbsoluteJointTranslationInObjectFrame(spine2Index);
+        spine2Position = getAbsoluteJointTranslationInObjectFrame(spine2Index);
+        _spine2PositionAvatarSpace = _spine2PositionAvatarSpace + ((0.05f) * (spine2Position - _spine2PositionAvatarSpace));
        spine2Rotation = getAbsoluteJointRotationInObjectFrame(spine2Index);
     }
     glm::vec3 rightHandOffset = rightHandPoseAvatarSpace.translation - spine2Position;
