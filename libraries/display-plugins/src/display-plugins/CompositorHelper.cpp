@@ -494,7 +494,7 @@ glm::mat4 CompositorHelper::getPoint2DTransform(const glm::vec2& point, float si
 
 
 QVariant ReticleInterface::getPosition() const {
-    return vec2toVariant(_compositor->getReticlePosition());
+    return vec2ToVariant(_compositor->getReticlePosition());
 }
 
 void ReticleInterface::setPosition(QVariant position) {
