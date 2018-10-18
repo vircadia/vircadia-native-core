@@ -3024,13 +3024,15 @@ function loaded() {
         let serverScriptProperty = properties["serverScripts"];
         let elServerScript = serverScriptProperty.elInput;
         let serverScriptElementID = serverScriptProperty.elementID;
+        let serverScriptStatusElementID = serverScriptElementID + "-status";
         let elDiv = document.createElement('div');
         elDiv.className = "property";
+        elDiv.setAttribute("id", "div-" + serverScriptStatusElementID);
         let elLabel = document.createElement('label');
-        elLabel.setAttribute("for", serverScriptElementID + "-status");
+        elLabel.setAttribute("for", serverScriptStatusElementID);
         elLabel.innerText = "Server Script Status";
         let elServerScriptStatus = document.createElement('span');
-        elServerScriptStatus.setAttribute("id", serverScriptElementID + "-status");
+        elServerScriptStatus.setAttribute("id", serverScriptStatusElementID);
         elDiv.appendChild(elLabel);
         elDiv.appendChild(elServerScriptStatus);
         elServerScript.parentNode.appendChild(elDiv);
