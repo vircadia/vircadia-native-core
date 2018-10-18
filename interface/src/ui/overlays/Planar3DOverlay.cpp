@@ -64,7 +64,7 @@ void Planar3DOverlay::setProperties(const QVariantMap& properties) {
  */
 QVariant Planar3DOverlay::getProperty(const QString& property) {
     if (property == "dimensions" || property == "scale" || property == "size") {
-        return vec2toVariant(getDimensions());
+        return vec2ToVariant(getDimensions());
     }
 
     return Base3DOverlay::getProperty(property);

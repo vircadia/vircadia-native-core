@@ -51,9 +51,8 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     }
 
     float alpha = getAlpha();
-    xColor color = getColor();
-    const float MAX_COLOR = 255.0f;
-    glm::vec4 rectangleColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::u8vec3 color = getColor();
+    glm::vec4 rectangleColor(toGlm(color), alpha);
 
     auto batch = args->_batch;
     if (batch) {
