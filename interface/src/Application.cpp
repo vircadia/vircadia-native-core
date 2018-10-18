@@ -8484,6 +8484,16 @@ QUuid Application::getTabletFrameID() const {
     return HMD->getCurrentTabletFrameID();
 }
 
+QVector<QUuid> Application::getTabletIDs() const {
+    // Most important overlays first. 
+    QVector<QUuid> result;
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    result << HMD->getCurrentTabletScreenID();
+    result << HMD->getCurrentHomeButtonID();
+    result << HMD->getCurrentTabletFrameID();
+    return result;
+}
+
 void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
     _avatarOverrideUrl = url;
     _saveAvatarOverrideUrl = save;
