@@ -24,7 +24,6 @@
 
 #include <glm/glm.hpp>
 
-
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include "CPUIdent.h"
@@ -348,7 +347,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
     }
 
     auto voxelSizeInBytes = bytesRequiredForCodeLength(voxelSizeInOctets); // (voxelSizeInBits/8)+1;
-    auto voxelBufferSize = voxelSizeInBytes + sizeof(rgbColor); // 3 for color
+    auto voxelBufferSize = voxelSizeInBytes + sizeof(glm::u8vec3); // 3 for color
 
     // allocate our resulting buffer
     unsigned char* voxelOut = new unsigned char[voxelBufferSize];
