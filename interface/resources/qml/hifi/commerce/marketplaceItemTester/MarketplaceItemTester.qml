@@ -69,9 +69,8 @@ Rectangle {
                 // object ids.
                 if (date >= startDate) {
                     resourceAccessEventText += (
-                        message.data.callerId + " " + message.data.extra +
-                        " " + message.data.url +
-                        " [" + date.toISOString() + "]\n"
+                        "[" + date.toISOString() + "] " +
+                        message.data.url.toString().replace("__NONE__,", "") + "\n"
                     );
                 }
                 break;

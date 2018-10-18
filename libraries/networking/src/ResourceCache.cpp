@@ -498,15 +498,7 @@ bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
         resource->makeRequest();
         return true;
     }
-<<<<<<< HEAD
     return false;
-=======
-
-    ++_requestsActive;
-    sharedItems->appendActiveRequest(resource);
-    resource->makeRequest();
-    return true;
->>>>>>> ac26e68e78... Display resource-access events in marketplace item tester
 }
 
 void ResourceCache::requestCompleted(QWeakPointer<Resource> resource) {
@@ -614,13 +606,8 @@ void Resource::allReferencesCleared() {
     }
 
     if (_cache && isCacheable()) {
-<<<<<<< HEAD
         // create and reinsert new shared pointer
         QSharedPointer<Resource> self(this, &Resource::deleter);
-=======
-        // create and reinsert new shared pointer
-        QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);
->>>>>>> ac26e68e78... Display resource-access events in marketplace item tester
         setSelf(self);
         reinsert();
 
