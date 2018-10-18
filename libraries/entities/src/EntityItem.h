@@ -192,7 +192,7 @@ public:
     virtual void setScaledDimensions(const glm::vec3& value);
     virtual glm::vec3 getRaycastDimensions() const { return getScaledDimensions(); }
 
-    inline const glm::vec3 getUnscaledDimensions() const { return _unscaledDimensions; }
+    glm::vec3 getUnscaledDimensions() const;
     virtual void setUnscaledDimensions(const glm::vec3& value);
 
     float getLocalRenderAlpha() const;
@@ -264,9 +264,8 @@ public:
     void setCollisionSoundURL(const QString& value);
 
     glm::vec3 getRegistrationPoint() const; /// registration point as ratio of entity
-
     /// registration point as ratio of entity
-    virtual void setRegistrationPoint(const glm::vec3& value); // FIXME: this is suspicious! 
+    virtual void setRegistrationPoint(const glm::vec3& value); // FIXME: this is suspicious!
 
     bool hasAngularVelocity() const { return getWorldAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
