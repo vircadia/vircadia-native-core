@@ -668,7 +668,7 @@ void EntityTree::unhookChildAvatar(const EntityItemID entityID) {
 void EntityTree::cleanupCloneIDs(const EntityItemID& entityID) {
     EntityItemPointer entity = findEntityByEntityItemID(entityID);
     if (entity) {
-        // remove clone ID from it's clone origin's clone ID list if clone origin exists
+        // remove clone ID from its clone origin's clone ID list if clone origin exists
         const QUuid& cloneOriginID = entity->getCloneOriginID();
         if (!cloneOriginID.isNull()) {
             EntityItemPointer cloneOrigin = findEntityByID(cloneOriginID);
@@ -1933,6 +1933,14 @@ void EntityTree::fixupNeedsParentFixups() {
                 }
             });
             entity->locationChanged(true);
+
+            // Update our parent's bounding box
+            bool success = false;
+            auto parent = entity->getParentPointer(success);
+            if (success && parent) {
+                parent->updateQueryAACube();
+            }
+
             entity->postParentFixup();
         } else if (getIsServer() || _avatarIDs.contains(entity->getParentID())) {
             // this is a child of an avatar, which the entity server will never have
@@ -2558,7 +2566,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
             // The legacy version had no keylight mode - this is set to on
             properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
-            
+
             // The ambient URL has been moved from "keyLight" to "ambientLight"
             if (entityMap.contains("keyLight")) {
                 QVariantMap keyLightObject = entityMap["keyLight"].toMap();
@@ -2626,6 +2634,108 @@ bool EntityTree::readFromMap(QVariantMap& map) {
                 properties.setCloneLimit(cloneLimit.toInt());
                 properties.setCloneDynamic(cloneDynamic.toBool());
                 properties.setCloneAvatarEntity(cloneAvatarEntity.toBool());
+            }
+        }
+
+        // convert old grab-related userData to new grab properties
+        if (contentVersion < (int)EntityVersion::GrabProperties) {
+            QJsonObject userData = QJsonDocument::fromJson(properties.getUserData().toUtf8()).object();
+            QJsonObject grabbableKey = userData["grabbableKey"].toObject();
+            QJsonValue wantsTrigger = grabbableKey["wantsTrigger"];
+
+            GrabPropertyGroup& grabProperties = properties.getGrab();
+
+            if (wantsTrigger.isBool()) {
+                grabProperties.setTriggerable(wantsTrigger.toBool());
+            }
+            QJsonValue triggerable = grabbableKey["triggerable"];
+            if (triggerable.isBool()) {
+                grabProperties.setTriggerable(triggerable.toBool());
+            }
+            QJsonValue grabbable = grabbableKey["grabbable"];
+            if (grabbable.isBool()) {
+                grabProperties.setGrabbable(grabbable.toBool());
+            }
+            QJsonValue ignoreIK = grabbableKey["ignoreIK"];
+            if (ignoreIK.isBool()) {
+                grabProperties.setGrabFollowsController(ignoreIK.toBool());
+            }
+            QJsonValue kinematic = grabbableKey["kinematic"];
+            if (kinematic.isBool()) {
+                grabProperties.setGrabKinematic(kinematic.toBool());
+            }
+
+            if (grabbableKey["spatialKey"].isObject()) {
+                QJsonObject spatialKey = grabbableKey["spatialKey"].toObject();
+                grabProperties.setEquippable(true);
+                if (spatialKey["leftRelativePosition"].isObject()) {
+                    grabProperties.setEquippableLeftPosition(qMapToVec3(spatialKey["leftRelativePosition"].toVariant()));
+                }
+                if (spatialKey["rightRelativePosition"].isObject()) {
+                    grabProperties.setEquippableRightPosition(qMapToVec3(spatialKey["rightRelativePosition"].toVariant()));
+                }
+                if (spatialKey["relativeRotation"].isObject()) {
+                    grabProperties.setEquippableLeftRotation(qMapToQuat(spatialKey["relativeRotation"].toVariant()));
+                    grabProperties.setEquippableRightRotation(qMapToQuat(spatialKey["relativeRotation"].toVariant()));
+                }
+            }
+
+            QJsonObject wearable = userData["wearable"].toObject();
+            QJsonObject joints = wearable["joints"].toObject();
+            if (joints["LeftHand"].isArray()) {
+                QJsonArray leftHand = joints["LeftHand"].toArray();
+                if (leftHand.size() == 2) {
+                    grabProperties.setEquippable(true);
+                    grabProperties.setEquippableLeftPosition(qMapToVec3(leftHand[0].toVariant()));
+                    grabProperties.setEquippableLeftRotation(qMapToQuat(leftHand[1].toVariant()));
+                }
+            }
+            if (joints["RightHand"].isArray()) {
+                QJsonArray rightHand = joints["RightHand"].toArray();
+                if (rightHand.size() == 2) {
+                    grabProperties.setEquippable(true);
+                    grabProperties.setEquippableRightPosition(qMapToVec3(rightHand[0].toVariant()));
+                    grabProperties.setEquippableRightRotation(qMapToQuat(rightHand[1].toVariant()));
+                }
+            }
+
+            if (userData["equipHotspots"].isArray()) {
+                QJsonArray equipHotspots = userData["equipHotspots"].toArray();
+                if (equipHotspots.size() > 0) {
+                    // just take the first one
+                    QJsonObject firstHotSpot = equipHotspots[0].toObject();
+                    QJsonObject joints = firstHotSpot["joints"].toObject();
+                    if (joints["LeftHand"].isArray()) {
+                        QJsonArray leftHand = joints["LeftHand"].toArray();
+                        if (leftHand.size() == 2) {
+                            grabProperties.setEquippable(true);
+                            grabProperties.setEquippableLeftPosition(qMapToVec3(leftHand[0].toVariant()));
+                            grabProperties.setEquippableLeftRotation(qMapToQuat(leftHand[1].toVariant()));
+                        }
+                    }
+                    if (joints["RightHand"].isArray()) {
+                        QJsonArray rightHand = joints["RightHand"].toArray();
+                        if (rightHand.size() == 2) {
+                            grabProperties.setEquippable(true);
+                            grabProperties.setEquippableRightPosition(qMapToVec3(rightHand[0].toVariant()));
+                            grabProperties.setEquippableRightRotation(qMapToQuat(rightHand[1].toVariant()));
+                        }
+                    }
+                    QJsonValue indicatorURL = firstHotSpot["modelURL"];
+                    if (indicatorURL.isString()) {
+                        grabProperties.setEquippableIndicatorURL(indicatorURL.toString());
+                    }
+                    QJsonValue indicatorScale = firstHotSpot["modelScale"];
+                    if (indicatorScale.isDouble()) {
+                        grabProperties.setEquippableIndicatorScale(glm::vec3((float)indicatorScale.toDouble()));
+                    } else if (indicatorScale.isObject()) {
+                        grabProperties.setEquippableIndicatorScale(qMapToVec3(indicatorScale.toVariant()));
+                    }
+                    QJsonValue indicatorOffset = firstHotSpot["position"];
+                    if (indicatorOffset.isObject()) {
+                        grabProperties.setEquippableIndicatorOffset(qMapToVec3(indicatorOffset.toVariant()));
+                    }
+                }
             }
         }
 

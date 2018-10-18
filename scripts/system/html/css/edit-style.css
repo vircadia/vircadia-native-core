@@ -244,7 +244,7 @@ input.search:focus {
     height: 26px;
     margin-top: 1px;
     margin-bottom: 1px;
-    box-shadow: 0 0 0px 1px #00b4ef;
+    box-shadow: 0 0 0 1px #00b4ef;
 }
 
 input:disabled, textarea:disabled {
@@ -455,11 +455,11 @@ input[type=checkbox]:checked + label:hover {
 #properties-list fieldset {
     position: relative;
     /* 0.1px on the top is to prevent margin collapsing between this and it's first child */
-    margin: 21px -21px 0px -21px;
-    padding: 0.1px 21px 0px 21px;
+    margin: 21px -21px 0 -21px;
+    padding: 0.1px 21px 0 21px;
     border: none;
     border-top: 1px rgb(90,90,90) solid;
-    box-shadow: 0px -1px 0px rgb(37,37,37);
+    box-shadow: 0 -1px 0 rgb(37,37,37);
 }
 
 #properties-list fieldset.fstuple, #properties-list fieldset.fsrow {
@@ -469,7 +469,7 @@ input[type=checkbox]:checked + label:hover {
 }
 
 #properties-list > fieldset[data-collapsed="true"] + fieldset {
-    margin-top: 0px;
+    margin-top: 0;
 }
 
 #properties-list > fieldset[data-collapsed="true"] > *:not(legend) {
@@ -477,14 +477,14 @@ input[type=checkbox]:checked + label:hover {
 }
 
 #properties-list legend + fieldset {
-    margin-top: 0px;
+    margin-top: 0;
     border: none;
     box-shadow: none;
 }
 
 #properties-list > fieldset#properties-header {
-    margin-top: 0px;
-    padding-bottom: 0px;
+    margin-top: 0;
+    padding-bottom: 0;
 }
 
 
@@ -940,8 +940,8 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
 #properties-list .two-column  fieldset legend {
     display: table;
     width: 100%;
-    margin: 21px -21px 0px -21px;
-    padding: 0px 0px 0px 21px;
+    margin: 21px -21px 0 -21px;
+    padding: 0 0 0 21px;
     font-family: Raleway-Regular;
     font-size: 12px;
     color: #afafaf;
@@ -973,6 +973,10 @@ fieldset .checkbox-sub-props .property:first-child {
 ::-webkit-scrollbar-track {
     background-color: #2e2e2e;
 }
+#entity-table-scroll::-webkit-scrollbar-track {
+    border-bottom-right-radius: 7px;
+}
+
 ::-webkit-scrollbar-thumb {
     background-color: #696969;
     border: 2px solid #2e2e2e;
@@ -1031,6 +1035,16 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     position: relative; /* New positioning context. */
 }
 
+#footer-text {
+    float: right;
+    padding-top: 12px;
+    padding-right: 22px;
+}
+
+#entity-list-footer {
+    padding-top: 9px;
+}
+
 #search-area {
     padding-right: 168px;
     padding-bottom: 24px;
@@ -1068,6 +1082,9 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     margin-top: 28px;
     border-left: 2px solid #575757;
     border-right: 2px solid #575757;
+    border-bottom: 2px solid #575757;
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
     background-color: #1c1c1c;
 }
 
@@ -1084,8 +1101,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     background-color: #1c1c1c;
 }
 
-#entity-table thead tr, #entity-table thead tr th,
-#entity-table tfoot tr, #entity-table tfoot tr td {
+#entity-table thead tr, #entity-table thead tr th {
     background: none;
 }
 
@@ -1195,19 +1211,6 @@ th#entity-hasTransparent .sort-order {
     position: relative;
     top: -1px;
 }
-
-#entity-table tfoot {
-    box-sizing: border-box;
-    border: 2px solid #575757;
-    border-bottom-left-radius: 7px;
-    border-bottom-right-radius: 7px;
-    border-top: 1px solid #575757;
-    position: absolute;
-    bottom: -21px;
-    left: 0;
-    width: 100%;
-}
-
 
 #col-type {
     width: 16%;
@@ -1788,4 +1791,13 @@ input#reset-to-natural-dimensions {
 
 .skybox-section {
     display: none;
+}
+
+input[type=button]#export {
+    height: 38px;
+    width: 180px;
+}
+
+body#entity-list-body {
+    padding-bottom: 0;
 }

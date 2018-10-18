@@ -10,7 +10,7 @@
 
 /* jslint bitwise: true */
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
+/* global Script, Entities, MyAvatar, Controller, Quat, RIGHT_HAND, LEFT_HAND,
    enableDispatcherModule, disableDispatcherModule, Messages, makeDispatcherModuleParameters, makeRunningValues, Vec3,
    HMD, Uuid, AvatarList, Picks, Pointers, PickType
 */
@@ -680,8 +680,8 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.teleportLocked = function () {
             // Lock teleport if in advanced movement mode and have just transitioned from pressing a direction button.
-            return Controller.getValue(Controller.Hardware.Application.AdvancedMovement)
-                && (_this.axisButtonStateX !== 0 || _this.axisButtonStateY !== 0);
+            return Controller.getValue(Controller.Hardware.Application.AdvancedMovement) &&
+                (_this.axisButtonStateX !== 0 || _this.axisButtonStateY !== 0);
         };
 
         this.buttonPress = function (value) {

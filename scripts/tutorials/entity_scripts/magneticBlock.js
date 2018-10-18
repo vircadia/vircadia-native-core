@@ -52,32 +52,8 @@
           It will behave as the constructor
         */
         preload: function(id) {
-            /*
-              We will now override any existing userdata with the grabbable property.
-              Only retrieving userData
-            */
-            var entityProperties = Entities.getEntityProperties(id, ['userData']);
-            var userData = {
-                grabbableKey: {}
-            };
-            // Check if existing userData field exists.
-            if (entityProperties.userData && entityProperties.userData.length > 0) {
-                try {
-                    userData = JSON.parse(entityProperties.userData);
-                    if (!userData.grabbableKey) {
-                        userData.grabbableKey = {}; // If by random change there is no grabbableKey in the userData.
-                    }
-                } catch (e) {
-                    // if user data is not valid json, we will simply overwrite it.
-                }
-            }
-            // Object must be triggerable inorder to bind releaseGrabEvent
-            userData.grabbableKey.grabbable = true;
-
             // Apply the new properties to entity of id
-            Entities.editEntity(id, {
-                userData: JSON.stringify(userData)
-            });
+            Entities.editEntity(id, { grab: { grabbable: true } });
             Script.scriptEnding.connect(function() {
                 Script.removeEventHandler(id, "releaseGrab", this.releaseGrab);
             });

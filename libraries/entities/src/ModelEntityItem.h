@@ -70,6 +70,9 @@ public:
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     QString getCompoundShapeURL() const;
 
+    // Returns the URL used for the collision shape
+    QString getCollisionShapeURL() const;
+
     void setColor(const rgbColor& value);
     void setColor(const xColor& value);
 
