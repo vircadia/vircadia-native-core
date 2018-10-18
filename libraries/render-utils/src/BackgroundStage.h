@@ -65,6 +65,7 @@ public:
 
         BackgroundStage::BackgroundIndices _backgrounds;
     };
+    using FramePointer = std::shared_ptr<Frame>;
     
     Frame _currentFrame;
 };
@@ -76,18 +77,16 @@ public:
 
     BackgroundStageSetup();
     void run(const render::RenderContextPointer& renderContext);
-
-protected:
 };
 
 class DrawBackgroundStage {
 public:
-    using Inputs = LightingModelPointer;
+    using Inputs = render::VaryingSet2<LightingModelPointer, BackgroundStage::FramePointer>;
     using JobModel = render::Job::ModelI<DrawBackgroundStage, Inputs>;
 
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
+    DrawBackgroundStage() {}
 
-protected:
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 };
 
 #endif

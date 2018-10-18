@@ -1,10 +1,9 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-//  Generated on <$_SCRIBE_DATE$>
-//  model.vert
-//  vertex shader
+// <$_SCRIBE_FILENAME$> 
+// Generated on <$_SCRIBE_DATE$>
 //
-//  Created by Andrzej Kapolka on 10/14/13.
+//  Created by Hifi Engine Team.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -15,12 +14,14 @@
 <@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
 <@include graphics/MaterialTextures.slh@>
-<@include render-utils/ShaderConstants.h@>
 
 <$declareStandardTransform()$>
 
 <$declareMaterialTexMapArrayBuffer()$>
 
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
 layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
@@ -32,11 +33,11 @@ void main(void) {
 
     TexMapArray texMapArray = getTexMapArray();
     <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord01.xy)$>
-    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord01.zw)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord1, _texCoord01.zw)$>
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
+    <$transformModelToWorldAndEyeAndClipPos(cam, obj, inPosition, _positionWS, _positionES, gl_Position)$>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
 }

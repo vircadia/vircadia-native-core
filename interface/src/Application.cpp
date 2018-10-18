@@ -122,6 +122,7 @@
 #include <RecordingScriptingInterface.h>
 #include <UpdateSceneTask.h>
 #include <RenderViewTask.h>
+#include <render/EngineStats.h>
 #include <SecondaryCamera.h>
 #include <ResourceCache.h>
 #include <ResourceRequest.h>
@@ -151,6 +152,8 @@
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
 #include <procedural/ProceduralSkybox.h>
+#include <model-networking/MaterialCache.h>
+#include "recording/ClipCache.h"
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
@@ -215,7 +218,8 @@
 #include <raypick/LaserPointerScriptingInterface.h>
 #include <raypick/PickScriptingInterface.h>
 #include <raypick/PointerScriptingInterface.h>
-#include <raypick/MouseRayPick.h>
+#include <raypick/RayPick.h>
+#include <raypick/MouseTransformNode.h>
 
 #include <FadeEffect.h>
 
@@ -326,9 +330,9 @@ static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains
 #endif
 
 #if !defined(Q_OS_ANDROID)
-static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
+static const uint32_t MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 #else
-static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
+static const uint32_t MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
 #endif
 
 // For processing on QThreadPool, we target a number of threads after reserving some
@@ -364,7 +368,6 @@ static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SI
 
 static const uint32_t INVALID_FRAME = UINT32_MAX;
 
-static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
 static const float INITIAL_QUERY_RADIUS = 10.0f;  // priority radius for entities before physics enabled
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
@@ -1326,7 +1329,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
     bool success;
-    int concurrentDownloads = concurrentDownloadsStr.toInt(&success);
+    uint32_t concurrentDownloads = concurrentDownloadsStr.toUInt(&success);
     if (!success) {
         concurrentDownloads = MAX_CONCURRENT_RESOURCE_DOWNLOADS;
     }
@@ -2053,7 +2056,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
 
         properties["active_downloads"] = loadingRequests.size();
-        properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
+        properties["pending_downloads"] = (int)ResourceCache::getPendingRequestCount();
         properties["active_downloads_details"] = loadingRequestsStats;
 
         auto statTracker = DependencyManager::get<StatTracker>();
@@ -2286,8 +2289,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     // Setup the mouse ray pick and related operators
-    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<MouseRayPick>(
-        PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true)));
+    {
+        auto mouseRayPick = std::make_shared<RayPick>(Vectors::ZERO, Vectors::UP, PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true);
+        mouseRayPick->parentTransform = std::make_shared<MouseTransformNode>();
+        mouseRayPick->setJointState(PickQuery::JOINT_STATE_MOUSE);
+        auto mouseRayPickID = DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, mouseRayPick);
+        DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(mouseRayPickID);
+    }
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([](unsigned int rayPickID) {
         RayToEntityIntersectionResult entityResult;
         entityResult.intersects = false;
@@ -4647,8 +4655,8 @@ void Application::idle() {
         PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
     }
     PROFILE_COUNTER_IF_CHANGED(app, "renderLoopRate", float, _renderLoopCounter.rate());
-    PROFILE_COUNTER_IF_CHANGED(app, "currentDownloads", int, ResourceCache::getLoadingRequests().length());
-    PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", int, ResourceCache::getPendingRequestCount());
+    PROFILE_COUNTER_IF_CHANGED(app, "currentDownloads", uint32_t, ResourceCache::getLoadingRequestCount());
+    PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", uint32_t, ResourceCache::getPendingRequestCount());
     PROFILE_COUNTER_IF_CHANGED(app, "currentProcessing", int, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
     PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
     auto renderConfig = _renderEngine->getConfiguration();
@@ -5377,8 +5385,8 @@ void Application::resetPhysicsReadyInformation() {
     // collision information of nearby entities to make running bullet be safe.
     _fullSceneReceivedCounter = 0;
     _fullSceneCounterAtLastPhysicsCheck = 0;
-    _nearbyEntitiesCountAtLastPhysicsCheck = 0;
-    _nearbyEntitiesStabilityCount = 0;
+    _gpuTextureMemSizeStabilityCount = 0;
+    _gpuTextureMemSizeAtLastCheck = 0;
     _physicsEnabled = false;
     _octreeProcessor.startEntitySequence();
 }
@@ -5393,13 +5401,21 @@ void Application::reloadResourceCaches() {
 
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
 
+    // Clear the entities and their renderables
+    getEntities()->clear();
+
     DependencyManager::get<AssetClient>()->clearCache();
     DependencyManager::get<ScriptCache>()->clearCache();
 
+    // Clear all the resource caches
+    DependencyManager::get<ResourceCacheSharedItems>()->clear();
     DependencyManager::get<AnimationCache>()->refreshAll();
-    DependencyManager::get<ModelCache>()->refreshAll();
     DependencyManager::get<SoundCache>()->refreshAll();
+    MaterialCache::instance().refreshAll();
+    DependencyManager::get<ModelCache>()->refreshAll();
+    ShaderCache::instance().refreshAll();
     DependencyManager::get<TextureCache>()->refreshAll();
+    DependencyManager::get<recording::ClipCache>()->refreshAll();
 
     DependencyManager::get<NodeList>()->reset();  // Force redownload of .fst models
 
@@ -5617,18 +5633,21 @@ void Application::update(float deltaTime) {
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
         if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
-            // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
-            _lastPhysicsCheckTime = now;
-            _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
-            _lastQueriedViews.clear();  // Force new view.
+            bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+            if (gpuTextureMemSizeStable() || !enableInterstitial) {
+                // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
+                _lastPhysicsCheckTime = now;
+                _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
+                _lastQueriedViews.clear();  // Force new view.
 
-            // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
-            // We keep physics disabled until we've received a full scene and everything near the avatar in that
-            // scene is ready to compute its collision shape.
-            if (getMyAvatar()->isReadyForPhysics()) {
-                _physicsEnabled = true;
-                setIsInterstitialMode(false);
-                getMyAvatar()->updateMotionBehaviorFromMenu();
+                // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
+                // We keep physics disabled until we've received a full scene and everything near the avatar in that
+                // scene is ready to compute its collision shape.
+                if (getMyAvatar()->isReadyForPhysics()) {
+                    _physicsEnabled = true;
+                    setIsInterstitialMode(false);
+                    getMyAvatar()->updateMotionBehaviorFromMenu();
+                }
             }
         }
     } else if (domainLoadingInProgress) {
@@ -5915,6 +5934,10 @@ void Application::update(float deltaTime) {
             // update the rendering without any simulation
             getEntities()->update(false);
         }
+        // remove recently dead avatarEntities
+        SetOfEntities deadAvatarEntities;
+        _entitySimulation->takeDeadAvatarEntities(deadAvatarEntities);
+        avatarManager->removeDeadAvatarEntities(deadAvatarEntities);
     }
 
     // AvatarManager update
@@ -6239,6 +6262,8 @@ int Application::sendNackPackets() {
                 missingSequenceNumbers = sequenceNumberStats.getMissingSet();
             });
 
+            _isMissingSequenceNumbers = (missingSequenceNumbers.size() != 0);
+
             // construct nack packet(s) for this node
             foreach(const OCTREE_PACKET_SEQUENCE& missingNumber, missingSequenceNumbers) {
                 nackPacketList->writePrimitive(missingNumber);
@@ -6265,9 +6290,19 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
     const bool isModifiedQuery = !_physicsEnabled;
     if (isModifiedQuery) {
         // Create modified view that is a simple sphere.
+        bool interstitialModeEnabled = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+
         ConicalViewFrustum sphericalView;
         sphericalView.setSimpleRadius(INITIAL_QUERY_RADIUS);
-        _octreeQuery.setConicalViews({ sphericalView });
+
+        if (interstitialModeEnabled) {
+            ConicalViewFrustum farView;
+            farView.set(_viewFrustum);
+            _octreeQuery.setConicalViews({ sphericalView, farView });
+        } else {
+            _octreeQuery.setConicalViews({ sphericalView });
+        }
+
         _octreeQuery.setOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE);
         static constexpr float MIN_LOD_ADJUST = -20.0f;
         _octreeQuery.setBoundaryLevelAdjust(MIN_LOD_ADJUST);
@@ -6445,9 +6480,12 @@ void Application::clearDomainOctreeDetails() {
     skyStage->setBackgroundMode(graphics::SunSkyStage::SKY_DEFAULT);
 
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
-    DependencyManager::get<ModelCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
+    MaterialCache::instance().clearUnusedResources();
+    DependencyManager::get<ModelCache>()->clearUnusedResources();
+    ShaderCache::instance().clearUnusedResources();
     DependencyManager::get<TextureCache>()->clearUnusedResources();
+    DependencyManager::get<recording::ClipCache>()->clearUnusedResources();
 
     getMyAvatar()->setAvatarEntityDataChanged(true);
 }
@@ -6579,69 +6617,23 @@ void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNode
     }
 }
 
-bool Application::nearbyEntitiesAreReadyForPhysics() {
-    // this is used to avoid the following scenario:
-    // A table has some items sitting on top of it.  The items are at rest, meaning they aren't active in bullet.
-    // Someone logs in close to the table.  They receive information about the items on the table before they
-    // receive information about the table.  The items are very close to the avatar's capsule, so they become
-    // activated in bullet.  This causes them to fall to the floor, because the table's shape isn't yet in bullet.
-    EntityTreePointer entityTree = getEntities()->getTree();
-    if (!entityTree) {
-        return false;
-    }
+bool Application::gpuTextureMemSizeStable() {
+    auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+    auto renderStats = renderConfig->getConfig<render::EngineStats>("Stats");
 
-    // We don't want to use EntityTree::findEntities(AABox, ...) method because that scan will snarf parented entities
-    // whose bounding boxes cannot be computed (it is too loose for our purposes here).  Instead we manufacture
-    // custom filters and use the general-purpose EntityTree::findEntities(filter, ...)
-    QVector<EntityItemPointer> entities;
-    AABox avatarBox(getMyAvatar()->getWorldPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
-    // create two functions that use avatarBox (entityScan and elementScan), the second calls the first
-    std::function<bool (EntityItemPointer&)> entityScan = [=](EntityItemPointer& entity) {
-        if (entity->shouldBePhysical()) {
-            bool success = false;
-            AABox entityBox = entity->getAABox(success);
-            // important: bail for entities that cannot supply a valid AABox
-            return success && avatarBox.touches(entityBox);
-        }
-        return false;
-    };
-    std::function<bool(const OctreeElementPointer&, void*)> elementScan = [&](const OctreeElementPointer& element, void* unused) {
-        if (element->getAACube().touches(avatarBox)) {
-            EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-            entityTreeElement->getEntities(entityScan, entities);
-            return true;
-        }
-        return false;
-    };
+    qint64 textureResourceGPUMemSize = renderStats->textureResourceGPUMemSize;
+    qint64 texturePopulatedGPUMemSize = renderStats->textureResourcePopulatedGPUMemSize;
+    qint64 textureTransferSize = renderStats->texturePendingGPUTransferSize;
 
-    entityTree->withReadLock([&] {
-        // Pass the second function to the general-purpose EntityTree::findEntities()
-        // which will traverse the tree, apply the two filter functions (to element, then to entities)
-        // as it traverses.  The end result will be a list of entities that match.
-        entityTree->findEntities(elementScan, entities);
-    });
-
-    uint32_t nearbyCount = entities.size();
-    if (nearbyCount == _nearbyEntitiesCountAtLastPhysicsCheck) {
-        _nearbyEntitiesStabilityCount++;
+    if (_gpuTextureMemSizeAtLastCheck == textureResourceGPUMemSize) {
+        _gpuTextureMemSizeStabilityCount++;
     } else {
-        _nearbyEntitiesStabilityCount = 0;
+        _gpuTextureMemSizeStabilityCount = 0;
     }
-    _nearbyEntitiesCountAtLastPhysicsCheck = nearbyCount;
+    _gpuTextureMemSizeAtLastCheck = textureResourceGPUMemSize;
 
-    const uint32_t MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT = 3;
-    if (_nearbyEntitiesStabilityCount >= MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT) {
-        // We've seen the same number of nearby entities for several stats packets in a row.  assume we've got all
-        // the local entities.
-        bool result = true;
-        foreach (EntityItemPointer entity, entities) {
-            if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
-                HIFI_FCDEBUG(interfaceapp(), "Physics disabled until entity loads: " << entity->getID() << entity->getName());
-                // don't break here because we want all the relevant entities to start their downloads
-                result = false;
-            }
-        }
-        return result;
+    if (_gpuTextureMemSizeStabilityCount >= _minimumGPUTextureMemSizeStabilityCount) {
+        return (textureResourceGPUMemSize == texturePopulatedGPUMemSize) && (textureTransferSize == 0);
     }
     return false;
 }

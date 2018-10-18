@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, MyAvatar, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
+/* global Script, HMD, Messages, MyAvatar, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
    makeDispatcherModuleParameters, makeRunningValues, getEnabledModuleByName, makeLaserParams
 */
 
@@ -32,8 +32,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         );
 
         this.pointingAtTablet = function (objectID) {
-            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
-                || (HMD.homeButtonID && objectID === HMD.homeButtonID);
+            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID) ||
+                (HMD.homeButtonID && objectID === HMD.homeButtonID);
         };
 
         // The Shapes app has a non-standard laser: in particular, the laser end dot displays on its own when the laser is 
@@ -79,9 +79,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
 
             // Tablet stylus.
-            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND
-                ? "RightTabletStylusInput"
-                : "LeftTabletStylusInput");
+            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND ?
+                                                           "RightTabletStylusInput" :
+                                                           "LeftTabletStylusInput");
             if (tabletStylusInput) {
                 var tabletReady = tabletStylusInput.isReady(controllerData);
                 if (tabletReady.active) {
@@ -90,9 +90,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
 
             // Tablet surface.
-            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
-                ? "RightWebSurfaceLaserInput"
-                : "LeftWebSurfaceLaserInput");
+            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ?
+                                                      "RightWebSurfaceLaserInput" :
+                                                      "LeftWebSurfaceLaserInput");
             if (overlayLaser) {
                 var overlayLaserReady = overlayLaser.isReady(controllerData);
                 var target = controllerData.rayPicks[this.hand].objectID;
@@ -102,9 +102,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
 
             // Tablet grabbing.
-            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND
-                ? "RightNearParentingGrabOverlay"
-                : "LeftNearParentingGrabOverlay");
+            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND ?
+                                                     "RightNearParentingGrabOverlay" :
+                                                     "LeftNearParentingGrabOverlay");
             if (nearOverlay) {
                 var nearOverlayReady = nearOverlay.isReady(controllerData);
                 if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
@@ -126,9 +126,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
 
             // Teleport.
-            var teleporter = getEnabledModuleByName(this.hand === RIGHT_HAND
-                ? "RightTeleporter"
-                : "LeftTeleporter");
+            var teleporter = getEnabledModuleByName(this.hand === RIGHT_HAND ?
+                                                    "RightTeleporter" :
+                                                    "LeftTeleporter");
             if (teleporter) {
                 var teleporterReady = teleporter.isReady(controllerData);
                 if (teleporterReady.active) {

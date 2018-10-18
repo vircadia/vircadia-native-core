@@ -45,11 +45,7 @@ var cow = Entities.addEntity({
   lifetime: 3600,
   shapeType: "box",
   script: SCRIPT_URL,
-  userData: JSON.stringify({
-    grabbableKey: {
-      grabbable: true
-    }
-  })
+  grab: { grabbable: true }
 });
 
 Script.stop();

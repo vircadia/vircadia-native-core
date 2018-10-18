@@ -79,6 +79,9 @@ void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
             _deadEntities.insert(entity);
         }
     }
+    if (entity->getClientOnly()) {
+        _deadAvatarEntities.insert(entity);
+    }
 }
 
 void PhysicalEntitySimulation::removeOwnershipData(EntityMotionState* motionState) {
@@ -121,6 +124,11 @@ void PhysicalEntitySimulation::takeDeadEntities(SetOfEntities& deadEntities) {
     }
     _deadEntities.swap(deadEntities);
     _deadEntities.clear();
+}
+
+void PhysicalEntitySimulation::takeDeadAvatarEntities(SetOfEntities& deadEntities) {
+    _deadAvatarEntities.swap(deadEntities);
+    _deadAvatarEntities.clear();
 }
 
 void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {

@@ -198,17 +198,17 @@ const unsigned char* OctreePacketData::getFinalizedData() {
 
 int OctreePacketData::getFinalizedSize() {
     if (!_enableCompression) {
-        return _bytesInUse; 
+        return _bytesInUse;
     }
 
     if (_dirty) {
         if (_debug) {
             qCDebug(octree, "getFinalizedSize() _compressedBytes=%d _bytesInUse=%d",_compressedBytes, _bytesInUse);
         }
-        compressContent(); 
+        compressContent();
     }
 
-    return _compressedBytes; 
+    return _compressedBytes;
 }
 
 
@@ -297,14 +297,6 @@ bool OctreePacketData::appendValue(const nodeColor& color) {
     return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
 }
 
-bool OctreePacketData::appendValue(const xColor& color) {
-    return appendColor(color.red, color.green, color.blue);
-}
-
-bool OctreePacketData::appendValue(const rgbColor& color) {
-    return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
-}
-
 bool OctreePacketData::appendColor(colorPart red, colorPart green, colorPart blue) {
     // eventually we can make this use a dictionary...
     bool success = false;
@@ -371,7 +363,6 @@ bool OctreePacketData::appendValue(quint64 value) {
 }
 
 bool OctreePacketData::appendValue(float value) {
-    
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
     bool success = append(data, length);
@@ -384,7 +375,7 @@ bool OctreePacketData::appendValue(float value) {
 
 bool OctreePacketData::appendValue(const glm::vec2& value) {
     const unsigned char* data = (const unsigned char*)&value;
-    int length = sizeof(value);
+    int length = sizeof(glm::vec2);
     bool success = append(data, length);
     if (success) {
         _bytesOfValues += length;
@@ -395,13 +386,17 @@ bool OctreePacketData::appendValue(const glm::vec2& value) {
 
 bool OctreePacketData::appendValue(const glm::vec3& value) {
     const unsigned char* data = (const unsigned char*)&value;
-    int length = sizeof(value);
+    int length = sizeof(glm::vec3);
     bool success = append(data, length);
     if (success) {
         _bytesOfValues += length;
         _totalBytesOfValues += length;
     }
     return success;
+}
+
+bool OctreePacketData::appendValue(const glm::u8vec3& color) {
+    return appendColor(color.x, color.y, color.z);
 }
 
 bool OctreePacketData::appendValue(const QVector<glm::vec3>& value) {
@@ -604,6 +599,9 @@ bool OctreePacketData::compressContent() {
         memcpy(_compressed, compressedData.constData(), _compressedBytes);
         _dirty = false;
         success = true;
+    } else {
+        qCWarning(octree) << "OctreePacketData::compressContent -- compressedData.size >= MAX_OCTREE_PACKET_DATA_SIZE";
+        assert(false);
     }
     return success;
 }
@@ -623,11 +621,16 @@ void OctreePacketData::loadFinalizedContent(const unsigned char* data, int lengt
             memcpy(compressedData.data(), data, _compressedBytes);
 
             QByteArray uncompressedData = qUncompress(compressedData);
-            if (uncompressedData.size() <= _bytesAvailable) {
-                _bytesInUse = uncompressedData.size();
-                _bytesAvailable -= uncompressedData.size();
-                memcpy(_uncompressed, uncompressedData.constData(), _bytesInUse);
+            if (uncompressedData.size() > _bytesAvailable) {
+                int moreNeeded = uncompressedData.size() - _bytesAvailable;
+                _uncompressedByteArray.resize(_uncompressedByteArray.size() + moreNeeded);
+                _uncompressed = (unsigned char*)_uncompressedByteArray.data();
+                _bytesAvailable += moreNeeded;
             }
+
+            _bytesInUse = uncompressedData.size();
+            _bytesAvailable -= uncompressedData.size();
+            memcpy(_uncompressed, uncompressedData.constData(), _bytesInUse);
         } else {
             memcpy(_uncompressed, data, length);
             memcpy(_compressed, data, length);
@@ -673,6 +676,21 @@ void OctreePacketData::debugBytes() {
     qCDebug(octree) << "    _bytesReserved=" << _bytesReserved;
 }
 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, glm::vec2& result) {
+    memcpy(&result, dataBytes, sizeof(result));
+    return sizeof(result);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) {
+    memcpy(&result, dataBytes, sizeof(result));
+    return sizeof(result);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, glm::u8vec3& result) {
+    memcpy(&result, dataBytes, sizeof(result));
+    return sizeof(result);
+}
+
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QString& result) { 
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
@@ -694,14 +712,6 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QUuid&
     }
     return sizeof(length) + length;
 }
-
-int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, xColor& result) { 
-    result.red = dataBytes[RED_INDEX];
-    result.green = dataBytes[GREEN_INDEX];
-    result.blue = dataBytes[BLUE_INDEX];
-    return sizeof(rgbColor);
-}
-
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVector<glm::vec3>& result) {
     uint16_t length;

@@ -15,6 +15,7 @@
 #include <gpu/Pipeline.h>
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
+#include "LightStage.h"
 
 class RenderForwardTask {
 public:
@@ -40,7 +41,7 @@ private:
 
 class PrepareForward {
 public:
-    using Inputs = LightingModelPointer;
+    using Inputs = LightStage::FramePointer;
     using JobModel = render::Job::ModelI<PrepareForward, Inputs>;
 
     void run(const render::RenderContextPointer& renderContext,

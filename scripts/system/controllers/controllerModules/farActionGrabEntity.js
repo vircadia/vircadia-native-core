@@ -8,38 +8,19 @@
 /* jslint bitwise: true */
 
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
-   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities,
+   getEnabledModuleByName, makeRunningValues, Entities,
    enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable, entityIsGrabbable,
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
-   PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
-   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
-   Picks, makeLaserLockInfo Xform, makeLaserParams, AddressManager, getEntityParents, Selection, DISPATCHER_HOVERING_LIST,
-   worldPositionToRegistrationFrameMatrix
+   TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
+   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD,
+   Picks, makeLaserLockInfo, makeLaserParams, AddressManager, getEntityParents, Selection, DISPATCHER_HOVERING_LIST,
+   worldPositionToRegistrationFrameMatrix, DISPATCHER_PROPERTIES, Uuid, Picks
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
-Script.include("/~/system/libraries/Xform.js");
 
 (function() {
-    var GRABBABLE_PROPERTIES = [
-        "position",
-        "registrationPoint",
-        "rotation",
-        "gravity",
-        "collidesWith",
-        "dynamic",
-        "collisionless",
-        "locked",
-        "name",
-        "shapeType",
-        "parentID",
-        "parentJointIndex",
-        "density",
-        "dimensions",
-        "userData"
-    ];
 
     var MARGIN = 25;
 
@@ -106,9 +87,11 @@ Script.include("/~/system/libraries/Xform.js");
         this.locked = false;
         this.highlightedEntity = null;
         this.reticleMinX = MARGIN;
-        this.reticleMaxX;
+        this.reticleMaxX = null;
         this.reticleMinY = MARGIN;
-        this.reticleMaxY;
+        this.reticleMaxY = null;
+
+        this.ignoredEntities = [];
 
         var ACTION_TTL = 15; // seconds
 
@@ -210,7 +193,7 @@ Script.include("/~/system/libraries/Xform.js");
             var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
             var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
-            var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
+            var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, DISPATCHER_PROPERTIES);
             var now = Date.now();
             var deltaObjectTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
             this.currentObjectTime = now;
@@ -314,15 +297,35 @@ Script.include("/~/system/libraries/Xform.js");
             return point2d;
         };
 
+        this.restoreIgnoredEntities = function() {
+            for (var i = 0; i < this.ignoredEntities; i++) {
+                var data = {
+                    action: 'remove',
+                    id: this.ignoredEntities[i]
+                };
+                Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
+            }
+            this.ignoredEntities = [];
+        };
+
         this.notPointingAtEntity = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
-            var entityProperty = Entities.getEntityProperties(intersection.objectID);
+            var entityProperty = Entities.getEntityProperties(intersection.objectID, DISPATCHER_PROPERTIES);
             var entityType = entityProperty.type;
             var hudRayPick = controllerData.hudRayPicks[this.hand];
             var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
             if ((intersection.type === Picks.INTERSECTED_ENTITY && entityType === "Web") ||
                 intersection.type === Picks.INTERSECTED_OVERLAY || Window.isPointOnDesktopWindow(point2d)) {
                 return true;
+            } else if (intersection.type === Picks.INTERSECTED_ENTITY && !Window.isPhysicsEnabled()) {
+                // add to ignored items.
+                var data = {
+                    action: 'add',
+                    id: intersection.objectID
+                };
+                Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
+                this.ignoredEntities.push(intersection.objectID);
+
             }
             return false;
         };
@@ -351,7 +354,7 @@ Script.include("/~/system/libraries/Xform.js");
             var worldControllerPosition = controllerLocation.position;
             var worldControllerRotation = controllerLocation.orientation;
 
-            var grabbedProperties = Entities.getEntityProperties(intersection.objectID, GRABBABLE_PROPERTIES);
+            var grabbedProperties = Entities.getEntityProperties(intersection.objectID, DISPATCHER_PROPERTIES);
             this.currentObjectPosition = grabbedProperties.position;
             this.grabRadius = intersection.distance;
 
@@ -373,7 +376,7 @@ Script.include("/~/system/libraries/Xform.js");
         };
 
         this.targetIsNull = function() {
-            var properties = Entities.getEntityProperties(this.grabbedThingID);
+            var properties = Entities.getEntityProperties(this.grabbedThingID, DISPATCHER_PROPERTIES);
             if (Object.keys(properties).length === 0 && this.distanceHolding) {
                 return true;
             }
@@ -383,6 +386,7 @@ Script.include("/~/system/libraries/Xform.js");
         this.isReady = function (controllerData) {
             if (HMD.active) {
                 if (this.notPointingAtEntity(controllerData)) {
+                    this.restoreIgnoredEntities();
                     return makeRunningValues(false, [], []);
                 }
 
@@ -394,9 +398,11 @@ Script.include("/~/system/libraries/Xform.js");
                     return makeRunningValues(true, [], []);
                 } else {
                     this.destroyContextOverlay();
+                    this.restoreIgnoredEntities();
                     return makeRunningValues(false, [], []);
                 }
             }
+            this.restoreIgnoredEntities();
             return makeRunningValues(false, [], []);
         };
 
@@ -407,6 +413,7 @@ Script.include("/~/system/libraries/Xform.js");
                 Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                     this.highlightedEntity);
                 this.highlightedEntity = null;
+                this.restoreIgnoredEntities();
                 return makeRunningValues(false, [], []);
             }
             this.intersectionDistance = controllerData.rayPicks[this.hand].distance;
@@ -434,9 +441,10 @@ Script.include("/~/system/libraries/Xform.js");
                 // if we are doing a distance grab and the object or tablet gets close enough to the controller,
                 // stop the far-grab so the near-grab or equip can take over.
                 for (var k = 0; k < nearGrabReadiness.length; k++) {
-                    if (nearGrabReadiness[k].active && (nearGrabReadiness[k].targets[0] === this.grabbedThingID
-                        || HMD.tabletID && nearGrabReadiness[k].targets[0] === HMD.tabletID)) {
+                    if (nearGrabReadiness[k].active && (nearGrabReadiness[k].targets[0] === this.grabbedThingID ||
+                        HMD.tabletID && nearGrabReadiness[k].targets[0] === HMD.tabletID)) {
                         this.endFarGrabAction();
+                        this.restoreIgnoredEntities();
                         return makeRunningValues(false, [], []);
                     }
                 }
@@ -448,6 +456,7 @@ Script.include("/~/system/libraries/Xform.js");
                 for (var j = 0; j < nearGrabReadiness.length; j++) {
                     if (nearGrabReadiness[j].active) {
                         this.endFarGrabAction();
+                        this.restoreIgnoredEntities();
                         return makeRunningValues(false, [], []);
                     }
                 }
@@ -459,13 +468,10 @@ Script.include("/~/system/libraries/Xform.js");
                         Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                             this.highlightedEntity);
                         this.highlightedEntity = null;
-                        var targetProps = Entities.getEntityProperties(entityID, [
-                            "dynamic", "shapeType", "position",
-                            "rotation", "dimensions", "density",
-                            "userData", "locked", "type", "href"
-                        ]);
+                        var targetProps = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
                         if (targetProps.href !== "") {
                             AddressManager.handleLookupString(targetProps.href);
+                            this.restoreIgnoredEntities();
                             return makeRunningValues(false, [], []);
                         }
 
@@ -511,11 +517,7 @@ Script.include("/~/system/libraries/Xform.js");
                         if (this.highlightedEntity !== targetEntityID) {
                             Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                                 this.highlightedEntity);
-                            var selectionTargetProps = Entities.getEntityProperties(targetEntityID, [
-                                "dynamic", "shapeType", "position",
-                                "rotation", "dimensions", "density",
-                                "userData", "locked", "type", "href"
-                            ]);
+                            var selectionTargetProps = Entities.getEntityProperties(targetEntityID, DISPATCHER_PROPERTIES);
 
                             var selectionTargetObject = new TargetObject(targetEntityID, selectionTargetProps);
                             selectionTargetObject.parentProps = getEntityParents(selectionTargetProps);
@@ -545,11 +547,12 @@ Script.include("/~/system/libraries/Xform.js");
                                     if (!_this.entityWithContextOverlay &&
                                         _this.contextOverlayTimer &&
                                         _this.potentialEntityWithContextOverlay === rayPickInfo.objectID) {
-                                        var props = Entities.getEntityProperties(rayPickInfo.objectID);
+                                        var props = Entities.getEntityProperties(rayPickInfo.objectID, DISPATCHER_PROPERTIES);
                                         var pointerEvent = {
                                             type: "Move",
                                             id: _this.hand + 1, // 0 is reserved for hardware mouse
-                                            pos2D: projectOntoEntityXYPlane(rayPickInfo.objectID, rayPickInfo.intersection, props),
+                                            pos2D: projectOntoEntityXYPlane(rayPickInfo.objectID,
+                                                                            rayPickInfo.intersection, props),
                                             pos3D: rayPickInfo.intersection,
                                             normal: rayPickInfo.surfaceNormal,
                                             direction: Vec3.subtract(ZERO_VEC, rayPickInfo.surfaceNormal),
@@ -583,6 +586,7 @@ Script.include("/~/system/libraries/Xform.js");
                     Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                         this.highlightedEntity);
                     this.highlightedEntity = null;
+                    this.restoreIgnoredEntities();
                     return makeRunningValues(false, [], []);
                 }
             }

@@ -95,13 +95,6 @@ inline void BufferParser::readValue(QUuid& result) {
 }
 
 template<>
-inline void BufferParser::readValue(xColor& result) {
-    readValue(result.red);
-    readValue(result.blue);
-    readValue(result.green);
-}
-
-template<>
 inline void BufferParser::readValue(QVector<glm::vec3>& result) {
     uint16_t length; readValue(length);
     result.resize(length);

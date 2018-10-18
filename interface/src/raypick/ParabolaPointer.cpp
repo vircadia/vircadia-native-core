@@ -52,8 +52,7 @@ void ParabolaPointer::editRenderStatePath(const std::string& state, const QVaria
         if (!pathMap.isEmpty()) {
             enabled = true;
             if (pathMap["color"].isValid()) {
-                bool valid;
-                color = toGlm(xColorFromVariant(pathMap["color"], valid));
+                color = toGlm(u8vec3FromVariant(pathMap["color"]));
             }
             if (pathMap["alpha"].isValid()) {
                 alpha = pathMap["alpha"].toFloat();
@@ -204,9 +203,9 @@ void ParabolaPointer::RenderState::editParabola(const glm::vec3& color, float al
     }
 }
 
-void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, float parentScale, bool distanceScaleEnd, bool centerEndY,
                                           bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) {
-    StartEndRenderState::update(origin, end, surfaceNormal, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal, followNormalStrength, distance, pickResult);
+    StartEndRenderState::update(origin, end, surfaceNormal, parentScale, distanceScaleEnd, centerEndY, faceAvatar, followNormal, followNormalStrength, distance, pickResult);
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
     if (parabolaPickResult && render::Item::isValidID(_pathID)) {
         render::Transaction transaction;
@@ -216,7 +215,7 @@ void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::ve
         glm::vec3 velocity = parabola.velocity;
         glm::vec3 acceleration = parabola.acceleration;
         float parabolicDistance = distance > 0.0f ? distance : parabolaPickResult->parabolicDistance;
-        float width = scaleWithAvatar ? getPathWidth() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale() : getPathWidth();
+        float width = getPathWidth() * parentScale;
         transaction.updateItem<ParabolaRenderItem>(_pathID, [origin, velocity, acceleration, parabolicDistance, width](ParabolaRenderItem& item) {
             item.setVisible(true);
             item.setOrigin(origin);
@@ -250,8 +249,7 @@ std::shared_ptr<StartEndRenderState> ParabolaPointer::buildRenderState(const QVa
         enabled = true;
         QVariantMap pathMap = propMap["path"].toMap();
         if (pathMap["color"].isValid()) {
-            bool valid;
-            color = toGlm(xColorFromVariant(pathMap["color"], valid));
+            color = toGlm(u8vec3FromVariant(pathMap["color"]));
         }
 
         if (pathMap["alpha"].isValid()) {

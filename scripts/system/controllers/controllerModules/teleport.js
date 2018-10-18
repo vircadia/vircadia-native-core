@@ -10,7 +10,7 @@
 
 /* jslint bitwise: true */
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
+/* global Script, Entities, MyAvatar, Controller, Quat, RIGHT_HAND, LEFT_HAND,
    enableDispatcherModule, disableDispatcherModule, Messages, makeDispatcherModuleParameters, makeRunningValues, Vec3,
    HMD, Uuid, AvatarList, Picks, Pointers, PickType
 */
@@ -298,7 +298,7 @@ Script.include("/~/system/libraries/controllers.js");
                 posOffset: { x: (_this.hand === RIGHT_HAND) ? 0.03 : -0.03, y: 0.2, z: 0.02 },
                 filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
                 faceAvatar: true,
-                scaleWithAvatar: true,
+                scaleWithParent: true,
                 centerEndY: false,
                 speed: speed,
                 accelerationAxis: accelerationAxis,
@@ -314,7 +314,7 @@ Script.include("/~/system/libraries/controllers.js");
                 posOffset: { x: (_this.hand === RIGHT_HAND) ? 0.03 : -0.03, y: 0.2, z: 0.02 },
                 filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
                 faceAvatar: true,
-                scaleWithAvatar: true,
+                scaleWithParent: true,
                 centerEndY: false,
                 speed: speed,
                 accelerationAxis: accelerationAxis,
@@ -327,7 +327,7 @@ Script.include("/~/system/libraries/controllers.js");
                 joint: "Avatar",
                 filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
                 faceAvatar: true,
-                scaleWithAvatar: true,
+                scaleWithParent: true,
                 centerEndY: false,
                 speed: speed,
                 accelerationAxis: accelerationAxis,
@@ -341,7 +341,7 @@ Script.include("/~/system/libraries/controllers.js");
                 joint: "Avatar",
                 filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
                 faceAvatar: true,
-                scaleWithAvatar: true,
+                scaleWithParent: true,
                 centerEndY: false,
                 speed: speed,
                 accelerationAxis: accelerationAxis,
@@ -680,8 +680,8 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.teleportLocked = function () {
             // Lock teleport if in advanced movement mode and have just transitioned from pressing a direction button.
-            return Controller.getValue(Controller.Hardware.Application.AdvancedMovement)
-                && (_this.axisButtonStateX !== 0 || _this.axisButtonStateY !== 0);
+            return Controller.getValue(Controller.Hardware.Application.AdvancedMovement) &&
+                (_this.axisButtonStateX !== 0 || _this.axisButtonStateY !== 0);
         };
 
         this.buttonPress = function (value) {

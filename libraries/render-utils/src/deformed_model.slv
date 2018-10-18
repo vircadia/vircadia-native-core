@@ -1,0 +1,56 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$> 
+// Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Hifi Engine Team.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Inputs.slh@>
+<@include gpu/Color.slh@>
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include graphics/MaterialTextures.slh@>
+<$declareMaterialTexMapArrayBuffer()$>
+
+<@include MeshDeformer.slh@>
+<$declareMeshDeformer(1, _SCRIBE_NULL, 1, _SCRIBE_NULL, 1)$>
+<$declareMeshDeformerActivation(1, 1)$>
+
+<@include LightingModel.slh@>
+
+
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
+
+void main(void) {
+    vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    vec3 deformedNormal = vec3(0.0, 0.0, 0.0);
+    evalMeshDeformer(inPosition, deformedPosition, inNormal.xyz, deformedNormal, 
+                    meshDeformer_doSkinning(_drawCallInfo.y), inSkinClusterIndex, inSkinClusterWeight,
+                    meshDeformer_doBlendshape(_drawCallInfo.y), gl_VertexID);
+
+    // pass along the color
+    _color.rgb = color_sRGBToLinear(inColor.rgb);
+    _color.a = inColor.a;
+
+    TexMapArray texMapArray = getTexMapArray();
+    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord01.xy)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord1, _texCoord01.zw)$>
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToWorldAndEyeAndClipPos(cam, obj, deformedPosition, _positionWS, _positionES, gl_Position)$>
+    <$transformModelToWorldDir(cam, obj, deformedNormal, _normalWS.xyz)$>
+}
