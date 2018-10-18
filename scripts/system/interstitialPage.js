@@ -381,8 +381,8 @@
 
     function updateOverlays(physicsEnabled) {
 
-        if (isInterstitialOverlaysVisible !== !physicsEnabled) {
-             // visible changed
+        if (isInterstitialOverlaysVisible !== !physicsEnabled && !physicsEnabled === true) {
+             // visible changed to true.
              isInterstitialOverlaysVisible = !physicsEnabled;
         }
 
@@ -431,6 +431,11 @@
 
         if (physicsEnabled) {
             Camera.mode = previousCameraMode;
+        }
+
+        if (isInterstitialOverlaysVisible !== !physicsEnabled && !physicsEnabled === false) {
+             // visible changed to false.
+             isInterstitialOverlaysVisible = !physicsEnabled;
         }
     }
 
