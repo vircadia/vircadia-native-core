@@ -83,18 +83,10 @@ AvatarManager::AvatarManager(QObject* parent) :
     const int AVATAR_TRANSIT_FRAME_COUNT = 11; // Based on testing
     const float AVATAR_TRANSIT_FRAMES_PER_METER = 0.5f; // Based on testing
 
-    const QString START_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
-    const QString MIDDLE_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
-    const QString END_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
-
     _transitConfig._totalFrames = AVATAR_TRANSIT_FRAME_COUNT;
     _transitConfig._triggerDistance = AVATAR_TRANSIT_TRIGGER_DISTANCE;
     _transitConfig._framesPerMeter = AVATAR_TRANSIT_FRAMES_PER_METER;
     _transitConfig._isDistanceBased = true;
-
-    _transitConfig._startTransitAnimation = AvatarTransit::TransitAnimation(START_ANIMATION_URL, 0, 10);
-    _transitConfig._middleTransitAnimation = AvatarTransit::TransitAnimation(MIDDLE_ANIMATION_URL, 15, 0);
-    _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 22, 27);
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -143,30 +135,22 @@ void AvatarManager::setSpace(workload::SpacePointer& space ) {
 }
 
 void AvatarManager::handleTransitAnimations(AvatarTransit::Status status) {
-    auto startAnimation = _transitConfig._startTransitAnimation;
-    auto middleAnimation = _transitConfig._middleTransitAnimation;
-    auto endAnimation = _transitConfig._endTransitAnimation;
-
-    const float REFERENCE_FPS = 30.0f;
     switch (status) {
         case AvatarTransit::Status::STARTED:
             qDebug() << "START_FRAME";
-            _myAvatar->overrideNetworkAnimation(startAnimation._animationUrl, REFERENCE_FPS, false, startAnimation._firstFrame,
-                                         startAnimation._firstFrame + startAnimation._frameCount);
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("preTransitAnim");
             break;
         case AvatarTransit::Status::START_TRANSIT:
             qDebug() << "START_TRANSIT";
-            _myAvatar->overrideNetworkAnimation(middleAnimation._animationUrl, REFERENCE_FPS, false, middleAnimation._firstFrame,
-                                         middleAnimation._firstFrame + middleAnimation._frameCount);
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("transitAnim");
             break;
         case AvatarTransit::Status::END_TRANSIT:
             qDebug() << "END_TRANSIT";
-            _myAvatar->overrideNetworkAnimation(endAnimation._animationUrl, REFERENCE_FPS, false, endAnimation._firstFrame,
-                endAnimation._firstFrame + endAnimation._frameCount);
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("postTransitAnim");
             break;
         case AvatarTransit::Status::ENDED:
             qDebug() << "END_FRAME";
-            _myAvatar->restoreNetworkAnimation();
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("idleAnim");
             break;
         case AvatarTransit::Status::PRE_TRANSIT:
             break;
@@ -188,9 +172,6 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _transitConfig);
     handleTransitAnimations(status);
 
-    bool sendFirstTransitPacket = (status == AvatarTransit::Status::STARTED);
-    bool sendCurrentTransitPacket = (status != AvatarTransit::Status::IDLE && (status != AvatarTransit::Status::POST_TRANSIT || status != AvatarTransit::Status::ENDED));
-
     _myAvatar->update(deltaTime);
     render::Transaction transaction;
     _myAvatar->updateRenderItem(transaction);
@@ -199,19 +180,13 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
 
-    if (sendFirstTransitPacket || (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused)) {
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused) {
         // send head/hand data to the avatar mixer and voxel server
-        PerformanceTimer perfTimer("send");      
-        if (sendFirstTransitPacket) {
-            _myAvatar->overrideNextPacketPositionData(_myAvatar->getTransit()->getEndPosition());
-        } else if (sendCurrentTransitPacket) {
-            _myAvatar->overrideNextPacketPositionData(_myAvatar->getTransit()->getCurrentPosition());
-        }
+        PerformanceTimer perfTimer("send"); 
         _myAvatar->sendAvatarDataPacket();
         _lastSendAvatarDataTime = now;
         _myAvatarSendRate.increment();
     }
-
 }
 
 

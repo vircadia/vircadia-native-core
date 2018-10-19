@@ -114,12 +114,10 @@ void Avatar::setShowNamesAboveHeads(bool show) {
 }
 
 AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
-    bool checkDistance = (!_isActive || (_status == Status::POST_TRANSIT || _status == Status::ENDED));
     float oneFrameDistance = _isActive ? glm::length(avatarPosition - _endPosition) : glm::length(avatarPosition - _lastPosition);
-    
     const float TRANSIT_TRIGGER_MAX_DISTANCE = 30.0f;
     float scaledMaxTransitDistance = TRANSIT_TRIGGER_MAX_DISTANCE * _scale;
-    if (oneFrameDistance > config._triggerDistance && checkDistance) {
+    if (oneFrameDistance > config._triggerDistance) {
         if (oneFrameDistance < scaledMaxTransitDistance) {
             start(deltaTime, _lastPosition, avatarPosition, config);
         } else {
@@ -132,12 +130,9 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
 
     const float SETTLE_ABORT_DISTANCE = 0.1f;
     float scaledSettleAbortDistance = SETTLE_ABORT_DISTANCE * _scale;
-    bool abortPostTransit = (_status == Status::POST_TRANSIT && _purpose == Purpose::SIT) ||
-        (_isActive && oneFrameDistance > scaledSettleAbortDistance && _status == Status::POST_TRANSIT);
-    if (abortPostTransit) {
+    if (_isActive && oneFrameDistance > scaledSettleAbortDistance && _status == Status::POST_TRANSIT) {
         reset();
         _status = Status::ENDED;
-        _purpose = Purpose::UNDEFINED;
     }
     return _status;
 }
@@ -154,10 +149,13 @@ void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const
     _transitLine = endPosition - startPosition;
     _totalDistance = glm::length(_transitLine);
     _easeType = config._easeType;
-    const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
-    _preTransitTime = (float)config._startTransitAnimation._frameCount / REFERENCE_FRAMES_PER_SECOND;
-    _postTransitTime = (float)config._endTransitAnimation._frameCount / REFERENCE_FRAMES_PER_SECOND;
 
+    const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
+    const float PRE_TRANSIT_FRAME_COUNT = 10.0f;
+    const float POST_TRANSIT_FRAME_COUNT = 27.0f;
+
+    _preTransitTime = PRE_TRANSIT_FRAME_COUNT / REFERENCE_FRAMES_PER_SECOND;
+    _postTransitTime = POST_TRANSIT_FRAME_COUNT / REFERENCE_FRAMES_PER_SECOND;
     int transitFrames = (!config._isDistanceBased) ? config._totalFrames : config._framesPerMeter * _totalDistance;
     _transitTime = (float)transitFrames / REFERENCE_FRAMES_PER_SECOND;
     _totalTime = _transitTime + _preTransitTime + _postTransitTime;
@@ -206,7 +204,6 @@ AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
             _currentPosition = _endPosition;
             if (nextTime >= _totalTime) {
                 _isActive = false;
-                _purpose = Purpose::UNDEFINED;
                 status = Status::ENDED;
             } else if (_currentTime < _totalTime - _postTransitTime) {
                 status = Status::END_TRANSIT;
@@ -2005,11 +2002,6 @@ AvatarTransit::Status Avatar::updateTransit(float deltaTime, const glm::vec3& av
 void Avatar::setTransitScale(float scale) {
     std::lock_guard<std::mutex> lock(_transitLock);
     _transit.setScale(scale);
-}
-
-void Avatar::setTransitPurpose(int purpose) {
-    std::lock_guard<std::mutex> lock(_transitLock);
-    _transit.setPurpose(static_cast<AvatarTransit::Purpose>(purpose));
 }
 
 void Avatar::overrideNextPacketPositionData(const glm::vec3& position) {

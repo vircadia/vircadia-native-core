@@ -31,6 +31,7 @@
 #include "AnimSkeleton.h"
 #include "AnimUtil.h"
 #include "IKTarget.h"
+#include "PathUtils.h"
 
 
 static int nextRigId = 1;
@@ -133,41 +134,28 @@ void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firs
     _animVars.set("userAnimB", clipNodeEnum == UserAnimState::B);
 }
 
-void Rig::overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
-    UserAnimState::ClipNodeEnum clipNodeEnum;
-    if (_networkAnimState.clipNodeEnum == UserAnimState::None || _networkAnimState.clipNodeEnum == UserAnimState::B) {
-        clipNodeEnum = UserAnimState::A;
+void Rig::triggerNetworkAnimation(const QString& animName) {
+    _networkVars.set("idleAnim", false);
+    _networkVars.set("preTransitAnim", false);
+    _networkVars.set("transitAnim", false);
+    _networkVars.set("postTransitAnim", false);
+    _sendNetworkNode = true;
+
+    if (animName == "idleAnim") {
+        _networkVars.set("idleAnim", true);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::Idle;
+        _sendNetworkNode = false;
+    } else if (animName == "preTransitAnim") {
+        _networkVars.set("preTransitAnim", true);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::PreTransit;
+    } else if (animName == "transitAnim") {
+        _networkVars.set("transitAnim", true);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::Transit;
+    } else if (animName == "postTransitAnim") {
+        _networkVars.set("postTransitAnim", true);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::PostTransit;
     }
-    else {
-        clipNodeEnum = UserAnimState::B;
-    }
-    if (_networkNode) {
-        // find an unused AnimClip clipNode
-        _sendNetworkNode = true;
-        std::shared_ptr<AnimClip> clip;
-        if (clipNodeEnum == UserAnimState::A) {
-            clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("userAnimA"));
-        }
-        else {
-            clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("userAnimB"));
-        }
-        if (clip) {
-            // set parameters
-            clip->setLoopFlag(loop);
-            clip->setStartFrame(firstFrame);
-            clip->setEndFrame(lastFrame);
-            const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
-            float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
-            clip->setTimeScale(timeScale);
-            clip->loadURL(url);
-        }
-    }
-    // store current user anim state.
-    _networkAnimState = { clipNodeEnum, url, fps, loop, firstFrame, lastFrame };
-    // notify the userAnimStateMachine the desired state.
-    _networkVars.set("userAnimNone", false);
-    _networkVars.set("userAnimA", clipNodeEnum == UserAnimState::A);
-    _networkVars.set("userAnimB", clipNodeEnum == UserAnimState::B);
+    
 }
 
 void Rig::restoreAnimation() {
@@ -182,13 +170,12 @@ void Rig::restoreAnimation() {
 }
 
 void Rig::restoreNetworkAnimation() {
-    _sendNetworkNode = false;
-    if (_networkAnimState.clipNodeEnum != UserAnimState::None) {
-        _networkAnimState.clipNodeEnum = UserAnimState::None;
-        // notify the userAnimStateMachine the desired state.
-        _networkVars.set("userAnimNone", true);
-        _networkVars.set("userAnimA", false);
-        _networkVars.set("userAnimB", false);
+    if (_networkAnimState.clipNodeEnum != NetworkAnimState::Idle) {
+        _networkAnimState.clipNodeEnum = NetworkAnimState::Idle;
+        _networkVars.set("idleAnim", true);
+        _networkVars.set("preTransitAnim", false);
+        _networkVars.set("transitAnim", false);
+        _networkVars.set("postTransitAnim", false);
     }
 }
 
@@ -1137,6 +1124,24 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         if (_networkNode) {
             _networkPoseSet._relativePoses = _networkNode->evaluate(_networkVars, context, deltaTime, networkTriggersOut);
+            float alpha = 1.0f;
+            std::shared_ptr<AnimClip> clip;
+            if (_networkAnimState.clipNodeEnum == NetworkAnimState::PreTransit) {
+                clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("preTransitAnim"));
+                if (clip) {
+                    alpha = (clip->getFrame() - clip->getStartFrame()) / 6.0f;
+                }
+            } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::PostTransit) {
+                clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("postTransitAnim"));
+                if (clip) {
+                    alpha = (clip->getEndFrame() - clip->getFrame()) / 6.0f;
+                }
+            }
+            if (_sendNetworkNode) {
+                for (int i = 0; i < _networkPoseSet._relativePoses.size(); i++) {
+                    _networkPoseSet._relativePoses[i].blend(_internalPoseSet._relativePoses[i], (alpha > 1.0f ? 1.0f : alpha));
+                }
+            }
         }
         if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
             // animations haven't fully loaded yet.
@@ -1798,10 +1803,10 @@ void Rig::initAnimGraph(const QUrl& url) {
 
         // load the anim graph
         _animLoader.reset(new AnimNodeLoader(url));
-        _networkLoader.reset(new AnimNodeLoader(url));
-
+        auto networkUrl = PathUtils::resourcesUrl("avatar/network-animation.json");
+        _networkLoader.reset(new AnimNodeLoader(networkUrl));
         std::weak_ptr<AnimSkeleton> weakSkeletonPtr = _animSkeleton;
-        connect(_animLoader.get(), &AnimNodeLoader::success, [this, weakSkeletonPtr](AnimNode::Pointer nodeIn) {
+        connect(_animLoader.get(), &AnimNodeLoader::success, [this, weakSkeletonPtr, url](AnimNode::Pointer nodeIn) {
             _animNode = nodeIn;
 
             // abort load if the previous skeleton was deleted.
@@ -1828,10 +1833,10 @@ void Rig::initAnimGraph(const QUrl& url) {
             emit onLoadComplete();
         });
         connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
-            qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
+            qCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
         });
 
-        connect(_networkLoader.get(), &AnimNodeLoader::success, [this, weakSkeletonPtr](AnimNode::Pointer nodeIn) {
+        connect(_networkLoader.get(), &AnimNodeLoader::success, [this, weakSkeletonPtr, networkUrl](AnimNode::Pointer nodeIn) {
             _networkNode = nodeIn;
             // abort load if the previous skeleton was deleted.
             auto sharedSkeletonPtr = weakSkeletonPtr.lock();
@@ -1839,16 +1844,22 @@ void Rig::initAnimGraph(const QUrl& url) {
                 return;
             }
             _networkNode->setSkeleton(sharedSkeletonPtr);
-            if (_networkAnimState.clipNodeEnum != UserAnimState::None) {
+            if (_networkAnimState.clipNodeEnum != NetworkAnimState::Idle) {
                 // restore the user animation we had before reset.
-                UserAnimState origState = _networkAnimState;
-                _networkAnimState = { UserAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
-                overrideNetworkAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
+                NetworkAnimState origState = _networkAnimState;
+                _networkAnimState = { NetworkAnimState::Idle, "", 30.0f, false, 0.0f, 0.0f };
+                if (_networkAnimState.clipNodeEnum == NetworkAnimState::PreTransit) {
+                    triggerNetworkAnimation("preTransitAnim");
+                } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::Transit) {
+                    triggerNetworkAnimation("transitAnim");
+                } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::PostTransit) {
+                    triggerNetworkAnimation("postTransitAnim");
+                }
             }
-            // emit onLoadComplete();
+           
         });
-        connect(_networkLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
-            qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
+        connect(_networkLoader.get(), &AnimNodeLoader::error, [networkUrl](int error, QString str) {
+            qCritical(animation) << "Error loading" << networkUrl.toDisplayString() << "code = " << error << "str =" << str;
         });
     }
 }

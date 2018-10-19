@@ -113,7 +113,7 @@ public:
     void destroyAnimGraph();
 
     void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
-    void overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    void triggerNetworkAnimation(const QString& animName);
     void restoreAnimation();
     void restoreNetworkAnimation();
 
@@ -323,6 +323,25 @@ protected:
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
     float _desiredStateAge { 0.0f };
+    
+    struct NetworkAnimState {
+        enum ClipNodeEnum {
+            Idle = 0,
+            PreTransit,
+            Transit,
+            PostTransit
+        };
+        NetworkAnimState() : clipNodeEnum(NetworkAnimState::Idle) {}
+        NetworkAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
+
+        ClipNodeEnum clipNodeEnum;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
+    };
 
     struct UserAnimState {
         enum ClipNodeEnum {
@@ -357,7 +376,7 @@ protected:
     };
 
     UserAnimState _userAnimState;
-    UserAnimState _networkAnimState;
+    NetworkAnimState _networkAnimState;
     std::map<QString, RoleAnimState> _roleAnimStates;
 
     float _leftHandOverlayAlpha { 0.0f };
