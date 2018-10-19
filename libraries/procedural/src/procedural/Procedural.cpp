@@ -40,7 +40,7 @@ static const std::string PROCEDURAL_VERSION = "//PROCEDURAL_VERSION";
 
 bool operator==(const ProceduralData& a, const ProceduralData& b) {
     return ((a.version == b.version) && (a.shaderUrl == b.shaderUrl) && (a.uniforms == b.uniforms) &&
-            (a.channels == b.channels));
+        (a.channels == b.channels));
 }
 
 QJsonValue ProceduralData::getProceduralData(const QString& proceduralJson) {
@@ -105,7 +105,7 @@ Procedural::Procedural() {
     _transparentState->setCullMode(gpu::State::CULL_NONE);
     _transparentState->setDepthTest(true, true, gpu::LESS_EQUAL);
     _transparentState->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                                        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     _standardInputsBuffer = std::make_shared<gpu::Buffer>(sizeof(StandardInputs), nullptr);
 }
@@ -211,10 +211,10 @@ bool Procedural::isReady() const {
 }
 
 void Procedural::prepare(gpu::Batch& batch,
-                         const glm::vec3& position,
-                         const glm::vec3& size,
-                         const glm::quat& orientation,
-                         const glm::vec4& color) {
+    const glm::vec3& position,
+    const glm::vec3& size,
+    const glm::quat& orientation,
+    const glm::vec4& color) {
     _entityDimensions = size;
     _entityPosition = position;
     _entityOrientation = glm::mat3_cast(orientation);
@@ -308,6 +308,7 @@ void Procedural::prepare(gpu::Batch& batch,
     }
 }
 
+
 void Procedural::setupUniforms(bool transparent) {
     _uniforms.clear();
     auto customUniformCount = _data.uniforms.keys().size();
@@ -323,53 +324,50 @@ void Procedural::setupUniforms(bool transparent) {
         } else if (value.isArray()) {
             auto valueArray = value.toArray();
             switch (valueArray.size()) {
-                case 0:
-                    break;
+            case 0:
+                break;
 
-                case 1: {
-                    float v = valueArray[0].toDouble();
-                    _uniforms.push_back([=](gpu::Batch& batch) { batch._glUniform1f(slot, v); });
-                    break;
-                }
+            case 1: {
+                float v = valueArray[0].toDouble();
+                _uniforms.push_back([=](gpu::Batch& batch) { batch._glUniform1f(slot, v); });
+                break;
+            }
 
-                case 2: {
-                    glm::vec2 v{ valueArray[0].toDouble(), valueArray[1].toDouble() };
-                    _uniforms.push_back([=](gpu::Batch& batch) { batch._glUniform2f(slot, v.x, v.y); });
-                    break;
-                }
+            case 2: {
+                glm::vec2 v{ valueArray[0].toDouble(), valueArray[1].toDouble() };
+                _uniforms.push_back([=](gpu::Batch& batch) { batch._glUniform2f(slot, v.x, v.y); });
+                break;
+            }
 
-                case 3: {
-                    glm::vec3 v{
-                        valueArray[0].toDouble(),
-                        valueArray[1].toDouble(),
-                        valueArray[2].toDouble(),
-                    };
-                    _uniforms.push_back([=](gpu::Batch& batch) { batch._glUniform3f(slot, v.x, v.y, v.z); });
-                    break;
-                }
+            case 3: {
+                glm::vec3 v{
+                    valueArray[0].toDouble(),
+                    valueArray[1].toDouble(),
+                    valueArray[2].toDouble(),
+                };
+                _uniforms.push_back([=](gpu::Batch& batch) { batch._glUniform3f(slot, v.x, v.y, v.z); });
+                break;
+            }
 
-                default:
-                case 4: {
-                    glm::vec4 v{
-                        valueArray[0].toDouble(),
-                        valueArray[1].toDouble(),
-                        valueArray[2].toDouble(),
-                        valueArray[3].toDouble(),
-                    };
-                    _uniforms.push_back([=](gpu::Batch& batch) { batch._glUniform4f(slot, v.x, v.y, v.z, v.w); });
-                    break;
-                }
+            default:
+            case 4: {
+                glm::vec4 v{
+                    valueArray[0].toDouble(),
+                    valueArray[1].toDouble(),
+                    valueArray[2].toDouble(),
+                    valueArray[3].toDouble(),
+                };
+                _uniforms.push_back([=](gpu::Batch& batch) { batch._glUniform4f(slot, v.x, v.y, v.z, v.w); });
+                break;
+            }
             }
         }
     }
 
     _uniforms.push_back([=](gpu::Batch& batch) {
-        // Time and position
-        {
-            // Minimize floating point error by doing an integer division to milliseconds, before the floating point division to seconds
-            float time = (float)((usecTimestampNow() - _start) / USECS_PER_MSEC) / MSECS_PER_SECOND;
-            _standardInputs.posAndTime = vec4(_entityPosition, time);
-        }
+        _standardInputs.position = vec4(_entityPosition, 1.0f);
+        // Minimize floating point error by doing an integer division to milliseconds, before the floating point division to seconds
+        _standardInputs.time = (float)((usecTimestampNow() - _start) / USECS_PER_MSEC) / MSECS_PER_SECOND;
 
         // Date
         {
@@ -385,7 +383,8 @@ void Procedural::setupUniforms(bool transparent) {
             _standardInputs.date.w = (time.hour() * 3600) + (time.minute() * 60) + time.second() + fractSeconds;
         }
 
-        _standardInputs.scaleAndCount = vec4(_entityDimensions, ++_frameCount);
+        _standardInputs.scale = vec4(_entityDimensions, 1.0f);
+        _standardInputs.frameCount = ++_frameCount;
         _standardInputs.orientation = mat4(_entityOrientation);
 
         for (size_t i = 0; i < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++i) {

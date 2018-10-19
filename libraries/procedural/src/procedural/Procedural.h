@@ -73,13 +73,28 @@ public:
 
 
 protected:
+    // DO NOT TOUCH
+    // We have to pack these in a particular way to match the ProceduralCommon.slh
+    // layout.  
     struct StandardInputs {
         vec4 date;
-        vec4 posAndTime;
-        vec4 scaleAndCount;
-        mat4 orientation;
+        vec4 position; 
+        vec4 scale;
+        float time;
+        int frameCount;
+        vec2 _spare1;
         vec4 resolution[4];
+        mat4 orientation;
     };
+
+    static_assert(0 == offsetof(StandardInputs, date), "ProceduralOffsets");
+    static_assert(16 == offsetof(StandardInputs, position), "ProceduralOffsets");
+    static_assert(32 == offsetof(StandardInputs, scale), "ProceduralOffsets");
+    static_assert(48 == offsetof(StandardInputs, time), "ProceduralOffsets");
+    static_assert(52 == offsetof(StandardInputs, frameCount), "ProceduralOffsets");
+    static_assert(56 == offsetof(StandardInputs, _spare1), "ProceduralOffsets");
+    static_assert(64 == offsetof(StandardInputs, resolution), "ProceduralOffsets");
+    static_assert(128 == offsetof(StandardInputs, orientation), "ProceduralOffsets");
 
     // Procedural metadata
     ProceduralData _data;

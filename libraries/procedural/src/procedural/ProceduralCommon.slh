@@ -23,42 +23,43 @@ LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL1) uniform sampler2D iChannel1;
 LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL2) uniform sampler2D iChannel2;
 LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL3) uniform sampler2D iChannel3;
 
-struct StandardInputs {
+// DO NOT TOUCH
+// This block does not follow our normal rules of always using a struct and 
+// always using 16 byte aligned types like vec4 and mat4
+//
+// This is because this block must be EXACTLY how it is in order to maintain
+// comptability with existing procedural shaders that previously relied on these 
+// inputs as uniforms, not members of a UBO
+
+LAYOUT_STD140(binding=0) uniform standardInputsBuffer {
+    // Offset 0
     vec4 date;
-    vec4 posAndTime;
-    vec4 scaleAndCount;
-    mat4 orientation;
-    vec4 resolution[4];
-};
+    // Offset 16, acts as vec4 for alignment purposes
+    vec3 worldPosition;
+    // Offset 32, acts as vec4 for alignment purposes
+    vec3 worldScale;
+    // Offset 48
+    float globalTime;
+    // Offset 52
+    int frameCount;
+    // Offset 56
+    vec2 _spare1;
+    // Offset 64, acts as vec4[4] for alignment purposes
+    vec3 channelResolution[4];
+    // Offset 128, acts as vec4[3] for alignment purposes
+    // Also, each individual component is aligned as a vec4
+    mat3 worldOrientation;
+    // Offset 176
+    vec4 _spare2;
+} standardInputs;
 
-
-LAYOUT(binding=0) uniform standardInputsBuffer {
-    StandardInputs params;
-};
-
-// shader playback time (in seconds)
-float iGlobalTime = params.posAndTime.w;
-
-vec4 iDate = params.date;
-
-int iFrameCount = int(params.scaleAndCount.w);
-
-// the position of the object being rendered
-vec3 iWorldPosition = params.posAndTime.xyz;
-
-// the dimensions of the object being rendered
-vec3 iWorldScale = params.scaleAndCount.xyz;
-
-// the orientation of the object being rendered
-mat3 iWorldOrientation = mat3(params.orientation);
-
-vec3 iChannelResolution[4] = vec3[4](
-    params.resolution[0].xyz, 
-    params.resolution[1].xyz, 
-    params.resolution[2].xyz, 
-    params.resolution[3].xyz
-);
-
+#define iDate standardInputs.date
+#define iWorldPosition standardInputs.worldPosition
+#define iWorldScale standardInputs.worldScale
+#define iGlobalTime standardInputs.globalTime
+#define iFrameCount standardInputs.frameCount
+#define iChannelResolution standardInputs.channelResolution
+#define iWorldOrientation standardInputs.worldOrientation
 
 // Unimplemented uniforms
 // Resolution doesn't make sense in the VR context
