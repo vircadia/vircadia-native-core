@@ -1138,7 +1138,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
                 }
             }
             if (_sendNetworkNode) {
-                for (int i = 0; i < _networkPoseSet._relativePoses.size(); i++) {
+                for (auto i = 0; i < _networkPoseSet._relativePoses.size(); i++) {
                     _networkPoseSet._relativePoses[i].blend(_internalPoseSet._relativePoses[i], (alpha > 1.0f ? 1.0f : alpha));
                 }
             }
