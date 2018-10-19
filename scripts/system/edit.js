@@ -419,7 +419,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
         sourceUrl: "https://highfidelity.com/",
         dpi: 30,
     },
-    Particles: {
+    ParticleEffect: {
         lifespan: 1.5,
         maxParticles: 10,
         textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png",
