@@ -949,50 +949,72 @@ public:
     void removeWearableAvatarEntities();
 
     /**jsdoc
+     * Check whether your avatar is flying or not.
      * @function MyAvatar.isFlying
-     * @returns {boolean} 
+     * @returns {boolean} <code>true</code> if your avatar is flying and not taking off or falling, otherwise 
+     *     <code>false</code>.
      */
     Q_INVOKABLE bool isFlying();
 
     /**jsdoc
+     * Check whether your avatar is in the air or not.
      * @function MyAvatar.isInAir
-     * @returns {boolean} 
+     * @returns {boolean} <code>true</code> if your avatar is taking off, flying, or falling, otherwise <code>false</code> 
+     *     because your avatar is on the ground.
      */
     Q_INVOKABLE bool isInAir();
 
     /**jsdoc
+     * Set your preference for flying in your current desktop or HMD display mode. Note that your ability to fly also depends 
+     * on whether the domain you're in allows you to fly.
      * @function MyAvatar.setFlyingEnabled
-     * @param {boolean} enabled
+     * @param {boolean} enabled - Set <code>true</code> if you want to enable flying in your current desktop or HMD display 
+     *     mode, otherwise set <code>false</code>.
      */
     Q_INVOKABLE void setFlyingEnabled(bool enabled);
 
     /**jsdoc
+     * Get your preference for flying in your current desktop or HMD display mode. Note that your ability to fly also depends 
+     * on whether the domain you're in allows you to fly.
      * @function MyAvatar.getFlyingEnabled
-     * @returns {boolean}
+     * @returns {boolean} <code>true</code> if your preference is to enable flying in your current desktop or HMD display mode, 
+     *     otherwise <code>false</code>.
      */
     Q_INVOKABLE bool getFlyingEnabled();
 
     /**jsdoc
+     * Set your preference for flying in desktop display mode. Note that your ability to fly also depends on whether the domain 
+     * you're in allows you to fly.
      * @function MyAvatar.setFlyingDesktopPref
-     * @param {boolean} enabled
+     * @param {boolean} enabled - Set <code>true</code> if you want to enable flying in desktop display mode, otherwise set 
+     *     <code>false</code>.
      */
     Q_INVOKABLE void setFlyingDesktopPref(bool enabled);
 
     /**jsdoc
+     * Get your preference for flying in desktop display mode. Note that your ability to fly also depends on whether the domain
+     * you're in allows you to fly.
      * @function MyAvatar.getFlyingDesktopPref
-     * @returns {boolean}
+     * @returns {boolean} <code>true</code> if your preference is to enable flying in desktop display mode, otherwise 
+     *     <code>false</code>.
      */
     Q_INVOKABLE bool getFlyingDesktopPref();
 
     /**jsdoc
-     * @function MyAvatar.setFlyingDesktopPref
-     * @param {boolean} enabled
+     * Set your preference for flying in HMD display mode. Note that your ability to fly also depends on whether the domain
+     * you're in allows you to fly.
+     * @function MyAvatar.setFlyingHMDPref
+     * @param {boolean} enabled - Set <code>true</code> if you want to enable flying in HMD display mode, otherwise set
+     *     <code>false</code>.
      */
     Q_INVOKABLE void setFlyingHMDPref(bool enabled);
 
     /**jsdoc
-     * @function MyAvatar.getFlyingDesktopPref
-     * @returns {boolean}
+     * Get your preference for flying in HMD display mode. Note that your ability to fly also depends on whether the domain
+     * you're in allows you to fly.
+     * @function MyAvatar.getFlyingHMDPref
+     * @returns {boolean} <code>true</code> if your preference is to enable flying in HMD display mode, otherwise
+     *     <code>false</code>.
      */
     Q_INVOKABLE bool getFlyingHMDPref();
 
@@ -1764,8 +1786,8 @@ private:
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
 
-    AtRestDetector _hmdAtRestDetector;
-    bool _lastIsMoving { false };
+    AtRestDetector _leftHandAtRestDetector;
+    AtRestDetector _rightHandAtRestDetector;
 
     // all poses are in sensor-frame
     std::map<controller::Action, controller::Pose> _controllerPoseMap;

@@ -161,6 +161,11 @@ protected slots:
      */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
+    /**jsdoc
+     * @function AvatarList.processBulkAvatarTraits
+     * @param {} message
+     * @param {} sendingNode
+     */
     void processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc

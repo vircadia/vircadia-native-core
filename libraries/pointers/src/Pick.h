@@ -145,9 +145,11 @@ public:
      * @hifi-interface
      * @hifi-client-entity
      *
-     * @property {number} Ray Ray Picks intersect a ray with the nearest object in front of them, along a given direction.
-     * @property {number} Stylus Stylus Picks provide "tapping" functionality on/into flat surfaces.
-     * @property {number} Parabola Parabola Picks intersect a parabola with the nearest object in front of them, with a given initial velocity and acceleration.
+     * @property {number} Ray Ray picks intersect a ray with the nearest object in front of them, along a given direction.
+     * @property {number} Stylus Stylus picks provide "tapping" functionality on/into flat surfaces.
+     * @property {number} Parabola Parabola picks intersect a parabola with the nearest object in front of them, with a given 
+     *     initial velocity and acceleration.
+     * @property {number} Collision Collision picks intersect a collision volume with avatars and entities that have collisions.
      */
     /**jsdoc
      * <table>
@@ -158,6 +160,7 @@ public:
      *     <tr><td><code>{@link PickType(0)|PickType.Ray}</code></td><td></td></tr>
      *     <tr><td><code>{@link PickType(0)|PickType.Stylus}</code></td><td></td></tr>
      *     <tr><td><code>{@link PickType(0)|PickType.Parabola}</code></td><td></td></tr>
+     *     <tr><td><code>{@link PickType(0)|PickType.Collision}</code></td><td></td></tr>
      *   </tbody>
      * </table>
      * @typedef {number} PickType
