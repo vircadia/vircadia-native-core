@@ -354,6 +354,7 @@ Rectangle {
         listModelName: "Send Money Connections";
         z: 997;
         visible: root.activeView === "sendMoney";
+        keyboardContainer: root;
         anchors.fill: parent;
         parentAppTitleBarHeight: titleBarContainer.height;
         parentAppNavBarHeight: tabButtonsContainer.height;
@@ -829,6 +830,7 @@ Rectangle {
         Commerce.getWalletAuthenticatedStatus(); // before writing security image, ensures that salt/account password is set.
         Commerce.chooseSecurityImage(securityImagePath);
         Commerce.generateKeyPair();
+        followReferrer({ referrer: walletSetup.referrer });
     }
 
     function addLeadingZero(n) {
@@ -836,7 +838,7 @@ Rectangle {
     }
 
     function followReferrer(msg) {
-        if (msg.referrer === '' || msg.referrer === 'marketplace cta') {
+        if (msg.referrer === '') {
             root.activeView = "initialize";
             Commerce.getWalletStatus();
         } else if (msg.referrer === 'purchases') {

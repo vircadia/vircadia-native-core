@@ -27,7 +27,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -55,12 +55,11 @@ public:
     void setShapeType(ShapeType type) override;
     virtual ShapeType getShapeType() const override;
 
-
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
 
-    const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const;
     bool hasModel() const;
     virtual bool hasCompoundShapeURL() const;
 
@@ -70,8 +69,8 @@ public:
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     QString getCompoundShapeURL() const;
 
-    void setColor(const rgbColor& value);
-    void setColor(const xColor& value);
+    // Returns the URL used for the collision shape
+    QString getCollisionShapeURL() const;
 
     // model related properties
     virtual void setModelURL(const QString& url);
@@ -157,7 +156,7 @@ protected:
     QVector<ModelJointData> _localJointData;
     int _lastKnownCurrentFrame{-1};
 
-    rgbColor _color;
+    glm::u8vec3 _color;
     QString _modelURL;
     bool _relayParentJoints;
 

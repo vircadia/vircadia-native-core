@@ -14,6 +14,8 @@
 
 #include <queue>
 
+#include <tbb/concurrent_vector.h>
+
 #include <QtCore/QJsonObject>
 
 #include <AABox.h>
@@ -30,39 +32,34 @@
 class AudioMixerClientData : public NodeData {
     Q_OBJECT
 public:
+    struct AddedStream {
+        NodeIDStreamID nodeIDStreamID;
+        PositionalAudioStream* positionalStream;
+
+        AddedStream(QUuid nodeID, Node::LocalID localNodeID,
+                    StreamID streamID, PositionalAudioStream* positionalStream) :
+            nodeIDStreamID(nodeID, localNodeID, streamID), positionalStream(positionalStream) {};
+    };
+
+    using ConcurrentAddedStreams = tbb::concurrent_vector<AddedStream>;
+
     AudioMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID);
     ~AudioMixerClientData();
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
-    using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
+    using AudioStreamVector = std::vector<SharedStreamPointer>;
 
     void queuePacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer node);
-    void processPackets();
+    int processPackets(ConcurrentAddedStreams& addedStreams); // returns the number of available streams this frame
 
-    // locks the mutex to make a copy
-    AudioStreamMap getAudioStreams() { QReadLocker readLock { &_streamsLock }; return _audioStreams; }
+    AudioStreamVector& getAudioStreams() { return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream();
-
-    // returns whether self (this data's node) should ignore node, memoized by frame
-    // precondition: frame is increasing after first call (including overflow wrap)
-    bool shouldIgnore(SharedNodePointer self, SharedNodePointer node, unsigned int frame);
-
-    // the following methods should be called from the AudioMixer assignment thread ONLY
-    // they are not thread-safe
-
-    // returns a new or existing HRTF object for the given stream from the given node
-    AudioHRTF& hrtfForStream(const QUuid& nodeID, const QUuid& streamID = QUuid()) { return _nodeSourcesHRTFMap[nodeID][streamID]; }
-
-    // removes an AudioHRTF object for a given stream
-    void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
-
-    // remove all sources and data from this node
-    void removeNode(const QUuid& nodeID) { _nodeSourcesIgnoreMap.unsafe_erase(nodeID); _nodeSourcesHRTFMap.erase(nodeID); }
 
     void removeAgentAvatarAudioStream();
 
     // packet parsers
     int parseData(ReceivedMessage& message) override;
+    void processStreamPacket(ReceivedMessage& message, ConcurrentAddedStreams& addedStreams);
     void negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node);
     void parseRequestsDomainListData(ReceivedMessage& message);
     void parsePerAvatarGainSet(ReceivedMessage& message, const SharedNodePointer& node);
@@ -108,10 +105,55 @@ public:
     bool shouldMuteClient() { return _shouldMuteClient; }
     void setShouldMuteClient(bool shouldMuteClient) { _shouldMuteClient = shouldMuteClient; }
     glm::vec3 getPosition() { return getAvatarAudioStream() ? getAvatarAudioStream()->getPosition() : glm::vec3(0); }
-    bool getRequestsDomainListData() { return _requestsDomainListData; }
+    bool getRequestsDomainListData() const { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
     void setupCodecForReplicatedAgent(QSharedPointer<ReceivedMessage> message);
+
+    struct MixableStream {
+        float approximateVolume { 0.0f };
+        NodeIDStreamID nodeStreamID;
+        std::unique_ptr<AudioHRTF> hrtf;
+        PositionalAudioStream* positionalStream;
+        bool ignoredByListener { false };
+        bool ignoringListener { false };
+
+        MixableStream(NodeIDStreamID nodeIDStreamID, PositionalAudioStream* positionalStream) :
+            nodeStreamID(nodeIDStreamID), hrtf(new AudioHRTF), positionalStream(positionalStream) {};
+        MixableStream(QUuid nodeID, Node::LocalID localNodeID, StreamID streamID, PositionalAudioStream* positionalStream) :
+            nodeStreamID(nodeID, localNodeID, streamID), hrtf(new AudioHRTF), positionalStream(positionalStream) {};
+    };
+
+    using MixableStreamsVector = std::vector<MixableStream>;
+    struct Streams {
+        MixableStreamsVector active;
+        MixableStreamsVector inactive;
+        MixableStreamsVector skipped;
+    };
+
+    Streams& getStreams() { return _streams; }
+
+    // thread-safe, called from AudioMixerSlave(s) while processing ignore packets for other nodes
+    void ignoredByNode(QUuid nodeID);
+    void unignoredByNode(QUuid nodeID);
+
+    // start of methods called non-concurrently from single AudioMixerSlave mixing for the owning node
+
+    const Node::IgnoredNodeIDs& getNewIgnoredNodeIDs() const { return _newIgnoredNodeIDs; }
+    const Node::IgnoredNodeIDs& getNewUnignoredNodeIDs() const { return _newUnignoredNodeIDs; }
+
+    using ConcurrentIgnoreNodeIDs = tbb::concurrent_vector<QUuid>;
+    const ConcurrentIgnoreNodeIDs& getNewIgnoringNodeIDs() const { return _newIgnoringNodeIDs; }
+    const ConcurrentIgnoreNodeIDs& getNewUnignoringNodeIDs() const { return _newUnignoringNodeIDs; }
+
+    void clearStagedIgnoreChanges();
+
+    const Node::IgnoredNodeIDs& getIgnoringNodeIDs() const { return _ignoringNodeIDs; }
+
+    bool getHasReceivedFirstMix() const { return _hasReceivedFirstMix; }
+    void setHasReceivedFirstMix(bool hasReceivedFirstMix) { _hasReceivedFirstMix = hasReceivedFirstMix; }
+
+    // end of methods called non-concurrently from single AudioMixerSlave
 
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
@@ -126,52 +168,15 @@ private:
     };
     PacketQueue _packetQueue;
 
-    QReadWriteLock _streamsLock;
-    AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
+    AudioStreamVector _audioStreams; // microphone stream from avatar has a null stream ID
 
     void optionallyReplicatePacket(ReceivedMessage& packet, const Node& node);
 
-    using IgnoreZone = AABox;
-    class IgnoreZoneMemo {
-    public:
-        IgnoreZoneMemo(AudioMixerClientData& data) : _data(data) {}
+    void setGainForAvatar(QUuid nodeID, uint8_t gain);
 
-        // returns an ignore zone, memoized by frame (lockless if the zone is already memoized)
-        // preconditions:
-        //  - frame is increasing after first call (including overflow wrap)
-        //  - there are no references left from calls to getIgnoreZone(frame - 1)
-        IgnoreZone& get(unsigned int frame);
+    bool containsValidPosition(ReceivedMessage& message) const;
 
-    private:
-        AudioMixerClientData& _data;
-        IgnoreZone _zone;
-        std::atomic<unsigned int> _frame { 0 };
-        std::mutex _mutex;
-    };
-    IgnoreZoneMemo _ignoreZone;
-
-    class IgnoreNodeCache {
-    public:
-        // std::atomic is not copyable - always initialize uncached
-        IgnoreNodeCache() {}
-        IgnoreNodeCache(const IgnoreNodeCache& other) {}
-
-        void cache(bool shouldIgnore);
-        bool isCached();
-        bool shouldIgnore();
-
-    private:
-        std::atomic<bool> _isCached { false };
-        bool _shouldIgnore { false };
-    };
-    struct IgnoreNodeCacheHasher { std::size_t operator()(const QUuid& key) const { return qHash(key); } };
-
-    using NodeSourcesIgnoreMap = tbb::concurrent_unordered_map<QUuid, IgnoreNodeCache, IgnoreNodeCacheHasher>;
-    NodeSourcesIgnoreMap _nodeSourcesIgnoreMap;
-
-    using HRTFMap = std::unordered_map<QUuid, AudioHRTF>;
-    using NodeSourcesHRTFMap = std::unordered_map<QUuid, HRTFMap>;
-    NodeSourcesHRTFMap _nodeSourcesHRTFMap;
+    Streams _streams;
 
     quint16 _outgoingMixedAudioSequenceNumber;
 
@@ -190,6 +195,21 @@ private:
 
     bool _shouldMuteClient { false };
     bool _requestsDomainListData { false };
+
+    std::vector<AddedStream> _newAddedStreams;
+
+    Node::IgnoredNodeIDs _newIgnoredNodeIDs;
+    Node::IgnoredNodeIDs _newUnignoredNodeIDs;
+
+    tbb::concurrent_vector<QUuid> _newIgnoringNodeIDs;
+    tbb::concurrent_vector<QUuid> _newUnignoringNodeIDs;
+
+    std::mutex _ignoringNodeIDsMutex;
+    Node::IgnoredNodeIDs _ignoringNodeIDs;
+
+    std::atomic_bool _isIgnoreRadiusEnabled { false };
+
+    bool _hasReceivedFirstMix { false };
 };
 
 #endif // hifi_AudioMixerClientData_h

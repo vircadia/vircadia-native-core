@@ -44,7 +44,6 @@ function HifiNotification(notificationType, notificationData, menuNotificationCa
 
 HifiNotification.prototype = {
     show: function (finished) {
-        var _finished = finished;
         var text = "";
         var message = "";
         var url = null;
@@ -74,11 +73,17 @@ HifiNotification.prototype = {
                         text = this.data + " of your connections are online."
                     }
                     message = "Click to open PEOPLE.";
-                    url="hifiapp:PEOPLE"
+                    url="hifiapp:PEOPLE";
                 } else {
-                    text = this.data.username + " is available in " + this.data.location.root.name + ".";
-                    message = "Click to join them.";
-                    url="hifi://" + this.data.location.root.name + this.data.location.path;
+                    if (this.data.location) {
+                        text = this.data.username + " is available in " + this.data.location.root.name + ".";
+                        message = "Click to join them.";
+                        url="hifi://" + this.data.location.root.name + this.data.location.path;
+                    } else {
+                        text = this.data.username + " is online.";
+                        message = "Click to open PEOPLE.";
+                        url="hifiapp:PEOPLE";
+                    }
                 }
                 break;
 
@@ -123,11 +128,11 @@ HifiNotification.prototype = {
             timeout: 5
             },
             function (error, reason, metadata) {
-                if (_finished) {
+                if (finished) {
                     if (osType === 'Darwin') {
-                        setTimeout(_finished, OSX_CLICK_DELAY_TIMEOUT);
+                        setTimeout(finished, OSX_CLICK_DELAY_TIMEOUT);
                     } else {
-                        _finished();
+                        finished();
                     }
                 }
             });
@@ -247,7 +252,7 @@ HifiNotifications.prototype = {
     },
     _addNotification: function (notification) {
         this.pendingNotifications.push(notification);
-        if(this.pendingNotifications.length === 1) {
+        if (this.pendingNotifications.length === 1) {
             this._showNotification();
         }
     },
@@ -297,7 +302,6 @@ HifiNotifications.prototype = {
                     finished(false);
                     return;
                 }
-                console.log(content);
                 if (!content.total_entries) {
                     finished(true, token);
                     return;
@@ -321,7 +325,6 @@ HifiNotifications.prototype = {
                             notifyData = content.data.updates;
                             break;
                     }
-
                     notifyData.forEach(function (notifyDataEntry) {
                         _this._addNotification(new HifiNotification(notifyType, notifyDataEntry));
                     });
@@ -376,13 +379,13 @@ HifiNotifications.prototype = {
                                 finished(false);
                                 return;
                             }
-                            console.log(content);
+
                             if (!content.total_entries) {
                                 finished(true, token);
                                 return;
                             }
                             if (!content.total_entries) {
-                                this.menuNotificationCallback(NotificationType.GOTO, false);
+                                _this.menuNotificationCallback(NotificationType.GOTO, false);
                             }
                             _this.currentStories = {};
                             content.user_stories.forEach(function (story) {
@@ -392,6 +395,7 @@ HifiNotifications.prototype = {
                                 // for each story.
                                 _this.currentStories[story.place_name] = story;
                             });
+                            _this.menuNotificationCallback(NotificationType.GOTO);
                     });
                 }
         });
@@ -434,7 +438,6 @@ HifiNotifications.prototype = {
                     console.log("Error: unable to get " + url);
                     return false;
                 }
-                console.log(content);
                 if (!content.total_entries) {
                     _this.menuNotificationCallback(NotificationType.PEOPLE, false);
                     _this.onlineUsers = {};
@@ -446,7 +449,7 @@ HifiNotifications.prototype = {
                 content.data.users.forEach(function (user) {
                     currentUsers[user.username] = user;
                     if (!(user.username in _this.onlineUsers)) {
-                        newUsers.add(user.username);
+                        newUsers.add(user);
                         _this.onlineUsers[user.username] = user;     
                     }
                 });

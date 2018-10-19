@@ -49,6 +49,7 @@ public:
     void init();
  
     static void setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch);
+    static void setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, const LightStage::Frame& lightFrame);
     static void unsetKeyLightBatch(gpu::Batch& batch);
 
     static void setupLocalLightsBatch(gpu::Batch& batch, const LightClustersPointer& lightClusters);
@@ -139,13 +140,13 @@ public:
 
 class RenderDeferredSetup {
 public:
-  //  using JobModel = render::Job::ModelI<RenderDeferredSetup, DeferredFrameTransformPointer>;
-    
+
     void run(const render::RenderContextPointer& renderContext,
         const DeferredFrameTransformPointer& frameTransform,
         const DeferredFramebufferPointer& deferredFramebuffer,
         const LightingModelPointer& lightingModel,
-        const graphics::HazePointer& haze,
+        const LightStage::FramePointer& lightFrame,
+        const HazeStage::FramePointer& hazeFrame,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
         const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
         const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource,
@@ -181,9 +182,9 @@ using RenderDeferredConfig = render::GPUJobConfig;
 
 class RenderDeferred {
 public:
-    using Inputs = render::VaryingSet8 < 
+    using Inputs = render::VaryingSet9<
         DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, 
-        AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer, LightClustersPointer, graphics::HazePointer>;
+        AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer, LightClustersPointer, LightStage::FramePointer, HazeStage::FramePointer>;
 
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
@@ -220,7 +221,7 @@ protected:
     graphics::HazePointer _defaultHaze{ nullptr };
     HazeStage::Index _defaultHazeID{ HazeStage::INVALID_INDEX };
     graphics::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
-    gpu::TexturePointer _defaultSkyboxTexture;
+    NetworkTexturePointer _defaultSkyboxNetworkTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 };
 

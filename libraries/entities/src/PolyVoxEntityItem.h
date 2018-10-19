@@ -23,7 +23,7 @@ class PolyVoxEntityItem : public EntityItem {
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -54,7 +54,7 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual void debugDump() const override;
 
-    virtual void setVoxelVolumeSize(const vec3& voxelVolumeSize);
+    virtual void setVoxelVolumeSize(const glm::vec3& voxelVolumeSize);
     virtual glm::vec3 getVoxelVolumeSize() const;
 
     virtual void setVoxelData(const QByteArray& voxelData);

@@ -20,6 +20,7 @@ namespace controller {
         LowVelocityFilter() {}
         LowVelocityFilter(float rotationConstant, float translationConstant) :
             _translationConstant(translationConstant), _rotationConstant(rotationConstant) {}
+        virtual ~LowVelocityFilter() {}
 
         float apply(float value) const override { return value; }
         Pose apply(Pose newPose) const override;

@@ -70,7 +70,7 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID) : EntityI
     _type = EntityTypes::PolyVox;
 }
 
-void PolyVoxEntityItem::setVoxelVolumeSize(const vec3& voxelVolumeSize) {
+void PolyVoxEntityItem::setVoxelVolumeSize(const glm::vec3& voxelVolumeSize) {
     withWriteLock([&] {
         assert(!glm::any(glm::isnan(voxelVolumeSize)));
 
@@ -113,8 +113,8 @@ glm::vec3 PolyVoxEntityItem::getVoxelVolumeSize() const {
 }
 
 
-EntityItemProperties PolyVoxEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties PolyVoxEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelVolumeSize, getVoxelVolumeSize);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelData, getVoxelData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelSurfaceStyle, getVoxelSurfaceStyle);

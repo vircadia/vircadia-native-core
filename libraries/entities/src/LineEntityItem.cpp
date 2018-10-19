@@ -37,17 +37,12 @@ LineEntityItem::LineEntityItem(const EntityItemID& entityItemID) :
     _type = EntityTypes::Line;
 }
 
-EntityItemProperties LineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+EntityItemProperties LineEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
-    
-    properties._color = getXColor();
-    properties._colorChanged = false;
-    
-    
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
-    
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
 
     return properties;
@@ -56,11 +51,10 @@ EntityItemProperties LineEntityItem::getProperties(EntityPropertyFlags desiredPr
 bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
-    
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
-
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -120,7 +114,7 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
 
@@ -154,36 +148,21 @@ void LineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 void LineEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   LINE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qCDebug(entities) << "               color:" << _color;
     qCDebug(entities) << "            position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
-
-const rgbColor& LineEntityItem::getColor() const { 
-    return _color; 
-}
-
-xColor LineEntityItem::getXColor() const { 
-    xColor result;
-    withReadLock([&] {
-        result = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] };
-    });
-    return result; 
-}
-
-void LineEntityItem::setColor(const rgbColor& value) { 
-    withWriteLock([&] {
-        memcpy(_color, value, sizeof(_color));
+glm::u8vec3 LineEntityItem::getColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
+        return _color;
     });
 }
 
-void LineEntityItem::setColor(const xColor& value) {
+void LineEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
-        _color[RED_INDEX] = value.red;
-        _color[GREEN_INDEX] = value.green;
-        _color[BLUE_INDEX] = value.blue;
+        _color = value;
     });
 }
 

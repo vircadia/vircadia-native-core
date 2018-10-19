@@ -32,7 +32,6 @@
 #include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "RenderCommonTask.h"
-#include "LightStage.h"
 
 namespace ru {
     using render_utils::slot::texture::Texture;
@@ -59,13 +58,13 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
     const auto& transparents = items.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-    //    const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
+    //const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
     const auto& metas = items.get0()[RenderFetchCullSortTask::META];
     const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
     const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
 
     //const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
-    //    const auto& spatialSelection = items[1];
+    //const auto& spatialSelection = items[1];
 
     fadeEffect->build(task, opaques);
 
@@ -76,10 +75,17 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Filter zones from the general metas bucket
     const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
+    // Fetch the current frame stacks from all the stages
+    const auto currentFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
+    const auto lightFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(0);
+    const auto backgroundFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(1);
+    //const auto hazeFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(2);
+    //const auto bloomFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(3);
+
     // GPU jobs: Start preparing the main framebuffer
     const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
-    task.addJob<PrepareForward>("PrepareForward", lightingModel);
+    task.addJob<PrepareForward>("PrepareForward", lightFrame);
 
     // draw a stencil mask in hidden regions of the framebuffer.
     task.addJob<PrepareStencil>("PrepareStencil", framebuffer);
@@ -101,7 +107,8 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     task.addJob<DrawForward>("DrawOpaques", opaqueInputs, shapePlumber);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
+    const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame).asVarying();
+    task.addJob<DrawBackgroundStage>("DrawBackgroundForward", backgroundInputs);
 
     // Draw transparent objects forward
     const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
@@ -114,8 +121,8 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
 
         task.addJob<DrawBounds>("DrawZones", zones);
-        task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
-
+        const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();
+        task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
     // Lighting Buffer ready for tone mapping
@@ -180,12 +187,12 @@ void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs
         graphics::LightPointer keySunLight;
         auto lightStage = args->_scene->getStage<LightStage>();
         if (lightStage) {
-            keySunLight = lightStage->getCurrentKeyLight();
+            keySunLight = lightStage->getCurrentKeyLight(*inputs);
         }
 
         graphics::LightPointer keyAmbiLight;
         if (lightStage) {
-            keyAmbiLight = lightStage->getCurrentAmbientLight();
+            keyAmbiLight = lightStage->getCurrentAmbientLight(*inputs);
         }
 
         if (keySunLight) {

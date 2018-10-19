@@ -345,11 +345,15 @@ var toolBar = (function () {
 
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
+
+            if (!properties.grab) {
+                properties.grab = {};
+            }
             if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
                 !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
-                properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
+                properties.grab.grabbable = true;
             } else {
-                properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
+                properties.grab.grabbable = false;
             }
 
             SelectionManager.saveProperties();
@@ -850,6 +854,7 @@ var toolBar = (function () {
         }));
         isActive = active;
         activeButton.editProperties({isActive: isActive});
+        undoHistory.setEnabled(isActive);
 
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
@@ -1239,6 +1244,19 @@ function setupModelMenus() {
     // adj our menuitems
     Menu.addMenuItem({
         menuName: "Edit",
+        menuItemName: "Undo",
+        shortcutKey: 'Ctrl+Z',
+        position: 0,
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Redo",
+        shortcutKey: 'Ctrl+Shift+Z',
+        position: 1,
+    });
+
+    Menu.addMenuItem({
+        menuName: "Edit",
         menuItemName: "Entities",
         isSeparator: true
     });
@@ -1356,6 +1374,9 @@ function setupModelMenus() {
 setupModelMenus(); // do this when first running our script.
 
 function cleanupModelMenus() {
+    Menu.removeMenuItem("Edit", "Undo");
+    Menu.removeMenuItem("Edit", "Redo");
+
     Menu.removeSeparator("Edit", "Entities");
     if (modelMenuAddedDelete) {
         // delete our menuitems
@@ -1388,7 +1409,6 @@ Script.scriptEnding.connect(function () {
     Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
 
-    Settings.setValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LARGE));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, Menu.isOptionChecked(MENU_ALLOW_SELECTION_SMALL));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LIGHTS));
@@ -1689,7 +1709,7 @@ function onPromptTextChanged(prompt) {
     }
 }
 
-function handeMenuEvent(menuItem) {
+function handleMenuEvent(menuItem) {
     if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
     } else if (menuItem === "Allow Selecting of Large Models") {
@@ -1698,6 +1718,10 @@ function handeMenuEvent(menuItem) {
         Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem === "Delete") {
         deleteSelectedEntities();
+    } else if (menuItem === "Undo") {
+        undoHistory.undo();
+    } else if (menuItem === "Redo") {
+        undoHistory.redo();
     } else if (menuItem === "Parent Entity to Last") {
         parentSelectedEntities();
     } else if (menuItem === "Unparent Entity") {
@@ -1725,6 +1749,8 @@ function handeMenuEvent(menuItem) {
         entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+    } else if (menuItem === MENU_CREATE_ENTITIES_GRABBABLE) {
+        Settings.setValue(SETTING_EDIT_PREFIX + menuItem, Menu.isOptionChecked(menuItem));
     }
     tooltip.show(false);
 }
@@ -1850,7 +1876,7 @@ function importSVO(importURL) {
 }
 Window.svoImportRequested.connect(importSVO);
 
-Menu.menuItemEvent.connect(handeMenuEvent);
+Menu.menuItemEvent.connect(handleMenuEvent);
 
 var keyPressEvent = function (event) {
     if (isActive) {
@@ -1923,6 +1949,86 @@ function recursiveAdd(newParentID, parentData) {
         }
     }
 }
+
+var UndoHistory = function(onUpdate) {
+    this.history = [];
+    // The current position is the index of the last executed action in the history array.
+    //
+    //     -1 0 1 2 3    <- position
+    //        A B C D    <- actions in history
+    //
+    // If our lastExecutedIndex is 1, the last executed action is B.
+    // If we undo, we undo B (index 1). If we redo, we redo C (index 2).
+    this.lastExecutedIndex = -1;
+    this.enabled = true;
+    this.onUpdate = onUpdate;
+};
+
+UndoHistory.prototype.pushCommand = function(undoFn, undoArgs, redoFn, redoArgs) {
+    if (!this.enabled) {
+        return;
+    }
+    // Delete any history following the last executed action.
+    this.history.splice(this.lastExecutedIndex + 1);
+    this.history.push({
+        undoFn: undoFn,
+        undoArgs: undoArgs,
+        redoFn: redoFn,
+        redoArgs: redoArgs
+    });
+    this.lastExecutedIndex++;
+
+    if (this.onUpdate) {
+        this.onUpdate();
+    }
+};
+UndoHistory.prototype.setEnabled = function(enabled) {
+    this.enabled = enabled;
+    if (this.onUpdate) {
+        this.onUpdate();
+    }
+};
+UndoHistory.prototype.canUndo = function() {
+    return this.enabled && this.lastExecutedIndex >= 0;
+};
+UndoHistory.prototype.canRedo = function() {
+    return this.enabled && this.lastExecutedIndex < this.history.length - 1;
+};
+UndoHistory.prototype.undo = function() {
+    if (!this.canUndo()) {
+        console.warn("Cannot undo action");
+        return;
+    }
+
+    var command = this.history[this.lastExecutedIndex];
+    command.undoFn(command.undoArgs);
+    this.lastExecutedIndex--;
+
+    if (this.onUpdate) {
+        this.onUpdate();
+    }
+};
+UndoHistory.prototype.redo = function() {
+    if (!this.canRedo()) {
+        console.warn("Cannot redo action");
+        return;
+    }
+
+    var command = this.history[this.lastExecutedIndex + 1];
+    command.redoFn(command.redoArgs);
+    this.lastExecutedIndex++;
+
+    if (this.onUpdate) {
+        this.onUpdate();
+    }
+};
+
+function updateUndoRedoMenuItems() {
+    Menu.setMenuEnabled("Edit > Undo", undoHistory.canUndo());
+    Menu.setMenuEnabled("Edit > Redo", undoHistory.canRedo());
+}
+var undoHistory = new UndoHistory(updateUndoRedoMenuItems);
+updateUndoRedoMenuItems();
 
 // When an entity has been deleted we need a way to "undo" this deletion.  Because it's not currently
 // possible to create an entity with a specific id, earlier undo commands to the deleted entity
@@ -2011,7 +2117,7 @@ function pushCommandForSelections(createdEntityData, deletedEntityData, doNotSav
             properties: currentProperties
         });
     }
-    UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
+    undoHistory.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
 }
 
 var ServerScriptStatusMonitor = function(entityID, statusCallback) {

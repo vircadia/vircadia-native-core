@@ -48,6 +48,7 @@ public:
         using Index = uint16_t;
 
         DrawCallInfo(Index idx) : index(idx) {}
+        DrawCallInfo(Index idx, Index user) : index(idx), unused(user) {}
 
         Index index { 0 };
         uint16_t unused { 0 }; // Reserved space for later
@@ -95,6 +96,7 @@ public:
     ~Batch();
 
     void setName(const char* name);
+    const char* getName() const { return _name; }
     void clear();
 
     // Batches may need to override the context level stereo settings
@@ -109,6 +111,14 @@ public:
     // without the pre-translation of the view.  
     void enableSkybox(bool enable = true);
     bool isSkyboxEnabled() const;
+
+    // Drawcall Uniform value
+    // One 16bit word uniform value is available during the drawcall
+    // its value must be set before each drawcall
+    void setDrawcallUniform(uint16 uniform);
+    // It is reset to the reset value between each drawcalls
+    // The reset value is 0 by default and can be changed as a batch state with this call
+    void setDrawcallUniformReset(uint16 resetUniform);
 
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
@@ -216,6 +226,8 @@ public:
 
     // Generate the mips for a texture
     void generateTextureMips(const TexturePointer& texture);
+    // Generate the mips for a texture using the current pipeline
+    void generateTextureMipsWithPipeline(const TexturePointer& destTexture, int numMips = -1);
 
     // Query Section
     void beginQuery(const QueryPointer& query);
@@ -316,6 +328,7 @@ public:
         COMMAND_clearFramebuffer,
         COMMAND_blit,
         COMMAND_generateTextureMips,
+        COMMAND_generateTextureMipsWithPipeline,
 
         COMMAND_advance,
 
@@ -497,6 +510,9 @@ public:
     StringCaches _names;
 
     NamedBatchDataMap _namedData;
+
+    uint16_t _drawcallUniform{ 0 };
+    uint16_t _drawcallUniformReset{ 0 };
 
     glm::vec2 _projectionJitter{ 0.0f, 0.0f };
     bool _enableStereo{ true };

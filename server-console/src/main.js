@@ -338,13 +338,15 @@ const HifiNotificationType = hfNotifications.NotificationType;
 var pendingNotifications = {}
 var notificationState = NotificationState.UNNOTIFIED;
 
-function setNotificationState (notificationType, pending = true) {
-    pendingNotifications[notificationType] = pending;
-    notificationState = NotificationState.UNNOTIFIED;
-    for (var key in pendingNotifications) {
-        if (pendingNotifications[key]) {
-            notificationState = NotificationState.NOTIFIED;
-            break;
+function setNotificationState (notificationType, pending = undefined) {
+    if (pending !== undefined) {
+        pendingNotifications[notificationType] = pending;
+        notificationState = NotificationState.UNNOTIFIED;
+        for (var key in pendingNotifications) {
+            if (pendingNotifications[key]) {
+                notificationState = NotificationState.NOTIFIED;
+                break;
+            }
         }
     }
     updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
@@ -569,29 +571,37 @@ function updateLabels(serverState) {
     labels.wallet.icon = pendingNotifications[HifiNotificationType.WALLET] ? menuNotificationIcon : null;
     labels.marketplace.icon = pendingNotifications[HifiNotificationType.MARKETPLACE] ? menuNotificationIcon : null;
     var onlineUsers = trayNotifications.getOnlineUsers();
-    if(onlineUsers) {
-        labels.people.submenu = [];        
+    delete labels.people.submenu;
+    if (onlineUsers) {
         for (var name in onlineUsers) {
+            if(labels.people.submenu == undefined) {
+                labels.people.submenu = [];
+            }
             labels.people.submenu.push({
                 label: name,
-                click: function () {
-                    setNotificationState(HifiNotificationType.GOTO, false);
-                    StartInterface("hifi://" + onlineUsers[name].location.root.name + onlineUsers[name].location.path);
+                enabled: (onlineUsers[name].location != undefined),
+                click: function (item) {
+                    setNotificationState(HifiNotificationType.PEOPLE, false);
+                    if(onlineUsers[item.label] && onlineUsers[item.label].location) {
+                        StartInterface("hifi://" + onlineUsers[item.label].location.root.name + onlineUsers[item.label].location.path);
+                    }
                 }
             });
         }
     }
     var currentStories = trayNotifications.getCurrentStories();
-    console.log("CURRENT STORIES");
-    console.log(currentStories);
-    if(currentStories) {
-        labels.goto.submenu = [];        
+    delete labels.goto.submenu;
+    if (currentStories) {
         for (var location in currentStories) {
+            if(labels.goto.submenu == undefined) {
+                labels.goto.submenu = [];
+            }
             labels.goto.submenu.push({
                 label: "event in " + location,
-                click: function () {
+                location: location,
+                click: function (item) {
                     setNotificationState(HifiNotificationType.GOTO, false);
-                    StartInterface("hifi://" + location + getCurrentStories[location].path);
+                    StartInterface("hifi://" + item.location + currentStories[item.location].path);
                 }
             });
         }
@@ -946,6 +956,8 @@ app.on('ready', function() {
         trayNotifications.startPolling();
     }
     updateTrayMenu(ProcessGroupStates.STOPPED);
-
-    maybeInstallDefaultContentSet(onContentLoaded);
+    
+    if (isServerInstalled()) {
+        maybeInstallDefaultContentSet(onContentLoaded);
+    }
 });

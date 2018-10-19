@@ -64,21 +64,21 @@ void Text3DOverlay::setText(const QString& text) {
     _text = text;
 }
 
-xColor Text3DOverlay::getBackgroundColor() {
+glm::u8vec3 Text3DOverlay::getBackgroundColor() {
     if (_colorPulse == 0.0f) {
         return _backgroundColor;
     }
 
     float pulseLevel = updatePulse();
-    xColor result = _backgroundColor;
+    glm::u8vec3 result = _backgroundColor;
     if (_colorPulse < 0.0f) {
-        result.red *= (1.0f - pulseLevel);
-        result.green *= (1.0f - pulseLevel);
-        result.blue *= (1.0f - pulseLevel);
+        result.x *= (1.0f - pulseLevel);
+        result.y *= (1.0f - pulseLevel);
+        result.z *= (1.0f - pulseLevel);
     } else {
-        result.red *= pulseLevel;
-        result.green *= pulseLevel;
-        result.blue *= pulseLevel;
+        result.x *= pulseLevel;
+        result.y *= pulseLevel;
+        result.z *= pulseLevel;
     }
     return result;
 }
@@ -94,10 +94,8 @@ void Text3DOverlay::render(RenderArgs* args) {
     auto transform = getRenderTransform();
     batch.setModelTransform(transform);
 
-    const float MAX_COLOR = 255.0f;
-    xColor backgroundColor = getBackgroundColor();
-    glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR,
-                        backgroundColor.blue / MAX_COLOR, getBackgroundAlpha());
+    glm::u8vec3 backgroundColor = getBackgroundColor();
+    glm::vec4 quadColor(toGlm(backgroundColor), getBackgroundAlpha());
 
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
@@ -114,7 +112,6 @@ void Text3DOverlay::render(RenderArgs* args) {
 
     float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight;
 
-    glm::vec2 clipMinimum(0.0f, 0.0f);
     glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor,
                              (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
 
@@ -123,8 +120,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     transform.setScale(scaleFactor);
     batch.setModelTransform(transform);
 
-    glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR,
-                            _color.blue / MAX_COLOR, getTextAlpha() };
+    glm::vec4 textColor = { toGlm(_color), getTextAlpha() };
 
     // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline for a gpu performance increase.
     _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), true);
@@ -165,7 +161,7 @@ void Text3DOverlay::setProperties(const QVariantMap& properties) {
     bool valid;
     auto backgroundColor = properties["backgroundColor"];
     if (backgroundColor.isValid()) {
-        auto color = xColorFromVariant(backgroundColor, valid);
+        auto color = u8vec3FromVariant(backgroundColor, valid);
         if (valid) {
             _backgroundColor = color;
         }
@@ -261,7 +257,7 @@ QVariant Text3DOverlay::getProperty(const QString& property) {
         return _textAlpha;
     }
     if (property == "backgroundColor") {
-        return xColorToVariant(_backgroundColor);
+        return u8vec3ColortoVariant(_backgroundColor);
     }
     if (property == "backgroundAlpha") {
         return Billboard3DOverlay::getProperty("alpha");

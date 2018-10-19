@@ -27,7 +27,7 @@ public:
     virtual ShapeType getShapeType() const override { return SHAPE_TYPE_BOX; }
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -63,21 +63,13 @@ public:
     void setLineHeight(float value);
     float getLineHeight() const;
 
-    static const xColor DEFAULT_TEXT_COLOR;
-    // FIXME should not return a reference because of thread safety, but can't return an array
-    const rgbColor& getTextColor() const;
-    xColor getTextColorX() const;
+    static const glm::u8vec3 DEFAULT_TEXT_COLOR;
+    glm::u8vec3 getTextColor() const;
+    void setTextColor(const glm::u8vec3& value);
 
-    void setTextColor(const rgbColor& value);
-    void setTextColor(const xColor& value);
-
-    static const xColor DEFAULT_BACKGROUND_COLOR;
-    // FIXME should not return a reference because of thread safety, but can't return an array
-    const rgbColor& getBackgroundColor() const;
-    xColor getBackgroundColorX() const;
-
-    void setBackgroundColor(const rgbColor& value);
-    void setBackgroundColor(const xColor& value);
+    static const glm::u8vec3 DEFAULT_BACKGROUND_COLOR;
+    glm::u8vec3 getBackgroundColor() const;
+    void setBackgroundColor(const glm::u8vec3& value);
 
     static const bool DEFAULT_FACE_CAMERA;
     bool getFaceCamera() const;
@@ -86,8 +78,8 @@ public:
 private:
     QString _text;
     float _lineHeight;
-    rgbColor _textColor;
-    rgbColor _backgroundColor;
+    glm::u8vec3 _textColor;
+    glm::u8vec3 _backgroundColor;
     bool _faceCamera;
 };
 

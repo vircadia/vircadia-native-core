@@ -295,7 +295,6 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
     _maxAllocatedMip = _populatedMip = mipLevels;
     _minAllocatedMip = texture.minAvailableMipLevel();
 
-    uvec3 mipDimensions;
     for (uint16_t mip = _minAllocatedMip; mip < mipLevels; ++mip) {
         if (glm::all(glm::lessThanEqual(texture.evalMipDimensions(mip), INITIAL_MIP_TRANSFER_DIMENSIONS))) {
             _maxAllocatedMip = _populatedMip = mip;

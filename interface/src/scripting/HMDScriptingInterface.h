@@ -57,18 +57,28 @@ class QScriptEngine;
  * @property {Uuid} tabletScreenID - The UUID of the tablet's screen overlay.
  * @property {Uuid} homeButtonID - The UUID of the tablet's "home" button overlay.
  * @property {Uuid} homeButtonHighlightID - The UUID of the tablet's "home" button highlight overlay.
+ * @property {Uuid} miniTabletID - The UUID of the mini tablet's body model overlay. <code>null</code> if not in HMD mode.
+ * @property {Uuid} miniTabletScreenID - The UUID of the mini tablet's screen overlay. <code>null</code> if not in HMD mode.
+ * @property {number} miniTabletHand - The hand that the mini tablet is displayed on: <code>0</code> for left hand, 
+ *     <code>1</code> for right hand, <code>-1</code> if not in HMD mode.
+ * @property {Rect} playArea=0,0,0,0 - The size and position of the HMD play area in sensor coordinates. <em>Read-only.</em>
+ * @property {Vec3[]} sensorPositions=[]] - The positions of the VR system sensors in sensor coordinates. <em>Read-only.</em>
  */
 class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
     Q_PROPERTY(glm::vec3 position READ getPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation)
-    Q_PROPERTY(bool mounted READ isMounted NOTIFY mountedChanged)
     Q_PROPERTY(bool showTablet READ getShouldShowTablet)
     Q_PROPERTY(bool tabletContextualMode READ getTabletContextualMode)
     Q_PROPERTY(QUuid tabletID READ getCurrentTabletFrameID WRITE setCurrentTabletFrameID)
     Q_PROPERTY(QUuid homeButtonID READ getCurrentHomeButtonID WRITE setCurrentHomeButtonID)
     Q_PROPERTY(QUuid tabletScreenID READ getCurrentTabletScreenID WRITE setCurrentTabletScreenID)
     Q_PROPERTY(QUuid homeButtonHighlightID READ getCurrentHomeButtonHighlightID WRITE setCurrentHomeButtonHighlightID)
+    Q_PROPERTY(QUuid miniTabletID READ getCurrentMiniTabletID WRITE setCurrentMiniTabletID)
+    Q_PROPERTY(QUuid miniTabletScreenID READ getCurrentMiniTabletScreenID WRITE setCurrentMiniTabletScreenID)
+    Q_PROPERTY(int miniTabletHand READ getCurrentMiniTabletHand WRITE setCurrentMiniTabletHand)
+    Q_PROPERTY(QVariant playArea READ getPlayAreaRect);
+    Q_PROPERTY(QVector<glm::vec3> sensorPositions READ getSensorPositions);
 
 public:
 
@@ -350,7 +360,7 @@ public:
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine);
 
-    bool isMounted() const;
+    bool isMounted() const override;
 
     void toggleShouldShowTablet();
     void setShouldShowTablet(bool value);
@@ -369,6 +379,18 @@ public:
     void setCurrentTabletScreenID(QUuid tabletID) { _tabletScreenID = tabletID; }
     QUuid getCurrentTabletScreenID() const { return _tabletScreenID; }
 
+    void setCurrentMiniTabletID(QUuid miniTabletID) { _miniTabletID = miniTabletID; }
+    QUuid getCurrentMiniTabletID() const { return _miniTabletID; }
+
+    void setCurrentMiniTabletScreenID(QUuid miniTabletScreenID) { _miniTabletScreenID = miniTabletScreenID; }
+    QUuid getCurrentMiniTabletScreenID() const { return _miniTabletScreenID; }
+
+    void setCurrentMiniTabletHand(int miniTabletHand) { _miniTabletHand = miniTabletHand; }
+    int getCurrentMiniTabletHand() const { return _miniTabletHand; }
+
+    QVariant getPlayAreaRect();
+    QVector<glm::vec3> getSensorPositions();
+
 private:
     bool _showTablet { false };
     bool _tabletContextualMode { false };
@@ -377,6 +399,9 @@ private:
     QUuid _homeButtonID;
     QUuid _tabletEntityID;
     QUuid _homeButtonHighlightID;
+    QUuid _miniTabletID;
+    QUuid _miniTabletScreenID;
+    int _miniTabletHand { -1 };
 
     // Get the position of the HMD
     glm::vec3 getPosition() const;

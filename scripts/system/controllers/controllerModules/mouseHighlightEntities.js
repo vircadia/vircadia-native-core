@@ -12,7 +12,7 @@
 
 /* jslint bitwise: true */
 
-/* global Script, print, Entities, Picks, HMD, Controller, MyAvatar, isInEditMode*/
+/* global Script, print, Entities, Messages, Picks, HMD, MyAvatar, isInEditMode, DISPATCHER_PROPERTIES */
 
 
 (function() {
@@ -46,11 +46,7 @@
                     var targetEntityID = pickResult.objectID;
 
                     if (this.highlightedEntity !== targetEntityID) {
-                        var targetProps = Entities.getEntityProperties(targetEntityID, [
-                            "dynamic", "shapeType", "position",
-                            "rotation", "dimensions", "density",
-                            "userData", "locked", "type", "href"
-                        ]);
+                        var targetProps = Entities.getEntityProperties(targetEntityID, DISPATCHER_PROPERTIES);
 
                         if (this.highlightedEntity) {
                             dispatcherUtils.unhighlightTargetEntity(this.highlightedEntity);

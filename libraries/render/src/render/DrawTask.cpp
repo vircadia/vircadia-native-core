@@ -98,7 +98,6 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
 
     for (auto i = 0; i < numItemsToDraw; ++i) {
         auto& item = scene->getItem(inItems[i].id);
-
         {
             assert(item.getKey().isShape());
             auto key = item.getShapeKey() | globalKey;

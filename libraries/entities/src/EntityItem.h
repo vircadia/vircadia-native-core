@@ -35,6 +35,7 @@
 #include "SimulationOwner.h"
 #include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
+#include "GrabPropertyGroup.h"
 
 #include "graphics/Material.h"
 
@@ -88,7 +89,7 @@ public:
     EntityItemID getEntityItemID() const { return EntityItemID(_id); }
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties = EntityPropertyFlags(), bool allowEmptyDesiredProperties = false) const;
 
     /// returns true if something changed
     // This function calls setSubClass properties and detects if any property changes value.
@@ -191,7 +192,7 @@ public:
     virtual void setScaledDimensions(const glm::vec3& value);
     virtual glm::vec3 getRaycastDimensions() const { return getScaledDimensions(); }
 
-    inline const glm::vec3 getUnscaledDimensions() const { return _unscaledDimensions; }
+    glm::vec3 getUnscaledDimensions() const;
     virtual void setUnscaledDimensions(const glm::vec3& value);
 
     float getLocalRenderAlpha() const;
@@ -263,9 +264,8 @@ public:
     void setCollisionSoundURL(const QString& value);
 
     glm::vec3 getRegistrationPoint() const; /// registration point as ratio of entity
-
     /// registration point as ratio of entity
-    virtual void setRegistrationPoint(const glm::vec3& value); // FIXME: this is suspicious! 
+    virtual void setRegistrationPoint(const glm::vec3& value); // FIXME: this is suspicious!
 
     bool hasAngularVelocity() const { return getWorldAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
@@ -441,6 +441,8 @@ public:
 
     void setDynamicDataNeedsTransmit(bool value) const { _dynamicDataNeedsTransmit = value; }
     bool dynamicDataNeedsTransmit() const { return _dynamicDataNeedsTransmit; }
+    void setTransitingWithAvatar(bool value) { _transitingWithAvatar = value; }
+    bool getTransitingWithAvatar() { return _transitingWithAvatar; }
 
     bool shouldSuppressLocationEdits() const;
 
@@ -530,6 +532,8 @@ public:
     const QVector<QUuid> getCloneIDs() const;
     void setCloneIDs(const QVector<QUuid>& cloneIDs);
     void setVisuallyReady(bool visuallyReady) { _visuallyReady = visuallyReady; }
+
+    const GrabPropertyGroup& getGrabProperties() const { return _grabProperties; }
 
 signals:
     void requestRenderUpdate();
@@ -668,6 +672,7 @@ protected:
     QUuid _sourceUUID; /// the server node UUID we came from
 
     bool _clientOnly { false };
+    bool _transitingWithAvatar{ false };
     QUuid _owningAvatarID;
 
     // physics related changes from the network to suppress any duplicates and make
@@ -707,6 +712,8 @@ protected:
     bool _cloneAvatarEntity { ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY };
     QUuid _cloneOriginID;
     QVector<QUuid> _cloneIDs;
+
+    GrabPropertyGroup _grabProperties;
 
 private:
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;

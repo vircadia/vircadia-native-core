@@ -107,17 +107,16 @@ void Image3DOverlay::render(RenderArgs* args) {
     glm::vec2 texCoordBottomRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth,
                                   (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
 
-    const float MAX_COLOR = 255.0f;
-    xColor color = getColor();
     float alpha = getAlpha();
+    glm::u8vec3 color = getColor();
+    glm::vec4 imageColor(toGlm(color), alpha);
 
     batch->setModelTransform(getRenderTransform());
     batch->setResourceTexture(0, _texture->getGPUTexture());
 
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
-        glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha),
-        _geometryId
+        imageColor, _geometryId
     );
 
     batch->setResourceTexture(0, nullptr); // restore default white color after me

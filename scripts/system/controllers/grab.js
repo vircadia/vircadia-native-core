@@ -14,9 +14,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global MyAvatar, Entities, Script, Camera, Vec3, Reticle, Overlays, getEntityCustomData, Messages, Quat, Controller,
-   isInEditMode, HMD entityIsGrabbable, Picks, PickType, Pointers, unhighlightTargetEntity*/
-
+/* global MyAvatar, Entities, Script, HMD, Camera, Vec3, Reticle, Overlays, getEntityCustomData, Messages, Quat, Controller,
+   isInEditMode, entityIsGrabbable, Picks, PickType, Pointers, unhighlightTargetEntity, DISPATCHER_PROPERTIES,
+   entityIsGrabbable, entityIsEquipped, getMainTabletIDs
+*/
+/* jslint bitwise: true */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -37,7 +39,6 @@ var IDENTITY_QUAT = {
     z: 0,
     w: 0
 };
-var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with handControllerGrab.js
 
 var DEFAULT_GRABBABLE_DATA = {
     grabbable: true,
@@ -272,7 +273,7 @@ function Grabber() {
         joint: "Mouse",
         filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
         faceAvatar: true,
-        scaleWithAvatar: true,
+        scaleWithParent: true,
         enabled: true,
         renderStates: renderStates
     });
@@ -339,16 +340,14 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    var props = Entities.getEntityProperties(pickResults.objectID, ["dynamic", "userData", "locked", "type"]);
+    var props = Entities.getEntityProperties(pickResults.objectID, DISPATCHER_PROPERTIES);
     var isDynamic = props.dynamic;
-    var isGrabbable = props.grabbable;
     if (!entityIsGrabbable(props)) {
         // only grab grabbable objects
         return;
     }
 
-    var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, pickResults.objectID, DEFAULT_GRABBABLE_DATA);
-    if (grabbableData.grabbable === false) {
+    if (!props.grab.grabbable) {
         return;
     }
 
@@ -359,7 +358,7 @@ Grabber.prototype.pressEvent = function(event) {
     mouse.startDrag(event);
 
     var clickedEntity = pickResults.objectID;
-    var entityProperties = Entities.getEntityProperties(clickedEntity);
+    var entityProperties = Entities.getEntityProperties(clickedEntity, DISPATCHER_PROPERTIES);
     this.startPosition = entityProperties.position;
     this.lastRotation = entityProperties.rotation;
     this.madeDynamic = false;
@@ -484,7 +483,7 @@ Grabber.prototype.moveEvent = function(event) {
 Grabber.prototype.moveEventProcess = function() {
     this.moveEventTimer = null;
     // see if something added/restored gravity
-    var entityProperties = Entities.getEntityProperties(this.entityID);
+    var entityProperties = Entities.getEntityProperties(this.entityID, DISPATCHER_PROPERTIES);
     if (!entityProperties || !entityProperties.gravity || HMD.active) {
         return;
     }

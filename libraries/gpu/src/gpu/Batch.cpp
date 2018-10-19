@@ -98,6 +98,8 @@ void Batch::clear() {
     _name = nullptr;
     _invalidModel = true;
     _currentModel = Transform();
+    _drawcallUniform = 0;
+    _drawcallUniformReset = 0;
     _projectionJitter = glm::vec2(0.0f);
     _enableStereo = true;
     _enableSkybox = false;
@@ -110,6 +112,13 @@ size_t Batch::cacheData(size_t size, const void* data) {
     memcpy(_data.data() + offset, data, size);
 
     return offset;
+}
+
+void Batch::setDrawcallUniform(uint16_t uniform) {
+    _drawcallUniform = uniform;
+}
+void Batch::setDrawcallUniformReset(uint16_t uniformReset) {
+    _drawcallUniformReset = uniformReset;
 }
 
 void Batch::draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex) {
@@ -417,6 +426,13 @@ void Batch::generateTextureMips(const TexturePointer& texture) {
     _params.emplace_back(_textures.cache(texture));
 }
 
+void Batch::generateTextureMipsWithPipeline(const TexturePointer& texture, int numMips) {
+    ADD_COMMAND(generateTextureMipsWithPipeline);
+
+    _params.emplace_back(_textures.cache(texture));
+    _params.emplace_back(numMips);
+}
+
 void Batch::beginQuery(const QueryPointer& query) {
     ADD_COMMAND(beginQuery);
 
@@ -545,7 +561,8 @@ void Batch::captureDrawCallInfoImpl() {
     }
 
     auto& drawCallInfos = getDrawCallInfoBuffer();
-    drawCallInfos.emplace_back((uint16)_objects.size() - 1);
+    drawCallInfos.emplace_back((uint16)_objects.size() - 1, _drawcallUniform);
+    _drawcallUniform = _drawcallUniformReset;
 }
 
 void Batch::captureDrawCallInfo() {
@@ -679,6 +696,8 @@ void Batch::_glColor4f(float red, float green, float blue, float alpha) {
 }
 
 void Batch::finishFrame(BufferUpdates& updates) {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
+
     for (auto& mapItem : _namedData) {
         auto& name = mapItem.first;
         auto& instance = mapItem.second;
@@ -707,6 +726,7 @@ void Batch::finishFrame(BufferUpdates& updates) {
 }
 
 void Batch::flush() {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     for (auto& mapItem : _namedData) {
         auto& name = mapItem.first;
         auto& instance = mapItem.second;
