@@ -298,7 +298,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     auto velocity = myAvatar->getLocalVelocity() / myAvatar->getSensorToWorldScale();
     auto position = myAvatar->getLocalPosition();
     auto orientation = myAvatar->getLocalOrientation();
-    _rig.computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
+    _rig.computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState, myAvatar->getSensorToWorldScale());
 
     // evaluate AnimGraph animation and update jointStates.
     Model::updateRig(deltaTime, parentTransform);
