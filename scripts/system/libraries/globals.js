@@ -9,3 +9,5 @@
 //
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+isInterstitialOverlaysVisible = false;

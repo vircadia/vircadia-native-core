@@ -335,6 +335,8 @@ signals:
 
     void uploadRequest(QString path);
 
+    void interstitialModeChanged(bool isInInterstitialMode);
+
     void loginDialogPoppedUp();
 
 public slots:
