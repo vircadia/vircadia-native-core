@@ -314,10 +314,11 @@ Rectangle {
                 readOnly: true
                 color: hifi.colors.white
                 text: {
-                    if (root.detailsExpanded) {
+                    var numUniqueResources = (model.resourceAccessEventText.split("\n").length - 1);
+                    if (root.detailsExpanded && numUniqueResources > 0) {
                         return model.resourceAccessEventText
                     } else {
-                        return (model.resourceAccessEventText.split("\n").length - 1).toString() + " resources loaded..."
+                        return numUniqueResources.toString() + " unique resource" + (numUniqueResources === 1 ? "" : "s") + " loaded - expand for details"
                     }
                 }
                 font: Qt.font({ family: "Courier", pointSize: 8, weight: Font.Normal })

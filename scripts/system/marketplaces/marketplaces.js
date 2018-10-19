@@ -54,14 +54,24 @@ var resourceRequestEvents = [];
 function signalResourceRequestEvent(data) {
     // Once we can tie resource request events to specific resources,
     // we will have to update the "0" in here.
-    resourceObjectsInTest[0].resourceAccessEventText += "[" + data.date.toISOString() + "] " +
-        data.url.toString().replace("__NONE__,", "") + "\n";
+    if (!resourceObjectsInTest[0].resourceUrls) {
+        resourceObjectsInTest[0].resourceUrls = [];
+    }
 
-    ui.tablet.sendToQml({
-        method: "resourceRequestEvent",
-        data: data,
-        resourceAccessEventText: resourceObjectsInTest[0].resourceAccessEventText
-    });
+    var resourceUrl = data.url.toString().replace("__NONE__,", "");
+
+    if (resourceObjectsInTest[0].resourceUrls.indexOf(resourceUrl) === -1) {
+        resourceObjectsInTest[0].resourceUrls.push(resourceUrl);
+
+        resourceObjectsInTest[0].resourceAccessEventText += "[" + data.date.toISOString() + "] " +
+            resourceUrl + "\n";
+
+        ui.tablet.sendToQml({
+            method: "resourceRequestEvent",
+            data: data,
+            resourceAccessEventText: resourceObjectsInTest[0].resourceAccessEventText
+        });
+    }
 }
 
 function onResourceRequestEvent(data) {
