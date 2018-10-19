@@ -112,7 +112,6 @@
         backgroundAlpha: 1,
         lineHeight: 0.13,
         visible: isVisible,
-        backgroundAlpha: 0,
         ignoreRayIntersection: true,
         drawInFront: true,
         grabbable: false,
