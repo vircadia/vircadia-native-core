@@ -12,10 +12,6 @@
 
 #include <QtGlobal>
 
-std::map<QString, float> AnimNode::_animStack = {
-    {"none", 0.0f}
-};
-
 AnimNode::Pointer AnimNode::getParent() {
     return _parent.lock();
 }

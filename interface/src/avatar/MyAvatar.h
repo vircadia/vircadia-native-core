@@ -122,8 +122,10 @@ class MyAvatar : public Avatar {
      *     zone may disallow collisionless avatars.
      * @property {boolean} characterControllerEnabled - Synonym of <code>collisionsEnabled</code>. 
      *     <strong>Deprecated:</strong> Use <code>collisionsEnabled</code> instead.
-     * @property {boolean} useAdvancedMovementControls - Returns the value of the Interface setting, Settings > Advanced 
-     *     Movement for Hand Controller. Note: Setting the value has no effect unless Interface is restarted.
+     * @property {boolean} useAdvancedMovementControls - Returns and sets the value of the Interface setting, Settings > 
+     *     Walking and teleporting. Note: Setting the value has no effect unless Interface is restarted.
+     * @property {boolean} showPlayArea - Returns and sets the value of the Interface setting, Settings > Show room boundaries 
+     *     while teleporting. Note: Setting the value has no effect unless Interface is restarted.
      * @property {number} yawSpeed=75
      * @property {number} pitchSpeed=50
      * @property {boolean} hmdRollControlEnabled=true - If <code>true</code>, the roll angle of your HMD turns your avatar 
@@ -223,6 +225,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
+    Q_PROPERTY(bool showPlayArea READ getShowPlayArea WRITE setShowPlayArea)
 
     Q_PROPERTY(float yawSpeed MEMBER _yawSpeed)
     Q_PROPERTY(float pitchSpeed MEMBER _pitchSpeed)
@@ -542,6 +545,9 @@ public:
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
         { _useAdvancedMovementControls.set(useAdvancedMovementControls); }
 
+    bool getShowPlayArea() const { return _showPlayArea.get(); }
+    void setShowPlayArea(bool showPlayArea) { _showPlayArea.set(showPlayArea); }
+
     void setHMDRollControlEnabled(bool value) { _hmdRollControlEnabled = value; }
     bool getHMDRollControlEnabled() const { return _hmdRollControlEnabled; }
     void setHMDRollControlDeadZone(float value) { _hmdRollControlDeadZone = value; }
@@ -550,6 +556,7 @@ public:
     float getHMDRollControlRate() const { return _hmdRollControlRate; }
 
     // get/set avatar data
+    void resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex);
     void saveData();
     void loadData();
 
@@ -621,8 +628,6 @@ public:
     eyeContactTarget getEyeContactTarget();
 
     const MyHead* getMyHead() const;
-
-    Q_INVOKABLE void toggleSmoothPoleVectors() { _skeletonModel->getRig().toggleSmoothPoleVectors(); };
 
     /**jsdoc
      * Get the current position of the avatar's "Head" joint.
@@ -1018,6 +1023,12 @@ public:
     Q_INVOKABLE bool getCollisionsEnabled();
 
     /**jsdoc
+    * @function MyAvatar.getCollisionCapsule
+    * @returns {object}
+    */
+    Q_INVOKABLE QVariantMap getCollisionCapsule() const;
+
+    /**jsdoc
      * @function MyAvatar.setCharacterControllerEnabled
      * @param {boolean} enabled
      * @deprecated
@@ -1034,7 +1045,7 @@ public:
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
-    // all calibration matrices are in absolute avatar space.
+    // all calibration matrices are in absolute sensor space.
     glm::mat4 getCenterEyeCalibrationMat() const;
     glm::mat4 getHeadCalibrationMat() const;
     glm::mat4 getSpine2CalibrationMat() const;
@@ -1086,6 +1097,8 @@ public:
 
     const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
 
+    void setIsInWalkingState(bool isWalking);
+    bool getIsInWalkingState() const;
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
     void setWalkBackwardSpeed(float value);
@@ -1105,6 +1118,8 @@ public:
 
     virtual QVariantList getAttachmentsVariant() const override;
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
+
+    glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); };
 
 public slots:
 
@@ -1178,11 +1193,12 @@ public slots:
      * @param {boolean} [hasOrientation=false] - Set to <code>true</code> to set the orientation of the avatar.
      * @param {Quat} [orientation=Quat.IDENTITY] - The new orientation for the avatar.
      * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from 
+     * @param {boolean} [withSafeLanding=true] - Set to <code>false</code> MyAvatar::safeLanding will not be called (used when teleporting).
      *     the new position and orientate the avatar to face the position.
      */
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
-                      bool shouldFaceLocation = false);
+                      bool shouldFaceLocation = false, bool withSafeLanding = true);
     /**jsdoc
      * @function MyAvatar.goToLocation
      * @param {object} properties
@@ -1496,6 +1512,7 @@ signals:
 
 private slots:
     void leaveDomain();
+    void updateCollisionCapsuleCache();
 
 protected:
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
@@ -1618,6 +1635,7 @@ private:
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
+    Setting::Handle<bool> _showPlayArea;
 
     // Smoothing.
     const float SMOOTH_TIME_ORIENTATION = 0.5f;
@@ -1720,6 +1738,8 @@ private:
 
     bool _goToPending { false };
     bool _physicsSafetyPending { false };
+    bool _goToSafe { true };
+    bool _goToFeetAjustment { false };
     glm::vec3 _goToPosition;
     glm::quat _goToOrientation;
 
@@ -1788,12 +1808,31 @@ private:
     ThreadSafeValueCache<float> _walkBackwardSpeed { DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED };
     ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
+    bool _isInWalkingState { false };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
 
     bool _haveReceivedHeightLimitsFromDomain { false };
     int _disableHandTouchCount { 0 };
+    bool _skeletonModelLoaded { false };
+
+    Setting::Handle<QString> _dominantHandSetting;
+    Setting::Handle<float> _headPitchSetting;
+    Setting::Handle<float> _scaleSetting;
+    Setting::Handle<float> _yawSpeedSetting;
+    Setting::Handle<float> _pitchSpeedSetting;
+    Setting::Handle<QUrl> _fullAvatarURLSetting;
+    Setting::Handle<QUrl> _fullAvatarModelNameSetting;
+    Setting::Handle<QUrl> _animGraphURLSetting;
+    Setting::Handle<QString> _displayNameSetting;
+    Setting::Handle<QUrl> _collisionSoundURLSetting;
+    Setting::Handle<bool> _useSnapTurnSetting;
+    Setting::Handle<float> _userHeightSetting;
+    Setting::Handle<bool> _flyingHMDSetting;
+    Setting::Handle<int> _avatarEntityCountSetting;
+    std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
+    std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

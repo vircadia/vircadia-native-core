@@ -145,7 +145,7 @@ EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, con
     bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking) {
 
     EntityItemID result;
-    BoxFace localFace;
+    BoxFace localFace { UNKNOWN_FACE };
     glm::vec3 localSurfaceNormal;
 
     if (!canPickIntersect()) {
@@ -213,7 +213,7 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
         // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
         // and testing intersection there.
         float localDistance;
-        BoxFace localFace;
+        BoxFace localFace { UNKNOWN_FACE };
         glm::vec3 localSurfaceNormal;
         if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, 1.0f / entityFrameDirection, localDistance,
                                                 localFace, localSurfaceNormal)) {

@@ -432,6 +432,9 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // this case is prevented by setting _ownershipState to UNOWNABLE in EntityMotionState::ctor
     assert(!(_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
 
+    if (_entity->getTransitingWithAvatar()) {
+        return false;
+    }
     if (_entity->dynamicDataNeedsTransmit()) {
         return true;
     }
@@ -446,8 +449,9 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
 
 void EntityMotionState::updateSendVelocities() {
     if (!_body->isActive()) {
-        // make sure all derivatives are zero
-        clearObjectVelocities();
+        if (!_body->isKinematicObject()) {
+            clearObjectVelocities();
+        }
         // we pretend we sent the inactive update for this object
         _numInactiveUpdates = 1;
     } else {
@@ -778,8 +782,10 @@ void EntityMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& ma
 
 bool EntityMotionState::shouldSendBid() const {
     // NOTE: this method is only ever called when the entity's simulation is NOT locally owned
-    return _body->isActive() && (_region == workload::Region::R1) &&
-        glm::max(glm::max(VOLUNTEER_SIMULATION_PRIORITY, _bumpedPriority), _entity->getScriptSimulationPriority()) >= _entity->getSimulationPriority();
+    return _body->isActive()
+        && (_region == workload::Region::R1)
+        && glm::max(glm::max(VOLUNTEER_SIMULATION_PRIORITY, _bumpedPriority), _entity->getScriptSimulationPriority()) >= _entity->getSimulationPriority()
+        && !_entity->getLocked();
 }
 
 uint8_t EntityMotionState::computeFinalBidPriority() const {

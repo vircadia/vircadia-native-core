@@ -50,7 +50,7 @@ int InjectedAudioStream::parseStreamProperties(PacketType type,
     }
 
     // pull the loopback flag and set our boolean
-    uchar shouldLoopback;
+    LoopbackFlag shouldLoopback;
     packetStream >> shouldLoopback;
     _shouldLoopbackForNode = (shouldLoopback == 1);
 

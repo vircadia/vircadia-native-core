@@ -17,7 +17,7 @@
 
 PathPointer::PathPointer(PickQuery::PickType type, const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
                          bool hover, const PointerTriggers& triggers, bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd,
-                         bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
+                         bool distanceScaleEnd, bool scaleWithParent, bool enabled) :
     Pointer(DependencyManager::get<PickScriptingInterface>()->createPick(type, rayProps), enabled, hover),
     _renderStates(renderStates),
     _defaultRenderStates(defaultRenderStates),
@@ -28,7 +28,7 @@ PathPointer::PathPointer(PickQuery::PickType type, const QVariant& rayProps, con
     _centerEndY(centerEndY),
     _lockEnd(lockEnd),
     _distanceScaleEnd(distanceScaleEnd),
-    _scaleWithAvatar(scaleWithAvatar)
+    _scaleWithParent(scaleWithParent)
 {
     for (auto& state : _renderStates) {
         if (!enabled || state.first != _currentRenderState) {
@@ -146,12 +146,18 @@ void PathPointer::updateVisuals(const PickResultPointer& pickResult) {
     IntersectionType type = getPickedObjectType(pickResult);
     auto renderState = _renderStates.find(_currentRenderState);
     auto defaultRenderState = _defaultRenderStates.find(_currentRenderState);
+    float parentScale = 1.0f;
+    if (_enabled && _scaleWithParent) {
+        glm::vec3 dimensions = DependencyManager::get<PickManager>()->getParentTransform(_pickUID).getScale();
+        parentScale = glm::max(glm::max(dimensions.x, dimensions.y), dimensions.z);
+    }
+
     if (_enabled && !_currentRenderState.empty() && renderState != _renderStates.end() &&
         (type != IntersectionType::NONE || _pathLength > 0.0f)) {
         glm::vec3 origin = getPickOrigin(pickResult);
         glm::vec3 end = getPickEnd(pickResult, _pathLength);
         glm::vec3 surfaceNormal = getPickedObjectNormal(pickResult);
-        renderState->second->update(origin, end, surfaceNormal, _scaleWithAvatar, _distanceScaleEnd, _centerEndY, _faceAvatar,
+        renderState->second->update(origin, end, surfaceNormal, parentScale, _distanceScaleEnd, _centerEndY, _faceAvatar,
                                     _followNormal, _followNormalStrength, _pathLength, pickResult);
         if (defaultRenderState != _defaultRenderStates.end() && defaultRenderState->second.second->isEnabled()) {
             defaultRenderState->second.second->disable();
@@ -162,7 +168,7 @@ void PathPointer::updateVisuals(const PickResultPointer& pickResult) {
         }
         glm::vec3 origin = getPickOrigin(pickResult);
         glm::vec3 end = getPickEnd(pickResult, defaultRenderState->second.first);
-        defaultRenderState->second.second->update(origin, end, Vectors::UP, _scaleWithAvatar, _distanceScaleEnd, _centerEndY,
+        defaultRenderState->second.second->update(origin, end, Vectors::UP, parentScale, _distanceScaleEnd, _centerEndY,
                                                   _faceAvatar, _followNormal, _followNormalStrength, defaultRenderState->second.first, pickResult);
     } else if (!_currentRenderState.empty()) {
         if (renderState != _renderStates.end() && renderState->second->isEnabled()) {
@@ -281,15 +287,13 @@ void StartEndRenderState::disable() {
     _enabled = false;
 }
 
-void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, float parentScale, bool distanceScaleEnd, bool centerEndY,
                                  bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) {
     if (!getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("position", vec3toVariant(origin));
         startProps.insert("visible", true);
-        if (scaleWithAvatar) {
-            startProps.insert("dimensions", vec3toVariant(getStartDim() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale()));
-        }
+        startProps.insert("dimensions", vec3toVariant(getStartDim() * parentScale));
         startProps.insert("ignoreRayIntersection", doesStartIgnoreRays());
         qApp->getOverlays().editOverlay(getStartID(), startProps);
     }
@@ -300,8 +304,8 @@ void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, 
         if (distanceScaleEnd) {
             dim = getEndDim() * glm::distance(origin, end);
             endProps.insert("dimensions", vec3toVariant(dim));
-        } else if (scaleWithAvatar) {
-            dim = getEndDim() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
+        } else {
+            dim = getEndDim() * parentScale;
             endProps.insert("dimensions", vec3toVariant(dim));
         }
 

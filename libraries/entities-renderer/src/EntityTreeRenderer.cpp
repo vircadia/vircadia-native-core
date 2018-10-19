@@ -187,6 +187,13 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
         _entitiesScriptEngine->callEntityScriptMethod(entityID, "hoverLeaveEntity", event);
     });
+
+    connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
+        EntityItemPointer entity = getTree()->findEntityByID(entityID);
+        if (entity) {
+            entity->setScriptHasFinishedPreload(true);
+        }
+    });
 }
 
 void EntityTreeRenderer::clear() {
@@ -303,10 +310,10 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
             }
 
             auto entityID = entity->getEntityItemID();
-            processedIds.insert(entityID);
             auto renderable = EntityRenderer::addToScene(*this, entity, scene, transaction);
             if (renderable) {
                 _entitiesInScene.insert({ entityID, renderable });
+                processedIds.insert(entityID);
             }
         }
 
@@ -382,6 +389,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
         const auto& views = _viewState->getConicalViews();
         PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(views);
+        sortedRenderables.reserve(_renderablesToUpdate.size());
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
@@ -405,11 +413,14 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
             // process the sorted renderables
             size_t numSorted = sortedRenderables.size();
-            while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
-                const auto renderable = sortedRenderables.top().getRenderer();
+            const auto& sortedRenderablesVector = sortedRenderables.getSortedVector();
+            for (const auto& sortedRenderable : sortedRenderablesVector) {
+                if (usecTimestampNow() > expiry) {
+                    break;
+                }
+                const auto& renderable = sortedRenderable.getRenderer();
                 renderable->updateInScene(scene, transaction);
                 _renderablesToUpdate.erase(renderable->getEntity()->getID());
-                sortedRenderables.pop();
             }
 
             // compute average per-renderable update cost
@@ -508,7 +519,11 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
             // be ignored because they can have events fired on them.
             // FIXME - this could be optimized further by determining if the script is loaded
             // and if it has either an enterEntity or leaveEntity method
-            if (isZone || hasScript) {
+            //
+            // also, don't flag a scripted entity as containing the avatar until the script is loaded,
+            // so that the script is awake in time to receive the "entityEntity" call (even if the entity is a zone).
+            if ((!hasScript && isZone) ||
+                (hasScript && entity->isScriptPreloadFinished())) {
                 // now check to see if the point contains our entity, this can be expensive if
                 // the entity has a collision hull
                 if (entity->contains(_avatarPosition)) {
@@ -968,6 +983,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
             entity->scriptHasUnloaded();
         }
         if (shouldLoad) {
+            entity->setScriptHasFinishedPreload(false);
             _entitiesScriptEngine->loadEntityScript(entityID, resolveScriptURL(scriptUrl), reload);
             entity->scriptHasPreloaded();
         }

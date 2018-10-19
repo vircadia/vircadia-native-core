@@ -21,6 +21,7 @@
 #include "AvatarLogging.h"
 #include "AvatarTraits.h"
 
+#include "Profile.h"
 
 void AvatarReplicas::addReplica(const QUuid& parentID, AvatarSharedPointer replica) {
     if (parentID == QUuid()) {
@@ -63,6 +64,22 @@ void AvatarReplicas::removeReplicas(const QUuid& parentID) {
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         _replicasMap.erase(parentID);
     }
+}
+
+std::vector<AvatarSharedPointer> AvatarReplicas::takeReplicas(const QUuid& parentID) {
+    std::vector<AvatarSharedPointer> replicas;
+
+    auto it = _replicasMap.find(parentID);
+
+    if (it != _replicasMap.end()) {
+        // take a copy of the replica shared pointers for this parent
+        replicas.swap(it->second);
+
+        // erase the replicas for this parent from our map
+        _replicasMap.erase(it);
+    }
+
+    return replicas;
 }
 
 void AvatarReplicas::processAvatarIdentity(const QUuid& parentID, const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged) {
@@ -109,6 +126,12 @@ AvatarHashMap::AvatarHashMap() {
     packetReceiver.registerListener(PacketType::BulkAvatarTraits, this, "processBulkAvatarTraits");
 
     connect(nodeList.data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
+
+    connect(nodeList.data(), &NodeList::nodeKilled, this, [this](SharedNodePointer killedNode){
+        if (killedNode->getType() == NodeType::AvatarMixer) {
+            clearOtherAvatars();
+        }
+    });
 }
 
 QVector<QUuid> AvatarHashMap::getAvatarIdentifiers() {
@@ -211,6 +234,7 @@ AvatarSharedPointer AvatarHashMap::findAvatar(const QUuid& sessionUUID) const {
 }
 
 void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    DETAILED_PROFILE_RANGE(network, __FUNCTION__);
     PerformanceTimer perfTimer("receiveAvatar");
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
@@ -235,17 +259,20 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
         if (isNewAvatar) {
             QWriteLocker locker(&_hashLock);
             _pendingAvatars.insert(sessionUUID, { std::chrono::steady_clock::now(), 0, avatar });
+            avatar->setIsNewAvatar(true);
             auto replicaIDs = _replicas.getReplicaIDs(sessionUUID);
             for (auto replicaID : replicaIDs) {
                 auto replicaAvatar = addAvatar(replicaID, sendingNode);
+                replicaAvatar->setIsNewAvatar(true);
                 _replicas.addReplica(sessionUUID, replicaAvatar);
             }
         } 
-
+        
         // have the matching (or new) avatar parse the data from the packet
         int bytesRead = avatar->parseDataFromBuffer(byteArray);
         message->seek(positionBeforeRead + bytesRead);
         _replicas.parseDataFromBuffer(sessionUUID, byteArray);
+        
 
         return avatar;
     } else {
@@ -292,7 +319,6 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
         // In this case, the "sendingNode" is the Avatar Mixer.
         avatar->processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged);
         _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
-
     }
 }
 
@@ -305,6 +331,7 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         // grab the avatar so we can ask it to process trait data
         bool isNewAvatar;
         auto avatar = newOrExistingAvatar(avatarID, sendingNode, isNewAvatar);
+
         // read the first trait type for this avatar
         AvatarTraits::TraitType traitType;
         message->readPrimitive(&traitType);
@@ -312,7 +339,7 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         // grab the last trait versions for this avatar
         auto& lastProcessedVersions = _processedTraitVersions[avatarID];
 
-        while (traitType != AvatarTraits::NullTrait) {
+        while (traitType != AvatarTraits::NullTrait && message->getBytesLeftToRead() > 0) {
             AvatarTraits::TraitVersion packetTraitVersion;
             message->readPrimitive(&packetTraitVersion);
 
@@ -353,7 +380,7 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                 }
             }
 
-            if (skipBinaryTrait) {
+            if (skipBinaryTrait && traitBinarySize > 0) {
                 // we didn't read this trait because it was older or because we didn't have an avatar to process it for
                 message->seek(message->getPosition() + traitBinarySize);
             }
@@ -378,24 +405,31 @@ void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, S
 }
 
 void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
-    QWriteLocker locker(&_hashLock);
+    std::vector<AvatarSharedPointer> removedAvatars;
 
-    auto replicaIDs = _replicas.getReplicaIDs(sessionUUID);
-    _replicas.removeReplicas(sessionUUID);
-    for (auto id : replicaIDs) {
-        auto removedReplica = _avatarHash.take(id);
-        if (removedReplica) {
-            handleRemovedAvatar(removedReplica, removalReason);
+    {
+        QWriteLocker locker(&_hashLock);
+
+        auto replicas = _replicas.takeReplicas(sessionUUID);
+
+        for (auto& replica : replicas) {
+            auto removedReplica = _avatarHash.take(replica->getID());
+            if (removedReplica) {
+                removedAvatars.push_back(removedReplica);
+            }
+        }
+
+        _pendingAvatars.remove(sessionUUID);
+        auto removedAvatar = _avatarHash.take(sessionUUID);
+
+        if (removedAvatar) {
+            removedAvatars.push_back(removedAvatar);
         }
     }
 
-    _pendingAvatars.remove(sessionUUID);
-    auto removedAvatar = _avatarHash.take(sessionUUID);
-
-    if (removedAvatar) {
+    for (auto& removedAvatar: removedAvatars) {
         handleRemovedAvatar(removedAvatar, removalReason);
     }
-
 }
 
 void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
@@ -412,3 +446,19 @@ void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& ol
     emit avatarSessionChangedEvent(sessionUUID, oldUUID);
 }
 
+void AvatarHashMap::clearOtherAvatars() {
+    QList<AvatarSharedPointer> removedAvatars;
+
+    {
+        QWriteLocker locker(&_hashLock);
+
+        // grab a copy of the current avatars so we can call handleRemoveAvatar for them
+        removedAvatars = _avatarHash.values();
+
+        _avatarHash.clear();
+    }
+
+    for (auto& av : removedAvatars) {
+        handleRemovedAvatar(av);
+    }
+}

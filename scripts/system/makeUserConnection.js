@@ -32,7 +32,7 @@
     var WAITING_INTERVAL = 100; // ms
     var CONNECTING_INTERVAL = 100; // ms
     var MAKING_CONNECTION_TIMEOUT = 800; // ms
-    var CONNECTING_TIME = 1600; // ms
+    var CONNECTING_TIME = 100; // ms One interval.
     var PARTICLE_RADIUS = 0.15; // m
     var PARTICLE_ANGLE_INCREMENT = 360 / 45; // 1hz
     var HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/4beat_sweep.wav";

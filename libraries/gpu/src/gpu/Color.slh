@@ -31,29 +31,29 @@ vec4 color_sRGBAToLinear(vec4 srgba) {
 }
 
 vec3 color_LinearToYCoCg(vec3 rgb) {
-	// Y = R/4 + G/2 + B/4
-	// Co = R/2 - B/2
-	// Cg = -R/4 + G/2 - B/4
-	return vec3(
-			rgb.x/4.0 + rgb.y/2.0 + rgb.z/4.0,
-			rgb.x/2.0 - rgb.z/2.0,
-		-rgb.x/4.0 + rgb.y/2.0 - rgb.z/4.0
-	);
+    // Y = R/4 + G/2 + B/4
+    // Co = R/2 - B/2
+    // Cg = -R/4 + G/2 - B/4
+    return vec3(
+            rgb.x/4.0 + rgb.y/2.0 + rgb.z/4.0,
+            rgb.x/2.0 - rgb.z/2.0,
+        -rgb.x/4.0 + rgb.y/2.0 - rgb.z/4.0
+    );
 }
 
 vec3 color_YCoCgToUnclampedLinear(vec3 ycocg) {
-	// R = Y + Co - Cg
-	// G = Y + Cg
-	// B = Y - Co - Cg
-	return vec3(
-		ycocg.x + ycocg.y - ycocg.z,
-		ycocg.x + ycocg.z,
-		ycocg.x - ycocg.y - ycocg.z
-	);
+    // R = Y + Co - Cg
+    // G = Y + Cg
+    // B = Y - Co - Cg
+    return vec3(
+        ycocg.x + ycocg.y - ycocg.z,
+        ycocg.x + ycocg.z,
+        ycocg.x - ycocg.y - ycocg.z
+    );
 }
 
 vec3 color_YCoCgToLinear(vec3 ycocg) {
-	return clamp(color_YCoCgToUnclampedLinear(ycocg), vec3(0.0), vec3(1.0));
+    return clamp(color_YCoCgToUnclampedLinear(ycocg), vec3(0.0), vec3(1.0));
 }
 
 <@func declareColorWheel()@>

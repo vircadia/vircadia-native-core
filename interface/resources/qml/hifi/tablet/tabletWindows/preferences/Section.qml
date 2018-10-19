@@ -153,11 +153,12 @@ Preference {
                     break;
 
                 case Preference.PrimaryHand:
-                    checkBoxCount++;
+                    checkBoxCount = 0;
                     builder = primaryHandBuilder;
                     break;
+
                 case Preference.RadioButtons:
-                    checkBoxCount++;
+                    checkBoxCount = 0;
                     builder = radioButtonsBuilder;
                     break;
             };

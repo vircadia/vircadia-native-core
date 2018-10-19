@@ -31,12 +31,18 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/dialTone.js",
     "system/firstPersonHMD.js",
     "system/tablet-ui/tabletUI.js",
-    "system/emote.js"
+    "system/emote.js",
+    "system/miniTablet.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
     //"system/chat.js"
 ];
+
+if (Window.interstitialModeEnabled) {
+    DEFAULT_SCRIPTS_COMBINED.push("system/interstitialPage.js");
+    DEFAULT_SCRIPTS_COMBINED.push("system/redirectOverlays.js");
+}
 
 // add a menu item for debugging
 var MENU_CATEGORY = "Developer";

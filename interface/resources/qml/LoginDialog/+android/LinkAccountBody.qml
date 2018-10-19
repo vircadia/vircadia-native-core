@@ -117,27 +117,27 @@ Item {
         }
         spacing: hifi.dimensions.contentSpacing.y / 2
 
-            TextField {
-                id: usernameField
-                anchors {
-                      horizontalCenter: parent.horizontalCenter
-                }
-                width: 1080
-                placeholderText: qsTr("Username or Email")
+        TextField {
+            id: usernameField
+            anchors {
+                  horizontalCenter: parent.horizontalCenter
             }
+            width: 1080
+            placeholderText: qsTr("Username or Email")
+        }
 
-            TextField {
-                id: passwordField
-                anchors {
-                      horizontalCenter: parent.horizontalCenter
-                }
-                width: 1080
-
-                placeholderText: qsTr("Password")
-                echoMode: TextInput.Password
-
-                Keys.onReturnPressed: linkAccountBody.login()
+        TextField {
+            id: passwordField
+            anchors {
+                  horizontalCenter: parent.horizontalCenter
             }
+            width: 1080
+
+            placeholderText: qsTr("Password")
+            echoMode: TextInput.Password
+
+            Keys.onReturnPressed: linkAccountBody.login()
+        }
     }
 
     InfoItem {
@@ -176,7 +176,7 @@ Item {
         anchors {
             left: parent.left
             top: form.bottom
-            topMargin: hifi.dimensions.contentSpacing.y / 2 
+            topMargin: hifi.dimensions.contentSpacing.y / 2
         }
 
         spacing: hifi.dimensions.contentSpacing.x
@@ -201,7 +201,7 @@ Item {
         anchors {
             right: parent.right
             top: form.bottom
-            topMargin: hifi.dimensions.contentSpacing.y / 2 
+            topMargin: hifi.dimensions.contentSpacing.y / 2
         }
         spacing: hifi.dimensions.contentSpacing.x
         onHeightChanged: d.resize(); onWidthChanged: d.resize();

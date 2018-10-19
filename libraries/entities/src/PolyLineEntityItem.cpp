@@ -36,15 +36,11 @@ PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) : Entit
     _type = EntityTypes::PolyLine;
 }
 
-EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+EntityItemProperties PolyLineEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     QWriteLocker lock(&_quadReadWriteLock);
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
-
-
-    properties._color = getXColor();
-    properties._colorChanged = false;
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
     
-
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
@@ -204,7 +200,7 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<glm::vec3>, setNormals);
@@ -253,7 +249,7 @@ void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
 void PolyLineEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   QUAD EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qCDebug(entities) << "               color:" << _color;
     qCDebug(entities) << "            position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
@@ -261,7 +257,7 @@ void PolyLineEntityItem::debugDump() const {
 
 
 
-QVector<glm::vec3> PolyLineEntityItem::getLinePoints() const { 
+QVector<glm::vec3> PolyLineEntityItem::getLinePoints() const {
     QVector<glm::vec3> result;
     withReadLock([&] {
         result = _points;
@@ -269,7 +265,7 @@ QVector<glm::vec3> PolyLineEntityItem::getLinePoints() const {
     return result; 
 }
 
-QVector<glm::vec3> PolyLineEntityItem::getNormals() const { 
+QVector<glm::vec3> PolyLineEntityItem::getNormals() const {
     QVector<glm::vec3> result;
     withReadLock([&] {
         result = _normals;
@@ -307,5 +303,18 @@ void PolyLineEntityItem::setTextures(const QString& textures) {
             _textures = textures;
             _texturesChangedFlag = true;
         }
+    });
+}
+
+void PolyLineEntityItem::setColor(const glm::u8vec3& value) {
+    withWriteLock([&] {
+        _strokeColorsChanged = true;
+        _color = value;
+    });
+}
+
+glm::u8vec3 PolyLineEntityItem::getColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
+        return _color;
     });
 }

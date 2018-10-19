@@ -104,6 +104,10 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
                 _networkTexture.reset();
             });
         }
+
+        withWriteLock([&] {
+            entity->setVisuallyReady(true);
+        });
     } else {
         bool textureNeedsUpdate = resultWithReadLock<bool>([&]{
             return !_networkTexture || _networkTexture->getURL() != QUrl(_particleProperties.textures);
@@ -111,6 +115,12 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
         if (textureNeedsUpdate) {
             withWriteLock([&] { 
                 _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_particleProperties.textures);
+            });
+        }
+
+        if (_networkTexture) {
+            withWriteLock([&] {
+                entity->setVisuallyReady(_networkTexture->isFailed() || _networkTexture->isLoaded());
             });
         }
     }
@@ -187,12 +197,10 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
     particle.basePosition = baseTransform.getTranslation();
 
     // Position, velocity, and acceleration
+    glm::vec3 emitDirection;
     if (polarStart == 0.0f && polarFinish == 0.0f && emitDimensions.z == 0.0f) {
         // Emit along z-axis from position
-
-        particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * Vectors::UNIT_Z);
-        particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
-
+        emitDirection = Vectors::UNIT_Z;
     } else {
         // Emit around point or from ellipsoid
         // - Distribute directions evenly around point
@@ -210,7 +218,6 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
             azimuth = azimuthStart + (TWO_PI + azimuthFinish - azimuthStart) * randFloat();
         }
 
-        glm::vec3 emitDirection;
         if (emitDimensions == Vectors::ZERO) {
             // Point
             emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Vectors::UNIT_Z;
@@ -235,10 +242,10 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
             ));
             particle.relativePosition += emitOrientation * emitPosition;
         }
-
-        particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * emitDirection);
-        particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
     }
+    particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * emitDirection);
+    particle.acceleration = emitAcceleration +
+        glm::vec3(randFloatInRange(-1.0f, 1.0f), randFloatInRange(-1.0f, 1.0f), randFloatInRange(-1.0f, 1.0f)) * accelerationSpread;
 
     return particle;
 }
@@ -313,7 +320,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
 }
 
 void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
-    if (!_visible) {
+    if (!_visible || !(_networkTexture && _networkTexture->isLoaded())) {
         return;
     }
 
@@ -321,11 +328,7 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     stepSimulation();
 
     gpu::Batch& batch = *args->_batch;
-    if (_networkTexture && _networkTexture->isLoaded()) {
-        batch.setResourceTexture(0, _networkTexture->getGPUTexture());
-    } else {
-        batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
-    }
+    batch.setResourceTexture(0, _networkTexture->getGPUTexture());
 
     Transform transform; 
     // The particles are in world space, so the transform is unused, except for the rotation, which we use

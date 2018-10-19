@@ -137,14 +137,14 @@ float getBlurCoef(int c) {
 float getAngleDitheringWorldPos(in vec3 pixelWorldPos) {
     vec3 worldPosFract = fract(pixelWorldPos * 1.0);
 
-    ivec3 pixelPos = ivec3(worldPosFract * 256);
+    ivec3 pixelPos = ivec3(worldPosFract * 256.0);
 
-    return isDitheringEnabled() * ((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) + (3 * pixelPos.y ^ pixelPos.z + pixelPos.x * pixelPos.z)) * 10 + getFrameDithering();
+    return isDitheringEnabled() * float(((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) + (3 * pixelPos.y ^ pixelPos.z + pixelPos.x * pixelPos.z)) * 10) + getFrameDithering();
 }
 
 float getAngleDithering(in ivec2 pixelPos) {
     // Hash function used in the AlchemyAO paper
-    return isDitheringEnabled() * (3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10 + getFrameDithering();
+    return isDitheringEnabled() * float((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10) + getFrameDithering();
 }
 
 float evalDiskRadius(float Zeye, vec2 imageSize) {
@@ -162,7 +162,7 @@ const float TWO_PI = 6.28;
 
 vec3 getUnitTapLocation(int sampleNumber, float spinAngle){
     // Radius relative to ssR
-    float alpha = float(sampleNumber + 0.5) * getInvNumSamples();
+    float alpha = (float(sampleNumber) + 0.5) * getInvNumSamples();
     float angle = alpha * (getNumSpiralTurns() * TWO_PI) + spinAngle;
     return vec3(cos(angle), sin(angle), alpha);
 }
@@ -219,7 +219,7 @@ vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius,
     if (redoTap) {
         tap.xy = tapPos - pixelPos;
         tap.z = length(tap.xy);
-        tap.z = 0;  
+        tap.z = 0.0;  
     }
     
     return tap;
@@ -253,7 +253,7 @@ vec3 fetchTapUnfiltered(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
 
     vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
 
-    vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
+    vec2 fetchUV = vec2(tapUV.x + float(side.w) * 0.5 * (float(side.x) - tapUV.x), tapUV.y);
 
     vec3 P;
     P.xy = tapUV;
@@ -263,7 +263,7 @@ vec3 fetchTapUnfiltered(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
 }
 
 vec3 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
-    int mipLevel = evalMipFromRadius(tap.z * doFetchMips());
+    int mipLevel = evalMipFromRadius(tap.z * float(doFetchMips()));
 
     ivec2 ssP = ivec2(tap.xy) + ssC;
     ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
@@ -276,7 +276,7 @@ vec3 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
     ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), mipSize - ivec2(1));
    
     vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
-    vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
+    vec2 fetchUV = vec2(tapUV.x + float(side.w) * 0.5 * (float(side.x) - tapUV.x), tapUV.y);
     // vec2 tapUV = (vec2(mipP) + vec2(0.5)) / vec2(mipSize);
 
     vec3 P;

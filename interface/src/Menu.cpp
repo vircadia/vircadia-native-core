@@ -90,19 +90,6 @@ Menu::Menu() {
     // Edit menu ----------------------------------
     MenuWrapper* editMenu = addMenu("Edit");
 
-    // Edit > Undo
-    QUndoStack* undoStack = qApp->getUndoStack();
-    QAction* undoAction = undoStack->createUndoAction(editMenu);
-    undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
-    addActionToQMenuAndActionHash(editMenu, undoAction);
-
-    // Edit > Redo
-    QAction* redoAction = undoStack->createRedoAction(editMenu);
-    redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
-    addActionToQMenuAndActionHash(editMenu, redoAction);
-
-    editMenu->addSeparator();
-
     // Edit > Cut
     auto cutAction = addActionToQMenuAndActionHash(editMenu, "Cut", QKeySequence::Cut);
     connect(cutAction, &QAction::triggered, [] {
@@ -255,7 +242,7 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [] {
             auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
             auto hmd = DependencyManager::get<HMDScriptingInterface>();
-            tablet->loadQMLSource("hifi/tablet/ControllerSettings.qml");
+            tablet->pushOntoStack("hifi/tablet/ControllerSettings.qml");
 
             if (!hmd->getShouldShowTablet()) {
                 hmd->toggleShouldShowTablet();
@@ -737,6 +724,7 @@ Menu::Menu() {
 
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AnimStats);
 
     // Settings > Enable Speech Control API
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)

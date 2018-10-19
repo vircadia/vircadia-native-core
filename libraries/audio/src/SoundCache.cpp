@@ -30,12 +30,6 @@ SoundCache::SoundCache(QObject* parent) :
 }
 
 SharedSoundPointer SoundCache::getSound(const QUrl& url) {
-    if (QThread::currentThread() != thread()) {
-        SharedSoundPointer result;
-        BLOCKING_INVOKE_METHOD(this, "getSound", 
-                                  Q_RETURN_ARG(SharedSoundPointer, result), Q_ARG(const QUrl&, url));
-        return result;
-    }
     return getResource(url).staticCast<Sound>();
 }
 

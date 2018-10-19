@@ -527,8 +527,8 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
     }
 
     // If the source hasn't been written yet, defer processing of this route
-    auto source = route->source;
-    auto sourceInput = source->getInput();
+    auto& source = route->source;
+    auto& sourceInput = source->getInput();
     if (sourceInput.device == STANDARD_DEVICE && !force && source->writeable()) {
         if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Source not yet written, deferring";
@@ -559,7 +559,7 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
         return true;
     }
 
-    auto destination = route->destination;
+    auto& destination = route->destination;
     // THis could happen if the route destination failed to create
     // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
     if (!destination) {

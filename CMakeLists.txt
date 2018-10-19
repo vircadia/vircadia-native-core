@@ -68,6 +68,7 @@ if (USE_GLES AND (NOT ANDROID))
   set(DISABLE_QML_OPTION ON)
 endif()
 
+
 option(BUILD_CLIENT "Build client components" ${BUILD_CLIENT_OPTION})
 option(BUILD_SERVER "Build server components" ${BUILD_SERVER_OPTION})
 option(BUILD_TESTS "Build tests" ${BUILD_TESTS_OPTION})
@@ -162,7 +163,6 @@ if (BUILD_SERVER)
   set_target_properties(domain-server PROPERTIES FOLDER "Apps")
   add_subdirectory(ice-server)
   set_target_properties(ice-server PROPERTIES FOLDER "Apps")
-  add_subdirectory(server-console)
 endif()
 
 if (BUILD_CLIENT)
@@ -174,6 +174,7 @@ endif()
 
 if (BUILD_CLIENT OR BUILD_SERVER)
   add_subdirectory(plugins)
+  add_subdirectory(server-console)
 endif()
 
 # BUILD_TOOLS option will be handled inside the tools's CMakeLists.txt because 'scribe' tool is required for build anyway

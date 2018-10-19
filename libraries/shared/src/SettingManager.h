@@ -23,11 +23,27 @@
 namespace Setting {
     class Interface;
 
-    class Manager : public QSettings, public ReadWriteLockable, public Dependency {
+    class Manager : public QObject, public ReadWriteLockable, public Dependency {
         Q_OBJECT
 
     public:
         void customDeleter() override;
+
+        // thread-safe proxies into QSettings
+        QString fileName() const;
+        void remove(const QString &key);
+        QStringList childGroups() const;
+        QStringList childKeys() const;
+        QStringList allKeys() const;
+        bool contains(const QString &key) const;
+        int beginReadArray(const QString &prefix);
+        void beginGroup(const QString &prefix);
+        void beginWriteArray(const QString &prefix, int size = -1);
+        void endArray();
+        void endGroup();
+        void setArrayIndex(int i);
+        void setValue(const QString &key, const QVariant &value);
+        QVariant value(const QString &key, const QVariant &defaultValue = QVariant()) const;
 
     protected:
         ~Manager();
@@ -52,6 +68,9 @@ namespace Setting {
         friend class Interface;
         friend void cleanupSettingsSaveThread();
         friend void setupSettingsSaveThread();
+
+
+        QSettings _qSettings;
     };
 }
 

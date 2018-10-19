@@ -14,7 +14,7 @@
 <@include Shadows_shared.slh@>
 
 layout(std140, binding=RENDER_UTILS_BUFFER_SHADOW_PARAMS) uniform shadowTransformBuffer {
-	ShadowParameters shadow;
+    ShadowParameters shadow;
 };
 
 int getShadowCascadeCount() {
@@ -30,26 +30,26 @@ float evalShadowFalloff(float depth) {
 }
 
 mat4 getShadowReprojection(int cascadeIndex) {
-	return shadow.cascades[cascadeIndex].reprojection;
+    return shadow.cascades[cascadeIndex].reprojection;
 }
 
 float getShadowScale() {
-	return shadow.invMapSize;
+    return shadow.invMapSize;
 }
 
 float getShadowFixedBias(int cascadeIndex) {
-	return shadow.cascades[cascadeIndex].fixedBias;
+    return shadow.cascades[cascadeIndex].fixedBias;
 }
 
 float getShadowSlopeBias(int cascadeIndex) {
-	return shadow.cascades[cascadeIndex].slopeBias;
+    return shadow.cascades[cascadeIndex].slopeBias;
 }
 
 
 // Compute the texture coordinates from world coordinates
 vec4 evalShadowTexcoord(int cascadeIndex, vec4 position) {
-	vec4 shadowCoord = getShadowReprojection(cascadeIndex) * position;
-	return vec4(shadowCoord.xyz, 1.0);
+    vec4 shadowCoord = getShadowReprojection(cascadeIndex) * position;
+    return vec4(shadowCoord.xyz, 1.0);
 }
 
 bool isShadowCascadeProjectedOnPixel(vec4 cascadeTexCoords) {

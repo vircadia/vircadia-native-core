@@ -29,7 +29,7 @@ public:
     bool needsToCallUpdate() const override { return true; }
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -84,6 +84,8 @@ public:
     void removeMaterial();
 
     void postParentFixup() override;
+
+    AACube calculateInitialQueryAACube(bool& success) override;
 
 private:
     // URL for this material.  Currently, only JSON format is supported.  Set to "materialData" to use the material data to live edit a material.

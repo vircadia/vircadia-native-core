@@ -55,53 +55,12 @@ void setupPreferences() {
     // Graphics quality
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
-        static const float MAX_DESKTOP_FPS = 60;
-        static const float MAX_HMD_FPS = 90;
-        static const float MIN_FPS = 10;
-        static const float LOW = 0.25f;
-        static const float MEDIUM = 0.5f;
-        static const float HIGH = 0.75f;
         auto getter = []()->float {
-            auto lodManager = DependencyManager::get<LODManager>();
-            bool inHMD = qApp->isHMDMode();
-
-            float increaseFPS = 0;
-            if (inHMD) {
-                increaseFPS = lodManager->getHMDLODDecreaseFPS();
-            } else {
-                increaseFPS = lodManager->getDesktopLODDecreaseFPS();
-            }
-            float maxFPS = inHMD ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
-            float percentage = increaseFPS / maxFPS;
-
-            if (percentage >= HIGH) {
-                return LOW;
-            } else if (percentage >= LOW) {
-                return MEDIUM;
-            }
-            return HIGH;
+            return DependencyManager::get<LODManager>()->getWorldDetailQuality();
         };
 
         auto setter = [](float value) {
-            static const float THRASHING_DIFFERENCE = 10;
-            auto lodManager = DependencyManager::get<LODManager>();
-
-            bool isLowestValue = value == LOW;
-            bool isHMDMode = qApp->isHMDMode();
-
-            float maxFPS = isHMDMode ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
-            float desiredFPS = maxFPS - THRASHING_DIFFERENCE;
-
-            if (!isLowestValue) {
-                float calculatedFPS = (maxFPS - (maxFPS * value)) - THRASHING_DIFFERENCE;
-                desiredFPS = calculatedFPS < MIN_FPS ? MIN_FPS : calculatedFPS;
-            }
-
-            if (isHMDMode) {
-                lodManager->setHMDLODDecreaseFPS(desiredFPS);
-            } else {
-                lodManager->setDesktopLODDecreaseFPS(desiredFPS);
-            }
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(value);
         };
 
         auto wodSlider = new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
@@ -267,18 +226,22 @@ void setupPreferences() {
 
     static const QString VR_MOVEMENT{ "VR Movement" };
     {
-
-        static const QString movementsControlChannel = QStringLiteral("Hifi-Advanced-Movement-Disabler");
-        auto getter = [myAvatar]()->bool { return myAvatar->useAdvancedMovementControls(); };
-        auto setter = [myAvatar](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
-        preferences->addPreference(new CheckPreference(VR_MOVEMENT,
-                                                       QStringLiteral("Advanced movement in VR (Teleport movement when unchecked)"),
-                                                       getter, setter));
+        auto getter = [myAvatar]()->int { return myAvatar->useAdvancedMovementControls() ? 1 : 0; };
+        auto setter = [myAvatar](int value) { myAvatar->setUseAdvancedMovementControls(value == 1); };
+        auto preference = 
+            new RadioButtonsPreference(VR_MOVEMENT, "Teleporting only / Walking and teleporting", getter, setter);
+        QStringList items;
+        items << "Teleporting only" << "Walking and teleporting";
+        preference->setHeading("Movement mode");
+        preference->setItems(items);
+        preferences->addPreference(preference);
     }
     {
         auto getter = [myAvatar]()->bool { return myAvatar->getFlyingHMDPref(); };
         auto setter = [myAvatar](bool value) { myAvatar->setFlyingHMDPref(value); };
-        preferences->addPreference(new CheckPreference(VR_MOVEMENT, "Flying & jumping (HMD)", getter, setter));
+        auto preference = new CheckPreference(VR_MOVEMENT, "Jumping and flying", getter, setter);
+        preference->setIndented(true);
+        preferences->addPreference(preference);
     }
     {
         auto getter = [myAvatar]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
@@ -286,7 +249,14 @@ void setupPreferences() {
         auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Snap turn / Smooth turn", getter, setter);
         QStringList items;
         items << "Snap turn" << "Smooth turn";
+        preference->setHeading("Rotation mode");
         preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->bool { return myAvatar->getShowPlayArea(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setShowPlayArea(value); };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Show room boundaries while teleporting", getter, setter);
         preferences->addPreference(preference);
     }
     {
@@ -297,12 +267,6 @@ void setupPreferences() {
         preference->setMax(2.2f);
         preference->setDecimals(3);
         preference->setStep(0.001f);
-        preferences->addPreference(preference);
-    }
-    {
-        auto preference = new ButtonPreference(VR_MOVEMENT, "RESET SENSORS", [] {
-            qApp->resetSensors();
-        });
         preferences->addPreference(preference);
     }
 

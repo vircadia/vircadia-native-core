@@ -14,13 +14,14 @@
 #include "avatar/AvatarManager.h"
 
 #include <DependencyManager.h>
+#include "PickManager.h"
 #include "RayPick.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
                            const PointerTriggers& triggers, bool faceAvatar, bool followNormal, float followNormalTime, bool centerEndY, bool lockEnd,
-                           bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
+                           bool distanceScaleEnd, bool scaleWithParent, bool enabled) :
     PathPointer(PickQuery::Ray, rayProps, renderStates, defaultRenderStates, hover, triggers, faceAvatar, followNormal, followNormalTime,
-                centerEndY, lockEnd, distanceScaleEnd, scaleWithAvatar, enabled)
+                centerEndY, lockEnd, distanceScaleEnd, scaleWithParent, enabled)
 {
 }
 
@@ -33,6 +34,14 @@ void LaserPointer::editRenderStatePath(const std::string& state, const QVariant&
             renderState->setLineWidth(lineWidth.toFloat());
         }
     }
+}
+
+PickResultPointer LaserPointer::getPickResultCopy(const PickResultPointer& pickResult) const {
+    auto rayPickResult = std::dynamic_pointer_cast<RayPickResult>(pickResult);
+    if (!rayPickResult) {
+        return std::make_shared<RayPickResult>();
+    }
+    return std::make_shared<RayPickResult>(*rayPickResult.get());
 }
 
 QVariantMap LaserPointer::toVariantMap() const {
@@ -138,9 +147,9 @@ void LaserPointer::RenderState::disable() {
     }
 }
 
-void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, float parentScale, bool distanceScaleEnd, bool centerEndY,
                                        bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) {
-    StartEndRenderState::update(origin, end, surfaceNormal, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal, followNormalStrength, distance, pickResult);
+    StartEndRenderState::update(origin, end, surfaceNormal, parentScale, distanceScaleEnd, centerEndY, faceAvatar, followNormal, followNormalStrength, distance, pickResult);
     QVariant endVariant = vec3toVariant(end);
     if (!getPathID().isNull()) {
         QVariantMap pathProps;
@@ -148,9 +157,7 @@ void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3&
         pathProps.insert("end", endVariant);
         pathProps.insert("visible", true);
         pathProps.insert("ignoreRayIntersection", doesPathIgnoreRays());
-        if (scaleWithAvatar) {
-            pathProps.insert("lineWidth", getLineWidth() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale());
-        }
+        pathProps.insert("lineWidth", getLineWidth() * parentScale);
         qApp->getOverlays().editOverlay(getPathID(), pathProps);
     }
 }
