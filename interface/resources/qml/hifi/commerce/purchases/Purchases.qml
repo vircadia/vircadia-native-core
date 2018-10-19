@@ -586,7 +586,7 @@ Rectangle {
             visible: purchasesModel.count !== 0;
             clip: true;
             model: purchasesModel;
-            snapMode: ListView.SnapToItem;
+            snapMode: ListView.NoSnap;
             // Anchors
             anchors.top: separator.bottom;
             anchors.left: parent.left;
