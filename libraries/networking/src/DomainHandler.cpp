@@ -65,6 +65,13 @@ DomainHandler::DomainHandler(QObject* parent) :
 
     // stop the refresh timer if redirected to the login screen domain
     connect(this, &DomainHandler::redirectToLoginScreenDomainURL, &_apiRefreshTimer, &QTimer::stop);
+
+
+    // stop the refresh timer if redirected to the login screen domain
+    connect(this, &DomainHandler::redirectToLoginScreenDomainURL, [this]() {
+        _isInLoginScreenState = true;
+        qCDebug(networking) << "Redirecting user to " << _loginScreenDomainURL;
+    });
 }
 
 void DomainHandler::disconnect() {
@@ -166,6 +173,11 @@ void DomainHandler::setInterstitialModeEnabled(bool enableInterstitialMode) {
 
 void DomainHandler::setErrorDomainURL(const QUrl& url) {
     _errorDomainURL = url;
+    return;
+}
+
+void DomainHandler::setLoginScreenDomainURL(const QUrl& url) {
+    _loginScreenDomainURL = url;
     return;
 }
 
@@ -393,12 +405,6 @@ void DomainHandler::setRedirectErrorState(QUrl errorUrl, QString reasonMessage, 
     } else {
         emit domainConnectionRefused(reasonMessage, reasonCode, extraInfo);
     }
-}
-
-void DomainHandler::redirectToLoginScreenDomainURL() {
-    _isInLoginScreenState = true;
-    qCDebug(networking) << "Redirecting user to " << _loginScreenDomainURL;
-
 }
 
 void DomainHandler::requestDomainSettings() {

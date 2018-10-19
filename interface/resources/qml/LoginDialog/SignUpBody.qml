@@ -1,7 +1,7 @@
 //
 //  SignUpBody.qml
 //
-//  Created by Stephen Birarda on 7 Dec 2016
+//  Created by Wayne Chen on Oct 18 2018
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -12,8 +12,8 @@ import Hifi 1.0
 import QtQuick 2.7
 import QtQuick.Controls 1.4
 
-import "../controls-uit"
-import "../styles-uit"
+import "qrc:///qml//controls-uit"
+import "qrc:///qml//styles-uit"
 
 Item {
     id: signupBody

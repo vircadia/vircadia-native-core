@@ -2885,9 +2885,11 @@ static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, in
 
 void Application::showLoginScreen() {
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto dialogsManager = DependencyManager::get<DialogsManager>();
     if (!accountManager->isLoggedIn()) {
         Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
 //         dialogsManager->showLoginScreenDialog();
+        dialogsManager->showLoginDialog();
         QJsonObject loginData = {};
         loginData["action"] = "login dialog shown";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
@@ -3566,11 +3568,6 @@ void Application::setIsServerlessMode(bool serverlessDomain) {
 }
 
 std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl domainURL) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "prepareServerlessDomainContents", Q_ARG(QUrl, domainURL));
-        return;
-    }
-
     QUuid serverlessSessionID = QUuid::createUuid();
     getMyAvatar()->setSessionUUID(serverlessSessionID);
     auto nodeList = DependencyManager::get<NodeList>();

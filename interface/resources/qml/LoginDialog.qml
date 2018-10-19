@@ -1,8 +1,8 @@
 //
 //  LoginDialog.qml
 //
-//  Created by David Rowe on 3 Jun 2015
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Wayne Chen
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,10 +23,12 @@ Windows.ModalWindow {
     objectName: "LoginDialog"
     implicitWidth: 520
     implicitHeight: 320
-    closeButtonVisible: true
     destroyOnCloseButton: true
     destroyOnHidden: true
     visible: true
+    frame: Item {}
+
+    anchors.fill: parent
 
     readonly property bool isTablet: false
 
@@ -35,8 +37,6 @@ Windows.ModalWindow {
 
     property string title: ""
     property int titleWidth: 0
-
-    keyboardOverride: true  // Disable ModalWindow's keyboard.
 
     function tryDestroy() {
         root.destroy()
