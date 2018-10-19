@@ -14,8 +14,15 @@
 <@include render-utils/ShaderConstants.h@>
 
 layout(binding=0) uniform sampler2D Font;
-layout(location=RENDER_UTILS_UNIFORM_TEXT_OUTLINE) uniform bool Outline;
-layout(location=RENDER_UTILS_UNIFORM_TEXT_COLOR) uniform vec4 Color;
+
+struct TextParams {
+    vec4 color;
+    vec4 outline;
+};
+
+layout(binding=0) uniform textParamsBuffer {
+    TextParams params;
+};
 
 // the interpolated normal
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
@@ -31,7 +38,7 @@ const float outlineExpansion = 0.2;
 void main() {
     // retrieve signed distance
     float sdf = texture(Font, _texCoord0).g;
-    if (Outline) {
+    if (params.outline.x > 0.0) {
         if (sdf > interiorCutoff) {
             sdf = 1.0 - sdf;
         } else {
@@ -51,8 +58,8 @@ void main() {
 
     packDeferredFragmentTranslucent(
         normalize(_normalWS),
-        a * Color.a,
-        Color.rgb,
+        a * params.color.a,
+        params.color.rgb,
         DEFAULT_FRESNEL,
         DEFAULT_ROUGHNESS);
 }

@@ -6,19 +6,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Controller, RIGHT_HAND, LEFT_HAND, MyAvatar, getGrabPointSphereOffset,
+/* global Script, RIGHT_HAND, LEFT_HAND, MyAvatar,
    makeRunningValues, Entities, enableDispatcherModule, disableDispatcherModule, makeDispatcherModuleParameters,
-   PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   DEFAULT_SEARCH_SPHERE_DISTANCE, getGrabbableData, makeLaserParams
+   getGrabbableData, makeLaserParams, DISPATCHER_PROPERTIES
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
-    function entityWantsNearTrigger(props) {
+    function entityWantsFarTrigger(props) {
         var grabbableData = getGrabbableData(props);
-        return grabbableData.triggerable || grabbableData.wantsTrigger;
+        return grabbableData.triggerable;
     }
 
     function FarTriggerEntity(hand) {
@@ -37,11 +36,10 @@ Script.include("/~/system/libraries/controllers.js");
             makeLaserParams(this.hand, false));
 
         this.getTargetProps = function (controllerData) {
-            // nearbyEntityProperties is already sorted by length from controller
             var targetEntity = controllerData.rayPicks[this.hand].objectID;
             if (targetEntity) {
-                var targetProperties = Entities.getEntityProperties(targetEntity);
-                if (entityWantsNearTrigger(targetProperties)) {
+                var targetProperties = Entities.getEntityProperties(targetEntity, DISPATCHER_PROPERTIES);
+                if (entityWantsFarTrigger(targetProperties)) {
                     return targetProperties;
                 }
             }

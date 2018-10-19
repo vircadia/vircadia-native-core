@@ -167,6 +167,7 @@ public:
      * @typedef {object} CollisionContact
      * @property {Vec3} pointOnPick A point representing a penetration of the object's surface into the volume of the pick, in world space.
      * @property {Vec3} pointOnObject A point representing a penetration of the pick's surface into the volume of the found object, in world space.
+     * @property {Vec3} normalOnPick The normalized vector pointing away from the pick, representing the direction of collision.
      */
 
     /**jsdoc
@@ -319,7 +320,7 @@ public slots:
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
 
 protected:
-    static std::shared_ptr<TransformNode> createTransformNode(const QVariantMap& propMap);
+    static void setParentTransform(std::shared_ptr<PickQuery> pick, const QVariantMap& propMap);
 };
 
 #endif // hifi_PickScriptingInterface_h

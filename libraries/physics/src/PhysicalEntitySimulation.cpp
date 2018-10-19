@@ -79,6 +79,9 @@ void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
             _deadEntities.insert(entity);
         }
     }
+    if (entity->getClientOnly()) {
+        _deadAvatarEntities.insert(entity);
+    }
 }
 
 void PhysicalEntitySimulation::removeOwnershipData(EntityMotionState* motionState) {
@@ -123,6 +126,11 @@ void PhysicalEntitySimulation::takeDeadEntities(SetOfEntities& deadEntities) {
     _deadEntities.clear();
 }
 
+void PhysicalEntitySimulation::takeDeadAvatarEntities(SetOfEntities& deadEntities) {
+    _deadAvatarEntities.swap(deadEntities);
+    _deadAvatarEntities.clear();
+}
+
 void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     // queue incoming changes: from external sources (script, EntityServer, etc) to physics engine
     QMutexLocker lock(&_mutex);
@@ -138,7 +146,6 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
                 btRigidBody* body = motionState->getRigidBody();
                 if (body) {
                     body->forceActivationState(ISLAND_SLEEPING);
-                    motionState->updateSendVelocities(); // has side-effect of zeroing entity velocities for inactive body
                 }
 
                 // send packet to remove ownership

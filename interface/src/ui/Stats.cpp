@@ -106,6 +106,10 @@ extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
 extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
+
+    if (qApp->isInterstitialMode()) {
+        return;
+    }
     QQuickItem* parent = parentItem();
     if (!force) {
         if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
@@ -263,8 +267,8 @@ void Stats::updateStats(bool force) {
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
         STAT_UPDATE(downloads, loadingRequests.size());
-        STAT_UPDATE(downloadLimit, ResourceCache::getRequestLimit())
-        STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
+        STAT_UPDATE(downloadLimit, (int)ResourceCache::getRequestLimit())
+        STAT_UPDATE(downloadsPending, (int)ResourceCache::getPendingRequestCount());
         STAT_UPDATE(processing, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
         STAT_UPDATE(processingPending, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
 

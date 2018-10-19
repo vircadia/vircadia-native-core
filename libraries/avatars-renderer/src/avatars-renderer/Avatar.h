@@ -28,6 +28,8 @@
 #include "Rig.h"
 #include <ThreadSafeValueCache.h>
 
+#include "MetaModelPayload.h"
+
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
@@ -50,7 +52,65 @@ enum ScreenTintLayer {
 
 class Texture;
 
-class Avatar : public AvatarData, public scriptable::ModelProvider {
+class AvatarTransit {
+public:
+    enum Status {
+        IDLE = 0,
+        START_TRANSIT,
+        TRANSITING,
+        END_TRANSIT,
+        ABORT_TRANSIT
+    };
+
+    enum EaseType {
+        NONE = 0,
+        EASE_IN,
+        EASE_OUT,
+        EASE_IN_OUT
+    };
+
+    struct TransitConfig {
+        TransitConfig() {};
+        int _totalFrames { 0 };
+        int _framesPerMeter { 0 };
+        bool _isDistanceBased { false };
+        float _triggerDistance { 0 };
+        EaseType _easeType { EaseType::EASE_OUT };
+    };
+
+    AvatarTransit() {};
+    Status update(float deltaTime, const glm::vec3& avatarPosition, const TransitConfig& config);
+    Status getStatus() { return _status; }
+    bool isTransiting() { return _isTransiting; }
+    glm::vec3 getCurrentPosition() { return _currentPosition; }
+    bool getNextPosition(glm::vec3& nextPosition);
+    glm::vec3 getEndPosition() { return _endPosition; }
+    float getTransitTime() { return _totalTime; }
+    void setScale(float scale) { _scale = scale; }
+    void reset();
+
+private:
+    Status updatePosition(float deltaTime);
+    void start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const TransitConfig& config);
+    float getEaseValue(AvatarTransit::EaseType type, float value);
+    bool _isTransiting { false };
+
+    glm::vec3 _startPosition;
+    glm::vec3 _endPosition;
+    glm::vec3 _currentPosition;
+
+    glm::vec3 _lastPosition;
+
+    glm::vec3 _transitLine;
+    float _totalDistance { 0.0f };
+    float _totalTime { 0.0f };
+    float _currentTime { 0.0f };
+    EaseType _easeType { EaseType::EASE_OUT };
+    Status _status { Status::IDLE };
+    float _scale { 1.0f };
+};
+
+class Avatar : public AvatarData, public scriptable::ModelProvider, public MetaModelPayload {
     Q_OBJECT
 
     // This property has JSDoc in MyAvatar.h.
@@ -73,6 +133,7 @@ public:
 
     void init();
     void updateAvatarEntities();
+    void removeAvatarEntitiesFromTree();
     void simulate(float deltaTime, bool inView);
     virtual void simulateAttachments(float deltaTime);
 
@@ -106,6 +167,14 @@ public:
 
     virtual bool isMyAvatar() const override { return false; }
     virtual void createOrb() { }
+
+    enum class LoadingStatus {
+        NoModel,
+        LoadModel,
+        LoadSuccess,
+        LoadFailure
+    };
+    virtual void indicateLoadingStatus(LoadingStatus loadingStatus) { _loadingStatus = loadingStatus; }
 
     virtual QVector<glm::quat> getJointRotations() const override;
     using AvatarData::getJointRotation;
@@ -361,6 +430,13 @@ public:
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
+    std::shared_ptr<AvatarTransit> getTransit() { return std::make_shared<AvatarTransit>(_transit); };
+
+    AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
+    void setTransitScale(float scale);
+
+    void overrideNextPackagePositionData(const glm::vec3& position);
+
 signals:
     void targetScaleChanged(float targetScale);
 
@@ -496,6 +572,7 @@ protected:
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 
+
 protected:
     class AvatarEntityDataHash {
     public:
@@ -519,6 +596,9 @@ protected:
     bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
 
+    AvatarTransit _transit;
+    std::mutex _transitLock;
+
     static int _jointConesID;
 
     int _voiceSphereID;
@@ -540,6 +620,11 @@ protected:
     static const float MYAVATAR_LOADING_PRIORITY;
     static const float OTHERAVATAR_LOADING_PRIORITY;
     static const float ATTACHMENT_LOADING_PRIORITY;
+
+    LoadingStatus _loadingStatus { LoadingStatus::NoModel };
+
+    void metaBlendshapeOperator(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets, const QVector<int>& blendedMeshSizes,
+                                const render::ItemIDs& subItemIDs);
 };
 
 #endif // hifi_Avatar_h

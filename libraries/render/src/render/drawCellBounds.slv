@@ -20,8 +20,7 @@
 <$declareColorWheel()$>
 <@include SceneOctree.slh@>
 
-layout(location=GPU_UNIFORM_EXTRA0) uniform ivec4 inCellLocation;
-
+layout(location=0) in ivec4 inCellLocation;
 layout(location=0) out vec4 varColor;
 
 void main(void) {
@@ -62,5 +61,5 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    varColor = vec4(colorWheel(fract(float(inCellLocation.w) / 5.0)), 0.8 + 0.2 * cellIsEmpty);
+    varColor = vec4(colorWheel(fract(float(inCellLocation.w) / 5.0)), 0.8 + 0.2 * float(cellIsEmpty));
 }

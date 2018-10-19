@@ -1,0 +1,106 @@
+<!
+//  MeshDeformer.slh
+//  Created by Sam Gateau on 9/20/2018
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not MESH_DEFORMER_SLH@>
+<@def MESH_DEFORMER_SLH@>
+//  MeshDeformer.slh
+
+<@func declareMeshDeformer(USE_NORMAL, USE_TANGENT, USE_SKINNING, USE_DUAL_QUATERNION, USE_BLENDSHAPE)@>
+
+<@if USE_SKINNING@>
+<@include Skinning.slh@>
+<$declareSkinning($USE_DUAL_QUATERNION$, $USE_NORMAL$, $USE_TANGENT$)$>
+<@endif@>
+
+<@if USE_BLENDSHAPE@>
+<@include Blendshape.slh@>
+<$declareBlendshape($USE_NORMAL$, $USE_TANGENT$)$>
+<@endif@>
+
+void evalMeshDeformer(vec4 inPosition, out vec4 outPosition
+    <@if USE_NORMAL@>
+        , vec3 inNormal, out vec3 outNormal
+    <@endif@>
+    <@if USE_TANGENT@>
+        , vec3 inTangent, out vec3 outTangent
+    <@endif@>
+    <@if USE_SKINNING@>
+        , bool isSkinningEnabled, ivec4 skinClusterIndex, vec4 skinClusterWeight
+    <@endif@>
+    <@if USE_BLENDSHAPE@>
+        , bool isBlendshapeEnabled, int vertexIndex
+    <@endif@>
+) {
+
+        vec4 _deformedPosition = inPosition;
+    <@if USE_NORMAL@>
+        vec3 _deformedNormal = inNormal;
+    <@endif@>
+    <@if USE_TANGENT@>
+        vec3 _deformedTangent = inTangent;
+    <@endif@>
+
+<@if USE_BLENDSHAPE@>
+    if (isBlendshapeEnabled) {
+        evalBlendshape(vertexIndex, inPosition, _deformedPosition
+    <@if USE_NORMAL@>
+                        , inNormal, _deformedNormal
+    <@endif@>
+    <@if USE_TANGENT@>
+                        , inTangent, _deformedTangent
+    <@endif@>
+        );
+    }
+<@endif@>
+
+<@if USE_SKINNING@>
+    if (isSkinningEnabled) {
+
+        evalSkinning(inSkinClusterIndex, inSkinClusterWeight, _deformedPosition, _deformedPosition
+    <@if USE_NORMAL@>
+                        , _deformedNormal, _deformedNormal
+    <@endif@>
+    <@if USE_TANGENT@>
+                        , _deformedTangent, _deformedTangent
+    <@endif@>
+        );
+    }
+<@endif@>
+
+    outPosition = _deformedPosition;
+<@if USE_NORMAL@>
+    outNormal = _deformedNormal;
+<@endif@>
+<@if USE_TANGENT@>
+    outTangent = _deformedTangent;
+<@endif@>
+}
+
+<@endfunc@>
+
+<@func declareMeshDeformerActivation(USE_SKINNING, USE_BLENDSHAPE)@>
+
+const BITFIELD MESH_DEFORMER_BLENDSHAPE_BIT              = 0x00000001;
+const BITFIELD MESH_DEFORMER_SKINNING_BIT                = 0x00000002;
+
+<@if USE_BLENDSHAPE@>
+bool meshDeformer_doBlendshape(int meshKey) { 
+    return ((meshKey & MESH_DEFORMER_BLENDSHAPE_BIT) != 0);
+}
+<@endif@>
+
+<@if USE_SKINNING@>
+bool meshDeformer_doSkinning(int meshKey) { 
+    return ((meshKey & MESH_DEFORMER_SKINNING_BIT) != 0);
+}
+<@endif@>
+
+<@endfunc@>
+
+
+<@endif@> // if not MESH_DEFORMER_SLH

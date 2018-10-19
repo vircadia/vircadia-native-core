@@ -83,7 +83,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _challengeOwnershipTimeoutTimer.setSingleShot(true);
 }
 
-static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
+static const glm::u8vec3 CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float CONTEXT_OVERLAY_INSIDE_DISTANCE = 1.0f; // in meters
 static const float CONTEXT_OVERLAY_SIZE = 0.09f; // in meters, same x and y dims
 static const float CONTEXT_OVERLAY_OFFSET_DISTANCE = 0.1f;
@@ -142,14 +142,15 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             glm::vec3 cameraPosition = qApp->getCamera().getPosition();
             glm::vec3 entityDimensions = entityProperties.getDimensions();
             glm::vec3 entityPosition = entityProperties.getPosition();
+            glm::vec3 registrationPoint = entityProperties.getRegistrationPoint();
             glm::vec3 contextOverlayPosition = entityProperties.getPosition();
             glm::vec2 contextOverlayDimensions;
 
             // Update the position of the overlay if the registration point of the entity
             // isn't default
-            if (entityProperties.getRegistrationPoint() != glm::vec3(0.5f)) {
-                glm::vec3 adjustPos = entityProperties.getRegistrationPoint() - glm::vec3(0.5f);
-                entityPosition = entityPosition - (entityProperties.getRotation() * (adjustPos * entityProperties.getDimensions()));
+            if (registrationPoint != glm::vec3(0.5f)) {
+                glm::vec3 adjustPos = registrationPoint - glm::vec3(0.5f);
+                entityPosition = entityPosition - (entityProperties.getRotation() * (adjustPos * entityDimensions));
             }
 
             enableEntityHighlight(entityItemID);
@@ -252,12 +253,6 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
-        Setting::Handle<bool> _settingSwitch{ "commerce", true };
-        if (_settingSwitch.get()) {
-            openInspectionCertificate();
-        } else {
-            openMarketplace();
-        }
         emit contextOverlayClicked(_currentEntityWithContextOverlay);
         _contextOverlayJustClicked = true;
     }
@@ -387,34 +382,6 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
         emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
         emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
         qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
-    }
-}
-
-static const QString INSPECTION_CERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
-void ContextOverlayInterface::openInspectionCertificate() {
-    // lets open the tablet to the inspection certificate QML
-    if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {
-        setLastInspectedEntity(_currentEntityWithContextOverlay);
-        auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-        tablet->loadQMLSource(INSPECTION_CERTIFICATE_QML_PATH);
-        _hmdScriptingInterface->openTablet();
-    }
-}
-
-static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
-
-void ContextOverlayInterface::openMarketplace() {
-    // lets open the tablet and go to the current item in
-    // the marketplace (if the current entity has a
-    // marketplaceID)
-    if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {
-        auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-        // construct the url to the marketplace item
-        QString url = MARKETPLACE_BASE_URL + _entityMarketplaceID;
-        QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
-        tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
-        _hmdScriptingInterface->openTablet();
-        _isInMarketplaceInspectionMode = true;
     }
 }
 

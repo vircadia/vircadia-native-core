@@ -75,8 +75,6 @@ protected:
     void makeLocalRequest();
     Q_INVOKABLE void handleLocalRequestCompleted();
 
-    virtual bool isCacheable() const override { return _loaded; }
-
     Q_INVOKABLE virtual void downloadFinished(const QByteArray& data) override;
 
     bool handleFailedRequest(ResourceRequest::Result result) override;

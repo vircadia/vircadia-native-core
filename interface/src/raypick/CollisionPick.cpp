@@ -51,6 +51,7 @@ void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::v
         QVariantMap collisionPointPair;
         collisionPointPair["pointOnPick"] = vec3toVariant(objectIntersection.testCollisionPoint);
         collisionPointPair["pointOnObject"] = vec3toVariant(objectIntersection.foundCollisionPoint);
+        collisionPointPair["normalOnPick"] = vec3toVariant(objectIntersection.collisionNormal);
 
         collisionPointPairs[objectIntersection.foundID].append(collisionPointPair);
     }
@@ -344,9 +345,9 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
     }
 }
 
-CollisionPick::CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine) :
-    Pick(filter, maxDistance, enabled),
-    _mathPick(collisionRegion),
+CollisionPick::CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, bool scaleWithParent, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine) :
+    Pick(collisionRegion, filter, maxDistance, enabled),
+    _scaleWithParent(scaleWithParent),
     _physicsEngine(physicsEngine) {
     if (collisionRegion.shouldComputeShapeInfo()) {
         _cachedResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(collisionRegion.modelURL);
@@ -360,9 +361,15 @@ CollisionRegion CollisionPick::getMathematicalPick() const {
     if (parentTransform) {
         Transform parentTransformValue = parentTransform->getTransform();
         mathPick.transform = parentTransformValue.worldTransform(mathPick.transform);
-        glm::vec3 scale = parentTransformValue.getScale();
-        float largestDimension = glm::max(glm::max(scale.x, scale.y), scale.z);
-        mathPick.threshold *= largestDimension;
+
+        if (_scaleWithParent) {
+            glm::vec3 scale = parentTransformValue.getScale();
+            float largestDimension = glm::max(glm::max(scale.x, scale.y), scale.z);
+            mathPick.threshold *= largestDimension;
+        } else {
+            // We need to undo parent scaling after-the-fact because the parent's scale was needed to calculate this mathPick's position
+            mathPick.transform.setScale(_mathPick.transform.getScale());
+        }
     }
     return mathPick;
 }
@@ -397,7 +404,7 @@ PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pi
     }
     getShapeInfoReady(pick);
     
-    auto entityIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_ENTITIES, *_mathPick.shapeInfo, pick.transform, USER_COLLISION_GROUP_DYNAMIC, pick.threshold);
+    auto entityIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_ENTITIES, *_mathPick.shapeInfo, pick.transform, pick.collisionGroup, pick.threshold);
     filterIntersections(entityIntersections);
     return std::make_shared<CollisionPickResult>(pick, entityIntersections, std::vector<ContactTestResult>());
 }
@@ -413,15 +420,17 @@ PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pi
     }
     getShapeInfoReady(pick);
     
-    auto avatarIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_AVATARS, *_mathPick.shapeInfo, pick.transform, USER_COLLISION_GROUP_DYNAMIC, pick.threshold);
+    auto avatarIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_AVATARS, *_mathPick.shapeInfo, pick.transform, pick.collisionGroup, pick.threshold);
     filterIntersections(avatarIntersections);
     return std::make_shared<CollisionPickResult>(pick, std::vector<ContactTestResult>(), avatarIntersections);
 }
 
 PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick) {
-    return std::make_shared<CollisionPickResult>(pick.toVariantMap(), std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+    return std::make_shared<CollisionPickResult>(pick, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
 }
 
 Transform CollisionPick::getResultTransform() const {
-    return Transform(getMathematicalPick().transform);
+    Transform transform;
+    transform.setTranslation(_mathPick.transform.getTranslation());
+    return transform;
 }

@@ -176,7 +176,7 @@ int main(int argc, const char* argv[]) {
         if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
             if (parser.isSet(urlOption)) {
                 QUrl url = QUrl(parser.value(urlOption));
-                if (url.isValid() && url.scheme() == URL_SCHEME_HIFI) {
+                if (url.isValid() && (url.scheme() == URL_SCHEME_HIFI || url.scheme() == URL_SCHEME_HIFIAPP)) {
                     qDebug() << "Writing URL to local socket";
                     socket.write(url.toString().toUtf8());
                     if (!socket.waitForBytesWritten(5000)) {

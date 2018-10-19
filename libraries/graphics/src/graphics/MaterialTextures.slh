@@ -11,41 +11,7 @@
 <@if not MODEL_MATERIAL_TEXTURES_SLH@>
 <@def MODEL_MATERIAL_TEXTURES_SLH@>
 
-<@include graphics/ShaderConstants.h@>
-
-<@func declareMaterialTexMapArrayBuffer()@>
-
-const int MAX_TEXCOORDS = 2;
-
-struct TexMapArray { 
-//    mat4 _texcoordTransforms[MAX_TEXCOORDS];
-    mat4 _texcoordTransforms0;
-    mat4 _texcoordTransforms1;
-    vec4 _lightmapParams;
-};
-
-layout(binding=GRAPHICS_BUFFER_TEXMAPARRAY) uniform texMapArrayBuffer {
-    TexMapArray _texMapArray;
-};
-
-TexMapArray getTexMapArray() {
-    return _texMapArray;
-}
-
-<@func evalTexMapArrayTexcoord0(texMapArray, inTexcoord0, outTexcoord0)@>
-{
-    <$outTexcoord0$> = (<$texMapArray$>._texcoordTransforms0 * vec4(<$inTexcoord0$>.st, 0.0, 1.0)).st;
-}
-<@endfunc@>
-
-<@func evalTexMapArrayTexcoord1(texMapArray, inTexcoord1, outTexcoord1)@>
-{
-    <$outTexcoord1$> = (<$texMapArray$>._texcoordTransforms1 * vec4(<$inTexcoord1$>.st, 0.0, 1.0)).st;
-}
-<@endfunc@>
-
-<@endfunc@>
-
+<@include graphics/Material.slh@>
 
 <@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion, withScattering)@>
 

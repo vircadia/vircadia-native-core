@@ -39,6 +39,7 @@ WindowScriptingInterface::WindowScriptingInterface() {
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &WindowScriptingInterface::disconnectedFromDomain);
 
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
+    connect(&domainHandler, &DomainHandler::redirectErrorStateChanged, this, &WindowScriptingInterface::redirectErrorStateChanged);
 
     connect(qApp, &Application::svoImportRequested, [this](const QString& urlString) {
         static const QMetaMethod svoImportRequestedSignal =
@@ -134,7 +135,8 @@ void WindowScriptingInterface::openUrl(const QUrl& url) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
         } else {
 #if defined(Q_OS_ANDROID)
-            QList<QString> args = { url.toString() };
+            QMap<QString, QString> args;
+            args["url"] = url.toString();
             AndroidHelper::instance().requestActivity("WebView", true, args);
 #else
             // address manager did not handle - ask QDesktopServices to handle
@@ -178,6 +180,14 @@ QString WindowScriptingInterface::getPreviousBrowseAssetLocation() const {
 
 void WindowScriptingInterface::setPreviousBrowseAssetLocation(const QString& location) {
     Setting::Handle<QVariant>(LAST_BROWSE_ASSETS_LOCATION_SETTING).set(location);
+}
+
+bool WindowScriptingInterface::getInterstitialModeEnabled() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+}
+
+void WindowScriptingInterface::setInterstitialModeEnabled(bool enableInterstitialMode) {
+    DependencyManager::get<NodeList>()->getDomainHandler().setInterstitialModeEnabled(enableInterstitialMode);
 }
 
 bool  WindowScriptingInterface::isPointOnDesktopWindow(QVariant point) {
@@ -409,6 +419,10 @@ glm::vec2 WindowScriptingInterface::getDeviceSize() const {
     return qApp->getDeviceSize();
 }
 
+int WindowScriptingInterface::getLastDomainConnectionError() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getLastDomainConnectionError();
+}
+
 int WindowScriptingInterface::getX() {
     return qApp->getWindow()->geometry().x();
 }
@@ -583,4 +597,9 @@ void WindowScriptingInterface::onMessageBoxSelected(int button) {
         messageBox->deleteLater();
         _messageBoxes.remove(id);
     }
+}
+
+
+float WindowScriptingInterface::domainLoadingProgress() {
+    return qApp->getOctreePacketProcessor().domainLoadingProgress();
 }

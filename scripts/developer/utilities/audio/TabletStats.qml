@@ -12,7 +12,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
-import "../../../../resources/qml/styles-uit"
+import "qrc:////qml//styles-uit"
 
 Item {
     id: dialog

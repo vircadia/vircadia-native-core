@@ -49,13 +49,15 @@ struct ContactTestResult {
     ContactTestResult(const ContactTestResult& contactTestResult) :
         foundID(contactTestResult.foundID),
         testCollisionPoint(contactTestResult.testCollisionPoint),
-        foundCollisionPoint(contactTestResult.foundCollisionPoint) {
+        foundCollisionPoint(contactTestResult.foundCollisionPoint),
+        collisionNormal(contactTestResult.collisionNormal) {
     }
 
-    ContactTestResult(QUuid foundID, glm::vec3 testCollisionPoint, glm::vec3 otherCollisionPoint) :
+    ContactTestResult(const QUuid& foundID, const glm::vec3& testCollisionPoint, const glm::vec3& otherCollisionPoint, const glm::vec3& collisionNormal) :
         foundID(foundID),
         testCollisionPoint(testCollisionPoint),
-        foundCollisionPoint(otherCollisionPoint) {
+        foundCollisionPoint(otherCollisionPoint),
+        collisionNormal(collisionNormal) {
     }
 
     QUuid foundID;
@@ -63,6 +65,8 @@ struct ContactTestResult {
     glm::vec3 testCollisionPoint;
     // The deepest point of an intersection within the volume of the found object, in world space.
     glm::vec3 foundCollisionPoint;
+    // The normal vector of this intersection
+    glm::vec3 collisionNormal;
 };
 
 using ContactMap = std::map<ContactKey, ContactInfo>;

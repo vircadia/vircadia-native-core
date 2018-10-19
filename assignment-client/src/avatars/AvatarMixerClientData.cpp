@@ -11,6 +11,7 @@
 
 #include "AvatarMixerClientData.h"
 
+#include <algorithm>
 #include <udt/PacketHeaders.h>
 
 #include <DependencyManager.h>
@@ -111,6 +112,11 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
 
+            if (traitSize < -1 || traitSize > message.getBytesLeftToRead()) {
+                qWarning() << "Refusing to process simple trait of size" << traitSize << "from" << message.getSenderSockAddr();
+                break;
+            }
+
             if (packetTraitVersion > _lastReceivedTraitVersions[traitType]) {
                 _avatar->processTrait(traitType, message.read(traitSize));
                 _lastReceivedTraitVersions[traitType] = packetTraitVersion;
@@ -127,26 +133,41 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
         } else {
             AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
+            if (message.getBytesLeftToRead() == 0) {
+                qWarning () << "Received an instanced trait with no size from" << message.getSenderSockAddr();
+                break;
+            }
+
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
 
-            auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
+            if (traitSize < -1 || traitSize > message.getBytesLeftToRead()) {
+                qWarning() << "Refusing to process instanced trait of size" << traitSize << "from" << message.getSenderSockAddr();
+                break;
+            }
 
-            if (packetTraitVersion > instanceVersionRef) {
-                if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
-                    _avatar->processDeletedTraitInstance(traitType, instanceID);
+            if (traitType == AvatarTraits::AvatarEntity) {
+                auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
 
-                    // to track a deleted instance but keep version information
-                    // the avatar mixer uses the negative value of the sent version
-                    instanceVersionRef = -packetTraitVersion;
+                if (packetTraitVersion > instanceVersionRef) {
+                    if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
+                        _avatar->processDeletedTraitInstance(traitType, instanceID);
+
+                        // to track a deleted instance but keep version information
+                        // the avatar mixer uses the negative value of the sent version
+                        instanceVersionRef = -packetTraitVersion;
+                    } else {
+                        _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
+                        instanceVersionRef = packetTraitVersion;
+                    }
+
+                    anyTraitsChanged = true;
                 } else {
-                    _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
-                    instanceVersionRef = packetTraitVersion;
+                    message.seek(message.getPosition() + traitSize);
                 }
-
-                anyTraitsChanged = true;
             } else {
-                message.seek(message.getPosition() + traitSize);
+                qWarning() << "Refusing to process traits packet with instanced trait of unprocessable type from" << message.getSenderSockAddr();
+                break;
             }
         }
     }
@@ -218,11 +239,15 @@ uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& node
 }
 
 void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointer other) {
+    ignoreOther(self.data(), other.data());
+}
+
+void AvatarMixerClientData::ignoreOther(const Node* self, const Node* other) {
     if (!isRadiusIgnoring(other->getUUID())) {
         addToRadiusIgnoringSet(other->getUUID());
         auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
         killPacket->write(other->getUUID().toRfc4122());
-        if (self->isIgnoreRadiusEnabled()) {
+        if (_isIgnoreRadiusEnabled) {
             killPacket->writePrimitive(KillAvatarReason::TheirAvatarEnteredYourBubble);
         } else {
             killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
@@ -235,9 +260,20 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
     }
 }
 
-void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other) {
-    if (isRadiusIgnoring(other)) {
-        _radiusIgnoredOthers.erase(other);
+bool AvatarMixerClientData::isRadiusIgnoring(const QUuid& other) const {
+    return std::find(_radiusIgnoredOthers.cbegin(), _radiusIgnoredOthers.cend(), other) != _radiusIgnoredOthers.cend();
+}
+
+void AvatarMixerClientData::addToRadiusIgnoringSet(const QUuid& other) {
+    if (!isRadiusIgnoring(other)) {
+        _radiusIgnoredOthers.push_back(other);
+    }
+}
+
+void AvatarMixerClientData::removeFromRadiusIgnoringSet(const QUuid& other) {
+    auto ignoredOtherIter = std::find(_radiusIgnoredOthers.cbegin(), _radiusIgnoredOthers.cend(), other);
+    if (ignoredOtherIter != _radiusIgnoredOthers.cend()) {
+        _radiusIgnoredOthers.erase(ignoredOtherIter);
     }
 }
 

@@ -24,8 +24,6 @@
 
 #include "RenderableEntityItem.h"
 
-
-
 class Model;
 class EntityTreeRenderer;
 
@@ -62,7 +60,7 @@ public:
 
     virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     void doInitialModelSimulation();
     void updateModelBounds();
 
@@ -81,6 +79,7 @@ public:
 
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
+    bool computeShapeFailedToLoad();
 
     virtual bool contains(const glm::vec3& point) const override;
     void stopModelOverrideIfNoParent();
@@ -187,7 +186,7 @@ private:
     const void* _collisionMeshKey { nullptr };
 
     // used on client side
-    bool _jointMappingCompleted{ false };
+    bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
     AnimationPointer _animation;
     QUrl _parsedModelURL;

@@ -19,7 +19,6 @@
 #include "SpatialParentFinder.h"
 #include "shared/ReadWriteLockable.h"
 
-
 class SpatiallyNestable;
 using SpatiallyNestableWeakPointer = std::weak_ptr<SpatiallyNestable>;
 using SpatiallyNestableWeakConstPointer = std::weak_ptr<const SpatiallyNestable>;
@@ -112,6 +111,7 @@ public:
     virtual glm::vec3 getParentAngularVelocity(bool& success) const;
 
     virtual AACube getMaximumAACube(bool& success) const;
+    virtual AACube calculateInitialQueryAACube(bool& success);
 
     virtual void setQueryAACube(const AACube& queryAACube);
     virtual bool queryAACubeNeedsUpdate() const;

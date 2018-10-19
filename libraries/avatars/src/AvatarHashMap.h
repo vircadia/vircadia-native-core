@@ -49,6 +49,7 @@ public:
     void parseDataFromBuffer(const QUuid& parentID, const QByteArray& buffer);
     void processAvatarIdentity(const QUuid& parentID, const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
     void removeReplicas(const QUuid& parentID);
+    std::vector<AvatarSharedPointer> takeReplicas(const QUuid& parentID);
     void processTrait(const QUuid& parentID, AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
     void processDeletedTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID);
     void processTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType,
@@ -100,6 +101,8 @@ public:
 
     void setReplicaCount(int count);
     int getReplicaCount() { return _replicas.getReplicaCount(); };
+
+    virtual void clearOtherAvatars();
 
 signals:
 
@@ -177,7 +180,7 @@ protected:
         bool& isNew);
     virtual AvatarSharedPointer findAvatar(const QUuid& sessionUUID) const; // uses a QReadLocker on the hashLock
     virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason);
-
+    
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
     
     AvatarHash _avatarHash;

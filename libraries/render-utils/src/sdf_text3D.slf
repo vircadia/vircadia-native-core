@@ -14,8 +14,15 @@
 <@include render-utils/ShaderConstants.h@>
 
 layout(binding=0) uniform sampler2D Font;
-layout(location=RENDER_UTILS_UNIFORM_TEXT_OUTLINE) uniform bool Outline;
-layout(location=RENDER_UTILS_UNIFORM_TEXT_COLOR) uniform vec4 Color;
+
+struct TextParams {
+    vec4 color;
+    vec4 outline;
+};
+
+layout(binding=0) uniform textParamsBuffer {
+    TextParams params;
+};
 
 // the interpolated normal
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
@@ -32,7 +39,7 @@ const float taaBias = pow(2.0, TAA_TEXTURE_LOD_BIAS);
 float evalSDF(vec2 texCoord) {
     // retrieve signed distance
     float sdf = textureLod(Font, texCoord, TAA_TEXTURE_LOD_BIAS).g;
-    if (Outline) {
+    if (params.outline.x > 0.0) {
         if (sdf > interiorCutoff) {
             sdf = 1.0 - sdf;
         } else {
@@ -47,12 +54,12 @@ void main() {
     vec2 dxTexCoord = dFdx(_texCoord0) * 0.5 * taaBias;
     vec2 dyTexCoord = dFdy(_texCoord0) * 0.5 * taaBias;
 
-	// Perform 4x supersampling for anisotropic filtering
+    // Perform 4x supersampling for anisotropic filtering
     float a;
-	a = evalSDF(_texCoord0);
-	a += evalSDF(_texCoord0+dxTexCoord);
-	a += evalSDF(_texCoord0+dyTexCoord);
-	a += evalSDF(_texCoord0+dxTexCoord+dyTexCoord);
+    a = evalSDF(_texCoord0);
+    a += evalSDF(_texCoord0+dxTexCoord);
+    a += evalSDF(_texCoord0+dyTexCoord);
+    a += evalSDF(_texCoord0+dxTexCoord+dyTexCoord);
     a *= 0.25;
 
     // discard if invisible
@@ -62,8 +69,8 @@ void main() {
 
     packDeferredFragment(
         normalize(_normalWS),
-        a * Color.a,
-        Color.rgb,
+        a * params.color.a,
+        params.color.rgb,
         DEFAULT_ROUGHNESS,
         DEFAULT_METALLIC,
         DEFAULT_EMISSIVE,
