@@ -7,17 +7,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 const CREATE_APP_TOOLTIP_OFFSET = 20;
+const TOOLTIP_DELAY = 500; // ms
 
 function CreateAppTooltip() {
     this._tooltipData = null;
     this._tooltipDiv = null;
+    this._delayTimeout = null;
 }
 
 CreateAppTooltip.prototype = {
     _tooltipData: null,
     _tooltipDiv: null,
+    _delayTimeout: null,
 
     _removeTooltipIfExists: function() {
+        if (this._delayTimeout !== null) {
+            window.clearTimeout(this._delayTimeout);
+            this._delayTimeout = null;
+        }
+
         if (this._tooltipDiv !== null) {
             this._tooltipDiv.remove();
             this._tooltipDiv = null;
@@ -33,49 +41,51 @@ CreateAppTooltip.prototype = {
 
             this._removeTooltipIfExists();
 
-            let tooltipData = this._tooltipData[tooltipID];
+            this._delayTimeout = window.setTimeout(function() {
+                let tooltipData = this._tooltipData[tooltipID];
 
-            if (!tooltipData || tooltipData.tooltip === "") {
-                return;
-            }
+                if (!tooltipData || tooltipData.tooltip === "") {
+                    return;
+                }
 
-            let elementRect = element.getBoundingClientRect();
-            let elTip = document.createElement("div");
-            elTip.className = "createAppTooltip";
+                let elementRect = element.getBoundingClientRect();
+                let elTip = document.createElement("div");
+                elTip.className = "createAppTooltip";
 
-            let elTipDescription = document.createElement("div");
-            elTipDescription.className = "createAppTooltipDescription";
-            elTipDescription.innerText = tooltipData.tooltip;
-            elTip.appendChild(elTipDescription);
+                let elTipDescription = document.createElement("div");
+                elTipDescription.className = "createAppTooltipDescription";
+                elTipDescription.innerText = tooltipData.tooltip;
+                elTip.appendChild(elTipDescription);
 
-            let jsAttribute = tooltipID;
-            if (tooltipData.jsPropertyName) {
-                jsAttribute = tooltipData.jsPropertyName;
-            }
+                let jsAttribute = tooltipID;
+                if (tooltipData.jsPropertyName) {
+                    jsAttribute = tooltipData.jsPropertyName;
+                }
 
-            if (!tooltipData.skipJSProperty) {
-                let elTipJSAttribute = document.createElement("div");
-                elTipJSAttribute.className = "createAppTooltipJSAttribute";
-                elTipJSAttribute.innerText = `JS Attribute: ${jsAttribute}`;
-                elTip.appendChild(elTipJSAttribute);
-            }
+                if (!tooltipData.skipJSProperty) {
+                    let elTipJSAttribute = document.createElement("div");
+                    elTipJSAttribute.className = "createAppTooltipJSAttribute";
+                    elTipJSAttribute.innerText = `JS Attribute: ${jsAttribute}`;
+                    elTip.appendChild(elTipJSAttribute);
+                }
 
-            document.body.appendChild(elTip);
+                document.body.appendChild(elTip);
 
-            let elementTop = window.pageYOffset + elementRect.top;
+                let elementTop = window.pageYOffset + elementRect.top;
 
-            let desiredTooltipTop = elementTop + element.clientHeight + CREATE_APP_TOOLTIP_OFFSET;
+                let desiredTooltipTop = elementTop + element.clientHeight + CREATE_APP_TOOLTIP_OFFSET;
 
-            if ((window.innerHeight + window.pageYOffset) < (desiredTooltipTop + elTip.clientHeight)) {
-                // show above when otherwise out of bounds
-                elTip.style.top = elementTop - CREATE_APP_TOOLTIP_OFFSET - elTip.clientHeight;
-            } else {
-                // show tooltip on below by default
-                elTip.style.top = desiredTooltipTop;
-            }
-            elTip.style.left = window.pageXOffset + elementRect.left;
+                if ((window.innerHeight + window.pageYOffset) < (desiredTooltipTop + elTip.clientHeight)) {
+                    // show above when otherwise out of bounds
+                    elTip.style.top = elementTop - CREATE_APP_TOOLTIP_OFFSET - elTip.clientHeight;
+                } else {
+                    // show tooltip on below by default
+                    elTip.style.top = desiredTooltipTop;
+                }
+                elTip.style.left = window.pageXOffset + elementRect.left;
 
-            this._tooltipDiv = elTip;
+                this._tooltipDiv = elTip;
+            }.bind(this), TOOLTIP_DELAY);
         }.bind(this), false);
         element.addEventListener("mouseout", function() {
             this._removeTooltipIfExists();

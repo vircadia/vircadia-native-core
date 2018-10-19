@@ -294,7 +294,7 @@
         "tooltip": "The global dimensions of this entity."
     },
     "scale": {
-        "tooltip": "The global scaling of this entity,",
+        "tooltip": "The global scaling of this entity.",
         "skipJSProperty": true
     },
     "registrationPoint": {
