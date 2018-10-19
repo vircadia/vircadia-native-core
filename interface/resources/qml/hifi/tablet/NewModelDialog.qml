@@ -116,8 +116,13 @@ Rectangle {
             Column {
                 id: column2
                 width: 200
-                height: 400
+                height: 600
                 spacing: 10
+
+                CheckBox {
+                    id: grabbable
+                    text: qsTr("Grabbable")
+                }
 
                 CheckBox {
                     id: dynamic
@@ -219,7 +224,8 @@ Rectangle {
                                 params: {
                                     textInput: modelURL.text,
                                     checkBox: dynamic.checked,
-                                    comboBox: collisionType.currentIndex
+                                    comboBox: collisionType.currentIndex,
+                                    grabbable: grabbable.checked
                                 }
                             });
                         }

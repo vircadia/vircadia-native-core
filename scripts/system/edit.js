@@ -348,12 +348,12 @@ var toolBar = (function () {
 
             if (!properties.grab) {
                 properties.grab = {};
-            }
-            if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
-                !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
-                properties.grab.grabbable = true;
-            } else {
-                properties.grab.grabbable = false;
+                if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
+                    !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
+                    properties.grab.grabbable = true;
+                } else {
+                    properties.grab.grabbable = false;
+                }
             }
 
             SelectionManager.saveProperties();
@@ -473,6 +473,9 @@ var toolBar = (function () {
                     type: "Model",
                     modelURL: url,
                     shapeType: shapeType,
+                    grab: {
+                        grabbable: result.grabbable
+                    },
                     dynamic: dynamic,
                     gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
                 });
