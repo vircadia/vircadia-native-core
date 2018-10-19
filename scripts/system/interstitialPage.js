@@ -12,7 +12,7 @@
 /* global Script, Controller, Overlays, Quat, MyAvatar, Entities, print, Vec3, AddressManager, Render, Window, Toolbars,
    Camera, HMD, location, Account, Xform*/
 
-(function () {
+(function() {
     Script.include("/~/system/libraries/Xform.js");
     var DEBUG = false;
     var MIN_LOADING_PROGRESS = 3.6;
@@ -310,7 +310,7 @@
                 var url = Account.metaverseServerURL + '/api/v1/places/' + domain;
                 request({
                     uri: url
-                }, function (error, data) {
+                }, function(error, data) {
                     if (data.status === "success") {
                         var domainInfo = data.data;
                         var domainDescriptionText = domainInfo.place.description;
@@ -534,15 +534,15 @@
     Overlays.hoverLeaveOverlay.connect(onLeaveOverlay);
 
     location.hostChanged.connect(domainChanged);
-    location.lookupResultsFinished.connect(function () {
-        Script.setTimeout(function () {
+    location.lookupResultsFinished.connect(function() {
+        Script.setTimeout(function() {
             connectionToDomainFailed = !location.isConnected;
         }, 1200);
     });
     Window.redirectErrorStateChanged.connect(toggleInterstitialPage);
 
     MyAvatar.sensorToWorldScaleChanged.connect(scaleInterstitialPage);
-    MyAvatar.sessionUUIDChanged.connect(function () {
+    MyAvatar.sessionUUIDChanged.connect(function() {
         var avatarSessionUUID = MyAvatar.sessionUUID;
         Overlays.editOverlay(loadingSphereID, { parentID: avatarSessionUUID });
     });
@@ -552,7 +552,7 @@
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         button = tablet.addButton(BUTTON_PROPERTIES);
 
-        button.clicked.connect(function () {
+        button.clicked.connect(function() {
             toggle = !toggle;
             updateOverlays(toggle);
         });
