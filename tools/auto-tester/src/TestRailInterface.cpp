@@ -16,64 +16,38 @@
 
 #include <QDateTime>
 #include <QFile>
+#include <QHostInfo>
 #include <QMessageBox>
 #include <QTextStream>
 
 TestRailInterface::TestRailInterface() {
     _testRailTestCasesSelectorWindow.setURL("https://highfidelity.testrail.net");
-    ////_testRailTestCasesSelectorWindow.setURL("https://nissimhadar.testrail.io");
     _testRailTestCasesSelectorWindow.setUser("@highfidelity.io");
-    ////_testRailTestCasesSelectorWindow.setUser("nissim.hadar@gmail.com");
 
-    _testRailTestCasesSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
-    ////_testRailTestCasesSelectorWindow.setProjectID(2);
+    _testRailTestCasesSelectorWindow.setProjectID(INTERFACE_AUTOMATION_PROJECT_ID);
 
     _testRailTestCasesSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
-    ////_testRailTestCasesSelectorWindow.setSuiteID(2);
 
     _testRailRunSelectorWindow.setURL("https://highfidelity.testrail.net");
-    ////_testRailRunSelectorWindow.setURL("https://nissimhadar.testrail.io");
     _testRailRunSelectorWindow.setUser("@highfidelity.io");
-    ////_testRailRunSelectorWindow.setUser("nissim.hadar@gmail.com");
 
-    _testRailRunSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
-    ////_testRailRunSelectorWindow.setProjectID(2);
+    _testRailRunSelectorWindow.setProjectID(INTERFACE_AUTOMATION_PROJECT_ID);
 
     _testRailRunSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
-    ////_testRailRunSelectorWindow.setSuiteID(2);
 
     _testRailResultsSelectorWindow.setURL("https://highfidelity.testrail.net");
-    ////_testRailResultsSelectorWindow.setURL("https://nissimhadar.testrail.io");
     _testRailResultsSelectorWindow.setUser("@highfidelity.io");
-    ////_testRailResultsSelectorWindow.setUser("nissim.hadar@gmail.com");
 
-    _testRailResultsSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
-    ////_testRailResultsSelectorWindow.setProjectID(2);
+    _testRailResultsSelectorWindow.setProjectID(INTERFACE_AUTOMATION_PROJECT_ID);
 
     _testRailResultsSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
-    ////_testRailResultsSelectorWindow.setSuiteID(2);
+
+    _pythonInterface = new PythonInterface();
+    _pythonCommand = _pythonInterface->getPythonCommand();
 }
 
 QString TestRailInterface::getObject(const QString& path) {
     return path.right(path.length() - path.lastIndexOf("/") - 1);
-}
-
-
-bool TestRailInterface::setPythonCommand() {
-    if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
-        QString _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
-        if (!QFile::exists(_pythonPath + "/" + pythonExe)) {
-            QMessageBox::critical(0, pythonExe, QString("Python executable not found in ") + _pythonPath);
-        }
-        _pythonCommand = _pythonPath + "/" + pythonExe;
-        return true;
-    } else {
-        QMessageBox::critical(0, "PYTHON_PATH not defined",
-                              "Please set PYTHON_PATH to directory containing the Python executable");
-        return false;
-    }
-
-    return false;
 }
 
 // Creates the testrail.py script
@@ -240,7 +214,7 @@ bool TestRailInterface::requestTestRailTestCasesDataFromUser() {
     _url = _testRailTestCasesSelectorWindow.getURL() + "/";
     _user = _testRailTestCasesSelectorWindow.getUser();
     _password = _testRailTestCasesSelectorWindow.getPassword();
-    ////_password = "tutKA76";////
+
     _projectID = QString::number(_testRailTestCasesSelectorWindow.getProjectID());
     _suiteID = QString::number(_testRailTestCasesSelectorWindow.getSuiteID());
 
@@ -258,7 +232,7 @@ bool TestRailInterface::requestTestRailRunDataFromUser() {
     _url = _testRailRunSelectorWindow.getURL() + "/";
     _user = _testRailRunSelectorWindow.getUser();
     _password = _testRailRunSelectorWindow.getPassword();
-    ////_password = "tutKA76";////
+
     _projectID = QString::number(_testRailRunSelectorWindow.getProjectID());
     _suiteID = QString::number(_testRailRunSelectorWindow.getSuiteID());
 
@@ -276,7 +250,7 @@ bool TestRailInterface::requestTestRailResultsDataFromUser() {
     _url = _testRailResultsSelectorWindow.getURL() + "/";
     _user = _testRailResultsSelectorWindow.getUser();
     _password = _testRailResultsSelectorWindow.getPassword();
-    ////_password = "tutKA76";////
+
     _projectID = QString::number(_testRailResultsSelectorWindow.getProjectID());
     _suiteID = QString::number(_testRailResultsSelectorWindow.getSuiteID());
 
@@ -377,8 +351,9 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
                                         QMessageBox::Yes | QMessageBox::No).exec()
     ) {
         QProcess* process = new QProcess();
-        connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
 
+        connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
+        connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
                 [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
@@ -489,8 +464,8 @@ void TestRailInterface::addRun() {
     stream << "\tcase_ids.append(case['id'])\n\n";
 
     // Now, we can create the run
-    stream << "data = { 'name': '" + _sectionNames[_testRailRunSelectorWindow.getSectionID()].replace("Section", "Run") +
-                  "', 'suite_id': " + _suiteID + 
+    stream << "data = { 'name': '" + _sectionNames[_testRailRunSelectorWindow.getSectionID()].replace("Section", "Run") + "[" +
+                  QHostInfo::localHostName() + "]" + "', 'suite_id': " + _suiteID +
                   ", 'include_all': False, 'case_ids': case_ids}\n";
 
     stream << "run = client.send_post('add_run/" + _projectID + "', data)\n";
@@ -503,7 +478,7 @@ void TestRailInterface::addRun() {
     ) {
         QProcess* process = new QProcess();
         connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
-
+        connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
                 [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
@@ -511,6 +486,7 @@ void TestRailInterface::addRun() {
         process->start(_pythonCommand, parameters);
     }
 }
+
 void TestRailInterface::updateRunWithResults() {
     QString filename = _outputDirectory + "/updateRunWithResults.py";
     if (QFile::exists(filename)) {
@@ -536,17 +512,27 @@ void TestRailInterface::updateRunWithResults() {
     // The failed tests are read, formatted and inserted into a set
     //      A failure named 'Failure_1--tests.content.entity.material.apply.avatars.00000' is formatted to 'content/entity/material/apply/avatars'
     //      This is the name of the test in TestRail
+    //
+    //      A success is named `Success_<n>-tests. ...
     stream << "from os import listdir\n";
 
     stream << "failed_tests = set()\n";
 
-    stream << "for entry in listdir('" + _outputDirectory + "/" + tempName + "'):\n";
-    stream << "\tparts = entry.split('--tests.')[1].split('.')\n";
-    stream << "\tfailed_test = parts[0]\n";
-    stream << "\tfor i in range(1, len(parts) - 1):\n";
-    stream << "\t\tfailed_test = failed_test + '/' + parts[i]\n";
+    QDir dir(_outputDirectory + "/" + TEMP_NAME);
+    if (dir.exists()) {
+        stream << "for entry in listdir('" + _outputDirectory + "/" + TEMP_NAME + "'):\n";
+        
+        // skip over successes
+        stream << "\tif entry.split('_')[0] == 'Success':\n";
+        stream << "\t\tcontinue\n";
+        
+        stream << "\tparts = entry.split('--tests.')[1].split('.')\n";
+        stream << "\tfailed_test = parts[0]\n";
+        stream << "\tfor i in range(1, len(parts) - 1):\n";
+        stream << "\t\tfailed_test = failed_test + '/' + parts[i]\n";
 
-    stream << "\tfailed_tests.add(failed_test)\n\n";
+        stream << "\tfailed_tests.add(failed_test)\n\n";
+    }
 
     // Initialize the array of results that will be eventually used to update TestRail
     stream << "status_ids = []\n";
@@ -580,7 +566,13 @@ void TestRailInterface::updateRunWithResults() {
     stream << "\tresults.append({'case_id': case_ids[i], 'status_id': status_ids[i] })\n\n";
 
     stream << "data = { 'results': results }\n";
-    stream << "section = client.send_post('add_results_for_cases/' + str(" << runID << "), data)\n";
+    stream << "client.send_post('add_results_for_cases/' + str(" << runID << "), data)\n";
+
+    // Also update the run
+    QStringList parts = _testResults.split('/');
+    QString resultName = parts[parts.length() - 1].split('.')[0];
+    stream << "client.send_post('update_run/'  + str(" << runID << "),"
+           << " { 'description' : 'https://hifi-qa.s3.amazonaws.com/" << resultName << "/TestResults.html' })\n";
 
     file.close();
 
@@ -590,7 +582,7 @@ void TestRailInterface::updateRunWithResults() {
     ) {
         QProcess* process = new QProcess();
         connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
-
+        connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
                 [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
@@ -765,6 +757,7 @@ void TestRailInterface::getReleasesFromTestRail() {
     QProcess* process = new QProcess();
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateReleasesComboData(exitCode, exitStatus); });
+    connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
 
     QStringList parameters = QStringList() << filename;
     process->start(_pythonCommand, parameters);
@@ -778,10 +771,6 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     _outputDirectory = outputDirectory;
     _userGitHub = userGitHub;
     _branchGitHub = branchGitHub;
-
-    if (!setPythonCommand()) {
-        return;
-    }
 
     if (!requestTestRailTestCasesDataFromUser()) {
         return;
@@ -812,6 +801,7 @@ void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
     QDomElement suiteName = _document.createElement("name");
     suiteName.appendChild(
         _document.createTextNode("Test Suite - " + QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm")));
+
     topLevelSection.appendChild(suiteName);
 
     // This is the first call to 'process'.  This is then called recursively to build the full XML tree
@@ -908,7 +898,7 @@ QDomElement TestRailInterface::processTestXML(const QString& fullDirectory,
     ++i;
     QString title{ words[i] };
     for (++i; i < words.length() - 1; ++i) {
-        title += " / " + words[i];
+        title += "/" + words[i];
     }
 
     QDomElement titleElement = _document.createElement("title");
@@ -1036,7 +1026,6 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
     QString testContent = QString("Execute instructions in [THIS TEST](") + testMDName + ")";
     QString testExpected = QString("Refer to the expected result in the linked description.");
 
-
     stream << "data = {\n"
            << "\t'title': '" << title << "',\n"
            << "\t'template_id': 2,\n"
@@ -1087,6 +1076,7 @@ void TestRailInterface::getTestSectionsFromTestRail() {
     QProcess* process = new QProcess();
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateSectionsComboData(exitCode, exitStatus); });
+    connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
 
     QStringList parameters = QStringList() << filename;
     process->start(_pythonCommand, parameters);
@@ -1125,6 +1115,7 @@ void TestRailInterface::getRunsFromTestRail() {
     QProcess* process = new QProcess();
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateRunsComboData(exitCode, exitStatus); });
+    connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
 
     QStringList parameters = QStringList() << filename;
 
@@ -1133,10 +1124,6 @@ void TestRailInterface::getRunsFromTestRail() {
 
 void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
     _outputDirectory = outputDirectory;
-
-    if (!setPythonCommand()) {
-        return;
-    }
 
     if (!requestTestRailRunDataFromUser()) {
         return;
@@ -1151,10 +1138,7 @@ void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
 
 void TestRailInterface::updateTestRailRunResults(const QString& testResults, const QString& tempDirectory) {
     _outputDirectory = tempDirectory;
-
-    if (!setPythonCommand()) {
-        return;
-    }
+    _testResults = testResults;
 
     if (!requestTestRailResultsDataFromUser()) {
         return;
@@ -1164,11 +1148,20 @@ void TestRailInterface::updateTestRailRunResults(const QString& testResults, con
     createTestRailDotPyScript();
 
     // Extract test failures from zipped folder
-    QString tempSubDirectory = tempDirectory + "/" + tempName;
+    QString tempSubDirectory = tempDirectory + "/" + TEMP_NAME;
     QDir dir = tempSubDirectory;
     dir.mkdir(tempSubDirectory);
     JlCompress::extractDir(testResults, tempSubDirectory);
 
     // TestRail will be updated after the process initiated by getTestRunFromTestRail has completed
     getRunsFromTestRail();
+
+    dir.rmdir(tempSubDirectory);
+}
+
+void TestRailInterface::extractTestFailuresFromZippedFolder(const QString& testResults, const QString& tempDirectory) {
+    QString tempSubDirectory = tempDirectory + "/" + TEMP_NAME;
+    QDir dir = tempSubDirectory;
+    dir.mkdir(tempSubDirectory);
+    JlCompress::extractDir(testResults, tempSubDirectory);
 }

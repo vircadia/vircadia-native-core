@@ -85,6 +85,8 @@ public:
 
     void postParentFixup() override;
 
+    AACube calculateInitialQueryAACube(bool& success) override;
+
 private:
     // URL for this material.  Currently, only JSON format is supported.  Set to "materialData" to use the material data to live edit a material.
     // The following fields are supported in the JSON:
