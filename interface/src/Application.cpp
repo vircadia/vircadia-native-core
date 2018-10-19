@@ -2330,23 +2330,29 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
 #else
-    static int CHECK_LOGIN_TIMER = 3000;
-    QTimer* checkLoginTimer = new QTimer(this);
-    checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
-    checkLoginTimer->setSingleShot(true);
-    connect(checkLoginTimer, &QTimer::timeout, this, []() {
-        auto accountManager = DependencyManager::get<AccountManager>();
-        auto dialogsManager = DependencyManager::get<DialogsManager>();
-        if (!accountManager->isLoggedIn()) {
-            Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
-            dialogsManager->showLoginDialog();
-            QJsonObject loginData = {};
-            loginData["action"] = "login dialog shown";
-            UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        }
-    });
-    Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
-    checkLoginTimer->start();
+    // Do not show login dialog if requested not to on the command line
+    const QString HIFI_NO_LOGIN_COMMAND_LINE_KEY = "--no-login";
+    int index = arguments().indexOf(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
+    if (index == -1) {
+        // request not found
+        static int CHECK_LOGIN_TIMER = 3000;
+        QTimer* checkLoginTimer = new QTimer(this);
+        checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
+        checkLoginTimer->setSingleShot(true);
+        connect(checkLoginTimer, &QTimer::timeout, this, []() {
+            auto accountManager = DependencyManager::get<AccountManager>();
+            auto dialogsManager = DependencyManager::get<DialogsManager>();
+            if (!accountManager->isLoggedIn()) {
+                Setting::Handle<bool>{ "loginDialogPoppedUp", false }.set(true);
+                dialogsManager->showLoginDialog();
+                QJsonObject loginData = {};
+                loginData["action"] = "login dialog shown";
+                UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
+            }
+        });
+        Setting::Handle<bool>{ "loginDialogPoppedUp", false }.set(false);
+        checkLoginTimer->start();
+    }
 #endif
 }
 
