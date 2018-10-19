@@ -54,10 +54,6 @@ var resourceRequestEvents = [];
 function signalResourceRequestEvent(data) {
     // Once we can tie resource request events to specific resources,
     // we will have to update the "0" in here.
-    if (!resourceObjectsInTest[0].resourceDataArray) {
-        resourceObjectsInTest[0].resourceDataArray = [];
-    }
-
     var resourceData = "from: " + data.extra + ": " + data.url.toString().replace("__NONE__,", "");
 
     if (resourceObjectsInTest[0].resourceDataArray.indexOf(resourceData) === -1) {
@@ -933,6 +929,7 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         resourceObject.currentlyRecordingResources = false;
         resourceObject.resourceAccessEventText = "";
         resourceObjectsInTest[resourceObject.resourceObjectId] = resourceObject;
+        resourceObjectsInTest[resourceObject.resourceObjectId].resourceDataArray = [];
         signalNewResourceObjectInTest(resourceObject);
         break;
     case 'tester_updateResourceObjectAssetType':
@@ -944,6 +941,7 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     case 'tester_updateResourceRecordingStatus':
         resourceObjectsInTest[message.objectId].currentlyRecordingResources = message.status;
         if (message.status) {
+            resourceObjectsInTest[message.objectId].resourceDataArray = [];
             resourceObjectsInTest[message.objectId].resourceAccessEventText = "";
         }
         break;
