@@ -64,7 +64,7 @@
         name: "Loading-Sphere",
         position: Vec3.sum(Vec3.sum(MyAvatar.position, { x: 0.0, y: -1.0, z: 0.0 }), Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.95, z: 0 })),
         orientation: Quat.multiply(Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }), MyAvatar.orientation),
-        url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/black-sphere.fbx",
+        url: Script.resolvePath("/~/system/assets/models/black-sphere.fbx"),
         dimensions: DEFAULT_DIMENSIONS,
         alpha: 1,
         visible: isVisible,
