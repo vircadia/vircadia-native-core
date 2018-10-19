@@ -281,15 +281,6 @@ Rectangle {
         }
     }
 
-    function addAllInstalledAppsToList() {
-        var i, apps = Commerce.getInstalledApps().split(","), len = apps.length;
-        for(i = 0; i < len - 1; ++i) {
-            if (i in apps) {
-                resourceListModel.append(buildResourceObj(apps[i]));
-            }
-        }
-    }
-
     function toUrl(resource) {
         var httpPattern = /^http/i;
         return httpPattern.test(resource) ? resource : "file:///" + resource;
