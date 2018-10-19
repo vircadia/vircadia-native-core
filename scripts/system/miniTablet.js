@@ -23,12 +23,17 @@
         miniState = null,
 
         // Hands.
+        NO_HAND = -1,
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
         HAND_NAMES = ["LeftHand", "RightHand"],
 
-        // Miscellaneous.
+        // Track controller grabbing state.
         HIFI_OBJECT_MANIPULATION_CHANNEL = "Hifi-Object-Manipulation",
+        grabbingHand = NO_HAND,
+        grabbedItem = null,
+
+        // Miscellaneous.
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system"),
         DEBUG = false;
 
@@ -737,37 +742,11 @@
             setState(MINI_VISIBLE);
         }
 
-        function enterMiniShowing(hand) {
-            miniHand = hand;
-            ui.show(miniHand);
-            miniScaleStart = Date.now();
-            miniScaleTimer = Script.setTimeout(scaleMiniUp, MINI_SCALE_TIMEOUT);
-        }
-
-        function updateMiniShowing() {
-            if (HMD.showTablet) {
-                setState(MINI_HIDDEN);
-            }
-        }
-
-        function exitMiniShowing() {
-            if (miniScaleTimer) {
-                Script.clearTimeout(miniScaleTimer);
-                miniScaleTimer = null;
-            }
-        }
-
-        function updateMiniVisible() {
+        function checkMiniVisibility() {
             var showLeft,
                 showRight;
 
-            // Hide mini tablet if tablet proper has been displayed by other means.
-            if (HMD.showTablet) {
-                setState(MINI_HIDDEN);
-                return;
-            }
-
-            // Check that the mini tablet should still be visible and if so then ensure it's on the hand that the camera is 
+            // Check that the mini tablet should still be visible and if so then ensure it's on the hand that the camera is
             // gazing at.
             showLeft = shouldShowMini(LEFT_HAND);
             showRight = shouldShowMini(RIGHT_HAND);
@@ -790,8 +769,47 @@
                     setState(MINI_HIDING);
                 }
             } else {
-                setState(MINI_HIDING);
+                if (grabbedItem === null || grabbingHand !== miniHand) {
+                    setState(MINI_HIDING);
+                } else {
+                    setState(MINI_HIDDEN);
+                }
             }
+        }
+
+        function enterMiniShowing(hand) {
+            miniHand = hand;
+            ui.show(miniHand);
+            miniScaleStart = Date.now();
+            miniScaleTimer = Script.setTimeout(scaleMiniUp, MINI_SCALE_TIMEOUT);
+        }
+
+        function updateMiniShowing() {
+            // Hide mini tablet if tablet proper has been displayed by other means.
+            if (HMD.showTablet) {
+                setState(MINI_HIDDEN);
+            }
+
+            // Hide mini tablet if it should no longer be visible.
+            checkMiniVisibility();
+        }
+
+        function exitMiniShowing() {
+            if (miniScaleTimer) {
+                Script.clearTimeout(miniScaleTimer);
+                miniScaleTimer = null;
+            }
+        }
+
+        function updateMiniVisible() {
+            // Hide mini tablet if tablet proper has been displayed by other means.
+            if (HMD.showTablet) {
+                setState(MINI_HIDDEN);
+                return;
+            }
+
+            // Hide mini tablet if it should no longer be visible.
+            checkMiniVisibility();
 
             // If state hasn't changed, update mini tablet rotation.
             if (miniState === MINI_VISIBLE) {
@@ -971,6 +989,21 @@
             message = JSON.parse(data);
         } catch (e) {
             return;
+        }
+
+        // Track grabbed state and item.
+        switch (message.action) {
+            case "grab":
+                grabbingHand = HAND_NAMES.indexOf(message.joint);
+                grabbedItem = message.grabbedEntity;
+                break;
+            case "release":
+                grabbingHand = NO_HAND;
+                grabbedItem = null;
+                break;
+            default:
+                error("Unexpected grab message!");
+                return;
         }
 
         if (message.grabbedEntity !== HMD.tabletID && message.grabbedEntity !== ui.getMiniTabletID()) {
