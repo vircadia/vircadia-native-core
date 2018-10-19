@@ -1116,6 +1116,7 @@ public:
     float getSprintSpeed() const;
     void setSitStandStateChange(bool stateChanged);
     float getSitStandStateChange() const;
+    void updateSitStandState(float newHeightReading, float dt);
 
     QVector<QString> getScriptUrls();
 
@@ -1743,7 +1744,7 @@ private:
         float getMaxTimeRemaining() const;
         void decrementTimeRemaining(float dt);
         bool shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
-        bool shouldActivateVertical(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateHorizontalCG(MyAvatar& myAvatar) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
@@ -1756,11 +1757,11 @@ private:
         void setForceActivateHorizontal(bool val);
         bool getToggleHipsFollowing() const;
         void setToggleHipsFollowing(bool followHead);
+        bool _squatDetected { false };
         std::atomic<bool> _forceActivateRotation { false };
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
         std::atomic<bool> _toggleHipsFollowing { true };
-        int _velocityCount { 0 };
     };
     FollowHelper _follow;
 
@@ -1831,10 +1832,9 @@ private:
     const float DEFAULT_FLOOR_HEIGHT = 0.0f;
 
     // height of user in sensor space, when standing erect.
-    ThreadSafeValueCache<float> _userHeight{ DEFAULT_AVATAR_HEIGHT };
-    float _sumUserHeightSensorSpace{ DEFAULT_AVATAR_HEIGHT };
-    int _averageUserHeightCount{ 1 };
-    bool _sitStandStateChange{ false };
+    ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
+    float _averageUserHeightSensorSpace { _userHeight.get() };
+    bool _sitStandStateChange { false };
     ThreadSafeValueCache<bool> _lockSitStandState { false };
 
     // max unscaled forward movement speed
@@ -1844,9 +1844,9 @@ private:
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
     bool _isInWalkingState { false };
     ThreadSafeValueCache<bool> _isInSittingState { false };
-    int _sitStandStateCount { 0 };
-    int _squatCount { 0 };
-    float _tippingPoint { DEFAULT_FLOOR_HEIGHT };
+    float _sitStandStateTimer { 0.0f };
+    float _squatTimer { 0.0f };
+    float _tippingPoint { _userHeight.get() };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
