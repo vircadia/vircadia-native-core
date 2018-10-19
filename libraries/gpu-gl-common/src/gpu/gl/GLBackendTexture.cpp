@@ -79,3 +79,55 @@ void GLBackend::do_generateTextureMips(const Batch& batch, size_t paramOffset) {
 
     object->generateMips();
 }
+
+void GLBackend::do_generateTextureMipsWithPipeline(const Batch& batch, size_t paramOffset) {
+    TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
+    if (!resourceTexture) {
+        return;
+    }
+
+    // Always make sure the GLObject is in sync
+    GLTexture* object = syncGPUObject(resourceTexture);
+    if (object) {
+        GLuint to = object->_texture;
+        glActiveTexture(GL_TEXTURE0 + gpu::slot::texture::MipCreationInput);
+        glBindTexture(object->_target, to);
+        (void)CHECK_GL_ERROR();
+    } else {
+        return;
+    }
+
+    auto numMips = batch._params[paramOffset + 1]._int;
+    if (numMips < 0) {
+        numMips = resourceTexture->getNumMips();
+    } else {
+        numMips = std::min(numMips, (int)resourceTexture->getNumMips());
+    }
+
+    if (_mipGenerationFramebufferId == 0) {
+        glGenFramebuffers(1, &_mipGenerationFramebufferId);
+        Q_ASSERT(_mipGenerationFramebufferId > 0);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, _mipGenerationFramebufferId);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, 0);
+
+    for (int level = 1; level < numMips; level++) {
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, object->_id, level);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, level - 1);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
+
+        const auto mipDimensions = resourceTexture->evalMipDimensions(level);
+        glViewport(0, 0, mipDimensions.x, mipDimensions.y);
+        draw(GL_TRIANGLE_STRIP, 4, 0);
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, numMips - 1);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    resetOutputStage();
+    // Restore viewport
+    ivec4& vp = _transform._viewport;
+    glViewport(vp.x, vp.y, vp.z, vp.w);
+}

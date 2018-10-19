@@ -134,10 +134,13 @@ public:
     bool _isBlendShaped { false };
     bool _hasTangents { false };
 
+    void setBlendshapeBuffer(const std::unordered_map<int, gpu::BufferPointer>& blendshapeBuffers, const QVector<int>& blendedMeshSizes);
+
 private:
     void initCache(const ModelPointer& model);
 
-    gpu::BufferPointer _blendshapeBuffer;
+    gpu::BufferPointer _meshBlendshapeBuffer;
+    int _meshNumVertices;
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
 };
 

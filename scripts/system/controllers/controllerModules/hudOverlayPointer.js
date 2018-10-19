@@ -24,7 +24,7 @@
         this.reticleMinY = MARGIN;
         this.reticleMaxY;
         this.parameters = ControllerDispatcherUtils.makeDispatcherModuleParameters(
-            540,
+            160, // Same as webSurfaceLaserInput.
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100,
@@ -63,7 +63,6 @@
 
         this.processLaser = function(controllerData) {
             var controllerLocation = controllerData.controllerLocations[this.hand];
-            // var otherModuleRunning = this.getOtherModule().running;
             if ((controllerData.triggerValues[this.hand] < ControllerDispatcherUtils.TRIGGER_ON_VALUE || !controllerLocation.valid) ||
                 this.pointingAtTablet(controllerData)) {
                 return false;

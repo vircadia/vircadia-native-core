@@ -354,6 +354,7 @@ Rectangle {
         listModelName: "Send Money Connections";
         z: 997;
         visible: root.activeView === "sendMoney";
+        keyboardContainer: root;
         anchors.fill: parent;
         parentAppTitleBarHeight: titleBarContainer.height;
         parentAppNavBarHeight: tabButtonsContainer.height;
