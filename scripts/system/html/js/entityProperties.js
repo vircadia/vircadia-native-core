@@ -1,6 +1,7 @@
 //  entityProperties.js
 //
 //  Created by Ryan Huffman on 13 Nov 2014
+//  Modified by David Back on 19 Oct 2018
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -26,9 +27,7 @@ const ICON_FOR_TYPE = {
     Material: "&#xe00b;"
 };  
 
-const PI = 3.14159265358979;
-const DEGREES_TO_RADIANS = PI / 180.0;
-const RADIANS_TO_DEGREES = 180.0 / PI;
+const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
 const NO_SELECTION = "<i>No selection</i>";
 
@@ -564,7 +563,7 @@ const GROUPS = [
                 type: "vec2",
                 vec2Type: "xy",
                 min: 0,
-                min: 1,
+                max: 1,
                 step: 0.1,
                 decimals: 4,
                 subLabels: [ "x", "y" ],
@@ -883,7 +882,7 @@ const GROUPS = [
                 propertyID: "azimuthFinish",
             },
             {
-                label: "Verical Angle Start",
+                label: "Vertical Angle Start",
                 type: "slider",
                 min: 0,
                 max: 180,
@@ -893,7 +892,7 @@ const GROUPS = [
                 propertyID: "polarStart",
             },
             {
-                label: "Verical Angle Finish",
+                label: "Vertical Angle Finish",
                 type: "slider",
                 min: 0,
                 max: 180,
@@ -1233,11 +1232,52 @@ const GROUPS_PER_TYPE = {
 
 const EDITOR_TIMEOUT_DURATION = 1500;
 const DEBOUNCE_TIMEOUT = 125;
+
+const COLOR_MIN = 0;
+const COLOR_MAX = 255;
+const COLOR_STEP = 1;
+
 const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 
 const MATERIAL_PREFIX_STRING = "mat::";
 
 const PENDING_SCRIPT_STATUS = "[ Fetching status ]";
+
+const PROPERTY_NAME_DIVISION = {
+    GROUP: 0,
+    PROPERTY: 1,
+    SUBPROPERTY: 2,
+};
+
+const VECTOR_ELEMENTS = {
+    X_INPUT: 0,
+    Y_INPUT: 1,
+    Z_INPUT: 2,
+};
+
+const COLOR_ELEMENTS = {
+    COLOR_PICKER: 0,
+    RED_INPUT: 1,
+    GREEN_INPUT: 2,
+    BLUE_INPUT: 3,
+};
+
+const SLIDER_ELEMENTS = {
+    SLIDER: 0,
+    NUMBER_INPUT: 1,
+};
+
+const ICON_ELEMENTS = {
+    ICON: 0,
+    LABEL: 1,
+};
+
+const TEXTURE_ELEMENTS = {
+    IMAGE: 0,
+    TEXT_INPUT: 1,
+};
+
+const JSON_EDITOR_ROW_DIV_INDEX = 2;
 
 var elGroups = {};
 var properties = {};
@@ -1420,26 +1460,26 @@ function showGroupsForType(type) {
     }
 }
 
-function getPropertyValue(propertyName) {
+function getPropertyValue(originalPropertyName) {
     // if this is a compound property name (i.e. animation.running) 
     // then split it by . up to 3 times to find property value
     let propertyValue;
-    let splitPropertyName = propertyName.split('.');
+    let splitPropertyName = originalPropertyName.split('.');
     if (splitPropertyName.length > 1) {
-        let propertyGroupName = splitPropertyName[0];
-        let subPropertyName = splitPropertyName[1];
+        let propertyGroupName = splitPropertyName[PROPERTY_NAME_DIVISION.GROUP];
+        let propertyName = splitPropertyName[PROPERTY_NAME_DIVISION.PROPERTY];
         let groupProperties = selectedEntityProperties[propertyGroupName];
-        if (groupProperties === undefined || groupProperties[subPropertyName] === undefined) {
+        if (groupProperties === undefined || groupProperties[propertyName] === undefined) {
             return undefined;
         }
-        if (splitPropertyName.length === 3) { 
-            let subSubPropertyName = splitPropertyName[2];
-            propertyValue = groupProperties[subPropertyName][subSubPropertyName];
+        if (splitPropertyName.length === PROPERTY_NAME_DIVISION.SUBPROPERTY + 1) { 
+            let subPropertyName = splitPropertyName[PROPERTY_NAME_DIVISION.SUBPROPERTY];
+            propertyValue = groupProperties[propertyName][subPropertyName];
         } else {
-            propertyValue = groupProperties[subPropertyName];
+            propertyValue = groupProperties[propertyName];
         }
     } else {
-        propertyValue = selectedEntityProperties[propertyName];
+        propertyValue = selectedEntityProperties[originalPropertyName];
     }
     return propertyValue;
 }
@@ -1449,23 +1489,23 @@ function getPropertyValue(propertyName) {
  * PROPERTY UPDATE FUNCTIONS
  */
 
-function updateProperty(propertyName, propertyValue) {
+function updateProperty(originalPropertyName, propertyValue) {
     let propertyUpdate = {};
     // if this is a compound property name (i.e. animation.running) then split it by . up to 3 times
-    let splitPropertyName = propertyName.split('.');
+    let splitPropertyName = originalPropertyName.split('.');
     if (splitPropertyName.length > 1) {
-        let propertyGroupName = splitPropertyName[0];
-        let subPropertyName = splitPropertyName[1];
+        let propertyGroupName = splitPropertyName[PROPERTY_NAME_DIVISION.GROUP];
+        let propertyName = splitPropertyName[PROPERTY_NAME_DIVISION.PROPERTY];
         propertyUpdate[propertyGroupName] = {};
-        if (splitPropertyName.length === 3) { 
-            let subSubPropertyName = splitPropertyName[2];
-            propertyUpdate[propertyGroupName][subPropertyName] = {};
-            propertyUpdate[propertyGroupName][subPropertyName][subSubPropertyName] = propertyValue;
+        if (splitPropertyName.length === PROPERTY_NAME_DIVISION.SUBPROPERTY + 1) { 
+            let subPropertyName = splitPropertyName[PROPERTY_NAME_DIVISION.SUBPROPERTY];
+            propertyUpdate[propertyGroupName][propertyName] = {};
+            propertyUpdate[propertyGroupName][propertyName][subPropertyName] = propertyValue;
         } else {
-            propertyUpdate[propertyGroupName][subPropertyName] = propertyValue;
+            propertyUpdate[propertyGroupName][propertyName] = propertyValue;
         }
     } else {
-        propertyUpdate[propertyName] = propertyValue;
+        propertyUpdate[originalPropertyName] = propertyValue;
     }
     updateProperties(propertyUpdate);
 }
@@ -1719,7 +1759,10 @@ function createSliderProperty(property, elProperty, elLabel) {
     elDiv.appendChild(elInput);
     elProperty.appendChild(elDiv);
     
-    return [ elSlider, elInput ];
+    let elResult = [];
+    elResult[SLIDER_ELEMENTS.SLIDER] = elSlider;
+    elResult[SLIDER_ELEMENTS.NUMBER_INPUT] = elInput;
+    return elResult;
 }
 
 function createVec3Property(property, elProperty, elLabel) {
@@ -1737,11 +1780,11 @@ function createVec3Property(property, elProperty, elLabel) {
     elProperty.appendChild(elLabel);
     elProperty.appendChild(elTuple);
     
-    let elInputX = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[0], 
+    let elInputX = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
                                           propertyData.min, propertyData.max, propertyData.step);
-    let elInputY = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[1], 
+    let elInputY = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
                                           propertyData.min, propertyData.max, propertyData.step);
-    let elInputZ = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[2], 
+    let elInputZ = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Z_INPUT], 
                                           propertyData.min, propertyData.max, propertyData.step);
     
     let inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elInputX, elInputY, 
@@ -1750,7 +1793,11 @@ function createVec3Property(property, elProperty, elLabel) {
     elInputY.addEventListener('change', inputChangeFunction);
     elInputZ.addEventListener('change', inputChangeFunction);
     
-    return [ elInputX, elInputY, elInputZ ];
+    let elResult = [];
+    elResult[VECTOR_ELEMENTS.X_INPUT] = elInputX;
+    elResult[VECTOR_ELEMENTS.Y_INPUT] = elInputY;
+    elResult[VECTOR_ELEMENTS.Z_INPUT] = elInputZ;
+    return elResult;
 }
 
 function createVec2Property(property, elProperty, elLabel) {  
@@ -1768,9 +1815,9 @@ function createVec2Property(property, elProperty, elLabel) {
     elProperty.appendChild(elLabel);
     elProperty.appendChild(elTuple);
     
-    let elInputX = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[0], 
+    let elInputX = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
                                           propertyData.min, propertyData.max, propertyData.step);
-    let elInputY = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[1], 
+    let elInputY = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
                                           propertyData.min, propertyData.max, propertyData.step);
     
     let inputChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elInputX, 
@@ -1778,7 +1825,10 @@ function createVec2Property(property, elProperty, elLabel) {
     elInputX.addEventListener('change', inputChangeFunction);
     elInputY.addEventListener('change', inputChangeFunction);
     
-    return [elInputX, elInputY];
+    let elResult = [];
+    elResult[VECTOR_ELEMENTS.X_INPUT] = elInputX;
+    elResult[VECTOR_ELEMENTS.Y_INPUT] = elInputY;
+    return elResult;
 }
 
 function createColorProperty(property, elProperty, elLabel) {
@@ -1798,9 +1848,9 @@ function createColorProperty(property, elProperty, elLabel) {
     elProperty.appendChild(elLabel);
     elProperty.appendChild(elTuple);
     
-    let elInputR = createTupleNumberInput(elTuple, elementID, "red", 0, 255, 1);
-    let elInputG = createTupleNumberInput(elTuple, elementID, "green", 0, 255, 1);
-    let elInputB = createTupleNumberInput(elTuple, elementID, "blue", 0, 255, 1);
+    let elInputR = createTupleNumberInput(elTuple, elementID, "red", COLOR_MIN, COLOR_MAX, COLOR_STEP);
+    let elInputG = createTupleNumberInput(elTuple, elementID, "green", COLOR_MIN, COLOR_MAX, COLOR_STEP);
+    let elInputB = createTupleNumberInput(elTuple, elementID, "blue", COLOR_MIN, COLOR_MAX, COLOR_STEP);
     
     let inputChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elInputR, elInputG, elInputB);  
     elInputR.addEventListener('change', inputChangeFunction);
@@ -1832,7 +1882,12 @@ function createColorProperty(property, elProperty, elLabel) {
         }
     });
     
-    return [elColorPicker, elInputR, elInputG, elInputB];
+    let elResult = [];
+    elResult[COLOR_ELEMENTS.COLOR_PICKER] = elColorPicker;
+    elResult[COLOR_ELEMENTS.RED_INPUT] = elInputR;
+    elResult[COLOR_ELEMENTS.GREEN_INPUT] = elInputG;
+    elResult[COLOR_ELEMENTS.BLUE_INPUT] = elInputB;
+    return elResult;
 }
 
 function createDropdownProperty(property, propertyID, elProperty, elLabel) { 
@@ -1902,7 +1957,10 @@ function createIconProperty(property, elProperty, elLabel) {
     elProperty.appendChild(elSpan);
     elProperty.appendChild(elLabel);
     
-    return [ elSpan, elLabel ];
+    let elResult = [];
+    elResult[ICON_ELEMENTS.ICON] = elSpan;
+    elResult[ICON_ELEMENTS.LABEL] = elLabel;
+    return elResult;
 }
 
 function createTextureProperty(property, elProperty, elLabel) { 
@@ -1952,8 +2010,11 @@ function createTextureProperty(property, elProperty, elLabel) {
     elProperty.appendChild(elLabel);
     elProperty.appendChild(elDiv);
     elProperty.appendChild(elInput);
-    
-    return [ elImage, elInput ];
+   
+    let elResult = [];
+    elResult[TEXTURE_ELEMENTS.IMAGE] = elImage;
+    elResult[TEXTURE_ELEMENTS.TEXT_INPUT] = elInput;
+    return elResult;
 }
 
 function createButtonsProperty(property, elProperty, elLabel) {
@@ -2468,7 +2529,7 @@ function saveJSONMaterialData(noUpdate) {
 function bindAllNonJSONEditorElements() {
     var inputs = $('input');
     var i;
-    for (i = 0; i < inputs.length; i++) {
+    for (i = 0; i < inputs.length; ++i) {
         var input = inputs[i];
         var field = $(input);
         // TODO FIXME: (JSHint) Functions declared within loops referencing 
@@ -2497,7 +2558,7 @@ function bindAllNonJSONEditorElements() {
 function setDropdownText(dropdown) {
     let lis = dropdown.parentNode.getElementsByTagName("li");
     let text = "";
-    for (let i = 0; i < lis.length; i++) {
+    for (let i = 0; i < lis.length; ++i) {
         if (String(lis[i].getAttribute("value")) === String(dropdown.value)) {
             text = lis[i].textContent;
         }
@@ -2584,6 +2645,7 @@ function loaded() {
                 let propertyID = propertyData.propertyID;               
                 let propertyName = propertyData.propertyName !== undefined ? propertyData.propertyName : propertyID;
                 let propertyElementID = "property-" + propertyID;
+                propertyElementID = propertyElementID.replace('.', '-');
                 
                 let elProperty;
                 if (propertyType === "sub-header") {
@@ -2644,29 +2706,29 @@ function loaded() {
                     }
                     case 'slider': {
                         let elSlider = createSliderProperty(property, elProperty, elLabel);
-                        properties[propertyID].elSlider = elSlider[0];
-                        properties[propertyID].elInput = elSlider[1];
+                        properties[propertyID].elSlider = elSlider[SLIDER_ELEMENTS.SLIDER];
+                        properties[propertyID].elInput = elSlider[SLIDER_ELEMENTS.NUMBER_INPUT];
                         break;
                     }
                     case 'vec3': {
                         let elVec3 = createVec3Property(property, elProperty, elLabel);  
-                        properties[propertyID].elInputX = elVec3[0];
-                        properties[propertyID].elInputY = elVec3[1];
-                        properties[propertyID].elInputZ = elVec3[2];
+                        properties[propertyID].elInputX = elVec3[VECTOR_ELEMENTS.X_INPUT];
+                        properties[propertyID].elInputY = elVec3[VECTOR_ELEMENTS.Y_INPUT];
+                        properties[propertyID].elInputZ = elVec3[VECTOR_ELEMENTS.Z_INPUT];
                         break;
                     }
                     case 'vec2': {
                         let elVec2 = createVec2Property(property, elProperty, elLabel);  
-                        properties[propertyID].elInputX = elVec2[0];
-                        properties[propertyID].elInputY = elVec2[1];
+                        properties[propertyID].elInputX = elVec2[VECTOR_ELEMENTS.X_INPUT];
+                        properties[propertyID].elInputY = elVec2[VECTOR_ELEMENTS.Y_INPUT];
                         break;
                     }
                     case 'color': {
                         let elColor = createColorProperty(property, elProperty, elLabel);  
-                        properties[propertyID].elColorPicker = elColor[0];
-                        properties[propertyID].elInputR = elColor[1];
-                        properties[propertyID].elInputG = elColor[2];
-                        properties[propertyID].elInputB = elColor[3]; 
+                        properties[propertyID].elColorPicker = elColor[COLOR_ELEMENTS.COLOR_PICKER];
+                        properties[propertyID].elInputR = elColor[COLOR_ELEMENTS.RED_INPUT];
+                        properties[propertyID].elInputG = elColor[COLOR_ELEMENTS.GREEN_INPUT];
+                        properties[propertyID].elInputB = elColor[COLOR_ELEMENTS.BLUE_INPUT]; 
                         break;
                     }
                     case 'dropdown': {
@@ -2679,14 +2741,14 @@ function loaded() {
                     }
                     case 'icon': {
                         let elIcon = createIconProperty(property, elProperty, elLabel);
-                        properties[propertyID].elSpan = elIcon[0];
-                        properties[propertyID].elLabel = elIcon[1];
+                        properties[propertyID].elSpan = elIcon[ICON_ELEMENTS.ICON];
+                        properties[propertyID].elLabel = elIcon[ICON_ELEMENTS.LABEL];
                         break;
                     }
                     case 'texture': {
                         let elTexture = createTextureProperty(property, elProperty, elLabel);
-                        properties[propertyID].elImage = elTexture[0];
-                        properties[propertyID].elInput = elTexture[1];
+                        properties[propertyID].elImage = elTexture[TEXTURE_ELEMENTS.IMAGE];
+                        properties[propertyID].elInput = elTexture[TEXTURE_ELEMENTS.TEXT_INPUT];
                         break;
                     }
                     case 'buttons': {
@@ -2785,7 +2847,7 @@ function loaded() {
                         let types = {};
                         let numTypes = 0;
 
-                        for (let i = 0; i < selections.length; i++) {
+                        for (let i = 0; i < selections.length; ++i) {
                             ids.push(selections[i].id);
                             let currentSelectedType = selections[i].properties.type;
                             if (types[currentSelectedType] === undefined) {
@@ -2810,7 +2872,7 @@ function loaded() {
                         
                         disableProperties();
                     } else {
-                        selectedEntityProperties = data.selections[0].properties;         
+                        selectedEntityProperties = data.selections[0].properties;
                         
                         if (lastEntityID !== '"' + selectedEntityProperties.id + '"' && lastEntityID !== null) {
                             if (editor !== null) {
@@ -3061,7 +3123,7 @@ function loaded() {
         let elUserDataSaved = document.createElement('span');
         elUserDataSaved.setAttribute("id", userDataElementID + "-saved");
         elUserDataSaved.innerText = "Saved!";
-        elDiv.childNodes[2].appendChild(elUserDataSaved);
+        elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elUserDataSaved);
         elDiv.insertBefore(elStaticUserData, elUserData);
         elDiv.insertBefore(elUserDataEditor, elUserData);
         
@@ -3077,7 +3139,7 @@ function loaded() {
         let elMaterialDataSaved = document.createElement('span');
         elMaterialDataSaved.setAttribute("id", materialDataElementID + "-saved");
         elMaterialDataSaved.innerText = "Saved!";
-        elDiv.childNodes[2].appendChild(elMaterialDataSaved);
+        elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elMaterialDataSaved);
         elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
         
@@ -3156,7 +3218,7 @@ function loaded() {
             for (let optionIndex = 0; optionIndex < options.length; ++optionIndex) {
                 if (options[optionIndex].getAttribute("selected") === "selected") {
                     selectedOption = optionIndex;
-                    // TODO:  Shouldn't there be a break here?
+                    break;
                 }
             }
             let div = elDropdown.parentNode;
@@ -3225,7 +3287,7 @@ function loaded() {
         
         // For input and textarea elements, select all of the text on focus
         let els = document.querySelectorAll("input, textarea");
-        for (let i = 0; i < els.length; i++) {
+        for (let i = 0; i < els.length; ++i) {
             els[i].onfocus = function (e) {
                 e.target.select();
             };

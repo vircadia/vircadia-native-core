@@ -614,8 +614,8 @@ hr {
     margin-top: 0;
 }
 
-.checkbox-sub-props {   
-    margin-top: 18px;   
+.checkbox-sub-props {
+    margin-top: 18px;
 }
 
 .property .number {
@@ -969,12 +969,12 @@ div.refresh input[type="button"] {
     margin-top: 6px;
 }
 
-fieldset .checkbox-sub-props {  
-     margin-top: 0; 
-}   
+fieldset .checkbox-sub-props {
+     margin-top: 0;
+}
 
-fieldset .checkbox-sub-props .property:first-child {    
-    margin-top: 0;  
+fieldset .checkbox-sub-props .property:first-child {
+    margin-top: 0;
 }
 
 .column {
