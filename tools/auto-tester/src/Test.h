@@ -16,6 +16,7 @@
 #include <QtCore/QRegularExpression>
 #include <QProgressBar>
 
+#include "AWSInterface.h"
 #include "ImageComparer.h"
 #include "ui/MismatchWindow.h"
 #include "TestRailInterface.h"
@@ -41,28 +42,41 @@ enum TestRailCreateMode {
 
 class Test {
 public: 
-    Test();
+    Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode);
 
-    void startTestsEvaluation(const QString& testFolder = QString(), const QString& branchFromCommandLine = QString(), const QString& userFromCommandLine = QString());
-    void finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar);
+    void startTestsEvaluation(const bool isRunningFromCommandLine,
+                              const bool isRunningInAutomaticTestRun, 
+                              const QString& snapshotDirectory = QString(),
+                              const QString& branchFromCommandLine = QString(),
+                              const QString& userFromCommandLine = QString());
 
-    void createRecursiveScript();
-    void createAllRecursiveScripts();
-    void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
+    void finishTestsEvaluation();
 
     void createTests();
 
     void createTestsOutline();
 
+    bool createFileSetup();
+    bool createAllFilesSetup();
+
     void createMDFile();
     void createAllMDFiles();
-    void createMDFile(const QString& topLevelDirectory);
+    bool createMDFile(const QString& directory);
+
+    void createTestAutoScript();
+    void createAllTestAutoScripts();
+    bool createTestAutoScript(const QString& directory);
 
     void createTestRailTestCases();
     void createTestRailRun();
+
     void updateTestRailRunResult();
 
-    bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
+    void createRecursiveScript();
+    void createAllRecursiveScripts();
+    void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
+
+    int compareImageLists();
 
     QStringList createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory);
 
@@ -70,10 +84,10 @@ public:
 
     void includeTest(QTextStream& textStream, const QString& testPathname);
 
-    void appendTestResultsToFile(const QString& testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
+    void appendTestResultsToFile(const QString& testResultsFolderPath, TestResult testResult, QPixmap comparisonImage, bool hasFailed);
 
     bool createTestResultsFolderPath(const QString& directory);
-    void zipAndDeleteTestResultsFolder();
+    QString zipAndDeleteTestResultsFolder();
 
     static bool isAValidDirectory(const QString& pathname);
 	QString extractPathFromTestsDown(const QString& fullPath);
@@ -84,12 +98,20 @@ public:
 
     void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
+    void createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit);
+
 private:
+    QProgressBar* _progressBar;
+    QCheckBox* _checkBoxInteractiveMode;
+
+    bool _isRunningFromCommandLine{ false };
+    bool _isRunningInAutomaticTestRun{ false };
+
     const QString TEST_FILENAME { "test.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
-    const double THRESHOLD{ 0.96 };
+    const double THRESHOLD{ 0.935 };
 
     QDir _imageDirectory;
 
@@ -98,7 +120,8 @@ private:
     ImageComparer _imageComparer;
 
     QString _testResultsFolderPath;
-    int _index { 1 };
+    int _failureIndex{ 1 };
+    int _successIndex{ 1 };
 
     // Expected images are in the format ExpectedImage_dddd.jpg (d == decimal digit)
     const int NUM_DIGITS { 5 };
@@ -132,8 +155,9 @@ private:
     bool _exitWhenComplete{ false };
 
     TestRailInterface _testRailInterface;
-
     TestRailCreateMode _testRailCreateMode { PYTHON };
+
+    AWSInterface _awsInterface;
 };
 
 #endif // hifi_test_h
