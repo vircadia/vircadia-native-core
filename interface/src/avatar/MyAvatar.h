@@ -143,6 +143,7 @@ class MyAvatar : public Avatar {
      * @property {number} walkBackwardSpeed
      * @property {number} sprintSpeed
      * @property {number} isInSittingState
+     * @property {number} recenterModel
      *
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
      *     registration point of the 3D model.
@@ -244,6 +245,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed);
     Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed);
     Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
+    Q_PROPERTY(MyAvatar::SitStandModelType recenterModel READ getRecenterModel WRITE setRecenterModel);
     Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);
 
     const QString DOMINANT_LEFT_HAND = "left";
@@ -264,6 +266,15 @@ public:
         MAX_DRIVE_KEYS
     };
     Q_ENUM(DriveKeys)
+
+    enum SitStandModelType {
+        ForceSit = 0,
+        ForceStand,
+        Auto,
+        DisableHMDLean,
+        NumSitStandTypes
+    };
+    Q_ENUM(SitStandModelType)
 
     explicit MyAvatar(QThread* thread);
     virtual ~MyAvatar();
@@ -1106,6 +1117,8 @@ public:
     bool getIsInWalkingState() const;
     void setIsInSittingState(bool isSitting);
     bool getIsInSittingState() const;
+    void setRecenterModel(MyAvatar::SitStandModelType modelName);
+    MyAvatar::SitStandModelType getRecenterModel() const;
     void setIsSitStandStateLocked(bool isLocked);
     bool getIsSitStandStateLocked() const;
     void setWalkSpeed(float value);
@@ -1531,6 +1544,14 @@ signals:
     void sittingEnabledChanged(bool enabled);
 
     /**jsdoc
+    * Triggered when the recenter model is changed
+    * @function MyAvatar.recenterModelChanged
+    * @param {int} modeltype
+    * @
+    */
+    void recenterModelChanged(int modelName);
+
+    /**jsdoc
     * Triggered when the sit state is enabled or disabled
     * @function MyAvatar.sitStandStateLockEnabledChanged
     * @param {boolean} enabled
@@ -1829,7 +1850,7 @@ private:
 
     void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
 
-    const float DEFAULT_FLOOR_HEIGHT = 0.0f;
+    
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
@@ -1844,6 +1865,7 @@ private:
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
     bool _isInWalkingState { false };
     ThreadSafeValueCache<bool> _isInSittingState { false };
+    ThreadSafeValueCache<MyAvatar::SitStandModelType> _recenterModel { MyAvatar::SitStandModelType::Auto };
     float _sitStandStateTimer { 0.0f };
     float _squatTimer { 0.0f };
     float _tippingPoint { _userHeight.get() };

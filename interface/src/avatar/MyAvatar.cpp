@@ -533,7 +533,7 @@ void MyAvatar::update(float deltaTime) {
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     setHipToHandController(computeHandAzimuth());
-    qCDebug(interfaceapp) << " the sit state is " << _isInSittingState.get() << " the lock is " << _lockSitStandState.get();
+    //qCDebug(interfaceapp) << " the sit state is " << _isInSittingState.get() << " the lock is " << _lockSitStandState.get();
 
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
@@ -3867,6 +3867,10 @@ bool MyAvatar::getIsInSittingState() const {
     return _isInSittingState.get();
 }
 
+MyAvatar::SitStandModelType MyAvatar::getRecenterModel() const {
+    return _recenterModel.get();
+}
+
 bool MyAvatar::getIsSitStandStateLocked() const {
     return _lockSitStandState.get();
 }
@@ -3903,7 +3907,36 @@ void MyAvatar::setIsInSittingState(bool isSitting) {
         setCenterOfGravityModelEnabled(true);
     }
     setSitStandStateChange(true);
+    
     emit sittingEnabledChanged(isSitting);
+}
+
+void MyAvatar::setRecenterModel(MyAvatar::SitStandModelType modelName) {
+
+    _recenterModel.set(modelName);
+    //int temp = 0;
+    qCDebug(interfaceapp) << "recenter property changed " << modelName;
+    switch (modelName) {
+    case SitStandModelType::ForceSit:
+        setIsInSittingState(true);
+        setIsSitStandStateLocked(true);
+        break;
+    case SitStandModelType::ForceStand:
+        setIsInSittingState(false);
+        setIsSitStandStateLocked(true);
+        break;
+    case SitStandModelType::Auto:
+        setIsInSittingState(false);
+        setIsSitStandStateLocked(false);
+        break;
+    case SitStandModelType::DisableHMDLean:
+        setHMDLeanRecenterEnabled(false);
+        setIsInSittingState(false);
+        setIsSitStandStateLocked(false);
+        break;
+    }
+    qCDebug(interfaceapp) << "recenter property changed " << modelName << " sit " << _isInSittingState.get() << " lock " << _lockSitStandState.get();
+    emit recenterModelChanged((int)modelName);
 }
 
 void MyAvatar::setIsSitStandStateLocked(bool isLocked) {

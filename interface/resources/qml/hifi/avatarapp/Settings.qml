@@ -20,8 +20,7 @@ Rectangle {
     property real scaleValue: scaleSlider.value / 10
     property alias dominantHandIsLeft: leftHandRadioButton.checked
     property alias avatarCollisionsOn: collisionsEnabledRadiobutton.checked
-    property alias avatarSittingOn: sitRadiobutton.checked
-    property alias avatarLockSitStandStateOn: lockSitStandStateCheckbox.checked
+    property alias avatarRecenterModelOn: boxy.currentIndex
     property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
     property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
@@ -47,21 +46,11 @@ Rectangle {
             collisionsDisabledRadioButton.checked = true;
         }
 
-        if (settings.sittingEnabled) {
-            sitRadiobutton.checked = true;
-        } else {
-            standRadioButton.checked = true;
-        }
-
-        if (settings.lockStateEnabled) {
-            lockSitStandStateCheckbox.checked = true;
-        } else {
-            lockSitStandStateCheckbox.checked = false;
-        }
-
         avatarAnimationJSON = settings.animGraphUrl;
         avatarAnimationOverrideJSON = settings.animGraphOverrideUrl;
         avatarCollisionSoundUrl = settings.collisionSoundUrl;
+        print("values " + avatarRecenterModelOn + " " + settings.recenterModel);
+        avatarRecenterModelOn = settings.recenterModel;
 
         visible = true;
     }
@@ -305,7 +294,7 @@ Rectangle {
             }
 
         // TextStyle9
-
+        
             RalewaySemiBold {
                 size: 17;
                 Layout.row: 2
@@ -318,51 +307,6 @@ Rectangle {
                 id: sitStand
             }
 
-            HifiControlsUit.RadioButton {
-                id: sitRadiobutton
-
-                Layout.row: 2
-                Layout.column: 1
-                Layout.leftMargin: -40
-
-                ButtonGroup.group: sitStand
-                checked: true
-
-                colorScheme: hifi.colorSchemes.light
-                fontSize: 17
-                letterSpacing: 1.4
-                text: "Sit"
-                boxSize: 20
-            }
-
-            HifiControlsUit.RadioButton {
-                id: standRadioButton
-
-                Layout.row: 2
-                Layout.column: 2
-                Layout.rightMargin: 20
-
-                ButtonGroup.group: sitStand
-
-                colorScheme: hifi.colorSchemes.light
-                fontSize: 17
-                letterSpacing: 1.4
-                text: "Stand"
-                boxSize: 20
-            }
-
-            // "Lock State" Checkbox
-
-            HifiControlsUit.CheckBox {
-                id: lockSitStandStateCheckbox
-                visible: activeTab == "nearbyTab"
-                anchors.right: reloadNearbyContainer.left
-                anchors.rightMargin: 20
-                checked: settings.lockStateEnabled
-                text: "lock"
-                boxSize: 24
-            }
-            
             // sit stand combo box
             HifiControlsUit.ComboBox {
                 id: boxy
@@ -375,29 +319,8 @@ Rectangle {
                     ListElement { text: "Auto Mode"; color: "Brown" }
                     ListElement { text: "Disable Recentering"; color: "Red" }
                 }
-                //displayText: "fred"
-                //label: cbItems.get(currentIndex).text
                 width: 200
                 onCurrentIndexChanged: {
-                    if (cbItems.get(currentIndex).text === "Force Sitting") {
-                        sitRadiobutton.checked = true
-                        lockSitStandStateCheckbox.checked = true
-                        settings.lockStateEnabled = true
-                        settings.sittingEnabled = true
-                    } else if (cbItems.get(currentIndex).text === "Force Standing") {
-                        sitRadiobutton.checked = false
-                        lockSitStandStateCheckbox.checked = true
-                        settings.lockStateEnabled = true
-                        settings.sittingEnabled = false
-                    } else if (cbItems.get(currentIndex).text === "auto") {
-                        sitRadiobutton.checked = false
-                        lockSitStandStateCheckbox.checked = false
-                        settings.lockStateEnabled = false
-                        settings.sittingEnabled = false
-                    } else if (cbItems.get(currentIndex).text === "Disable Recentering") {
-                        settings.lockStateEnabled = false
-                        settings.sittingEnabled = false
-                    }
                     console.debug(cbItems.get(currentIndex).text + ", " + cbItems.get(currentIndex).color)
                     console.debug("line 2")
                 }

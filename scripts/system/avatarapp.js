@@ -64,8 +64,7 @@ function getMyAvatarSettings() {
     return {
         dominantHand: MyAvatar.getDominantHand(),
         collisionsEnabled : MyAvatar.getCollisionsEnabled(),
-        sittingEnabled: MyAvatar.isInSittingState,
-        lockStateEnabled: MyAvatar.isSitStandStateLocked,
+        recenterModel: MyAvatar.recenterModel,
         collisionSoundUrl : MyAvatar.collisionSoundURL,
         animGraphUrl: MyAvatar.getAnimGraphUrl(),
         animGraphOverrideUrl : MyAvatar.getAnimGraphOverrideUrl(),
@@ -138,19 +137,11 @@ function onCollisionsEnabledChanged(enabled) {
     }
 }
 
-function onSittingEnabledChanged(isSitting) {
-    if (currentAvatarSettings.sittingEnabled !== isSitting) {
-        currentAvatarSettings.sittingEnabled = isSitting;
-        print("emit sitting changed");
-        sendToQml({ 'method': 'settingChanged', 'name': 'sittingEnabled', 'value': isSitting })
-    }
-}
-
-function onSitStandStateLockedEnabledChanged(isLocked) {
-    if (currentAvatarSettings.lockStateEnabled !== isLocked) {
-        currentAvatarSettings.lockStateEnabled = isLocked;
-        print("emit lock sit stand state changed");
-        sendToQml({ 'method': 'settingChanged', 'name': 'lockStateEnabled', 'value': isLocked })
+function onRecenterModelChanged(modelName) {
+    if (currentAvatarSettings.recenterModel !== modelName) {
+        currentAvatarSettings.recenterModel = modelName;
+        print("emit recenter model changed");
+        sendToQml({ 'method': 'settingChanged', 'name': 'recenterModel', 'value': modelName })
     }
 }
 
@@ -329,14 +320,11 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
     case 'saveSettings':
         MyAvatar.setAvatarScale(message.avatarScale);
         currentAvatar.avatarScale = message.avatarScale;
-
         MyAvatar.setDominantHand(message.settings.dominantHand);
         MyAvatar.setCollisionsEnabled(message.settings.collisionsEnabled);
-        MyAvatar.isInSittingState = message.settings.sittingEnabled;
-        MyAvatar.isSitStandStateLocked = message.settings.lockStateEnabled;
+        MyAvatar.recenterModel = message.settings.recenterModel;
         MyAvatar.collisionSoundURL = message.settings.collisionSoundUrl;
         MyAvatar.setAnimGraphOverrideUrl(message.settings.animGraphOverrideUrl);
-
         settings = getMyAvatarSettings();
         break;
     default:
@@ -527,8 +515,7 @@ function off() {
         MyAvatar.skeletonModelURLChanged.disconnect(onSkeletonModelURLChanged);
         MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
         MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
-        MyAvatar.sittingEnabledChanged.disconnect(onSittingEnabledChanged);
-        MyAvatar.sitStandStateLockEnabledChanged.disconnect(onSitStandStateLockedEnabledChanged);
+        MyAvatar.recenterModelChanged.disconnect(onRecenterModelChanged);
         MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
         MyAvatar.animGraphUrlChanged.disconnect(onAnimGraphUrlChanged);
         MyAvatar.targetScaleChanged.disconnect(onTargetScaleChanged);
@@ -543,8 +530,7 @@ function on() {
     MyAvatar.skeletonModelURLChanged.connect(onSkeletonModelURLChanged);
     MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
     MyAvatar.collisionsEnabledChanged.connect(onCollisionsEnabledChanged);
-    MyAvatar.sittingEnabledChanged.connect(onSittingEnabledChanged);
-    MyAvatar.sitStandStateLockEnabledChanged.connect(onSitStandStateLockedEnabledChanged);
+    MyAvatar.recenterModelChanged.connect(onRecenterModelChanged);
     MyAvatar.newCollisionSoundURL.connect(onNewCollisionSoundUrl);
     MyAvatar.animGraphUrlChanged.connect(onAnimGraphUrlChanged);
     MyAvatar.targetScaleChanged.connect(onTargetScaleChanged);
