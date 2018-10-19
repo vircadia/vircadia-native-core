@@ -52,27 +52,30 @@ var NO_PERMISSIONS_ERROR_MESSAGE = "Cannot download model because you can't writ
 
 var resourceRequestEvents = [];
 function signalResourceRequestEvent(data) {
+    // Once we can tie resource request events to specific resources,
+    // we will have to update the "0" in here.
+    resourceObjectsInTest[0].resourceAccessEventText += "[" + data.date.toISOString() + "] " +
+        data.url.toString().replace("__NONE__,", "") + "\n";
+
     ui.tablet.sendToQml({
         method: "resourceRequestEvent",
-        data: data });
+        data: data,
+        resourceAccessEventText: resourceObjectsInTest[0].resourceAccessEventText
+    });
 }
 
 function onResourceRequestEvent(data) {
-    var resourceRequestEvent = {
-        "date": JSON.stringify(new Date()),
-        "url": data.url,
-        "callerId": data.callerId,
-        "extra": data.extra };
-    resourceRequestEvents.push(resourceRequestEvent);
-    signalResourceRequestEvent(resourceRequestEvent);
-}
-
-function pushResourceRequestEvents() {
-    var length = resourceRequestEvents.length
-    for (var i = 0; i < length; i++) {
-        if (i in resourceRequestEvents) {
-            signalResourceRequestEvent(resourceRequestEvents[i]);
-        }
+    // Once we can tie resource request events to specific resources,
+    // we will have to update the "0" in here.
+    if (resourceObjectsInTest[0] && resourceObjectsInTest[0].currentlyRecordingResources) {
+        var resourceRequestEvent = {
+            "date": new Date(),
+            "url": data.url,
+            "callerId": data.callerId,
+            "extra": data.extra
+        };
+        resourceRequestEvents.push(resourceRequestEvent);
+        signalResourceRequestEvent(resourceRequestEvent);
     }
 }
 
@@ -849,7 +852,8 @@ var resourceObjectsInTest = [];
 function signalNewResourceObjectInTest(resourceObject) {
     ui.tablet.sendToQml({
         method: "newResourceObjectInTest",
-        resourceObject: resourceObject });
+        resourceObject: resourceObject
+    });
 }
 
 var onQmlMessageReceived = function onQmlMessageReceived(message) {
@@ -915,6 +919,9 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         break;
     case 'tester_newResourceObject':
         var resourceObject = message.resourceObject;
+        resourceObjectsInTest = []; // REMOVE THIS once we support specific referrers
+        resourceObject.currentlyRecordingResources = false;
+        resourceObject.resourceAccessEventText = "";
         resourceObjectsInTest[resourceObject.resourceObjectId] = resourceObject;
         signalNewResourceObjectInTest(resourceObject);
         break;
@@ -923,6 +930,12 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         break;
     case 'tester_deleteResourceObject':
         delete resourceObjectsInTest[message.objectId];
+        break;
+    case 'tester_updateResourceRecordingStatus':
+        resourceObjectsInTest[message.objectId].currentlyRecordingResources = message.status;
+        if (message.status) {
+            resourceObjectsInTest[message.objectId].resourceAccessEventText = "";
+        }
         break;
     case 'header_marketplaceImageClicked':
     case 'purchases_backClicked':
@@ -1076,7 +1089,9 @@ function pushResourceObjectsInTest() {
     // that the marketplace item tester QML has heard from us, at least
     // so that it can indicate to the user that all of the resoruce
     // objects in test have been transmitted to it.
-    ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: maxResourceObjectId + 1 });
+    //ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: maxResourceObjectId + 1 });
+    // Since, for now, we only support 1 object in test, always send id: 0
+    ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: 0 });
 }
 
 // Function Name: onTabletScreenChanged()
@@ -1165,7 +1180,6 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
         // variable amount of time to come up, in practice less than
         // 750ms.
         Script.setTimeout(pushResourceObjectsInTest, 750);
-        Script.setTimeout(pushResourceRequestEvents, 750);
     }
 
     console.debug(ui.buttonName + " app reports: Tablet screen changed.\nNew screen type: " + type +

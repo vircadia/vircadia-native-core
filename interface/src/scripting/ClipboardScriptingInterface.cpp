@@ -46,17 +46,11 @@ bool ClipboardScriptingInterface::exportEntities(const QString& filename, float 
     return retVal;
 }
 
-bool ClipboardScriptingInterface::importEntities(
-    const QString& filename,
-    const bool isObservable,
-    const qint64 callerId
-) {
+bool ClipboardScriptingInterface::importEntities(const QString& filename) {
     bool retVal;
     BLOCKING_INVOKE_METHOD(qApp, "importEntities",
                               Q_RETURN_ARG(bool, retVal),
-                              Q_ARG(const QString&, filename),
-                              Q_ARG(const bool, isObservable),
-                              Q_ARG(const qint64, callerId));
+                              Q_ARG(const QString&, filename));
     return retVal;
 }
 

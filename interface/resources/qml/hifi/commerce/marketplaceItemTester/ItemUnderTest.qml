@@ -29,7 +29,7 @@ Rectangle {
         "forward": function(resource, assetType, resourceObjectId){
             switch(assetType) {
                 case "application":
-                    Commerce.openApp(resource);
+                    Commerce.installApp(resource, true);
                     break;
                 case "avatar":
                     MyAvatar.useFullAvatarURL(resource);
@@ -137,7 +137,7 @@ Rectangle {
                 "entity": hifi.glyphs.wand,
                 "trash": hifi.glyphs.trash,
                 "unknown": hifi.glyphs.circleSlash,
-                "wearable": hifi.glyphs.hat,
+                "wearable": hifi.glyphs.hat
             }
             property int color: hifi.buttons.blue;
             property int colorScheme: hifi.colorSchemes.dark;
@@ -149,7 +149,18 @@ Rectangle {
             enabled: comboBox.model[comboBox.currentIndex] !== "unknown"
 
             onClicked: {
-                root.actions["forward"](resource, comboBox.currentText, resourceObjectId);
+                if (model.currentlyRecordingResources) {
+                    model.currentlyRecordingResources = false;
+                } else {
+                    model.resourceAccessEventText = "";
+                    model.currentlyRecordingResources = true;
+                    root.actions["forward"](resource, comboBox.currentText, resourceObjectId);
+                }
+                sendToScript({
+                    method: "tester_updateResourceRecordingStatus",
+                    objectId: resourceListModel.get(index).resourceObjectId,
+                    status: model.currentlyRecordingResources
+                });
             }
 
             background: Rectangle {
@@ -189,7 +200,7 @@ Rectangle {
             contentItem: Item {
                 HifiStylesUit.HiFiGlyphs {
                     id: rezIcon;
-                    text: actionButton.glyphs[comboBox.model[comboBox.currentIndex]];
+                    text: model.currentlyRecordingResources ? hifi.glyphs.scriptStop : actionButton.glyphs[comboBox.model[comboBox.currentIndex]];
                     anchors.fill: parent
                     size: 30;
                     horizontalAlignment: Text.AlignHCenter;
@@ -304,9 +315,9 @@ Rectangle {
                 color: hifi.colors.white
                 text: {
                     if (root.detailsExpanded) {
-                        return resourceAccessEventText
+                        return model.resourceAccessEventText
                     } else {
-                        return (resourceAccessEventText.split("\n").length - 1).toString() + " resources loaded..."
+                        return (model.resourceAccessEventText.split("\n").length - 1).toString() + " resources loaded..."
                     }
                 }
                 font: Qt.font({ family: "Courier", pointSize: 8, weight: Font.Normal })
@@ -340,7 +351,7 @@ Rectangle {
             anchors.top: detailsTextContainer.bottom
             anchors.topMargin: 8
             anchors.right: parent.right
-            width: 150
+            width: 160
             height: 30
             text: "Copy to Clipboard"
 

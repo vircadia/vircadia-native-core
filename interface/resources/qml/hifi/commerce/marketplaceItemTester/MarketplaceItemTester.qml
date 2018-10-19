@@ -24,16 +24,12 @@ Rectangle {
     id: root
 
     property string installedApps
-    property string resourceAccessEventText
     property var nextResourceObjectId: 0
-    property var startDate
 
     HifiStylesUit.HifiConstants { id: hifi }
     ListModel { id: resourceListModel }
 
     color: hifi.colors.darkGray
-
-    Component.onCompleted: startDate = new Date()
 
     //
     // TITLE BAR START
@@ -147,8 +143,7 @@ Rectangle {
         model: resourceListModel
         spacing: 8
 
-        delegate: ItemUnderTest {
-        }
+        delegate: ItemUnderTest { }
     }
 
     Item {
@@ -194,8 +189,6 @@ Rectangle {
             if (resource) {
                 print("!!!! building resource object");
                 var resourceObj = buildResourceObj(resource);
-                print("!!!! installing resource object");
-                installResourceObj(resourceObj);
                 print("!!!! notifying script of resource object");
                 sendToScript({
                     method: 'tester_newResourceObject',
@@ -235,6 +228,7 @@ Rectangle {
         switch (message.method) {
             case "newResourceObjectInTest":
                 var resourceObject = message.resourceObject;
+                resourceListModel.clear(); // REMOVE THIS once we support specific referrers
                 resourceListModel.append(resourceObject);
                 spinner.visible = false;
                 break;
@@ -244,21 +238,9 @@ Rectangle {
                 spinner.visible = false;
                 break;
             case "resourceRequestEvent":
-                try {
-                    var date = new Date(JSON.parse(message.data.date));
-                } catch(err) {
-                    print("!!!!! Date conversion failed: " + JSON.stringify(message.data));
-                }
-                // XXX Eventually this date check goes away b/c we will
-                // be able to match up resouce access events to resource
-                // object ids, ignoring those that have -1 resource
-                // object ids.
-                if (date >= startDate) {
-                    resourceAccessEventText += (
-                        "[" + date.toISOString() + "] " +
-                        message.data.url.toString().replace("__NONE__,", "") + "\n"
-                    );
-                }
+                // When we support multiple items under test simultaneously,
+                // we'll have to replace "0" with the correct index.
+                resourceListModel.setProperty(0, "resourceAccessEventText", message.resourceAccessEventText);
                 break;
         }
     }
@@ -270,15 +252,11 @@ Rectangle {
                          resource.match(/\.json\.gz$/) ? "content set" :
                          resource.match(/\.json$/) ? "entity or wearable" :
                          "unknown");
-        return { "resourceObjectId": nextResourceObjectId++,
+        // Uncomment this once we support more than one item in test at the same time
+        //nextResourceObjectId++;
+        return { "resourceObjectId": nextResourceObjectId,
                  "resource": resource,
                  "assetType": assetType };
-    }
-
-    function installResourceObj(resourceObj) {
-        if ("application" === resourceObj.assetType) {
-            Commerce.installApp(resourceObj.resource);
-        }
     }
 
     function toUrl(resource) {
