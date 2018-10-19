@@ -318,7 +318,7 @@ Rectangle {
                     if (root.detailsExpanded && numUniqueResources > 0) {
                         return model.resourceAccessEventText
                     } else {
-                        return numUniqueResources.toString() + " unique resource" + (numUniqueResources === 1 ? "" : "s") + " loaded - expand for details"
+                        return numUniqueResources.toString() + " unique source/resource url pair" + (numUniqueResources === 1 ? "" : "s") + " recorded"
                     }
                 }
                 font: Qt.font({ family: "Courier", pointSize: 8, weight: Font.Normal })
