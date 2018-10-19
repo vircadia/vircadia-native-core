@@ -1254,7 +1254,7 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Redo",
-        shortcutKey: 'Ctrl+Shift+Z',
+        shortcutKey: 'Ctrl+Y',
         position: 1,
     });
 
@@ -2468,6 +2468,11 @@ function createEntities(entityProperties) {
     return createdEntityIDs;
 }
 
+function cutSelectedEntities() {
+    copySelectedEntities();
+    deleteSelectedEntities();
+}
+
 function copySelectedEntities() {
     copyEntities(selectionManager.selections);
 }
@@ -2768,28 +2773,39 @@ var PopupMenu = function () {
     return this;
 };
 
+function whenPressed(fn) {
+    return function(value) {
+        if (value > 0) {
+            fn();
+        }
+    };
+}
+
+function whenReleased(fn) {
+    return function(value) {
+        if (value === 0) {
+            fn();
+        }
+    };
+}
+
 var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
 mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
 mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.D]).when([Controller.Hardware.Keyboard.Control]).to(deselectKey);
 mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
 mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
 mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
-mapping.from([Controller.Hardware.Keyboard.C]).when([Controller.Hardware.Keyboard.Control]).to(copyKey);
-mapping.from([Controller.Hardware.Keyboard.V]).when([Controller.Hardware.Keyboard.Control]).to(pasteKey);
+mapping.from([Controller.Hardware.Keyboard.X]).when([Controller.Hardware.Keyboard.Control]).to(whenReleased(cutSelectedEntities));
+mapping.from([Controller.Hardware.Keyboard.C]).when([Controller.Hardware.Keyboard.Control]).to(whenReleased(copySelectedEntities));
+mapping.from([Controller.Hardware.Keyboard.V]).when([Controller.Hardware.Keyboard.Control]).to(whenReleased(pasteEntities));
+mapping.from([Controller.Hardware.Keyboard.D])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { SelectionManager.duplicateSelection() }));
 
-function copyKey(value) {
-    if (value > 0) {
-        copySelectedEntities();
-    }
-}
-
-function pasteKey(value) {
-    if (value > 0) {
-        pasteEntities();
-    }
-}
-
+// Bind undo to ctrl-shift-z to maintain backwards-compatibility
+mapping.from([Controller.Hardware.Keyboard.Z])
+    .when([Controller.Hardware.Keyboard.Control, Controller.Hardware.Keyboard.Shift])
+    .to(whenPressed(function() { undoHistory.redo() }));
 
 
 var propertyMenu = new PopupMenu();
