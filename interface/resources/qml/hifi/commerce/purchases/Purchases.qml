@@ -158,6 +158,7 @@ Rectangle {
         listModelName: "Gift Connections";
         z: 998;
         visible: root.activeView === "giftAsset";
+        keyboardContainer: root;
         anchors.fill: parent;
         parentAppTitleBarHeight: 70;
         parentAppNavBarHeight: 0;
