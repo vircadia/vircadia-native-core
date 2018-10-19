@@ -895,7 +895,7 @@ void Agent::aboutToFinish() {
     {
         DependencyManager::get<ScriptEngines>()->shutdownScripting();
     }
-
+    
     DependencyManager::destroy<ScriptEngines>();
 
     DependencyManager::destroy<AssignmentDynamicFactory>();

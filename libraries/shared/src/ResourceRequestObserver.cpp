@@ -15,22 +15,12 @@
 #include <QString>
 #include <QUrl>
 #include "ResourceRequestObserver.h"
-#include "QUrlAncestry.h"
 
-
-// void ResourceRequestObserver::update(const QNetworkRequest& request, const qint64 callerId, const QString& extra) {
-//     update(QUrlAncestry(request.url()), callerId, extra);
-// }
-
-void ResourceRequestObserver::update(
-    const QUrlAncestry& urlAncestry,
+void ResourceRequestObserver::update(const QUrl& requestUrl,
     const qint64 callerId,
-    const QString& extra
-) {
+    const QString& extra) {
     QJsonArray array;
-    urlAncestry.toJson(array);
-    QJsonObject data {
-        { "url", array },
+    QJsonObject data { { "url", requestUrl.toString() },
         { "callerId", callerId },
         { "extra", extra }
     };

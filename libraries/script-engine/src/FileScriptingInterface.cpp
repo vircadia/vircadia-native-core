@@ -50,7 +50,7 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
         tempDir = zipTemp.path();
         path.remove("file:///");
     }
-
+    
     qCDebug(scriptengine) << "Temporary directory at: " + tempDir;
     if (!isTempDir(tempDir)) {
         qCDebug(scriptengine) << "Temporary directory mismatch; risk of losing files";
@@ -58,7 +58,7 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
     }
 
     QStringList fileList = unzipFile(path, tempDir);
-
+    
     if (!fileList.isEmpty()) {
         qCDebug(scriptengine) << "First file to upload: " + fileList.first();
     } else {

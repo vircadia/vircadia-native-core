@@ -63,7 +63,7 @@ QScriptValue XMLHttpRequestClass::constructor(QScriptContext* context, QScriptEn
 QScriptValue XMLHttpRequestClass::getStatus() const {
     if (_reply) {
         return QScriptValue(_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt());
-    }
+    } 
     return QScriptValue(0);
 }
 
@@ -144,7 +144,7 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
 
         if (url.toLower().left(METAVERSE_API_URL.length()) == METAVERSE_API_URL) {
             auto accountManager = DependencyManager::get<AccountManager>();
-
+                
             if (accountManager->hasValidAccessToken()) {
                 static const QString HTTP_AUTHORIZATION_HEADER = "Authorization";
                 QString bearerString = "Bearer " + accountManager->getAccountInfo().getAccessToken().token;

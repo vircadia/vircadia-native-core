@@ -39,7 +39,7 @@ AssetResourceRequest::~AssetResourceRequest() {
         if (_assetMappingRequest) {
             _assetMappingRequest->deleteLater();
         }
-
+        
         if (_assetRequest) {
             _assetRequest->deleteLater();
         }
@@ -82,7 +82,7 @@ void AssetResourceRequest::requestMappingForPath(const AssetUtils::AssetPath& pa
     // make sure we'll hear about the result of the get mapping request
     connect(_assetMappingRequest, &GetMappingRequest::finished, this, [this, path](GetMappingRequest* request){
         auto statTracker = DependencyManager::get<StatTracker>();
-
+        
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(request == _assetMappingRequest);
 

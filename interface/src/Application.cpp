@@ -170,7 +170,6 @@
 #include "ModelPackager.h"
 #include "scripting/Audio.h"
 #include "networking/CloseEventSender.h"
-#include "QUrlAncestry.h"
 #include "scripting/TestScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
@@ -947,6 +946,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
     DependencyManager::set<WalletScriptingInterface>();
+
     DependencyManager::set<FadeEffect>();
     DependencyManager::set<ResourceRequestObserver>();
 
@@ -1783,7 +1783,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
-        // This needs to run on the settings thread, so we need to pass the `settingsTimer` as the
+        // This needs to run on the settings thread, so we need to pass the `settingsTimer` as the 
         // receiver object, otherwise it will run on the application thread and trigger a warning
         // about trying to kill the timer on the main thread.
         connect(qApp, &Application::beforeAboutToQuit, settingsTimer, [this, settingsTimer]{
@@ -5029,7 +5029,8 @@ bool Application::importEntities(const QString& urlOrFilename, const bool isObse
     bool success = false;
     _entityClipboard->withWriteLock([&] {
         _entityClipboard->eraseAllOctreeElements();
-        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId, QUrlAncestry());
+
+        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId);
         if (success) {
             _entityClipboard->reaverageOctreeElements();
         }

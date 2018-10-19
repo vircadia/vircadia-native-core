@@ -26,7 +26,6 @@
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
 
-
 ResourceManager::ResourceManager(bool atpSupportEnabled) : _atpSupportEnabled(atpSupportEnabled) {
     _thread.setObjectName("Resource Manager Thread");
 
@@ -125,7 +124,6 @@ ResourceRequest* ResourceManager::createResourceRequest(
 
     ResourceRequest* request = nullptr;
 
-    qDebug() << "!!!! in createResourceRequest " << callerId;
     if (scheme == URL_SCHEME_FILE || scheme == URL_SCHEME_QRC) {
         request = new FileResourceRequest(normalizedURL, isObservable, callerId, extra);
     } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
@@ -146,7 +144,6 @@ ResourceRequest* ResourceManager::createResourceRequest(
         QObject::connect(parent, &QObject::destroyed, request, &QObject::deleteLater);
     }
     request->moveToThread(&_thread);
-
     return request;
 }
 

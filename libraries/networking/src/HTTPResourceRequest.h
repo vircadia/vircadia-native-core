@@ -13,21 +13,20 @@
 #define hifi_HTTPResourceRequest_h
 
 #include <QNetworkReply>
+#include <QUrl>
 #include <QTimer>
 
 #include "ResourceRequest.h"
-#include "QUrlAncestry.h"
-
 
 class HTTPResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
     HTTPResourceRequest(
-        const QUrlAncestry& urlAncestry,
+        const QUrl& url,
         const bool isObservable = true,
         const qint64 callerId = -1,
         const QString& = ""
-    ) : ResourceRequest(urlAncestry, isObservable, callerId) { }
+    ) : ResourceRequest(url, isObservable, callerId) { }
     ~HTTPResourceRequest();
 
 protected:

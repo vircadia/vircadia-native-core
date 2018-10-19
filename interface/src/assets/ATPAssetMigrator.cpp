@@ -203,7 +203,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
 void ATPAssetMigrator::migrateResource(ResourceRequest* request) {
     // use an asset client to upload the asset
     auto assetClient = DependencyManager::get<AssetClient>();
-
+    
     auto upload = assetClient->createUpload(request->getData());
 
     // add this URL to our hash of AssetUpload to original URL
@@ -243,7 +243,7 @@ void ATPAssetMigrator::assetUploadFinished(AssetUpload *upload, const QString& h
     }
 
     checkIfFinished();
-
+    
     upload->deleteLater();
 }
 
@@ -299,24 +299,24 @@ void ATPAssetMigrator::checkIfFinished() {
 bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
     static bool hasAskedForCompleteMigration { false };
     static bool wantsCompleteMigration { false };
-
+    
     if (!hasAskedForCompleteMigration) {
         // this is the first resource migration - ask the user if they just want to migrate everything
         static const QString COMPLETE_MIGRATION_TEXT { "Do you want to migrate all assets found in this entity-server file?\n"\
             "Select \"Yes\" to upload all discovered assets to the current asset-server immediately.\n"\
             "Select \"No\" to be prompted for each discovered asset."
         };
-
+        
         auto button = OffscreenUi::question(_dialogParent, MESSAGE_BOX_TITLE, COMPLETE_MIGRATION_TEXT,
                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
-
+                              
         if (button == QMessageBox::Yes) {
             wantsCompleteMigration = true;
         }
-
+        
         hasAskedForCompleteMigration = true;
     }
-
+    
     if (wantsCompleteMigration) {
         return true;
     } else {

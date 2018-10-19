@@ -380,7 +380,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         } else {
             AVATAR_MEMCPY(_globalPosition);
         }
-
+        
 
         int numBytes = destinationBuffer - startSection;
 
@@ -648,7 +648,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             if (!data.translationIsDefaultPose) {
                 if (sendAll || last.translationIsDefaultPose || (!cullSmallChanges && last.translation != data.translation)
                     || (cullSmallChanges && glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation)) {
-
+                   
                     validity |= (1 << validityBit);
 #ifdef WANT_DEBUG
                     translationSentCount++;
@@ -1055,7 +1055,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newHasProceduralEyeFaceMovement = oneAtBit16(bitItems, PROCEDURAL_EYE_FACE_MOVEMENT);
         auto newHasProceduralBlinkFaceMovement = oneAtBit16(bitItems, PROCEDURAL_BLINK_FACE_MOVEMENT);
 
-
+        
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
         bool faceStateChanged = (_headData->_isFaceTrackerConnected != newFaceTrackerConnected);
@@ -1527,7 +1527,7 @@ glm::vec3 AvatarData::getJointTranslation(int index) const {
 }
 
 glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
-    // Can't do this, because the lock needs to cover the entire set of logic.  In theory, the joints could change
+    // Can't do this, because the lock needs to cover the entire set of logic.  In theory, the joints could change 
     // on another thread in between the call to getJointIndex and getJointTranslation
     // return getJointTranslation(getJointIndex(name));
     return readLockWithNamedJointIndex<glm::vec3>(name, [this](int index) {
@@ -1608,7 +1608,7 @@ bool AvatarData::isJointDataValid(const QString& name) const {
     // return isJointDataValid(getJointIndex(name));
 
     return readLockWithNamedJointIndex<bool>(name, false, [&](int index) {
-        // This is technically superfluous....  the lambda is only called if index is a valid
+        // This is technically superfluous....  the lambda is only called if index is a valid 
         // offset for _jointData.  Nevertheless, it would be confusing to leave the lamdba as
         // `return true`
         return index < _jointData.size();
@@ -1827,7 +1827,7 @@ qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice
         if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
             bytesWritten += destination.writePrimitive(traitVersion);
         }
-
+        
         AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
         bytesWritten += destination.writePrimitive(encodedURLSize);
 
@@ -1936,7 +1936,7 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     if (expanded == _skeletonModelURL) {
         return;
     }
-
+    
     _skeletonModelURL = expanded;
     qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
@@ -2163,7 +2163,7 @@ void AvatarData::updateJointMappings() {
 
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
         ////
-        // TODO: Should we rely upon HTTPResourceRequest instead?
+        // TODO: Should we rely upon HTTPResourceRequest for ResourceRequestObserver instead?
         // HTTPResourceRequest::doSend() covers all of the following and
         // then some. It doesn't cover the connect() call, so we may
         // want to add a HTTPResourceRequest::doSend() method that does
@@ -2402,7 +2402,7 @@ QJsonObject AvatarData::toJson() const {
             for (auto entityID : _avatarEntityData.keys()) {
                 QVariantMap entityData;
                 QUuid newId = _avatarEntityForRecording.size() == _avatarEntityData.size() ? _avatarEntityForRecording.values()[entityCount++] : entityID;
-                entityData.insert("id", newId);
+                entityData.insert("id", newId);                
                 entityData.insert("properties", _avatarEntityData.value(entityID).toBase64());
                 avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
             }

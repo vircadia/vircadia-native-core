@@ -64,7 +64,7 @@ public:
      * @returns {boolean} <code>true</code> if the export was successful, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
-
+    
     /**jsdoc
     * Export the entities with centers within a cube to a JSON file.
     * @function Clipboard.exportEntities

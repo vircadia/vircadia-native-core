@@ -37,7 +37,6 @@
 #include "AssignmentFactory.h"
 #include "ResourceRequestObserver.h"
 
-
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
 
@@ -162,7 +161,7 @@ void AssignmentClient::setUpStatusToMonitor() {
 void AssignmentClient::sendStatusPacketToACM() {
     // tell the assignment client monitor what this assignment client is doing (if anything)
     auto nodeList = DependencyManager::get<NodeList>();
-
+    
     quint8 assignmentType = Assignment::Type::AllTypes;
 
     if (_currentAssignment) {
@@ -173,7 +172,7 @@ void AssignmentClient::sendStatusPacketToACM() {
 
     statusPacket->write(_childAssignmentUUID.toRfc4122());
     statusPacket->writePrimitive(assignmentType);
-
+    
     nodeList->sendPacket(std::move(statusPacket), _assignmentClientMonitorSocket);
 }
 
@@ -259,10 +258,10 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<ReceivedMessa
 
 void AssignmentClient::handleStopNodePacket(QSharedPointer<ReceivedMessage> message) {
     const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
-
+    
     if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
         senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
-
+        
         qCDebug(assignment_client) << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketType::StopNode.";
         QCoreApplication::quit();
     } else {
@@ -315,6 +314,6 @@ void AssignmentClient::assignmentCompleted() {
     nodeList->setOwnerType(NodeType::Unassigned);
     nodeList->reset();
     nodeList->resetNodeInterestSet();
-
+    
     _isAssigned = false;
 }

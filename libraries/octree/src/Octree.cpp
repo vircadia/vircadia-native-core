@@ -669,7 +669,7 @@ OctreeElementPointer Octree::getElementEnclosingPoint(const glm::vec3& point, Oc
     return args.element;
 }
 
-bool Octree::readFromFile(const char* fileName, const QUrlAncestry& urlAncestry) {
+bool Octree::readFromFile(const char* fileName) {
     QString qFileName = findMostRecentFileExtension(fileName, PERSIST_EXTENSIONS);
 
     if (qFileName.endsWith(".json.gz")) {
@@ -689,7 +689,7 @@ bool Octree::readFromFile(const char* fileName, const QUrlAncestry& urlAncestry)
 
     qCDebug(octree) << "Loading file" << qFileName << "...";
 
-    bool success = readFromStream(fileLength, fileInputStream, "", urlAncestry);
+    bool success = readFromStream(fileLength, fileInputStream, "");
 
     file.close();
 
@@ -737,8 +737,7 @@ QString getMarketplaceID(const QString& urlString) {
 bool Octree::readFromURL(
     const QString& urlString,
     const bool isObservable,
-    const qint64 callerId,
-    const QUrlAncestry& urlAncestry
+    const qint64 callerId
 ) {
     QString trimmedUrl = urlString.trimmed();
     QString marketplaceID = getMarketplaceID(trimmedUrl);
@@ -767,19 +766,18 @@ bool Octree::readFromURL(
 
     if (wasCompressed) {
         QDataStream inputStream(uncompressedJsonData);
-        return readFromStream(uncompressedJsonData.size(), inputStream, marketplaceID, urlAncestry);
+        return readFromStream(uncompressedJsonData.size(), inputStream, marketplaceID);
     }
 
     QDataStream inputStream(data);
-    return readFromStream(data.size(), inputStream, marketplaceID, urlAncestry);
+    return readFromStream(data.size(), inputStream, marketplaceID);
 }
 
 
 bool Octree::readFromStream(
     uint64_t streamLength,
     QDataStream& inputStream,
-    const QString& marketplaceID,
-    const QUrlAncestry& urlAncestry
+    const QString& marketplaceID
 ) {
     // decide if this is binary SVO or JSON-formatted SVO
     QIODevice *device = inputStream.device();
@@ -792,7 +790,7 @@ bool Octree::readFromStream(
         return false;
     } else {
         qCDebug(octree) << "Reading from JSON SVO Stream length:" << streamLength;
-        return readJSONFromStream(streamLength, inputStream, marketplaceID, urlAncestry);
+        return readJSONFromStream(streamLength, inputStream, marketplaceID);
     }
 }
 
@@ -824,8 +822,7 @@ const int READ_JSON_BUFFER_SIZE = 2048;
 bool Octree::readJSONFromStream(
     uint64_t streamLength,
     QDataStream& inputStream,
-    const QString& marketplaceID, /*=""*/
-    const QUrlAncestry& urlAncestry
+    const QString& marketplaceID /*=""*/
 ) {
     // if the data is gzipped we may not have a useful bytesAvailable() result, so just keep reading until
     // we get an eof.  Leave streamLength parameter for consistency.
@@ -851,7 +848,7 @@ bool Octree::readJSONFromStream(
     }
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
-    bool success = readFromMap(asMap, urlAncestry);
+    bool success = readFromMap(asMap);
     delete[] rawData;
     return success;
 }
