@@ -366,7 +366,7 @@ Rectangle {
             // sit stand combo box
             HifiControlsUit.ComboBox {
                 id: boxy
-                //textRole: "text"
+                comboBox.textRole: "text"
                 currentIndex: 2
                 model: ListModel {
                     id: cbItems
@@ -378,7 +378,26 @@ Rectangle {
                 //displayText: "fred"
                 //label: cbItems.get(currentIndex).text
                 width: 200
-                onCurrentIndexChanged: { 
+                onCurrentIndexChanged: {
+                    if (cbItems.get(currentIndex).text === "Force Sitting") {
+                        sitRadiobutton.checked = true
+                        lockSitStandStateCheckbox.checked = true
+                        settings.lockStateEnabled = true
+                        settings.sittingEnabled = true
+                    } else if (cbItems.get(currentIndex).text === "Force Standing") {
+                        sitRadiobutton.checked = false
+                        lockSitStandStateCheckbox.checked = true
+                        settings.lockStateEnabled = true
+                        settings.sittingEnabled = false
+                    } else if (cbItems.get(currentIndex).text === "auto") {
+                        sitRadiobutton.checked = false
+                        lockSitStandStateCheckbox.checked = false
+                        settings.lockStateEnabled = false
+                        settings.sittingEnabled = false
+                    } else if (cbItems.get(currentIndex).text === "Disable Recentering") {
+                        settings.lockStateEnabled = false
+                        settings.sittingEnabled = false
+                    }
                     console.debug(cbItems.get(currentIndex).text + ", " + cbItems.get(currentIndex).color)
                     console.debug("line 2")
                 }
