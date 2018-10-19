@@ -77,7 +77,7 @@ Rectangle {
     //
     // TITLE BAR END
     //
-    
+
     Rectangle {
         id: spinner
         z: 999
@@ -303,6 +303,6 @@ Rectangle {
             itemType: entityType,
             itemId:   resourceObjectId });
     }
-    
+
     signal sendToScript(var message)
 }

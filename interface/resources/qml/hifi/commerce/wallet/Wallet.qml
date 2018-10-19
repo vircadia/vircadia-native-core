@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
 import "../common/sendAsset"
@@ -354,6 +354,7 @@ Rectangle {
         listModelName: "Send Money Connections";
         z: 997;
         visible: root.activeView === "sendMoney";
+        keyboardContainer: root;
         anchors.fill: parent;
         parentAppTitleBarHeight: titleBarContainer.height;
         parentAppNavBarHeight: tabButtonsContainer.height;

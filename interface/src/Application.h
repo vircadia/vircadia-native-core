@@ -52,7 +52,6 @@
 #include <RunningMarker.h>
 
 #include "avatar/MyAvatar.h"
-#include "BandwidthRecorder.h"
 #include "FancyCamera.h"
 #include "ConnectionMonitor.h"
 #include "CursorManager.h"
@@ -298,6 +297,7 @@ public:
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
     QUuid getTabletFrameID() const; // may be an entity or an overlay
+    QVector<QUuid> getTabletIDs() const; // In order of most important IDs first.
 
     void setAvatarOverrideUrl(const QUrl& url, bool save);
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
@@ -333,6 +333,8 @@ signals:
     void activeDisplayPluginChanged();
 
     void uploadRequest(QString path);
+
+    void interstitialModeChanged(bool isInInterstitialMode);
 
     void loginDialogPoppedUp();
 

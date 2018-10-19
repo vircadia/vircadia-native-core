@@ -20,7 +20,7 @@ class MismatchWindow : public QDialog, public Ui::MismatchWindow {
 public:
     MismatchWindow(QWidget *parent = Q_NULLPTR);
 
-    void setTestFailure(TestFailure testFailure);
+    void setTestResult(TestResult testResult);
 
     UserResponse getUserResponse() { return _userResponse; }
 

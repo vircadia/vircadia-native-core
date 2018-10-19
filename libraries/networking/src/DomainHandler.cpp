@@ -140,8 +140,10 @@ void DomainHandler::hardReset() {
 }
 
 bool DomainHandler::isHardRefusal(int reasonCode) {
-    return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch || reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
-        reasonCode == (int)ConnectionRefusedReason::TimedOut);
+    return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch ||
+            reasonCode == (int)ConnectionRefusedReason::TooManyUsers ||
+            reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
+            reasonCode == (int)ConnectionRefusedReason::TimedOut);
 }
 
 bool DomainHandler::getInterstitialModeEnabled() const {
@@ -473,7 +475,7 @@ bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
         case ConnectionRefusedReason::LoginError:
         case ConnectionRefusedReason::NotAuthorized:
             return true;
-    
+
         default:
         case ConnectionRefusedReason::Unknown:
         case ConnectionRefusedReason::ProtocolMismatch:

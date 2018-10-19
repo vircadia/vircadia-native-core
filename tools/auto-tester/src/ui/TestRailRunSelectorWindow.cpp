@@ -19,12 +19,12 @@ TestRailRunSelectorWindow::TestRailRunSelectorWindow(QWidget *parent) {
     projectIDLineEdit->setValidator(new QIntValidator(1, 999, this));
 }
 
-
 void TestRailRunSelectorWindow::reset() {
     urlLineEdit->setDisabled(false);
     userLineEdit->setDisabled(false);
     passwordLineEdit->setDisabled(false);
     projectIDLineEdit->setDisabled(false);
+    suiteIDLineEdit->setDisabled(false);
 
     OKButton->setDisabled(true);
     sectionsComboBox->setDisabled(true);
@@ -35,6 +35,7 @@ void TestRailRunSelectorWindow::on_acceptButton_clicked() {
     userLineEdit->setDisabled(true);
     passwordLineEdit->setDisabled(true);
     projectIDLineEdit->setDisabled(true);
+    suiteIDLineEdit->setDisabled(true);
 
     OKButton->setDisabled(false);
     sectionsComboBox->setDisabled(false);

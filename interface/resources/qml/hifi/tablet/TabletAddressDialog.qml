@@ -18,8 +18,8 @@ import "../../styles"
 import "../../windows"
 import "../"
 import "../toolbars"
-import "../../styles-uit" as HifiStyles
-import "../../controls-uit" as HifiControls
+import stylesUit 1.0 as HifiStyles
+import controlsUit 1.0 as HifiControls
 import QtQuick.Controls 2.2 as QQC2
 import QtQuick.Templates 2.2 as T
 

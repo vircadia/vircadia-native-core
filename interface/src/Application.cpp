@@ -3537,6 +3537,7 @@ void Application::setIsInterstitialMode(bool interstitialMode) {
     if (enableInterstitial) {
         if (_interstitialMode != interstitialMode) {
             _interstitialMode = interstitialMode;
+            emit interstitialModeChanged(_interstitialMode);
 
             DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
             DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
@@ -8478,6 +8479,16 @@ OverlayID Application::getTabletHomeButtonID() const {
 QUuid Application::getTabletFrameID() const {
     auto HMD = DependencyManager::get<HMDScriptingInterface>();
     return HMD->getCurrentTabletFrameID();
+}
+
+QVector<QUuid> Application::getTabletIDs() const {
+    // Most important overlays first. 
+    QVector<QUuid> result;
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    result << HMD->getCurrentTabletScreenID();
+    result << HMD->getCurrentHomeButtonID();
+    result << HMD->getCurrentTabletFrameID();
+    return result;
 }
 
 void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {

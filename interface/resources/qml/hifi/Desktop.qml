@@ -8,7 +8,7 @@ import "../desktop" as OriginalDesktop
 import ".."
 import "."
 import "./toolbars"
-import "../controls-uit"
+import controlsUit 1.0
 
 OriginalDesktop.Desktop {
     id: desktop
