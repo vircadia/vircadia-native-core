@@ -2401,9 +2401,11 @@ function addChildrenEntities(parentEntityID, entityList) {
     }
 }
 
-// Return true if the given entity with `properties` is being grabbed by an avatar.
+// Determine if an entity is being grabbed.
 // This is mostly a heuristic - there is no perfect way to know if an entity is being
 // grabbed.
+//
+// @return {boolean} true if the given entity with `properties` is being grabbed by an avatar
 function nonDynamicEntityIsBeingGrabbedByAvatar(properties) {
     if (properties.dynamic || Uuid.isNull(properties.parentID)) {
         return false;
@@ -2429,7 +2431,8 @@ function nonDynamicEntityIsBeingGrabbedByAvatar(properties) {
 }
 
 
-// entityProperites - array of entity property objects
+// Create the entities in entityProperties, maintaining parent-child relationships.
+// @param entityPropertites {array} - Array of entity property objects
 function createEntities(entityProperties) {
     var entitiesToCreate = [];
     var createdEntityIDs = [];
@@ -2438,7 +2441,7 @@ function createEntities(entityProperties) {
 
     SelectionManager.saveProperties();
 
-    for (var i = 0, len = entityProperties.length; i < len; ++i) {
+    for (var i = 0; i < entityProperties.length; ++i) {
         var properties = entityProperties[i];
         if (properties.parentID in originalEntityToNewEntityID) {
             properties.parentID = originalEntityToNewEntityID[properties.parentID];
@@ -2556,22 +2559,21 @@ function deepCopy(v) {
 }
 
 function pasteEntities() {
-    var dims = entityClipboard.dimensions;
-    var maxDim = Math.max(dims.x, dims.y, dims.z);
-    var pastePosition = getPositionToCreateEntity(maxDim);
+    var dimensions = entityClipboard.dimensions;
+    var maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
+    var pastePosition = getPositionToCreateEntity(maxDimension);
     var deltaPosition = Vec3.subtract(pastePosition, entityClipboard.position);
 
     var copiedProperties = []
     var ids = [];
-    entityClipboard.entities.forEach(function(origproperties) {
-        var properties = deepCopy(origproperties);
+    entityClipboard.entities.forEach(function(originalProperties) {
+        var properties = deepCopy(originalProperties);
         if (properties.root) {
             properties.position = Vec3.sum(properties.position, deltaPosition);
             delete properties.localPosition;
         } else {
             delete properties.position;
         }
-        //entityProperties[properties.id] = properties;
         copiedProperties.push(properties);
     });
 
@@ -2777,7 +2779,6 @@ mapping.from([Controller.Hardware.Keyboard.C]).when([Controller.Hardware.Keyboar
 mapping.from([Controller.Hardware.Keyboard.V]).when([Controller.Hardware.Keyboard.Control]).to(pasteKey);
 
 function copyKey(value) {
-    console.log("Copy", value);
     if (value > 0) {
         copySelectedEntities();
     }
