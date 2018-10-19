@@ -115,7 +115,7 @@ Item {
             property int previousIndex: -1
             Repeater {
                 id: pageRepeater
-                model: tabletProxy != null ? Math.ceil(tabletProxy.buttons.rowCount() / TabletEnums.ButtonsOnPage) : null
+                model: tabletProxy != null ? Math.ceil(tabletProxy.buttons.rowCount() / TabletEnums.ButtonsOnPage) : 0
                 onItemAdded: {
                     item.proxyModel.sourceModel = tabletProxy != null ? tabletProxy.buttons : null;
                     item.proxyModel.pageIndex = index;
