@@ -1764,8 +1764,8 @@ private:
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
 
-    AtRestDetector _hmdAtRestDetector;
-    bool _lastIsMoving { false };
+    AtRestDetector _leftHandAtRestDetector;
+    AtRestDetector _rightHandAtRestDetector;
 
     // all poses are in sensor-frame
     std::map<controller::Action, controller::Pose> _controllerPoseMap;
