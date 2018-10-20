@@ -20,7 +20,7 @@ Rectangle {
     property real scaleValue: scaleSlider.value / 10
     property alias dominantHandIsLeft: leftHandRadioButton.checked
     property alias avatarCollisionsOn: collisionsEnabledRadiobutton.checked
-    property alias avatarRecenterModelOn: boxy.currentIndex
+    property alias avatarRecenterModelOn: userModelComboBox.currentIndex
     property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
     property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
@@ -49,8 +49,7 @@ Rectangle {
         avatarAnimationJSON = settings.animGraphUrl;
         avatarAnimationOverrideJSON = settings.animGraphOverrideUrl;
         avatarCollisionSoundUrl = settings.collisionSoundUrl;
-        print("values " + avatarRecenterModelOn + " " + settings.recenterModel);
-        avatarRecenterModelOn = settings.recenterModel;
+        avatarRecenterModelOn = settings.userRecenterModel;
 
         visible = true;
     }
@@ -294,22 +293,21 @@ Rectangle {
             }
 
         // TextStyle9
-        
+
             RalewaySemiBold {
                 size: 17;
                 Layout.row: 2
                 Layout.column: 0
 
-                text: "Sitting State"
+                text: "User Model:"
             }
 
-            ButtonGroup {
-                id: sitStand
-            }
 
             // sit stand combo box
             HifiControlsUit.ComboBox {
-                id: boxy
+                Layout.row: 2
+                Layout.column: 1
+                id: userModelComboBox
                 comboBox.textRole: "text"
                 currentIndex: 2
                 model: ListModel {
@@ -325,7 +323,6 @@ Rectangle {
                     console.debug("line 2")
                 }
             }
-            
         }
 
         ColumnLayout {

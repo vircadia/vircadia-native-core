@@ -252,7 +252,7 @@ Rectangle {
             var avatarSettings = {
                 dominantHand : settings.dominantHandIsLeft ? 'left' : 'right',
                 collisionsEnabled : settings.avatarCollisionsOn,
-                recenterModel : settings.avatarRecenterModelOn,
+                userRecenterModel : settings.avatarRecenterModelOn,
                 animGraphOverrideUrl : settings.avatarAnimationOverrideJSON,
                 collisionSoundUrl : settings.avatarCollisionSoundUrl
             };

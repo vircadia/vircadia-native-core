@@ -64,7 +64,7 @@ function getMyAvatarSettings() {
     return {
         dominantHand: MyAvatar.getDominantHand(),
         collisionsEnabled : MyAvatar.getCollisionsEnabled(),
-        recenterModel: MyAvatar.recenterModel,
+        userRecenterModel: MyAvatar.userRecenterModel,
         collisionSoundUrl : MyAvatar.collisionSoundURL,
         animGraphUrl: MyAvatar.getAnimGraphUrl(),
         animGraphOverrideUrl : MyAvatar.getAnimGraphOverrideUrl(),
@@ -137,11 +137,11 @@ function onCollisionsEnabledChanged(enabled) {
     }
 }
 
-function onRecenterModelChanged(modelName) {
-    if (currentAvatarSettings.recenterModel !== modelName) {
-        currentAvatarSettings.recenterModel = modelName;
-        print("emit recenter model changed");
-        sendToQml({ 'method': 'settingChanged', 'name': 'recenterModel', 'value': modelName })
+function onUserRecenterModelChanged(modelName) {
+    if (currentAvatarSettings.userRecenterModel !== modelName) {
+        currentAvatarSettings.userRecenterModel = modelName;
+        print("emit user recenter model changed");
+        sendToQml({ 'method': 'settingChanged', 'name': 'userRecenterModel', 'value': modelName })
     }
 }
 
@@ -322,7 +322,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         currentAvatar.avatarScale = message.avatarScale;
         MyAvatar.setDominantHand(message.settings.dominantHand);
         MyAvatar.setCollisionsEnabled(message.settings.collisionsEnabled);
-        MyAvatar.recenterModel = message.settings.recenterModel;
+        MyAvatar.userRecenterModel = message.settings.userRecenterModel;
         MyAvatar.collisionSoundURL = message.settings.collisionSoundUrl;
         MyAvatar.setAnimGraphOverrideUrl(message.settings.animGraphOverrideUrl);
         settings = getMyAvatarSettings();
@@ -515,7 +515,7 @@ function off() {
         MyAvatar.skeletonModelURLChanged.disconnect(onSkeletonModelURLChanged);
         MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
         MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
-        MyAvatar.recenterModelChanged.disconnect(onRecenterModelChanged);
+        MyAvatar.userRecenterModelChanged.disconnect(onUserRecenterModelChanged);
         MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
         MyAvatar.animGraphUrlChanged.disconnect(onAnimGraphUrlChanged);
         MyAvatar.targetScaleChanged.disconnect(onTargetScaleChanged);
@@ -530,7 +530,7 @@ function on() {
     MyAvatar.skeletonModelURLChanged.connect(onSkeletonModelURLChanged);
     MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
     MyAvatar.collisionsEnabledChanged.connect(onCollisionsEnabledChanged);
-    MyAvatar.recenterModelChanged.connect(onRecenterModelChanged);
+    MyAvatar.userRecenterModelChanged.connect(onUserRecenterModelChanged);
     MyAvatar.newCollisionSoundURL.connect(onNewCollisionSoundUrl);
     MyAvatar.animGraphUrlChanged.connect(onAnimGraphUrlChanged);
     MyAvatar.targetScaleChanged.connect(onTargetScaleChanged);

@@ -470,57 +470,58 @@ void MyAvatar::updateSitStandState(float newHeightReading, float dt) {
     const float SITTING_TIMEOUT = 4.0f;  // 4 seconds
     const float STANDING_TIMEOUT = 0.3333f; // 1/3 second
     const float SITTING_UPPER_BOUND = 1.52f;
-
-    if (!getIsSitStandStateLocked() && !getIsAway() && qApp->isHMDMode()) {
-        if (getIsInSittingState()) {
-            if (newHeightReading > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
-                // if we recenter upwards then no longer in sitting state
-                _sitStandStateTimer += dt;
-                if (_sitStandStateTimer > STANDING_TIMEOUT) {
-                    _averageUserHeightSensorSpace = newHeightReading;
-                    _tippingPoint = newHeightReading;
-                    setIsInSittingState(false);
-                }
-            } else if (newHeightReading < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) {
-                // if we are mis labelled as sitting but we are standing in the real world this will
-                // make sure that a real sit is still recognized so we won't be stuck in sitting unable to change state
-                _sitStandStateTimer += dt;
-                if (_sitStandStateTimer > SITTING_TIMEOUT) {
-                    _averageUserHeightSensorSpace = newHeightReading;
-                    _tippingPoint = newHeightReading;
-                    // here we stay in sit state but reset the average height
-                    setIsInSittingState(true);
+    if (!getIsSitStandStateLocked()) {
+        if (!getIsAway() && qApp->isHMDMode()) {
+            if (getIsInSittingState()) {
+                if (newHeightReading > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
+                    // if we recenter upwards then no longer in sitting state
+                    _sitStandStateTimer += dt;
+                    if (_sitStandStateTimer > STANDING_TIMEOUT) {
+                        _averageUserHeightSensorSpace = newHeightReading;
+                        _tippingPoint = newHeightReading;
+                        setIsInSittingState(false);
+                    }
+                } else if (newHeightReading < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) {
+                    // if we are mis labelled as sitting but we are standing in the real world this will
+                    // make sure that a real sit is still recognized so we won't be stuck in sitting unable to change state
+                    _sitStandStateTimer += dt;
+                    if (_sitStandStateTimer > SITTING_TIMEOUT) {
+                        _averageUserHeightSensorSpace = newHeightReading;
+                        _tippingPoint = newHeightReading;
+                        // here we stay in sit state but reset the average height
+                        setIsInSittingState(true);
+                    }
+                } else {
+                    // sanity check if average height greater than 5ft they are not sitting(or get off your dangerous barstool please)
+                    if (_averageUserHeightSensorSpace > SITTING_UPPER_BOUND) {
+                        setIsInSittingState(false);
+                    } else {
+                        // tipping point is average height when sitting.
+                        _tippingPoint = _averageUserHeightSensorSpace;
+                        _sitStandStateTimer = 0.0f;
+                    }
                 }
             } else {
-                // sanity check if average height greater than 5ft they are not sitting(or get off your dangerous barstool please)
-                if (_averageUserHeightSensorSpace > SITTING_UPPER_BOUND) {
-                    setIsInSittingState(false);
+                // in the standing state
+                if (newHeightReading < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) {
+                    _sitStandStateTimer += dt;
+                    if (_sitStandStateTimer > SITTING_TIMEOUT) {
+                        _averageUserHeightSensorSpace = newHeightReading;
+                        _tippingPoint = newHeightReading;
+                        setIsInSittingState(true);
+                    }
                 } else {
-                    // tipping point is average height when sitting.
-                    _tippingPoint = _averageUserHeightSensorSpace;
+                    // use the mode height for the tipping point when we are standing.
+                    _tippingPoint = getCurrentStandingHeight();
                     _sitStandStateTimer = 0.0f;
                 }
             }
         } else {
-            // in the standing state
-            if (newHeightReading < (SITTING_HEIGHT_MULTIPLE * _tippingPoint)) {
-                _sitStandStateTimer += dt;
-                if (_sitStandStateTimer > SITTING_TIMEOUT) {
-                    _averageUserHeightSensorSpace = newHeightReading;
-                    _tippingPoint = newHeightReading;
-                    setIsInSittingState(true);
-                }
-            } else {
-                // use the mode height for the tipping point when we are standing.
-                _tippingPoint = getCurrentStandingHeight();
-                _sitStandStateTimer = 0.0f;
-            }
+            //if you are away then reset the average and set state to standing.
+            _averageUserHeightSensorSpace = _userHeight.get();
+            _tippingPoint = _userHeight.get();
+            setIsInSittingState(false);
         }
-    } else {
-        // if you are away then reset the average and set state to standing.
-        _averageUserHeightSensorSpace = _userHeight.get();
-        _tippingPoint = _userHeight.get();
-        setIsInSittingState(false);
     }
 }
 
@@ -533,7 +534,7 @@ void MyAvatar::update(float deltaTime) {
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     setHipToHandController(computeHandAzimuth());
-    //qCDebug(interfaceapp) << " the sit state is " << _isInSittingState.get() << " the lock is " << _lockSitStandState.get();
+    qCDebug(interfaceapp) << " the sit state is " << _isInSittingState.get() << " the lock is " << _lockSitStandState.get();
 
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
@@ -3867,8 +3868,8 @@ bool MyAvatar::getIsInSittingState() const {
     return _isInSittingState.get();
 }
 
-MyAvatar::SitStandModelType MyAvatar::getRecenterModel() const {
-    return _recenterModel.get();
+MyAvatar::SitStandModelType MyAvatar::getUserRecenterModel() const {
+    return _userRecenterModel.get();
 }
 
 bool MyAvatar::getIsSitStandStateLocked() const {
@@ -3907,25 +3908,25 @@ void MyAvatar::setIsInSittingState(bool isSitting) {
         setCenterOfGravityModelEnabled(true);
     }
     setSitStandStateChange(true);
-    
-    emit sittingEnabledChanged(isSitting);
 }
 
-void MyAvatar::setRecenterModel(MyAvatar::SitStandModelType modelName) {
+void MyAvatar::setUserRecenterModel(MyAvatar::SitStandModelType modelName) {
 
-    _recenterModel.set(modelName);
-    //int temp = 0;
-    qCDebug(interfaceapp) << "recenter property changed " << modelName;
+    _userRecenterModel.set(modelName);
+
     switch (modelName) {
     case SitStandModelType::ForceSit:
+        setHMDLeanRecenterEnabled(true);
         setIsInSittingState(true);
         setIsSitStandStateLocked(true);
         break;
     case SitStandModelType::ForceStand:
+        setHMDLeanRecenterEnabled(true);
         setIsInSittingState(false);
         setIsSitStandStateLocked(true);
         break;
     case SitStandModelType::Auto:
+        setHMDLeanRecenterEnabled(true);
         setIsInSittingState(false);
         setIsSitStandStateLocked(false);
         break;
@@ -3936,7 +3937,7 @@ void MyAvatar::setRecenterModel(MyAvatar::SitStandModelType modelName) {
         break;
     }
     qCDebug(interfaceapp) << "recenter property changed " << modelName << " sit " << _isInSittingState.get() << " lock " << _lockSitStandState.get();
-    emit recenterModelChanged((int)modelName);
+    emit userRecenterModelChanged((int)modelName);
 }
 
 void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
@@ -3949,7 +3950,6 @@ void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
         // always start the auto transition mode in standing state.
         setIsInSittingState(false);
     }
-    emit sitStandStateLockEnabledChanged(isLocked);
 }
 
 void MyAvatar::setWalkSpeed(float value) {
