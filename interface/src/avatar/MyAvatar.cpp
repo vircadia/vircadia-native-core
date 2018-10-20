@@ -3970,6 +3970,8 @@ void MyAvatar::setUserRecenterModel(MyAvatar::SitStandModelType modelName) {
             setIsInSittingState(false);
             setIsSitStandStateLocked(false);
             break;
+        default:
+            break;
     }
     emit userRecenterModelChanged((int)modelName);
 }
