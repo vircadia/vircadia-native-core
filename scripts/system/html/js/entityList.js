@@ -268,8 +268,9 @@ function loaded() {
                 }));
             }
 
-            let enabledContextMenuItems = [];
+            let enabledContextMenuItems = ['Copy', 'Paste', 'Duplicate'];
             if (entitiesByID[entityID] && !entitiesByID[entityID].locked) {
+                enabledContextMenuItems.push('Cut');
                 enabledContextMenuItems.push('Rename');
                 enabledContextMenuItems.push('Delete');
             }

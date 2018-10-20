@@ -271,12 +271,15 @@ EntityListTool = function(shouldUseEditTabletApp) {
             filterInView = data.filterInView === true;
         } else if (data.type === "radius") {
             searchRadius = data.radius;
+        } else if (data.type === "cut") {
+            cutSelectedEntities();
         } else if (data.type === "copy") {
-            Window.alert("Copy is not yet implemented.");
+            copySelectedEntities();
         } else if (data.type === "paste") {
-            Window.alert("Paste is not yet implemented.");
+            pasteEntities();
         } else if (data.type === "duplicate") {
-            Window.alert("Duplicate is not yet implemented.");
+            SelectionManager.duplicateSelection();
+            that.sendUpdate();
         } else if (data.type === "rename") {
             Entities.editEntity(data.entityID, {name: data.name});
             // make sure that the name also gets updated in the properties window
