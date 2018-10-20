@@ -22,7 +22,7 @@
 
 class Animation;
 
-typedef QSharedPointer<Animation> AnimationPointer;
+using AnimationPointer = QSharedPointer<Animation>;
 
 class AnimationCache : public ResourceCache, public Dependency  {
     Q_OBJECT
