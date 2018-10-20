@@ -231,8 +231,11 @@ function loaded() {
             elRenameInput.select();
         }
 
-        entityListContextMenu.setCallback(function(optionName, selectedEntityID) {
+        entityListContextMenu.setOnSelectedCallback(function(optionName, selectedEntityID) {
             switch (optionName) {
+                case "Cut":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'cut' }));
+                    break;
                 case "Copy":
                     EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
                     break;
@@ -263,8 +266,6 @@ function loaded() {
                     focus: false,
                     entityIds: selection,
                 }));
-
-                refreshFooter();
             }
 
             let enabledContextMenuItems = [];
@@ -765,7 +766,7 @@ function loaded() {
     augmentSpinButtons();
 
     document.addEventListener("contextmenu", function (event) {
-        entityListContextMenu.close.call(entityListContextMenu);
+        entityListContextMenu.close();
 
         // Disable default right-click context menu which is not visible in the HMD and makes it seem like the app has locked
         event.preventDefault();
@@ -773,6 +774,6 @@ function loaded() {
 
     // close context menu when switching focus to another window
     $(window).blur(function() {
-        entityListContextMenu.close.call(entityListContextMenu);
+        entityListContextMenu.close();
     });
 }

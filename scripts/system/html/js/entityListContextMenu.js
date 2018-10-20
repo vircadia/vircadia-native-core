@@ -18,7 +18,7 @@ const CONTEXT_MENU_CLASS = "context-menu";
  */
 function EntityListContextMenu() {
     this._elContextMenu = null;
-    this._callback = null;
+    this._onSelectedCallback = null;
     this._listItems = [];
     this._initialize();
 }
@@ -33,7 +33,7 @@ EntityListContextMenu.prototype = {
     /**
      * @private
      */
-    _callback: null,
+    _onSelectedCallback: null,
 
     /**
      * @private
@@ -82,20 +82,19 @@ EntityListContextMenu.prototype = {
     },
 
     /**
-     * Set the event callback
-     * @param callback
+     * Set the callback for when a menu item is selected
+     * @param onSelectedCallback
      */
-    setCallback: function(callback) {
-        this._callback = callback;
+    setOnSelectedCallback: function(onSelectedCallback) {
+        this._onSelectedCallback = onSelectedCallback;
     },
 
     /**
      * Add a labeled item to the context menu
      * @param itemLabel
-     * @param isEnabled
      * @private
      */
-    _addListItem: function(itemLabel, isEnabled) {
+    _addListItem: function(itemLabel) {
         let elListItem = document.createElement("li");
         elListItem.innerText = itemLabel;
 
@@ -106,8 +105,8 @@ EntityListContextMenu.prototype = {
         };
 
         elListItem.addEventListener("click", function () {
-            if (listItem.enabled && this._callback) {
-                this._callback.call(this, itemLabel, this._selectedEntityID);
+            if (listItem.enabled && this._onSelectedCallback) {
+                this._onSelectedCallback.call(this, itemLabel, this._selectedEntityID);
             }
         }.bind(this), false);
 
@@ -136,12 +135,12 @@ EntityListContextMenu.prototype = {
         this._elContextMenu.setAttribute("class", CONTEXT_MENU_CLASS);
         document.body.appendChild(this._elContextMenu);
 
-        // TODO: enable Copy, Paste and Duplicate items once implemented
-        this._addListItem("Copy", false);
-        this._addListItem("Paste", false);
+        this._addListItem("Cut");
+        this._addListItem("Copy");
+        this._addListItem("Paste");
         this._addListSeparator();
         this._addListItem("Rename");
-        this._addListItem("Duplicate", false);
+        this._addListItem("Duplicate");
         this._addListItem("Delete");
 
         // Ignore clicks on context menu background or separator.
