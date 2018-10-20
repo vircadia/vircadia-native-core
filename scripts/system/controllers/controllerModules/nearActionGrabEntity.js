@@ -10,7 +10,8 @@
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
    Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
    TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent, entityIsCloneable, propsAreCloneDynamic, cloneEntity,
-   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, unhighlightTargetEntity, Uuid
+   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, unhighlightTargetEntity, Uuid,
+   DISPATCHER_PROPERTIES
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -62,12 +63,12 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
             var grabbableData = getGrabbableData(targetProps);
-            this.ignoreIK = grabbableData.ignoreIK;
-            this.kinematicGrab = grabbableData.kinematic;
+            this.grabFollowsController = grabbableData.grabFollowsController;
+            this.kinematicGrab = grabbableData.grabKinematic;
 
             var handRotation;
             var handPosition;
-            if (this.ignoreIK) {
+            if (this.grabFollowsController) {
                 var controllerID =
                     (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
                 var controllerLocation = getControllerWorldLocation(controllerID, false);
@@ -99,7 +100,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 ttl: ACTION_TTL,
                 kinematic: this.kinematicGrab,
                 kinematicSetVelocity: true,
-                ignoreIK: this.ignoreIK
+                ignoreIK: this.grabFollowsController
             });
             if (this.actionID === Uuid.NULL) {
                 this.actionID = null;
@@ -136,7 +137,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     ttl: ACTION_TTL,
                     kinematic: this.kinematicGrab,
                     kinematicSetVelocity: true,
-                    ignoreIK: this.ignoreIK
+                    ignoreIK: this.grabFollowsController
                 });
                 if (success) {
                     this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
@@ -238,7 +239,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                         var targetCloneable = entityIsCloneable(targetProps);
                         if (targetCloneable) {
                             var cloneID = cloneEntity(targetProps);
-                            var cloneProps = Entities.getEntityProperties(cloneID);
+                            var cloneProps = Entities.getEntityProperties(cloneID, DISPATCHER_PROPERTIES);
                             this.targetEntityID = cloneID;
                             this.startNearGrabAction(controllerData, cloneProps);
                         } else {

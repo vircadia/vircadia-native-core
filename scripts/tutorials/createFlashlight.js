@@ -37,11 +37,6 @@ var flashlight = Entities.addEntity({
   shapeType: 'box',
   lifetime: 3600,
   script: SCRIPT_URL,
-  userData: JSON.stringify({
-    grabbableKey: {
-      invertSolidWhileHeld: true
-    }
-  })
 });
 
 Script.stop();

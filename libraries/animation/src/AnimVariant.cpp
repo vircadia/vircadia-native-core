@@ -40,7 +40,7 @@ QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, 
                 target.setProperty(name, value.getString());
                 break;
             case AnimVariant::Type::Vec3:
-                target.setProperty(name, vec3toScriptValue(engine, value.getVec3()));
+                target.setProperty(name, vec3ToScriptValue(engine, value.getVec3()));
                 break;
             case AnimVariant::Type::Quat:
                 target.setProperty(name, quatToScriptValue(engine, value.getQuat()));

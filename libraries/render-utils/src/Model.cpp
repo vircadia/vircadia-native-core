@@ -62,8 +62,6 @@ Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
     _url(HTTP_INVALID_COM),
-    _blendNumber(0),
-    _appliedBlendNumber(0),
     _isWireframe(false),
     _renderItemKeyGlobalFlags(render::ItemKey::Builder().withVisible().withTagBits(render::hifi::TAG_ALL_VIEWS).build())
 {
@@ -311,7 +309,7 @@ bool Model::updateGeometry() {
             initializeBlendshapes(mesh, i);
             i++;
         }
-        _blendshapeBuffersInitialized = true;
+        _blendshapeOffsetsInitialized = true;
         needFullUpdate = true;
         emit rigReady();
     }
@@ -979,7 +977,8 @@ const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
 
 bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
-                       render::Item::Status::Getters& statusGetters) {
+                       render::Item::Status::Getters& statusGetters,
+                       BlendShapeOperator modelBlendshapeOperator) {
     if (!_addedToScene && isLoaded()) {
         updateClusterMatrices();
         if (_modelMeshRenderItems.empty()) {
@@ -987,10 +986,11 @@ bool Model::addToScene(const render::ScenePointer& scene,
         }
     }
 
+    _modelBlendshapeOperator = modelBlendshapeOperator;
+
     bool somethingAdded = false;
 
     if (_modelMeshRenderItemsMap.empty()) {
-
         bool hasTransparent = false;
         size_t verticesCount = 0;
         foreach(auto renderItem, _modelMeshRenderItems) {
@@ -1032,9 +1032,8 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
 
-    _blendshapeBuffers.clear();
     _blendshapeOffsets.clear();
-    _blendshapeBuffersInitialized = false;
+    _blendshapeOffsetsInitialized = false;
 
     _addedToScene = false;
 
@@ -1437,7 +1436,7 @@ void Model::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (_blendshapeBuffersInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (_blendshapeOffsetsInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
@@ -1445,9 +1444,8 @@ void Model::updateClusterMatrices() {
 
 void Model::deleteGeometry() {
     _deleteGeometryCounter++;
-    _blendshapeBuffers.clear();
     _blendshapeOffsets.clear();
-    _blendshapeBuffersInitialized = false;
+    _blendshapeOffsetsInitialized = false;
     _meshStates.clear();
     _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
@@ -1525,7 +1523,7 @@ void Model::createRenderItemSet() {
             shapeID++;
         }
     }
-    _blendshapeBuffersInitialized = true;
+    _blendshapeOffsetsInitialized = true;
 }
 
 bool Model::isRenderable() const {
@@ -1654,6 +1652,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 
 void Blender::run() {
     QVector<BlendshapeOffset> blendshapeOffsets;
+    QVector<int> blendedMeshSizes;
     if (_model && _model->isLoaded()) {
         DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
         int offset = 0;
@@ -1662,12 +1661,22 @@ void Blender::run() {
         foreach(const FBXMesh& mesh, meshes) {
             auto modelMeshBlendshapeOffsets = _model->_blendshapeOffsets.find(meshIndex++);
             if (mesh.blendshapes.isEmpty() || modelMeshBlendshapeOffsets == _model->_blendshapeOffsets.end()) {
+                // Not blendshaped or not initialized
+                blendedMeshSizes.push_back(0);
+                continue;
+            }
+
+            if (mesh.vertices.size() != modelMeshBlendshapeOffsets->second.size()) {
+                // Mesh sizes don't match.  Something has gone wrong
+                blendedMeshSizes.push_back(0);
                 continue;
             }
 
             blendshapeOffsets += modelMeshBlendshapeOffsets->second;
             BlendshapeOffset* meshBlendshapeOffsets = blendshapeOffsets.data() + offset;
-            offset += modelMeshBlendshapeOffsets->second.size();
+            int numVertices = modelMeshBlendshapeOffsets->second.size();
+            blendedMeshSizes.push_back(numVertices);
+            offset += numVertices;
             std::vector<BlendshapeOffsetUnpacked> unpackedBlendshapeOffsets(modelMeshBlendshapeOffsets->second.size());
 
             const float NORMAL_COEFFICIENT_SCALE = 0.01f;
@@ -1711,7 +1720,7 @@ void Blender::run() {
     }
     // post the result to the ModelBlender, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
-        Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber), Q_ARG(QVector<BlendshapeOffset>, blendshapeOffsets));
+        Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber), Q_ARG(QVector<BlendshapeOffset>, blendshapeOffsets), Q_ARG(QVector<int>, blendedMeshSizes));
 }
 
 bool Model::maybeStartBlender() {
@@ -1722,43 +1731,18 @@ bool Model::maybeStartBlender() {
     return false;
 }
 
-void Model::setBlendedVertices(int blendNumber, const QVector<BlendshapeOffset>& blendshapeOffsets) {
-    PROFILE_RANGE(render, __FUNCTION__);
-    if (!isLoaded() || blendNumber < _appliedBlendNumber || !_blendshapeBuffersInitialized) {
-        return;
-    }
-    _appliedBlendNumber = blendNumber;
-    const FBXGeometry& fbxGeometry = getFBXGeometry();
-    int index = 0;
-    for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
-        const FBXMesh& mesh = fbxGeometry.meshes.at(i);
-        auto meshBlendshapeOffsets = _blendshapeOffsets.find(i);
-        const auto& buffer = _blendshapeBuffers.find(i);
-        if (mesh.blendshapes.isEmpty() || meshBlendshapeOffsets == _blendshapeOffsets.end() || buffer == _blendshapeBuffers.end()) {
-            continue;
-        }
-
-        const auto blendshapeOffsetSize = meshBlendshapeOffsets->second.size() * sizeof(BlendshapeOffset);
-        buffer->second->setSubData(0, blendshapeOffsetSize, (gpu::Byte*) blendshapeOffsets.constData() + index * sizeof(BlendshapeOffset));
-
-        index += meshBlendshapeOffsets->second.size();
-    }
-}
-
 void Model::initializeBlendshapes(const FBXMesh& mesh, int index) {
     if (mesh.blendshapes.empty()) {
         // mesh doesn't have blendshape, did we allocate one though ?
-        if (_blendshapeBuffers.find(index) != _blendshapeBuffers.end()) {
-            qWarning() << "Mesh does not have Blendshape yet a blendshapeOffset buffer is allocated ?";
+        if (_blendshapeOffsets.find(index) != _blendshapeOffsets.end()) {
+            qWarning() << "Mesh does not have Blendshape yet the blendshapeOffsets are allocated ?";
         }
         return;
     }
     // Mesh has blendshape, let s allocate the local buffer if not done yet
-    if (_blendshapeBuffers.find(index) == _blendshapeBuffers.end()) {
+    if (_blendshapeOffsets.find(index) == _blendshapeOffsets.end()) {
         QVector<BlendshapeOffset> blendshapeOffset;
         blendshapeOffset.fill(BlendshapeOffset(), mesh.vertices.size());
-        const auto blendshapeOffsetsSize = blendshapeOffset.size() * sizeof(BlendshapeOffset);
-        _blendshapeBuffers[index] = std::make_shared<gpu::Buffer>(blendshapeOffsetsSize, (const gpu::Byte*) blendshapeOffset.constData(), blendshapeOffsetsSize);
         _blendshapeOffsets[index] = blendshapeOffset;
     }
 }
@@ -1791,10 +1775,14 @@ void ModelBlender::noteRequiresBlend(ModelPointer model) {
     }
 }
 
-void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, QVector<BlendshapeOffset> blendshapeOffsets) {
+void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, QVector<BlendshapeOffset> blendshapeOffsets, QVector<int> blendedMeshSizes) {
     if (model) {
-        model->setBlendedVertices(blendNumber, blendshapeOffsets);
+        auto blendshapeOperator = model->getModelBlendshapeOperator();
+        if (blendshapeOperator) {
+            blendshapeOperator(blendNumber, blendshapeOffsets, blendedMeshSizes, model->fetchRenderItemIDs());
+        }
     }
+
     {
         Lock lock(_mutex);
         _pendingBlenders--;

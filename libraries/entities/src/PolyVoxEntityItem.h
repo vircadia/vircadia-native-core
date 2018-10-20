@@ -54,7 +54,7 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual void debugDump() const override;
 
-    virtual void setVoxelVolumeSize(const vec3& voxelVolumeSize);
+    virtual void setVoxelVolumeSize(const glm::vec3& voxelVolumeSize);
     virtual glm::vec3 getVoxelVolumeSize() const;
 
     virtual void setVoxelData(const QByteArray& voxelData);

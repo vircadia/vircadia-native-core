@@ -47,11 +47,11 @@ bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
 
-    if (_textColor != toGlm(entity->getTextColorX())) {
+    if (_textColor != toGlm(entity->getTextColor())) {
         return true;
     }
 
-    if (_backgroundColor != toGlm(entity->getBackgroundColorX())) {
+    if (_backgroundColor != toGlm(entity->getBackgroundColor())) {
         return true;
     }
 
@@ -77,8 +77,8 @@ void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 }
 
 void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    _textColor = toGlm(entity->getTextColorX());
-    _backgroundColor = toGlm(entity->getBackgroundColorX());
+    _textColor = toGlm(entity->getTextColor());
+    _backgroundColor = toGlm(entity->getBackgroundColor());
     _faceCamera = entity->getFaceCamera();
     _lineHeight = entity->getLineHeight();
     _text = entity->getText();

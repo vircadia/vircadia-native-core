@@ -290,9 +290,9 @@ void MaterialEntityItem::applyMaterial() {
         return;
     }
     Transform textureTransform;
-    textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0));
-    textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialMappingRot)));
-    textureTransform.setScale(glm::vec3(_materialMappingScale, 1));
+    textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0.0f));
+    textureTransform.setRotation(glm::vec3(0.0f, 0.0f, glm::radians(_materialMappingRot)));
+    textureTransform.setScale(glm::vec3(_materialMappingScale, 1.0f));
     material->setTextureTransforms(textureTransform);
 
     graphics::MaterialLayer materialLayer = graphics::MaterialLayer(material, getPriority());
@@ -314,8 +314,25 @@ void MaterialEntityItem::applyMaterial() {
     _retryApply = true;
 }
 
+AACube MaterialEntityItem::calculateInitialQueryAACube(bool& success) {
+    AACube aaCube = EntityItem::calculateInitialQueryAACube(success);
+    // A Material entity's queryAACube contains its parent's queryAACube
+    auto parent = getParentPointer(success);
+    if (success && parent) {
+        success = false;
+        AACube parentQueryAACube = parent->calculateInitialQueryAACube(success);
+        if (success) {
+            aaCube += parentQueryAACube.getMinimumPoint();
+            aaCube += parentQueryAACube.getMaximumPoint();
+        }
+    }
+    return aaCube;
+}
+
 void MaterialEntityItem::postParentFixup() {
     removeMaterial();
+    _queryAACubeSet = false; // force an update so we contain our parent
+    updateQueryAACube();
     applyMaterial();
 }
 
