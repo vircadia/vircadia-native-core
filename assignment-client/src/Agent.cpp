@@ -788,7 +788,7 @@ void Agent::processAgentAvatarAudio() {
         // seek past the sequence number, will be packed when destination node is known
         audioPacket->seek(sizeof(quint16));
 
-        if (silentFrame) {
+        if (silentFrame && !_flushEncoder) {
 
             if (!_isListeningToAudioStream) {
                 // if we have a silent frame and we're not listening then just send nothing and break out of here
@@ -810,7 +810,7 @@ void Agent::processAgentAvatarAudio() {
 
             // no matter what, the loudness should be set to 0
             computeLoudness(nullptr, scriptedAvatar);
-        } else if (nextSoundOutput) {
+        } else if (nextSoundOutput || _flushEncoder) {
 
             // write the codec
             audioPacket->writeString(_selectedCodecName);
