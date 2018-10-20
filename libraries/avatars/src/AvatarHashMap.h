@@ -188,15 +188,8 @@ protected:
     
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
     
-    AvatarHash _avatarHash;
-    struct PendingAvatar {
-        std::chrono::steady_clock::time_point creationTime;
-        int transmits;
-        AvatarSharedPointer avatar;
-    };
-    using AvatarPendingHash = QHash<QUuid, PendingAvatar>;
-    AvatarPendingHash _pendingAvatars;
     mutable QReadWriteLock _hashLock;
+    AvatarHash _avatarHash;
 
     std::unordered_map<QUuid, AvatarTraits::TraitVersions> _processedTraitVersions;
     AvatarReplicas _replicas;
