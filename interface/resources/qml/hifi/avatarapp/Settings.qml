@@ -318,10 +318,6 @@ Rectangle {
                     ListElement { text: "Disable Recentering"; color: "Red" }
                 }
                 width: 200
-                onCurrentIndexChanged: {
-                    console.debug(cbItems.get(currentIndex).text + ", " + cbItems.get(currentIndex).color)
-                    console.debug("line 2")
-                }
             }
         }
 

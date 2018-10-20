@@ -534,7 +534,6 @@ void MyAvatar::update(float deltaTime) {
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     setHipToHandController(computeHandAzimuth());
-    qCDebug(interfaceapp) << " the sit state is " << _isInSittingState.get() << " the lock is " << _lockSitStandState.get();
 
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
@@ -3936,7 +3935,6 @@ void MyAvatar::setUserRecenterModel(MyAvatar::SitStandModelType modelName) {
         setIsSitStandStateLocked(false);
         break;
     }
-    qCDebug(interfaceapp) << "recenter property changed " << modelName << " sit " << _isInSittingState.get() << " lock " << _lockSitStandState.get();
     emit userRecenterModelChanged((int)modelName);
 }
 
