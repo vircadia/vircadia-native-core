@@ -76,7 +76,9 @@ public:
         int _totalFrames { 0 };
         float _framesPerMeter { 0.0f };
         bool _isDistanceBased { false };
-        float _triggerDistance { 0 };
+        float _minTriggerDistance { 0.0f };
+        float _maxTriggerDistance { 0.0f };
+        float _abortDistance{ 0.0f };
         EaseType _easeType { EaseType::EASE_OUT };
     };
 
@@ -434,11 +436,7 @@ public:
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
     std::shared_ptr<AvatarTransit> getTransit() { return std::make_shared<AvatarTransit>(_transit); };
-
-    AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
-    void setTransitScale(float scale);
-
-    void overrideNextPacketPositionData(const glm::vec3& position);
+    AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, float avatarScale, const AvatarTransit::TransitConfig& config);
 
 signals:
     void targetScaleChanged(float targetScale);

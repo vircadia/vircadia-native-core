@@ -115,10 +115,8 @@ void Avatar::setShowNamesAboveHeads(bool show) {
 
 AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
     float oneFrameDistance = _isActive ? glm::length(avatarPosition - _endPosition) : glm::length(avatarPosition - _lastPosition);
-    const float TRANSIT_TRIGGER_MAX_DISTANCE = 30.0f;
-    float scaledMaxTransitDistance = TRANSIT_TRIGGER_MAX_DISTANCE * _scale;
-    if (oneFrameDistance > config._triggerDistance) {
-        if (oneFrameDistance < scaledMaxTransitDistance) {
+    if (oneFrameDistance > (config._minTriggerDistance * _scale)) {
+        if (oneFrameDistance < (config._maxTriggerDistance * _scale)) {
             start(deltaTime, _lastPosition, avatarPosition, config);
         } else {
             _lastPosition = avatarPosition;
@@ -128,9 +126,7 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
     _lastPosition = avatarPosition;
     _status = updatePosition(deltaTime);
 
-    const float SETTLE_ABORT_DISTANCE = 0.1f;
-    float scaledSettleAbortDistance = SETTLE_ABORT_DISTANCE * _scale;
-    if (_isActive && oneFrameDistance > scaledSettleAbortDistance && _status == Status::POST_TRANSIT) {
+    if (_isActive && oneFrameDistance > (config._abortDistance * _scale) && _status == Status::POST_TRANSIT) {
         reset();
         _status = Status::ENDED;
     }
@@ -150,14 +146,10 @@ void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const
     _totalDistance = glm::length(_transitLine);
     _easeType = config._easeType;
 
-    const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
-    const float PRE_TRANSIT_FRAME_COUNT = 10.0f;
-    const float POST_TRANSIT_FRAME_COUNT = 27.0f;
-
-    _preTransitTime = PRE_TRANSIT_FRAME_COUNT / REFERENCE_FRAMES_PER_SECOND;
-    _postTransitTime = POST_TRANSIT_FRAME_COUNT / REFERENCE_FRAMES_PER_SECOND;
+    _preTransitTime = AVATAR_PRE_TRANSIT_FRAME_COUNT / AVATAR_TRANSIT_FRAMES_PER_SECOND;
+    _postTransitTime = AVATAR_POST_TRANSIT_FRAME_COUNT / AVATAR_TRANSIT_FRAMES_PER_SECOND;
     int transitFrames = (!config._isDistanceBased) ? config._totalFrames : config._framesPerMeter * _totalDistance;
-    _transitTime = (float)transitFrames / REFERENCE_FRAMES_PER_SECOND;
+    _transitTime = (float)transitFrames / AVATAR_TRANSIT_FRAMES_PER_SECOND;
     _totalTime = _transitTime + _preTransitTime + _postTransitTime;
     _currentTime = _isActive ? _preTransitTime : 0.0f;
     _isActive = true;
@@ -554,13 +546,10 @@ void Avatar::relayJointDataToChildren() {
 
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
-    
-    if (_transit.isActive()) {
-        _globalPosition = _transit.getCurrentPosition();
-        _globalPositionChanged = usecTimestampNow();
-        if (!hasParent()) {
-            setLocalPosition(_transit.getCurrentPosition());
-        }
+
+    _globalPosition = _transit.isActive() ? _transit.getCurrentPosition() : _serverPosition;
+    if (!hasParent()) {
+        setLocalPosition(_globalPosition);
     }
     
     _simulationRate.increment();
@@ -1994,20 +1983,10 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
     }
 }
 
-AvatarTransit::Status Avatar::updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
+AvatarTransit::Status Avatar::updateTransit(float deltaTime, const glm::vec3& avatarPosition, float avatarScale, const AvatarTransit::TransitConfig& config) {
     std::lock_guard<std::mutex> lock(_transitLock);
+    _transit.setScale(avatarScale);
     return _transit.update(deltaTime, avatarPosition, config);
-}
-
-void Avatar::setTransitScale(float scale) {
-    std::lock_guard<std::mutex> lock(_transitLock);
-    _transit.setScale(scale);
-}
-
-void Avatar::overrideNextPacketPositionData(const glm::vec3& position) {
-    std::lock_guard<std::mutex> lock(_transitLock);
-    _overrideGlobalPosition = true;
-    _globalPositionOverride = position;
 }
 
 void Avatar::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {

@@ -79,14 +79,12 @@ AvatarManager::AvatarManager(QObject* parent) :
         }
     });
 
-    const float AVATAR_TRANSIT_TRIGGER_DISTANCE = 1.0f;
-    const int AVATAR_TRANSIT_FRAME_COUNT = 11; // Based on testing
-    const float AVATAR_TRANSIT_FRAMES_PER_METER = 0.5f; // Based on testing
-
     _transitConfig._totalFrames = AVATAR_TRANSIT_FRAME_COUNT;
-    _transitConfig._triggerDistance = AVATAR_TRANSIT_TRIGGER_DISTANCE;
+    _transitConfig._minTriggerDistance = AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE;
+    _transitConfig._maxTriggerDistance = AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE;
     _transitConfig._framesPerMeter = AVATAR_TRANSIT_FRAMES_PER_METER;
-    _transitConfig._isDistanceBased = true;
+    _transitConfig._isDistanceBased = AVATAR_TRANSIT_DISTANCE_BASED;
+    _transitConfig._abortDistance = AVATAR_TRANSIT_ABORT_DISTANCE;
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -169,7 +167,7 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
-    AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _transitConfig);
+    AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _myAvatar->getSensorToWorldScale(), _transitConfig);
     handleTransitAnimations(status);
 
     _myAvatar->update(deltaTime);
@@ -300,7 +298,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             if (inView && avatar->hasNewJointData()) {
                 numAvatarsUpdated++;
             }
-            auto transitStatus = avatar->_transit.update(deltaTime, avatar->_lastPosition, _transitConfig);
+            auto transitStatus = avatar->_transit.update(deltaTime, avatar->_serverPosition, _transitConfig);
             if (avatar->getIsNewAvatar() && (transitStatus == AvatarTransit::Status::START_TRANSIT || transitStatus == AvatarTransit::Status::ABORT_TRANSIT)) {
                 avatar->_transit.reset();
                 avatar->setIsNewAvatar(false);
