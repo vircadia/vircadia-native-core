@@ -32,7 +32,7 @@ Rectangle {
 
         scaleSlider.notify = false;
         scaleSlider.value = Math.round(avatarScale * 10);
-        scaleSlider.notify = true;;
+        scaleSlider.notify = true;
 
         if (settings.dominantHand === 'left') {
             leftHandRadioButton.checked = true;
@@ -191,7 +191,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
 
-            rows: 2
+            rows: 3
             rowSpacing: 25
 
             columns: 3
@@ -214,7 +214,7 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 1
-                Layout.leftMargin: -40
+                Layout.leftMargin: 20
 
                 ButtonGroup.group: leftRight
                 checked: true
@@ -231,7 +231,7 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 2
-                Layout.rightMargin: 20
+                Layout.rightMargin: -20
 
                 ButtonGroup.group: leftRight
 
@@ -260,7 +260,7 @@ Rectangle {
 
                 Layout.row: 1
                 Layout.column: 1
-                Layout.leftMargin: -40
+                Layout.leftMargin: 20
                 ButtonGroup.group: onOff
 
                 colorScheme: hifi.colorSchemes.light
@@ -281,7 +281,7 @@ Rectangle {
 
                 Layout.row: 1
                 Layout.column: 2
-                Layout.rightMargin: 20
+                Layout.rightMargin: -20
 
                 ButtonGroup.group: onOff
                 colorScheme: hifi.colorSchemes.light
