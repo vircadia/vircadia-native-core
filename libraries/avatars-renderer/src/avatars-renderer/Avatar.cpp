@@ -707,6 +707,19 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
+void Avatar::metaBlendshapeOperator(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets, const QVector<int>& blendedMeshSizes,
+                                    const render::ItemIDs& subItemIDs) {
+    render::Transaction transaction;
+    transaction.updateItem<AvatarData>(_renderItemID, [blendshapeNumber, blendshapeOffsets, blendedMeshSizes,
+                                                       subItemIDs](AvatarData& avatar) {
+        auto avatarPtr = dynamic_cast<Avatar*>(&avatar);
+        if (avatarPtr) {
+            avatarPtr->setBlendedVertices(blendshapeNumber, blendshapeOffsets, blendedMeshSizes, subItemIDs);
+        }
+    });
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+}
+
 void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = std::shared_ptr<render::Payload<AvatarData>>(avatarPayload);
@@ -716,7 +729,8 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     // INitialize the _render bound as we are creating the avatar render item
     _renderBound = getBounds();
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
-    _skeletonModel->addToScene(scene, transaction);
+    using namespace std::placeholders;
+    _skeletonModel->addToScene(scene, transaction, std::bind(&Avatar::metaBlendshapeOperator, this, _1, _2, _3, _4));
     _skeletonModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
     _skeletonModel->setGroupCulled(true);
     _skeletonModel->setCanCastShadow(true);
@@ -795,7 +809,7 @@ void Avatar::updateRenderItem(render::Transaction& transaction) {
                     avatarPtr->_renderBound = renderBound;
                 }
             }
-      );
+        );
     }
 }
 
@@ -939,7 +953,8 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     render::Transaction transaction;
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
-        _skeletonModel->addToScene(scene, transaction);
+        using namespace std::placeholders;
+        _skeletonModel->addToScene(scene, transaction, std::bind(&Avatar::metaBlendshapeOperator, this, _1, _2, _3, _4));
 
         _skeletonModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
         _skeletonModel->setGroupCulled(true);

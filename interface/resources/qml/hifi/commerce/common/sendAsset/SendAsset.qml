@@ -39,6 +39,7 @@ Item {
     property string sendingPubliclyEffectImage;
     property var http;
     property var listModelName;
+    property var keyboardContainer: nil;
         
     // This object is always used in a popup or full-screen Wallet section.
     // This MouseArea is used to prevent a user from being
@@ -1125,8 +1126,7 @@ Item {
             checked: Settings.getValue("sendAssetsNearbyPublicly", true);
             text: "Show Effect"
             // Anchors
-            anchors.top: messageContainer.bottom;
-            anchors.topMargin: 16;
+            anchors.verticalCenter: bottomBarContainer.verticalCenter;
             anchors.left: parent.left;
             anchors.leftMargin: 20;
             width: 130;
@@ -1168,6 +1168,9 @@ Item {
                         lightboxPopup.visible = false;
                     }
                     lightboxPopup.visible = true;
+                    if (keyboardContainer) {
+                        keyboardContainer.keyboardRaised = false;
+                    }
                 }
             }
         }
@@ -1178,8 +1181,8 @@ Item {
             anchors.leftMargin: 20;
             anchors.right: parent.right;
             anchors.rightMargin: 20;
-            anchors.bottom: parent.bottom;
-            anchors.bottomMargin: 20;
+            anchors.top: messageContainer.bottom;
+            anchors.topMargin: 20;
             height: 60;
 
             // "CANCEL" button
@@ -1187,11 +1190,11 @@ Item {
                 id: cancelButton_sendAssetStep;
                 color: root.assetName === "" ? hifi.buttons.noneBorderlessWhite : hifi.buttons.noneBorderlessGray;
                 colorScheme: hifi.colorSchemes.dark;
-                anchors.left: parent.left;
-                anchors.leftMargin: 24;
+                anchors.right: sendButton.left;
+                anchors.rightMargin: 24;
                 anchors.verticalCenter: parent.verticalCenter;
                 height: 40;
-                width: 150;
+                width: 100;
                 text: "CANCEL";
                 onClicked: {
                     resetSendAssetData();
@@ -1205,10 +1208,10 @@ Item {
                 color: hifi.buttons.blue;
                 colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.right: parent.right;
-                anchors.rightMargin: 24;
+                anchors.rightMargin: 0;
                 anchors.verticalCenter: parent.verticalCenter;
                 height: 40;
-                width: 150;
+                width: 100;
                 text: "SUBMIT";
                 onClicked: {
                     if (root.assetName === "" && parseInt(amountTextField.text) > parseInt(balanceText.text)) {

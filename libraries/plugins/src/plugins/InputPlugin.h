@@ -19,7 +19,6 @@ namespace controller {
 
 class InputPlugin : public Plugin {
 public:
-    virtual ~InputPlugin() {}
     virtual void pluginFocusOutEvent() = 0;
     virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) = 0;
 

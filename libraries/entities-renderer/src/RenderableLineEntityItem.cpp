@@ -37,7 +37,7 @@ void LineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
     if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
         _lineVerticesID = geometryCache->allocateID();
     }
-    glm::vec4 lineColor(toGlm(entity->getXColor()), entity->getLocalRenderAlpha());
+    glm::vec4 lineColor(toGlm(entity->getColor()), entity->getLocalRenderAlpha());
     geometryCache->updateVertices(_lineVerticesID, _linePoints, lineColor);
 }
 

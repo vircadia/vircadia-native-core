@@ -78,6 +78,11 @@ QDebug& operator<<(QDebug& dbg, const glm::vec3& v) {
     return dbg;
 }
 
+QDebug& operator<<(QDebug& dbg, const glm::u8vec3& v) {
+    dbg.nospace() << '(' << v.x << ", " << v.y << ", " << v.z << ')';
+    return dbg;
+}
+
 QDebug& operator<<(QDebug& dbg, const glm::vec4& v) {
     dbg.nospace() << '(' << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ')';
     return dbg;
