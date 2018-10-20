@@ -53,14 +53,10 @@
                     y: SIZE,
                     z: SIZE
                 },
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        cloneable: true,
-                        grabbable: true,
-                        cloneLifetime: LIFETIME,
-                        cloneLimit: 9999
-                    }
-                }),
+                grab: { grabbable: true },
+                cloneable: true,
+                cloneLifetime: LIFETIME,
+                cloneLimit: 9999
                 position: Vec3.sum(MyAvatar.position, Vec3.sum(forwardOffset, forwardVector)),
                 color: newColor(),
                 script: SCRIPT_URL

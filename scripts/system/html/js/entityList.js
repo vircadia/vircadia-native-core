@@ -20,7 +20,7 @@ const IMAGE_MODEL_NAME = 'default-image-model.fbx';
 const COLLAPSE_EXTRA_INFO = "E";
 const EXPAND_EXTRA_INFO = "D";
 const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
-const WINDOW_NONVARIABLE_HEIGHT = 207;
+const WINDOW_NONVARIABLE_HEIGHT = 227;
 const NUM_COLUMNS = 12;
 const EMPTY_ENTITY_ID = "0";
 const DELETE = 46; // Key code for the delete key.
@@ -60,7 +60,7 @@ const COMPARE_DESCENDING = function(a, b) {
 }
 
 // List of all entities
-var entities = []
+var entities = [];
 // List of all entities, indexed by Entity ID
 var entitiesByID = {};
 // The filtered and sorted list of entities passed to ListView
@@ -112,7 +112,8 @@ function loaded() {
         elPal = document.getElementById("pal");
         elInfoToggle = document.getElementById("info-toggle");
         elInfoToggleGlyph = elInfoToggle.firstChild;
-        elFooter = document.getElementById("footer-text");
+        elSelectedEntitiesCount = document.getElementById("selected-entities-count");
+        elVisibleEntitiesCount = document.getElementById("visible-entities-count");
         elNoEntitiesMessage = document.getElementById("no-entities");
         elNoEntitiesInView = document.getElementById("no-entities-in-view");
         elNoEntitiesRadius = document.getElementById("no-entities-radius");
@@ -440,15 +441,8 @@ function loaded() {
         }
         
         function refreshFooter() {
-            if (selectedEntities.length > 1) {
-                elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
-            } else if (selectedEntities.length === 1) {
-                elFooter.firstChild.nodeValue = "1 entity selected";
-            } else if (visibleEntities.length === 1) {
-                elFooter.firstChild.nodeValue = "1 entity found";
-            } else {
-                elFooter.firstChild.nodeValue = visibleEntities.length + " entities found";
-            }
+            elSelectedEntitiesCount.innerText = selectedEntities.length;
+            elVisibleEntitiesCount.innerText = visibleEntities.length;
         }
         
         function refreshNoEntitiesMessage() {
@@ -646,7 +640,7 @@ function loaded() {
                 data = JSON.parse(data);
                 if (data.type === "clearEntityList") {
                     clearEntities();
-                } else if (data.type == "selectionUpdate") {
+                } else if (data.type === "selectionUpdate") {
                     let notFound = updateSelectedEntities(data.selectedIDs);
                     if (notFound) {
                         refreshEntities();

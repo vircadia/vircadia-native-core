@@ -35,6 +35,7 @@ private:
     glm::vec2 _materialMappingPos;
     glm::vec2 _materialMappingScale;
     float _materialMappingRot;
+    bool _texturesLoaded { false };
 
     std::shared_ptr<NetworkMaterial> _drawMaterial;
 };

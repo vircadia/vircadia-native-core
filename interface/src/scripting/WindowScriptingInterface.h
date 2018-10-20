@@ -620,6 +620,14 @@ signals:
     void redirectErrorStateChanged(bool isInErrorState);
 
     /**jsdoc
+     * Triggered when interstitial mode changes.
+     * @function Window.interstitialModeChanged
+     * @param {bool} interstitialMode - The mode of the interstitial is changed to.
+     * @returns {Signal}
+     */
+    void interstitialModeChanged(bool interstitialMode);
+
+    /**jsdoc
      * Triggered when a still snapshot has been taken by calling {@link Window.takeSnapshot|takeSnapshot} with 
      *     <code>includeAnimated = false</code> or {@link Window.takeSecondaryCameraSnapshot|takeSecondaryCameraSnapshot}.
      * @function Window.stillSnapshotTaken

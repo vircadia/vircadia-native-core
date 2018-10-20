@@ -52,8 +52,7 @@ void ParabolaPointer::editRenderStatePath(const std::string& state, const QVaria
         if (!pathMap.isEmpty()) {
             enabled = true;
             if (pathMap["color"].isValid()) {
-                bool valid;
-                color = toGlm(xColorFromVariant(pathMap["color"], valid));
+                color = toGlm(u8vec3FromVariant(pathMap["color"]));
             }
             if (pathMap["alpha"].isValid()) {
                 alpha = pathMap["alpha"].toFloat();
@@ -250,8 +249,7 @@ std::shared_ptr<StartEndRenderState> ParabolaPointer::buildRenderState(const QVa
         enabled = true;
         QVariantMap pathMap = propMap["path"].toMap();
         if (pathMap["color"].isValid()) {
-            bool valid;
-            color = toGlm(xColorFromVariant(pathMap["color"], valid));
+            color = toGlm(u8vec3FromVariant(pathMap["color"]));
         }
 
         if (pathMap["alpha"].isValid()) {

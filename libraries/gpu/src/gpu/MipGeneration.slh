@@ -1,0 +1,20 @@
+<!
+//  MipGeneration.slh
+//  libraries/gpu/src
+//
+//  Created by Olivier Prat on 10/16/18.
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not MIP_GENERATION_SLH@>
+<@def MIP_GENERATION_SLH@>
+
+<@include gpu/ShaderConstants.h@>
+
+layout(binding=GPU_TEXTURE_MIP_CREATION_INPUT) uniform sampler2D texMap;
+
+in vec2 varTexCoord0;
+
+<@endif@>

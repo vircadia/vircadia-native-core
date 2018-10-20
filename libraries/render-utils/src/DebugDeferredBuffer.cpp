@@ -405,6 +405,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
     auto& ambientOcclusionFramebuffer = inputs.get3();
     auto& velocityFramebuffer = inputs.get4();
     auto& frameTransform = inputs.get5();
+    auto& lightFrame = inputs.get6();
 
     gpu::doInBatch("DebugDeferredBuffer::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -443,7 +444,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
-        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
+        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow(*lightFrame);
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
             batch.setResourceTexture(Textures::Shadow, globalShadow->map);
