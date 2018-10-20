@@ -222,9 +222,9 @@ Rectangle {
                             newModelDialog.sendToScript({
                                 method: "newModelDialogAdd",
                                 params: {
-                                    textInput: modelURL.text,
-                                    checkBox: dynamic.checked,
-                                    comboBox: collisionType.currentIndex,
+                                    url: modelURL.text,
+                                    dynamic: dynamic.checked,
+                                    collisionShapeIndex: collisionType.currentIndex,
                                     grabbable: grabbable.checked
                                 }
                             });
