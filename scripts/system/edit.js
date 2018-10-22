@@ -2390,219 +2390,6 @@ var PropertiesTool = function (opts) {
     return that;
 };
 
-function addChildrenEntities(parentEntityID, entityList) {
-    var children = Entities.getChildrenIDs(parentEntityID);
-    for (var i = 0; i < children.length; i++) {
-        var childID = children[i];
-        if (entityList.indexOf(childID) < 0) {
-            entityList.push(childID);
-        }
-        addChildrenEntities(childID, entityList);
-    }
-}
-
-// Determine if an entity is being grabbed.
-// This is mostly a heuristic - there is no perfect way to know if an entity is being
-// grabbed.
-//
-// @return {boolean} true if the given entity with `properties` is being grabbed by an avatar
-function nonDynamicEntityIsBeingGrabbedByAvatar(properties) {
-    if (properties.dynamic || Uuid.isNull(properties.parentID)) {
-        return false;
-    }
-
-    var avatar = AvatarList.getAvatar(properties.parentID);
-    if (Uuid.isNull(avatar.sessionUUID)) {
-        return false;
-    }
-
-    var grabJointNames = [
-        'RightHand', 'LeftHand',
-        '_CONTROLLER_RIGHTHAND', '_CONTROLLER_LEFTHAND',
-        '_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND', '_CAMERA_RELATIVE_CONTROLLER_LEFTHAND'];
-
-    for (var i = 0; i < grabJointNames.length; ++i) {
-        if (avatar.getJointIndex(grabJointNames[i]) === properties.parentJointIndex) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
-// Create the entities in entityProperties, maintaining parent-child relationships.
-// @param entityPropertites {array} - Array of entity property objects
-function createEntities(entityProperties) {
-    var entitiesToCreate = [];
-    var createdEntityIDs = [];
-    var createdChildrenWithOldParents = [];
-    var originalEntityToNewEntityID = [];
-
-    SelectionManager.saveProperties();
-
-    for (var i = 0; i < entityProperties.length; ++i) {
-        var properties = entityProperties[i];
-        if (properties.parentID in originalEntityToNewEntityID) {
-            properties.parentID = originalEntityToNewEntityID[properties.parentID];
-        } else {
-            delete properties.parentID;
-        }
-
-        delete properties.actionData;
-        var newEntityID = Entities.addEntity(properties);
-
-        if (newEntityID) {
-            createdEntityIDs.push({
-                entityID: newEntityID,
-                properties: properties
-            });
-            if (properties.parentID !== Uuid.NULL) {
-                createdChildrenWithOldParents[newEntityID] = properties.parentID;
-            }
-            originalEntityToNewEntityID[properties.id] = newEntityID;
-            properties.id = newEntityID;
-        }
-    }
-
-    return createdEntityIDs;
-}
-
-function cutSelectedEntities() {
-    copySelectedEntities();
-    deleteSelectedEntities();
-}
-
-function copySelectedEntities() {
-    copyEntities(selectionManager.selections);
-}
-
-var entityClipboard = {
-    entities: {}, // Map of id -> properties for copied entities
-    position: { x: 0, y: 0, z: 0 },
-    dimensions: { x: 0, y: 0, z: 0 },
-};
-
-function copyEntities(entityIDs) {
-    var entityProperties = Entities.getMultipleEntityProperties(entityIDs);
-    var entities = {};
-    entityProperties.forEach(function(props) {
-        entities[props.id] = props;
-    });
-
-    function appendChildren(entityID, entities) {
-        var childrenIDs = Entities.getChildrenIDs(entityID);
-        for (var i = 0; i < childrenIDs.length; ++i) {
-            var id = childrenIDs[i];
-            if (!(id in entities)) {
-                entities[id] = Entities.getEntityProperties(id); 
-                appendChildren(id, entities);
-            }
-        }
-    }
-
-    var len = entityProperties.length;
-    for (var i = 0; i < len; ++i) {
-        appendChildren(entityProperties[i].id, entities);
-    }
-
-    for (var id in entities) {
-        var parentID = entities[id].parentID;
-        entities[id].root = !(parentID in entities);
-    }
-
-    entityClipboard.entities = [];
-
-    var ids = Object.keys(entities);
-    while (ids.length > 0) {
-        // Go through all remaining entities.
-        // If an entity does not have a parent left, move it into the list
-        for (var i = 0; i < ids.length; ++i) {
-            var id = ids[i];
-            var parentID = entities[id].parentID;
-            if (parentID in entities) {
-                continue;
-            }
-            entityClipboard.entities.push(entities[id]);
-            delete entities[id];
-        }
-        ids = Object.keys(entities);
-    }
-
-    // Calculate size
-    if (entityClipboard.entities.length === 0) {
-        entityClipboard.dimensions = { x: 0, y: 0, z: 0 };
-        entityClipboard.position = { x: 0, y: 0, z: 0 };
-    } else {
-        var properties = entityClipboard.entities;
-        var brn = properties[0].boundingBox.brn;
-        var tfl = properties[0].boundingBox.tfl;
-        for (var i = 1; i < properties.length; i++) {
-            var bb = properties[i].boundingBox;
-            brn.x = Math.min(bb.brn.x, brn.x);
-            brn.y = Math.min(bb.brn.y, brn.y);
-            brn.z = Math.min(bb.brn.z, brn.z);
-            tfl.x = Math.max(bb.tfl.x, tfl.x);
-            tfl.y = Math.max(bb.tfl.y, tfl.y);
-            tfl.z = Math.max(bb.tfl.z, tfl.z);
-        }
-        entityClipboard.dimensions = {
-            x: tfl.x - brn.x,
-            y: tfl.y - brn.y,
-            z: tfl.z - brn.z
-        };
-        entityClipboard.position = {
-            x: brn.x + entityClipboard.dimensions.x / 2,
-            y: brn.y + entityClipboard.dimensions.y / 2,
-            z: brn.z + entityClipboard.dimensions.z / 2
-        };
-    }
-}
-
-function deepCopy(v) {
-    return JSON.parse(JSON.stringify(v));
-}
-
-function pasteEntities() {
-    var dimensions = entityClipboard.dimensions;
-    var maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
-    var pastePosition = getPositionToCreateEntity(maxDimension);
-    var deltaPosition = Vec3.subtract(pastePosition, entityClipboard.position);
-
-    var copiedProperties = []
-    var ids = [];
-    entityClipboard.entities.forEach(function(originalProperties) {
-        var properties = deepCopy(originalProperties);
-        if (properties.root) {
-            properties.position = Vec3.sum(properties.position, deltaPosition);
-            delete properties.localPosition;
-        } else {
-            delete properties.position;
-        }
-        copiedProperties.push(properties);
-    });
-
-    var currentSelections = deepCopy(SelectionManager.selections);
-
-    function redo(copiedProperties) {
-        var created = createEntities(copiedProperties);
-        var ids = [];
-        for (var i = 0; i < created.length; ++i) {
-            ids.push(created[i].entityID);
-        }
-        SelectionManager.setSelections(ids);
-    }
-
-    function undo(copiedProperties) {
-        for (var i = 0; i < copiedProperties.length; ++i) {
-            Entities.deleteEntity(copiedProperties[i].id);
-        }
-        SelectionManager.setSelections(currentSelections);
-    }
-
-    redo(copiedProperties);
-    undoHistory.pushCommand(undo, copiedProperties, redo, copiedProperties);
-}
 
 var PopupMenu = function () {
     var self = this;
@@ -2795,12 +2582,18 @@ mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware
 mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
 mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
 mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
-mapping.from([Controller.Hardware.Keyboard.X]).when([Controller.Hardware.Keyboard.Control]).to(whenReleased(cutSelectedEntities));
-mapping.from([Controller.Hardware.Keyboard.C]).when([Controller.Hardware.Keyboard.Control]).to(whenReleased(copySelectedEntities));
-mapping.from([Controller.Hardware.Keyboard.V]).when([Controller.Hardware.Keyboard.Control]).to(whenReleased(pasteEntities));
+mapping.from([Controller.Hardware.Keyboard.X])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.cutSelectedEntities() }));
+mapping.from([Controller.Hardware.Keyboard.C])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.copySelectedEntities() }));
+mapping.from([Controller.Hardware.Keyboard.V])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.pasteEntities() }));
 mapping.from([Controller.Hardware.Keyboard.D])
     .when([Controller.Hardware.Keyboard.Control])
-    .to(whenReleased(function() { SelectionManager.duplicateSelection() }));
+    .to(whenReleased(function() { selectionManager.duplicateSelection() }));
 
 // Bind undo to ctrl-shift-z to maintain backwards-compatibility
 mapping.from([Controller.Hardware.Keyboard.Z])
