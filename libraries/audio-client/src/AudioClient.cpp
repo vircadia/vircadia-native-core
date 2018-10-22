@@ -465,7 +465,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 
 #if defined (Q_OS_ANDROID)
     if (mode == QAudio::AudioInput) {
-        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, false);
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, DEFAULT_AEC_ENABLED);
         bool aecEnabled = enableAEC.get();
         auto audioClient = DependencyManager::get<AudioClient>();
         bool headsetOn = audioClient? audioClient->isHeadsetPluggedIn() : false;
@@ -1673,7 +1673,7 @@ void AudioClient::setHeadsetPluggedIn(bool pluggedIn) {
             QThread::msleep(200);
         }
 
-        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, false);
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, DEFAULT_AEC_ENABLED);
         bool aecEnabled = enableAEC.get();
 
         if ((pluggedIn || !aecEnabled) && _inputDeviceInfo.deviceName() != VOICE_RECOGNITION) {

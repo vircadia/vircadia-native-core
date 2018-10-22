@@ -6,6 +6,7 @@
         <SwitchPreference
             android:key="aec"
             android:title="@string/AEC"
-            android:summary="@string/acoustic_echo_cancellation" />
+            android:summary="@string/acoustic_echo_cancellation"
+            android:defaultValue="true" />
     </PreferenceCategory>
 </PreferenceScreen>
