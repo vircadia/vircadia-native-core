@@ -348,12 +348,12 @@ var toolBar = (function () {
 
             if (!properties.grab) {
                 properties.grab = {};
-            }
-            if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
-                !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
-                properties.grab.grabbable = true;
-            } else {
-                properties.grab.grabbable = false;
+                if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
+                    !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
+                    properties.grab.grabbable = true;
+                } else {
+                    properties.grab.grabbable = false;
+                }
             }
 
             SelectionManager.saveProperties();
@@ -442,9 +442,9 @@ var toolBar = (function () {
 
     function handleNewModelDialogResult(result) {
         if (result) {
-            var url = result.textInput;
+            var url = result.url;
             var shapeType;
-            switch (result.comboBox) {
+            switch (result.collisionShapeIndex) {
             case SHAPE_TYPE_SIMPLE_HULL:
                 shapeType = "simple-hull";
                 break;
@@ -464,7 +464,7 @@ var toolBar = (function () {
                 shapeType = "none";
             }
 
-            var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
+            var dynamic = result.dynamic !== null ? result.dynamic : DYNAMIC_DEFAULT;
             if (shapeType === "static-mesh" && dynamic) {
                 // The prompt should prevent this case
                 print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
@@ -473,6 +473,9 @@ var toolBar = (function () {
                     type: "Model",
                     modelURL: url,
                     shapeType: shapeType,
+                    grab: {
+                        grabbable: result.grabbable
+                    },
                     dynamic: dynamic,
                     gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
                 });
