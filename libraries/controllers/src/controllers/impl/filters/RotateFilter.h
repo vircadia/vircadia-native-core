@@ -19,9 +19,8 @@ namespace controller {
 class RotateFilter : public Filter {
     REGISTER_FILTER_CLASS(RotateFilter);
 public:
-    RotateFilter() { }
+    RotateFilter() = default;
     RotateFilter(glm::quat rotation) : _rotation(rotation) {}
-    virtual ~RotateFilter() {}
 
     virtual float apply(float value) const override { return value; }
 

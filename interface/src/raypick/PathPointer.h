@@ -27,7 +27,7 @@ class StartEndRenderState {
 public:
     StartEndRenderState() {}
     StartEndRenderState(const OverlayID& startID, const OverlayID& endID);
-    virtual ~StartEndRenderState() {}
+    virtual ~StartEndRenderState() = default;
 
     const OverlayID& getStartID() const { return _startID; }
     const OverlayID& getEndID() const { return _endID; }
