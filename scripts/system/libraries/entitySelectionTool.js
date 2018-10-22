@@ -353,12 +353,12 @@ SelectionManager = (function() {
         }
 
         return createdEntityIDs;
-    }
+    };
 
     that.cutSelectedEntities = function() {
-        copySelectedEntities();
+        that.copySelectedEntities();
         deleteSelectedEntities();
-    }
+    };
 
     that.copySelectedEntities = function() {
         var entityProperties = Entities.getMultipleEntityProperties(that.selections);
@@ -434,7 +434,7 @@ SelectionManager = (function() {
                 z: brn.z + entityClipboard.dimensions.z / 2
             };
         }
-    }
+    };
 
     that.pasteEntities = function() {
         var dimensions = entityClipboard.dimensions;
@@ -442,7 +442,7 @@ SelectionManager = (function() {
         var pastePosition = getPositionToCreateEntity(maxDimension);
         var deltaPosition = Vec3.subtract(pastePosition, entityClipboard.position);
 
-        var copiedProperties = []
+        var copiedProperties = [];
         var ids = [];
         entityClipboard.entities.forEach(function(originalProperties) {
             var properties = deepCopy(originalProperties);
@@ -475,7 +475,7 @@ SelectionManager = (function() {
 
         redo(copiedProperties);
         undoHistory.pushCommand(undo, copiedProperties, redo, copiedProperties);
-    }
+    };
 
     that._update = function(selectionUpdated) {
         var properties = null;

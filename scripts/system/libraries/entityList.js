@@ -272,11 +272,11 @@ EntityListTool = function(shouldUseEditTabletApp) {
         } else if (data.type === "radius") {
             searchRadius = data.radius;
         } else if (data.type === "cut") {
-            cutSelectedEntities();
+            SelectionManager.cutSelectedEntities();
         } else if (data.type === "copy") {
-            copySelectedEntities();
+            SelectionManager.copySelectedEntities();
         } else if (data.type === "paste") {
-            pasteEntities();
+            SelectionManager.pasteEntities();
         } else if (data.type === "duplicate") {
             SelectionManager.duplicateSelection();
             that.sendUpdate();
