@@ -336,7 +336,10 @@ signals:
 
     void uploadRequest(QString path);
 
+    void interstitialModeChanged(bool isInInterstitialMode);
+
     void loginScreenStateChanged(bool isInLoginScreenState);
+    void loginDialogPoppedUp();
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
