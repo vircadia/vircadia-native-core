@@ -188,7 +188,10 @@ def processCommand(line):
         executeSubprocess([spirvCrossExec, '--reflect', 'json', '--output', reflectionFile, spirvFile])
 
         # Generate the optimized GLSL output
-        spirvCrossArgs = [spirvCrossExec, '--output', glslFile, spirvFile, '--version', dialect]
+        spirvCrossDialect = dialect
+        # 310es causes spirv-cross to inject "#extension GL_OES_texture_buffer : require" into the output
+        if (dialect == '310es'): spirvCrossDialect = '320es'
+        spirvCrossArgs = [spirvCrossExec, '--output', glslFile, spirvFile, '--version', spirvCrossDialect]
         if (dialect == '410'): spirvCrossArgs.append('--no-420pack-extension')
         executeSubprocess(spirvCrossArgs)
     else:
@@ -205,7 +208,7 @@ def processCommand(line):
 
 def main():
     commands = args.commands.read().splitlines(False)
-    if args.debug or True:
+    if args.debug:
         for command in commands:
             processCommand(command)
     else:
