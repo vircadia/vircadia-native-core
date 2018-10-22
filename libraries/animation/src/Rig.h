@@ -113,8 +113,10 @@ public:
     void destroyAnimGraph();
 
     void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
-    void triggerNetworkAnimation(const QString& animName);
     void restoreAnimation();
+    
+    void overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    void triggerNetworkRole(const QString& role);
     void restoreNetworkAnimation();
 
     QStringList getAnimationRoles() const;
@@ -325,12 +327,14 @@ protected:
     
     struct NetworkAnimState {
         enum ClipNodeEnum {
-            Idle = 0,
+            None = 0,
             PreTransit,
             Transit,
-            PostTransit
+            PostTransit,
+            A,
+            B
         };
-        NetworkAnimState() : clipNodeEnum(NetworkAnimState::Idle) {}
+        NetworkAnimState() : clipNodeEnum(NetworkAnimState::None) {}
         NetworkAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
             clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
 
@@ -340,6 +344,7 @@ protected:
         bool loop;
         float firstFrame;
         float lastFrame;
+        float blendTime;
     };
 
     struct UserAnimState {
@@ -409,6 +414,7 @@ protected:
 
     int _rigId;
     bool _headEnabled { false };
+    bool _computeNetworkAnimation { false };
     bool _sendNetworkNode { false };
 
     AnimContext _lastContext;
