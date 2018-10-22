@@ -200,15 +200,16 @@ function loaded() {
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         }
+        elFilterTypeSelectBox.onclick = onToggleTypeDropdown;
         elFilterSearch.onkeyup = refreshEntityList;
         elFilterSearch.onsearch = refreshEntityList;
         elFilterInView.onclick = toggleFilterInView;
         elFilterRadius.onkeyup = onRadiusChange;
         elFilterRadius.onchange = onRadiusChange;
+        elFilterRadius.onclick = onRadiusChange;
         elInfoToggle.onclick = toggleInfo;
         
         // create filter type dropdown checkboxes with label and icon for each type
-        elFilterTypeSelectBox.onclick = toggleTypeDropdown;
         for (let i = 0; i < FILTER_TYPES.length; ++i) {
             let type = FILTER_TYPES[i];
             let typeFilterID = "filter-type-" + type;
@@ -225,11 +226,11 @@ function loaded() {
             elInput.setAttribute("filterType", type);
             elInput.checked = true; // all types are checked initially
             toggleTypeFilter(elInput, false); // add all types to the initial types filter
-            elInput.onclick = onToggleTypeFilter;
             elDiv.appendChild(elInput);
             elLabel.insertBefore(elSpan, elLabel.childNodes[0]);
             elDiv.appendChild(elLabel);
             elFilterTypeCheckboxes.appendChild(elDiv);
+            elDiv.onclick = onToggleTypeFilter;
         }
         
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
@@ -654,6 +655,11 @@ function loaded() {
             elFilterTypeCheckboxes.style.display = isTypeDropdownVisible() ? "none" : "block";
         }
         
+        function onToggleTypeDropdown(event) {
+            toggleTypeDropdown();
+            event.stopPropagation();
+        }
+        
         function toggleTypeFilter(elInput, refresh) {
             let type = elInput.getAttribute("filterType");
             let typeChecked = elInput.checked;
@@ -679,14 +685,17 @@ function loaded() {
         }
         
         function onToggleTypeFilter(event) {
-            toggleTypeFilter(this, true);
+            let elTarget = event.target;
+            if (elTarget instanceof HTMLInputElement) {
+                toggleTypeFilter(elTarget, true);
+            }
+            event.stopPropagation();
         }
         
         function onBodyClick(event) {
-            // if clicking anywhere outside of the type filter dropdown and it's open then close it
-            let elTarget = event.target;
-            if (isTypeDropdownVisible() && !elFilterTypeSelectBox.contains(elTarget) && 
-                                           !elFilterTypeCheckboxes.contains(elTarget)) {
+            // if clicking anywhere outside of the type filter dropdown (since click event bubbled up to onBodyClick and  
+            // propagation wasn't stopped by onToggleTypeFilter or onToggleTypeDropdown) and the dropdown is open then close it
+            if (isTypeDropdownVisible()) {
                 toggleTypeDropdown();
             }
         }
