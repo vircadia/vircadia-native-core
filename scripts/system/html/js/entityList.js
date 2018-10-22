@@ -239,11 +239,16 @@ function loaded() {
         }
 
         function onRowDoubleClicked() {
+            let selection = [this.dataset.entityID];
+            updateSelectedEntities(selection, false);
+
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
                 focus: true,
-                entityIds: [this.dataset.entityID],
+                entityIds: selection,
             }));
+
+            refreshFooter();
         }
         
         function decimalMegabytes(number) {
