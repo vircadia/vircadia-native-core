@@ -27,7 +27,7 @@ ModelSelector::ModelSelector() {
     
     setWindowTitle("Select Model");
     setLayout(form);
-    
+    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     _browseButton = new QPushButton("Browse", this);
     connect(_browseButton, &QPushButton::clicked, this, &ModelSelector::browse);
     form->addRow("Model File:", _browseButton);
