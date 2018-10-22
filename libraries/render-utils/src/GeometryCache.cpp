@@ -2175,7 +2175,10 @@ public:
     bool isAntiAliased() const { return isFlag(IS_ANTIALIASED); }
 
     Flags _flags = 0;
-    short _spare = 0;
+#if defined(__clang__)
+    __attribute__((unused))
+#endif
+    short _spare = 0; // Padding
 
     int getRaw() const { return *reinterpret_cast<const int*>(this); }
 

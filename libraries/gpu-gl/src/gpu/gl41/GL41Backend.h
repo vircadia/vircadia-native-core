@@ -131,7 +131,7 @@ public:
 
 protected:
 
-	void draw(GLenum mode, uint32 numVertices, uint32 startVertex) override;
+    void draw(GLenum mode, uint32 numVertices, uint32 startVertex) override;
 
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
@@ -147,6 +147,7 @@ protected:
     GLQuery* syncGPUObject(const Query& query) override;
 
     // Draw Stage
+    void do_draw(const Batch& batch, size_t paramOffset) override;
     void do_drawIndexed(const Batch& batch, size_t paramOffset) override;
     void do_drawInstanced(const Batch& batch, size_t paramOffset) override;
     void do_drawIndexedInstanced(const Batch& batch, size_t paramOffset) override;

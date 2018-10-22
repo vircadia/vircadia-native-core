@@ -164,7 +164,7 @@ public:
     void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
     bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
 
-private slots:
+public slots:
     void update(float deltatime);
 
 private:

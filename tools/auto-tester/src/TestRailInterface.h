@@ -12,7 +12,6 @@
 #define hifi_test_testrail_interface_h
 
 #include "ui/BusyWindow.h"
-
 #include "ui/TestRailTestCasesSelectorWindow.h"
 #include "ui/TestRailRunSelectorWindow.h"
 #include "ui/TestRailResultsSelectorWindow.h"
@@ -22,7 +21,9 @@
 #include <QProcess>
 #include <QString>
 
-class TestRailInterface : public QObject{
+#include "PythonInterface.h"
+
+class TestRailInterface : public QObject {
     Q_OBJECT
 
 public:
@@ -65,9 +66,7 @@ public:
     bool requestTestRailRunDataFromUser();
     bool requestTestRailResultsDataFromUser();
 
-    void createAddTestCasesPythonScript(const QString& testDirectory,
-                                        const QString& userGitHub,
-                                        const QString& branchGitHub);
+    void createAddTestCasesPythonScript(const QString& testDirectory, const QString& userGitHub, const QString& branchGitHub);
 
     void processDirectoryPython(const QString& directory,
                                 QTextStream& stream,
@@ -88,14 +87,14 @@ public:
     void addRun();
     void updateRunWithResults();
 
-    bool setPythonCommand();
+    void extractTestFailuresFromZippedFolder(const QString& testResults, const QString& tempDirectory);
 
 private:
     // HighFidelity Interface project ID in TestRail
-    const int INTERFACE_PROJECT_ID{ 24 };
+    const int INTERFACE_AUTOMATION_PROJECT_ID{ 26 };
 
     // Rendering suite ID
-    const int INTERFACE_SUITE_ID{ 1147 };
+    const int INTERFACE_SUITE_ID{ 1312 };
 
     QDomDocument _document;
 
@@ -111,12 +110,10 @@ private:
     QString _suiteID;
 
     QString _testDirectory;
+    QString _testResults;
     QString _outputDirectory;
     QString _userGitHub;
     QString _branchGitHub;
-
-    const QString pythonExe{ "python.exe" };
-    QString _pythonCommand;
 
     QStringList _releaseNames;
 
@@ -126,7 +123,10 @@ private:
     QStringList _runNames;
     std::vector<int> _runIDs;
 
-    QString tempName{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
+    QString TEMP_NAME{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
+
+    PythonInterface* _pythonInterface;
+    QString _pythonCommand;
 };
 
 #endif

@@ -96,7 +96,6 @@ protected:
     class InputDevice : public controller::InputDevice {
     public:
         InputDevice() : controller::InputDevice("Keyboard") {}
-        virtual ~InputDevice() {}
     private:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;

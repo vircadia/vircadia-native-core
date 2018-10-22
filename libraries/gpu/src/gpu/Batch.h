@@ -225,9 +225,9 @@ public:
     void blit(const FramebufferPointer& src, const Vec4i& srcRect, const FramebufferPointer& dst, const Vec4i& dstRect);
 
     // Generate the mips for a texture
-	void generateTextureMips(const TexturePointer& texture);
-	// Generate the mips for a texture using the current pipeline
-	void generateTextureMipsWithPipeline(const TexturePointer& destTexture, int numMips = -1);
+    void generateTextureMips(const TexturePointer& texture);
+    // Generate the mips for a texture using the current pipeline
+    void generateTextureMipsWithPipeline(const TexturePointer& destTexture, int numMips = -1);
 
     // Query Section
     void beginQuery(const QueryPointer& query);
@@ -327,8 +327,8 @@ public:
         COMMAND_setFramebufferSwapChain,
         COMMAND_clearFramebuffer,
         COMMAND_blit,
-		COMMAND_generateTextureMips,
-		COMMAND_generateTextureMipsWithPipeline,
+        COMMAND_generateTextureMips,
+        COMMAND_generateTextureMipsWithPipeline,
 
         COMMAND_advance,
 
