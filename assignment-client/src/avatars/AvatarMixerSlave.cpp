@@ -380,6 +380,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
                 ++numAvatarsHeldBack;
                 shouldIgnore = true;
+            } else if (lastSeqFromSender == 0) {
+                // We have have not yet recieved any data about this avatar. Ignore it for now
+                // This is important for Agent scripts that are not avatar
+                // so that they don't appear to be an avatar at the origin
+                shouldIgnore = true;
             } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                 // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                 ++numAvatarsWithSkippedFrames;

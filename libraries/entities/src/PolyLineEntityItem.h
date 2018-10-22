@@ -41,19 +41,8 @@ class PolyLineEntityItem : public EntityItem {
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
-    const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
-
-    void setColor(const rgbColor& value) {
-        _strokeColorsChanged = true;
-        memcpy(_color, value, sizeof(_color));
-    }
-    void setColor(const xColor& value) {
-        _strokeColorsChanged = true;
-        _color[RED_INDEX] = value.red;
-        _color[GREEN_INDEX] = value.green;
-        _color[BLUE_INDEX] = value.blue;
-    }
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
 
     void setLineWidth(float lineWidth){ _lineWidth = lineWidth; }
     float getLineWidth() const{ return _lineWidth; }
@@ -109,7 +98,7 @@ private:
     void calculateScaleAndRegistrationPoint();
     
  protected:
-    rgbColor _color;
+    glm::u8vec3 _color;
     float _lineWidth { DEFAULT_LINE_WIDTH };
     bool _pointsChanged { true };
     bool _normalsChanged { true };

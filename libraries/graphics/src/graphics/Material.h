@@ -314,9 +314,15 @@ public:
 
         float _metallic { 0.0f }; // Not Metallic
         float _scattering { 0.0f }; // Scattering info
-        glm::vec2 _spare { 0.0f };
+#if defined(__clang__)
+        __attribute__((unused))
+#endif
+        glm::vec2 _spare { 0.0f }; // Padding
 
         uint32_t _key { 0 }; // a copy of the materialKey
+#if defined(__clang__)
+        __attribute__((unused))
+#endif
         glm::vec3 _spare2 { 0.0f };
 
         // for alignment beauty, Material size == Mat4x4
