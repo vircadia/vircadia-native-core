@@ -18,7 +18,6 @@ class DeadZoneFilter : public Filter {
     REGISTER_FILTER_CLASS(DeadZoneFilter);
 public:
     DeadZoneFilter(float min = 0.0) : _min(min) {};
-    virtual ~DeadZoneFilter() {}
 
     virtual float apply(float value) const override;
 

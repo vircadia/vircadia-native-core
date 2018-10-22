@@ -3540,6 +3540,7 @@ void Application::setIsInterstitialMode(bool interstitialMode) {
     if (enableInterstitial) {
         if (_interstitialMode != interstitialMode) {
             _interstitialMode = interstitialMode;
+            emit interstitialModeChanged(_interstitialMode);
 
             DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
             DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);

@@ -1253,7 +1253,6 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
                       const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
 
     const bool ENABLE_POLE_VECTORS = true;
-    const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.95f;
 
     if (leftHandEnabled) {
 
@@ -1279,33 +1278,16 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
             bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, oppositeArmJointIndex, poleVector);
             if (usePoleVector) {
                 glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
-
-                if (_smoothPoleVectors) {
-                    // smooth toward desired pole vector from previous pole vector...  to reduce jitter
-                    if (!_prevLeftHandPoleVectorValid) {
-                        _prevLeftHandPoleVectorValid = true;
-                        _prevLeftHandPoleVector = sensorPoleVector;
-                    }
-                    glm::quat deltaRot = rotationBetween(_prevLeftHandPoleVector, sensorPoleVector);
-                    glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
-                    _prevLeftHandPoleVector = smoothDeltaRot * _prevLeftHandPoleVector;
-                } else {
-                    _prevLeftHandPoleVector = sensorPoleVector;
-                }
                 _animVars.set("leftHandPoleVectorEnabled", true);
                 _animVars.set("leftHandPoleReferenceVector", Vectors::UNIT_X);
-                _animVars.set("leftHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevLeftHandPoleVector));
+                _animVars.set("leftHandPoleVector", transformVectorFast(sensorToRigMatrix, sensorPoleVector));
             } else {
-                _prevLeftHandPoleVectorValid = false;
                 _animVars.set("leftHandPoleVectorEnabled", false);
             }
-
         } else {
-            _prevLeftHandPoleVectorValid = false;
             _animVars.set("leftHandPoleVectorEnabled", false);
         }
     } else {
-        _prevLeftHandPoleVectorValid = false;
         _animVars.set("leftHandPoleVectorEnabled", false);
 
         _animVars.unset("leftHandPosition");
@@ -1344,33 +1326,16 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
             bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, oppositeArmJointIndex, poleVector);
             if (usePoleVector) {
                 glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
-
-                if (_smoothPoleVectors) {
-                    // smooth toward desired pole vector from previous pole vector...  to reduce jitter
-                    if (!_prevRightHandPoleVectorValid) {
-                        _prevRightHandPoleVectorValid = true;
-                        _prevRightHandPoleVector = sensorPoleVector;
-                    }
-                    glm::quat deltaRot = rotationBetween(_prevRightHandPoleVector, sensorPoleVector);
-                    glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
-                    _prevRightHandPoleVector = smoothDeltaRot * _prevRightHandPoleVector;
-                } else {
-                    _prevRightHandPoleVector = sensorPoleVector;
-                }
-
                 _animVars.set("rightHandPoleVectorEnabled", true);
                 _animVars.set("rightHandPoleReferenceVector", -Vectors::UNIT_X);
-                _animVars.set("rightHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevRightHandPoleVector));
+                _animVars.set("rightHandPoleVector", transformVectorFast(sensorToRigMatrix, sensorPoleVector));
             } else {
-                _prevRightHandPoleVectorValid = false;
                 _animVars.set("rightHandPoleVectorEnabled", false);
             }
         } else {
-            _prevRightHandPoleVectorValid = false;
             _animVars.set("rightHandPoleVectorEnabled", false);
         }
     } else {
-        _prevRightHandPoleVectorValid = false;
         _animVars.set("rightHandPoleVectorEnabled", false);
 
         _animVars.unset("rightHandPosition");

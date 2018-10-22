@@ -320,7 +320,10 @@ public:
 
         float _scattering{ 0.0f }; // Scattering info
 
-        glm::vec2 _spare{ 0.0f };
+#if defined(__clang__)
+        __attribute__((unused))
+#endif
+        glm::vec2 _spare{ 0.0f }; // Padding
 
         uint32_t _key{ 0 }; // a copy of the materialKey
 

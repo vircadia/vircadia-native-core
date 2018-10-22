@@ -30,6 +30,8 @@ namespace controller {
         using Factory = hifi::SimpleFactory<Conditional, QString>;
         using Lambda = std::function<bool()>;
 
+        virtual ~Conditional() = default;
+
         virtual bool satisfied() = 0;
         virtual bool parseParameters(const QJsonValue& parameters) { return true; }
 
