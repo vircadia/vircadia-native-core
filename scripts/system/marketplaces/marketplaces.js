@@ -564,7 +564,6 @@ function defaultFor(arg, val) {
 
 function rezEntity(itemHref, itemType, marketplaceItemTesterId) {
     var isWearable = itemType === "wearable";
-    print("!!!!! Clipboard.importEntities " + marketplaceItemTesterId);
     var success = Clipboard.importEntities(itemHref, true, marketplaceItemTesterId);
     var wearableLocalPosition = null;
     var wearableLocalRotation = null;
@@ -920,7 +919,6 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     case 'checkout_rezClicked':
     case 'purchases_rezClicked':
     case 'tester_rezClicked':
-        print("!!!!! marketplaces tester_rezClicked");
         rezEntity(message.itemHref, message.itemType, message.itemId);
         break;
     case 'tester_newResourceObject':

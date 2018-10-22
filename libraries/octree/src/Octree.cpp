@@ -689,7 +689,7 @@ bool Octree::readFromFile(const char* fileName) {
 
     qCDebug(octree) << "Loading file" << qFileName << "...";
 
-    bool success = readFromStream(fileLength, fileInputStream, "");
+    bool success = readFromStream(fileLength, fileInputStream);
 
     file.close();
 
