@@ -857,6 +857,8 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     updateAvatarEntities();
+
+    updateFadingStatus();
 }
 
 // As far as I know no HMD system supports a play area of a kilometer in radius.

@@ -222,7 +222,7 @@ private:
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar,
                              KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
-    QVector<AvatarSharedPointer> _avatarsToFade;
+    QVector<AvatarSharedPointer> _avatarsToFadeOut;
 
     using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
     SetOfOtherAvatars _avatarsToChangeInPhysics;

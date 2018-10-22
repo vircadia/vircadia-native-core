@@ -612,6 +612,8 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "entities");
         updateAvatarEntities();
     }
+
+    updateFadingStatus();
 }
 
 float Avatar::getSimulationRate(const QString& rateName) const {
@@ -775,14 +777,15 @@ void Avatar::fade(render::Transaction& transaction, render::Transition::Type typ
     _isFading = true;
 }
 
-void Avatar::updateFadingStatus(render::ScenePointer scene) {
+void Avatar::updateFadingStatus() {
     render::Transaction transaction;
     transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
-        if (transition == nullptr || transition->isFinished) {
+        if (!transition || transition->isFinished) {
+            AbstractViewStateInterface::instance()->getMain3DScene()->resetItemTransition(id);
             _isFading = false;
         }
     });
-    scene->enqueueTransaction(transaction);
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
