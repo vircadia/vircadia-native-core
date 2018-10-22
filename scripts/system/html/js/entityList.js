@@ -234,8 +234,6 @@ function loaded() {
                 focus: false,
                 entityIds: selection,
             }));
-
-            refreshFooter();
         }
 
         function onRowDoubleClicked() {
@@ -247,8 +245,6 @@ function loaded() {
                 focus: true,
                 entityIds: selection,
             }));
-
-            refreshFooter();
         }
         
         function decimalMegabytes(number) {
