@@ -2331,7 +2331,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     AndroidHelper::instance().notifyLoadComplete();
 #else
     // Do not show login dialog if requested not to on the command line
-    const QString HIFI_NO_LOGIN_COMMAND_LINE_KEY = "--no-login";
+    const QString HIFI_NO_LOGIN_COMMAND_LINE_KEY = "--no-login-suggestion";
     int index = arguments().indexOf(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
     if (index == -1) {
         // request not found
