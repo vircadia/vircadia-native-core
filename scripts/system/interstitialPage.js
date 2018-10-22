@@ -14,6 +14,7 @@
 
 (function() {
     Script.include("/~/system/libraries/Xform.js");
+    Script.include("/~/system/libraries/globals.js");
     var DEBUG = false;
     var MIN_LOADING_PROGRESS = 3.6;
     var TOTAL_LOADING_PROGRESS = 3.8;
@@ -379,6 +380,12 @@
     var currentProgress = 0.1;
 
     function updateOverlays(physicsEnabled) {
+
+        if (isInterstitialOverlaysVisible !== !physicsEnabled && !physicsEnabled === true) {
+             // visible changed to true.
+             isInterstitialOverlaysVisible = !physicsEnabled;
+        }
+
         var properties = {
             visible: !physicsEnabled
         };
@@ -424,6 +431,11 @@
 
         if (physicsEnabled) {
             Camera.mode = previousCameraMode;
+        }
+
+        if (isInterstitialOverlaysVisible !== !physicsEnabled && !physicsEnabled === false) {
+             // visible changed to false.
+             isInterstitialOverlaysVisible = !physicsEnabled;
         }
     }
 
