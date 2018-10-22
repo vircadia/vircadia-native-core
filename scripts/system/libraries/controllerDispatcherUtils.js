@@ -104,7 +104,7 @@ TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
 NEAR_GRAB_DISTANCE = 0.14; // Grab an entity if its bounding box is within this distance.
 // Smaller than TEAR_AWAY_DISTANCE for hysteresis.
 
-DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
+DISPATCHER_HOVERING_LIST = "dispatcherHoveringList";
 DISPATCHER_HOVERING_STYLE = {
     isOutlineSmooth: true,
     outlineWidth: 0,
@@ -144,6 +144,7 @@ DISPATCHER_PROPERTIES = [
     "grab.grabFollowsController",
     "grab.triggerable",
     "grab.equippable",
+    "grab.grabDelegateToParent",
     "grab.equippableLeftPosition",
     "grab.equippableLeftRotation",
     "grab.equippableRightPosition",
@@ -332,15 +333,15 @@ getControllerJointIndex = function (hand) {
     if (now - getControllerJointIndexCacheTime[hand] > GET_CONTROLLERJOINTINDEX_CACHE_REFRESH_TIME) {
         if (HMD.isHandControllerAvailable()) {
             var controllerJointIndex = -1;
-            if (Camera.mode === "first person") {
-                controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                                                              "_CONTROLLER_RIGHTHAND" :
-                                                              "_CONTROLLER_LEFTHAND");
-            } else if (Camera.mode === "third person") {
+            // if (Camera.mode === "first person") {
+            //     controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+            //                                                   "_CONTROLLER_RIGHTHAND" :
+            //                                                   "_CONTROLLER_LEFTHAND");
+            // } else if (Camera.mode === "third person") {
                 controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
                                                               "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
                                                               "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
-            }
+            // }
 
             getControllerJointIndexCacheTime[hand] = now;
             getControllerJointIndexCache[hand] = controllerJointIndex;
@@ -409,7 +410,8 @@ ensureDynamic = function (entityID) {
 };
 
 findGroupParent = function (controllerData, targetProps) {
-    while (targetProps.parentID &&
+    while (targetProps.grab.grabDelegateToParent &&
+           targetProps.parentID &&
            targetProps.parentID !== Uuid.NULL &&
            Entities.getNestableType(targetProps.parentID) == "entity") {
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);

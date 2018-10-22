@@ -18,11 +18,7 @@ var CONTOLLER_SCRIPTS = [
     "toggleAdvancedMovementForHandControllers.js",
     "handTouch.js",
     "controllerDispatcher.js",
-    "controllerModules/nearParentGrabEntity.js",
     "controllerModules/nearParentGrabOverlay.js",
-    "controllerModules/nearActionGrabEntity.js",
-    "controllerModules/farActionGrabEntityDynOnly.js",
-    "controllerModules/farParentGrabEntity.js",
     "controllerModules/stylusInput.js",
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",
@@ -38,6 +34,16 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/nearGrabHyperLinkEntity.js",
     "controllerModules/nearTabletHighlight.js"
 ];
+
+if (Settings.getValue("useTraitsGrab", false)) {
+    CONTOLLER_SCRIPTS.push("controllerModules/nearGrabEntity.js");
+    CONTOLLER_SCRIPTS.push("controllerModules/farGrabEntity.js");
+} else {
+    CONTOLLER_SCRIPTS.push("controllerModules/nearParentGrabEntity.js");
+    CONTOLLER_SCRIPTS.push("controllerModules/nearActionGrabEntity.js");
+    CONTOLLER_SCRIPTS.push("controllerModules/farActionGrabEntityDynOnly.js");
+    CONTOLLER_SCRIPTS.push("controllerModules/farParentGrabEntity.js");
+}
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
 

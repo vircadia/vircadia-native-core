@@ -32,6 +32,7 @@
 #include <shared/Camera.h>
 #include <SoftAttachmentModel.h>
 #include <render/TransitionStage.h>
+#include <GLMHelpers.h>
 #include "ModelEntityItem.h"
 #include "RenderableModelEntityItem.h"
 
@@ -481,6 +482,103 @@ void Avatar::removeAvatarEntitiesFromTree() {
     }
 }
 
+void Avatar::updateGrabs() {
+
+    // update the Grabs according to any changes in _avatarGrabData
+    _avatarGrabsLock.withWriteLock([&] {
+        if (_avatarGrabDataChanged) {
+            foreach (auto grabID, _avatarGrabData.keys()) {
+                AvatarGrabMap::iterator grabItr = _avatarGrabs.find(grabID);
+                if (grabItr == _avatarGrabs.end()) {
+                    GrabPointer grab = std::make_shared<Grab>();
+                    grab->fromByteArray(_avatarGrabData.value(grabID));
+                    _avatarGrabs[grabID] = grab;
+                    _changedAvatarGrabs.insert(grabID);
+                } else {
+                    GrabPointer grab = grabItr.value();
+                    bool changed = grab->fromByteArray(_avatarGrabData.value(grabID));
+                    if (changed) {
+                        _changedAvatarGrabs.insert(grabID);
+                    }
+                }
+            }
+            _avatarGrabDataChanged = false;
+        }
+
+        auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+        auto entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+        EntityEditPacketSender* packetSender = treeRenderer ? treeRenderer->getPacketSender() : nullptr;
+        auto sessionID = DependencyManager::get<NodeList>()->getSessionUUID();
+
+        QMutableSetIterator<QUuid> delItr(_deletedAvatarGrabs);
+        while (delItr.hasNext()) {
+            QUuid grabID = delItr.next();
+            GrabPointer grab = _avatarGrabs[grabID];
+            if (!grab) {
+                delItr.remove();
+                continue;
+            }
+
+            bool success;
+            SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
+
+            // only clear this entry from the _deletedAvatarGrabs if we found the entity.
+            if (success && target) {
+                bool iShouldTellServer = target->getEditSenderID() == sessionID;
+                target->removeGrab(grab);
+                delItr.remove();
+                // in case this is the last grab on an entity, we need to shrink the queryAACube and tell the server
+                // about the final position.
+                if (entityTree) {
+                    bool force = true;
+                    entityTree->withWriteLock([&] {
+                        entityTree->updateEntityQueryAACube(target, packetSender, force, iShouldTellServer);
+                    });
+                }
+            }
+            _avatarGrabs.remove(grabID);
+            _changedAvatarGrabs.remove(grabID);
+        }
+
+        QMutableSetIterator<QUuid> changeItr(_changedAvatarGrabs);
+        while (changeItr.hasNext()) {
+            QUuid grabID = changeItr.next();
+            GrabPointer& grab = _avatarGrabs[grabID];
+
+            bool success;
+            SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
+
+            if (success && target) {
+                target->addGrab(grab);
+                // only clear this entry from the _changedAvatarGrabs if we found the entity.
+                changeItr.remove();
+            }
+        }
+    });
+}
+
+void Avatar::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators) {
+    // relay avatar's joint position to grabbed target in a way that allows for averaging
+    _avatarGrabsLock.withReadLock([&] {
+        foreach (auto grabID, _avatarGrabs.keys()) {
+            const GrabPointer& grab = _avatarGrabs.value(grabID);
+
+            if (!grab->getActionID().isNull()) {
+                continue; // the accumulated value isn't used, in this case.
+            }
+
+            glm::vec3 jointTranslation = getAbsoluteJointTranslationInObjectFrame(grab->getParentJointIndex());
+            glm::quat jointRotation = getAbsoluteJointRotationInObjectFrame(grab->getParentJointIndex());
+            glm::mat4 jointMat = createMatFromQuatAndPos(jointRotation, jointTranslation);
+            glm::mat4 offsetMat = createMatFromQuatAndPos(grab->getRotationalOffset(), grab->getPositionalOffset());
+            glm::mat4 avatarMat = getTransform().getMatrix();
+            glm::mat4 worldTransform = avatarMat * jointMat * offsetMat;
+            GrabLocationAccumulator& grabLocationAccumulator = grabAccumulators[grab->getTargetID()];
+            grabLocationAccumulator.accumulate(extractTranslation(worldTransform), extractRotation(worldTransform));
+        }
+    });
+}
+
 void Avatar::relayJointDataToChildren() {
     forEachChild([&](SpatiallyNestablePointer child) {
         if (child->getNestableType() == NestableType::Entity) {
@@ -551,7 +649,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
     if (!hasParent()) {
         setLocalPosition(_globalPosition);
     }
-    
+
     _simulationRate.increment();
     if (inView) {
         _simulationInViewRate.increment();
@@ -582,6 +680,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             head->setScale(getModelScale());
             head->simulate(deltaTime);
             relayJointDataToChildren();
+            updateGrabs();
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
@@ -1295,6 +1394,9 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
     }
 
     switch (index) {
+        case NO_JOINT_INDEX: {
+            return glm::quat();
+        }
         case SENSOR_TO_WORLD_MATRIX_INDEX: {
             glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
             glm::mat4 avatarMatrix = getLocalTransform().getMatrix();
@@ -1344,6 +1446,9 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
     }
 
     switch (index) {
+        case NO_JOINT_INDEX: {
+            return glm::vec3(0.0f);
+        }
         case SENSOR_TO_WORLD_MATRIX_INDEX: {
             glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
             glm::mat4 avatarMatrix = getLocalTransform().getMatrix();

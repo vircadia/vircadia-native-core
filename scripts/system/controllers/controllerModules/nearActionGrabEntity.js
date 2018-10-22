@@ -8,10 +8,10 @@
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
    getControllerJointIndex, getGrabbableData, enableDispatcherModule, disableDispatcherModule,
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
-   Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
+   MSECS_PER_SEC, makeDispatcherModuleParameters, makeRunningValues,
    TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent, entityIsCloneable, propsAreCloneDynamic, cloneEntity,
    HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, unhighlightTargetEntity, Uuid,
-   DISPATCHER_PROPERTIES
+   DISPATCHER_PROPERTIES, HMD
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -65,25 +65,14 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             this.grabFollowsController = grabbableData.grabFollowsController;
             this.kinematicGrab = grabbableData.grabKinematic;
 
-            var handRotation;
-            var handPosition;
-            if (this.grabFollowsController) {
-                var controllerID =
-                    (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
-                var controllerLocation = getControllerWorldLocation(controllerID, false);
-                handRotation = controllerLocation.orientation;
-                handPosition = controllerLocation.position;
+            var handJointIndex;
+            if (HMD.mounted && HMD.isHandControllerAvailable() && grabbableData.grabFollowsController) {
+                handJointIndex = getControllerJointIndex(this.hand);
             } else {
-                handRotation = this.getHandRotation();
-                handPosition = this.getHandPosition();
+                handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
             }
-
-            var objectRotation = targetProps.rotation;
-            this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
-
-            var currentObjectPosition = targetProps.position;
-            var offset = Vec3.subtract(currentObjectPosition, handPosition);
-            this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
+            this.offsetPosition = Entities.worldToLocalPosition(targetProps.position, MyAvatar.SELF_ID, handJointIndex);
+            this.offsetRotation = Entities.worldToLocalRotation(targetProps.rotation, MyAvatar.SELF_ID, handJointIndex);
 
             var now = Date.now();
             this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);

@@ -2586,6 +2586,8 @@ void convertGrabUserDataToProperties(EntityItemProperties& properties) {
             grabProperties.setEquippable(equippable.toBool());
         }
 
+        grabProperties.setGrabDelegateToParent(true);
+
         if (grabbableKey["spatialKey"].isObject()) {
             QJsonObject spatialKey = grabbableKey["spatialKey"].toObject();
             grabProperties.setEquippable(true);
@@ -2955,4 +2957,53 @@ bool EntityTree::removeMaterialFromOverlay(const QUuid& overlayID, graphics::Mat
         return _removeMaterialFromOverlayOperator(overlayID, material, parentMaterialName);
     }
     return false;
+}
+
+void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
+                                               MovingEntitiesOperator& moveOperator, bool force, bool tellServer) {
+    // if the queryBox has changed, tell the entity-server
+    if (object->getNestableType() == NestableType::Entity && object->updateQueryAACube()) {
+        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+        if (entity->updateQueryAACube() || force) {
+            bool success;
+            AACube newCube = entity->getQueryAACube(success);
+            if (success) {
+                moveOperator.addEntityToMoveList(entity, newCube);
+            }
+            // send an edit packet to update the entity-server about the queryAABox
+            // unless it is client-only
+            if (tellServer && packetSender && entity->isDomainEntity()) {
+                quint64 now = usecTimestampNow();
+                EntityItemProperties properties = entity->getProperties();
+                properties.setQueryAACubeDirty();
+                properties.setLocationDirty();
+                properties.setLastEdited(now);
+
+                packetSender->queueEditEntityMessage(PacketType::EntityEdit, getThisPointer(), entity->getID(), properties);
+                entity->setLastBroadcast(now); // for debug/physics status icons
+            }
+
+            entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+            entityChanged(entity);
+        }
+    }
+
+    object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+        updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
+    });
+}
+
+void EntityTree::updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
+                                         bool force, bool tellServer) {
+    // This is used when something other than a script or physics moves an entity.  We need to put it in the
+    // correct place in our local octree, update its and its children's queryAACubes, and send an edit
+    // packet to the entity-server.
+    MovingEntitiesOperator moveOperator;
+
+    updateEntityQueryAACubeWorker(object, packetSender, moveOperator, force, tellServer);
+
+    if (moveOperator.hasMovingEntities()) {
+        PerformanceTimer perfTimer("recurseTreeWithOperator");
+        recurseTreeWithOperator(&moveOperator);
+    }
 }

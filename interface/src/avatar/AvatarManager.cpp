@@ -887,3 +887,13 @@ QVariantMap AvatarManager::getPalData(const QStringList& specificAvatarIdentifie
     doc.insert("data", palData);
     return doc.toVariantMap();
 }
+
+void AvatarManager::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators) {
+    auto avatarMap = getHashCopy();
+    AvatarHash::iterator itr = avatarMap.begin();
+    while (itr != avatarMap.end()) {
+        const auto& avatar = std::static_pointer_cast<Avatar>(*itr);
+        avatar->accumulateGrabPositions(grabAccumulators);
+        itr++;
+    }
+}

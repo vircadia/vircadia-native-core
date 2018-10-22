@@ -1369,3 +1369,35 @@ bool SpatiallyNestable::isParentPathComplete(int depth) const {
 
     return parent->isParentPathComplete(depth + 1);
 }
+
+void SpatiallyNestable::addGrab(GrabPointer grab) {
+    _grabsLock.withWriteLock([&] {
+        _grabs.insert(grab);
+    });
+}
+
+void SpatiallyNestable::removeGrab(GrabPointer grab) {
+    _grabsLock.withWriteLock([&] {
+        _grabs.remove(grab);
+    });
+}
+
+QUuid SpatiallyNestable::getEditSenderID() {
+    // if more than one avatar is grabbing something, decide which one should tell the enity-server about it
+    QUuid editSenderID;
+    bool editSenderIDSet { false };
+    _grabsLock.withReadLock([&] {
+        foreach (const GrabPointer &grab, _grabs) {
+            QUuid ownerID = grab->getOwnerID();
+            if (!editSenderIDSet) {
+                editSenderID = ownerID;
+                editSenderIDSet = true;
+            } else {
+                if (ownerID < editSenderID) {
+                    editSenderID = ownerID;
+                }
+            }
+        }
+    });
+    return editSenderID;
+}

@@ -385,6 +385,8 @@ public:
 
     void setQueryAACubeDirty() { _queryAACubeChanged = true; }
 
+    void setLocationDirty() { _positionChanged = true; _rotationChanged = true; }
+
     void setCreated(QDateTime& v);
 
     bool hasTransformOrVelocityChanges() const;
