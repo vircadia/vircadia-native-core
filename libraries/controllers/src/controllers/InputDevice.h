@@ -98,7 +98,7 @@ enum Hand {
 class InputDevice {
 public:
     InputDevice(const QString& name) : _name(name) {}
-    virtual ~InputDevice() {}
+    virtual ~InputDevice() = default;
 
     using Pointer = std::shared_ptr<InputDevice>;
 

@@ -174,6 +174,7 @@ EntityItemProperties convertPropertiesToScriptSemantics(const EntityItemProperti
 }
 
 
+// TODO: this method looks expensive and should take properties by reference, update it, and return void
 EntityItemProperties convertPropertiesFromScriptSemantics(const EntityItemProperties& scriptSideProperties,
                                                           bool scalesWithParent) {
     // convert position and rotation properties from world-space to local, unless localPosition and localRotation
@@ -242,13 +243,12 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     _activityTracking.addedEntityCount++;
 
     auto nodeList = DependencyManager::get<NodeList>();
-    auto sessionID = nodeList->getSessionUUID();
+    const auto sessionID = nodeList->getSessionUUID();
 
     EntityItemProperties propertiesWithSimID = properties;
     if (clientOnly) {
-        const QUuid myNodeID = sessionID;
         propertiesWithSimID.setClientOnly(clientOnly);
-        propertiesWithSimID.setOwningAvatarID(myNodeID);
+        propertiesWithSimID.setOwningAvatarID(sessionID);
     }
 
     propertiesWithSimID.setLastEditedBy(sessionID);
@@ -290,7 +290,7 @@ bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properti
 
                 entity->setLastBroadcast(usecTimestampNow());
                 // since we're creating this object we will immediately volunteer to own its simulation
-                entity->setScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                entity->upgradeScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
                 properties.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "script failed to add new Entity to local Octree";
@@ -530,54 +530,86 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     _activityTracking.editedEntityCount++;
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    auto sessionID = nodeList->getSessionUUID();
+    const auto sessionID = DependencyManager::get<NodeList>()->getSessionUUID();
 
     EntityItemProperties properties = scriptSideProperties;
-    properties.setLastEditedBy(sessionID);
 
     EntityItemID entityID(id);
     if (!_entityTree) {
+        properties.setLastEditedBy(sessionID);
         queueEntityMessage(PacketType::EntityEdit, entityID, properties);
         return id;
     }
-    // If we have a local entity tree set, then also update it.
 
-    bool updatedEntity = false;
-    _entityTree->withWriteLock([&] {
-        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    EntityItemPointer entity(nullptr);
+    SimulationOwner simulationOwner;
+    _entityTree->withReadLock([&] {
+        // make a copy of entity for local logic outside of tree lock
+        entity = _entityTree->findEntityByEntityItemID(entityID);
         if (!entity) {
             return;
         }
 
-        if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
+        if (entity->getClientOnly() && entity->getOwningAvatarID() != sessionID) {
             // don't edit other avatar's avatarEntities
+            properties = EntityItemProperties();
             return;
         }
+        // make a copy of simulationOwner for local logic outside of tree lock
+        simulationOwner = entity->getSimulationOwner();
+    });
 
-        if (scriptSideProperties.parentRelatedPropertyChanged()) {
-            // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
-            // If any of these changed, pull any missing properties from the entity.
+    if (entity) {
+        if (properties.hasSimulationRestrictedChanges()) {
+            if (_bidOnSimulationOwnership) {
+                // flag for simulation ownership, or upgrade existing ownership priority
+                // (actual bids for simulation ownership are sent by the PhysicalEntitySimulation)
+                entity->upgradeScriptSimulationPriority(properties.computeSimulationBidPriority());
+                if (simulationOwner.getID() == sessionID) {
+                    // we own the simulation --> copy ALL restricted properties
+                    properties.copySimulationRestrictedProperties(entity);
+                } else {
+                    // we don't own the simulation but think we would like to
 
-            if (!scriptSideProperties.parentIDChanged()) {
-                properties.setParentID(entity->getParentID());
+                    uint8_t desiredPriority = entity->getScriptSimulationPriority();
+                    if (desiredPriority < simulationOwner.getPriority()) {
+                        // the priority at which we'd like to own it is not high enough
+                        // --> assume failure and clear all restricted property changes
+                        properties.clearSimulationRestrictedProperties();
+                    } else {
+                        // the priority at which we'd like to own it is high enough to win.
+                        // --> assume success and copy ALL restricted properties
+                        properties.copySimulationRestrictedProperties(entity);
+                    }
+                }
+            } else if (!simulationOwner.getID().isNull()) {
+                // someone owns this but not us
+                // clear restricted properties
+                properties.clearSimulationRestrictedProperties();
             }
-            if (!scriptSideProperties.parentJointIndexChanged()) {
-                properties.setParentJointIndex(entity->getParentJointIndex());
-            }
-            if (!scriptSideProperties.localPositionChanged() && !scriptSideProperties.positionChanged()) {
-                properties.setPosition(entity->getWorldPosition());
-            }
-            if (!scriptSideProperties.localRotationChanged() && !scriptSideProperties.rotationChanged()) {
-                properties.setRotation(entity->getWorldOrientation());
-            }
-            if (!scriptSideProperties.localDimensionsChanged() && !scriptSideProperties.dimensionsChanged()) {
-                properties.setDimensions(entity->getScaledDimensions());
-            }
+            // clear the cached simulationPriority level
+            entity->upgradeScriptSimulationPriority(0);
         }
+
+        // set these to make EntityItemProperties::getScalesWithParent() work correctly
         properties.setClientOnly(entity->getClientOnly());
         properties.setOwningAvatarID(entity->getOwningAvatarID());
-        properties = convertPropertiesFromScriptSemantics(properties, properties.getScalesWithParent());
+
+        // make sure the properties has a type, so that the encode can know which properties to include
+        properties.setType(entity->getType());
+    } else if (_bidOnSimulationOwnership) {
+        // bail when simulation participants don't know about entity
+        return QUuid();
+    }
+    // TODO: it is possible there is no remaining useful changes in properties and we should bail early.
+    // How to check for this cheaply?
+
+    properties = convertPropertiesFromScriptSemantics(properties, properties.getScalesWithParent());
+    properties.setLastEditedBy(sessionID);
+
+    // done reading and modifying properties --> start write
+    bool updatedEntity = false;
+    _entityTree->withWriteLock([&] {
         updatedEntity = _entityTree->updateEntity(entityID, properties);
     });
 
@@ -590,63 +622,37 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     //     return QUuid();
     // }
 
-    bool entityFound { false };
+    bool hasQueryAACubeRelatedChanges = properties.queryAACubeRelatedPropertyChanged();
+    // done writing, send update
     _entityTree->withReadLock([&] {
-        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+        // find the entity again: maybe it was removed since we last found it
+        entity = _entityTree->findEntityByEntityItemID(entityID);
         if (entity) {
-            entityFound = true;
-            // make sure the properties has a type, so that the encode can know which properties to include
-            properties.setType(entity->getType());
-            bool hasTerseUpdateChanges = properties.hasTerseUpdateChanges();
-            bool hasPhysicsChanges = properties.hasMiscPhysicsChanges() || hasTerseUpdateChanges;
-            if (_bidOnSimulationOwnership && hasPhysicsChanges) {
-                auto nodeList = DependencyManager::get<NodeList>();
-                const QUuid myNodeID = nodeList->getSessionUUID();
+            uint64_t now = usecTimestampNow();
+            entity->setLastBroadcast(now);
 
-                if (entity->getSimulatorID() == myNodeID) {
-                    // we think we already own the simulation, so make sure to send ALL TerseUpdate properties
-                    if (hasTerseUpdateChanges) {
-                        entity->getAllTerseUpdateProperties(properties);
-                    }
-                    // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object
-                    // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update
-                    // and instead let the physics simulation decide when to send a terse update.  This would remove
-                    // the "slide-no-rotate" glitch (and typical double-update) that we see during the "poke rolling
-                    // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible
-                    // proxy toward the true physical position" feature to hide the final glitches in the remote watcher's
-                    // simulation.
-
-                    if (entity->getSimulationPriority() < SCRIPT_POKE_SIMULATION_PRIORITY) {
-                        // we re-assert our simulation ownership at a higher priority
-                        properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
-                    }
-                } else {
-                    // we make a bid for simulation ownership
-                    properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
-                    entity->setScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
-                }
-            }
-            if (properties.queryAACubeRelatedPropertyChanged()) {
+            if (hasQueryAACubeRelatedChanges) {
                 properties.setQueryAACube(entity->getQueryAACube());
-            }
-            entity->setLastBroadcast(usecTimestampNow());
-            properties.setLastEdited(entity->getLastEdited());
 
-            // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
-            // if they've changed.
-            entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-                if (descendant->getNestableType() == NestableType::Entity) {
-                    if (descendant->updateQueryAACube()) {
-                        EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
-                        EntityItemProperties newQueryCubeProperties;
-                        newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
-                        newQueryCubeProperties.setLastEdited(properties.getLastEdited());
-                        queueEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
-                        entityDescendant->setLastBroadcast(usecTimestampNow());
+                // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
+                // if they've changed.
+                entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                    if (descendant->getNestableType() == NestableType::Entity) {
+                        if (descendant->updateQueryAACube()) {
+                            EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
+                            EntityItemProperties newQueryCubeProperties;
+                            newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
+                            newQueryCubeProperties.setLastEdited(properties.getLastEdited());
+                            queueEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
+                            entityDescendant->setLastBroadcast(now);
+                        }
                     }
-                }
-            });
-        } else {
+                });
+            }
+        }
+    });
+    if (!entity) {
+        if (hasQueryAACubeRelatedChanges) {
             // Sometimes ESS don't have the entity they are trying to edit in their local tree.  In this case,
             // convertPropertiesFromScriptSemantics doesn't get called and local* edits will get dropped.
             // This is because, on the script side, "position" is in world frame, but in the network
@@ -668,8 +674,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 properties.setDimensions(properties.getLocalDimensions());
             }
         }
-    });
-    if (!entityFound) {
         // we've made an edit to an entity we don't know about, or to a non-entity.  If it's a known non-entity,
         // print a warning and don't send an edit packet to the entity-server.
         QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
@@ -1449,7 +1453,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
         }
         action->setIsMine(true);
         success = entity->addAction(simulation, action);
-        entity->setScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
+        entity->upgradeScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
         return false; // Physics will cause a packet to be sent, so don't send from here.
     });
     if (success) {
@@ -1465,7 +1469,7 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
     return actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
         bool success = entity->updateAction(simulation, actionID, arguments);
         if (success) {
-            entity->setScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
+            entity->upgradeScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
         }
         return success;
     });
@@ -1479,7 +1483,7 @@ bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& 
         success = entity->removeAction(simulation, actionID);
         if (success) {
             // reduce from grab to poke
-            entity->setScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+            entity->upgradeScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
         }
         return false; // Physics will cause a packet to be sent, so don't send from here.
     });

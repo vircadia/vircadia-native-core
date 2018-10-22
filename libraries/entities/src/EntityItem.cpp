@@ -673,7 +673,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
 
-    // pack SimulationOwner and terse update properties near each other
+    // pack SimulationOwner, transform, and velocity properties near each other
     // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
     // even when we would otherwise ignore the rest of the packet.
 
@@ -1358,8 +1358,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     return properties;
 }
 
-void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) const {
-    // a TerseUpdate includes the transform and its derivatives
+void EntityItem::getTransformAndVelocityProperties(EntityItemProperties& properties) const {
     if (!properties._positionChanged) {
         properties._position = getLocalPosition();
     }
@@ -1383,8 +1382,11 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._accelerationChanged = true;
 }
 
-void EntityItem::setScriptSimulationPriority(uint8_t priority) {
-    uint8_t newPriority = stillHasGrabActions() ? glm::max(priority, SCRIPT_GRAB_SIMULATION_PRIORITY) : priority;
+void EntityItem::upgradeScriptSimulationPriority(uint8_t priority) {
+    uint8_t newPriority = glm::max(priority, _scriptSimulationPriority);
+    if (newPriority < SCRIPT_GRAB_SIMULATION_PRIORITY && stillHasGrabActions()) {
+        newPriority = SCRIPT_GRAB_SIMULATION_PRIORITY;
+    }
     if (newPriority != _scriptSimulationPriority) {
         // set the dirty flag to trigger a bid or ownership update
         markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
@@ -1419,7 +1421,7 @@ bool EntityItem::stillWaitingToTakeOwnership(uint64_t timestamp) const {
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
-    // these affect TerseUpdate properties
+    // these affect transform and velocity properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPosition);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
@@ -3255,4 +3257,27 @@ void EntityItem::setScriptHasFinishedPreload(bool value) {
 
 bool EntityItem::isScriptPreloadFinished() {
     return _scriptPreloadFinished;
+}
+
+void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properties, uint64_t now, uint8_t priority) {
+    if (dynamicDataNeedsTransmit()) {
+        setDynamicDataNeedsTransmit(false);
+        properties.setActionData(getDynamicData());
+    }
+
+    if (updateQueryAACube()) {
+        // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+        properties.setQueryAACube(getQueryAACube());
+    }
+
+    // set the LastEdited of the properties but NOT the entity itself
+    properties.setLastEdited(now);
+
+    clearScriptSimulationPriority();
+    properties.setSimulationOwner(Physics::getSessionUUID(), priority);
+    setPendingOwnershipPriority(priority);
+
+    properties.setClientOnly(getClientOnly());
+    properties.setOwningAvatarID(getOwningAvatarID());
+    setLastBroadcast(now); // for debug/physics status icons
 }

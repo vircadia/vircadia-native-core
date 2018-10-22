@@ -1,7 +1,27 @@
+//
+//  main.cpp
+//  tests/recording/src
+//
+//  Created by Bradley Austin Davis on 11/06/15.
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+
 #include <QtGlobal>
 #include <QtTest/QtTest>
 #include <QtCore/QTemporaryFile>
 #include <QtCore/QString>
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 #ifdef Q_OS_WIN32
 #include <Windows.h>
