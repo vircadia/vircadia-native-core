@@ -459,13 +459,14 @@
         }
     }
 
+    var MAX_TEXTURE_STABILITY_COUNT = 30;
+    var INTERVAL_PROGRESS = 0.04;
     function update() {
         var renderStats = Render.getConfig("Stats");
         var physicsEnabled = Window.isPhysicsEnabled();
         var thisInterval = Date.now();
         var deltaTime = (thisInterval - lastInterval);
         lastInterval = thisInterval;
-        var deltaTimeMS = deltaTime / 1000;
 
         var domainLoadingProgressPercentage = Window.domainLoadingProgress();
         var progress = ((TOTAL_LOADING_PROGRESS * 0.4) * domainLoadingProgressPercentage);
@@ -485,7 +486,7 @@
 
             textureMemSizeAtLastCheck = textureResourceGPUMemSize;
 
-            if (textureMemSizeStabilityCount >= 30) {
+            if (textureMemSizeStabilityCount >= MAX_TEXTURE_STABILITY_COUNT) {
 
                 if (textureResourceGPUMemSize > 0) {
                     var gpuPercantage = (TOTAL_LOADING_PROGRESS * 0.6) * (texturePopulatedGPUMemSize / textureResourceGPUMemSize);
@@ -501,11 +502,7 @@
             target = TOTAL_LOADING_PROGRESS;
         }
 
-        if (deltaTime > 1.0) {
-            deltaTimeMS = 0.02;
-        }
-
-        currentProgress = lerp(currentProgress, target, (deltaTimeMS * 2.0));
+        currentProgress = lerp(currentProgress, target, INTERVAL_PROGRESS);
         var properties = {
             localPosition: { x: (1.85 - (currentProgress / 2) - (-0.029 * (currentProgress / TOTAL_LOADING_PROGRESS))), y: -0.935, z: 0.0 },
             dimensions: {
