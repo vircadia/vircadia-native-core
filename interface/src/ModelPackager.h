@@ -39,7 +39,6 @@ private:
     
     QFileInfo _modelFile;
     QFileInfo _fbxInfo;
-    FSTReader::ModelType _modelType;
     QString _texDir;
     QString _scriptDir;
 
