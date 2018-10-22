@@ -1188,7 +1188,9 @@ void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSock
 SharedNodePointer LimitedNodeList::findNodeWithAddr(const HifiSockAddr& addr) {
     QReadLocker locker(&_nodeMutex);
     auto it = std::find_if(std::begin(_nodeHash), std::end(_nodeHash), [&addr](const UUIDNodePair& pair) {
-        return pair.second->getActiveSocket() ? (*pair.second->getActiveSocket() == addr) : false;
+        return pair.second->getPublicSocket() == addr
+            || pair.second->getLocalSocket() == addr
+            || pair.second->getSymmetricSocket() == addr;
     });
     return (it != std::end(_nodeHash)) ? it->second : SharedNodePointer();
 }
@@ -1197,8 +1199,8 @@ bool LimitedNodeList::sockAddrBelongsToNode(const HifiSockAddr& sockAddr) {
     QReadLocker locker(&_nodeMutex);
     auto it = std::find_if(std::begin(_nodeHash), std::end(_nodeHash), [&sockAddr](const UUIDNodePair& pair) {
         return pair.second->getPublicSocket() == sockAddr
-        || pair.second->getLocalSocket() == sockAddr
-        || pair.second->getSymmetricSocket() == sockAddr;
+            || pair.second->getLocalSocket() == sockAddr
+            || pair.second->getSymmetricSocket() == sockAddr;
     });
     return it != std::end(_nodeHash);
 }
