@@ -224,11 +224,16 @@ String Source::getSource(Dialect dialect, Variant variant) const {
         }
     }
 
+#ifdef Q_OS_ANDROID
+    // SPIRV cross injects "#extension GL_OES_texture_buffer : require" into the GLSL shaders,
+    // which breaks android rendering
+    return variantSource.scribe;
+#else
     if (variantSource.glsl.empty()) {
         return variantSource.scribe;
     }
-
     return variantSource.glsl;
+#endif
 }
 
 const Reflection& Source::getReflection(Dialect dialect, Variant variant) const {
