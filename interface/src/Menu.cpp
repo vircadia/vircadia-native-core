@@ -788,18 +788,6 @@ Menu::Menu() {
     // Developer > Show Animation Statistics
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AnimStats);
 
-    // Developer > Scripting > Enable Speech Control API
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    auto speechRecognizer = DependencyManager::get<SpeechRecognizer>();
-    QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::ControlWithSpeech,
-        Qt::CTRL | Qt::SHIFT | Qt::Key_C,
-        speechRecognizer->getEnabled(),
-        speechRecognizer.data(),
-        SLOT(setEnabled(bool)),
-        UNSPECIFIED_POSITION);
-    connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
-#endif
-
     // Developer > Scripting > Console...
     addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
                                   DependencyManager::get<StandAloneJSConsole>().data(),
