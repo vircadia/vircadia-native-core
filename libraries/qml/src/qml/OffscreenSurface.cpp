@@ -389,13 +389,9 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         }
         // manually control children items lifetime
         QQmlEngine::setObjectOwnership(newObject, QQmlEngine::CppOwnership);
-        // some objects we are going to delete might be already deleted (children of parent we already deleted) so use QPointer to track lifetime
-        QPointer<QObject> trackedObject(newObject);
-        connect(_sharedObject, &SharedObject::onBeforeDestroyed, [trackedObject]() {
-            if (trackedObject) {
-                delete trackedObject.data();
-            }
-        });
+
+        // add object to the manual deletion list
+        _sharedObject->addToDeletionList(newObject);
 
         newObject->setParent(parent);
         newItem->setParentItem(parent);
