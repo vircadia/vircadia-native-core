@@ -629,30 +629,6 @@ bool ModelEntityItem::getAnimationHold() const {
     });
 }
 
-void ModelEntityItem::setAnimationFirstFrame(float firstFrame) { 
-    withWriteLock([&] {
-        _animationProperties.setFirstFrame(firstFrame);
-    });
-}
-
-float ModelEntityItem::getAnimationFirstFrame() const { 
-    return resultWithReadLock<float>([&] {
-        return _animationProperties.getFirstFrame();
-    });
-}
-
-void ModelEntityItem::setAnimationLastFrame(float lastFrame) { 
-    withWriteLock([&] {
-        _animationProperties.setLastFrame(lastFrame);
-    });
-}
-
-float ModelEntityItem::getAnimationLastFrame() const { 
-    return resultWithReadLock<float>([&] {
-        return _animationProperties.getLastFrame();
-    });
-}
-
 bool ModelEntityItem::getAnimationIsPlaying() const { 
     return resultWithReadLock<bool>([&] {
         return _animationProperties.getRunning();

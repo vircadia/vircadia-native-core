@@ -325,12 +325,12 @@ var toolBar = (function () {
 
             if (!properties.grab) {
                 properties.grab = {};
-            }
-            if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
-                !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
-                properties.grab.grabbable = true;
-            } else {
-                properties.grab.grabbable = false;
+                if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
+                    !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
+                    properties.grab.grabbable = true;
+                } else {
+                    properties.grab.grabbable = false;
+                }
             }
 
             SelectionManager.saveProperties();
@@ -415,9 +415,9 @@ var toolBar = (function () {
 
     function handleNewModelDialogResult(result) {
         if (result) {
-            var url = result.textInput;
+            var url = result.url;
             var shapeType;
-            switch (result.comboBox) {
+            switch (result.collisionShapeIndex) {
             case SHAPE_TYPE_SIMPLE_HULL:
                 shapeType = "simple-hull";
                 break;
@@ -437,7 +437,7 @@ var toolBar = (function () {
                 shapeType = "none";
             }
 
-            var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
+            var dynamic = result.dynamic !== null ? result.dynamic : DYNAMIC_DEFAULT;
             if (shapeType === "static-mesh" && dynamic) {
                 // The prompt should prevent this case
                 print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
@@ -446,6 +446,9 @@ var toolBar = (function () {
                     type: "Model",
                     modelURL: url,
                     shapeType: shapeType,
+                    grab: {
+                        grabbable: result.grabbable
+                    },
                     dynamic: dynamic,
                     gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
                 });
@@ -1375,7 +1378,6 @@ Script.scriptEnding.connect(function () {
     Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
 
-    Settings.setValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LARGE));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, Menu.isOptionChecked(MENU_ALLOW_SELECTION_SMALL));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LIGHTS));
@@ -1674,7 +1676,7 @@ function onPromptTextChanged(prompt) {
     }
 }
 
-function handeMenuEvent(menuItem) {
+function handleMenuEvent(menuItem) {
     if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
     } else if (menuItem === "Allow Selecting of Large Models") {
@@ -1714,6 +1716,8 @@ function handeMenuEvent(menuItem) {
         entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+    } else if (menuItem === MENU_CREATE_ENTITIES_GRABBABLE) {
+        Settings.setValue(SETTING_EDIT_PREFIX + menuItem, Menu.isOptionChecked(menuItem));
     }
     tooltip.show(false);
 }
@@ -1839,7 +1843,7 @@ function importSVO(importURL) {
 }
 Window.svoImportRequested.connect(importSVO);
 
-Menu.menuItemEvent.connect(handeMenuEvent);
+Menu.menuItemEvent.connect(handleMenuEvent);
 
 var keyPressEvent = function (event) {
     if (isActive) {

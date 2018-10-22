@@ -229,6 +229,7 @@ public:
 
 protected:
 
+    void draw(GLenum mode, uint32 numVertices, uint32 startVertex) override;
     void recycle() const override;
 
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;

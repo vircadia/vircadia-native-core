@@ -7,6 +7,11 @@ else()
   cmake_minimum_required(VERSION 3.2)
 endif()
 
+# squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
+if ((${CMAKE_MAJOR_VERSION} EQUAL 3 AND ${CMAKE_MINOR_VERSION} GREATER 11) OR ${CMAKE_MAJOR_VERSION} GREATER 3)
+   cmake_policy(SET CMP0074 NEW)
+endif()
+
 project(hifi)
 
 include("cmake/init.cmake")
