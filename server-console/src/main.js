@@ -877,10 +877,6 @@ function onContentLoaded() {
                     hasShownUpdateNotification = true;
                 }
             });
-            notifier.on('click', function(notifierObject, options) {
-                log.debug("Got click", options.url);
-                shell.openExternal(options.url);
-            });
         }
 
         deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
