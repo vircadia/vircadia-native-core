@@ -109,6 +109,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     }
     HMD.displayModeChanged.connect(onDisplayModeChanged);
     HMD.mountedChanged.connect(onDisplayModeChanged);
+    onDisplayModeChanged();
 
     function cleanUp() {
         disableDispatcherModule("LeftNearTabletHighlight");
