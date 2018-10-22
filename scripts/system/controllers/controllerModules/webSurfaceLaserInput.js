@@ -90,7 +90,6 @@ Script.include("/~/system/libraries/controllers.js");
                         action: 'add',
                         id: objectID
                     };
-                    print("ignoreing entity " + entityIndex);
                     Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
                     this.ignoredObjects.push(objectID);
                 }
@@ -99,7 +98,6 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.restoreIgnoredObjects = function() {
             for (var index = 0; index < this.ignoredObjects.length; index++) {
-                print("removing");
                 var data = {
                     action: 'remove',
                     id: this.ignoredObjects[index]
