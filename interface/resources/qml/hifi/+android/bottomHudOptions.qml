@@ -16,8 +16,8 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Layouts 1.3
 import Qt.labs.settings 1.0
 import "../../styles" as HifiStyles
-import "../../styles-uit"
-import "../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../controls" as HifiControls
 import ".."
 import "."
