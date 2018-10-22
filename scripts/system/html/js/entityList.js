@@ -131,7 +131,7 @@ function loaded() {
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
         elDelete = document.getElementById("delete");
-        elFilterTypeSelectBox = document.getElementById("filter-type-selectBox");
+        elFilterTypeSelectBox = document.getElementById("filter-type-select-box");
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeCheckboxes = document.getElementById("filter-type-checkboxes");
         elFilterSearch = document.getElementById("filter-search");
@@ -155,31 +155,31 @@ function loaded() {
         document.getElementById("entity-url").onclick = function() {
             setSortColumn('url');
         };
-        document.getElementById("entity-locked").onclick = function () {
+        document.getElementById("entity-locked").onclick = function() {
             setSortColumn('locked');
         };
-        document.getElementById("entity-visible").onclick = function () {
+        document.getElementById("entity-visible").onclick = function() {
             setSortColumn('visible');
         };
-        document.getElementById("entity-verticesCount").onclick = function () {
+        document.getElementById("entity-verticesCount").onclick = function() {
             setSortColumn('verticesCount');
         };
-        document.getElementById("entity-texturesCount").onclick = function () {
+        document.getElementById("entity-texturesCount").onclick = function() {
             setSortColumn('texturesCount');
         };
-        document.getElementById("entity-texturesSize").onclick = function () {
+        document.getElementById("entity-texturesSize").onclick = function() {
             setSortColumn('texturesSize');
         };
-        document.getElementById("entity-hasTransparent").onclick = function () {
+        document.getElementById("entity-hasTransparent").onclick = function() {
             setSortColumn('hasTransparent');
         };
-        document.getElementById("entity-isBaked").onclick = function () {
+        document.getElementById("entity-isBaked").onclick = function() {
             setSortColumn('isBaked');
         };
-        document.getElementById("entity-drawCalls").onclick = function () {
+        document.getElementById("entity-drawCalls").onclick = function() {
             setSortColumn('drawCalls');
         };
-        document.getElementById("entity-hasScript").onclick = function () {
+        document.getElementById("entity-hasScript").onclick = function() {
             setSortColumn('hasScript');
         };
         elRefresh.onclick = function() {
@@ -203,12 +203,9 @@ function loaded() {
         elFilterSearch.onkeyup = refreshEntityList;
         elFilterSearch.onsearch = refreshEntityList;
         elFilterInView.onclick = toggleFilterInView;
+        elFilterRadius.onkeyup = onRadiusChange;
         elFilterRadius.onchange = onRadiusChange;
-        elFilterRadius.oninput = function(event) {
-            if (event.target.value.length > MAX_LENGTH_RADIUS) {
-                event.target.value = event.target.value.slice(0, MAX_LENGTH_RADIUS); 
-            }
-        }
+        elInfoToggle.onclick = toggleInfo;
         
         // create filter type dropdown checkboxes with label and icon for each type
         elFilterTypeSelectBox.onclick = toggleTypeDropdown;
@@ -225,9 +222,10 @@ function loaded() {
             let elInput = document.createElement('input');
             elInput.setAttribute("type", "checkbox");
             elInput.setAttribute("id", typeFilterID);
+            elInput.setAttribute("filterType", type);
             elInput.checked = true; // all types are checked initially
-            toggleTypeFilter(type, false); // add all types to the initial types filter
-            elInput.onclick = onToggleTypeFilter(type);
+            toggleTypeFilter(elInput, false); // add all types to the initial types filter
+            elInput.onclick = onToggleTypeFilter;
             elDiv.appendChild(elInput);
             elLabel.insertBefore(elSpan, elLabel.childNodes[0]);
             elDiv.appendChild(elLabel);
@@ -642,6 +640,7 @@ function loaded() {
         }
         
         function onRadiusChange() {
+            elFilterRadius.value = elFilterRadius.value.replace(/[^0-9]/g, '');
             elFilterRadius.value = Math.max(elFilterRadius.value, 0);
             EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elFilterRadius.value }));
             refreshEntities();
@@ -655,11 +654,14 @@ function loaded() {
             elFilterTypeCheckboxes.style.display = isTypeDropdownVisible() ? "none" : "block";
         }
         
-        function toggleTypeFilter(type, refresh) {
+        function toggleTypeFilter(elInput, refresh) {
+            let type = elInput.getAttribute("filterType");
+            let typeChecked = elInput.checked;
+            
             let typeFilterIndex = typeFilters.indexOf(type);
-            if (typeFilterIndex > -1) {
+            if (!typeChecked && typeFilterIndex > -1) {
                 typeFilters.splice(typeFilterIndex, 1);
-            } else {
+            } else if (typeChecked && typeFilterIndex === -1) {
                 typeFilters.push(type);
             }
             
@@ -676,10 +678,8 @@ function loaded() {
             }
         }
         
-        function onToggleTypeFilter(type) {
-            return function() {
-                toggleTypeFilter(type, true);
-            };
+        function onToggleTypeFilter(event) {
+            toggleTypeFilter(this, true);
         }
         
         function onBodyClick(event) {

@@ -1063,10 +1063,10 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 .multiselect {
     position: relative;
 }
-.selectBox {
+.select-box {
     position: absolute;
 }
-.selectBox select {
+.select-box select {
     font-family: FiraSans-SemiBold;
     font-size: 15px;
     color: #afafaf;
@@ -1076,7 +1076,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     width: 107px;
     text-align-last: center;
 }
-.overSelect {
+.over-select {
     position: absolute;
     left: 0;
     right: 0;
@@ -1084,7 +1084,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     bottom: 0;
 }
 
-#filter-type-selectBox select {
+#filter-type-select-box select {
     border-radius: 14.5px;
 }
 #filter-type-checkboxes {
@@ -1157,6 +1157,13 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 #filter-radius-and-unit label {
     margin-left: 2px;
+}
+#filter-radius-and-unit span {
+    position: relative;
+    top: 25px;
+    right: 9px;
+    z-index: 2;
+    font-style: italic;
 }
 #filter-radius-and-unit input {
     width: 120px;
