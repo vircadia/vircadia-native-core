@@ -349,7 +349,8 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         resource = createResource(
             url,
             fallback.isValid() ?  getResource(fallback, QUrl()) : QSharedPointer<Resource>(),
-            extra);        resource->setSelf(resource);
+            extra);
+        resource->setSelf(resource);
         resource->setCache(this);
         resource->moveToThread(qApp->thread());
         connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
