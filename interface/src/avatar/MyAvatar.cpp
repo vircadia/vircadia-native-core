@@ -997,7 +997,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
 // Find the vector halfway between the hip to hand azimuth vectors
 // This midpoint hand azimuth is in Avatar space
-glm::vec2 MyAvatar::computeHandAzimuth() const {
+glm::vec2 MyAvatar::computeHandAzimuth() {
     controller::Pose leftHandPoseAvatarSpace = getLeftHandPose();
     controller::Pose rightHandPoseAvatarSpace = getRightHandPose();
 
