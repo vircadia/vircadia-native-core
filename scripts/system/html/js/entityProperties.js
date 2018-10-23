@@ -53,6 +53,11 @@ const GROUPS = [
                 readOnly: true,
             },
             {
+                label: "Description",
+                type: "string",
+                propertyID: "description",
+            },
+            {
                 label: "Parent",
                 type: "string",
                 propertyID: "parentID",
@@ -174,19 +179,19 @@ const GROUPS = [
                 showPropertyRule: { "keyLightMode": "enabled" },
             },
             {
-                label: "Light Altitude",
-                type: "number",
-                decimals: 2,
-                unit: "deg",
-                propertyID: "keyLight.direction.y",
-                showPropertyRule: { "keyLightMode": "enabled" },
-            },
-            {
-                label: "Light Azimuth",
+                label: "Light Horizontal Angle",
                 type: "number",
                 decimals: 2,
                 unit: "deg",
                 propertyID: "keyLight.direction.x",
+                showPropertyRule: { "keyLightMode": "enabled" },
+            },
+            {
+                label: "Light Vertical Angle",
+                type: "number",
+                decimals: 2,
+                unit: "deg",
+                propertyID: "keyLight.direction.y",
                 showPropertyRule: { "keyLightMode": "enabled" },
             },
             {
@@ -208,16 +213,9 @@ const GROUPS = [
                 showPropertyRule: { "skyboxMode": "enabled" },
             },
             {
-                label: "Skybox URL",
+                label: "Skybox Source",
                 type: "string",
                 propertyID: "skybox.url",
-                showPropertyRule: { "skyboxMode": "enabled" },
-            },
-            {
-                type: "buttons",
-                buttons: [ { id: "copy", label: "Copy URL To Ambient", 
-                             className: "black", onClick: copySkyboxURLToAmbientURL } ],
-                propertyID: "copyURLToAmbient",
                 showPropertyRule: { "skyboxMode": "enabled" },
             },
             {
@@ -237,10 +235,17 @@ const GROUPS = [
                 showPropertyRule: { "ambientLightMode": "enabled" },
             },
             {
-                label: "Ambient URL",
+                label: "Ambient Source",
                 type: "string",
                 propertyID: "ambientLight.ambientURL",
                 showPropertyRule: { "ambientLightMode": "enabled" },
+            },
+            {
+                type: "buttons",
+                buttons: [ { id: "copy", label: "Copy from Skybox", 
+                             className: "black", onClick: copySkyboxURLToAmbientURL } ],
+                propertyID: "copyURLToAmbient",
+                showPropertyRule: { "skyboxMode": "enabled" },
             },
             {
                 label: "Haze",
@@ -396,14 +401,14 @@ const GROUPS = [
                 propertyID: "animation.running",
             },
             {
-                label: "Allow Transition",
-                type: "bool",
-                propertyID: "animation.allowTranslation",
-            },
-            {
                 label: "Loop",
                 type: "bool",
                 propertyID: "animation.loop",
+            },
+            {
+                label: "Allow Transition",
+                type: "bool",
+                propertyID: "animation.allowTranslation",
             },
             {
                 label: "Hold",
@@ -1109,7 +1114,7 @@ const GROUPS = [
                 column: 1,
             },
             {   // below properties having no column number means place them after two columns div
-                label: "Can cast shadow",
+                label: "Cast shadows",
                 type: "bool",
                 propertyID: "canCastShadow",
             },
@@ -1216,18 +1221,18 @@ const GROUPS = [
 ];
 
 const GROUPS_PER_TYPE = {
-  None: [ 'base', 'spatial', 'collision', 'behavior', 'physics' ],
-  Shape: [ 'base', 'shape', 'spatial', 'collision', 'behavior', 'physics' ],
-  Text: [ 'base', 'text', 'spatial', 'collision', 'behavior', 'physics' ],
-  Zone: [ 'base', 'zone', 'spatial', 'collision', 'behavior', 'physics' ],
-  Model: [ 'base', 'model', 'spatial', 'collision', 'behavior', 'physics' ],
-  Image: [ 'base', 'image', 'spatial', 'collision', 'behavior', 'physics' ],
-  Web: [ 'base', 'web', 'spatial', 'collision', 'behavior', 'physics' ],
-  Light: [ 'base', 'light', 'spatial', 'collision', 'behavior', 'physics' ],
+  None: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
+  Shape: [ 'base', 'shape', 'spatial', 'behavior', 'collision', 'physics' ],
+  Text: [ 'base', 'text', 'spatial', 'behavior', 'collision', 'physics' ],
+  Zone: [ 'base', 'zone', 'spatial', 'behavior', 'collision', 'physics' ],
+  Model: [ 'base', 'model', 'spatial', 'behavior', 'collision', 'physics' ],
+  Image: [ 'base', 'image', 'spatial', 'behavior', 'collision', 'physics' ],
+  Web: [ 'base', 'web', 'spatial', 'behavior', 'collision', 'physics' ],
+  Light: [ 'base', 'light', 'spatial', 'behavior', 'collision', 'physics' ],
   Material: [ 'base', 'material', 'spatial', 'behavior' ],
   ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 'particles_alpha', 
                     'particles_acceleration', 'particles_spin', 'particles_constraints', 'spatial', 'behavior', 'physics' ],
-  Multiple: [ 'base', 'spatial', 'collision', 'behavior', 'physics' ],
+  Multiple: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
 };
 
 const EDITOR_TIMEOUT_DURATION = 1500;
@@ -1242,6 +1247,15 @@ const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 const MATERIAL_PREFIX_STRING = "mat::";
 
 const PENDING_SCRIPT_STATUS = "[ Fetching status ]";
+const NOT_RUNNING_SCRIPT_STATUS = "Not running";
+const ENTITY_SCRIPT_STATUS = {
+    pending: "Pending",
+    loading: "Loading",
+    error_loading_script: "Error loading script", // eslint-disable-line camelcase
+    error_running_script: "Error running script", // eslint-disable-line camelcase
+    running: "Running",
+    unloaded: "Unloaded"
+};
 
 const PROPERTY_NAME_DIVISION = {
     GROUP: 0,
@@ -1441,6 +1455,11 @@ function resetProperties() {
             }
         }
     }
+    
+    let elServerScriptError = document.getElementById("property-serverScripts-error");
+    let elServerScriptStatus = document.getElementById("property-serverScripts-status");
+    elServerScriptError.parentElement.style.display = "none";
+    elServerScriptStatus.innerText = NOT_RUNNING_SCRIPT_STATUS;
 }
 
 function showGroupsForType(type) {
@@ -2796,17 +2815,9 @@ function loaded() {
                     if (data.statusRetrieved === false) {
                         elServerScriptStatus.innerText = "Failed to retrieve status";
                     } else if (data.isRunning) {
-                        var ENTITY_SCRIPT_STATUS = {
-                            pending: "Pending",
-                            loading: "Loading",
-                            error_loading_script: "Error loading script", // eslint-disable-line camelcase
-                            error_running_script: "Error running script", // eslint-disable-line camelcase
-                            running: "Running",
-                            unloaded: "Unloaded"
-                        };
                         elServerScriptStatus.innerText = ENTITY_SCRIPT_STATUS[data.status] || data.status;
                     } else {
-                        elServerScriptStatus.innerText = "Not running";
+                        elServerScriptStatus.innerText = NOT_RUNNING_SCRIPT_STATUS;
                     }
                 } else if (data.type === "update" && data.selections) {
                     if (data.selections.length === 0) {
