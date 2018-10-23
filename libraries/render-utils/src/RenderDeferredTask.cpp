@@ -180,29 +180,32 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     task.addJob<DrawLight>("DrawLight", lights);
 
+    // Fetch the current frame stacks from all the stages
+    const auto currentFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
+    const auto lightFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(0);
+    const auto backgroundFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(1);
+    const auto hazeFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(2);
+    const auto bloomFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(3);
+
     // Light Clustering
     // Create the cluster grid of lights, cpu job for now
-    const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, linearDepthTarget).asVarying();
+    const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, lightFrame, linearDepthTarget).asVarying();
     const auto lightClusters = task.addJob<LightClusteringPass>("LightClustering", lightClusteringPassInputs);
- 
-    // Add haze model
-    const auto hazeModel = task.addJob<FetchHazeStage>("HazeModel");
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters, hazeModel).asVarying();
-    
+        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters, lightFrame, hazeFrame).asVarying();
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs, renderShadows);
 
-
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
+    const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame).asVarying();
+    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", backgroundInputs);
 
-    const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingModel));
+    const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeFrame, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingModel, lightFrame));
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
 
     // Render transparent objects forward in LightingBuffer
-    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel, lightClusters, jitter).asVarying();
+    const auto transparentsInputs = DrawDeferred::Inputs(transparents, hazeFrame, lightFrame, lightingModel, lightClusters, jitter).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
     // Light Cluster Grid Debuging job
@@ -246,8 +249,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Add bloom
-    const auto bloomModel = task.addJob<FetchBloomStage>("BloomModel");
-    const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomModel).asVarying();
+    const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomFrame).asVarying();
     task.addJob<BloomEffect>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
@@ -261,11 +263,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     
         task.addJob<DrawBounds>("DrawLightBounds", lights);
         task.addJob<DrawBounds>("DrawZones", zones);
-        const auto frustums = task.addJob<ExtractFrustums>("ExtractFrustums");
-        const auto viewFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::VIEW_FRUSTUM);
+        const auto frustums = task.addJob<ExtractFrustums>("ExtractFrustums", lightFrame);
+        const auto viewFrustum = frustums.getN<ExtractFrustums::Outputs>(ExtractFrustums::VIEW_FRUSTUM);
         task.addJob<DrawFrustum>("DrawViewFrustum", viewFrustum, glm::vec3(0.0f, 1.0f, 0.0f));
         for (auto i = 0; i < ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
-            const auto shadowFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::SHADOW_CASCADE0_FRUSTUM + i);
+            const auto shadowFrustum = frustums.getN<ExtractFrustums::Outputs>(ExtractFrustums::SHADOW_CASCADE0_FRUSTUM + i);
             float tint = 1.0f - i / float(ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT - 1);
             char jobName[64];
             sprintf(jobName, "DrawShadowFrustum%d", i);
@@ -290,7 +292,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Debugging stages
     {
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer, deferredFrameTransform));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer, deferredFrameTransform, lightFrame));
         task.addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
@@ -315,7 +317,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
             task.addJob<DrawStatus>("DrawStatus", drawStatusInputs, DrawStatus(statusIconMap));
         }
 
-        task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
+        const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();
+        task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
     // Upscale to finale resolution
@@ -351,9 +354,11 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
     const auto& inItems = inputs.get0();
-    const auto& lightingModel = inputs.get1();
-    const auto& lightClusters = inputs.get2();
-    const auto jitter = inputs.get3();
+    const auto& hazeFrame = inputs.get1();
+    const auto& lightFrame = inputs.get2();
+    const auto& lightingModel = inputs.get3();
+    const auto& lightClusters = inputs.get4();
+    const auto jitter = inputs.get5();
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
     RenderArgs* args = renderContext->args;
@@ -378,13 +383,13 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // Set the light
-        deferredLightingEffect->setupKeyLightBatch(args, batch);
+        deferredLightingEffect->setupKeyLightBatch(args, batch, *lightFrame);
         deferredLightingEffect->setupLocalLightsBatch(batch, lightClusters);
 
         // Setup haze if current zone has haze
-        auto hazeStage = args->_scene->getStage<HazeStage>();
-        if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
-            graphics::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
+        const auto& hazeStage = args->_scene->getStage<HazeStage>();
+        if (hazeStage && hazeFrame->_hazes.size() > 0) {
+            const auto& hazePointer = hazeStage->getHaze(hazeFrame->_hazes.front());
             if (hazePointer) {
                 batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             }

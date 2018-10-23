@@ -55,6 +55,7 @@ using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
  * @borrows AvatarList.sessionUUIDChanged as sessionUUIDChanged
  * @borrows AvatarList.processAvatarDataPacket as processAvatarDataPacket
  * @borrows AvatarList.processAvatarIdentityPacket as processAvatarIdentityPacket
+ * @borrows AvatarList.processBulkAvatarTraits as processBulkAvatarTraits
  * @borrows AvatarList.processKillAvatar as processKillAvatar
  */
 
@@ -152,6 +153,13 @@ public:
                                                                         const QVector<EntityItemID>& avatarsToInclude,
                                                                         const QVector<EntityItemID>& avatarsToDiscard);
 
+    /**jsdoc
+     * @function AvatarManager.findParabolaIntersectionVector
+     * @param {PickParabola} pick
+     * @param {Uuid[]} avatarsToInclude
+     * @param {Uuid[]} avatarsToDiscard
+     * @returns {ParabolaToAvatarIntersectionResult}
+     */
     Q_INVOKABLE ParabolaToAvatarIntersectionResult findParabolaIntersectionVector(const PickParabola& pick,
                                                                                   const QVector<EntityItemID>& avatarsToInclude,
                                                                                   const QVector<EntityItemID>& avatarsToDiscard);

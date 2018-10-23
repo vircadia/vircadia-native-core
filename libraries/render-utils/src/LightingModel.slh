@@ -23,7 +23,7 @@ struct LightingModel {
 };
 
 // See DeferredShader_BufferSlot in DeferredLightingEffect.cpp
-layout(binding=RENDER_UTILS_BUFFER_LIGHT_MODEL) uniform lightingModelBuffer{
+LAYOUT(binding=RENDER_UTILS_BUFFER_LIGHT_MODEL) uniform lightingModelBuffer{
     LightingModel lightingModel;
 };
 

@@ -222,7 +222,8 @@ void Agent::requestScript() {
         return;
     }
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, scriptURL);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, scriptURL, true, -1, "Agent::requestScript");
 
     if (!request) {
         qWarning() << "Could not create ResourceRequest for Agent script at" << scriptURL.toString();
@@ -368,11 +369,7 @@ void Agent::executeScript() {
 
         // setup an Avatar for the script to use
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
-
         scriptedAvatar->setID(getSessionUUID());
-
-        connect(_scriptEngine.data(), SIGNAL(update(float)),
-                scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
         scriptedAvatar->setForceFaceTrackerConnected(true);
 
         // call model URL setters with empty URLs so our avatar, if user, will have the default models
@@ -504,8 +501,6 @@ void Agent::executeScript() {
 
         DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
 
-        _avatarAudioTimer.start();
-
         // Agents should run at 45hz
         static const int AVATAR_DATA_HZ = 45;
         static const int AVATAR_DATA_IN_MSECS = MSECS_PER_SECOND / AVATAR_DATA_HZ;
@@ -530,7 +525,8 @@ void Agent::executeScript() {
         }
 
         avatarDataTimer->stop();
-        _avatarAudioTimer.stop();
+
+        setIsAvatar(false); // will stop timers for sending identity packets
     }
 
     setFinished(true);
@@ -582,28 +578,33 @@ void Agent::setIsAvatar(bool isAvatar) {
     }
     _isAvatar = isAvatar;
 
-    if (_isAvatar && !_avatarIdentityTimer) {
-        // set up the avatar timers
-        _avatarIdentityTimer = new QTimer(this);
-        _avatarQueryTimer = new QTimer(this);
+    auto scriptableAvatar = DependencyManager::get<ScriptableAvatar>();
+    if (_isAvatar) {
+        if (!_avatarIdentityTimer) {
+            // set up the avatar timers
+            _avatarIdentityTimer = new QTimer(this);
+            _avatarQueryTimer = new QTimer(this);
 
-        // connect our slot
-        connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
-        connect(_avatarQueryTimer, &QTimer::timeout, this, &Agent::queryAvatars);
+            // connect our slot
+            connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
+            connect(_avatarQueryTimer, &QTimer::timeout, this, &Agent::queryAvatars);
 
-        static const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
-        static const int AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS = 1000;
+            static const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
+            static const int AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS = 1000;
 
-        // start the timers
-        _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
-        _avatarQueryTimer->start(AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS);
+            // start the timers
+            _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
+            _avatarQueryTimer->start(AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS);
 
-        // tell the avatarAudioTimer to start ticking
-        QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
-    }
+            connect(_scriptEngine.data(), &ScriptEngine::update,
+                    scriptableAvatar.data(), &ScriptableAvatar::update, Qt::QueuedConnection);
 
-    if (!_isAvatar) {
+            // tell the avatarAudioTimer to start ticking
+            QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
+        }
 
+        _entityEditSender.setMyAvatar(scriptableAvatar.data());
+    } else {
         if (_avatarIdentityTimer) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;
@@ -630,14 +631,14 @@ void Agent::setIsAvatar(bool isAvatar) {
                 packet->writePrimitive(KillAvatarReason::NoReason);
                 nodeList->sendPacket(std::move(packet), *node);
             });
+
+            disconnect(_scriptEngine.data(), &ScriptEngine::update,
+                       scriptableAvatar.data(), &ScriptableAvatar::update);
+
+            QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
         }
 
-        QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
-
         _entityEditSender.setMyAvatar(nullptr);
-    } else {
-        auto scriptableAvatar = DependencyManager::get<ScriptableAvatar>();
-        _entityEditSender.setMyAvatar(scriptableAvatar.data());
     }
 }
 
@@ -788,7 +789,7 @@ void Agent::processAgentAvatarAudio() {
         // seek past the sequence number, will be packed when destination node is known
         audioPacket->seek(sizeof(quint16));
 
-        if (silentFrame) {
+        if (silentFrame && !_flushEncoder) {
 
             if (!_isListeningToAudioStream) {
                 // if we have a silent frame and we're not listening then just send nothing and break out of here
@@ -810,7 +811,7 @@ void Agent::processAgentAvatarAudio() {
 
             // no matter what, the loudness should be set to 0
             computeLoudness(nullptr, scriptedAvatar);
-        } else if (nextSoundOutput) {
+        } else if (nextSoundOutput || _flushEncoder) {
 
             // write the codec
             audioPacket->writeString(_selectedCodecName);
@@ -864,8 +865,6 @@ void Agent::processAgentAvatarAudio() {
 }
 
 void Agent::aboutToFinish() {
-    setIsAvatar(false);// will stop timers for sending identity packets
-
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 

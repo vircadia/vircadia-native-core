@@ -109,7 +109,7 @@ class PickResult {
 public:
     PickResult() {}
     PickResult(const QVariantMap& pickVariant) : pickVariant(pickVariant) {}
-    virtual ~PickResult() {}
+    virtual ~PickResult() = default;
 
     virtual QVariantMap toVariantMap() const {
         return pickVariant;
@@ -135,6 +135,7 @@ class PickQuery : protected ReadWriteLockable {
     Q_GADGET
 public:
     PickQuery(const PickFilter& filter, const float maxDistance, const bool enabled);
+    virtual ~PickQuery() = default;
 
     /**jsdoc
      * Enum for different types of Picks and Pointers.
@@ -145,9 +146,11 @@ public:
      * @hifi-interface
      * @hifi-client-entity
      *
-     * @property {number} Ray Ray Picks intersect a ray with the nearest object in front of them, along a given direction.
-     * @property {number} Stylus Stylus Picks provide "tapping" functionality on/into flat surfaces.
-     * @property {number} Parabola Parabola Picks intersect a parabola with the nearest object in front of them, with a given initial velocity and acceleration.
+     * @property {number} Ray Ray picks intersect a ray with the nearest object in front of them, along a given direction.
+     * @property {number} Stylus Stylus picks provide "tapping" functionality on/into flat surfaces.
+     * @property {number} Parabola Parabola picks intersect a parabola with the nearest object in front of them, with a given 
+     *     initial velocity and acceleration.
+     * @property {number} Collision Collision picks intersect a collision volume with avatars and entities that have collisions.
      */
     /**jsdoc
      * <table>
@@ -158,6 +161,7 @@ public:
      *     <tr><td><code>{@link PickType(0)|PickType.Ray}</code></td><td></td></tr>
      *     <tr><td><code>{@link PickType(0)|PickType.Stylus}</code></td><td></td></tr>
      *     <tr><td><code>{@link PickType(0)|PickType.Parabola}</code></td><td></td></tr>
+     *     <tr><td><code>{@link PickType(0)|PickType.Collision}</code></td><td></td></tr>
      *   </tbody>
      * </table>
      * @typedef {number} PickType
@@ -245,7 +249,6 @@ template<typename T>
 class Pick : public PickQuery {
 public:
     Pick(const T& mathPick, const PickFilter& filter, const float maxDistance, const bool enabled) : PickQuery(filter, maxDistance, enabled), _mathPick(mathPick) {}
-    virtual ~Pick() {}
 
     virtual T getMathematicalPick() const = 0;
     virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;

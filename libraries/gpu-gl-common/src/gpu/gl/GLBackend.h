@@ -288,6 +288,7 @@ public:
     virtual void do_setIndexBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setIndirectBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_generateTextureMips(const Batch& batch, size_t paramOffset) final;
+    virtual void do_generateTextureMipsWithPipeline(const Batch& batch, size_t paramOffset) final;
 
     // Transform Stage
     virtual void do_setModelTransform(const Batch& batch, size_t paramOffset) final;
@@ -406,6 +407,8 @@ public:
 
 protected:
     virtual GLint getRealUniformLocation(GLint location) const;
+
+    virtual void draw(GLenum mode, uint32 numVertices, uint32 startVertex) = 0;
 
     void recycle() const override;
 
@@ -640,18 +643,21 @@ protected:
         }
     } _pipeline;
 
-    // Backend dependant compilation of the shader
+    // Backend dependent compilation of the shader
     virtual void postLinkProgram(ShaderObject& programObject, const Shader& program) const;
     virtual GLShader* compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler);
     virtual GLShader* compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler);
-    virtual std::string getBackendShaderHeader() const = 0;
-    // For a program, this will return a string containing all the source files (without any
-    // backend headers or defines).  For a vertex, fragment or geometry shader, this will
-    // return the fully customized shader with all the version and backend specific
+
+    // For a program, this will return a string containing all the source files (without any 
+    // backend headers or defines).  For a vertex, fragment or geometry shader, this will 
+    // return the fully customized shader with all the version and backend specific 
     // preprocessor directives
     // The program string returned can be used as a key for a cache of shader binaries
     // The shader strings can be reliably sent to the low level `compileShader` functions
-    virtual std::string getShaderSource(const Shader& shader, int version) final;
+    virtual std::string getShaderSource(const Shader& shader, shader::Variant version) final;
+    shader::Variant getShaderVariant() const { return isStereo() ? shader::Variant::Stereo : shader::Variant::Mono; }
+    virtual shader::Dialect getShaderDialect() const = 0;
+
     class ElementResource {
     public:
         gpu::Element _element;
@@ -695,6 +701,8 @@ protected:
     } _textureManagement;
     virtual void initTextureManagementStage();
     virtual void killTextureManagementStage();
+
+    GLuint _mipGenerationFramebufferId{ 0 };
 
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

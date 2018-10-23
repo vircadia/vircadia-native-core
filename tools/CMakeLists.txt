@@ -2,9 +2,6 @@
 add_subdirectory(scribe)
 set_target_properties(scribe PROPERTIES FOLDER "Tools")
 
-add_subdirectory(shreflect)
-set_target_properties(shreflect PROPERTIES FOLDER "Tools")
-
 find_npm()
 if (NPM_EXECUTABLE)
   add_subdirectory(jsdoc)

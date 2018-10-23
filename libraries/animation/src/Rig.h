@@ -227,7 +227,6 @@ public:
     const AnimVariantMap& getAnimVars() const { return _lastAnimVars; }
     const AnimContext::DebugStateMachineMap& getStateMachineMap() const { return _lastContext.getStateMachineMap(); }
 
-    void toggleSmoothPoleVectors() { _smoothPoleVectors = !_smoothPoleVectors; };
 signals:
     void onLoadComplete();
 
@@ -380,14 +379,6 @@ protected:
 
     glm::vec3 _prevLeftFootPoleVector { Vectors::UNIT_Z }; // sensor space
     bool _prevLeftFootPoleVectorValid { false };
-
-    glm::vec3 _prevRightHandPoleVector{ -Vectors::UNIT_Z }; // sensor space
-    bool _prevRightHandPoleVectorValid{ false };
-
-    glm::vec3 _prevLeftHandPoleVector{ -Vectors::UNIT_Z }; // sensor space
-    bool _prevLeftHandPoleVectorValid{ false };
-
-    bool _smoothPoleVectors { false };
 
     int _rigId;
     bool _headEnabled { false };

@@ -19,9 +19,8 @@ namespace controller {
 class ScaleFilter : public Filter {
     REGISTER_FILTER_CLASS(ScaleFilter);
 public:
-    ScaleFilter() {}
+    ScaleFilter() = default;
     ScaleFilter(float scale) : _scale(scale) {}
-    virtual ~ScaleFilter() {}
 
     virtual float apply(float value) const override {
         return value * _scale;

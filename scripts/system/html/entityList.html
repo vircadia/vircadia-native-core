@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 //  entityList.html
 //
 //  Created by Ryan Huffman on 19 Nov 2014
@@ -18,14 +18,13 @@
         <script type="text/javascript" src="js/listView.js"></script>
         <script type="text/javascript" src="js/entityList.js"></script>
     </head>
-    <body onload='loaded();'>
+    <body onload='loaded();' id="entity-list-body">
         <div id="entity-list-header">
             <input type="button" class="glyph" id="refresh" value="F" />
             <div>
                 <input type="button" id="locked" class="glyph" value="&#xe006;" />
                 <input type="button" id="visible" class="glyph" value="&#xe007;" />
             </div>
-            <input type="button" id="export" value="Export Selection" />
             <input type="button" id="pal" class="glyph" value="&#xe00c;" />
             <input type="button" class="red" id="delete" value="Delete" />
         </div>
@@ -87,15 +86,18 @@
                             <td class="id" style="display: none"></td>
                         </tr>
                     </tbody>
-                    <tfoot>
-                        <tr>
-                            <td id="footer-text" colspan="12"> </td>
-                        </tr>
-                    </tfoot>
                 </table>
 
                 <div id="no-entities">
                     No entities found <span id="no-entities-in-view">in view</span> within a <span id="no-entities-radius">100</span> meter radius. Try moving to a different location and refreshing.
+                </div>
+            </div>
+        </div>
+        <div id="entity-list-footer">
+            <div>
+                <input type="button" id="export" value="Export Selection" />
+                <div id="footer-text">
+                    <b><span id="selected-entities-count">0</span> of <span id="visible-entities-count">0</span></b> selected
                 </div>
             </div>
         </div>

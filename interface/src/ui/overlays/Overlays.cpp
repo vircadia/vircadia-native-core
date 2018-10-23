@@ -532,6 +532,8 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
                                                                    bool visibleOnly, bool collidableOnly) {
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
+    bool bestIsTablet = false;
+    auto tabletIDs = qApp->getTabletIDs();
 
     QMutexLocker locker(&_mutex);
     RayToOverlayIntersectionResult result;
@@ -554,10 +556,11 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
                                                           thisFace, thisSurfaceNormal, thisExtraInfo, precisionPicking)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
-                if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
-                    || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {
-
+                bool isTablet = tabletIDs.contains(thisID);
+                if ((isDrawInFront && !bestIsFront && !bestIsTablet)
+                        || ((isTablet || isDrawInFront || !bestIsFront) && thisDistance < bestDistance)) {
                     bestIsFront = isDrawInFront;
+                    bestIsTablet = isTablet;
                     bestDistance = thisDistance;
                     result.intersects = true;
                     result.distance = thisDistance;
@@ -629,9 +632,9 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
     obj.setProperty("distance", value.distance);
     obj.setProperty("face", boxFaceToString(value.face));
 
-    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    QScriptValue intersection = vec3ToScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
-    QScriptValue surfaceNormal = vec3toScriptValue(engine, value.surfaceNormal);
+    QScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
     obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
@@ -828,40 +831,12 @@ PointerEvent Overlays::calculateOverlayPointerEvent(OverlayID overlayID, PickRay
 }
 
 
-RayToOverlayIntersectionResult Overlays::findRayIntersectionForMouseEvent(PickRay ray) {
-    QVector<OverlayID> overlaysToInclude;
-    QVector<OverlayID> overlaysToDiscard;
-    RayToOverlayIntersectionResult rayPickResult;
-
-    // first priority is tablet screen
-    overlaysToInclude << qApp->getTabletScreenID();
-    rayPickResult = findRayIntersectionVector(ray, true, overlaysToInclude, overlaysToDiscard);
-    if (rayPickResult.intersects) {
-        return rayPickResult;
-    }
-    // then tablet home button
-    overlaysToInclude.clear();
-    overlaysToInclude << qApp->getTabletHomeButtonID();
-    rayPickResult = findRayIntersectionVector(ray, true, overlaysToInclude, overlaysToDiscard);
-    if (rayPickResult.intersects) {
-        return rayPickResult;
-    }
-    // then tablet frame
-    overlaysToInclude.clear();
-    overlaysToInclude << OverlayID(qApp->getTabletFrameID());
-    rayPickResult = findRayIntersectionVector(ray, true, overlaysToInclude, overlaysToDiscard);
-    if (rayPickResult.intersects) {
-        return rayPickResult;
-    }
-    // then whatever
-    return findRayIntersection(ray);
-}
-
 bool Overlays::mousePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mousePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<OverlayID>(),
+        QVector<OverlayID>());
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
@@ -901,7 +876,8 @@ bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<OverlayID>(),
+        QVector<OverlayID>());
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
@@ -964,7 +940,8 @@ bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<OverlayID>(),
+        QVector<OverlayID>());
     if (rayPickResult.intersects) {
         auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Release);
         mouseReleasePointerEvent(rayPickResult.overlayID, pointerEvent);
@@ -993,7 +970,8 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseMoveEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<OverlayID>(),
+        QVector<OverlayID>());
     if (rayPickResult.intersects) {
         auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Move);
         mouseMovePointerEvent(rayPickResult.overlayID, pointerEvent);

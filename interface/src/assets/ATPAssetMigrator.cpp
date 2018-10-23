@@ -53,7 +53,8 @@ void ATPAssetMigrator::loadEntityServerFile() {
 
             auto migrateResources = [=](QUrl migrationURL, QJsonValueRef jsonValue, bool isModelURL) {
                 auto request =
-                        DependencyManager::get<ResourceManager>()->createResourceRequest(this, migrationURL);
+                        DependencyManager::get<ResourceManager>()->createResourceRequest(
+                            this, migrationURL, true, -1, "ATPAssetMigrator::loadEntityServerFile");
 
                 if (request) {
                     qCDebug(asset_migrator) << "Requesting" << migrationURL << "for ATP asset migration";

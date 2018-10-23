@@ -91,7 +91,9 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
         return; // bail since piggyback version doesn't match
     }
 
-    qApp->trackIncomingOctreePacket(*message, sendingNode, wasStatsPacket);
+    if (packetType != PacketType::EntityQueryInitialResultsComplete) {
+        qApp->trackIncomingOctreePacket(*message, sendingNode, wasStatsPacket);
+    }
     
     // seek back to beginning of packet after tracking
     message->seek(0);
