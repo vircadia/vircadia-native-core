@@ -12,8 +12,8 @@
 import QtQuick 2.5
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 
-import "../../styles-uit"
-import "../../controls-uit"
+import stylesUit 1.0
+import controlsUit 1.0
 import "../dialogs"
 
 Rectangle {
@@ -116,8 +116,13 @@ Rectangle {
             Column {
                 id: column2
                 width: 200
-                height: 400
+                height: 600
                 spacing: 10
+
+                CheckBox {
+                    id: grabbable
+                    text: qsTr("Grabbable")
+                }
 
                 CheckBox {
                     id: dynamic
@@ -217,9 +222,10 @@ Rectangle {
                             newModelDialog.sendToScript({
                                 method: "newModelDialogAdd",
                                 params: {
-                                    textInput: modelURL.text,
-                                    checkBox: dynamic.checked,
-                                    comboBox: collisionType.currentIndex
+                                    url: modelURL.text,
+                                    dynamic: dynamic.checked,
+                                    collisionShapeIndex: collisionType.currentIndex,
+                                    grabbable: grabbable.checked
                                 }
                             });
                         }
