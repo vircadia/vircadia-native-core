@@ -533,7 +533,7 @@ void MyAvatar::update(float deltaTime) {
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     setHipToHandController(computeHandAzimuth());
-    qCDebug(interfaceapp) << "lock " << _lockSitStandState.get() << " sit " << _isInSittingState.get() << " hmd lean "<< _hmdLeanRecenterEnabled;
+
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
     if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid()) {

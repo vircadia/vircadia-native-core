@@ -244,29 +244,6 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [myAvatar]()->int { if (myAvatar->getUserRecenterModel() == MyAvatar::SitStandModelType::Auto) {
-                                              return 0;
-                                          } else if (myAvatar->getUserRecenterModel() == MyAvatar::SitStandModelType::ForceSit) {
-                                              return 1;
-                                          } else {
-                                              return 2;
-                                          }};
-        auto setter = [myAvatar](int value) { if (value == 0) {
-                                                  myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::Auto);
-                                              } else if (value == 1) {
-                                                  myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceSit);
-                                              } else {
-                                                  myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::DisableHMDLean);
-                                              }};
-        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Disable Recenter", getter, setter);
-        QStringList items;
-        items << "Auto" << "Force Sitting" << "Disable Recenter";
-        preference->setHeading("User Activity mode");
-        preference->setItems(items);
-        preferences->addPreference(preference);
-    }
-
-    {
         auto getter = [myAvatar]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
         auto setter = [myAvatar](int value) { myAvatar->setSnapTurn(value == 0); };
         auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Snap turn / Smooth turn", getter, setter);
@@ -280,6 +257,28 @@ void setupPreferences() {
         auto getter = [myAvatar]()->bool { return myAvatar->getShowPlayArea(); };
         auto setter = [myAvatar](bool value) { myAvatar->setShowPlayArea(value); };
         auto preference = new CheckPreference(VR_MOVEMENT, "Show room boundaries while teleporting", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->int { if (myAvatar->getUserRecenterModel() == MyAvatar::SitStandModelType::Auto) {
+            return 0;
+        } else if (myAvatar->getUserRecenterModel() == MyAvatar::SitStandModelType::ForceSit) {
+            return 1;
+        } else {
+            return 2;
+        }};
+        auto setter = [myAvatar](int value) { if (value == 0) {
+            myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::Auto);
+        } else if (value == 1) {
+            myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceSit);
+        } else {
+            myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::DisableHMDLean);
+        }};
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Disable Recenter", getter, setter);
+        QStringList items;
+        items << "Auto - turns on avatar leaning when standing in real world" << "Seated - disables all avatar leaning while sitting in real world" << "Disabled - allows avatar sitting on the floor [Experimental]";
+        preference->setHeading("Avatar leaning behavior");
+        preference->setItems(items);
         preferences->addPreference(preference);
     }
     {
