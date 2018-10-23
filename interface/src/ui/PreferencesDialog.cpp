@@ -267,8 +267,10 @@ void setupPreferences() {
                     return 0;
                 case MyAvatar::SitStandModelType::ForceSit:
                     return 1;
-                case MyAvatar::SitStandModelType::DisableHMDLean:
+                case MyAvatar::SitStandModelType::ForceStand:
                     return 2;
+                case MyAvatar::SitStandModelType::DisableHMDLean:
+                    return 3;
             }
         };
         auto setter = [myAvatar](int value) {
@@ -281,13 +283,16 @@ void setupPreferences() {
                     myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceSit);
                     break;
                 case 2:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceStand);
+                    break;
+                case 3:
                     myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::DisableHMDLean);
                     break;
             }
         };
-        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Disable Recenter", getter, setter);
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Force Stand / Disable Recenter", getter, setter);
         QStringList items;
-        items << "Auto - turns on avatar leaning when standing in real world" << "Seated - disables all avatar leaning while sitting in real world" << "Disabled - allows avatar sitting on the floor [Experimental]";
+        items << "Auto - turns on avatar leaning when standing in real world" << "Seated - disables all avatar leaning while sitting in real world" << "Standing - enables avatar leaning while sitting in real world" << "Disabled - allows avatar sitting on the floor [Experimental]";
         preference->setHeading("Avatar leaning behavior");
         preference->setItems(items);
         preferences->addPreference(preference);
