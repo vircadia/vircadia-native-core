@@ -260,20 +260,27 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [myAvatar]()->int { if (myAvatar->getUserRecenterModel() == MyAvatar::SitStandModelType::Auto) {
-            return 0;
-        } else if (myAvatar->getUserRecenterModel() == MyAvatar::SitStandModelType::ForceSit) {
-            return 1;
-        } else {
-            return 2;
-        }};
-        auto setter = [myAvatar](int value) { if (value == 0) {
-            myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::Auto);
-        } else if (value == 1) {
-            myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceSit);
-        } else {
-            myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::DisableHMDLean);
-        }};
+        auto getter = [myAvatar]()->int { switch (myAvatar->getUserRecenterModel()) {
+                                              case MyAvatar::SitStandModelType::Auto:
+                                              default:
+                                                  return 0;
+                                              case MyAvatar::SitStandModelType::ForceSit:
+                                                  return 1;
+                                              case MyAvatar::SitStandModelType::DisableHMDLean:
+                                                  return 2;
+                                              }};
+        auto setter = [myAvatar](int value) { switch (value) {
+                                                  case 0:
+                                                  default:
+                                                      myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::Auto);
+                                                      break;
+                                                  case 1:
+                                                      myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceSit);
+                                                      break;
+                                                  case 2:
+                                                      myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::DisableHMDLean);
+                                                      break;
+                                                  }};
         auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Disable Recenter", getter, setter);
         QStringList items;
         items << "Auto - turns on avatar leaning when standing in real world" << "Seated - disables all avatar leaning while sitting in real world" << "Disabled - allows avatar sitting on the floor [Experimental]";
