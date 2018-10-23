@@ -20,7 +20,6 @@ Rectangle {
     property real scaleValue: scaleSlider.value / 10
     property alias dominantHandIsLeft: leftHandRadioButton.checked
     property alias avatarCollisionsOn: collisionsEnabledRadiobutton.checked
-    property alias avatarRecenterModelOn: userModelComboBox.currentIndex
     property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
     property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
@@ -49,7 +48,6 @@ Rectangle {
         avatarAnimationJSON = settings.animGraphUrl;
         avatarAnimationOverrideJSON = settings.animGraphOverrideUrl;
         avatarCollisionSoundUrl = settings.collisionSoundUrl;
-        avatarRecenterModelOn = settings.userRecenterModel;
 
         visible = true;
     }
@@ -191,7 +189,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
 
-            rows: 3
+            rows: 2
             rowSpacing: 25
 
             columns: 3
@@ -214,7 +212,7 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 1
-                Layout.leftMargin: 20
+                Layout.leftMargin: -40
 
                 ButtonGroup.group: leftRight
                 checked: true
@@ -231,7 +229,7 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 2
-                Layout.rightMargin: -20
+                Layout.rightMargin: 20
 
                 ButtonGroup.group: leftRight
 
@@ -260,7 +258,7 @@ Rectangle {
 
                 Layout.row: 1
                 Layout.column: 1
-                Layout.leftMargin: 20
+                Layout.leftMargin: -40
                 ButtonGroup.group: onOff
 
                 colorScheme: hifi.colorSchemes.light
@@ -281,7 +279,7 @@ Rectangle {
 
                 Layout.row: 1
                 Layout.column: 2
-                Layout.rightMargin: -20
+                Layout.rightMargin: 20
 
                 ButtonGroup.group: onOff
                 colorScheme: hifi.colorSchemes.light
@@ -290,34 +288,6 @@ Rectangle {
 
                 text: "OFF"
                 boxSize: 20
-            }
-
-        // TextStyle9
-
-            RalewaySemiBold {
-                size: 17;
-                Layout.row: 2
-                Layout.column: 0
-
-                text: "User Model:"
-            }
-
-
-            // sit stand combo box
-            HifiControlsUit.ComboBox {
-                Layout.row: 2
-                Layout.column: 1
-                id: userModelComboBox
-                comboBox.textRole: "text"
-                currentIndex: 2
-                model: ListModel {
-                    id: cbItems
-                    ListElement { text: "Force Sitting"; color: "Yellow" }
-                    ListElement { text: "Force Standing"; color: "Green" }
-                    ListElement { text: "Auto Mode"; color: "Brown" }
-                    ListElement { text: "Disable Recentering"; color: "Red" }
-                }
-                width: 200
             }
         }
 
