@@ -7,7 +7,7 @@ import QtWebEngine  1.1
 
 
 import "."
-import stylesUit 1.0
+import "../../styles-uit"
 import "../../controls"
 
 FocusScope {

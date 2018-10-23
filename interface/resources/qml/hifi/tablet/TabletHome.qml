@@ -6,7 +6,7 @@ import QtQuick.Layouts 1.3
 import TabletScriptingInterface 1.0
 
 import "."
-import stylesUit 1.0
+import "../../styles-uit"
 import "../audio" as HifiAudio
 
 Item {
