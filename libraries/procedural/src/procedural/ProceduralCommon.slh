@@ -14,10 +14,6 @@
  
 <$declareStandardCameraTransform()$>
 
-#ifdef GL_EXT_shader_non_constant_global_initializers
-#extension GL_EXT_shader_non_constant_global_initializers : enable
-#endif
-
 LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL0) uniform sampler2D iChannel0;
 LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL1) uniform sampler2D iChannel1;
 LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL2) uniform sampler2D iChannel2;
