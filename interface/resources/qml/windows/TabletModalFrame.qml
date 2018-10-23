@@ -11,8 +11,8 @@
 import QtQuick 2.5
 
 import "."
-import controlsUit 1.0
-import stylesUit 1.0
+import "../controls-uit"
+import "../styles-uit"
 
 
 Rectangle {

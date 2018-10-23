@@ -3,9 +3,9 @@ import QtWebChannel 1.0
 import QtWebEngine 1.5
 
 import "controls"
-import controlsUit 1.0 as HifiControls
+import "controls-uit" as HifiControls
 import "styles" as HifiStyles
-import stylesUit 1.0
+import "styles-uit"
 import "windows"
 
 Item {
