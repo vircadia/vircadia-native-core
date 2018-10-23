@@ -46,7 +46,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     }
 
     glm::mat4 hipsMat;
-    if (myAvatar->getCenterOfGravityModelEnabled() && !isFlying && !(myAvatar->getIsInWalkingState()) && myAvatar->getHMDLeanRecenterEnabled()) {
+    if (myAvatar->getCenterOfGravityModelEnabled() && !isFlying && !(myAvatar->getIsInWalkingState()) && !(myAvatar->getIsInSittingState()) && myAvatar->getHMDLeanRecenterEnabled()) {
         // then we use center of gravity model
         hipsMat = myAvatar->deriveBodyUsingCgModel();
     } else {
@@ -250,6 +250,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             bool headExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Head"), currentHeadPose);
             bool hipsExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Hips"), currentHipsPose);
             if (spine2Exists && headExists && hipsExists) {
+
                 AnimPose rigSpaceYaw(myAvatar->getSpine2RotationRigSpace());
                 glm::vec3 u, v, w;
                 glm::vec3 fwd = rigSpaceYaw.rot() * glm::vec3(0.0f, 0.0f, 1.0f);
