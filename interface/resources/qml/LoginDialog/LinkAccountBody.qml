@@ -65,10 +65,10 @@ Item {
         } else {
             loginDialog.signup(emailField.text, usernameField.text, passwordField.text);
         }
-        linkAccountBody.toggleLoggingIn();
+        linkAccountBody.toggleLoggingIn(false);
     }
 
-    function toggleLoggingIn() {
+    function toggleLoggingIn(loggedIn) {
         // For the process of logging in.
         if (linkAccountBody.withSteam) {
 
@@ -373,7 +373,7 @@ Item {
                 width: d.minWidthButton
                 height: d.minHeightButton
                 color: hifi.buttons.blue
-                fontSize: 30
+                fontSize: 21
                 anchors {
                     bottom: parent.bottom
                     bottomMargin: 0.1 * parent.height
@@ -428,13 +428,13 @@ Item {
                     toggleSignIn(true, true);
                 }
             }
-            HifiControlsUit.Button {
-                id: steamLoginButton
+            Button {
+                id: steamLoginButton;
                 width: signUpButton.width
                 height: signUpButton.height
-                text: qsTr("Steam Log In")
-                fontSize: signUpButton.fontSize
-                color: hifi.buttons.black
+                property int color: hifi.buttons.black;
+                property int colorScheme: hifi.colorSchemes.light;
+
                 anchors {
                     top: loginButton.bottom
                     topMargin: 0.04 * parent.height
@@ -442,9 +442,91 @@ Item {
                     leftMargin: (parent.width - steamLoginButton.width) / 2
                 }
 
+                enabled: root.hasPermissionToRezThis &&
+                    MyAvatar.skeletonModelURL !== root.itemHref &&
+                    !root.wornEntityID &&
+                    root.valid;
+
+                onHoveredChanged: {
+                    if (hovered) {
+                        Tablet.playSound(TabletEnums.ButtonHover);
+                    }
+                }
+
+                onFocusChanged: {
+                    if (focus) {
+                        Tablet.playSound(TabletEnums.ButtonHover);
+                    }
+                }
+
                 onClicked: {
-                    if (loginDialog.isSteamRunning()) {
-                        loginDialog.linkSteam();
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                }
+
+                style: OriginalStyles.ButtonStyle {
+                    background: Rectangle {
+                        radius: 4;
+                        gradient: Gradient {
+                            GradientStop {
+                                position: 0.2
+                                color: {
+                                    if (!control.enabled) {
+                                        hifi.buttons.disabledColorStart[control.colorScheme]
+                                    } else if (control.pressed) {
+                                        hifi.buttons.pressedColor[control.color]
+                                    } else if (control.hovered) {
+                                        hifi.buttons.hoveredColor[control.color]
+                                    } else {
+                                        hifi.buttons.colorStart[control.color]
+                                    }
+                                }
+                            }
+                            GradientStop {
+                                position: 1.0
+                                color: {
+                                    if (!control.enabled) {
+                                        hifi.buttons.disabledColorFinish[control.colorScheme]
+                                    } else if (control.pressed) {
+                                        hifi.buttons.pressedColor[control.color]
+                                    } else if (control.hovered) {
+                                        hifi.buttons.hoveredColor[control.color]
+                                    } else {
+                                        hifi.buttons.colorFinish[control.color]
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    label: Item {
+                        Image {
+                            id: steamIcon;
+                            anchors.right: steamIconLabel.left;
+                            anchors.rightMargin: 5;
+                            anchors.verticalCenter: parent.verticalCenter;
+                            source: "images/steam.svg";
+                            horizontalAlignment: Image.AlignHCenter;
+                            sourceSize.width: signUpButton.fontSize + 3
+                            sourceSize.height: signUpButton.fontSize + 3
+                        }
+                        TextMetrics {
+                            id: steamIconLabelTextMetrics;
+                            font: steamIconLabel.font;
+                            text: steamIconLabel.text;
+                        }
+                        HifiStylesUit.RalewayBold {
+                            id: steamIconLabel;
+                            text: "Steam Log In"
+                            anchors.verticalCenter: parent.verticalCenter;
+                            width: steamIconLabelTextMetrics.width;
+                            x: parent.width/2 - steamIconLabelTextMetrics.width/2 + steamIcon.width/2;
+                            size: signUpButton.fontSize;
+                            font.capitalization: Font.AllUppercase;
+                            verticalAlignment: Text.AlignVCenter;
+                            horizontalAlignment: Text.AlignHCenter;
+                            color: enabled ? hifi.buttons.textColor[control.color]
+                                            : hifi.buttons.disabledTextColor[control.colorScheme]
+                        }
                     }
                 }
             }
@@ -468,7 +550,7 @@ Item {
                 font.pixelSize: 24
                 font.bold: true
                 lineHeightMode: Text.ProportionalHeight
-                // horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: Text.AlignHCenter
             }
             MouseArea {
                 id: dismissMouseArea
