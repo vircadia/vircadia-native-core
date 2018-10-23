@@ -533,7 +533,6 @@ void MyAvatar::update(float deltaTime) {
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     setHipToHandController(computeHandAzimuth());
-    qCDebug(interfaceapp) << " the sit state is " << _isInSittingState.get() << " the lock is " << _lockSitStandState.get();
 
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
@@ -3646,12 +3645,9 @@ glm::vec3 MyAvatar::computeCounterBalance() {
     glm::vec3 counterBalancedCg = (1.0f / DEFAULT_AVATAR_HIPS_MASS) * counterBalancedForHead;
 
     // find the height of the hips
-    const float UPPER_LEG_FRACTION = 0.3333f;
     glm::vec3 xzDiff((cgHeadMass.position.x - counterBalancedCg.x), 0.0f, (cgHeadMass.position.z - counterBalancedCg.z));
     float headMinusHipXz = glm::length(xzDiff);
     float headHipDefault = glm::length(tposeHead - tposeHips);
-    float hipFootDefault = tposeHips.y - tposeRightFoot.y;
-    float sitSquatThreshold = tposeHips.y - (UPPER_LEG_FRACTION * hipFootDefault);
     float hipHeight = 0.0f;
     if (headHipDefault > headMinusHipXz) {
         hipHeight = sqrtf((headHipDefault * headHipDefault) - (headMinusHipXz * headMinusHipXz));
@@ -3954,28 +3950,29 @@ void MyAvatar::setUserRecenterModel(MyAvatar::SitStandModelType modelName) {
     _userRecenterModel.set(modelName);
 
     switch (modelName) {
-    case SitStandModelType::ForceSit:
-        setHMDLeanRecenterEnabled(true);
-        setIsInSittingState(true);
-        setIsSitStandStateLocked(true);
-        break;
-    case SitStandModelType::ForceStand:
-        setHMDLeanRecenterEnabled(true);
-        setIsInSittingState(false);
-        setIsSitStandStateLocked(true);
-        break;
-    case SitStandModelType::Auto:
-        setHMDLeanRecenterEnabled(true);
-        setIsInSittingState(false);
-        setIsSitStandStateLocked(false);
-        break;
-    case SitStandModelType::DisableHMDLean:
-        setHMDLeanRecenterEnabled(false);
-        setIsInSittingState(false);
-        setIsSitStandStateLocked(false);
-        break;
+        case MyAvatar::SitStandModelType::ForceSit:
+            setHMDLeanRecenterEnabled(true);
+            setIsInSittingState(true);
+            setIsSitStandStateLocked(true);
+            break;
+        case MyAvatar::SitStandModelType::ForceStand:
+            setHMDLeanRecenterEnabled(true);
+            setIsInSittingState(false);
+            setIsSitStandStateLocked(true);
+            break;
+        case MyAvatar::SitStandModelType::Auto:
+            setHMDLeanRecenterEnabled(true);
+            setIsInSittingState(false);
+            setIsSitStandStateLocked(false);
+            break;
+        case MyAvatar::SitStandModelType::DisableHMDLean:
+            setHMDLeanRecenterEnabled(false);
+            setIsInSittingState(false);
+            setIsSitStandStateLocked(false);
+            break;
+        default:
+            break;
     }
-    qCDebug(interfaceapp) << "recenter property changed " << modelName << " sit " << _isInSittingState.get() << " lock " << _lockSitStandState.get();
     emit userRecenterModelChanged((int)modelName);
 }
 
@@ -4231,7 +4228,6 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, co
     const float CYLINDER_TOP = 0.1f;
     const float CYLINDER_BOTTOM = -1.5f;
     const float SITTING_BOTTOM = -0.02f;
-    const int SQUATTY_COUNT_THRESHOLD = 1800;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
     bool returnValue = false;
