@@ -1124,17 +1124,18 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         if (_networkNode) {
             _networkPoseSet._relativePoses = _networkNode->evaluate(_networkVars, context, deltaTime, networkTriggersOut);
+            const float NETWORK_ANIMATION_BLEND_FRAMES = 6.0f;
             float alpha = 1.0f;
             std::shared_ptr<AnimClip> clip;
             if (_networkAnimState.clipNodeEnum == NetworkAnimState::PreTransit) {
                 clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("preTransitAnim"));
                 if (clip) {
-                    alpha = (clip->getFrame() - clip->getStartFrame()) / 6.0f;
+                    alpha = (clip->getFrame() - clip->getStartFrame()) / NETWORK_ANIMATION_BLEND_FRAMES;
                 }
             } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::PostTransit) {
                 clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("postTransitAnim"));
                 if (clip) {
-                    alpha = (clip->getEndFrame() - clip->getFrame()) / 6.0f;
+                    alpha = (clip->getEndFrame() - clip->getFrame()) / NETWORK_ANIMATION_BLEND_FRAMES;
                 }
             }
             if (_sendNetworkNode) {
