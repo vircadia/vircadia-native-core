@@ -151,7 +151,9 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak,
     _lastSoundByteArray.resize(0);
     _lastSoundByteArray.append(buf1, dwSize);
 
-    emit ttsSampleCreated(_lastSoundByteArray, newChunkSize, timerInterval);
+    // Commented out because this doesn't work completely :)
+    // Obviously, commenting this out isn't fit for production, but it's fine for a test PR
+    //emit ttsSampleCreated(_lastSoundByteArray, newChunkSize, timerInterval);
 
     if (alsoInject) {
         AudioInjectorOptions options;
