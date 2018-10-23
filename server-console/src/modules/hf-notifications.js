@@ -160,8 +160,7 @@ function HifiNotifications(config, menuNotificationCallback) {
         if ((optUrl.protocol === "hifi") || (optUrl.protocol === "hifiapp")) {
             StartInterface(options.url);
             _menuNotificationCallback(options.notificationType, false);
-        }
-        else {
+        } else {
             shell.openExternal(options.url);
         }
     });
