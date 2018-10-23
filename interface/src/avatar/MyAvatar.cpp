@@ -530,6 +530,7 @@ void MyAvatar::update(float deltaTime) {
     const float PERCENTAGE_WEIGHT_HEAD_VS_SHOULDERS_AZIMUTH = 0.0f; // 100 percent shoulders
     const float COSINE_THIRTY_DEGREES = 0.866f;
     const float SQUATTY_TIMEOUT = 30.0f; // 30 seconds
+    const float HEIGHT_FILTER_COEFFICIENT = 0.01f;
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     setHipToHandController(computeHandAzimuth());
@@ -559,7 +560,7 @@ void MyAvatar::update(float deltaTime) {
     controller::Pose newHeightReading = getControllerPoseInSensorFrame(controller::Action::HEAD);
     if (newHeightReading.isValid()) {
         int newHeightReadingInCentimeters = glm::floor(newHeightReading.getTranslation().y * CENTIMETERS_PER_METER);
-        _averageUserHeightSensorSpace = lerp(_averageUserHeightSensorSpace, newHeightReading.getTranslation().y, 0.01f);
+        _averageUserHeightSensorSpace = lerp(_averageUserHeightSensorSpace, newHeightReading.getTranslation().y, HEIGHT_FILTER_COEFFICIENT);
         _recentModeReadings.insert(newHeightReadingInCentimeters);
         setCurrentStandingHeight(computeStandingHeightMode(newHeightReading));
         setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
@@ -4232,21 +4233,22 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, co
 
     if (myAvatar.getSitStandStateChange()) {
         returnValue = true;
-    }
-    if (myAvatar.getIsInSittingState()) {
-        if (myAvatar.getIsSitStandStateLocked()) {
-            returnValue = (offset.y > CYLINDER_TOP);
-        }
-        if (offset.y < SITTING_BOTTOM) {
-            // we recenter more easily when in sitting state.
-            returnValue = true;
-        }
     } else {
-        // in the standing state
-        returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
-        // finally check for squats in standing
-        if (_squatDetected) {
-            returnValue = true;
+        if (myAvatar.getIsInSittingState()) {
+            if (myAvatar.getIsSitStandStateLocked()) {
+                returnValue = (offset.y > CYLINDER_TOP);
+            }
+            if (offset.y < SITTING_BOTTOM) {
+                // we recenter more easily when in sitting state.
+                returnValue = true;
+            }
+        } else {
+            // in the standing state
+            returnValue = (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
+            // finally check for squats in standing
+            if (_squatDetected) {
+                returnValue = true;
+            }
         }
     }
     return returnValue;
