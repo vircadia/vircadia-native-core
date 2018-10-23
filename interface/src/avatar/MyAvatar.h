@@ -21,7 +21,6 @@
 #include <AvatarConstants.h>
 #include <avatars-renderer/Avatar.h>
 #include <avatars-renderer/ScriptAvatar.h>
-#include <ClientTraitsHandler.h>
 #include <controllers/Pose.h>
 #include <controllers/Actions.h>
 #include <EntityItem.h>
