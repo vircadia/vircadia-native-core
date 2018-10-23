@@ -292,8 +292,8 @@ int InteractiveWindow::getPresentationMode() const {
     return _qmlWindow->property(PRESENTATION_MODE_PROPERTY).toInt();
 }
 
-#ifdef Q_OS_WIN
 void InteractiveWindow::parentNativeWindowToMainWindow() {
+#ifdef Q_OS_WIN
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "parentNativeWindowToMainWindow");
         return;
@@ -307,8 +307,8 @@ void InteractiveWindow::parentNativeWindowToMainWindow() {
     }
     const auto nativeWindow = qvariant_cast<QQuickWindow*>(nativeWindowProperty);
     SetWindowLongPtr((HWND)nativeWindow->winId(), GWLP_HWNDPARENT, (LONG)MainWindow::findMainWindow()->winId());
-}
 #endif
+}
 
 void InteractiveWindow::setPresentationMode(int presentationMode) {
     if (QThread::currentThread() != thread()) {

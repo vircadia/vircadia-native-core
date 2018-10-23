@@ -1254,7 +1254,7 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Redo",
-        shortcutKey: 'Ctrl+Shift+Z',
+        shortcutKey: 'Ctrl+Y',
         position: 1,
     });
 
@@ -1933,14 +1933,6 @@ function gridKey(value) {
         }
     }
 }
-var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
-mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.D]).when([Controller.Hardware.Keyboard.Control]).to(deselectKey);
-mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
-mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
-mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
-
 function recursiveAdd(newParentID, parentData) {
     if (parentData.children !== undefined) {
         var children = parentData.children;
@@ -2398,6 +2390,7 @@ var PropertiesTool = function (opts) {
     return that;
 };
 
+
 var PopupMenu = function () {
     var self = this;
 
@@ -2566,6 +2559,46 @@ var PopupMenu = function () {
 
     return this;
 };
+
+function whenPressed(fn) {
+    return function(value) {
+        if (value > 0) {
+            fn();
+        }
+    };
+}
+
+function whenReleased(fn) {
+    return function(value) {
+        if (value === 0) {
+            fn();
+        }
+    };
+}
+
+var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
+mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
+mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
+mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
+mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
+mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
+mapping.from([Controller.Hardware.Keyboard.X])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.cutSelectedEntities() }));
+mapping.from([Controller.Hardware.Keyboard.C])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.copySelectedEntities() }));
+mapping.from([Controller.Hardware.Keyboard.V])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.pasteEntities() }));
+mapping.from([Controller.Hardware.Keyboard.D])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.duplicateSelection() }));
+
+// Bind undo to ctrl-shift-z to maintain backwards-compatibility
+mapping.from([Controller.Hardware.Keyboard.Z])
+    .when([Controller.Hardware.Keyboard.Control, Controller.Hardware.Keyboard.Shift])
+    .to(whenPressed(function() { undoHistory.redo() }));
 
 
 var propertyMenu = new PopupMenu();
