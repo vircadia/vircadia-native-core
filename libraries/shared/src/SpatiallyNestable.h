@@ -19,7 +19,6 @@
 #include "SpatialParentFinder.h"
 #include "shared/ReadWriteLockable.h"
 
-
 class SpatiallyNestable;
 using SpatiallyNestableWeakPointer = std::weak_ptr<SpatiallyNestable>;
 using SpatiallyNestableWeakConstPointer = std::weak_ptr<const SpatiallyNestable>;

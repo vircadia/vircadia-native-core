@@ -5,14 +5,20 @@
         "Oops! Protocol version mismatch.",
         "Oops! Not authorized to join domain.",
         "Oops! Connection timed out.",
+        "Oops! The domain is full.",
         "Oops! Something went wrong."
     ];
 
     var PROTOCOL_VERSION_MISMATCH = 1;
     var NOT_AUTHORIZED = 3;
+    var DOMAIN_FULL = 4;
     var TIMEOUT = 5;
-    var hardRefusalErrors = [PROTOCOL_VERSION_MISMATCH,
-        NOT_AUTHORIZED, TIMEOUT];
+    var hardRefusalErrors = [
+        PROTOCOL_VERSION_MISMATCH,
+        NOT_AUTHORIZED,
+        TIMEOUT,
+        DOMAIN_FULL
+    ];
     var timer = null;
     var isErrorState = false;
 
@@ -26,7 +32,7 @@
             return ERROR_MESSAGE_MAP[errorMessageMapIndex];
         } else {
             // some other text.
-            return ERROR_MESSAGE_MAP[4];
+            return ERROR_MESSAGE_MAP[ERROR_MESSAGE_MAP.length - 1];
         }
     };
 

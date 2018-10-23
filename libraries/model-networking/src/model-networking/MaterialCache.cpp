@@ -113,11 +113,11 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * @typedef {object} Material
  * @property {string} name="" - A name for the material.
  * @property {string} model="hifi_pbr" - <em>Currently not used.</em>
- * @property {Vec3Color|RGBS} emissive - The emissive color, i.e., the color that the material emits. A {@link Vec3Color} value 
+ * @property {Color|RGBS} emissive - The emissive color, i.e., the color that the material emits. A {@link Color} value
  *     is treated as sRGB. A {@link RGBS} value can be either RGB or sRGB.
  * @property {number} opacity=1.0 - The opacity, <code>0.0</code> &ndash; <code>1.0</code>.
  * @property {boolean} unlit=false - If <code>true</code>, the material is not lit.
- * @property {Vec3Color|RGBS} albedo - The albedo color. A {@link Vec3Color} value is treated as sRGB. A {@link RGBS} value can 
+ * @property {Color|RGBS} albedo - The albedo color. A {@link Color} value is treated as sRGB. A {@link RGBS} value can
  *     be either RGB or sRGB.
  * @property {number} roughness - The roughness, <code>0.0</code> &ndash; <code>1.0</code>.
  * @property {number} metallic - The metallicness, <code>0.0</code> &ndash; <code>1.0</code>.

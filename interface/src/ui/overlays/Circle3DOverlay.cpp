@@ -75,7 +75,6 @@ void Circle3DOverlay::render(RenderArgs* args) {
     const float FULL_CIRCLE = 360.0f;
     const float SLICES = 180.0f;  // The amount of segment to create the circle
     const float SLICE_ANGLE_RADIANS = glm::radians(FULL_CIRCLE / SLICES);
-    const float MAX_COLOR = 255.0f;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
@@ -246,20 +245,15 @@ void Circle3DOverlay::render(RenderArgs* args) {
                     angle += tickMarkAngle;
                 }
             }
-            
-            xColor majorColorX = getMajorTickMarksColor();
-            glm::vec4 majorColor(majorColorX.red / MAX_COLOR, majorColorX.green / MAX_COLOR, majorColorX.blue / MAX_COLOR, alpha);
-            
+
+            glm::vec4 majorColor(toGlm(getMajorTickMarksColor()), alpha);
             geometryCache->updateVertices(_majorTicksVerticesID, majorPoints, majorColor);
-            
-            xColor minorColorX = getMinorTickMarksColor();
-            glm::vec4 minorColor(minorColorX.red / MAX_COLOR, minorColorX.green / MAX_COLOR, minorColorX.blue / MAX_COLOR, alpha);
-            
+            glm::vec4 minorColor(toGlm(getMinorTickMarksColor()), alpha);
             geometryCache->updateVertices(_minorTicksVerticesID, minorPoints, minorColor);
         }
-        
+
         geometryCache->renderVertices(batch, gpu::LINES, _majorTicksVerticesID);
-        
+
         geometryCache->renderVertices(batch, gpu::LINES, _minorTicksVerticesID);
     }
 }
@@ -280,8 +274,8 @@ template<typename T> T fromVariant(const QVariant& v, bool& valid) {
     return qvariant_cast<T>(v);
 }
 
-template<> xColor fromVariant(const QVariant& v, bool& valid) {
-    return xColorFromVariant(v, valid);
+template<> glm::u8vec3 fromVariant(const QVariant& v, bool& valid) {
+    return u8vec3FromVariant(v, valid);
 }
 
 template<typename T>
@@ -344,11 +338,11 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
     _dirty |= updateIfValid(properties, "outerStartAlpha", _outerStartAlpha);
     _dirty |= updateIfValid(properties, "outerEndAlpha", _outerEndAlpha);
 
-    _dirty |= updateIfValid<xColor>(properties, "color", { _innerStartColor, _innerEndColor, _outerStartColor, _outerEndColor });
-    _dirty |= updateIfValid<xColor>(properties, "startColor", { _innerStartColor, _outerStartColor } );
-    _dirty |= updateIfValid<xColor>(properties, "endColor", { _innerEndColor, _outerEndColor } );
-    _dirty |= updateIfValid<xColor>(properties, "innerColor", { _innerStartColor, _innerEndColor } );
-    _dirty |= updateIfValid<xColor>(properties, "outerColor", { _outerStartColor, _outerEndColor } );
+    _dirty |= updateIfValid<glm::u8vec3>(properties, "color", { _innerStartColor, _innerEndColor, _outerStartColor, _outerEndColor });
+    _dirty |= updateIfValid<glm::u8vec3>(properties, "startColor", { _innerStartColor, _outerStartColor } );
+    _dirty |= updateIfValid<glm::u8vec3>(properties, "endColor", { _innerEndColor, _outerEndColor } );
+    _dirty |= updateIfValid<glm::u8vec3>(properties, "innerColor", { _innerStartColor, _innerEndColor } );
+    _dirty |= updateIfValid<glm::u8vec3>(properties, "outerColor", { _outerStartColor, _outerEndColor } );
     _dirty |= updateIfValid(properties, "innerStartColor", _innerStartColor);
     _dirty |= updateIfValid(properties, "innerEndColor", _innerEndColor);
     _dirty |= updateIfValid(properties, "outerStartColor", _outerStartColor);
@@ -421,7 +415,7 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {number} endAt=360 - The counter-clockwise angle from the overlay's x-axis that drawing ends at, in degrees.
  * @property {number} outerRadius=1 - The outer radius of the overlay, in meters. Synonym: <code>radius</code>.
  * @property {number} innerRadius=0 - The inner radius of the overlay, in meters.
-  * @property {Color} color=255,255,255 - The color of the overlay. Setting this value also sets the values of 
+  * @property {Color} color=255,255,255 - The color of the overlay. Setting this value also sets the values of
  *     <code>innerStartColor</code>, <code>innerEndColor</code>, <code>outerStartColor</code>, and <code>outerEndColor</code>.
  * @property {Color} startColor - Sets the values of <code>innerStartColor</code> and <code>outerStartColor</code>.
  *     <em>Write-only.</em>
@@ -478,16 +472,16 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
         return _innerRadius;
     }
     if (property == "innerStartColor") {
-        return xColorToVariant(_innerStartColor);
+        return u8vec3ColortoVariant(_innerStartColor);
     }
     if (property == "innerEndColor") {
-        return xColorToVariant(_innerEndColor);
+        return u8vec3ColortoVariant(_innerEndColor);
     }
     if (property == "outerStartColor") {
-        return xColorToVariant(_outerStartColor);
+        return u8vec3ColortoVariant(_outerStartColor);
     }
     if (property == "outerEndColor") {
-        return xColorToVariant(_outerEndColor);
+        return u8vec3ColortoVariant(_outerEndColor);
     }
     if (property == "innerStartAlpha") {
         return _innerStartAlpha;
@@ -517,10 +511,10 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
         return _minorTickMarksLength;
     }
     if (property == "majorTickMarksColor") {
-        return xColorToVariant(_majorTickMarksColor);
+        return u8vec3ColortoVariant(_majorTickMarksColor);
     }
     if (property == "minorTickMarksColor") {
-        return xColorToVariant(_minorTickMarksColor);
+        return u8vec3ColortoVariant(_minorTickMarksColor);
     }
 
     return Planar3DOverlay::getProperty(property);

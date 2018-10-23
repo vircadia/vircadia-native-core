@@ -29,7 +29,8 @@ namespace PrioritySortUtil {
 
     class Sortable {
     public:
-        virtual ~Sortable() {}
+        virtual ~Sortable() = default;
+
         virtual glm::vec3 getPosition() const = 0;
         virtual float getRadius() const = 0;
         virtual uint64_t getTimestamp() const = 0;

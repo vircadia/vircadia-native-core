@@ -16,7 +16,7 @@
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
-layout(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D depthMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D depthMap;
 
 layout(location=0) out vec4 outFragColor;
 

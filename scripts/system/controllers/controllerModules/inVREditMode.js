@@ -19,12 +19,13 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     function InVREditMode(hand) {
         this.hand = hand;
         this.disableModules = false;
-        var NO_HAND_LASER = -1; // Invalid hand parameter so that default laser is not displayed.
+        this.running = false;
+        var NO_HAND_LASER = -1; // Invalid hand parameter so that standard laser is not displayed.
         this.parameters = makeDispatcherModuleParameters(
-            200, // Not too high otherwise the tablet laser doesn't work.
-            this.hand === RIGHT_HAND ?
-                ["rightHand", "rightHandEquip", "rightHandTrigger"] :
-                ["leftHand", "leftHandEquip", "leftHandTrigger"],
+            166, // Slightly lower priority than inEditMode.
+            this.hand === RIGHT_HAND
+                ? ["rightHand", "rightHandEquip", "rightHandTrigger"]
+                : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
             100,
             makeLaserParams(NO_HAND_LASER, false)
@@ -33,6 +34,35 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.pointingAtTablet = function (objectID) {
             return (HMD.tabletScreenID && objectID === HMD.tabletScreenID) ||
                 (HMD.homeButtonID && objectID === HMD.homeButtonID);
+        };
+
+        // The Shapes app has a non-standard laser: in particular, the laser end dot displays on its own when the laser is 
+        // pointing at the Shapes UI. The laser on/off is controlled by this module but the laser is implemented in the Shapes 
+        // app.
+        // If, in the future, the Shapes app laser interaction is adopted as a standard UI style then the laser could be 
+        // implemented in the controller modules along side the other laser styles.
+        var INVREDIT_MODULE_RUNNING = "Hifi-InVREdit-Module-Running";
+
+        this.runModule = function () {
+            if (!this.running) {
+                Messages.sendLocalMessage(INVREDIT_MODULE_RUNNING, JSON.stringify({
+                    hand: this.hand,
+                    running: true
+                }));
+                this.running = true;
+            }
+            return makeRunningValues(true, [], []);
+        };
+
+        this.exitModule = function () {
+            if (this.running) {
+                Messages.sendLocalMessage(INVREDIT_MODULE_RUNNING, JSON.stringify({
+                    hand: this.hand,
+                    running: false
+                }));
+                this.running = false;
+            }
+            return makeRunningValues(false, [], []);
         };
 
         this.isReady = function (controllerData) {
@@ -45,7 +75,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.run = function (controllerData) {
             // Default behavior if disabling is not enabled.
             if (!this.disableModules) {
-                return makeRunningValues(false, [], []);
+                return this.exitModule();
             }
 
             // Tablet stylus.
@@ -55,7 +85,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             if (tabletStylusInput) {
                 var tabletReady = tabletStylusInput.isReady(controllerData);
                 if (tabletReady.active) {
-                    return makeRunningValues(false, [], []);
+                    return this.exitModule();
                 }
             }
 
@@ -67,18 +97,30 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 var overlayLaserReady = overlayLaser.isReady(controllerData);
                 var target = controllerData.rayPicks[this.hand].objectID;
                 if (overlayLaserReady.active && this.pointingAtTablet(target)) {
-                    return makeRunningValues(false, [], []);
+                    return this.exitModule();
                 }
             }
 
-            // Tablet grabbing.
-            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND ?
-                                                     "RightNearParentingGrabOverlay" :
-                                                     "LeftNearParentingGrabOverlay");
-            if (nearOverlay) {
-                var nearOverlayReady = nearOverlay.isReady(controllerData);
-                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
-                    return makeRunningValues(false, [], []);
+            // Tablet highlight and grabbing.
+            var tabletHighlight = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            if (tabletHighlight) {
+                var tabletHighlightReady = tabletHighlight.isReady(controllerData);
+                if (tabletHighlightReady.active) {
+                    return this.exitModule();
+                }
+            }
+
+            // HUD overlay.
+            if (!controllerData.triggerClicks[this.hand]) {
+                var hudLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                    ? "RightHudOverlayPointer"
+                    : "LeftHudOverlayPointer");
+                if (hudLaser) {
+                    var hudLaserReady = hudLaser.isReady(controllerData);
+                    if (hudLaserReady.active) {
+                        return this.exitModule();
+                    }
                 }
             }
 
@@ -89,12 +131,12 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             if (teleporter) {
                 var teleporterReady = teleporter.isReady(controllerData);
                 if (teleporterReady.active) {
-                    return makeRunningValues(false, [], []);
+                    return this.exitModule();
                 }
             }
 
             // Other behaviors are disabled.
-            return makeRunningValues(true, [], []);
+            return this.runModule();
         };
     }
 

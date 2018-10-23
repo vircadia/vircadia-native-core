@@ -243,7 +243,9 @@ enum class EntityVersion : PacketVersion {
     ParticleEntityFix,
     ParticleSpin,
     BloomEffect,
-    GrabProperties
+    GrabProperties,
+    ScriptGlmVectors,
+    FixedLightSerialization
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

@@ -80,43 +80,6 @@ const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[BYTES_PER_COLOR + BYTES_PER_FLAGS];
-typedef unsigned char rgbColor[BYTES_PER_COLOR];
-
-inline QDebug& operator<<(QDebug& dbg, const rgbColor& c) {
-    dbg.nospace() << "{type='rgbColor'"
-        ", red=" << c[0] <<
-        ", green=" << c[1] <<
-        ", blue=" << c[2] <<
-        "}";
-    return dbg;
-}
-
-struct xColor {
-    xColor() {}
-    xColor(unsigned char r, unsigned char g, unsigned char b) : red(r), green(g), blue(b) {}
-    unsigned char red;
-    unsigned char green;
-    unsigned char blue;
-};
-
-inline QDebug& operator<<(QDebug& dbg, const xColor& c) {
-    dbg.nospace() << "{type='xColor'"
-        ", red=" << c.red <<
-        ", green=" << c.green <<
-        ", blue=" << c.blue <<
-        "}";
-    return dbg;
-}
-
-inline bool operator==(const xColor& lhs, const xColor& rhs)
-{
-    return (lhs.red == rhs.red) && (lhs.green == rhs.green) && (lhs.blue == rhs.blue);
-}
-
-inline bool operator!=(const xColor& lhs, const xColor& rhs)
-{
-    return (lhs.red != rhs.red) || (lhs.green != rhs.green) || (lhs.blue != rhs.blue);
-}
 
 // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
 const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)";

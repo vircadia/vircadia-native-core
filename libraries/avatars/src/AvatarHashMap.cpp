@@ -259,7 +259,6 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
 
         if (isNewAvatar) {
             QWriteLocker locker(&_hashLock);
-            _pendingAvatars.insert(sessionUUID, { std::chrono::steady_clock::now(), 0, avatar });
             avatar->setIsNewAvatar(true);
             auto replicaIDs = _replicas.getReplicaIDs(sessionUUID);
             for (auto replicaID : replicaIDs) {
@@ -306,7 +305,6 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 
         {
             QReadLocker locker(&_hashLock);
-            _pendingAvatars.remove(identityUUID);
             auto me = _avatarHash.find(EMPTY);
             if ((me != _avatarHash.end()) && (identityUUID == me.value()->getSessionUUID())) {
                 // We add MyAvatar to _avatarHash with an empty UUID. Code relies on this. In order to correctly handle an
@@ -325,7 +323,6 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
             // In this case, the "sendingNode" is the Avatar Mixer.
             avatar->processAvatarIdentity(avatarIdentityStream, identityChanged, displayNameChanged);
             _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
-
         }
     }
 }
@@ -427,7 +424,6 @@ void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
             }
         }
 
-        _pendingAvatars.remove(sessionUUID);
         auto removedAvatar = _avatarHash.take(sessionUUID);
 
         if (removedAvatar) {
