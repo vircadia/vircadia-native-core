@@ -109,7 +109,8 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
             #ifdef THREAD_DEBUGGING
             qCDebug(scriptengine) << "about to call: ResourceManager::createResourceRequest(this, url); on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
             #endif
-            auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
+            auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+                nullptr, url, true, -1, "ScriptCache::getScriptContents");
             Q_ASSERT(request);
             request->setCacheEnabled(!forceDownload);
             connect(request, &ResourceRequest::finished, this, [=]{ scriptContentAvailable(maxRetries); });
@@ -166,7 +167,8 @@ void ScriptCache::scriptContentAvailable(int maxRetries) {
                         qCDebug(scriptengine) << QString("Retrying script request [%1 / %2]: %3")
                             .arg(attempt).arg(maxRetries).arg(url.toString());
 
-                        auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
+                        auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+                            nullptr, url, true, -1, "ScriptCache::scriptContentAvailable");
                         Q_ASSERT(request);
 
                         // We've already made a request, so the cache must be disabled or it wasn't there, so enabling

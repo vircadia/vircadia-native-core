@@ -11,7 +11,7 @@
 import QtQuick 2.5
 
 import "../../dialogs"
-import controlsUit 1.0
+import "../../controls-uit"
 
 Preference {
     id: root

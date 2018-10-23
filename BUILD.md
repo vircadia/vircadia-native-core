@@ -9,6 +9,7 @@
 
 - [cmake](https://cmake.org/download/):  3.9
 - [Qt](https://www.qt.io/download-open-source):   5.10.1
+- [Python](https://www.python.org/downloads/): 3.6 or higher
 - [OpenSSL](https://www.openssl.org/): Use the latest available 1.0 version (**NOT** 1.1) of OpenSSL to avoid security vulnerabilities.
 - [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
 

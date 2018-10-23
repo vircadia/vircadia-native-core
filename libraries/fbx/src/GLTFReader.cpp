@@ -953,7 +953,8 @@ bool GLTFReader::doesResourceExist(const QString& url) {
 }
 
 std::tuple<bool, QByteArray> GLTFReader::requestData(QUrl& url) {
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        nullptr, url, true, -1, "GLTFReader::requestData");
 
     if (!request) {
         return std::make_tuple(false, QByteArray());

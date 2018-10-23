@@ -12,8 +12,8 @@ import QtQuick 2.5
 
 import "."
 import "./preferences"
-import stylesUit 1.0
-import controlsUit 1.0 as HifiControls
+import "../../../styles-uit"
+import "../../../controls-uit" as HifiControls
 
 Item {
     id: dialog

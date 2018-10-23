@@ -20,15 +20,15 @@ layout(location=RENDER_UTILS_ATTR_NORMAL_MS) in vec3 _normal;
 layout(location=RENDER_UTILS_ATTR_POSITION_MS) in vec4 _position;
 layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _worldPosition;
 
-layout(binding=ENTITIES_TEXTURE_POLYVOX_XMAP) uniform sampler2D xMap;
-layout(binding=ENTITIES_TEXTURE_POLYVOX_YMAP) uniform sampler2D yMap;
-layout(binding=ENTITIES_TEXTURE_POLYVOX_ZMAP) uniform sampler2D zMap;
+LAYOUT(binding=ENTITIES_TEXTURE_POLYVOX_XMAP) uniform sampler2D xMap;
+LAYOUT(binding=ENTITIES_TEXTURE_POLYVOX_YMAP) uniform sampler2D yMap;
+LAYOUT(binding=ENTITIES_TEXTURE_POLYVOX_ZMAP) uniform sampler2D zMap;
 
 struct PolyvoxParams {
     vec4 voxelVolumeSize;
 };
 
-layout(binding=0) uniform polyvoxParamsBuffer {
+LAYOUT(binding=0) uniform polyvoxParamsBuffer {
     PolyvoxParams params;
 };
 

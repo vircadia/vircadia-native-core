@@ -11,8 +11,8 @@
 import Hifi 1.0
 import QtQuick 2.4
 
-import controlsUit 1.0
-import stylesUit 1.0
+import "../controls-uit"
+import "../styles-uit"
 
 Item {
     id: welcomeBody
