@@ -157,7 +157,7 @@ function HifiNotifications(config, menuNotificationCallback) {
     var _menuNotificationCallback = menuNotificationCallback;
     notifier.on('click', function (notifierObject, options) {
         const optUrl = url.parse(options.url);
-        if ((optUrl.protocol === "hifi") || (optUrl.protocol === "hifiapp")) {
+        if ((optUrl.protocol === "hifi:") || (optUrl.protocol === "hifiapp:")) {
             StartInterface(options.url);
             _menuNotificationCallback(options.notificationType, false);
         } else {
