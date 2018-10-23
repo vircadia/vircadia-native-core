@@ -299,7 +299,6 @@ function checkEditPermissionsAndUpdate() {
 
 const DEFAULT_ENTITY_PROPERTIES = {
     All: {
-        collisionless: true,
         description: "",
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         collidesWith: "static,dynamic,kinematic,otherAvatar",
@@ -344,12 +343,22 @@ const DEFAULT_ENTITY_PROPERTIES = {
     },
     Text: {
         text: "Text",
+        dimensions: {
+            x: 0.65,
+            y: 0.3,
+            z: 0.01
+        },
         textColor: { red: 255, green: 255, blue: 255 },
         backgroundColor: { red: 0, green: 0, blue: 0 },
         lineHeight: 0.06,
         faceCamera: false,
     },
     Zone: {
+        dimensions: {
+            x: 10,
+            y: 10,
+            z: 10
+        },
         flyingAllowed: true,
         ghostingAllowed: true,
         filter: "",
@@ -359,7 +368,8 @@ const DEFAULT_ENTITY_PROPERTIES = {
             intensity: 1.0,
             direction: {
                 x: 0.0,
-                y: Math.PI / 4,
+                y: -0.707106769084930, // 45 degrees
+                z: 0.7071067690849304
             },
             castShadows: true
         },
@@ -376,7 +386,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
             hazeColor: {
                 red: 128,
                 green: 154,
-                blue: 129
+                blue: 179
             },
             hazeBackgroundBlend: 0,
             hazeEnableGlare: false,
@@ -389,7 +399,6 @@ const DEFAULT_ENTITY_PROPERTIES = {
         bloomMode: "inherit"
     },
     Model: {
-        modelURL: "",
         collisionShape: "none",
         compoundShapeURL: "",
         animation: {
@@ -413,9 +422,14 @@ const DEFAULT_ENTITY_PROPERTIES = {
         shapeType: "box",
         collisionless: true,
         modelURL: IMAGE_MODEL,
-        textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE })
+        textures: JSON.stringify({ "tex.picture": "" })
     },
     Web: {
+        dimensions: {
+            x: 1.6,
+            y: 0.9,
+            z: 0.01
+        },
         sourceUrl: "https://highfidelity.com/",
         dpi: 30,
     },
@@ -462,14 +476,15 @@ const DEFAULT_ENTITY_PROPERTIES = {
         spinFinish: 0,
         spinSpread: 0,
         rotateWithEntity: false,
-        azimuthStart: 0,
-        azimuthFinish: 0,
-        polarStart: -Math.PI,
-        polarFinish: Math.PI
+        polarStart: 0,
+        polarFinish: 0,
+        azimuthStart: -Math.PI,
+        azimuthFinish: Math.PI
     },
     Light: {
         color: { red: 255, green: 255, blue: 255 },
         intensity: 5.0,
+        dimensions: DEFAULT_LIGHT_DIMENSIONS,
         falloffRadius: 1.0,
         isSpotlight: false,
         exponent: 1.0,
@@ -874,14 +889,12 @@ var toolBar = (function () {
         addButton("newLightButton", function () {
             createNewEntity({
                 type: "Light",
-                dimensions: DEFAULT_LIGHT_DIMENSIONS,
                 isSpotlight: false,
                 color: {
                     red: 150,
                     green: 150,
                     blue: 150
                 },
-
                 constantAttenuation: 1,
                 linearAttenuation: 0,
                 quadraticAttenuation: 0,
@@ -893,23 +906,6 @@ var toolBar = (function () {
         addButton("newTextButton", function () {
             createNewEntity({
                 type: "Text",
-                dimensions: {
-                    x: 0.65,
-                    y: 0.3,
-                    z: 0.01
-                },
-                backgroundColor: {
-                    red: 64,
-                    green: 64,
-                    blue: 64
-                },
-                textColor: {
-                    red: 255,
-                    green: 255,
-                    blue: 255
-                },
-                text: "some text",
-                lineHeight: 0.06
             });
         });
 
@@ -922,76 +918,18 @@ var toolBar = (function () {
         addButton("newWebButton", function () {
             createNewEntity({
                 type: "Web",
-                dimensions: {
-                    x: 1.6,
-                    y: 0.9,
-                    z: 0.01
-                },
-                sourceUrl: "https://highfidelity.com/"
             });
         });
 
         addButton("newZoneButton", function () {
             createNewEntity({
                 type: "Zone",
-                dimensions: {
-                    x: 10,
-                    y: 10,
-                    z: 10
-                }
             });
         });
 
         addButton("newParticleButton", function () {
             createNewEntity({
                 type: "ParticleEffect",
-                isEmitting: true,
-                emitterShouldTrail: true,
-                color: {
-                    red: 200,
-                    green: 200,
-                    blue: 200
-                },
-                colorSpread: {
-                    red: 0,
-                    green: 0,
-                    blue: 0
-                },
-                colorStart: {
-                    red: 200,
-                    green: 200,
-                    blue: 200
-                },
-                colorFinish: {
-                    red: 0,
-                    green: 0,
-                    blue: 0
-                },
-                emitAcceleration: {
-                    x: -0.5,
-                    y: 2.5,
-                    z: -0.5
-                },
-                accelerationSpread: {
-                    x: 0.5,
-                    y: 1,
-                    z: 0.5
-                },
-                emitRate: 5.5,
-                emitSpeed: 0,
-                speedSpread: 0,
-                lifespan: 1.5,
-                maxParticles: 10,
-                particleRadius: 0.25,
-                radiusStart: 0,
-                radiusFinish: 0.1,
-                radiusSpread: 0,
-                alpha: 0,
-                alphaStart: 1,
-                alphaFinish: 0,
-                polarStart: 0,
-                polarFinish: 0,
-                textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png"
             });
         });
 
