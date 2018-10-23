@@ -2,9 +2,9 @@ import QtQuick 2.5
 import QtWebChannel 1.0
 import QtWebEngine 1.5
 
-import controlsUit 1.0
+import "controls-uit"
 import "styles" as HifiStyles
-import stylesUit 1.0
+import "styles-uit"
 import "windows"
 
 ScrollingWindow {

@@ -12,13 +12,13 @@
 <@include render-utils/ShaderConstants.h@>
 
 // FIXME use declareSkyboxMap from LightAmbient.slh?
-layout(binding=RENDER_UTILS_TEXTURE_SKYBOX) uniform samplerCube skyboxMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SKYBOX) uniform samplerCube skyboxMap;
 
 struct Skybox {
     vec4 color;
 };
 
-layout(binding=RENDER_UTILS_BUFFER_DEBUG_SKYBOX) uniform skyboxBuffer {
+LAYOUT(binding=RENDER_UTILS_BUFFER_DEBUG_SKYBOX) uniform skyboxBuffer {
     Skybox skybox;
 };
 

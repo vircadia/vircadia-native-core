@@ -11,7 +11,7 @@
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
 
-import stylesUit 1.0
+import "../styles-uit"
 import "../js/Utils.js" as Utils
 
 Item {

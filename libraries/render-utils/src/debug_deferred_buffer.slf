@@ -16,8 +16,8 @@
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-layout(binding=RENDER_UTILS_DEBUG_TEXTURE0) uniform sampler2D debugTexture0;
-layout(binding=RENDER_UTILS_TEXTURE_SHADOW) uniform sampler2DArrayShadow shadowMaps;
+LAYOUT(binding=RENDER_UTILS_DEBUG_TEXTURE0) uniform sampler2D debugTexture0;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SHADOW) uniform sampler2DArrayShadow shadowMaps;
 
 <@include ShadowCore.slh@>
 
@@ -36,7 +36,13 @@ float curvatureAO(float k) {
 layout(location=0) in vec2 uv;
 layout(location=0) out vec4 outFragColor;
 
-//SOURCE_PLACEHOLDER
+//SOURCE_PLACEHOLDER_BEGIN
+vec4 getFragmentColor() {
+    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);
+    return vec4(pow(frag.albedo, vec3(1.0 / 2.2)), 1.0);
+}
+//SOURCE_PLACEHOLDER_END
+
 
 void main(void) {
     outFragColor = getFragmentColor();

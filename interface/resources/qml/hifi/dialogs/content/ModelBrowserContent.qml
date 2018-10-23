@@ -1,7 +1,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.3
 
-import controlsUit 1.0 as HifiControls
+import "../../../controls-uit" as HifiControls
 
 Column {
     width: pane.contentWidth

@@ -19,12 +19,12 @@
 <@include FadeObjectParams.shared.slh@>
 
 // See ShapePipeline::Slot::BUFFER in ShapePipeline.h
-layout(std140, binding=RENDER_UTILS_BUFFER_FADE_PARAMS) uniform fadeParametersBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_FADE_PARAMS) uniform fadeParametersBuffer {
     FadeParameters fadeParameters[CATEGORY_COUNT];
 };
 
 // See ShapePipeline::Slot::MAP in ShapePipeline.h
-layout(binding=RENDER_UTILS_TEXTURE_FADE_MASK) uniform sampler2D fadeMaskMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_FADE_MASK) uniform sampler2D fadeMaskMap;
 
 vec3 getNoiseInverseSize(int category) {
     return fadeParameters[category]._noiseInvSizeAndLevel.xyz;
@@ -117,7 +117,7 @@ void applyFade(FadeObjectParams params, vec3 position, out vec3 emissive) {
 
 <@func declareFadeFragmentUniform()@>
 
-layout(std140, binding=RENDER_UTILS_BUFFER_FADE_OBJECT_PARAMS) uniform fadeObjectParametersBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_FADE_OBJECT_PARAMS) uniform fadeObjectParametersBuffer {
     FadeObjectParams fadeObjectParams;
 };
 

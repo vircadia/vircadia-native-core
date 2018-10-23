@@ -1,5 +1,5 @@
 import QtQuick 2.7
-import controlsUit 1.0 as HiFiControls
+import "../controls-uit" as HiFiControls
 
 Item {
     width: parent !== null ? parent.width : undefined
