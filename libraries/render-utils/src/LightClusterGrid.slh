@@ -24,7 +24,7 @@ struct FrustumGrid {
     mat4 eyeToWorldMat;
 };
 
-layout(std140, binding=RENDER_UTILS_BUFFER_LIGHT_CLUSTER_FRUSTUM_GRID) uniform frustumGridBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_LIGHT_CLUSTER_FRUSTUM_GRID) uniform frustumGridBuffer {
     FrustumGrid frustumGrid;
 };
 
@@ -60,11 +60,11 @@ float projection_getFar(mat4 projection) {
 #define GRID_FETCH_BUFFER(i) i!>
 <@endif@>
 
-layout(std140, binding=RENDER_UTILS_BUFFER_LIGHT_CLUSTER_GRID) uniform clusterGridBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_LIGHT_CLUSTER_GRID) uniform clusterGridBuffer {
     GRID_INDEX_TYPE _clusterGridTable[GRID_NUM_ELEMENTS];
 };
 
-layout(std140, binding=RENDER_UTILS_BUFFER_LIGHT_CLUSTER_CONTENT) uniform clusterContentBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_LIGHT_CLUSTER_CONTENT) uniform clusterContentBuffer {
     GRID_INDEX_TYPE _clusterGridContent[GRID_NUM_ELEMENTS];
 };
 

@@ -10,7 +10,7 @@
 
 import Hifi 1.0
 import QtQuick 2.4
-import stylesUit 1.0
+import "../styles-uit"
 
 Rectangle {
     property alias text: label.text

@@ -13,13 +13,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-layout(binding=0) uniform sampler2D colorMap;
+LAYOUT(binding=0) uniform sampler2D colorMap;
 
 struct DrawColorParams {
     vec4 color;
 };
 
-layout(binding=0) uniform drawColorParams {
+LAYOUT(binding=0) uniform drawColorParams {
     DrawColorParams params;
 };
 

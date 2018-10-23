@@ -2,8 +2,8 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
-import stylesUit 1.0
-import controlsUit 1.0 as HifiControlsUit
+import "../../styles-uit"
+import "../../controls-uit" as HifiControlsUit
 import "../../controls" as HifiControls
 
 Rectangle {
@@ -31,7 +31,7 @@ Rectangle {
 
         scaleSlider.notify = false;
         scaleSlider.value = Math.round(avatarScale * 10);
-        scaleSlider.notify = true;;
+        scaleSlider.notify = true;
 
         if (settings.dominantHand === 'left') {
             leftHandRadioButton.checked = true;

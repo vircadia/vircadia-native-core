@@ -210,7 +210,7 @@ public:
 
     // Octree importers
     bool readFromFile(const char* filename);
-    bool readFromURL(const QString& url); // will support file urls as well...
+    bool readFromURL(const QString& url, const bool isObservable = true, const qint64 callerId = -1); // will support file urls as well...
     bool readFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="");
     bool readSVOFromStream(uint64_t streamLength, QDataStream& inputStream);
     bool readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="");

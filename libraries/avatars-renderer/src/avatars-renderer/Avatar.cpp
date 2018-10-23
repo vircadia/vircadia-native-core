@@ -1731,6 +1731,7 @@ void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
 
 glm::vec3 Avatar::getWorldFeetPosition() {
     ShapeInfo shapeInfo;
+
     computeShapeInfo(shapeInfo);
     glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
     glm::vec3 localFeet(0.0f, shapeInfo.getOffset().y - halfExtents.y - halfExtents.x, 0.0f);

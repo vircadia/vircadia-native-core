@@ -158,11 +158,12 @@ Script.include("/~/system/libraries/utils.js");
                 }
             }
 
-            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND
-                ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
-            if (nearOverlay) {
-                var nearOverlayReady = nearOverlay.isReady(controllerData);
-                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
+            // Tablet highlight and grabbing.
+            var tabletHighlight = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            if (tabletHighlight) {
+                var tabletHighlightReady = tabletHighlight.isReady(controllerData);
+                if (tabletHighlightReady.active) {
                     return this.exitModule();
                 }
             }

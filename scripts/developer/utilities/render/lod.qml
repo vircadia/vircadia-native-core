@@ -11,8 +11,8 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 
-import stylesUit 1.0
-import controlsUit 1.0 as HifiControls
+import "qrc:///qml/styles-uit"
+import "qrc:///qml/controls-uit" as HifiControls
 
 import "../lib/plotperf"
 import "configSlider"

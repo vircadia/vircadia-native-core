@@ -298,7 +298,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.restoreIgnoredEntities = function() {
-            for (var i = 0; i < this.ignoredEntities; i++) {
+            for (var i = 0; i < this.ignoredEntities.length; i++) {
                 var data = {
                     action: 'remove',
                     id: this.ignoredEntities[i]
@@ -317,15 +317,6 @@ Script.include("/~/system/libraries/controllers.js");
             if ((intersection.type === Picks.INTERSECTED_ENTITY && entityType === "Web") ||
                 intersection.type === Picks.INTERSECTED_OVERLAY || Window.isPointOnDesktopWindow(point2d)) {
                 return true;
-            } else if (intersection.type === Picks.INTERSECTED_ENTITY && !Window.isPhysicsEnabled()) {
-                // add to ignored items.
-                var data = {
-                    action: 'add',
-                    id: intersection.objectID
-                };
-                Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
-                this.ignoredEntities.push(intersection.objectID);
-
             }
             return false;
         };
@@ -386,7 +377,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.isReady = function (controllerData) {
             if (HMD.active) {
                 if (this.notPointingAtEntity(controllerData)) {
-                    this.restoreIgnoredEntities();
                     return makeRunningValues(false, [], []);
                 }
 
@@ -398,17 +388,28 @@ Script.include("/~/system/libraries/controllers.js");
                     return makeRunningValues(true, [], []);
                 } else {
                     this.destroyContextOverlay();
-                    this.restoreIgnoredEntities();
                     return makeRunningValues(false, [], []);
                 }
             }
-            this.restoreIgnoredEntities();
             return makeRunningValues(false, [], []);
         };
 
         this.run = function (controllerData) {
+
+            var intersection = controllerData.rayPicks[this.hand];
+            if (intersection.type === Picks.INTERSECTED_ENTITY && !Window.isPhysicsEnabled()) {
+                // add to ignored items.
+                if (this.ignoredEntities.indexOf(intersection.objectID) === -1) {
+                    var data = {
+                        action: 'add',
+                        id: intersection.objectID
+                    };
+                    Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data));
+                    this.ignoredEntities.push(intersection.objectID);
+                }
+            }
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
-                this.notPointingAtEntity(controllerData) || this.targetIsNull()) {
+                (this.notPointingAtEntity(controllerData) && Window.isPhysicsEnabled()) || this.targetIsNull()) {
                 this.endFarGrabAction();
                 Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                     this.highlightedEntity);
@@ -427,7 +428,8 @@ Script.include("/~/system/libraries/controllers.js");
                 this.hand === RIGHT_HAND ? "RightFarTriggerEntity" : "LeftFarTriggerEntity",
                 this.hand === RIGHT_HAND ? "RightNearActionGrabEntity" : "LeftNearActionGrabEntity",
                 this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity",
-                this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay"
+                this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay",
+                this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight"
             ];
 
             var nearGrabReadiness = [];

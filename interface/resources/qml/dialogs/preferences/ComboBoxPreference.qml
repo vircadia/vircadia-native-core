@@ -10,8 +10,8 @@
 
 import QtQuick 2.5
 
-import controlsUit 1.0 as HiFiControls
-import stylesUit 1.0
+import "../../controls-uit" as HiFiControls
+import "../../styles-uit"
 
 Preference {
     id: root
