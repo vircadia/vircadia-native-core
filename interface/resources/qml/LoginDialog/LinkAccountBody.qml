@@ -16,6 +16,8 @@ import QtQuick.Controls.Styles 1.4 as OriginalStyles
 import controlsUit 1.0 as HifiControlsUit
 import stylesUit 1.0 as HifiStylesUit
 
+import TabletScriptingInterface 1.0
+
 Item {
     id: linkAccountBody
     clip: true
@@ -71,7 +73,7 @@ Item {
     function toggleLoggingIn(loggedIn) {
         // For the process of logging in.
         if (linkAccountBody.withSteam) {
-
+            loginContainer.visible = false;
         }
         else {
 
@@ -85,11 +87,15 @@ Item {
             usernameField.visible = !isLogIn;
             cantAccessContainer.visible = isLogIn;
             if (isLogIn) {
+                loginButtonAtSignIn.text = "Log In";
+                loginButtonAtSignIn.color = hifi.buttons.black;
                 emailField.placeholderText = "Username or Email";
                 emailField.anchors.top = loginContainer.top;
                 emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.pane.height : 0.24 * root.pane.height;
                 cantAccessContainer.anchors.topMargin = !root.isTablet ? 3.5 * hifi.dimensions.contentSpacing.y : hifi.dimensions.contentSpacing.y;
             } else {
+                loginButtonAtSignIn.text = "Sign Up";
+                loginButtonAtSignIn.color = hifi.buttons.blue;
                 emailField.placeholderText = "Email";
                 emailField.anchors.top = usernameField.bottom;
                 emailField.anchors.topMargin = 1.5 * hifi.dimensions.contentSpacing.y;
@@ -124,7 +130,7 @@ Item {
             id: topOpaqueRect
             height: parent.height
             width: parent.width
-            opacity: 0.7
+            opacity: 0.9
             color: "black"
             visible: false
         }
@@ -156,7 +162,8 @@ Item {
 
             HifiControlsUit.TextField {
                 id: usernameField
-                width: 0.254 * parent.width
+                width: banner.width
+                font.family: "Cairo"
                 placeholderText: "Username"
                 anchors {
                     top: parent.top
@@ -169,7 +176,8 @@ Item {
 
             HifiControlsUit.TextField {
                 id: emailField
-                width: 0.254 * parent.width
+                width: banner.width
+                font.family: "Cairo"
                 text: Settings.getValue("wallet/savedUsername", "");
                 anchors {
                     top: parent.top
@@ -188,7 +196,8 @@ Item {
             }
             HifiControlsUit.TextField {
                 id: passwordField
-                width: 0.254 * parent.width
+                width: banner.width
+                font.family: "Cairo"
                 placeholderText: "Password"
                 activeFocusOnPress: true
                 echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
@@ -247,6 +256,7 @@ Item {
                 checked: !Settings.getValue("wallet/autoLogout", false);
                 text: qsTr("Keep Me Logged In")
                 boxSize: 18;
+                labelFontFamily: "Cairo"
                 labelFontSize: 18;
                 color: hifi.colors.white;
                 anchors {
@@ -283,8 +293,9 @@ Item {
 
                     lineHeight: 1
                     color: "white"
-                    font.family: "Raleway"
+                    font.family: "Cairo"
                     font.pixelSize: 24
+                    font.capitalization: Font.AllUppercase;
                     font.bold: true
                     lineHeightMode: Text.ProportionalHeight
                 }
@@ -302,11 +313,9 @@ Item {
                 width: d.minWidthButton
                 height: d.minHeightButton
                 text: qsTr("Log In")
+                fontFamily: "Cairo"
                 fontSize: signUpButton.fontSize
-                // background: Rectangle {
-                //     radius: hifi.buttons.radius
-                //
-                // }
+                fontBold: true
                 anchors {
                     top: cancelContainer.top
                     right: passwordField.right
@@ -329,6 +338,7 @@ Item {
                     id: cantAccessText
                     z: 10
                     anchors.centerIn: parent
+                    font.family: "Cairo"
                     font.pixelSize: 14
 
                     text: "<a href='https://highfidelity.com/users/password/new'> Can't access your account?</a>"
@@ -354,13 +364,13 @@ Item {
                 width: 0.48 * parent.width
                 anchors.centerIn: parent
                 anchors {
-                    top: bannerContainer.bottom
+                    top: banner.bottom
                     topMargin: 0.1 * parent.height
                 }
                 wrapMode: Text.WordWrap
                 lineHeight: 1
                 color: "white"
-                font.family: "Raleway"
+                font.family: "Cairo"
                 font.pixelSize: 48
                 font.bold: true
                 lineHeightMode: Text.ProportionalHeight
@@ -373,7 +383,9 @@ Item {
                 width: d.minWidthButton
                 height: d.minHeightButton
                 color: hifi.buttons.blue
+                fontFamily: "Cairo"
                 fontSize: 21
+                fontBold: true
                 anchors {
                     bottom: parent.bottom
                     bottomMargin: 0.1 * parent.height
@@ -398,7 +410,7 @@ Item {
             id: bottomOpaqueRect
             height: parent.height
             width: parent.width
-            opacity: 0.7
+            opacity: 0.9
             color: "black"
         }
         Item {
@@ -412,11 +424,9 @@ Item {
                 width: signUpButton.width
                 height: signUpButton.height
                 text: qsTr("Log In")
+                fontFamily: "Cairo"
                 fontSize: signUpButton.fontSize
-                // background: Rectangle {
-                //     radius: hifi.buttons.radius
-                //
-                // }
+                fontBold: true
                 anchors {
                     top: parent.top
                     topMargin: 0.245 * parent.height
@@ -441,11 +451,6 @@ Item {
                     left: parent.left
                     leftMargin: (parent.width - steamLoginButton.width) / 2
                 }
-
-                enabled: root.hasPermissionToRezThis &&
-                    MyAvatar.skeletonModelURL !== root.itemHref &&
-                    !root.wornEntityID &&
-                    root.valid;
 
                 onHoveredChanged: {
                     if (hovered) {
@@ -514,16 +519,18 @@ Item {
                             font: steamIconLabel.font;
                             text: steamIconLabel.text;
                         }
-                        HifiStylesUit.RalewayBold {
+                        Text {
                             id: steamIconLabel;
                             text: "Steam Log In"
                             anchors.verticalCenter: parent.verticalCenter;
                             width: steamIconLabelTextMetrics.width;
                             x: parent.width/2 - steamIconLabelTextMetrics.width/2 + steamIcon.width/2;
-                            size: signUpButton.fontSize;
                             font.capitalization: Font.AllUppercase;
                             verticalAlignment: Text.AlignVCenter;
                             horizontalAlignment: Text.AlignHCenter;
+                            font.family: "Cairo"
+                            font.pixelSize: signUpButton.fontSize;
+                            font.bold: true
                             color: enabled ? hifi.buttons.textColor[control.color]
                                             : hifi.buttons.disabledTextColor[control.colorScheme]
                         }
@@ -546,7 +553,7 @@ Item {
 
                 lineHeight: 1
                 color: "white"
-                font.family: "Raleway"
+                font.family: "Cairo"
                 font.pixelSize: 24
                 font.bold: true
                 lineHeightMode: Text.ProportionalHeight
@@ -605,14 +612,11 @@ Item {
                 UserActivityLogger.logAction("encourageLoginDialog", data);
                 Settings.setValue("loginDialogPoppedUp", false);
             }
-            flavorText.visible = true
-            mainTextContainer.visible = true
             toggleLoading(false)
         }
         onHandleLinkCompleted: {
             console.log("Link Succeeded")
 
-            bodyLoader.setSource("WelcomeBody.qml", { "welcomeBack" : true })
             bodyLoader.item.width = root.pane.width
             bodyLoader.item.height = root.pane.height
         }

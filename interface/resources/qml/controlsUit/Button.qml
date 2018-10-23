@@ -19,7 +19,9 @@ Original.Button {
 
     property int color: 0
     property int colorScheme: hifi.colorSchemes.light
+    property string fontFamily: "Raleway"
     property int fontSize: hifi.fontSizes.buttonLabel
+    property bool fontBold: true
     property int radius: hifi.buttons.radius
     property alias implicitTextWidth: buttonText.implicitWidth
     property string buttonGlyph: "";
@@ -35,13 +37,13 @@ Original.Button {
             Tablet.playSound(TabletEnums.ButtonHover);
         }
     }
-    
+
     onFocusChanged: {
         if (focus) {
             Tablet.playSound(TabletEnums.ButtonHover);
         }
     }
-    
+
     onClicked: {
         Tablet.playSound(TabletEnums.ButtonClick);
     }
@@ -106,17 +108,18 @@ Original.Button {
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
-        RalewayBold {
+        Text {
             id: buttonText;
             anchors.centerIn: parent;
             font.capitalization: control.fontCapitalization
             color: enabled ? hifi.buttons.textColor[control.color]
                            : hifi.buttons.disabledTextColor[control.colorScheme]
-            size: control.fontSize
+            font.family: control.fontFamily
+            font.pixelSize: control.fontSize
+            font.bold: control.fontBold
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
             text: control.text
         }
     }
 }
-
