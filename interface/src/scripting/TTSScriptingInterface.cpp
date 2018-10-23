@@ -13,6 +13,7 @@
 #include "avatar/AvatarManager.h"
 
 TTSScriptingInterface::TTSScriptingInterface() {
+#ifdef WIN32
     //
     // Create text to speech engine
     //
@@ -36,11 +37,13 @@ TTSScriptingInterface::TTSScriptingInterface() {
     if (FAILED(hr)) {
         qDebug() << "Can't set default voice.";
     }
+#endif
 }
 
 TTSScriptingInterface::~TTSScriptingInterface() {
 }
 
+#ifdef WIN32
 class ReleaseOnExit {
 public:
     ReleaseOnExit(IUnknown* p) : m_p(p) {}
@@ -53,6 +56,7 @@ public:
 private:
     IUnknown* m_p;
 };
+#endif
 
 void TTSScriptingInterface::testTone(const bool& alsoInject) {
     QByteArray byteArray(480000, 0);
@@ -81,6 +85,7 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak,
                                       const int& sampleRate,
                                       const int& bitsPerSample,
                                       const bool& alsoInject) {
+#ifdef WIN32
     WAVEFORMATEX fmt;
     fmt.wFormatTag = WAVE_FORMAT_PCM;
     fmt.nSamplesPerSec = sampleRate;
@@ -161,6 +166,9 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak,
 
         _lastSoundAudioInjector = AudioInjector::playSound(_lastSoundByteArray, options);
     }
+#else
+    qDebug() << "Text-to-Speech isn't currently supported on non-Windows platforms.";
+#endif
 }
 
 void TTSScriptingInterface::stopLastSpeech() {

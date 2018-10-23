@@ -13,11 +13,14 @@
 
 #include <QtCore/QObject>
 #include <DependencyManager.h>
+#ifdef WIN32
+#pragma warning(disable : 4996)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <sapi.h>      // SAPI
 #include <sphelper.h>  // SAPI Helper
+#endif
 #include <AudioInjector.h>
 #include <AudioConstants.h>
 
@@ -42,6 +45,7 @@ signals:
     void clearTTSBuffer();
 
 private:
+#ifdef WIN32
     class CComAutoInit {
     public:
         // Initializes COM using CoInitialize.
@@ -82,6 +86,7 @@ private:
 
     // Default voice token
     CComPtr<ISpObjectToken> m_voiceToken;
+#endif
 
     QByteArray _lastSoundByteArray;
     AudioInjectorPointer _lastSoundAudioInjector;
