@@ -28,6 +28,7 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
+    property bool isLogIn: false
     property bool withSteam: false
 
     onKeyboardRaisedChanged: d.resize();
@@ -58,9 +59,18 @@ Item {
         }
     }
 
-    function toggleLoggingIn(loggingIn) {
+    function login() {
+        if (linkAccountBody.isLogIn) {
+            loginDialog.login(emailField.text, passwordField.text);
+        } else {
+            loginDialog.signup(emailField.text, usernameField.text, passwordField.text);
+        }
+        linkAccountBody.toggleLoggingIn();
+    }
+
+    function toggleLoggingIn() {
         // For the process of logging in.
-        if (withSteam) {
+        if (linkAccountBody.withSteam) {
 
         }
         else {
@@ -70,6 +80,7 @@ Item {
 
     function toggleSignIn(signIn, isLogIn) {
         // going to/from sign in/up dialog.
+        linkAccountBody.isLogIn = isLogIn;
         if (signIn) {
             usernameField.visible = !isLogIn;
             cantAccessContainer.visible = isLogIn;
@@ -189,6 +200,7 @@ Item {
                 }
 
                 onFocusChanged: {
+                    root.isPassword = true;
                 }
 
                 Rectangle {
@@ -227,20 +239,20 @@ Item {
                     }
                 }
                 Keys.onReturnPressed: {
-                    signInBody.login()
+                    linkAccountBody.login()
                 }
             }
             HifiControlsUit.CheckBox {
                 id: autoLogoutCheckbox
-                checked: !Settings.getValue("wallet/autoLogout", true)
-                text: "Keep Me Logged In"
+                checked: !Settings.getValue("wallet/autoLogout", false);
+                text: qsTr("Keep Me Logged In")
                 boxSize: 18;
                 labelFontSize: 18;
                 color: hifi.colors.white;
                 anchors {
-                    top: passwordField.bottom
-                    topMargin: hifi.dimensions.contentSpacing.y
-                    right: passwordField.right
+                    top: passwordField.bottom;
+                    topMargin: hifi.dimensions.contentSpacing.y;
+                    right: passwordField.right;
                 }
                 onCheckedChanged: {
                     Settings.setValue("wallet/autoLogout", !checked);

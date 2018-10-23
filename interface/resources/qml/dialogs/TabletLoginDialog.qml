@@ -122,7 +122,6 @@ TabletModalWindow {
                 id: bodyLoader
                 anchors.fill: parent
                 anchors.horizontalCenter: parent.horizontalCenter
-                source: loginDialog.isSteamRunning() ? "../LoginDialog/SignInBody.qml" : "../LoginDialog/LinkAccountBody.qml"
             }
         }
     }
@@ -172,5 +171,8 @@ TabletModalWindow {
                 event.accepted = true
                 break
         }
+    }
+    Component.onCompleted: {
+        bodyLoader.setSource("../LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root });
     }
 }
