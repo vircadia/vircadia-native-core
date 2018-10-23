@@ -3154,6 +3154,7 @@ function loaded() {
                         }
                     }
                 } else if (data.type === 'tooltipsReply') {
+                    createAppTooltip.setIsEnabled(!data.hmdActive);
                     createAppTooltip.setTooltipData(data.tooltips);
                 }
             });
@@ -3170,6 +3171,7 @@ function loaded() {
         let elLabel = document.createElement('label');
         elLabel.setAttribute("for", serverScriptStatusElementID);
         elLabel.innerText = "Server Script Status";
+        createAppTooltip.registerTooltipElement(elLabel, "serverScriptsStatus");
         let elServerScriptStatus = document.createElement('span');
         elServerScriptStatus.setAttribute("id", serverScriptStatusElementID);
         elDiv.appendChild(elLabel);
