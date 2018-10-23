@@ -14,7 +14,7 @@
 <@include gpu/ShaderConstants.h@>
 
 // the texture
-layout(binding=0) uniform sampler2D colorMap;
+LAYOUT(binding=0) uniform sampler2D colorMap;
 
 layout(location=GPU_ATTR_POSITION) in vec3 varPosition;
 layout(location=GPU_ATTR_NORMAL) in vec3 varNormal;
