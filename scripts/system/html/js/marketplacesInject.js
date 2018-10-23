@@ -219,6 +219,7 @@
             purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
                 "px;position:relative;z-index:999;";
             navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
+            $('#purchasesButton').css('display', 'none'); // HRS FIXME
             $('#purchasesButton').on('click', function () {
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: "PURCHASES",

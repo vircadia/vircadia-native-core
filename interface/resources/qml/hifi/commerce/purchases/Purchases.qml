@@ -180,7 +180,8 @@ Rectangle {
     HifiCommerceCommon.EmulatedMarketplaceHeader {
         id: titleBarContainer;
         z: 997;
-        visible: !needsLogIn.visible;
+        visible: false; //HRS FIXME !needsLogIn.visible;
+        height: 100; // HRS FIXME
         // Size
         width: parent.width;
         // Anchors
@@ -475,7 +476,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.leftMargin: 16;
                 width: paintedWidth;
-                text: isShowingMyItems ? "My Items" : "My Purchases";
+                text: "Inventory"; // HRS FIXME isShowingMyItems ? "My Items" : "My Purchases";
                 color: hifi.colors.black;
                 size: 22;
             }
