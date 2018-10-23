@@ -788,21 +788,6 @@ Menu::Menu() {
     // Developer > Show Animation Statistics
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AnimStats);
 
-    // Developer > Scripting > Console...
-    addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
-                                  DependencyManager::get<StandAloneJSConsole>().data(),
-                                  SLOT(toggleConsole()),
-                                  QAction::NoRole,
-                                  UNSPECIFIED_POSITION);
-
-     // Developer > Scripting > API Debugger
-    action = addActionToQMenuAndActionHash(scriptingOptionsMenu, "API Debugger");
-    connect(action, &QAction::triggered, [] {
-        QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
-        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/tools/currentAPI.js");
-        DependencyManager::get<ScriptEngines>()->loadScript(defaultScriptsLoc.toString());
-    });
-
     // Developer > Log
     addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
                                   qApp, SLOT(toggleLogDialog()));
