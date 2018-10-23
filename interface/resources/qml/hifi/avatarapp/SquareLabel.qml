@@ -1,5 +1,5 @@
-import stylesUit 1.0
-import controlsUit 1.0 as HifiControlsUit
+import "../../styles-uit"
+import "../../controls-uit" as HifiControlsUit
 import QtQuick 2.9
 import QtGraphicalEffects 1.0
 
