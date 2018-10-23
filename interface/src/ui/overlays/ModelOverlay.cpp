@@ -803,5 +803,6 @@ render::ItemKey ModelOverlay::getKey() {
     if (!_isLODEnabled) {
         builder.withLODDisabled();
     }
+
     return builder.build();
 }
