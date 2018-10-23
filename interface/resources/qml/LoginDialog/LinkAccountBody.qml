@@ -298,7 +298,6 @@ Item {
                 height: d.minHeightButton
                 text: qsTr("Log In")
                 fontSize: signUpButton.fontSize
-                color: hifi.buttons.none
                 // background: Rectangle {
                 //     radius: hifi.buttons.radius
                 //
@@ -315,7 +314,7 @@ Item {
             Item {
                 id: cantAccessContainer
                 width: parent.width
-                height: cantAccessText.height
+                y: usernameField.height
                 anchors {
                     top: cancelContainer.bottom
                     topMargin: 3.5 * hifi.dimensions.contentSpacing.y
@@ -324,6 +323,8 @@ Item {
                 HifiStylesUit.ShortcutText {
                     id: cantAccessText
                     z: 10
+                    anchors.centerIn: parent
+                    font.pixelSize: 14
 
                     text: "<a href='https://highfidelity.com/users/password/new'> Can't access your account?</a>"
 
