@@ -3,6 +3,7 @@ import QtQuick.Controls 2.2 as Original
 
 import "."
 import "../styles"
+import "../controls-uit"
 
 Original.Button {
     id: control

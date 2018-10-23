@@ -61,7 +61,13 @@ Script.include("/~/system/libraries/controllers.js");
             var farGrabModuleName = this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity";
             var farGrabModule = getEnabledModuleByName(farGrabModuleName);
             var farGrabModuleReady = farGrabModule ? farGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
-            return grabOverlayModuleReady.active || farGrabModuleReady.active || grabEntityModuleReady.active;
+            var nearTabletHighlightModuleName =
+                this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight";
+            var nearTabletHighlightModule = getEnabledModuleByName(nearTabletHighlightModuleName);
+            var nearTabletHighlightModuleReady = nearTabletHighlightModule
+                ? nearTabletHighlightModule.isReady(controllerData) : makeRunningValues(false, [], []);
+            return grabOverlayModuleReady.active || farGrabModuleReady.active || grabEntityModuleReady.active
+                || nearTabletHighlightModuleReady.active;
         };
 
         this.overlayLaserActive = function(controllerData) {

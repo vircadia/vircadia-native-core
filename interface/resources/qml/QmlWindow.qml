@@ -2,9 +2,9 @@ import QtQuick 2.3
 
 import "windows" as Windows
 import "controls"
-import controlsUit 1.0 as Controls
+import "controls-uit" as Controls
 import "styles"
-import stylesUit 1.0
+import "styles-uit"
 
 Windows.Window {
     id: root

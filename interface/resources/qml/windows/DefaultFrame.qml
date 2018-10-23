@@ -11,7 +11,7 @@
 import QtQuick 2.5
 
 import "."
-import stylesUit 1.0
+import "../styles-uit"
 
 Frame {
     HifiConstants { id: hifi }

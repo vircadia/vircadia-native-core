@@ -13,8 +13,8 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 
-import stylesUit 1.0
-import controlsUit 1.0
+import "../../styles-uit"
+import "../../controls-uit"
 import "../dialogs"
 
 Rectangle {

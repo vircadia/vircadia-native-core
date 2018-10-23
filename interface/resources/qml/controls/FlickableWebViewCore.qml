@@ -4,7 +4,7 @@ import QtWebChannel 1.0
 
 import QtQuick.Controls 2.2
 
-import stylesUit 1.0 as StylesUIt
+import "../styles-uit" as StylesUIt
 
 Item {
     id: flick
