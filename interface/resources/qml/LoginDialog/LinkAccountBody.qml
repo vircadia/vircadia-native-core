@@ -1,8 +1,8 @@
 //
 //  LinkAccountBody.qml
 //
-//  Created by Clement on 7/18/16
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Wayne Chen on 10/18/18
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,9 +23,9 @@ Item {
     clip: true
     height: root.pane.height
     width: root.pane.width
-    property bool isTablet: root.isTablet
     property bool failAfterSignUp: false
     property string fontFamily: "Cairo"
+    property int fontSize: 24
     property bool fontBold: true
 
     property bool keyboardEnabled: false
@@ -33,6 +33,7 @@ Item {
     property bool punctuationMode: false
 
     property bool isLogIn: false
+    property bool atSignIn: false
     property bool withSteam: false
 
     onKeyboardRaisedChanged: d.resize();
@@ -54,7 +55,7 @@ Item {
                     4 * hifi.dimensions.contentSpacing.y;
 
             var newWidth = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
-            if(!isNaN(newWidth)) {
+            if (!isNaN(newWidth)) {
                 parent.width = root.width = newWidth;
             }
 
@@ -63,27 +64,84 @@ Item {
         }
     }
 
+    // timer to kill the dialog upon login success
+    Timer {
+        id: successTimer
+        interval: 500;
+        running: false;
+        repeat: false;
+        onTriggered: {
+            root.tryDestroy();
+        }
+    }
+
+    // timer to kill the dialog upon login failure
+    Timer {
+        id: failureTimer
+        interval: 1000;
+        running: false;
+        repeat: false;
+        onTriggered: {
+            resetContainers();
+            loginContainer.visible = true;
+        }
+    }
+
     function login() {
+        linkAccountBody.toggleLoading();
         if (linkAccountBody.isLogIn) {
             loginDialog.login(emailField.text, passwordField.text);
         } else {
-            loginDialog.signup(emailField.text, usernameField.text, passwordField.text);
+            loginDialog.signup(usernameField.text, emailField.text, passwordField.text);
         }
-        linkAccountBody.toggleLoggingIn(false);
+    }
+    function resetContainers() {
+        splashContainer.visible = false;
+        loggingInContainer.visible = false;
+        loginContainer.visible = false;
     }
 
-    function toggleLoggingIn(loggedIn) {
+    function toggleLoading() {
         // For the process of logging in.
+        linkAccountBody.resetContainers();
+        loggingInContainer.visible = true;
         if (linkAccountBody.withSteam) {
-            loginContainer.visible = false;
+            loggingInGlyph.visible = true;
+            loggingInText.text = "Logging in to Steam";
+            loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
+        } else {
+            loggingInText.text = "Logging in";
+            loggingInText.anchors.bottom = loggingInHeader.bottom;
+            loggingInText.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
         }
-        else {
-
+        linkAccountSpinner.visible = true;
+    }
+    function loadingSuccess(success, errorString) {
+        linkAccountSpinner.visible = false;
+        if (!success) {
+            loginErrorMessage.visible = true;
+            loginErrorMessage.text = errorString !== "" ? errorString : linkAccountBody.isLogIn ? "bad user/pass combo." : "unknown error.";
+            loginErrorMessage.anchors.bottom = linkAccountBody.isLogIn ? emailField.top : usernameField.top;
+            failureTimer.start();
+            return;
         }
+        if (linkAccountBody.withSteam) {
+            // reset the flag.
+            linkAccountBody.withSteam = false;
+            loggingInGlyph.visible = false;
+            loggingInText.text = "You are now logged into Steam!"
+            loggingInText.anchors.centerIn = loggingInHeader;
+            loggingInText.anchors.bottom = loggingInHeader.bottom;
+            loggedInGlyph.visible = true;
+        } else {
+            loggingInText.text = "You are now logged in!";
+        }
+        successTimer.start();
     }
 
     function toggleSignIn(signIn, isLogIn) {
         // going to/from sign in/up dialog.
+        linkAccountBody.atSignIn = signIn;
         linkAccountBody.isLogIn = isLogIn;
         if (signIn) {
             usernameField.visible = !isLogIn;
@@ -92,6 +150,8 @@ Item {
                 loginButtonAtSignIn.text = "Log In";
                 loginButtonAtSignIn.color = hifi.buttons.black;
                 emailField.placeholderText = "Username or Email";
+                var savedUsername = Settings.getValue("wallet/savedUsername", "");
+                emailField.text = savedUsername === "Unknown user" ? "" : savedUsername;
                 emailField.anchors.top = loginContainer.top;
                 emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.pane.height : 0.24 * root.pane.height;
                 cantAccessContainer.anchors.topMargin = !root.isTablet ? 3.5 * hifi.dimensions.contentSpacing.y : hifi.dimensions.contentSpacing.y;
@@ -99,9 +159,12 @@ Item {
                 loginButtonAtSignIn.text = "Sign Up";
                 loginButtonAtSignIn.color = hifi.buttons.blue;
                 emailField.placeholderText = "Email";
+                emailField.text = "";
                 emailField.anchors.top = usernameField.bottom;
                 emailField.anchors.topMargin = 1.5 * hifi.dimensions.contentSpacing.y;
+                passwordField.text = "";
             }
+            loginErrorMessage.visible = false;
         }
 
         splashContainer.visible = !signIn;
@@ -111,15 +174,6 @@ Item {
         topOpaqueRect.visible = signIn;
         loginContainer.visible = signIn;
 
-    }
-
-    function toggleLoading(isLoading) {
-        linkAccountSpinner.visible = isLoading
-        form.visible = !isLoading
-
-        if (loginDialog.isSteamRunning()) {
-            additionalInformation.visible = !isLoading
-        }
     }
 
     Item {
@@ -152,6 +206,105 @@ Item {
                 horizontalAlignment: Image.AlignHCenter
             }
         }
+
+        Item {
+            id: loggingInContainer
+            width: parent.width
+            height: parent.height
+            onHeightChanged: d.resize(); onWidthChanged: d.resize();
+            visible: false
+
+            Item {
+                id: loggingInHeader
+                width: parent.width
+                height: 0.5 * parent.height
+                anchors {
+                    top: parent.top
+                }
+                TextMetrics {
+                    id: loggingInGlyphTextMetrics;
+                    font: loggingInGlyph.font;
+                    text: loggingInGlyph.text;
+                }
+                HifiStylesUit.HiFiGlyphs {
+                    id: loggingInGlyph;
+                    text: hifi.glyphs.steamSquare;
+                    // Color
+                    color: "white";
+                    // Size
+                    size: 31;
+                    // Anchors
+                    anchors.right: loggingInText.left;
+                    anchors.rightMargin: linkAccountBody.loggingInGlyphRightMargin
+                    anchors.bottom: parent.bottom;
+                    anchors.bottomMargin: hifi.dimensions.contentSpacing.y
+                    // Alignment
+                    horizontalAlignment: Text.AlignHCenter;
+                    verticalAlignment: Text.AlignVCenter;
+                    visible: loginDialog.isSteamRunning();
+                }
+
+                TextMetrics {
+                    id: loggingInTextMetrics;
+                    font: loggingInText.font;
+                    text: loggingInText.text;
+                }
+                Text {
+                    id: loggingInText;
+                    width: loggingInTextMetrics.width
+                    anchors.bottom: parent.bottom;
+                    anchors.bottomMargin: hifi.dimensions.contentSpacing.y
+                    anchors.left: parent.left;
+                    anchors.leftMargin: (parent.width - loggingInTextMetrics.width) / 2
+                    color: "white";
+                    font.family: linkAccountBody.fontFamily
+                    font.pixelSize: linkAccountBody.fontSize
+                    font.bold: linkAccountBody.fontBold
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    text: "Logging in"
+                }
+            }
+            Item {
+                id: loggingInFooter
+                width: parent.width
+                height: 0.5 * parent.height
+                anchors {
+                    top: loggingInHeader.bottom
+                }
+                AnimatedImage {
+                    id: linkAccountSpinner
+                    source: "../../icons/loader-snake-64-w.gif"
+                    width: 128
+                    height: width
+                    anchors.left: parent.left;
+                    anchors.leftMargin: (parent.width - width) / 2;
+                    anchors.top: parent.top
+                    anchors.topMargin: hifi.dimensions.contentSpacing.y
+                }
+                TextMetrics {
+                    id: loggedInGlyphTextMetrics;
+                    font: loggedInGlyph.font;
+                    text: loggedInGlyph.text;
+                }
+                HifiStylesUit.HiFiGlyphs {
+                    id: loggedInGlyph;
+                    text: hifi.glyphs.steamSquare;
+                    // Size
+                    size: 78;
+                    // Anchors
+                    anchors.left: parent.left;
+                    anchors.leftMargin: (parent.width - loggedInGlyph.size) / 2;
+                    anchors.top: parent.top
+                    anchors.topMargin: hifi.dimensions.contentSpacing.y
+                    // Alignment
+                    horizontalAlignment: Text.AlignHCenter;
+                    verticalAlignment: Text.AlignVCenter;
+                    visible: loginDialog.isSteamRunning();
+
+                }
+            }
+        }
         Item {
             id: loginContainer
             width: parent.width
@@ -161,6 +314,20 @@ Item {
                 topMargin: 1.5 * hifi.dimensions.contentSpacing.y
             }
             visible: false
+
+            Text {
+                id: loginErrorMessage;
+                anchors.bottom: emailField.top;
+                anchors.bottomMargin: 2
+                anchors.left: emailField.left;
+                color: "red";
+                font.family: linkAccountBody.fontFamily
+                font.pixelSize: 12
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                text: ""
+                visible: false
+            }
 
             HifiControlsUit.TextField {
                 id: usernameField
@@ -190,11 +357,6 @@ Item {
                 placeholderText: "Username or Email"
                 activeFocusOnPress: true
                 onHeightChanged: d.resize(); onWidthChanged: d.resize();
-
-                Component.onCompleted: {
-                    var savedUsername = Settings.getValue("wallet/savedUsername", "");
-                    emailField.text = savedUsername === "Unknown user" ? "" : savedUsername;
-                }
             }
             HifiControlsUit.TextField {
                 id: passwordField
@@ -296,7 +458,7 @@ Item {
                     lineHeight: 1
                     color: "white"
                     font.family: linkAccountBody.fontFamily
-                    font.pixelSize: 24
+                    font.pixelSize: linkAccountBody.fontSize
                     font.capitalization: Font.AllUppercase;
                     font.bold: linkAccountBody.fontBold
                     lineHeightMode: Text.ProportionalHeight
@@ -307,6 +469,7 @@ Item {
                     acceptedButtons: Qt.LeftButton
                     onClicked: {
                         toggleSignIn(false, true);
+                        linkAccountBody.isLogIn = false;
                     }
                 }
             }
@@ -316,7 +479,7 @@ Item {
                 height: d.minHeightButton
                 text: qsTr("Log In")
                 fontFamily: linkAccountBody.fontFamily
-                fontSize: signUpButton.fontSize
+                fontSize: linkAccountBody.fontSize
                 fontBold: linkAccountBody.fontBold
                 anchors {
                     top: cancelContainer.top
@@ -370,10 +533,10 @@ Item {
                     topMargin: 0.1 * parent.height
                 }
                 wrapMode: Text.WordWrap
-                lineHeight: 1
+                lineHeight: 0.5
                 color: "white"
                 font.family: linkAccountBody.fontFamily
-                font.pixelSize: 48
+                font.pixelSize: 2 * linkAccountBody.fontSize
                 font.bold: linkAccountBody.fontBold
                 lineHeightMode: Text.ProportionalHeight
                 horizontalAlignment: Text.AlignHCenter
@@ -386,15 +549,14 @@ Item {
                 height: d.minHeightButton
                 color: hifi.buttons.blue
                 fontFamily: linkAccountBody.fontFamily
-                fontSize: 24
+                fontSize: linkAccountBody.fontSize
                 fontBold: linkAccountBody.fontBold
                 anchors {
                     bottom: parent.bottom
                     bottomMargin: 0.1 * parent.height
                     left: parent.left
-                    leftMargin: (parent.width - signUpButton.width) / 2
+                    leftMargin: (parent.width - d.minWidthButton) / 2
                 }
-
                 onClicked: {
                     toggleSignIn(true, false);
                 }
@@ -423,11 +585,11 @@ Item {
 
             HifiControlsUit.Button {
                 id: loginButton
-                width: signUpButton.width
-                height: signUpButton.height
+                width: d.minWidthButton
+                height: d.minHeightButton
                 text: qsTr("Log In")
                 fontFamily: linkAccountBody.fontFamily
-                fontSize: signUpButton.fontSize
+                fontSize: linkAccountBody.fontSize
                 fontBold: linkAccountBody.fontBold
                 anchors {
                     top: parent.top
@@ -440,104 +602,29 @@ Item {
                     toggleSignIn(true, true);
                 }
             }
-            Button {
+            HifiControlsUit.Button {
                 id: steamLoginButton;
-                width: signUpButton.width
-                height: signUpButton.height
-                property int color: hifi.buttons.black;
-                property int colorScheme: hifi.colorSchemes.light;
-
+                width: d.minWidthButton
+                height: d.minHeightButton
+                color: hifi.buttons.black;
                 anchors {
                     top: loginButton.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
                     left: parent.left
                     leftMargin: (parent.width - steamLoginButton.width) / 2
                 }
-
-                onHoveredChanged: {
-                    if (hovered) {
-                        Tablet.playSound(TabletEnums.ButtonHover);
-                    }
-                }
-
-                onFocusChanged: {
-                    if (focus) {
-                        Tablet.playSound(TabletEnums.ButtonHover);
-                    }
-                }
-
+                text: qsTr("Steam Log In")
+                fontFamily: linkAccountBody.fontFamily
+                fontSize: linkAccountBody.fontSize
+                fontBold: linkAccountBody.fontBold
+                buttonGlyph: hifi.glyphs.steamSquare
+                buttonGlyphRightMargin: 10
                 onClicked: {
-                    Tablet.playSound(TabletEnums.ButtonClick);
+                    linkAccountBody.withSteam = true;
+                    linkAccountBody.toggleLoading();
+                    loginDialog.linkSteam();
                 }
-
-                style: OriginalStyles.ButtonStyle {
-                    background: Rectangle {
-                        radius: 4;
-                        gradient: Gradient {
-                            GradientStop {
-                                position: 0.2
-                                color: {
-                                    if (!control.enabled) {
-                                        hifi.buttons.disabledColorStart[control.colorScheme]
-                                    } else if (control.pressed) {
-                                        hifi.buttons.pressedColor[control.color]
-                                    } else if (control.hovered) {
-                                        hifi.buttons.hoveredColor[control.color]
-                                    } else {
-                                        hifi.buttons.colorStart[control.color]
-                                    }
-                                }
-                            }
-                            GradientStop {
-                                position: 1.0
-                                color: {
-                                    if (!control.enabled) {
-                                        hifi.buttons.disabledColorFinish[control.colorScheme]
-                                    } else if (control.pressed) {
-                                        hifi.buttons.pressedColor[control.color]
-                                    } else if (control.hovered) {
-                                        hifi.buttons.hoveredColor[control.color]
-                                    } else {
-                                        hifi.buttons.colorFinish[control.color]
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    label: Item {
-                        Image {
-                            id: steamIcon;
-                            anchors.right: steamIconLabel.left;
-                            anchors.rightMargin: 5;
-                            anchors.verticalCenter: parent.verticalCenter;
-                            source: "../../images/steam.svg";
-                            horizontalAlignment: Image.AlignHCenter;
-                            sourceSize.width: signUpButton.fontSize + 3
-                            sourceSize.height: signUpButton.fontSize + 3
-                        }
-                        TextMetrics {
-                            id: steamIconLabelTextMetrics;
-                            font: steamIconLabel.font;
-                            text: steamIconLabel.text;
-                        }
-                        Text {
-                            id: steamIconLabel;
-                            text: "Steam Log In"
-                            anchors.verticalCenter: parent.verticalCenter;
-                            width: steamIconLabelTextMetrics.width;
-                            x: parent.width/2 - steamIconLabelTextMetrics.width/2 + steamIcon.width/2;
-                            font.capitalization: Font.AllUppercase;
-                            verticalAlignment: Text.AlignVCenter;
-                            horizontalAlignment: Text.AlignHCenter;
-                            font.family: linkAccountBody.fontFamily
-                            font.pixelSize: signUpButton.fontSize;
-                            font.bold: linkAccountBody.fontBold
-                            color: enabled ? hifi.buttons.textColor[control.color]
-                                            : hifi.buttons.disabledTextColor[control.colorScheme]
-                        }
-                    }
-                }
+                visible: loginDialog.isSteamRunning();
             }
         }
         Item {
@@ -556,7 +643,7 @@ Item {
                 lineHeight: 1
                 color: "white"
                 font.family: linkAccountBody.fontFamily
-                font.pixelSize: 24
+                font.pixelSize: linkAccountBody.fontSize
                 font.bold: linkAccountBody.fontBold
                 lineHeightMode: Text.ProportionalHeight
                 horizontalAlignment: Text.AlignHCenter
@@ -581,11 +668,24 @@ Item {
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
         d.resize();
-
     }
 
     Connections {
         target: loginDialog
+        onHandleCreateFailed: {
+            console.log("Create Failed")
+        }
+        onHandleCreateCompleted: {
+            console.log("Create Completed")
+        }
+        onHandleSignupFailed: {
+            console.log("Sign Up Failed")
+            loadingSuccess(false, errorString)
+        }
+        onHandleSignupCompleted: {
+            console.log("Sign Up Completed")
+            loadingSuccess(true)
+        }
         onHandleLoginCompleted: {
             console.log("Login Succeeded")
             var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
@@ -598,10 +698,9 @@ Item {
                 Settings.setValue("loginDialogPoppedUp", false);
             }
             if (loginDialog.isSteamRunning()) {
-                loginDialog.linkSteam()
-            } else {
-                // TODO you are now logged in
+                loginDialog.linkSteam();
             }
+            loadingSuccess(true)
         }
         onHandleLoginFailed: {
             console.log("Login Failed")
@@ -614,22 +713,21 @@ Item {
                 UserActivityLogger.logAction("encourageLoginDialog", data);
                 Settings.setValue("loginDialogPoppedUp", false);
             }
-            toggleLoading(false)
+            loadingSuccess(false)
         }
         onHandleLinkCompleted: {
             console.log("Link Succeeded")
-
-            bodyLoader.item.width = root.pane.width
-            bodyLoader.item.height = root.pane.height
+            loadingSuccess(true)
         }
         onHandleLinkFailed: {
             console.log("Link Failed")
-            toggleLoading(false)
+            var error = "There was an unknown error while creating your account. Please try again later.";
+            loadingSuccess(false, error);
         }
     }
 
     Keys.onPressed: {
-        if (!visible) {
+        if (!visible && !atSignIn) {
             return;
         }
 

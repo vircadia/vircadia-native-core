@@ -25,6 +25,7 @@ Original.Button {
     property int radius: hifi.buttons.radius
     property alias implicitTextWidth: buttonText.implicitWidth
     property string buttonGlyph: "";
+    property int buttonGlyphRightMargin: 0;
     property int fontCapitalization: Font.AllUppercase
 
     width: hifi.dimensions.buttonWidth
@@ -91,6 +92,12 @@ Original.Button {
     }
 
     contentItem: Item {
+        id: buttonContentItem
+        TextMetrics {
+            id: buttonGlyphTextMetrics;
+            font: buttonGlyph.font;
+            text: buttonGlyph.text;
+        }
         HiFiGlyphs {
             id: buttonGlyph;
             visible: control.buttonGlyph !== "";
@@ -99,6 +106,7 @@ Original.Button {
             size: 34;
             // Anchors
             anchors.right: buttonText.left;
+            anchors.rightMargin: control.buttonGlyphRightMargin
             anchors.top: parent.top;
             anchors.bottom: parent.bottom;
             // Style
@@ -108,9 +116,16 @@ Original.Button {
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
+
+        TextMetrics {
+            id: buttonTextMetrics;
+            font: buttonText.font;
+            text: buttonText.text;
+        }
         Text {
             id: buttonText;
-            anchors.centerIn: parent;
+            width: buttonTextMetrics.width
+            anchors.verticalCenter: parent.verticalCenter;
             font.capitalization: control.fontCapitalization
             color: enabled ? hifi.buttons.textColor[control.color]
                            : hifi.buttons.disabledTextColor[control.colorScheme]
@@ -120,6 +135,13 @@ Original.Button {
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
             text: control.text
+            Component.onCompleted: {
+                if (control.buttonGlyph !== "") {
+                    buttonText.x = buttonContentItem.width/2 - buttonTextMetrics.width/2 + buttonGlyphTextMetrics.width/2;
+                } else {
+                    buttonText.anchors.centerIn = parent;
+                }
+            }
         }
     }
 }

@@ -86,7 +86,7 @@ Windows.ModalWindow {
     }
 
     Component.onCompleted: {
-        bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root });
+        bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
     }
 
 }

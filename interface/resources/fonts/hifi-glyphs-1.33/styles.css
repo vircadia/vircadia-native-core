@@ -479,3 +479,6 @@
 .icon-avatar-1:before {
   content: "\54";
 }
+.icon-steam-square:before {
+  content: "\e035";
+}

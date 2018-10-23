@@ -349,5 +349,6 @@ QtObject {
         readonly property string update: "\ue032"
         readonly property string uninstall: "\ue033"
         readonly property string verticalEllipsis: "\ue034"
+        readonly property string steamSquare: "\ue035"
     }
 }
