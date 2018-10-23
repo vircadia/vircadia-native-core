@@ -50,9 +50,11 @@ public:
      * You can generate a JSON file using {@link Clipboard.exportEntities}.
      * @function Clipboard.importEntities
      * @param {string} filename Path and name of file to import.
+     * @param {boolean} does the ResourceRequestObserver observe this request?
+     * @param {number} optional internal id of object causing this import.
      * @returns {boolean} <code>true</code> if the import was successful, otherwise <code>false</code>.
      */
-    Q_INVOKABLE bool importEntities(const QString& filename);
+    Q_INVOKABLE bool importEntities(const QString& filename, const bool isObservable = true, const qint64 callerId = -1);
 
     /**jsdoc
      * Export the entities specified to a JSON file.

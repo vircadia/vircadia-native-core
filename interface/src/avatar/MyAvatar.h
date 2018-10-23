@@ -21,7 +21,6 @@
 #include <AvatarConstants.h>
 #include <avatars-renderer/Avatar.h>
 #include <avatars-renderer/ScriptAvatar.h>
-#include <ClientTraitsHandler.h>
 #include <controllers/Pose.h>
 #include <controllers/Actions.h>
 #include <EntityItem.h>
@@ -142,6 +141,8 @@ class MyAvatar : public Avatar {
      * @property {number} walkSpeed
      * @property {number} walkBackwardSpeed
      * @property {number} sprintSpeed
+     * @property {number} isInSittingState
+     * @property {number} userRecenterModel
      *
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
      *     registration point of the 3D model.
@@ -242,6 +243,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float walkSpeed READ getWalkSpeed WRITE setWalkSpeed);
     Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed);
     Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed);
+    Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
+    Q_PROPERTY(MyAvatar::SitStandModelType userRecenterModel READ getUserRecenterModel WRITE setUserRecenterModel);
+    Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -261,6 +265,15 @@ public:
         MAX_DRIVE_KEYS
     };
     Q_ENUM(DriveKeys)
+
+    enum SitStandModelType {
+        ForceSit = 0,
+        ForceStand,
+        Auto,
+        DisableHMDLean,
+        NumSitStandTypes
+    };
+    Q_ENUM(SitStandModelType)
 
     explicit MyAvatar(QThread* thread);
     virtual ~MyAvatar();
@@ -1121,12 +1134,21 @@ public:
 
     void setIsInWalkingState(bool isWalking);
     bool getIsInWalkingState() const;
+    void setIsInSittingState(bool isSitting);
+    bool getIsInSittingState() const;
+    void setUserRecenterModel(MyAvatar::SitStandModelType modelName);
+    MyAvatar::SitStandModelType getUserRecenterModel() const;
+    void setIsSitStandStateLocked(bool isLocked);
+    bool getIsSitStandStateLocked() const;
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
     void setWalkBackwardSpeed(float value);
     float getWalkBackwardSpeed() const;
     void setSprintSpeed(float value);
     float getSprintSpeed() const;
+    void setSitStandStateChange(bool stateChanged);
+    float getSitStandStateChange() const;
+    void updateSitStandState(float newHeightReading, float dt);
 
     QVector<QString> getScriptUrls();
 
@@ -1532,6 +1554,7 @@ signals:
      */
     void disableHandTouchForIDChanged(const QUuid& entityID, bool disable);
 
+
 private slots:
     void leaveDomain();
     void updateCollisionCapsuleCache();
@@ -1742,7 +1765,7 @@ private:
         bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateHorizontalCG(MyAvatar& myAvatar) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
-        glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
+        glm::mat4 postPhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
         bool getForceActivateRotation() const;
         void setForceActivateRotation(bool val);
         bool getForceActivateVertical() const;
@@ -1751,6 +1774,7 @@ private:
         void setForceActivateHorizontal(bool val);
         bool getToggleHipsFollowing() const;
         void setToggleHipsFollowing(bool followHead);
+        bool _squatDetected { false };
         std::atomic<bool> _forceActivateRotation { false };
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
@@ -1820,10 +1844,13 @@ private:
     std::mutex _pinnedJointsMutex;
     std::vector<int> _pinnedJoints;
 
+    void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
+
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
-
-    void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
+    float _averageUserHeightSensorSpace { _userHeight.get() };
+    bool _sitStandStateChange { false };
+    ThreadSafeValueCache<bool> _lockSitStandState { false };
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
@@ -1831,6 +1858,11 @@ private:
     ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
     bool _isInWalkingState { false };
+    ThreadSafeValueCache<bool> _isInSittingState { false };
+    ThreadSafeValueCache<MyAvatar::SitStandModelType> _userRecenterModel { MyAvatar::SitStandModelType::Auto };
+    float _sitStandStateTimer { 0.0f };
+    float _squatTimer { 0.0f };
+    float _tippingPoint { _userHeight.get() };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };

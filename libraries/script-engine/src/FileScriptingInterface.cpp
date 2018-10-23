@@ -138,7 +138,8 @@ QString FileScriptingInterface::convertUrlToPath(QUrl url) {
 // this function is not in use
 void FileScriptingInterface::downloadZip(QString path, const QString link) {
     QUrl url = QUrl(link);
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        nullptr, url, true, -1, "FileScriptingInterface::downloadZip");
     connect(request, &ResourceRequest::finished, this, [this, path]{
         unzipFile(path, ""); // so intellisense isn't mad
     });
