@@ -79,9 +79,10 @@ public:
     // Animation related items...
     AnimationPropertyGroup getAnimationProperties() const;
 
+    // TODO: audit and remove unused Animation accessors
     bool hasAnimation() const;
     QString getAnimationURL() const;
-    void setAnimationURL(const QString& url);
+    virtual void setAnimationURL(const QString& url);
 
     void setAnimationCurrentFrame(float value);
     void setAnimationIsPlaying(bool value);
@@ -98,12 +99,6 @@ public:
 
     void setRelayParentJoints(bool relayJoints);
     bool getRelayParentJoints() const;
-
-    void setAnimationFirstFrame(float firstFrame);
-    float getAnimationFirstFrame() const;
-
-    void setAnimationLastFrame(float lastFrame);
-    float getAnimationLastFrame() const;
 
     bool getAnimationIsPlaying() const;
     float getAnimationCurrentFrame() const;

@@ -13,8 +13,8 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 import "../wallet" as HifiWallet
@@ -158,6 +158,7 @@ Rectangle {
         listModelName: "Gift Connections";
         z: 998;
         visible: root.activeView === "giftAsset";
+        keyboardContainer: root;
         anchors.fill: parent;
         parentAppTitleBarHeight: 70;
         parentAppNavBarHeight: 0;
@@ -585,7 +586,7 @@ Rectangle {
             visible: purchasesModel.count !== 0;
             clip: true;
             model: purchasesModel;
-            snapMode: ListView.SnapToItem;
+            snapMode: ListView.NoSnap;
             // Anchors
             anchors.top: separator.bottom;
             anchors.left: parent.left;
