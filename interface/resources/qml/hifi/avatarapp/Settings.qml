@@ -2,8 +2,8 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
-import "../../styles-uit"
-import "../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../controls" as HifiControls
 
 Rectangle {

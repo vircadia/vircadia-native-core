@@ -11,8 +11,8 @@
 import Hifi 1.0
 import QtQuick 2.4
 
-import "controls-uit" as HifiControlsUit
-import "styles-uit" as HifiStylesUit
+import controlsUit 1.0 as HifiControlsUit
+import stylesUit 1.0 as HifiStylesUit
 import "windows" as Windows
 
 import "LoginDialog"

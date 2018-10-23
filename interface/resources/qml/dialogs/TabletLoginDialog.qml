@@ -11,8 +11,8 @@
 import Hifi 1.0
 import QtQuick 2.5
 
-import "../controls-uit"
-import "../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 import "../windows"
 
 import "../LoginDialog"
