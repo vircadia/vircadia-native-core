@@ -47,7 +47,6 @@ Windows.ModalWindow {
 
         Loader {
             id: bodyLoader
-            source: loginDialog.isSteamRunning() ? "LoginDialog/SignInBody.qml" : "LoginDialog/LinkAccountBody.qml"
         }
     }
 
@@ -84,6 +83,10 @@ Windows.ModalWindow {
                 event.accepted = true
                 break
         }
+    }
+
+    Component.onCompleted: {
+        bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root });
     }
 
 }
