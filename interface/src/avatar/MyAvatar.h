@@ -1555,29 +1555,6 @@ signals:
      */
     void disableHandTouchForIDChanged(const QUuid& entityID, bool disable);
 
-    /**jsdoc
-    * Triggered when the sit state is enabled or disabled
-    * @function MyAvatar.sittingEnabledChanged
-    * @param {boolean} enabled
-    * @returns {Signal}
-    */
-    void sittingEnabledChanged(bool enabled);
-
-    /**jsdoc
-    * Triggered when the recenter model is changed
-    * @function MyAvatar.userRecenterModelChanged
-    * @param {int} userRecenteringModeltype
-    * @returns {Signal}
-    */
-    void userRecenterModelChanged(int modelName);
-
-    /**jsdoc
-    * Triggered when the sit state is enabled or disabled
-    * @function MyAvatar.sitStandStateLockEnabledChanged
-    * @param {boolean} enabled
-    * @returns {Signal}
-    */
-    void sitStandStateLockEnabledChanged(bool enabled);
 
 private slots:
     void leaveDomain();

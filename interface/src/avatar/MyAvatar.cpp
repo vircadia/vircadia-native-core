@@ -3961,6 +3961,7 @@ void MyAvatar::setUserRecenterModel(MyAvatar::SitStandModelType modelName) {
             setIsSitStandStateLocked(true);
             break;
         case MyAvatar::SitStandModelType::Auto:
+        default:
             setHMDLeanRecenterEnabled(true);
             setIsInSittingState(false);
             setIsSitStandStateLocked(false);
@@ -3970,10 +3971,7 @@ void MyAvatar::setUserRecenterModel(MyAvatar::SitStandModelType modelName) {
             setIsInSittingState(false);
             setIsSitStandStateLocked(false);
             break;
-        default:
-            break;
     }
-    emit userRecenterModelChanged((int)modelName);
 }
 
 void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
