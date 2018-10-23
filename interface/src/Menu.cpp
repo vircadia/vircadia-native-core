@@ -742,9 +742,6 @@ Menu::Menu() {
 
     // Developer > Crash >>>
     MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
-  
-    // Developer > Crash > Display Crash Options
-    addCheckableActionToQMenuAndActionHash(crashMenu, MenuOption::DisplayCrashOptions, 0, true);
     
     // Developer > Crash > Display Crash Options
     addCheckableActionToQMenuAndActionHash(crashMenu, MenuOption::DisplayCrashOptions, 0, true);
