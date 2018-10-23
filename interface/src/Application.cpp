@@ -2885,9 +2885,11 @@ static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, in
 
 void Application::showLoginScreen() {
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto dialogsManager = DependencyManager::get<DialogsManager>();
     if (!accountManager->isLoggedIn()) {
         Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
 //         dialogsManager->showLoginScreenDialog();
+        dialogsManager->showLoginDialog();
         QJsonObject loginData = {};
         loginData["action"] = "login dialog shown";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
@@ -3551,6 +3553,7 @@ void Application::setIsInterstitialMode(bool interstitialMode) {
     if (enableInterstitial) {
         if (_interstitialMode != interstitialMode) {
             _interstitialMode = interstitialMode;
+            emit interstitialModeChanged(_interstitialMode);
 
             DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
             DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
@@ -3566,11 +3569,6 @@ void Application::setIsServerlessMode(bool serverlessDomain) {
 }
 
 std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl domainURL) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "prepareServerlessDomainContents", Q_ARG(QUrl, domainURL));
-        return;
-    }
-
     QUuid serverlessSessionID = QUuid::createUuid();
     getMyAvatar()->setSessionUUID(serverlessSessionID);
     auto nodeList = DependencyManager::get<NodeList>();
@@ -8556,6 +8554,16 @@ OverlayID Application::getTabletHomeButtonID() const {
 QUuid Application::getTabletFrameID() const {
     auto HMD = DependencyManager::get<HMDScriptingInterface>();
     return HMD->getCurrentTabletFrameID();
+}
+
+QVector<QUuid> Application::getTabletIDs() const {
+    // Most important overlays first. 
+    QVector<QUuid> result;
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    result << HMD->getCurrentTabletScreenID();
+    result << HMD->getCurrentHomeButtonID();
+    result << HMD->getCurrentTabletFrameID();
+    return result;
 }
 
 void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {

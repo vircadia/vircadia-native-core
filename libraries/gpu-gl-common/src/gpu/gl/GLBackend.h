@@ -288,6 +288,7 @@ public:
     virtual void do_setIndexBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setIndirectBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_generateTextureMips(const Batch& batch, size_t paramOffset) final;
+    virtual void do_generateTextureMipsWithPipeline(const Batch& batch, size_t paramOffset) final;
 
     // Transform Stage
     virtual void do_setModelTransform(const Batch& batch, size_t paramOffset) final;
@@ -406,6 +407,8 @@ public:
 
 protected:
     virtual GLint getRealUniformLocation(GLint location) const;
+
+    virtual void draw(GLenum mode, uint32 numVertices, uint32 startVertex) = 0;
 
     void recycle() const override;
 
@@ -695,6 +698,8 @@ protected:
     } _textureManagement;
     virtual void initTextureManagementStage();
     virtual void killTextureManagementStage();
+
+    GLuint _mipGenerationFramebufferId{ 0 };
 
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

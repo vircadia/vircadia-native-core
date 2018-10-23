@@ -299,6 +299,7 @@ public:
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
     QUuid getTabletFrameID() const; // may be an entity or an overlay
+    QVector<QUuid> getTabletIDs() const; // In order of most important IDs first.
 
     void setAvatarOverrideUrl(const QUrl& url, bool save);
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
@@ -335,7 +336,10 @@ signals:
 
     void uploadRequest(QString path);
 
+    void interstitialModeChanged(bool isInInterstitialMode);
+
     void loginScreenStateChanged(bool isInLoginScreenState);
+    void loginDialogPoppedUp();
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);

@@ -8,6 +8,18 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-class HMDLoginScreenDialog : public QmlWindowClass {
-    virtual QString qmlSource() const override { return "hifi/dialogs/.qml"; }
+#ifndef hifi_LoginScreenDialog_h
+#define hifi_LoginScreenDialog_h
+
+#include <DependencyManager.h>
+
+class PointerEvent;
+
+class LoginScreenDialog : public Dependency, QObject {
+    LoginScreenDialog();
+    void createLoginScreen();
+
+public slots:
 };
+
+#endif  // hifi_LoginScreenDialog_h

@@ -46,7 +46,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     }
 
     glm::mat4 hipsMat;
-    if (myAvatar->getCenterOfGravityModelEnabled() && !isFlying && !(myAvatar->getIsInWalkingState())) {
+    if (myAvatar->getCenterOfGravityModelEnabled() && !isFlying && !(myAvatar->getIsInWalkingState()) && myAvatar->getHMDLeanRecenterEnabled()) {
         // then we use center of gravity model
         hipsMat = myAvatar->deriveBodyUsingCgModel();
     } else {

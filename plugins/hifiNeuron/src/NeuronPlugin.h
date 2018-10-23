@@ -52,6 +52,7 @@ protected:
         friend class NeuronPlugin;
 
         InputDevice() : controller::InputDevice("Neuron") {}
+        virtual ~InputDevice() = default;
 
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;

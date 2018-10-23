@@ -192,7 +192,7 @@ public:
     virtual void setScaledDimensions(const glm::vec3& value);
     virtual glm::vec3 getRaycastDimensions() const { return getScaledDimensions(); }
 
-    inline const glm::vec3 getUnscaledDimensions() const { return _unscaledDimensions; }
+    glm::vec3 getUnscaledDimensions() const;
     virtual void setUnscaledDimensions(const glm::vec3& value);
 
     float getLocalRenderAlpha() const;
@@ -264,9 +264,8 @@ public:
     void setCollisionSoundURL(const QString& value);
 
     glm::vec3 getRegistrationPoint() const; /// registration point as ratio of entity
-
     /// registration point as ratio of entity
-    virtual void setRegistrationPoint(const glm::vec3& value); // FIXME: this is suspicious! 
+    virtual void setRegistrationPoint(const glm::vec3& value); // FIXME: this is suspicious!
 
     bool hasAngularVelocity() const { return getWorldAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
@@ -326,7 +325,7 @@ public:
     // TODO: move this "ScriptSimulationPriority" and "PendingOwnership" stuff into EntityMotionState
     // but first would need to do some other cleanup. In the meantime these live here as "scratch space"
     // to allow libs that don't know about each other to communicate.
-    void setScriptSimulationPriority(uint8_t priority);
+    void upgradeScriptSimulationPriority(uint8_t priority);
     void clearScriptSimulationPriority();
     uint8_t getScriptSimulationPriority() const { return _scriptSimulationPriority; }
     void setPendingOwnershipPriority(uint8_t priority);
@@ -421,7 +420,7 @@ public:
     quint64 getLastEditedFromRemote() const { return _lastEditedFromRemote; }
     void updateLastEditedFromRemote() { _lastEditedFromRemote = usecTimestampNow(); }
 
-    void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
+    void getTransformAndVelocityProperties(EntityItemProperties& properties) const;
 
     void flagForMotionStateChange() { _flags |= Simulation::DIRTY_MOTION_TYPE; }
 
@@ -535,6 +534,8 @@ public:
     void setVisuallyReady(bool visuallyReady) { _visuallyReady = visuallyReady; }
 
     const GrabPropertyGroup& getGrabProperties() const { return _grabProperties; }
+
+    void prepareForSimulationOwnershipBid(EntityItemProperties& properties, uint64_t now, uint8_t priority);
 
 signals:
     void requestRenderUpdate();

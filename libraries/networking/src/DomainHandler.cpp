@@ -65,6 +65,13 @@ DomainHandler::DomainHandler(QObject* parent) :
 
     // stop the refresh timer if redirected to the login screen domain
     connect(this, &DomainHandler::redirectToLoginScreenDomainURL, &_apiRefreshTimer, &QTimer::stop);
+
+
+    // stop the refresh timer if redirected to the login screen domain
+    connect(this, &DomainHandler::redirectToLoginScreenDomainURL, [this]() {
+        _isInLoginScreenState = true;
+        qCDebug(networking) << "Redirecting user to " << _loginScreenDomainURL;
+    });
 }
 
 void DomainHandler::disconnect() {
@@ -146,8 +153,10 @@ void DomainHandler::hardReset() {
 }
 
 bool DomainHandler::isHardRefusal(int reasonCode) {
-    return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch || reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
-        reasonCode == (int)ConnectionRefusedReason::TimedOut);
+    return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch ||
+            reasonCode == (int)ConnectionRefusedReason::TooManyUsers ||
+            reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
+            reasonCode == (int)ConnectionRefusedReason::TimedOut);
 }
 
 bool DomainHandler::getInterstitialModeEnabled() const {
@@ -164,6 +173,11 @@ void DomainHandler::setInterstitialModeEnabled(bool enableInterstitialMode) {
 
 void DomainHandler::setErrorDomainURL(const QUrl& url) {
     _errorDomainURL = url;
+    return;
+}
+
+void DomainHandler::setLoginScreenDomainURL(const QUrl& url) {
+    _loginScreenDomainURL = url;
     return;
 }
 
@@ -393,12 +407,6 @@ void DomainHandler::setRedirectErrorState(QUrl errorUrl, QString reasonMessage, 
     }
 }
 
-void DomainHandler::redirectToLoginScreenDomainURL() {
-    _isInLoginScreenState = true;
-    qCDebug(networking) << "Redirecting user to " << _loginScreenDomainURL;
-
-}
-
 void DomainHandler::requestDomainSettings() {
     qCDebug(networking) << "Requesting settings from domain server";
 
@@ -496,7 +504,7 @@ bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
         case ConnectionRefusedReason::LoginError:
         case ConnectionRefusedReason::NotAuthorized:
             return true;
-    
+
         default:
         case ConnectionRefusedReason::Unknown:
         case ConnectionRefusedReason::ProtocolMismatch:
