@@ -201,31 +201,6 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withTangents().withFade(),
         deformed_model_normal_map_translucent_fade_dq, batchSetter, itemSetter);
-
-    // Depth-only
-    addPipeline(
-        Key::Builder().withDepthOnly(),
-        model_shadow, nullptr, nullptr);
-    addPipeline(
-        Key::Builder().withDeformed().withDepthOnly(),
-        deformed_model_shadow, nullptr, nullptr);
-    // Same thing but with Fade on
-    addPipeline(
-        Key::Builder().withDepthOnly().withFade(),
-        model_shadow_fade, batchSetter, itemSetter);
-    addPipeline(
-        Key::Builder().withDeformed().withDepthOnly().withFade(),
-        deformed_model_shadow_fade, batchSetter, itemSetter);
-
-    // Now repeat for dual quaternion
-    // Depth-only
-    addPipeline(
-        Key::Builder().withDeformed().withDualQuatSkinned().withDepthOnly(),
-        deformed_model_shadow_dq, nullptr, nullptr);
-    // Same thing but with Fade on
-    addPipeline(
-        Key::Builder().withDeformed().withDualQuatSkinned().withDepthOnly().withFade(),
-        deformed_model_shadow_fade_dq, batchSetter, itemSetter);
 }
 
 void initForwardPipelines(ShapePlumber& plumber) {

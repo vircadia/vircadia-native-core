@@ -21,7 +21,6 @@ layout(location=3) out vec4 _fragColor3; // emissive
 
 // the alpha threshold
 const float alphaThreshold = 0.5;
-// FIXME: is this correct?
 float evalOpaqueFinalAlpha(float alpha, float mapAlpha) {
     return mix(alpha, 1.0 - alpha, step(mapAlpha, alphaThreshold));
 }

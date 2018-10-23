@@ -48,7 +48,7 @@ struct Material {
     vec4 _keySpare3;
 };
 
-layout(binding=GRAPHICS_BUFFER_MATERIAL) uniform materialBuffer {
+layout(std140, binding=GRAPHICS_BUFFER_MATERIAL) uniform materialBuffer {
     Material _mat;
     TexMapArray _texMapArray;
 };
