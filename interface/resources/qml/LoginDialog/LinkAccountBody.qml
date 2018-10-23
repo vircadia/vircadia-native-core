@@ -188,8 +188,6 @@ Item {
                 }
 
                 onFocusChanged: {
-                    // root.text = "";
-                    // root.isPassword = true;
                 }
 
                 Rectangle {
@@ -226,15 +224,10 @@ Item {
                             }
                         }
                     }
-
-
-
                 }
-
                 Keys.onReturnPressed: {
                     signInBody.login()
                 }
-
             }
             HifiControlsUit.CheckBox {
                 id: autoLogoutCheckbox
@@ -281,7 +274,6 @@ Item {
                     font.pixelSize: 24
                     font.bold: true
                     lineHeightMode: Text.ProportionalHeight
-                    // horizontalAlignment: Text.AlignHCenter
                 }
                 MouseArea {
                     id: cancelArea
@@ -491,7 +483,7 @@ Item {
     Connections {
         target: loginDialog
         onHandleLoginCompleted: {
-            console.log("Login Succeeded, linking steam account")
+            console.log("Login Succeeded")
             var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
             if (poppedUp) {
                 console.log("[ENCOURAGELOGINDIALOG]: logging in")
@@ -504,9 +496,7 @@ Item {
             if (loginDialog.isSteamRunning()) {
                 loginDialog.linkSteam()
             } else {
-                bodyLoader.setSource("WelcomeBody.qml", { "welcomeBack" : true })
-                bodyLoader.item.width = root.pane.width
-                bodyLoader.item.height = root.pane.height
+                // TODO you are now logged in
             }
         }
         onHandleLoginFailed: {
