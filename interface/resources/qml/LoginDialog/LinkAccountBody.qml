@@ -504,7 +504,7 @@ Item {
                             anchors.right: steamIconLabel.left;
                             anchors.rightMargin: 5;
                             anchors.verticalCenter: parent.verticalCenter;
-                            source: "images/steam.svg";
+                            source: "../../images/steam.svg";
                             horizontalAlignment: Image.AlignHCenter;
                             sourceSize.width: signUpButton.fontSize + 3
                             sourceSize.height: signUpButton.fontSize + 3
