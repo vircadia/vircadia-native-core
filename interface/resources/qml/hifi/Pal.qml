@@ -15,8 +15,8 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
 import Qt.labs.settings 1.0
-import "../styles-uit"
-import "../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../controls" as HifiControls
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
