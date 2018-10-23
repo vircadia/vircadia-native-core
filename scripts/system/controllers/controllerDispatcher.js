@@ -528,6 +528,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Selection.disableListHighlight(DISPATCHER_HOVERING_LIST);
         };
     }
+
     function mouseReleaseOnOverlay(overlayID, event) {
         if (HMD.homeButtonID && overlayID === HMD.homeButtonID && event.button === "Primary") {
             Messages.sendLocalMessage("home", overlayID);
@@ -546,9 +547,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
         }
     }
+
     Overlays.mouseReleaseOnOverlay.connect(mouseReleaseOnOverlay);
     Overlays.mousePressOnOverlay.connect(mousePress);
     Entities.mousePressOnEntity.connect(mousePress);
+
     var controllerDispatcher = new ControllerDispatcher();
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);

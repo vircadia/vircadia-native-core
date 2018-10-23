@@ -17,7 +17,7 @@ struct DrawColorParams {
     vec4 color;
 };
 
-layout(binding=0) uniform drawColorParamsBuffer {
+LAYOUT(binding=0) uniform drawColorParamsBuffer {
     DrawColorParams params;
 };
 

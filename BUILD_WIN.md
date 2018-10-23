@@ -5,11 +5,17 @@ Note: We are now using Visual Studio 2017 and Qt 5.10.1. If you are upgrading fr
 
 Note: The prerequisites will require about 10 GB of space on your drive. You will also need a system with at least 8GB of main memory.
 
-### Step 1. Visual Studio 2017
+### Step 1. Visual Studio 2017 & Python
 
 If you don’t have Community or Professional edition of Visual Studio 2017, download [Visual Studio Community 2017](https://www.visualstudio.com/downloads/).
 
-When selecting components, check "Desktop development with C++." Also on the right on the Summary toolbar, check "Windows 8.1 SDK and UCRT SDK" and "VC++ 2015.3 v140 toolset (x86,x64)".
+When selecting components, check "Desktop development with C++".  Also on the right on the Summary toolbar, check "Windows 8.1 SDK and UCRT SDK" and "VC++ 2015.3 v140 toolset (x86,x64)".  If you do not already have a python development environment installed, also check  "Python Development" in this screen.
+
+If you already have Visual Studio installed and need to add python, open the "Add or remove programs" control panel and find the "Microsoft Visual Studio Installer".  Select it and click "Modify".  In the installer, select "Modify" again, then check "Python Development" and allow the installer to apply the changes.
+
+### Step 1a.  Alternate Python
+
+If you do not wish to use the Python installation bundled with Visual Studio, you can download the installer from [here](https://www.python.org/downloads/).  Ensure you get version 3.6.6 or higher.
 
 ### Step 2. Installing CMake
 
