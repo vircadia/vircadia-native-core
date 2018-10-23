@@ -31,7 +31,7 @@ Rectangle {
 
         scaleSlider.notify = false;
         scaleSlider.value = Math.round(avatarScale * 10);
-        scaleSlider.notify = true;;
+        scaleSlider.notify = true;
 
         if (settings.dominantHand === 'left') {
             leftHandRadioButton.checked = true;

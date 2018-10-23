@@ -24,8 +24,6 @@
 
 #include "RenderableEntityItem.h"
 
-
-
 class Model;
 class EntityTreeRenderer;
 
@@ -114,21 +112,25 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    bool getMeshes(MeshProxyList& result) override; // deprecated
+    void setAnimationURL(const QString& url) override;
+    bool needsAnimationReset() const;
+    QString getAnimationURLAndReset();
 
 private:
     bool needsUpdateModelBounds() const;
     void autoResizeJointArrays();
     void copyAnimationJointDataToModel();
-
+    bool readyToAnimate() const;
     void getCollisionGeometryResource();
+
     GeometryResource::Pointer _compoundShapeResource;
-    bool _jointMapCompleted { false };
-    bool _originalTexturesRead { false };
     std::vector<int> _jointMap;
     QVariantMap _originalTextures;
+    bool _jointMapCompleted { false };
+    bool _originalTexturesRead { false };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
+    bool _needsAnimationReset { false };
 };
 
 namespace render { namespace entities { 
@@ -169,8 +171,7 @@ protected:
 
 private:
     void animate(const TypedEntityPointer& entity);
-    void mapJoints(const TypedEntityPointer& entity, const QStringList& modelJointNames);
-    bool jointsMapped() const { return _jointMappingCompleted; }
+    void mapJoints(const TypedEntityPointer& entity, const ModelPointer& model);
 
     // Transparency is handled in ModelMeshPartPayload
     virtual bool isTransparent() const override { return false; }

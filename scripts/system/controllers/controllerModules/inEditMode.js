@@ -8,9 +8,8 @@
 /* jslint bitwise: true */
 
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
-   Messages, makeDispatcherModuleParameters, HMD, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
-   getEnabledModuleByName, PICK_MAX_DISTANCE, isInEditMode, Picks, makeLaserParams, Entities
+   Messages, makeDispatcherModuleParameters, HMD, getEnabledModuleByName, TRIGGER_ON_VALUE, isInEditMode, Picks,
+   makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -24,12 +23,12 @@ Script.include("/~/system/libraries/utils.js");
         this.triggerClicked = false;
         this.selectedTarget = null;
         this.reticleMinX = MARGIN;
-        this.reticleMaxX;
+        this.reticleMaxX = null;
         this.reticleMinY = MARGIN;
-        this.reticleMaxY;
+        this.reticleMaxY = null;
 
         this.parameters = makeDispatcherModuleParameters(
-            160,
+            165, // Lower priority than webSurfaceLaserInput and hudOverlayPointer.
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
             100,
@@ -49,8 +48,8 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.pointingAtTablet = function(objectID) {
-            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
-                || (HMD.homeButtonID && objectID === HMD.homeButtonID);
+            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID) ||
+                (HMD.homeButtonID && objectID === HMD.homeButtonID);
         };
 
         this.calculateNewReticlePosition = function(intersection) {
@@ -128,30 +127,43 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.run = function(controllerData) {
-            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightTabletStylusInput" : "LeftTabletStylusInput");
+            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightTabletStylusInput" : "LeftTabletStylusInput");
             if (tabletStylusInput) {
                 var tabletReady = tabletStylusInput.isReady(controllerData);
-
                 if (tabletReady.active) {
                     return this.exitModule();
                 }
             }
 
-            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
-            if (overlayLaser) {
-                var overlayLaserReady = overlayLaser.isReady(controllerData);
+            var webLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
+            if (webLaser) {
+                var webLaserReady = webLaser.isReady(controllerData);
                 var target = controllerData.rayPicks[this.hand].objectID;
                 this.sendPointingAtData(controllerData);
-                if (overlayLaserReady.active && this.pointingAtTablet(target)) {
+                if (webLaserReady.active && this.pointingAtTablet(target)) {
                     return this.exitModule();
                 }
             }
 
-            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
-            if (nearOverlay) {
-                var nearOverlayReady = nearOverlay.isReady(controllerData);
+            if (!controllerData.triggerClicks[this.hand]) { // Don't grab if trigger pressed when laser starts intersecting.
+                var hudLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                    ? "RightHudOverlayPointer" : "LeftHudOverlayPointer");
+                if (hudLaser) {
+                    var hudLaserReady = hudLaser.isReady(controllerData);
+                    if (hudLaserReady.active) {
+                        return this.exitModule();
+                    }
+                }
+            }
 
-                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
+            // Tablet highlight and grabbing.
+            var tabletHighlight = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            if (tabletHighlight) {
+                var tabletHighlightReady = tabletHighlight.isReady(controllerData);
+                if (tabletHighlightReady.active) {
                     return this.exitModule();
                 }
             }

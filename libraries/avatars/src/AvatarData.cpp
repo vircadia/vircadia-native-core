@@ -44,6 +44,7 @@
 #include "AvatarLogging.h"
 #include "AvatarTraits.h"
 #include "ClientTraitsHandler.h"
+#include "ResourceRequestObserver.h"
 
 //#define WANT_DEBUG
 
@@ -75,8 +76,11 @@ size_t AvatarDataPacket::maxJointDataSize(size_t numJoints, bool hasGrabJoints) 
     totalSize += numJoints * sizeof(SixByteTrans); // Translations
 
     size_t NUM_FAUX_JOINT = 2;
-    size_t num_grab_joints = (hasGrabJoints ? 2 : 0);
-    totalSize += (NUM_FAUX_JOINT + num_grab_joints) * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
+    totalSize += NUM_FAUX_JOINT * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
+
+    if (hasGrabJoints) {
+        totalSize += sizeof(AvatarDataPacket::FarGrabJoints);
+    }
 
     return totalSize;
 }
@@ -690,7 +694,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         if (hasGrabJoints) {
             // the far-grab joints may range further than 3 meters, so we can't use packFloatVec3ToSignedTwoByteFixed etc
             auto startSection = destinationBuffer;
-            auto data = reinterpret_cast<AvatarDataPacket::FarGrabJoints*>(destinationBuffer);
+
             glm::vec3 leftFarGrabPosition = extractTranslation(leftFarGrabMatrix);
             glm::quat leftFarGrabRotation = extractRotation(leftFarGrabMatrix);
             glm::vec3 rightFarGrabPosition = extractTranslation(rightFarGrabMatrix);
@@ -698,28 +702,17 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             glm::vec3 mouseFarGrabPosition = extractTranslation(mouseFarGrabMatrix);
             glm::quat mouseFarGrabRotation = extractRotation(mouseFarGrabMatrix);
 
-            AVATAR_MEMCPY(leftFarGrabPosition);
-            // Can't do block copy as struct order is x, y, z, w.
-            data->leftFarGrabRotation[0] = leftFarGrabRotation.w;
-            data->leftFarGrabRotation[1] = leftFarGrabRotation.x;
-            data->leftFarGrabRotation[2] = leftFarGrabRotation.y;
-            data->leftFarGrabRotation[3] = leftFarGrabRotation.z;
-            destinationBuffer += sizeof(data->leftFarGrabPosition);
+            AvatarDataPacket::FarGrabJoints farGrabJoints = {
+                { leftFarGrabPosition.x, leftFarGrabPosition.y, leftFarGrabPosition.z },
+                { leftFarGrabRotation.w, leftFarGrabRotation.x, leftFarGrabRotation.y, leftFarGrabRotation.z },
+                { rightFarGrabPosition.x, rightFarGrabPosition.y, rightFarGrabPosition.z },
+                { rightFarGrabRotation.w, rightFarGrabRotation.x, rightFarGrabRotation.y, rightFarGrabRotation.z },
+                { mouseFarGrabPosition.x, mouseFarGrabPosition.y, mouseFarGrabPosition.z },
+                { mouseFarGrabRotation.w, mouseFarGrabRotation.x, mouseFarGrabRotation.y, mouseFarGrabRotation.z }
+            };
 
-            AVATAR_MEMCPY(rightFarGrabPosition);
-            data->rightFarGrabRotation[0] = rightFarGrabRotation.w;
-            data->rightFarGrabRotation[1] = rightFarGrabRotation.x;
-            data->rightFarGrabRotation[2] = rightFarGrabRotation.y;
-            data->rightFarGrabRotation[3] = rightFarGrabRotation.z;
-            destinationBuffer += sizeof(data->rightFarGrabRotation);
-
-            AVATAR_MEMCPY(mouseFarGrabPosition);
-            data->mouseFarGrabRotation[0] = mouseFarGrabRotation.w;
-            data->mouseFarGrabRotation[1] = mouseFarGrabRotation.x;
-            data->mouseFarGrabRotation[2] = mouseFarGrabRotation.y;
-            data->mouseFarGrabRotation[3] = mouseFarGrabRotation.z;
-            destinationBuffer += sizeof(data->mouseFarGrabRotation);
-
+            memcpy(destinationBuffer, &farGrabJoints, sizeof(farGrabJoints));
+            destinationBuffer += sizeof(AvatarDataPacket::FarGrabJoints);
             int numBytes = destinationBuffer - startSection;
 
             if (outboundDataRateOut) {
@@ -1250,25 +1243,37 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             auto startSection = sourceBuffer;
 
             PACKET_READ_CHECK(FarGrabJoints, sizeof(AvatarDataPacket::FarGrabJoints));
-            auto data = reinterpret_cast<const AvatarDataPacket::FarGrabJoints*>(sourceBuffer);
-            glm::vec3 leftFarGrabPosition = glm::vec3(data->leftFarGrabPosition[0], data->leftFarGrabPosition[1],
-                                                      data->leftFarGrabPosition[2]);
-            glm::quat leftFarGrabRotation = glm::quat(data->leftFarGrabRotation[0], data->leftFarGrabRotation[1],
-                                                      data->leftFarGrabRotation[2], data->leftFarGrabRotation[3]);
-            glm::vec3 rightFarGrabPosition = glm::vec3(data->rightFarGrabPosition[0], data->rightFarGrabPosition[1],
-                                                       data->rightFarGrabPosition[2]);
-            glm::quat rightFarGrabRotation = glm::quat(data->rightFarGrabRotation[0], data->rightFarGrabRotation[1],
-                                                       data->rightFarGrabRotation[2], data->rightFarGrabRotation[3]);
-            glm::vec3 mouseFarGrabPosition = glm::vec3(data->mouseFarGrabPosition[0], data->mouseFarGrabPosition[1],
-                                                       data->mouseFarGrabPosition[2]);
-            glm::quat mouseFarGrabRotation = glm::quat(data->mouseFarGrabRotation[0], data->mouseFarGrabRotation[1],
-                                                       data->mouseFarGrabRotation[2], data->mouseFarGrabRotation[3]);
+
+            AvatarDataPacket::FarGrabJoints farGrabJoints;
+            memcpy(&farGrabJoints, sourceBuffer, sizeof(farGrabJoints)); // to avoid misaligned floats
+
+            glm::vec3 leftFarGrabPosition = glm::vec3(farGrabJoints.leftFarGrabPosition[0],
+                                                      farGrabJoints.leftFarGrabPosition[1],
+                                                      farGrabJoints.leftFarGrabPosition[2]);
+            glm::quat leftFarGrabRotation = glm::quat(farGrabJoints.leftFarGrabRotation[0],
+                                                      farGrabJoints.leftFarGrabRotation[1],
+                                                      farGrabJoints.leftFarGrabRotation[2],
+                                                      farGrabJoints.leftFarGrabRotation[3]);
+            glm::vec3 rightFarGrabPosition = glm::vec3(farGrabJoints.rightFarGrabPosition[0],
+                                                       farGrabJoints.rightFarGrabPosition[1],
+                                                       farGrabJoints.rightFarGrabPosition[2]);
+            glm::quat rightFarGrabRotation = glm::quat(farGrabJoints.rightFarGrabRotation[0],
+                                                       farGrabJoints.rightFarGrabRotation[1],
+                                                       farGrabJoints.rightFarGrabRotation[2],
+                                                       farGrabJoints.rightFarGrabRotation[3]);
+            glm::vec3 mouseFarGrabPosition = glm::vec3(farGrabJoints.mouseFarGrabPosition[0],
+                                                       farGrabJoints.mouseFarGrabPosition[1],
+                                                       farGrabJoints.mouseFarGrabPosition[2]);
+            glm::quat mouseFarGrabRotation = glm::quat(farGrabJoints.mouseFarGrabRotation[0],
+                                                       farGrabJoints.mouseFarGrabRotation[1],
+                                                       farGrabJoints.mouseFarGrabRotation[2],
+                                                       farGrabJoints.mouseFarGrabRotation[3]);
 
             _farGrabLeftMatrixCache.set(createMatFromQuatAndPos(leftFarGrabRotation, leftFarGrabPosition));
             _farGrabRightMatrixCache.set(createMatFromQuatAndPos(rightFarGrabRotation, rightFarGrabPosition));
             _farGrabMouseMatrixCache.set(createMatFromQuatAndPos(mouseFarGrabRotation, mouseFarGrabPosition));
 
-            sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
+            sourceBuffer += sizeof(AvatarDataPacket::FarGrabJoints);
             int numBytesRead = sourceBuffer - startSection;
             _farGrabJointRate.increment(numBytesRead);
             _farGrabJointUpdateRate.increment();
@@ -2157,11 +2162,21 @@ void AvatarData::updateJointMappings() {
     }
 
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
+        ////
+        // TODO: Should we rely upon HTTPResourceRequest for ResourceRequestObserver instead?
+        // HTTPResourceRequest::doSend() covers all of the following and
+        // then some. It doesn't cover the connect() call, so we may
+        // want to add a HTTPResourceRequest::doSend() method that does
+        // connects.
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        DependencyManager::get<ResourceRequestObserver>()->update(
+            _skeletonModelURL, -1, "AvatarData::updateJointMappings");
         QNetworkReply* networkReply = networkAccessManager.get(networkRequest);
+        //
+        ////
         connect(networkReply, &QNetworkReply::finished, this, &AvatarData::setJointMappingsFromNetworkReply);
     }
 }
@@ -2828,10 +2843,10 @@ QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, c
     obj.setProperty("avatarID", avatarIDValue);
     obj.setProperty("distance", value.distance);
     obj.setProperty("face", boxFaceToString(value.face));
+    QScriptValue intersection = vec3ToScriptValue(engine, value.intersection);
 
-    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
-    QScriptValue surfaceNormal = vec3toScriptValue(engine, value.surfaceNormal);
+    QScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
     obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;

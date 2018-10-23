@@ -10,7 +10,7 @@ var uuid = Entities.addEntity({
         maxVolume: 0.1,
         range: 25,
         disabled: true,
-        grabbableKey: { wantsTrigger: true },
+        grab: { triggerable: true }
     }),
     lifetime: 600,
 });

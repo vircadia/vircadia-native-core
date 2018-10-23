@@ -152,6 +152,8 @@
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
 #include <procedural/ProceduralSkybox.h>
+#include <model-networking/MaterialCache.h>
+#include "recording/ClipCache.h"
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
@@ -224,6 +226,7 @@
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
+#include "ResourceRequestObserver.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
@@ -328,9 +331,9 @@ static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains
 #endif
 
 #if !defined(Q_OS_ANDROID)
-static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
+static const uint32_t MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 #else
-static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
+static const uint32_t MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
 #endif
 
 // For processing on QThreadPool, we target a number of threads after reserving some
@@ -945,6 +948,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<WalletScriptingInterface>();
 
     DependencyManager::set<FadeEffect>();
+    DependencyManager::set<ResourceRequestObserver>();
 
     return previousSessionCrashed;
 }
@@ -1327,7 +1331,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
     bool success;
-    int concurrentDownloads = concurrentDownloadsStr.toInt(&success);
+    uint32_t concurrentDownloads = concurrentDownloadsStr.toUInt(&success);
     if (!success) {
         concurrentDownloads = MAX_CONCURRENT_RESOURCE_DOWNLOADS;
     }
@@ -2054,7 +2058,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
 
         properties["active_downloads"] = loadingRequests.size();
-        properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
+        properties["pending_downloads"] = (int)ResourceCache::getPendingRequestCount();
         properties["active_downloads_details"] = loadingRequestsStats;
 
         auto statTracker = DependencyManager::get<StatTracker>();
@@ -3127,6 +3131,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+    surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -3532,6 +3537,7 @@ void Application::setIsInterstitialMode(bool interstitialMode) {
     if (enableInterstitial) {
         if (_interstitialMode != interstitialMode) {
             _interstitialMode = interstitialMode;
+            emit interstitialModeChanged(_interstitialMode);
 
             DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
             DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
@@ -4653,8 +4659,8 @@ void Application::idle() {
         PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
     }
     PROFILE_COUNTER_IF_CHANGED(app, "renderLoopRate", float, _renderLoopCounter.rate());
-    PROFILE_COUNTER_IF_CHANGED(app, "currentDownloads", int, ResourceCache::getLoadingRequests().length());
-    PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", int, ResourceCache::getPendingRequestCount());
+    PROFILE_COUNTER_IF_CHANGED(app, "currentDownloads", uint32_t, ResourceCache::getLoadingRequestCount());
+    PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", uint32_t, ResourceCache::getPendingRequestCount());
     PROFILE_COUNTER_IF_CHANGED(app, "currentProcessing", int, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
     PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
     auto renderConfig = _renderEngine->getConfiguration();
@@ -5019,12 +5025,12 @@ void Application::saveSettings() const {
     PluginManager::getInstance()->saveSettings();
 }
 
-bool Application::importEntities(const QString& urlOrFilename) {
+bool Application::importEntities(const QString& urlOrFilename, const bool isObservable, const qint64 callerId) {
     bool success = false;
     _entityClipboard->withWriteLock([&] {
         _entityClipboard->eraseAllOctreeElements();
 
-        success = _entityClipboard->readFromURL(urlOrFilename);
+        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId);
         if (success) {
             _entityClipboard->reaverageOctreeElements();
         }
@@ -5399,13 +5405,21 @@ void Application::reloadResourceCaches() {
 
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
 
+    // Clear the entities and their renderables
+    getEntities()->clear();
+
     DependencyManager::get<AssetClient>()->clearCache();
     DependencyManager::get<ScriptCache>()->clearCache();
 
+    // Clear all the resource caches
+    DependencyManager::get<ResourceCacheSharedItems>()->clear();
     DependencyManager::get<AnimationCache>()->refreshAll();
-    DependencyManager::get<ModelCache>()->refreshAll();
     DependencyManager::get<SoundCache>()->refreshAll();
+    MaterialCache::instance().refreshAll();
+    DependencyManager::get<ModelCache>()->refreshAll();
+    ShaderCache::instance().refreshAll();
     DependencyManager::get<TextureCache>()->refreshAll();
+    DependencyManager::get<recording::ClipCache>()->refreshAll();
 
     DependencyManager::get<NodeList>()->reset();  // Force redownload of .fst models
 
@@ -6470,9 +6484,12 @@ void Application::clearDomainOctreeDetails() {
     skyStage->setBackgroundMode(graphics::SunSkyStage::SKY_DEFAULT);
 
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
-    DependencyManager::get<ModelCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
+    MaterialCache::instance().clearUnusedResources();
+    DependencyManager::get<ModelCache>()->clearUnusedResources();
+    ShaderCache::instance().clearUnusedResources();
     DependencyManager::get<TextureCache>()->clearUnusedResources();
+    DependencyManager::get<recording::ClipCache>()->clearUnusedResources();
 
     getMyAvatar()->setAvatarEntityDataChanged(true);
 }
@@ -6797,6 +6814,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
+    scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
@@ -7183,7 +7201,8 @@ void Application::addAssetToWorldFromURL(QString url) {
 
     addAssetToWorldInfo(filename, "Downloading model file " + filename + ".");
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, QUrl(url));
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        nullptr, QUrl(url), true, -1, "Application::addAssetToWorldFromURL");
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
 }
@@ -8461,6 +8480,16 @@ OverlayID Application::getTabletHomeButtonID() const {
 QUuid Application::getTabletFrameID() const {
     auto HMD = DependencyManager::get<HMDScriptingInterface>();
     return HMD->getCurrentTabletFrameID();
+}
+
+QVector<QUuid> Application::getTabletIDs() const {
+    // Most important overlays first. 
+    QVector<QUuid> result;
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    result << HMD->getCurrentTabletScreenID();
+    result << HMD->getCurrentHomeButtonID();
+    result << HMD->getCurrentTabletFrameID();
+    return result;
 }
 
 void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {

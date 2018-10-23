@@ -112,22 +112,28 @@ void ResourceManager::cleanup() {
     _thread.wait();
 }
 
-ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const QUrl& url) {
+ResourceRequest* ResourceManager::createResourceRequest(
+    QObject* parent,
+    const QUrl& url,
+    const bool isObservable,
+    const qint64 callerId,
+    const QString& extra
+) {
     auto normalizedURL = normalizeURL(url);
     auto scheme = normalizedURL.scheme();
 
     ResourceRequest* request = nullptr;
 
     if (scheme == URL_SCHEME_FILE || scheme == URL_SCHEME_QRC) {
-        request = new FileResourceRequest(normalizedURL);
+        request = new FileResourceRequest(normalizedURL, isObservable, callerId, extra);
     } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
-        request = new HTTPResourceRequest(normalizedURL);
+        request = new HTTPResourceRequest(normalizedURL, isObservable, callerId, extra);
     } else if (scheme == URL_SCHEME_ATP) {
         if (!_atpSupportEnabled) {
             qCDebug(networking) << "ATP support not enabled, unable to create request for URL: " << url.url();
             return nullptr;
         }
-        request = new AssetResourceRequest(normalizedURL);
+        request = new AssetResourceRequest(normalizedURL, isObservable, callerId, extra);
     } else {
         qCDebug(networking) << "Unknown scheme (" << scheme << ") for URL: " << url.url();
         return nullptr;
@@ -163,7 +169,7 @@ bool ResourceManager::resourceExists(const QUrl& url) {
 
         return reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200;
     } else if (scheme == URL_SCHEME_ATP && _atpSupportEnabled) {
-        auto request = new AssetResourceRequest(url);
+        auto request = new AssetResourceRequest(url, ResourceRequest::IS_NOT_OBSERVABLE);
         ByteRange range;
         range.fromInclusive = 1;
         range.toExclusive = 1;

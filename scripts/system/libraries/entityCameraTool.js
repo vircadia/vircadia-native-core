@@ -98,16 +98,18 @@ CameraManager = function() {
     }
 
     function getActionForKeyEvent(event) {
-        var action = keyToActionMapping[event.key];
-        if (action !== undefined) {
-            if (event.isShifted) {
-                if (action === "orbitForward") {
-                    action = "orbitUp";
-                } else if (action === "orbitBackward") {
-                    action = "orbitDown";
+        if (!event.isControl) {
+            var action = keyToActionMapping[event.key];
+            if (action !== undefined) {
+                if (event.isShifted) {
+                    if (action === "orbitForward") {
+                        action = "orbitUp";
+                    } else if (action === "orbitBackward") {
+                        action = "orbitDown";
+                    }
                 }
+                return action;
             }
-            return action;
         }
         return null;
     }

@@ -21,7 +21,12 @@
 class HTTPResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
-    HTTPResourceRequest(const QUrl& url) : ResourceRequest(url) { }
+    HTTPResourceRequest(
+        const QUrl& url,
+        const bool isObservable = true,
+        const qint64 callerId = -1,
+        const QString& = ""
+    ) : ResourceRequest(url, isObservable, callerId) { }
     ~HTTPResourceRequest();
 
 protected:

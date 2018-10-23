@@ -243,7 +243,7 @@ static const std::string DEFAULT_CUSTOM_SHADER{
     " }"
 };
 
-static std::string getFileContent(std::string fileName, std::string defaultContent = std::string()) {
+static std::string getFileContent(const std::string& fileName, const std::string& defaultContent = std::string()) {
     QFile customFile(QString::fromStdString(fileName));
     if (customFile.open(QIODevice::ReadOnly)) {
         return customFile.readAll().toStdString();
@@ -270,7 +270,7 @@ DebugDeferredBuffer::~DebugDeferredBuffer() {
     }
 }
 
-std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string customFile) {
+std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, const std::string& customFile) {
     switch (mode) {
         case AlbedoMode:
             return DEFAULT_ALBEDO_SHADER;
@@ -334,7 +334,7 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
     return std::string();
 }
 
-bool DebugDeferredBuffer::pipelineNeedsUpdate(Mode mode, std::string customFile) const {
+bool DebugDeferredBuffer::pipelineNeedsUpdate(Mode mode, const std::string& customFile) const {
     if (mode != CustomMode) {
         return !_pipelines[mode];
     }
@@ -351,19 +351,17 @@ bool DebugDeferredBuffer::pipelineNeedsUpdate(Mode mode, std::string customFile)
     return true;
 }
 
-const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::string customFile) {
+const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, const std::string& customFile) {
     if (pipelineNeedsUpdate(mode, customFile)) {
-        static const auto FRAGMENT_SHADER_SOURCE =
-            gpu::Shader::createPixel(shader::render_utils::fragment::debug_deferred_buffer)->getSource();
-        static const std::string SOURCE_PLACEHOLDER{ "//SOURCE_PLACEHOLDER" };
-        static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER_SOURCE.getCode().find(SOURCE_PLACEHOLDER);
-        Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO, "Could not find source placeholder");
+        static_assert(shader::render_utils::program::debug_deferred_buffer != 0, "Validate debug deferred program");
 
-        auto bakedFragmentShader = FRAGMENT_SHADER_SOURCE.getCode();
-        bakedFragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(), getShaderSourceCode(mode, customFile));
+        static const std::string REPLACEMENT_MARKER{ "//SOURCE_PLACEHOLDER" };
+        shader::Source resolvedFragmentSource;
+        resolvedFragmentSource = shader::Source::get(shader::render_utils::fragment::debug_deferred_buffer);
+        resolvedFragmentSource.replacements[REPLACEMENT_MARKER] = getShaderSourceCode(mode, customFile);
 
         const auto vs = gpu::Shader::createVertex(shader::render_utils::vertex::debug_deferred_buffer);
-        const auto ps = gpu::Shader::createPixel({ bakedFragmentShader, FRAGMENT_SHADER_SOURCE.getReflection() });
+        const auto ps = gpu::Shader::createPixel(resolvedFragmentSource);
         const auto program = gpu::Shader::createProgram(vs, ps);
         auto pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
 
@@ -405,6 +403,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
     auto& ambientOcclusionFramebuffer = inputs.get3();
     auto& velocityFramebuffer = inputs.get4();
     auto& frameTransform = inputs.get5();
+    auto& lightFrame = inputs.get6();
 
     gpu::doInBatch("DebugDeferredBuffer::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -443,7 +442,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
-        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
+        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow(*lightFrame);
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
             batch.setResourceTexture(Textures::Shadow, globalShadow->map);
