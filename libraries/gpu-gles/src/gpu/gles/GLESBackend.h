@@ -126,6 +126,9 @@ public:
     };
 
 protected:
+
+    void draw(GLenum mode, uint32 numVertices, uint32 startVertex) override;
+
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 

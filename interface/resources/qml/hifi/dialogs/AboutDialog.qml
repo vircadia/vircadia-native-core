@@ -10,7 +10,7 @@
 
 import QtQuick 2.8
 
-import "../../styles-uit"
+import stylesUit 1.0
 import "../../windows"
 
 ScrollingWindow {

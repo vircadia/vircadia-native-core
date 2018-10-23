@@ -427,8 +427,10 @@ void NodeList::sendDomainServerCheckIn() {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
         // Send duplicate check-ins in the exponentially increasing sequence 1, 1, 2, 4, ...
+        static const int MAX_CHECKINS_TOGETHER = 20;
         int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
         int checkinCount = outstandingCheckins > 1 ? std::pow(2, outstandingCheckins - 2) : 1;
+        checkinCount = std::min(checkinCount, MAX_CHECKINS_TOGETHER);
         for (int i = 1; i < checkinCount; ++i) {
             auto packetCopy = domainPacket->createCopy(*domainPacket);
             sendPacket(std::move(packetCopy), _domainHandler.getSockAddr());
