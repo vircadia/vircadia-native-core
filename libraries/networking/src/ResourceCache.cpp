@@ -252,7 +252,9 @@ ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
     }
 }
 
-ResourceCache::~ResourceCache() {}
+ResourceCache::~ResourceCache() {
+    clearUnusedResources();
+}
 
 void ResourceCache::clearATPAssets() {
     {
