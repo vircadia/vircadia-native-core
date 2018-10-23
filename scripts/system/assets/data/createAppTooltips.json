@@ -5,9 +5,6 @@
     "color": {
         "tooltip": "The RGB value of this entity."
     },
-    "materialURL": {
-        "tooltip": "The URL of a JSON file containing the material. Use this to change the entity's look. "
-    },
     "text": {
         "tooltip": "The text to display on the entity."
     },
@@ -35,7 +32,7 @@
     "keyLightMode": {
         "tooltip": "Configures the key light in the zone. This light is directional."
     },
-    "keyLightColor": {
+    "keyLight.color": {
         "tooltip": "The color of the key light."
     },
     "keyLight.intensity": {
@@ -152,7 +149,7 @@
     "originalTextures": {
         "tooltip": "A JSON string containing the original texture used on the model."
     },
-    "imageUrl": {
+    "image": {
         "tooltip": "The URL for the image source.",
         "jsPropertyName": "textures"
     },
@@ -278,6 +275,36 @@
     },
     "cutoff": {
         "tooltip": "Affects the size of the spotlight beam; the higher the value, the larger the beam."
+    },
+    "materialURL": {
+        "tooltip": "The URL to an external JSON file or \"materialData\", \"materialData?<material name> to use Material Data."
+    },
+    "materialData": {
+        "tooltip": "Can be used instead of a JSON file when material set to materialData."
+    },
+    "materialNameToReplace": {
+        "tooltip": "Material name of parent entity to map this material entity on.",
+        "jsPropertyName": "parentMaterialName"
+    },
+    "submeshToReplace": {
+        "tooltip": "Submesh index of the parent entity to map this material on.",
+        "jsPropertyName": "parentMaterialName"
+    },
+    "selectSubmesh": {
+        "tooltip": "If enabled, \"Select Submesh\" property will show up, otherwise \"Material Name to Replace\" will be shown.",
+        "skipJSProperty": true
+    },
+    "priority": {
+        "tooltip": "The priority of the material, where a larger number means higher priority. Original materials = 0."
+    },
+    "materialMappingPos": {
+        "tooltip": "The offset position of the bottom left of the material within the parent's UV space."
+    },
+    "materialMappingScale": {
+        "tooltip": "How many times the material will repeat in each direction within the parent's UV space."
+    },
+    "materialMappingRot": {
+        "tooltip": "How much to rotate the material within the parent's UV-space, in degrees."
     },
     "id": {
         "tooltip": "The unique identifier of this entity."
