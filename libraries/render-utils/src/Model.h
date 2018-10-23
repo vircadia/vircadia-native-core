@@ -120,9 +120,6 @@ public:
     bool isGroupCulled() const;
     void setGroupCulled(bool isGroupCulled, const render::ScenePointer& scene = nullptr);
 
-    bool isLODEnabled() const;
-    void setLODEnabled(bool isLODEnabled, const render::ScenePointer& scene = nullptr);
-
     bool canCastShadow() const;
     void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene = nullptr);
 

@@ -127,11 +127,6 @@ void ModelOverlay::update(float deltatime) {
         _model->setGroupCulled(_isGroupCulled, scene);
         metaDirty = true;
     }
-    if (_lodEnabledDirty) {
-        _lodEnabledDirty = false;
-        _model->setLODEnabled(_isLODEnabled, scene);
-        metaDirty = true;
-    }
     if (metaDirty) {
         transaction.updateItem<Overlay>(getRenderItemID(), [](Overlay& data) {});
     }
@@ -196,14 +191,6 @@ void ModelOverlay::setGroupCulled(bool groupCulled) {
     }
 }
 
-void ModelOverlay::setLODEnabled(bool lodEnabled) {
-    if (lodEnabled != _isLODEnabled) {
-        _isLODEnabled = lodEnabled;
-        _lodEnabledDirty = true;
-    }
-}
-
-
 void ModelOverlay::setProperties(const QVariantMap& properties) {
     auto origPosition = getWorldPosition();
     auto origRotation = getWorldOrientation();
@@ -260,12 +247,6 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     if (groupCulledValue.isValid() && groupCulledValue.canConvert(QVariant::Bool)) {
         setGroupCulled(groupCulledValue.toBool());
     }
-
-    auto lodEnabledValue = properties["isLODEnabled"];
-    if (lodEnabledValue.isValid() && lodEnabledValue.canConvert(QVariant::Bool)) {
-        setLODEnabled(lodEnabledValue.toBool());
-    }
-
 
     // jointNames is read-only.
     // jointPositions is read-only.
@@ -571,24 +552,8 @@ void ModelOverlay::locationChanged(bool tellPhysics) {
 
     // FIXME Start using the _renderTransform instead of calling for Transform and Dimensions from here, do the custom things needed in evalRenderTransform()
     if (_model && _model->isActive()) {
-        if (!_isLODEnabled) {
-            auto rot = _model->getRotation();
-            auto tra = _model->getTranslation();
-
-            auto nrot = getWorldOrientation();
-            auto ntra = getWorldPosition();
-            if (glm::any(glm::notEqual(rot, nrot))) {
-                rot = nrot;
-                _model->setRotation(rot);
-            }
-            if (glm::any(glm::notEqual(tra, ntra))) {
-                tra = ntra;
-                _model->setTranslation(tra);
-            }
-        } else {
-            _model->setRotation(getWorldOrientation());
-            _model->setTranslation(getWorldPosition());
-        }
+        _model->setRotation(getWorldOrientation());
+        _model->setTranslation(getWorldPosition());
     }
 }
 
@@ -800,9 +765,5 @@ render::ItemKey ModelOverlay::getKey() {
     if (_isGroupCulled) {
         builder.withMetaCullGroup();
     }
-    if (!_isLODEnabled) {
-        builder.withLODDisabled();
-    }
-
     return builder.build();
 }

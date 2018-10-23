@@ -69,7 +69,6 @@ public:
     void setDrawInFront(bool drawInFront) override;
     void setDrawHUDLayer(bool drawHUDLayer) override;
     void setGroupCulled(bool groupCulled);
-    void setLODEnabled(bool lodEnabled);
 
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
@@ -131,8 +130,6 @@ private:
     bool _drawInHUDDirty { false };
     bool _isGroupCulled { false };
     bool _groupCulledDirty { false };
-    bool _isLODEnabled{ true };
-    bool _lodEnabledDirty{ true };
 
     void processMaterials();
 

@@ -101,7 +101,6 @@ public:
         SHADOW_CASTER,    // Item cast shadows
         META_CULL_GROUP,  // As a meta item, the culling of my sub items is based solely on my bounding box and my visibility in the view
         SUB_META_CULLED,  // As a sub item of a meta render item set as cull group, need to be set to my culling to the meta render it
-        LOD_DISABLED,     // Item LOD behavior is disabled, it won't be LODed because of lod behavior in the view
 
         FIRST_TAG_BIT, // 8 Tags available to organize the items and filter them against
         LAST_TAG_BIT = FIRST_TAG_BIT + NUM_TAGS,
@@ -161,8 +160,6 @@ public:
         Builder& withoutMetaCullGroup() { _flags.reset(META_CULL_GROUP); return (*this); }
         Builder& withSubMetaCulled() { _flags.set(SUB_META_CULLED); return (*this); }
         Builder& withoutSubMetaCulled() { _flags.reset(SUB_META_CULLED); return (*this); }
-        Builder& withLODDisabled() { _flags.set(LOD_DISABLED); return (*this); }
-        Builder& withLODEnabled() { _flags.reset(LOD_DISABLED); return (*this); }
 
         Builder& withTag(Tag tag) { _flags.set(FIRST_TAG_BIT + tag); return (*this); }
         // Set ALL the tags in one call using the Tag bits
@@ -205,9 +202,6 @@ public:
 
     bool isSubMetaCulled() const { return _flags[SUB_META_CULLED]; }
     void setSubMetaCulled(bool metaCulled) { (metaCulled ? _flags.set(SUB_META_CULLED) : _flags.reset(SUB_META_CULLED)); }
-
-    bool isLODEnabled() const { return !_flags[LOD_DISABLED]; }
-    bool isLODDisabled() const { return _flags[LOD_DISABLED]; }
 
     bool isTag(Tag tag) const { return _flags[FIRST_TAG_BIT + tag]; }
     uint8_t getTagBits() const { return ((_flags.to_ulong() & KEY_TAG_BITS_MASK) >> FIRST_TAG_BIT); }
@@ -279,9 +273,6 @@ public:
 
         Builder& withoutSubMetaCulled() { _value.reset(ItemKey::SUB_META_CULLED); _mask.set(ItemKey::SUB_META_CULLED); return (*this); }
         Builder& withSubMetaCulled() { _value.set(ItemKey::SUB_META_CULLED);  _mask.set(ItemKey::SUB_META_CULLED); return (*this); }
-
-        Builder& withLODEnabled() { _value.reset(ItemKey::LOD_DISABLED); _mask.set(ItemKey::LOD_DISABLED); return (*this); }
-        Builder& withLODDisabled() { _value.set(ItemKey::LOD_DISABLED);  _mask.set(ItemKey::LOD_DISABLED); return (*this); }
 
         Builder& withoutTag(ItemKey::Tag tagIndex)    { _value.reset(ItemKey::FIRST_TAG_BIT + tagIndex);  _mask.set(ItemKey::FIRST_TAG_BIT + tagIndex); return (*this); }
         Builder& withTag(ItemKey::Tag tagIndex)       { _value.set(ItemKey::FIRST_TAG_BIT + tagIndex);  _mask.set(ItemKey::FIRST_TAG_BIT + tagIndex); return (*this); }

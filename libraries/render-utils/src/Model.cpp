@@ -226,10 +226,6 @@ void Model::updateRenderItems() {
         bool isWireframe = self->isWireframe();
         auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
 
-        if (renderItemKeyGlobalFlags.isLODDisabled()) {
-            modelTransform.setScale(glm::vec3(1.0f));
-        }
-
         render::Transaction transaction;
         for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
 
@@ -249,8 +245,6 @@ void Model::updateRenderItems() {
                     data.updateClusterBuffer(meshState.clusterMatrices);
                 }
 
-                auto bound = data.getBound();
-
                 Transform renderTransform = modelTransform;
 
                 if (useDualQuaternionSkinning) {
@@ -267,15 +261,6 @@ void Model::updateRenderItems() {
                     }
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
-
-                if (renderItemKeyGlobalFlags.isLODDisabled()) {
-                    auto newBound = data.getBound();
-                    if (bound != newBound) {
-                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
-                    } else {
-                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
-                    }
-                }
 
                 data.updateKey(renderItemKeyGlobalFlags);
                 data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
@@ -906,12 +891,7 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
         _needsFixupInScene = true;
         return;
     }
-    auto prevVal = _needsFixupInScene;
     auto renderItemsKey = _renderItemKeyGlobalFlags;
-    if (renderItemsKey.isLODDisabled()) {
-        _needsFixupInScene = true;
-        _needsFixupInScene = prevVal;
-    }
     render::Transaction transaction;
     foreach(auto item, _modelMeshRenderItemsMap.keys()) {
         transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
@@ -989,17 +969,6 @@ void Model::setGroupCulled(bool groupCulled, const render::ScenePointer& scene) 
 }
 bool Model::isGroupCulled() const {
     return _renderItemKeyGlobalFlags.isSubMetaCulled();
-}
-
-void Model::setLODEnabled(bool isLODEnabled, const render::ScenePointer& scene) {
-    if (Model::isLODEnabled() != isLODEnabled) {
-        auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (isLODEnabled ? keyBuilder.withLODEnabled() : keyBuilder.withLODDisabled());
-        updateRenderItemsKey(scene);
-    }
-}
-bool Model::isLODEnabled() const {
-    return _renderItemKeyGlobalFlags.isLODEnabled();
 }
 
 const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
