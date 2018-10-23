@@ -25,6 +25,8 @@ Item {
     width: root.pane.width
     property bool isTablet: root.isTablet
     property bool failAfterSignUp: false
+    property string fontFamily: "Cairo"
+    property bool fontBold: true
 
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
@@ -163,7 +165,7 @@ Item {
             HifiControlsUit.TextField {
                 id: usernameField
                 width: banner.width
-                font.family: "Cairo"
+                font.family: linkAccountBody.fontFamily
                 placeholderText: "Username"
                 anchors {
                     top: parent.top
@@ -177,7 +179,7 @@ Item {
             HifiControlsUit.TextField {
                 id: emailField
                 width: banner.width
-                font.family: "Cairo"
+                font.family: linkAccountBody.fontFamily
                 text: Settings.getValue("wallet/savedUsername", "");
                 anchors {
                     top: parent.top
@@ -197,7 +199,7 @@ Item {
             HifiControlsUit.TextField {
                 id: passwordField
                 width: banner.width
-                font.family: "Cairo"
+                font.family: linkAccountBody.fontFamily
                 placeholderText: "Password"
                 activeFocusOnPress: true
                 echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
@@ -256,7 +258,7 @@ Item {
                 checked: !Settings.getValue("wallet/autoLogout", false);
                 text: qsTr("Keep Me Logged In")
                 boxSize: 18;
-                labelFontFamily: "Cairo"
+                labelFontFamily: linkAccountBody.fontFamily
                 labelFontSize: 18;
                 color: hifi.colors.white;
                 anchors {
@@ -293,10 +295,10 @@ Item {
 
                     lineHeight: 1
                     color: "white"
-                    font.family: "Cairo"
+                    font.family: linkAccountBody.fontFamily
                     font.pixelSize: 24
                     font.capitalization: Font.AllUppercase;
-                    font.bold: true
+                    font.bold: linkAccountBody.fontBold
                     lineHeightMode: Text.ProportionalHeight
                 }
                 MouseArea {
@@ -313,9 +315,9 @@ Item {
                 width: d.minWidthButton
                 height: d.minHeightButton
                 text: qsTr("Log In")
-                fontFamily: "Cairo"
+                fontFamily: linkAccountBody.fontFamily
                 fontSize: signUpButton.fontSize
-                fontBold: true
+                fontBold: linkAccountBody.fontBold
                 anchors {
                     top: cancelContainer.top
                     right: passwordField.right
@@ -338,7 +340,7 @@ Item {
                     id: cantAccessText
                     z: 10
                     anchors.centerIn: parent
-                    font.family: "Cairo"
+                    font.family: linkAccountBody.fontFamily
                     font.pixelSize: 14
 
                     text: "<a href='https://highfidelity.com/users/password/new'> Can't access your account?</a>"
@@ -370,9 +372,9 @@ Item {
                 wrapMode: Text.WordWrap
                 lineHeight: 1
                 color: "white"
-                font.family: "Cairo"
+                font.family: linkAccountBody.fontFamily
                 font.pixelSize: 48
-                font.bold: true
+                font.bold: linkAccountBody.fontBold
                 lineHeightMode: Text.ProportionalHeight
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -383,9 +385,9 @@ Item {
                 width: d.minWidthButton
                 height: d.minHeightButton
                 color: hifi.buttons.blue
-                fontFamily: "Cairo"
-                fontSize: 21
-                fontBold: true
+                fontFamily: linkAccountBody.fontFamily
+                fontSize: 24
+                fontBold: linkAccountBody.fontBold
                 anchors {
                     bottom: parent.bottom
                     bottomMargin: 0.1 * parent.height
@@ -424,12 +426,12 @@ Item {
                 width: signUpButton.width
                 height: signUpButton.height
                 text: qsTr("Log In")
-                fontFamily: "Cairo"
+                fontFamily: linkAccountBody.fontFamily
                 fontSize: signUpButton.fontSize
-                fontBold: true
+                fontBold: linkAccountBody.fontBold
                 anchors {
                     top: parent.top
-                    topMargin: 0.245 * parent.height
+                    topMargin: (parent.height  / 2) - loginButton.height
                     left: parent.left
                     leftMargin: (parent.width - loginButton.width) / 2
                 }
@@ -447,7 +449,7 @@ Item {
 
                 anchors {
                     top: loginButton.bottom
-                    topMargin: 0.04 * parent.height
+                    topMargin: hifi.dimensions.contentSpacing.y
                     left: parent.left
                     leftMargin: (parent.width - steamLoginButton.width) / 2
                 }
@@ -528,9 +530,9 @@ Item {
                             font.capitalization: Font.AllUppercase;
                             verticalAlignment: Text.AlignVCenter;
                             horizontalAlignment: Text.AlignHCenter;
-                            font.family: "Cairo"
+                            font.family: linkAccountBody.fontFamily
                             font.pixelSize: signUpButton.fontSize;
-                            font.bold: true
+                            font.bold: linkAccountBody.fontBold
                             color: enabled ? hifi.buttons.textColor[control.color]
                                             : hifi.buttons.disabledTextColor[control.colorScheme]
                         }
@@ -553,9 +555,9 @@ Item {
 
                 lineHeight: 1
                 color: "white"
-                font.family: "Cairo"
+                font.family: linkAccountBody.fontFamily
                 font.pixelSize: 24
-                font.bold: true
+                font.bold: linkAccountBody.fontBold
                 lineHeightMode: Text.ProportionalHeight
                 horizontalAlignment: Text.AlignHCenter
             }
