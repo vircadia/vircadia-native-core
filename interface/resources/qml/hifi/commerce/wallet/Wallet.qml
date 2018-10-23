@@ -352,7 +352,11 @@ Rectangle {
         anchors.bottom: tabButtonsContainer.top;
         anchors.left: parent.left;
         anchors.right: parent.right;
-
+        Connections {
+            onSendToScript: {
+                sendToScript(message);
+            }
+        }
 
     }
 
@@ -822,7 +826,8 @@ Rectangle {
                 // Because we don't have "channels" for sending messages to a specific QML object, the messages are broadcast to all QML Items. If an Item of yours happens to be visible when some script sends a message with a method you don't expect, you'll get "Unrecognized message..." logs.
             break;
             default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                // HRS FIXME console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                walletInventory.fromScript(message);
         }
     }
     signal sendToScript(var message);
