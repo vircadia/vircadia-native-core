@@ -1,7 +1,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 2.2
-import stylesUit 1.0
-import controlsUit 1.0 as HifiControlsUit
+import "../../styles-uit"
+import "../../controls-uit" as HifiControlsUit
 
 TextField {
     id: textField

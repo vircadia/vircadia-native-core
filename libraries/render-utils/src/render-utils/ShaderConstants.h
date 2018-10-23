@@ -131,15 +131,6 @@
 
 namespace render_utils { namespace slot {
 
-namespace uniform {
-enum Uniform {
-    TextColor = RENDER_UTILS_UNIFORM_TEXT_COLOR,
-    TextOutline = RENDER_UTILS_UNIFORM_TEXT_OUTLINE,
-    TaaSharpenIntensity = GPU_UNIFORM_EXTRA0,
-    HighlightOutlineWidth = GPU_UNIFORM_EXTRA0,
-};
-}
-
 namespace buffer {
 enum Buffer {
     DeferredFrameTransform = RENDER_UTILS_BUFFER_DEFERRED_FRAME_TRANSFORM,

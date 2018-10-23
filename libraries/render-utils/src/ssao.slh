@@ -44,7 +44,7 @@ struct AmbientOcclusionParams {
     float _gaussianCoefs[8];
 };
 
-layout(binding=RENDER_UTILS_BUFFER_SSAO_PARAMS) uniform ambientOcclusionParamsBuffer {
+LAYOUT(binding=RENDER_UTILS_BUFFER_SSAO_PARAMS) uniform ambientOcclusionParamsBuffer {
     AmbientOcclusionParams params;
 };
 
@@ -232,7 +232,7 @@ vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius,
 
 
 // the depth pyramid texture
-layout(binding=RENDER_UTILS_TEXTURE_SSAO_PYRAMID) uniform sampler2D pyramidMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_PYRAMID) uniform sampler2D pyramidMap;
 
 float getZEye(ivec2 pixel, int level) {
     return -texelFetch(pyramidMap, pixel, level).x;
@@ -313,7 +313,7 @@ float evalAO(in vec3 C, in vec3 n_C, in vec3 Q) {
 <$declareAmbientOcclusion()$>
 
 // the source occlusion texture
-layout(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2D occlusionMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2D occlusionMap;
 
 vec2 fetchOcclusionDepthRaw(ivec2 coords, out vec3 raw) {
     raw = texelFetch(occlusionMap, coords, 0).xyz;

@@ -9,9 +9,9 @@
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
 
-import stylesUit 1.0
+import "../../styles-uit"
 import "../../controls"
-import controlsUit 1.0 as HifiControls
+import "../../controls-uit" as HifiControls
 import "."
 
 

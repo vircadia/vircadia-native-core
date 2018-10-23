@@ -1,8 +1,8 @@
 import QtQuick 2.7
 import QtWebEngine 1.5
-import controlsUit 1.0 as HiFiControls
+import "../controls-uit" as HiFiControls
 import "../styles" as HifiStyles
-import stylesUit 1.0
+import "../styles-uit"
 
 Item {
     id: root

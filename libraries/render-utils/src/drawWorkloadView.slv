@@ -32,7 +32,7 @@ struct DrawMesh {
     vec4 verts[NUM_SEGMENT_PER_VIEW_REGION];
 };
 
-layout(std140, binding=0) uniform DrawMeshBuffer {
+LAYOUT_STD140(binding=0) uniform DrawMeshBuffer {
     DrawMesh _drawMeshBuffer;
 };
 

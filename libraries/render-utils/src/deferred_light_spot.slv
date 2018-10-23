@@ -21,7 +21,7 @@
 
 <$declareLightBuffer(256)$>
 
-layout(binding=RENDER_UTILS_BUFFER_LIGHT_INDEX) uniform lightIndexBuffer {
+LAYOUT(binding=RENDER_UTILS_BUFFER_LIGHT_INDEX) uniform lightIndexBuffer {
     int lightIndex[256];
 };
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord0;

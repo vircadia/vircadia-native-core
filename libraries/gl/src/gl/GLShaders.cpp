@@ -14,7 +14,7 @@ using namespace gl;
 
 void Uniform::load(GLuint glprogram, int index) {
     this->index = index;
-    if (index > 0) {
+    if (index >= 0) {
         static const GLint NAME_LENGTH = 1024;
         GLchar glname[NAME_LENGTH];
         memset(glname, 0, NAME_LENGTH);
