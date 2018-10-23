@@ -293,12 +293,6 @@ private:
     bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
-    
-    Mutex _TTSMutex;
-    QTimer _TTSTimer;
-    bool _isProcessingTTS {false};
-    QByteArray _TTSAudioBuffer;
-    int _TTSChunkSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * 50;
 
 #ifdef Q_OS_ANDROID
     QTimer _checkInputTimer;
@@ -464,6 +458,12 @@ private:
     QTimer* _checkPeakValuesTimer { nullptr };
 
     bool _isRecording { false };
+
+    Mutex _TTSMutex;
+    bool _isProcessingTTS { false };
+    QByteArray _TTSAudioBuffer;
+    int _TTSChunkSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * 50;
+    QTimer _TTSTimer;
 };
 
 

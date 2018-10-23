@@ -186,11 +186,11 @@ AudioClient::AudioClient() :
     _networkToOutputResampler(NULL), _localToOutputResampler(NULL),
     _audioLimiter(AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT), _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_localInjectorsStream, _receivedAudioStream, this), _stats(&_receivedAudioStream),
-    _positionGetter(DEFAULT_POSITION_GETTER), _TTSTimer(this),
+    _positionGetter(DEFAULT_POSITION_GETTER), _orientationGetter(DEFAULT_ORIENTATION_GETTER),
 #if defined(Q_OS_ANDROID)
     _checkInputTimer(this), _isHeadsetPluggedIn(false),
 #endif
-    _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
+    _TTSTimer(this) {
     // avoid putting a lock in the device callback
     assert(_localSamplesAvailable.is_lock_free());
 
