@@ -2,11 +2,11 @@ struct TextureData {
     ivec2 textureSize;
 };
 
-layout(std140, binding=0) uniform textureDataBuffer {
+LAYOUT_STD140(binding=0) uniform textureDataBuffer {
     TextureData textureData;
 };
 
-layout(binding=0) uniform sampler2D colorMap;
+LAYOUT(binding=0) uniform sampler2D colorMap;
 layout(location=0) in vec2 varTexCoord0;
 layout(location=0) out vec4 outFragColor;
 

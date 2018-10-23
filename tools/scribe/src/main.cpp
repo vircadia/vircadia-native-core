@@ -25,10 +25,12 @@ int main (int argc, char** argv) {
     std::string srcFilename;
     std::string destFilename;
     std::string targetName;
+    std::list<std::string> headerFiles;
     TextTemplate::Vars vars;
     
     std::string lastVarName;
     bool listVars = false;
+    bool makefileDeps = false;
     bool showParseTree = false;
     bool makeCPlusPlus = false;
 
@@ -42,6 +44,7 @@ int main (int argc, char** argv) {
         GRAB_INCLUDE_PATH,
         GRAB_TARGET_NAME,
         GRAB_SHADER_TYPE,
+        GRAB_HEADER,
         EXIT,
     } mode = READY;
 
@@ -65,6 +68,8 @@ int main (int argc, char** argv) {
             case READY: {
                 if (inputs.back() == "-o") {
                     mode = GRAB_OUTPUT;
+                } else if (inputs.back() == "-H") {
+                    mode = GRAB_HEADER;
                 } else if (inputs.back() == "-t") {
                     mode = GRAB_TARGET_NAME;
                 } else if (inputs.back() == "-D") {
@@ -73,6 +78,9 @@ int main (int argc, char** argv) {
                     mode = GRAB_INCLUDE_PATH;
                 } else if (inputs.back() == "-listVars") {
                     listVars = true;
+                    mode = READY;
+                } else if (inputs.back() == "-M") {
+                    makefileDeps = true;
                     mode = READY;
                 } else if (inputs.back() == "-showParseTree") {
                     showParseTree = true;
@@ -85,7 +93,7 @@ int main (int argc, char** argv) {
                 } else {
                     // just grabbed the source filename, stop parameter parsing
                     srcFilename = inputs.back();
-                    mode = EXIT;
+                    mode = READY;
                 }
             }
             break;
@@ -98,6 +106,12 @@ int main (int argc, char** argv) {
 
             case GRAB_TARGET_NAME: {
                 targetName = inputs.back();
+                mode = READY;
+            }
+            break;
+
+            case GRAB_HEADER: {
+                headerFiles.push_back(inputs.back());
                 mode = READY;
             }
             break;
@@ -155,6 +169,9 @@ int main (int argc, char** argv) {
         cerr << "  -I include_directory: Declare a directory to be added to the includes search pool." << endl;
         cerr << "  -D varname varvalue: Declare a var used to generate the output file." << endl;
         cerr << "       varname and varvalue must be made of alpha numerical characters with no spaces." << endl;
+        cerr << "  -H : Prepend the contents of header file to the scribe output " << endl;
+        cerr << "       This can be specified multiple times and the headers will be applied in the specified order" << endl;
+        cerr << "  -M : Emit a list of files that the scribe output depends on, for make and similar build tools " << endl;
         cerr << "  -listVars : Will list the vars name and value in the standard output." << endl;
         cerr << "  -showParseTree : Draw the tree obtained while parsing the source" << endl;
         cerr << "  -c++ : Generate a c++ source file containing the output file stream stored as a char[] variable" << endl;
@@ -204,8 +221,37 @@ int main (int argc, char** argv) {
 
     auto scribe = std::make_shared<TextTemplate>(srcFilename, config);
 
+    std::string header;
+    if (!headerFiles.empty()) {
+        for (const auto& headerFile : headerFiles) {
+            std::fstream headerStream;
+            headerStream.open(headerFile, std::fstream::in);
+            if (!headerStream.is_open()) {
+                cerr << "Failed to open source file <" << headerFile << ">" << endl;
+                return 1;
+            }
+            header += std::string((std::istreambuf_iterator<char>(headerStream)), std::istreambuf_iterator<char>());
+        }
+    }
+
+    // Add the type define to the shader
+    switch (type) {
+    case VERTEX:
+        header += "#define GPU_VERTEX_SHADER\n";
+        break;
+
+    case FRAGMENT:
+        header += "#define GPU_PIXEL_SHADER\n";
+        break;
+
+    case GEOMETRY:
+        header += "#define GPU_GEOMETRY_SHADER\n";
+        break;
+    }
+
     // ready to parse and generate
     std::stringstream destStringStream;
+    destStringStream << header;
     int numErrors = scribe->scribe(destStringStream, srcStream, vars);
     if (numErrors) {
         cerr << "Scribe " << srcFilename << "> failed: " << numErrors << " errors." << endl;
@@ -222,7 +268,9 @@ int main (int argc, char** argv) {
         scribe->displayTree(cerr, level);
     }
 
-    if (makeCPlusPlus) {
+    if (makefileDeps) {
+        scribe->displayMakefileDeps(cout);
+    } else if (makeCPlusPlus) {
         // Because there is a maximum size for literal strings declared in source we need to partition the 
         // full source string stream into pages that seems to be around that value...
         const int MAX_STRING_LITERAL = 10000;
