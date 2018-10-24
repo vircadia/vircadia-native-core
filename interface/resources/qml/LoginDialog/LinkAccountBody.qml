@@ -32,10 +32,6 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
-    property bool isLogIn: false
-    property bool atSignIn: false
-    property bool withSteam: false
-
     onKeyboardRaisedChanged: d.resize();
 
     QtObject {
@@ -105,7 +101,7 @@ Item {
         // For the process of logging in.
         linkAccountBody.resetContainers();
         loggingInContainer.visible = true;
-        if (linkAccountBody.withSteam) {
+        if (loginDialog.isSteamRunning()) {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Steam";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
@@ -125,7 +121,7 @@ Item {
             failureTimer.start();
             return;
         }
-        if (linkAccountBody.withSteam) {
+        if (loginDialog.isSteamRunning()) {
             // reset the flag.
             linkAccountBody.withSteam = false;
             loggingInGlyph.visible = false;
@@ -141,38 +137,10 @@ Item {
 
     function toggleSignIn(signIn, isLogIn) {
         // going to/from sign in/up dialog.
-        linkAccountBody.atSignIn = signIn;
-        linkAccountBody.isLogIn = isLogIn;
-        if (signIn) {
-            usernameField.visible = !isLogIn;
-            cantAccessContainer.visible = isLogIn;
-            if (isLogIn) {
-                loginButtonAtSignIn.text = "Log In";
-                loginButtonAtSignIn.color = hifi.buttons.black;
-                emailField.placeholderText = "Username or Email";
-                var savedUsername = Settings.getValue("wallet/savedUsername", "");
-                emailField.text = savedUsername === "Unknown user" ? "" : savedUsername;
-                emailField.anchors.top = loginContainer.top;
-                emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.pane.height : 0.24 * root.pane.height;
-                cantAccessContainer.anchors.topMargin = !root.isTablet ? 3.5 * hifi.dimensions.contentSpacing.y : hifi.dimensions.contentSpacing.y;
-            } else {
-                loginButtonAtSignIn.text = "Sign Up";
-                loginButtonAtSignIn.color = hifi.buttons.blue;
-                emailField.placeholderText = "Email";
-                emailField.text = "";
-                emailField.anchors.top = usernameField.bottom;
-                emailField.anchors.topMargin = 1.5 * hifi.dimensions.contentSpacing.y;
-                passwordField.text = "";
-            }
-            loginErrorMessage.visible = false;
-        }
+        loginDialog.atSignIn = signIn;
+        loginDialog.isLogIn = isLogIn;
 
-        splashContainer.visible = !signIn;
-        topContainer.height = signIn ? root.pane.height : 0.6 * topContainer.height;
-        bottomContainer.visible = !signIn;
-        dismissTextContainer.visible = !signIn;
-        topOpaqueRect.visible = signIn;
-        loginContainer.visible = signIn;
+        bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
 
     }
 
@@ -190,7 +158,6 @@ Item {
             color: "black"
             visible: false
         }
-
         Item {
             id: bannerContainer
             width: parent.width
@@ -205,316 +172,6 @@ Item {
                 source: "../../images/high-fidelity-banner.svg"
                 horizontalAlignment: Image.AlignHCenter
             }
-        }
-
-        Item {
-            id: loggingInContainer
-            width: parent.width
-            height: parent.height
-            onHeightChanged: d.resize(); onWidthChanged: d.resize();
-            visible: false
-
-            Item {
-                id: loggingInHeader
-                width: parent.width
-                height: 0.5 * parent.height
-                anchors {
-                    top: parent.top
-                }
-                TextMetrics {
-                    id: loggingInGlyphTextMetrics;
-                    font: loggingInGlyph.font;
-                    text: loggingInGlyph.text;
-                }
-                HifiStylesUit.HiFiGlyphs {
-                    id: loggingInGlyph;
-                    text: hifi.glyphs.steamSquare;
-                    // Color
-                    color: "white";
-                    // Size
-                    size: 31;
-                    // Anchors
-                    anchors.right: loggingInText.left;
-                    anchors.rightMargin: linkAccountBody.loggingInGlyphRightMargin
-                    anchors.bottom: parent.bottom;
-                    anchors.bottomMargin: hifi.dimensions.contentSpacing.y
-                    // Alignment
-                    horizontalAlignment: Text.AlignHCenter;
-                    verticalAlignment: Text.AlignVCenter;
-                    visible: loginDialog.isSteamRunning();
-                }
-
-                TextMetrics {
-                    id: loggingInTextMetrics;
-                    font: loggingInText.font;
-                    text: loggingInText.text;
-                }
-                Text {
-                    id: loggingInText;
-                    width: loggingInTextMetrics.width
-                    anchors.bottom: parent.bottom;
-                    anchors.bottomMargin: hifi.dimensions.contentSpacing.y
-                    anchors.left: parent.left;
-                    anchors.leftMargin: (parent.width - loggingInTextMetrics.width) / 2
-                    color: "white";
-                    font.family: linkAccountBody.fontFamily
-                    font.pixelSize: linkAccountBody.fontSize
-                    font.bold: linkAccountBody.fontBold
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    text: "Logging in"
-                }
-            }
-            Item {
-                id: loggingInFooter
-                width: parent.width
-                height: 0.5 * parent.height
-                anchors {
-                    top: loggingInHeader.bottom
-                }
-                AnimatedImage {
-                    id: linkAccountSpinner
-                    source: "../../icons/loader-snake-64-w.gif"
-                    width: 128
-                    height: width
-                    anchors.left: parent.left;
-                    anchors.leftMargin: (parent.width - width) / 2;
-                    anchors.top: parent.top
-                    anchors.topMargin: hifi.dimensions.contentSpacing.y
-                }
-                TextMetrics {
-                    id: loggedInGlyphTextMetrics;
-                    font: loggedInGlyph.font;
-                    text: loggedInGlyph.text;
-                }
-                HifiStylesUit.HiFiGlyphs {
-                    id: loggedInGlyph;
-                    text: hifi.glyphs.steamSquare;
-                    // Size
-                    size: 78;
-                    // Anchors
-                    anchors.left: parent.left;
-                    anchors.leftMargin: (parent.width - loggedInGlyph.size) / 2;
-                    anchors.top: parent.top
-                    anchors.topMargin: hifi.dimensions.contentSpacing.y
-                    // Alignment
-                    horizontalAlignment: Text.AlignHCenter;
-                    verticalAlignment: Text.AlignVCenter;
-                    visible: loginDialog.isSteamRunning();
-
-                }
-            }
-        }
-        Item {
-            id: loginContainer
-            width: parent.width
-            height: parent.height - (bannerContainer.height + 1.5 * hifi.dimensions.contentSpacing.y)
-            anchors {
-                top: bannerContainer.bottom
-                topMargin: 1.5 * hifi.dimensions.contentSpacing.y
-            }
-            visible: false
-
-            Text {
-                id: loginErrorMessage;
-                anchors.bottom: emailField.top;
-                anchors.bottomMargin: 2
-                anchors.left: emailField.left;
-                color: "red";
-                font.family: linkAccountBody.fontFamily
-                font.pixelSize: 12
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                text: ""
-                visible: false
-            }
-
-            HifiControlsUit.TextField {
-                id: usernameField
-                width: banner.width
-                font.family: linkAccountBody.fontFamily
-                placeholderText: "Username"
-                anchors {
-                    top: parent.top
-                    topMargin: 0.2 * parent.height
-                    left: parent.left
-                    leftMargin: (parent.width - usernameField.width) / 2
-                }
-                visible: false
-            }
-
-            HifiControlsUit.TextField {
-                id: emailField
-                width: banner.width
-                font.family: linkAccountBody.fontFamily
-                text: Settings.getValue("wallet/savedUsername", "");
-                anchors {
-                    top: parent.top
-                    left: parent.left
-                    leftMargin: (parent.width - emailField.width) / 2
-                }
-                focus: true
-                placeholderText: "Username or Email"
-                activeFocusOnPress: true
-                onHeightChanged: d.resize(); onWidthChanged: d.resize();
-            }
-            HifiControlsUit.TextField {
-                id: passwordField
-                width: banner.width
-                font.family: linkAccountBody.fontFamily
-                placeholderText: "Password"
-                activeFocusOnPress: true
-                echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
-                anchors {
-                    top: emailField.bottom
-                    topMargin: 1.5 * hifi.dimensions.contentSpacing.y
-                    left: parent.left
-                    leftMargin: (parent.width - emailField.width) / 2
-                }
-
-                onFocusChanged: {
-                    root.isPassword = true;
-                }
-
-                Rectangle {
-                    id: showPasswordHitbox
-                    z: 10
-                    x: passwordField.width - ((passwordField.height) * 31 / 23)
-                    width: parent.width - (parent.width - (parent.height * 31/16))
-                    height: parent.height
-                    anchors {
-                        right: parent.right
-                    }
-                    color: "transparent"
-
-                    Image {
-                        id: showPasswordImage
-                        width: passwordField.height * 16 / 23
-                        height: passwordField.height * 16 / 23
-                        anchors {
-                            right: parent.right
-                            rightMargin: 8
-                            top: parent.top
-                            topMargin: passwordFieldMouseArea.showPassword ? 6 : 8
-                            bottom: parent.bottom
-                            bottomMargin: passwordFieldMouseArea.showPassword ? 5 : 8
-                        }
-                        source: passwordFieldMouseArea.showPassword ?  "../../images/eyeClosed.svg" : "../../images/eyeOpen.svg"
-                        MouseArea {
-                            id: passwordFieldMouseArea
-                            anchors.fill: parent
-                            acceptedButtons: Qt.LeftButton
-                            property bool showPassword: false
-                            onClicked: {
-                                showPassword = !showPassword;
-                            }
-                        }
-                    }
-                }
-                Keys.onReturnPressed: {
-                    linkAccountBody.login()
-                }
-            }
-            HifiControlsUit.CheckBox {
-                id: autoLogoutCheckbox
-                checked: !Settings.getValue("wallet/autoLogout", false);
-                text: qsTr("Keep Me Logged In")
-                boxSize: 18;
-                labelFontFamily: linkAccountBody.fontFamily
-                labelFontSize: 18;
-                color: hifi.colors.white;
-                anchors {
-                    top: passwordField.bottom;
-                    topMargin: hifi.dimensions.contentSpacing.y;
-                    right: passwordField.right;
-                }
-                onCheckedChanged: {
-                    Settings.setValue("wallet/autoLogout", !checked);
-                    if (checked) {
-                        Settings.setValue("wallet/savedUsername", Account.username);
-                    } else {
-                        Settings.setValue("wallet/savedUsername", "");
-                    }
-                }
-                Component.onDestruction: {
-                    Settings.setValue("wallet/autoLogout", !checked);
-                }
-            }
-            Item {
-                id: cancelContainer
-                width: cancelText.width
-                height: d.minHeightButton
-                anchors {
-                    top: autoLogoutCheckbox.bottom
-                    topMargin: hifi.dimensions.contentSpacing.y
-                    left: parent.left
-                    leftMargin: (parent.width - passwordField.width) / 2
-                }
-                Text {
-                    id: cancelText
-                    anchors.centerIn: parent
-                    text: qsTr("Cancel");
-
-                    lineHeight: 1
-                    color: "white"
-                    font.family: linkAccountBody.fontFamily
-                    font.pixelSize: linkAccountBody.fontSize
-                    font.capitalization: Font.AllUppercase;
-                    font.bold: linkAccountBody.fontBold
-                    lineHeightMode: Text.ProportionalHeight
-                }
-                MouseArea {
-                    id: cancelArea
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onClicked: {
-                        toggleSignIn(false, true);
-                        linkAccountBody.isLogIn = false;
-                    }
-                }
-            }
-            HifiControlsUit.Button {
-                id: loginButtonAtSignIn
-                width: d.minWidthButton
-                height: d.minHeightButton
-                text: qsTr("Log In")
-                fontFamily: linkAccountBody.fontFamily
-                fontSize: linkAccountBody.fontSize
-                fontBold: linkAccountBody.fontBold
-                anchors {
-                    top: cancelContainer.top
-                    right: passwordField.right
-                }
-
-                onClicked: {
-                    linkAccountBody.login()
-                }
-            }
-            Item {
-                id: cantAccessContainer
-                width: parent.width
-                y: usernameField.height
-                anchors {
-                    top: cancelContainer.bottom
-                    topMargin: 3.5 * hifi.dimensions.contentSpacing.y
-                }
-                visible: false
-                HifiStylesUit.ShortcutText {
-                    id: cantAccessText
-                    z: 10
-                    anchors.centerIn: parent
-                    font.family: linkAccountBody.fontFamily
-                    font.pixelSize: 14
-
-                    text: "<a href='https://highfidelity.com/users/password/new'> Can't access your account?</a>"
-
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    linkColor: hifi.colors.blueAccent
-                    onLinkActivated: loginDialog.openUrl(link)
-                }
-            }
-
         }
         Item {
             id: splashContainer
@@ -653,6 +310,15 @@ Item {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton
                 onClicked: {
+                    var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
+                    if (poppedUp) {
+
+                        console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
+                        var data = {
+                            "action": "user dismissed login screen"
+                        };
+                        Settings.setValue("loginDialogPoppedUp", false);
+                    }
                     root.tryDestroy();
                 }
             }
@@ -727,16 +393,8 @@ Item {
     }
 
     Keys.onPressed: {
-        if (!visible && !atSignIn) {
+        if (!visible) {
             return;
-        }
-
-        switch (event.key) {
-        case Qt.Key_Enter:
-        case Qt.Key_Return:
-            event.accepted = true
-            linkAccountBody.login()
-            break
         }
     }
 }

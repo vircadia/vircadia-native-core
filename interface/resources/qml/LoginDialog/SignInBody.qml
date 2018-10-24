@@ -23,6 +23,7 @@ Item {
     clip: true
     height: root.pane.height
     width: root.pane.width
+    property int textFieldHeight: 31
     property bool failAfterSignUp: false
     property string fontFamily: "Cairo"
     property int fontSize: 24
@@ -32,8 +33,6 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
-    property bool logIn: isLogIn
-    property bool signIn: atSignIn
     property bool withSteam: loginDialog.isSteamRunning()
 
     onKeyboardRaisedChanged: d.resize();
@@ -50,8 +49,8 @@ Item {
         function resize() {
             maxWidth = root.isTablet ? 1280 : Window.innerWidth;
             maxHeight = root.isTablet ? 720 : Window.innerHeight;
-            var targetWidth = Math.max(titleWidth, topContainer.width);
-            var targetHeight =  hifi.dimensions.contentSpacing.y + topContainer.height +
+            var targetWidth = Math.max(titleWidth, mainContainer.width);
+            var targetHeight =  hifi.dimensions.contentSpacing.y + mainContainer.height +
                     4 * hifi.dimensions.contentSpacing.y;
 
             var newWidth = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
@@ -89,7 +88,7 @@ Item {
 
     function login() {
         signInBody.toggleLoading();
-        if (signInBody.isLogIn) {
+        if (loginDialog.isLogIn) {
             loginDialog.login(emailField.text, passwordField.text);
         } else {
             loginDialog.signup(usernameField.text, emailField.text, passwordField.text);
@@ -105,7 +104,7 @@ Item {
         // For the process of logging in.
         signInBody.resetContainers();
         loggingInContainer.visible = true;
-        if (signInBody.withSteam) {
+        if (loginDialog.isSteamRunning()) {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Steam";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
@@ -120,12 +119,12 @@ Item {
         linkAccountSpinner.visible = false;
         if (!success) {
             loginErrorMessage.visible = true;
-            loginErrorMessage.text = errorString !== "" ? errorString : signInBody.isLogIn ? "bad user/pass combo." : "unknown error.";
-            loginErrorMessage.anchors.bottom = signInBody.isLogIn ? emailField.top : usernameField.top;
+            loginErrorMessage.text = errorString !== "" ? errorString : "unknown error.";
+            loginErrorMessage.anchors.bottom = loginDialog.isLogIn ? emailField.top : usernameField.top;
             failureTimer.start();
             return;
         }
-        if (signInBody.withSteam) {
+        if (loginDialog.isSteamRunning() && !loginDialog.isLogIn) {
             // reset the flag.
             signInBody.withSteam = false;
             loggingInGlyph.visible = false;
@@ -141,8 +140,8 @@ Item {
 
     function toggleSignIn(signIn, isLogIn) {
         // going to/from sign in/up dialog.
-        // signInBody.atSignIn = signIn;
-        // signInBody.isLogIn = isLogIn;
+        loginDialog.atSignIn = signIn;
+        loginDialog.isLogIn = isLogIn;
         if (signIn) {
             usernameField.visible = !isLogIn;
             cantAccessContainer.visible = isLogIn;
@@ -155,6 +154,9 @@ Item {
                 emailField.anchors.top = loginContainer.top;
                 emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.pane.height : 0.24 * root.pane.height;
                 cantAccessContainer.anchors.topMargin = !root.isTablet ? 3.5 * hifi.dimensions.contentSpacing.y : hifi.dimensions.contentSpacing.y;
+            } else if (loginDialog.isSteamRunning()) {
+                signInBody.toggleLoading();
+                loginDialog.loginWithSteam();
             } else {
                 loginButtonAtSignIn.text = "Sign Up";
                 loginButtonAtSignIn.color = hifi.buttons.blue;
@@ -172,13 +174,13 @@ Item {
     }
 
     Item {
-        id: topContainer
+        id: mainContainer
         width: root.pane.width
         height: root.pane.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
         Rectangle {
-            id: topOpaqueRect
+            id: opaqueRect
             height: parent.height
             width: parent.width
             opacity: 0.9
@@ -284,6 +286,8 @@ Item {
                 HifiStylesUit.HiFiGlyphs {
                     id: loggedInGlyph;
                     text: hifi.glyphs.steamSquare;
+                    // color
+                    color: "white"
                     // Size
                     size: 78;
                     // Anchors
@@ -326,6 +330,7 @@ Item {
             HifiControlsUit.TextField {
                 id: usernameField
                 width: banner.width
+                height: signInBody.textFieldHeight
                 font.family: signInBody.fontFamily
                 placeholderText: "Username"
                 anchors {
@@ -340,6 +345,7 @@ Item {
             HifiControlsUit.TextField {
                 id: emailField
                 width: banner.width
+                height: signInBody.textFieldHeight
                 font.family: signInBody.fontFamily
                 text: Settings.getValue("wallet/savedUsername", "");
                 anchors {
@@ -355,6 +361,7 @@ Item {
             HifiControlsUit.TextField {
                 id: passwordField
                 width: banner.width
+                height: signInBody.textFieldHeight
                 font.family: signInBody.fontFamily
                 placeholderText: "Password"
                 activeFocusOnPress: true
@@ -371,10 +378,10 @@ Item {
                 }
 
                 Item {
-                    id: showPasswordHitbox
+                    id: showPasswordContainer
                     z: 10
-                    x: passwordField.width - ((passwordField.height) * 31 / 23)
-                    width: parent.width - (parent.width - (parent.height * 31/16))
+                    // width + image's rightMargin
+                    width: showPasswordImage.width + 8
                     height: parent.height
                     anchors {
                         right: parent.right
@@ -461,7 +468,8 @@ Item {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
                     onClicked: {
-                        bodyLoader.setSource("LinkAccountBody0.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                        loginDialog.atSignIn = false;
+                        bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                     }
                 }
             }
@@ -519,25 +527,27 @@ Item {
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
         d.resize();
-        print(signIn, logIn)
-        toggleSignIn(signIn, logIn)
+        print(loginDialog.atSignIn, loginDialog.isLogIn)
+        toggleSignIn(loginDialog.atSignIn, loginDialog.isLogIn)
     }
 
     Connections {
         target: loginDialog
         onHandleCreateFailed: {
             console.log("Create Failed")
+            var error = "There was an unknown error while creating your account. Please try again later.";
+            loadingSuccess(false, error);
         }
         onHandleCreateCompleted: {
             console.log("Create Completed")
         }
         onHandleSignupFailed: {
             console.log("Sign Up Failed")
-            loadingSuccess(false, errorString)
+            loadingSuccess(false, "");
         }
         onHandleSignupCompleted: {
-            console.log("Sign Up Completed")
-            loadingSuccess(true)
+            console.log("Sign Up Completed");
+            loadingSuccess(true, "");
         }
         onHandleLoginCompleted: {
             console.log("Login Succeeded")
@@ -553,7 +563,7 @@ Item {
             if (loginDialog.isSteamRunning()) {
                 loginDialog.linkSteam();
             }
-            loadingSuccess(true)
+            loadingSuccess(true, "")
         }
         onHandleLoginFailed: {
             console.log("Login Failed")
@@ -566,11 +576,16 @@ Item {
                 UserActivityLogger.logAction("encourageLoginDialog", data);
                 Settings.setValue("loginDialogPoppedUp", false);
             }
-            loadingSuccess(false)
+            if (loginDialog.isSteamRunning()) {
+                bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+            }
+
+            var error = "Username or password incorrect."
+            loadingSuccess(false, error)
         }
         onHandleLinkCompleted: {
             console.log("Link Succeeded")
-            loadingSuccess(true)
+            loadingSuccess(true, "")
         }
         onHandleLinkFailed: {
             console.log("Link Failed")
@@ -580,7 +595,7 @@ Item {
     }
 
     Keys.onPressed: {
-        if (!visible && !atSignIn) {
+        if (!visible && !loginDialog.atSignIn) {
             return;
         }
 
