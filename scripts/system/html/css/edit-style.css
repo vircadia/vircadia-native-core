@@ -1107,7 +1107,7 @@ body#entity-list-body {
     position: relative; /* New positioning context. */
 }
 
-#search-area {
+#filter-area {
     padding-right: 168px;
     padding-bottom: 24px;
 }

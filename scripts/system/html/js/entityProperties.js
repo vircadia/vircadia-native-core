@@ -1304,6 +1304,7 @@ const JSON_EDITOR_ROW_DIV_INDEX = 2;
 var elGroups = {};
 var properties = {};
 var colorPickers = {};
+var particlePropertyUpdates = {};
 var selectedEntityProperties;
 var lastEntityID = null;
 
@@ -1534,8 +1535,22 @@ function updateProperty(originalPropertyName, propertyValue) {
     } else {
         propertyUpdate[originalPropertyName] = propertyValue;
     }
-    updateProperties(propertyUpdate);
+    // queue up particle property changes with the debounced sync to avoid  
+    // causing particle emitting to reset each frame when updating values
+    if (properties[originalPropertyName].isParticleProperty) {
+        Object.keys(propertyUpdate).forEach(function (propertyUpdateKey) {
+            particlePropertyUpdates[propertyUpdateKey] = propertyUpdate[propertyUpdateKey];
+        });
+        particleSyncDebounce();
+    } else {
+        updateProperties(propertyUpdate);
+    }
 }
+
+var particleSyncDebounce = _.debounce(function () {
+    updateProperties(particlePropertyUpdates);
+    particlePropertyUpdates = {};
+}, DEBOUNCE_TIMEOUT);
 
 function updateProperties(propertiesToUpdate) {
     EventBridge.emitWebEvent(JSON.stringify({
@@ -2717,7 +2732,8 @@ function loaded() {
                 let property = { 
                     data: propertyData, 
                     elementID: propertyElementID, 
-                    name: propertyName, 
+                    name: propertyName,
+                    isParticleProperty: group.id.includes("particles"),
                     elProperty: elProperty 
                 };
                 properties[propertyID] = property;
