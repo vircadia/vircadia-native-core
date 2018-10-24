@@ -1239,12 +1239,12 @@ function startup() {
         home: MARKETPLACE_URL_INITIAL,
         onScreenChanged: onTabletScreenChanged,
         onMessage: onQmlMessageReceived,
-        notificationPollEndpoint: "/api/v1/commerce/available_updates?per_page=10",
-        notificationPollTimeoutMs: 300000,
-        notificationDataProcessPage: notificationDataProcessPage,
-        notificationPollCallback: notificationPollCallback,
-        notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
-        notificationPollCaresAboutSince: false // Changes to true after first poll
+        // notificationPollEndpoint: "/api/v1/commerce/available_updates?per_page=10",
+        // notificationPollTimeoutMs: 300000,
+        // notificationDataProcessPage: notificationDataProcessPage,
+        // notificationPollCallback: notificationPollCallback,
+        // notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
+        // notificationPollCaresAboutSince: false // Changes to true after first poll
     });
     ContextOverlay.contextOverlayClicked.connect(openInspectionCertificateQML);
     Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);

@@ -497,10 +497,33 @@ function walletClosed() {
 }
 
 function notificationDataProcessPage(data) {
-    return data.data.history;
+    return data.data.updates; // HRS FIXME .history;
 }
 
 var shouldShowDot = false;
+function notificationPollCallbackUpdates(updatesArray) {
+    shouldShowDot = shouldShowDot || updatesArray.length > 0;
+    ui.messagesWaiting(shouldShowDot && !ui.isOpen);
+
+    if (updatesArray.length > 0) {
+        var message;
+        if (!ui.notificationInitialCallbackMade) {
+            message = updatesArray.length + " of your purchased items " +
+                (updatesArray.length === 1 ? "has an update " : "have updates ") +
+                "available. Open MARKET to update.";
+            ui.notificationDisplayBanner(message);
+
+            ui.notificationPollCaresAboutSince = true;
+        } else {
+            for (var i = 0; i < updatesArray.length; i++) {
+                message = "Update available for \"" +
+                    updatesArray[i].base_item_title + "\"." +
+                    "Open MARKET to update.";
+                ui.notificationDisplayBanner(message);
+            }
+        }
+    }
+}
 function notificationPollCallback(historyArray) {
     if (!ui.isOpen) {
         var notificationCount = historyArray.length;
@@ -571,12 +594,13 @@ function startup() {
         onOpened: walletOpened,
         onClosed: walletClosed,
         onMessage: fromQml,
-        notificationPollEndpoint: "/api/v1/commerce/history?per_page=10",
+        // How are we going to handle two polls when --limitedCommerce is false?
+        notificationPollEndpoint: "/api/v1/commerce/available_updates?per_page=10", // HRS FIXME "/api/v1/commerce/history?per_page=10",
         notificationPollTimeoutMs: 300000,
         notificationDataProcessPage: notificationDataProcessPage,
-        notificationPollCallback: notificationPollCallback,
+        notificationPollCallback: notificationPollCallbackUpdates,
         notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
-        notificationPollCaresAboutSince: true
+        notificationPollCaresAboutSince: false // HRS FIXME true
     });
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
     installMarketplaceItemTester();
