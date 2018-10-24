@@ -200,7 +200,8 @@ void EntityEditFilters::addFilter(EntityItemID entityID, QString filterURL) {
     _filterDataMap.insert(entityID, filterData);
     _lock.unlock();
    
-    auto scriptRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(this, scriptURL);
+    auto scriptRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, scriptURL, true, -1, "EntityEditFilters::addFilter");
     if (!scriptRequest) {
         qWarning() << "Could not create ResourceRequest for Entity Edit filter script at" << scriptURL.toString();
         scriptRequestFinished(entityID);
