@@ -286,7 +286,10 @@ void synchronizeGrabbableKey(const GrabPropertyGroup& grabProperties, QJsonObjec
         grabProperties.grabbableChanged() ||
         grabProperties.grabFollowsControllerChanged() ||
         grabProperties.grabKinematicChanged() ||
-        grabProperties.equippableChanged()) {
+        grabProperties.equippableChanged() ||
+        grabProperties.equippableLeftPositionChanged() ||
+        grabProperties.equippableRightPositionChanged() ||
+        grabProperties.equippableRightRotationChanged()) {
 
         QJsonObject grabbableKey = userData["grabbableKey"].toObject();
 
