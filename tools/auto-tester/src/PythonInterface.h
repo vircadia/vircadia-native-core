@@ -19,7 +19,13 @@ public:
     QString getPythonCommand();
 
 private:
+#ifdef Q_OS_WIN
     const QString _pythonExe{ "python.exe" };
+#endif
+#ifdef Q_OS_MACOS
+    const QString _pythonExe{ "python" };
+#endif
+
     QString _pythonCommand;
 };
 
