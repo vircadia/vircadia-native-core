@@ -2935,7 +2935,21 @@ function loaded() {
                                 continue;
                             }
                             
-                            if (!propertyValue && propertyData.fallbackProperty !== undefined) {
+                            let isPropertyNotNumber = false;
+                            switch (propertyData.type) {
+                                case 'number':
+                                case 'slider':
+                                    isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
+                                    break;
+                                case 'vec3':
+                                case 'vec2':
+                                    isPropertyNotNumber = isNaN(propertyValue.x) || propertyValue.x === null;
+                                    break;
+                                case 'color':
+                                    isPropertyNotNumber = isNaN(propertyValue.red) || propertyValue.red === null;
+                                    break;
+                            }
+                            if (isPropertyNotNumber && propertyData.fallbackProperty !== undefined) {
                                 propertyValue = getPropertyValue(propertyData.fallbackProperty);
                             }
                             
@@ -3000,9 +3014,6 @@ function loaded() {
                                     break;
                                 }
                                 case 'color': {
-                                    if (!propertyValue.red && propertyData.fallbackProperty !== undefined) {
-                                        propertyValue = getPropertyValue(propertyData.fallbackProperty);
-                                    }
                                     property.elColorPicker.style.backgroundColor = "rgb(" + propertyValue.red + "," + 
                                                                                      propertyValue.green + "," + 
                                                                                      propertyValue.blue + ")";
