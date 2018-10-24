@@ -602,7 +602,7 @@ var toolBar = (function () {
                         Entities.editEntity(entityID, {
                             position: position
                         });
-                        selectionManager._update();
+                        selectionManager._update(false, this);
                     } else if (dimensionsCheckCount < MAX_DIMENSIONS_CHECKS) {
                         Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
                     }
@@ -614,9 +614,9 @@ var toolBar = (function () {
                                    properties.type + " would be out of bounds.");
         }
 
-        selectionManager.clearSelections();
+        selectionManager.clearSelections(this);
         entityListTool.sendUpdate();
-        selectionManager.setSelections([entityID]);
+        selectionManager.setSelections([entityID], this);
 
         Window.setFocus();
 
@@ -767,7 +767,7 @@ var toolBar = (function () {
         }
         deletedEntityTimer = Script.setTimeout(function () {
             if (entitiesToDelete.length > 0) {
-                selectionManager.removeEntities(entitiesToDelete);
+                selectionManager.removeEntities(entitiesToDelete, this);
             }
             entityListTool.removeEntities(entitiesToDelete, selectionManager.selections);
             entitiesToDelete = [];
@@ -995,7 +995,7 @@ var toolBar = (function () {
             gridTool.setVisible(false);
             grid.setEnabled(false);
             propertiesTool.setVisible(false);
-            selectionManager.clearSelections();
+            selectionManager.clearSelections(this);
             cameraManager.disable();
             selectionDisplay.disableTriggerMapping();
             tablet.landscape = false;
@@ -1123,7 +1123,7 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
             var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
             if (entity !== null) {
-                selectionManager.setSelections([entity]);
+                selectionManager.setSelections([entity], this);
             }
         }
     }
@@ -1270,7 +1270,7 @@ function mouseClickEvent(event) {
 
         if (result === null || result === undefined) {
             if (!event.isShifted) {
-                selectionManager.clearSelections();
+                selectionManager.clearSelections(this);
             }
             return;
         }
@@ -1322,9 +1322,9 @@ function mouseClickEvent(event) {
             }
 
             if (!event.isShifted) {
-                selectionManager.setSelections([foundEntity]);
+                selectionManager.setSelections([foundEntity], this);
             } else {
-                selectionManager.addEntity(foundEntity, true);
+                selectionManager.addEntity(foundEntity, true, this);
             }
 
             if (wantDebug) {
@@ -1622,7 +1622,7 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
                 }
             }
         }
-        selectionManager.setSelections(entities);
+        selectionManager.setSelections(entities, this);
     }
 }
 
@@ -1762,7 +1762,7 @@ function deleteSelectedEntities() {
         }
 
         if (savedProperties.length > 0) {
-            SelectionManager.clearSelections();
+            SelectionManager.clearSelections(this);
             pushCommandForSelections([], savedProperties);
             entityListTool.deleteEntities(deletedIDs);
         }
@@ -1779,7 +1779,7 @@ function toggleSelectedEntitiesLocked() {
             });
         }
         entityListTool.sendUpdate();
-        selectionManager._update();
+        selectionManager._update(false, this);
     }
 }
 
@@ -1793,7 +1793,7 @@ function toggleSelectedEntitiesVisible() {
             });
         }
         entityListTool.sendUpdate();
-        selectionManager._update();
+        selectionManager._update(false, this);
     }
 }
 
@@ -1990,7 +1990,7 @@ function importSVO(importURL) {
             }
 
             if (isActive) {
-                selectionManager.setSelections(pastedEntityIDs);
+                selectionManager.setSelections(pastedEntityIDs, this);
             }
         } else {
             Window.notifyEditError("Can't import entities: entities would be out of bounds.");
@@ -2038,7 +2038,7 @@ function deleteKey(value) {
 }
 function deselectKey(value) {
     if (value === 0) { // on release
-        selectionManager.clearSelections();
+        selectionManager.clearSelections(this);
     }
 }
 function toggleKey(value) {
@@ -2198,7 +2198,7 @@ function applyEntityProperties(data) {
     // We might be getting an undo while edit.js is disabled. If that is the case, don't set
     // our selections, causing the edit widgets to display.
     if (isActive) {
-        selectionManager.setSelections(selectedEntityIDs);
+        selectionManager.setSelections(selectedEntityIDs, this);
     }
 }
 
@@ -2401,7 +2401,7 @@ var PropertiesTool = function (opts) {
                 }
             }
             pushCommandForSelections();
-            selectionManager._update();
+            selectionManager._update(false, this);
         } else if (data.type === 'parent') {
             parentSelectedEntities();
         } else if (data.type === 'unparent') {
@@ -2430,7 +2430,7 @@ var PropertiesTool = function (opts) {
                         });
                     }
                     pushCommandForSelections();
-                    selectionManager._update();
+                    selectionManager._update(false, this);
                 }
             } else if (data.action === "moveAllToGrid") {
                 if (selectionManager.hasSelection()) {
@@ -2450,7 +2450,7 @@ var PropertiesTool = function (opts) {
                         });
                     }
                     pushCommandForSelections();
-                    selectionManager._update();
+                    selectionManager._update(false, this);
                 }
             } else if (data.action === "resetToNaturalDimensions") {
                 if (selectionManager.hasSelection()) {
@@ -2471,7 +2471,7 @@ var PropertiesTool = function (opts) {
                         }
                     }
                     pushCommandForSelections();
-                    selectionManager._update();
+                    selectionManager._update(false, this);
                 }
             } else if (data.action === "previewCamera") {
                 if (selectionManager.hasSelection()) {
@@ -2489,7 +2489,7 @@ var PropertiesTool = function (opts) {
                         });
                     }
                     pushCommandForSelections();
-                    selectionManager._update();
+                    selectionManager._update(false, this);
                 }
             } else if (data.action === "reloadClientScripts") {
                 if (selectionManager.hasSelection()) {

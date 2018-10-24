@@ -13,7 +13,7 @@ const DESCENDING_STRING = '&#x25BE;';
 const LOCKED_GLYPH = "&#xe006;";
 const VISIBLE_GLYPH = "&#xe007;";
 const TRANSPARENCY_GLYPH = "&#xe00b;";
-const BAKED_GLYPH = "&#xe01a;"
+const BAKED_GLYPH = "&#xe01a;";
 const SCRIPT_GLYPH = "k";
 const BYTES_PER_MEGABYTE = 1024 * 1024;
 const IMAGE_MODEL_NAME = 'default-image-model.fbx';
@@ -54,10 +54,10 @@ const COMPARE_ASCENDING = function(a, b) {
     }
 
     return 1;
-}
+};
 const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
-}
+};
 
 // List of all entities
 var entities = [];
@@ -161,22 +161,22 @@ function loaded() {
         };
         elRefresh.onclick = function() {
             refreshEntities();
-        }
+        };
         elToggleLocked.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
-        }
+        };
         elToggleVisible.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
-        }
+        };
         elExport.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
-        }
+        };
         elPal.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
-        }
+        };
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
-        }
+        };
         elFilter.onkeyup = refreshEntityList;
         elFilter.onpaste = refreshEntityList;
         elFilter.onchange = onFilterChange;
@@ -287,7 +287,7 @@ function loaded() {
                 if (selectedIndex >= 0) {
                     selection = [];
                     selection = selection.concat(selectedEntities);
-                    selection.splice(selectedIndex, 1)
+                    selection.splice(selectedIndex, 1);
                 } else {
                     selection = selection.concat(selectedEntities);
                 }
@@ -320,22 +320,23 @@ function loaded() {
                 }
             }
             
-            updateSelectedEntities(selection);
+            updateSelectedEntities(selection, false);
 
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
                 focus: false,
                 entityIds: selection,
             }));
-
-            refreshFooter();
         }
 
         function onRowDoubleClicked() {
+            let selection = [this.dataset.entityID];
+            updateSelectedEntities(selection, false);
+
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
                 focus: true,
-                entityIds: [this.dataset.entityID],
+                entityIds: selection,
             }));
         }
         
@@ -382,7 +383,7 @@ function loaded() {
                         hasScript: entity.hasScript,
                         elRow: null, // if this entity has a visible row element assigned to it
                         selected: false // if this entity is selected for edit regardless of having a visible row
-                    }
+                    };
                     
                     entities.push(entityData);
                     entitiesByID[entityData.id] = entityData;
@@ -511,7 +512,7 @@ function loaded() {
             isBaked: document.querySelector('#entity-isBaked .sort-order'),
             drawCalls: document.querySelector('#entity-drawCalls .sort-order'),
             hasScript: document.querySelector('#entity-hasScript .sort-order'),
-        }
+        };
         function setSortColumn(column) {
             PROFILE("set-sort-column", function() {
                 if (currentSortColumn === column) {
@@ -546,7 +547,7 @@ function loaded() {
             }
         }
         
-        function updateSelectedEntities(selectedIDs) {
+        function updateSelectedEntities(selectedIDs, autoScroll) {
             let notFound = false;
             
             // reset all currently selected entities and their rows first
@@ -574,6 +575,26 @@ function loaded() {
                     notFound = true;
                 }
             });
+
+            if (autoScroll && selectedIDs.length > 0) {
+                let firstItem = Number.MAX_VALUE;
+                let lastItem = -1;
+                let itemFound = false;
+                visibleEntities.forEach(function(entity, index) {
+                    if (selectedIDs.indexOf(entity.id) !== -1) {
+                        if (firstItem > index) {
+                            firstItem = index;
+                        }
+                        if (lastItem < index) {
+                            lastItem = index;
+                        }
+                        itemFound = true;
+                    }
+                });
+                if (itemFound) {
+                    entityList.scrollToRow(firstItem, lastItem);
+                }
+            }
 
             refreshFooter();
 
@@ -735,7 +756,7 @@ function loaded() {
                 if (data.type === "clearEntityList") {
                     clearEntities();
                 } else if (data.type === "selectionUpdate") {
-                    let notFound = updateSelectedEntities(data.selectedIDs);
+                    let notFound = updateSelectedEntities(data.selectedIDs, true);
                     if (notFound) {
                         refreshEntities();
                     }
@@ -747,13 +768,13 @@ function loaded() {
                                 clearEntities();
                             } else {
                                 updateEntityData(newEntities);
-                                updateSelectedEntities(data.selectedIDs);
+                                updateSelectedEntities(data.selectedIDs, true);
                             }
                         }
                     });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
                     removeEntities(data.deletedIDs);
-                    updateSelectedEntities(data.selectedIDs);
+                    updateSelectedEntities(data.selectedIDs, true);
                 } else if (data.type === "deleted" && data.ids) {
                     removeEntities(data.ids);
                 }

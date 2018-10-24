@@ -98,7 +98,11 @@ EntityListTool = function(shouldUseEditTabletApp) {
         that.setVisible(!visible);
     };
 
-    selectionManager.addEventListener(function() {
+    selectionManager.addEventListener(function(isSelectionUpdate, caller) {
+        if (caller === that) {
+            // ignore events that we emitted from the entity list itself
+            return;
+        }
         var selectedIDs = [];
 
         for (var i = 0; i < selectionManager.selections.length; i++) {
@@ -224,7 +228,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             for (var i = 0; i < ids.length; i++) {
                 entityIDs.push(ids[i]);
             }
-            selectionManager.setSelections(entityIDs);
+            selectionManager.setSelections(entityIDs, that);
             if (data.focus) {
                 cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,
