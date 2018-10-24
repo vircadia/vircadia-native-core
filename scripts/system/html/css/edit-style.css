@@ -1614,7 +1614,8 @@ input.rename-entity {
 }
 
 .createAppTooltip .createAppTooltipJSAttribute {
-    font-size: 10px;
+    font-family: Raleway-SemiBold;
+    font-size: 11px;
     color: #000000;
     bottom: 0;
     margin-top: 5px;
