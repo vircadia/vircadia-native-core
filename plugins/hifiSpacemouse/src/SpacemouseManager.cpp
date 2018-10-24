@@ -20,7 +20,7 @@
 
 #include <controllers/UserInputMapper.h>
 
-const QString SpacemouseManager::NAME { "Spacemouse" };
+const char* SpacemouseManager::NAME { "Spacemouse" };
 
 const float MAX_AXIS = 75.0f;  // max forward = 2x speed
 #define LOGITECH_VENDOR_ID 0x46d
