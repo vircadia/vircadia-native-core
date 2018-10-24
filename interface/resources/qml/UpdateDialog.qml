@@ -4,9 +4,9 @@ import QtQuick.Controls 1.3
 import QtQuick.Controls.Styles 1.3
 import QtGraphicalEffects 1.0
 
-import controlsUit 1.0
+import "controls-uit"
 import "styles" as HifiStyles
-import stylesUit 1.0
+import "styles-uit"
 import "windows"
 
 ScrollingWindow {

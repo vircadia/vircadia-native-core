@@ -443,7 +443,8 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
 }
 
 std::tuple<bool, QByteArray> requestData(QUrl& url) {
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        nullptr, url, true, -1, "(OBJReader) requestData");
 
     if (!request) {
         return std::make_tuple(false, QByteArray());

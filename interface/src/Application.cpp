@@ -226,6 +226,7 @@
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
+#include "ResourceRequestObserver.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
@@ -947,6 +948,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<WalletScriptingInterface>();
 
     DependencyManager::set<FadeEffect>();
+    DependencyManager::set<ResourceRequestObserver>();
 
     return previousSessionCrashed;
 }
@@ -3148,6 +3150,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+    surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -5080,12 +5083,12 @@ void Application::saveSettings() const {
     PluginManager::getInstance()->saveSettings();
 }
 
-bool Application::importEntities(const QString& urlOrFilename) {
+bool Application::importEntities(const QString& urlOrFilename, const bool isObservable, const qint64 callerId) {
     bool success = false;
     _entityClipboard->withWriteLock([&] {
         _entityClipboard->eraseAllOctreeElements();
 
-        success = _entityClipboard->readFromURL(urlOrFilename);
+        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId);
         if (success) {
             _entityClipboard->reaverageOctreeElements();
         }
@@ -6890,6 +6893,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
+    scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
@@ -7276,7 +7280,8 @@ void Application::addAssetToWorldFromURL(QString url) {
 
     addAssetToWorldInfo(filename, "Downloading model file " + filename + ".");
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, QUrl(url));
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        nullptr, QUrl(url), true, -1, "Application::addAssetToWorldFromURL");
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
 }

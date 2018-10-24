@@ -11,7 +11,7 @@
 import QtQuick 2.5
 import Hifi 1.0 as Hifi
 
-import controlsUit 1.0
+import "controls-uit"
 import "windows" as Windows
 
 Windows.ScrollingWindow {

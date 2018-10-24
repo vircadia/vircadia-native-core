@@ -1,6 +1,6 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import stylesUit 1.0
+import "../../styles-uit"
 
 ShadowRectangle {
     id: header
