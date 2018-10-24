@@ -285,18 +285,13 @@ float getZEyeAtUV(vec2 texCoord, int level) {
     return -textureLod(depthPyramidTex, texCoord, level).x;
 }
 
-float getZEyeAtUV(vec2 texCoord, int level, ivec2 texelOffset) {
-    return -textureLodOffset(depthPyramidTex, texCoord, level, texelOffset).x;
-}
+<@func getZEyeAtUVOffset(texCoord, level, texelOffset)@>
+-textureLodOffset(depthPyramidTex, <$texCoord$>, <$level$>, <$texelOffset$>).x;
+<@endfunc@>
 
 float getZEyeAtUV(ivec4 side, vec2 texCoord, int level) {
     texCoord.x = mix(texCoord.x, (texCoord.x + getStereoSide(side)) * 0.5, isStereo());
     return getZEyeAtUV(texCoord, level);
-}
-
-float getZEyeAtUV(ivec4 side, vec2 texCoord, int level, ivec2 texelOffset) {
-    texCoord.x = mix(texCoord.x, (texCoord.x + getStereoSide(side)) * 0.5, isStereo());
-    return getZEyeAtUV(texCoord, level, texelOffset);
 }
 
 vec3 packNormal(vec3 normal) {
@@ -335,7 +330,7 @@ vec2 fetchTap(ivec4 side, vec2 tapUV, float tapRadius) {
     int mipLevel = evalMipFromRadius(tapRadius * float(doFetchMips()));
 
     vec2 fetchUV = clamp(tapUV, vec2(0), vec2(1));
-    fetchUV = mix(fetchUV, vec2((fetchUV.x + getStereoSide(side)) * 0.5, fetchUV.y), isStereo());
+    fetchUV = isStereo() ? vec2((fetchUV.x + getStereoSide(side)) * 0.5, fetchUV.y) : fetchUV;
 
     vec2 P;
     P.x = float(mipLevel);
@@ -348,10 +343,12 @@ vec3 buildPosition(ivec4 side, vec2 fragUVPos) {
     return evalEyePositionFromZeye(side.x, Zeye, fragUVPos);
 }
 
-vec3 buildPosition(ivec4 side, vec2 fragUVPos, ivec2 texelOffset, vec2 deltaUV) {
-    float Zeye = getZEyeAtUV(side, fragUVPos, 0, texelOffset);
-    return evalEyePositionFromZeye(side.x, Zeye, fragUVPos + texelOffset*deltaUV);
+<@func buildPositionOffset(side, fragUVPos, sideFragUVPos, texelOffset, deltaUV, position)@>
+{
+    float Zeye = <$getZEyeAtUVOffset($sideFragUVPos$, 0, $texelOffset$)$>
+    <$position$> = evalEyePositionFromZeye(<$side$>.x, Zeye, <$fragUVPos$> + <$texelOffset$>*<$deltaUV$>);
 }
+<@endfunc@>
 
 vec3 getMinDelta(vec3 centralPoint, vec3 offsetPointPos, vec3 offsetPointNeg) {
     vec3 delta0 = offsetPointPos - centralPoint;
@@ -362,11 +359,25 @@ vec3 getMinDelta(vec3 centralPoint, vec3 offsetPointPos, vec3 offsetPointNeg) {
     return sqrLength0 < sqrLength1 ? delta0 : delta1;
 }
 
+const ivec2 UV_RIGHT = ivec2(1,0);
+const ivec2 UV_LEFT = ivec2(-1,0);
+const ivec2 UV_TOP = ivec2(0,1);
+const ivec2 UV_BOTTOM = ivec2(0,-1);
+
 vec3 buildNormal(ivec4 side, vec2 fragUVPos, vec3 fragPosition, vec2 deltaDepthUV) {
-    vec3 fragPositionDxPos = buildPosition(side, fragUVPos, ivec2(1,0), deltaDepthUV);
-    vec3 fragPositionDxNeg = buildPosition(side, fragUVPos, ivec2(-1,0), deltaDepthUV);
-    vec3 fragPositionDyPos = buildPosition(side, fragUVPos, ivec2(0,1), deltaDepthUV);
-    vec3 fragPositionDyNeg = buildPosition(side, fragUVPos, ivec2(0,-1), deltaDepthUV);
+    vec2 sideUVPos = fragUVPos;
+
+    sideUVPos.x = mix(sideUVPos.x, (sideUVPos.x + getStereoSide(side)) * 0.5, isStereo());
+
+    vec3 fragPositionDxPos;
+    vec3 fragPositionDxNeg;
+    vec3 fragPositionDyPos;
+    vec3 fragPositionDyNeg;
+
+    <$buildPositionOffset(side, fragUVPos, sideUVPos, UV_RIGHT, deltaDepthUV, fragPositionDxPos)$>
+    <$buildPositionOffset(side, fragUVPos, sideUVPos, UV_LEFT, deltaDepthUV, fragPositionDxNeg)$>
+    <$buildPositionOffset(side, fragUVPos, sideUVPos, UV_TOP, deltaDepthUV, fragPositionDyPos)$>
+    <$buildPositionOffset(side, fragUVPos, sideUVPos, UV_BOTTOM, deltaDepthUV, fragPositionDyNeg)$>
 
     vec3 fragDeltaDx = getMinDelta(fragPosition, fragPositionDxPos, fragPositionDxNeg);
     vec3 fragDeltaDy = getMinDelta(fragPosition, fragPositionDyPos, fragPositionDyNeg);
@@ -376,10 +387,19 @@ vec3 buildNormal(ivec4 side, vec2 fragUVPos, vec3 fragPosition, vec2 deltaDepthU
 
 void buildTangentBinormal(ivec4 side, vec2 fragUVPos, vec3 fragPosition, vec3 fragNormal, vec2 deltaDepthUV,
                           out vec3 fragTangent, out vec3 fragBinormal) {
-    vec3 fragPositionDxPos = buildPosition(side, fragUVPos, ivec2(1,0), deltaDepthUV);
-    vec3 fragPositionDxNeg = buildPosition(side, fragUVPos, ivec2(-1,0), deltaDepthUV);
-    vec3 fragPositionDyPos = buildPosition(side, fragUVPos, ivec2(0,1), deltaDepthUV);
-    vec3 fragPositionDyNeg = buildPosition(side, fragUVPos, ivec2(0,-1), deltaDepthUV);
+    vec2 sideUVPos = fragUVPos;
+
+    sideUVPos.x = mix(sideUVPos.x, (sideUVPos.x + getStereoSide(side)) * 0.5, isStereo());
+
+    vec3 fragPositionDxPos;
+    vec3 fragPositionDxNeg;
+    vec3 fragPositionDyPos;
+    vec3 fragPositionDyNeg;
+
+    <$buildPositionOffset(side, fragUVPos, sideUVPos, UV_RIGHT, deltaDepthUV, fragPositionDxPos)$>
+    <$buildPositionOffset(side, fragUVPos, sideUVPos, UV_LEFT, deltaDepthUV, fragPositionDxNeg)$>
+    <$buildPositionOffset(side, fragUVPos, sideUVPos, UV_TOP, deltaDepthUV, fragPositionDyPos)$>
+    <$buildPositionOffset(side, fragUVPos, sideUVPos, UV_BOTTOM, deltaDepthUV, fragPositionDyNeg)$>
 
     vec3 fragDeltaDx = getMinDelta(fragPosition, fragPositionDxPos, fragPositionDxNeg);
     vec3 fragDeltaDy = getMinDelta(fragPosition, fragPositionDyPos, fragPositionDyNeg);
