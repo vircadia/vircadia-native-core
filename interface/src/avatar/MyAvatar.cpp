@@ -993,7 +993,6 @@ glm::vec2 MyAvatar::computeHandAzimuth() const {
     controller::Pose rightHandPoseAvatarSpace = getRightHandPose();
     controller::Pose headPoseAvatarSpace = getControllerPoseInAvatarFrame(controller::Action::HEAD);
     const float HALFWAY = 0.50f;
-    const float SPINE2_POSITION_FILTER = 0.05f;
 
     glm::vec2 latestHipToHandController = _hipToHandController;
 
