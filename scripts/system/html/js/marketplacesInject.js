@@ -284,6 +284,8 @@
                 $(this).attr('href', '#');
             }
             cost = $(this).closest('.col-xs-3').find('.item-cost').text();
+            var costInt = parseInt(cost, 10);
+            var disable = costInt > 0;  // HRS FIXME
 
             $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
             $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
@@ -292,22 +294,27 @@
             priceElement.css({
                 "padding": "3px 5px",
                 "height": "40px",
-                "background": "linear-gradient(#00b4ef, #0093C5)",
+                "background": disable ? "grey" : "linear-gradient(#00b4ef, #0093C5)",
                 "color": "#FFF",
                 "font-weight": "600",
                 "line-height": "34px"
             });
 
             if (parseInt(cost) > 0) {
-                priceElement.css({ "width": "auto" });
-                priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
-                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
-                priceElement.css({ "min-width": priceElement.width() + 30 });
+                if (disable) {
+                    priceElement.html('N/A');
+                } else {
+                    priceElement.css({ "width": "auto" });
+                    priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
+                                      'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                    priceElement.css({ "min-width": priceElement.width() + 30 });
+                }
             }
         });
 
         // change pricing to GET/BUY on button hover
         $('body').on('mouseenter', '#price-or-edit .price', function () {
+            if (disable) { return; }
             var $this = $(this);
             var buyString = "BUY";
             var getString = "GET";
@@ -332,12 +339,14 @@
         });
 
         $('body').on('mouseleave', '#price-or-edit .price', function () {
+            if (disable) { return; }
             var $this = $(this);
             $this.html($this.data('initialHtml'));
         });
 
 
         $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
+            if (disable) { return false; }
             if ($(this).closest('.grid-item').find('.price').text() === 'invalidated') {
                 return false;
             }
@@ -420,7 +429,12 @@
 
                 var href = purchaseButton.attr('href');
                 purchaseButton.attr('href', '#');
+                var cost = $('.item-cost').text();
+                var costInt = parseInt(cost, 10);
                 var availability = $.trim($('.item-availability').text());
+                if (costInt > 0) {
+                    availability = ''; // HRS FIXME
+                }
                 if (availability === 'available') {
                     purchaseButton.css({
                         "background": "linear-gradient(#00b4ef, #0093C5)",
@@ -437,7 +451,6 @@
                     });
                 }
 
-                var cost = $('.item-cost').text();
                 var type = $('.item-type').text();
                 var isUpdating = window.location.href.indexOf('edition=') > -1;
                 var urlParams = new URLSearchParams(window.location.search);
