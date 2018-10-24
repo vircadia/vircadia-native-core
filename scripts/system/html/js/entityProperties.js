@@ -181,6 +181,7 @@ const GROUPS = [
             {
                 label: "Light Horizontal Angle",
                 type: "number",
+                multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
                 propertyID: "keyLight.direction.x",
@@ -189,6 +190,7 @@ const GROUPS = [
             {
                 label: "Light Vertical Angle",
                 type: "number",
+                multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
                 propertyID: "keyLight.direction.y",
@@ -301,8 +303,8 @@ const GROUPS = [
             {
                 label: "Background Blend",
                 type: "slider",
-                min: 0.0,
-                max: 1.0,
+                min: 0,
+                max: 1,
                 step: 0.01,
                 decimals: 2,
                 propertyID: "haze.hazeBackgroundBlend",
@@ -610,6 +612,7 @@ const GROUPS = [
                 min: 0.01,
                 max: 10,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "lifespan",
             },
             {
@@ -646,6 +649,7 @@ const GROUPS = [
                 min: 0,
                 max: 5,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "emitSpeed",
             },
             {
@@ -654,6 +658,7 @@ const GROUPS = [
                 min: 0,
                 max: 5,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "speedSpread",
             },
             {
@@ -662,6 +667,7 @@ const GROUPS = [
                 vec3Type: "xyz",
                 min: 0,
                 step: 0.01,
+                round: 100,
                 subLabels: [ "x", "y", "z" ],
                 propertyID: "emitDimensions",
             },
@@ -669,8 +675,8 @@ const GROUPS = [
                 label: "Emit Orientation",
                 type: "vec3",
                 vec3Type: "pyr",
-                min: 0,
                 step: 0.01,
+                round: 100,
                 subLabels: [ "pitch", "yaw", "roll" ],
                 unit: "deg",
                 propertyID: "emitOrientation",
@@ -689,30 +695,38 @@ const GROUPS = [
             {
                 label: "Size",
                 type: "slider",
+                min: 0,
                 max: 4,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "particleRadius",
             },
             {
                 label: "Size Spread",
                 type: "slider",
+                min: 0,
                 max: 4,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "radiusSpread",
             },
             {
                 label: "Size Start",
                 type: "slider",
+                min: 0,
                 max: 4,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "radiusStart",
                 fallbackProperty: "particleRadius",
             },
             {
                 label: "Size Finish",
                 type: "slider",
+                min: 0,
                 max: 4,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "radiusFinish",
                 fallbackProperty: "particleRadius",
             },
@@ -757,6 +771,7 @@ const GROUPS = [
                 min: 0,
                 max: 1,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "alpha",
             },
             {
@@ -765,6 +780,7 @@ const GROUPS = [
                 min: 0,
                 max: 1,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "alphaSpread",
             },
             {
@@ -773,6 +789,7 @@ const GROUPS = [
                 min: 0,
                 max: 1,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "alphaStart",
                 fallbackProperty: "alpha",
             },
@@ -782,6 +799,7 @@ const GROUPS = [
                 min: 0,
                 max: 1,
                 step: 0.01,
+                decimals: 2,
                 propertyID: "alphaFinish",
                 fallbackProperty: "alpha",
             },
@@ -796,6 +814,7 @@ const GROUPS = [
                 type: "vec3",
                 vec3Type: "xyz",
                 step: 0.01,
+                round: 100,
                 subLabels: [ "x", "y", "z" ],
                 propertyID: "emitAcceleration",
             },
@@ -804,6 +823,7 @@ const GROUPS = [
                 type: "vec3",
                 vec3Type: "xyz",
                 step: 0.01,
+                round: 100,
                 subLabels: [ "x", "y", "z" ],
                 propertyID: "accelerationSpread",
             },
@@ -819,6 +839,7 @@ const GROUPS = [
                 min: -360,
                 max: 360,
                 step: 1,
+                decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
                 propertyID: "particleSpin",
@@ -829,6 +850,7 @@ const GROUPS = [
                 min: 0,
                 max: 360,
                 step: 1,
+                decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
                 propertyID: "spinSpread",
@@ -839,6 +861,7 @@ const GROUPS = [
                 min: -360,
                 max: 360,
                 step: 1,
+                decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
                 propertyID: "spinStart",
@@ -850,6 +873,7 @@ const GROUPS = [
                 min: -360,
                 max: 360,
                 step: 1,
+                decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
                 propertyID: "spinFinish",
@@ -869,9 +893,10 @@ const GROUPS = [
             {
                 label: "Horizontal Angle Start",
                 type: "slider",
-                min: 0,
-                max: 180,
+                min: -180,
+                max: 0,
                 step: 1,
+                decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
                 propertyID: "azimuthStart",
@@ -879,9 +904,10 @@ const GROUPS = [
             {
                 label: "Horizontal Angle Finish",
                 type: "slider",
-                min: -180,
-                max: 0,
+                min: 0,
+                max: 180,
                 step: 1,
+                decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
                 propertyID: "azimuthFinish",
@@ -892,6 +918,7 @@ const GROUPS = [
                 min: 0,
                 max: 180,
                 step: 1,
+                decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
                 propertyID: "polarStart",
@@ -902,6 +929,7 @@ const GROUPS = [
                 min: 0,
                 max: 180,
                 step: 1,
+                decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
                 propertyID: "polarFinish",
@@ -935,6 +963,7 @@ const GROUPS = [
                 label: "Dimension",
                 type: "vec3",
                 vec3Type: "xyz",
+                min: 0,
                 step: 0.1,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
@@ -972,31 +1001,16 @@ const GROUPS = [
     {
         id: "behavior",
         label: "BEHAVIOR",
-        twoColumn: true,
         properties: [
             {
                 label: "Grabbable",
                 type: "bool",
                 propertyID: "grab.grabbable",
-                column: 1,
-            },
-            {
-                label: "Triggerable",
-                type: "bool",
-                propertyID: "grab.triggerable",
-                column: 2,
             },
             {
                 label: "Cloneable",
                 type: "bool",
                 propertyID: "cloneable",
-                column: 1,
-            },
-            {
-                label: "Follow Controller",
-                type: "bool",
-                propertyID: "grab.grabFollowsController",
-                column: 2,
             },
             {
                 label: "Clone Lifetime",
@@ -1004,30 +1018,36 @@ const GROUPS = [
                 unit: "s",
                 propertyID: "cloneLifetime",
                 showPropertyRule: { "cloneable": "true" },
-                column: 1,
             },
             {
                 label: "Clone Limit",
                 type: "number",
                 propertyID: "cloneLimit",
                 showPropertyRule: { "cloneable": "true" },
-                column: 1,
             },
             {
                 label: "Clone Dynamic",
                 type: "bool",
                 propertyID: "cloneDynamic",
                 showPropertyRule: { "cloneable": "true" },
-                column: 1,
             },
             {
                 label: "Clone Avatar Entity",
                 type: "bool",
                 propertyID: "cloneAvatarEntity",
                 showPropertyRule: { "cloneable": "true" },
-                column: 1,
             },
-            {   // below properties having no column number means place them after two columns div
+            {
+                label: "Triggerable",
+                type: "bool",
+                propertyID: "grab.triggerable",
+            },
+            {
+                label: "Follow Controller",
+                type: "bool",
+                propertyID: "grab.grabFollowsController",
+            },
+            {
                 label: "Cast shadows",
                 type: "bool",
                 propertyID: "canCastShadow",
@@ -1068,34 +1088,18 @@ const GROUPS = [
     {
         id: "collision",
         label: "COLLISION",
-        twoColumn: true,
         properties: [
             {
                 label: "Collides",
                 type: "bool",
                 inverse: true,
                 propertyID: "collisionless",
-                column: -1, // before two columns div
-            },
-            {
-                label: "Dynamic",
-                type: "bool",
-                propertyID: "dynamic",
-                column: -1, // before two columns div
             },
             {
                 label: "Collides With",
                 type: "sub-header",
                 propertyID: "collidesWithHeader", // not actually a property but used for naming/storing this element
                 showPropertyRule: { "collisionless": "false" },
-                column: 1,
-            },
-            {
-                label: "",
-                type: "sub-header",
-                propertyID: "collidesWithHeaderHelper", // not actually a property but used for naming/storing this element
-                showPropertyRule: { "collisionless": "false" },
-                column: 2,
             },
             {
                 label: "Static Entities",
@@ -1104,16 +1108,6 @@ const GROUPS = [
                 propertyName: "static", // actual subProperty name
                 subPropertyOf: "collidesWith",
                 showPropertyRule: { "collisionless": "false" },
-                column: 1,
-            },
-            {
-                label: "Dynamic Entities",
-                type: "bool",
-                propertyID: "collidesWithDynamic",
-                propertyName: "dynamic", // actual subProperty name
-                subPropertyOf: "collidesWith",
-                showPropertyRule: { "collisionless": "false" },
-                column: 2,
             },
             {
                 label: "Kinematic Entities",
@@ -1122,7 +1116,14 @@ const GROUPS = [
                 propertyName: "kinematic", // actual subProperty name
                 subPropertyOf: "collidesWith",
                 showPropertyRule: { "collisionless": "false" },
-                column: 1,
+            },
+            {
+                label: "Dynamic Entities",
+                type: "bool",
+                propertyID: "collidesWithDynamic",
+                propertyName: "dynamic", // actual subProperty name
+                subPropertyOf: "collidesWith",
+                showPropertyRule: { "collisionless": "false" },
             },
             {
                 label: "My Avatar",
@@ -1131,7 +1132,6 @@ const GROUPS = [
                 propertyName: "myAvatar", // actual subProperty name
                 subPropertyOf: "collidesWith",
                 showPropertyRule: { "collisionless": "false" },
-                column: 2,
             },
             {
                 label: "Other Avatars",
@@ -1140,14 +1140,17 @@ const GROUPS = [
                 propertyName: "otherAvatar", // actual subProperty name
                 subPropertyOf: "collidesWith",
                 showPropertyRule: { "collisionless": "false" },
-                column: 1,
             },
             {
                 label: "Collision sound URL",
                 type: "string",
                 propertyID: "collisionSoundURL",
                 showPropertyRule: { "collisionless": "false" },
-                // having no column number means place this after two columns div
+            },
+            {
+                label: "Dynamic",
+                type: "bool",
+                propertyID: "dynamic",
             },
         ]
     },
@@ -1555,15 +1558,12 @@ function createEmitCheckedPropertyUpdateFunction(propertyName, inverse) {
     };
 }
 
-function createEmitNumberPropertyUpdateFunction(propertyName, multiplier, decimals) {
+function createEmitNumberPropertyUpdateFunction(propertyName, multiplier) {
     return function() {
-        let value = parseFloat(this.value);
-        if (multiplier !== undefined) {
-            value *= multiplier;
+        if (multiplier === undefined) {
+            multiplier = 1;
         }
-        if (decimals !== undefined) {
-            value = value.toFixed(decimals);
-        }
+        let value = parseFloat(this.value) * multiplier;
         updateProperty(propertyName, value);
     };
 }
@@ -1720,7 +1720,7 @@ function createNumberProperty(property, elProperty, elLabel) {
         elInput.value = defaultValue;
     }
     
-    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(propertyName, propertyData.muliplier, propertyData.decimals));
+    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, propertyData.decimals));
     
     elProperty.appendChild(elLabel);
     elProperty.appendChild(elInput);
@@ -1760,24 +1760,31 @@ function createSliderProperty(property, elProperty, elLabel) {
         elSlider.setAttribute("step", propertyData.step);
     }
     
-    elInput.oninput = function (event) {
-        let value = event.target.value;
-        elSlider.value = value;
+    elInput.onchange = function (event) {
+        let inputValue = event.target.value;
+        elSlider.value = inputValue;
         if (propertyData.multiplier !== undefined) {
-            value *= propertyData.multiplier;
+            inputValue *= propertyData.multiplier;
         }
-        updateProperty(property.name, value);
+        updateProperty(property.name, inputValue);
     };
-    elInput.onchange = elInput.oninput;
     elSlider.oninput = function (event) {
-        let value = event.target.value;
-        elInput.value = value;
-        if (propertyData.multiplier !== undefined) {
-            value *= propertyData.multiplier;
+        let sliderValue = event.target.value;
+        if (propertyData.step === 1) {
+            if (sliderValue > 0) {
+                elInput.value = Math.floor(sliderValue);
+            } else {
+                elInput.value = Math.ceil(sliderValue);
+            }
+        } else {
+            elInput.value = sliderValue;
         }
-        updateProperty(property.name, value);
+        if (propertyData.multiplier !== undefined) {
+            sliderValue *= propertyData.multiplier;
+        }
+        updateProperty(property.name, sliderValue);
     };
-    
+
     elDiv.appendChild(elLabel);
     elDiv.appendChild(elSlider);
     elDiv.appendChild(elInput);
@@ -2952,8 +2959,15 @@ function loaded() {
                                 case 'number':
                                 case 'slider': {
                                     let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
-                                    let decimals = propertyData.decimals !== undefined ? propertyData.decimals : 0;
-                                    property.elInput.value = (propertyValue / multiplier).toFixed(decimals);
+                                    let value = propertyValue / multiplier;
+                                    if (propertyData.round !== undefined) {
+                                        value = Math.round(value.round) / propertyData.round;
+                                    }
+                                    if (propertyData.decimals !== undefined) {
+                                        property.elInput.value = value.toFixed(propertyData.decimals);
+                                    } else {
+                                        property.elInput.value = value;
+                                    }
                                     if (property.elSlider !== undefined) {
                                         property.elSlider.value = property.elInput.value;
                                     }
@@ -2962,11 +2976,26 @@ function loaded() {
                                 case 'vec3':
                                 case 'vec2': {
                                     let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
-                                    let decimals = propertyData.decimals !== undefined ? propertyData.decimals : 0;
-                                    property.elInputX.value = (propertyValue.x / multiplier).toFixed(decimals);
-                                    property.elInputY.value = (propertyValue.y / multiplier).toFixed(decimals);
-                                    if (property.elInputZ !== undefined) {
-                                        property.elInputZ.value = (propertyValue.z / multiplier).toFixed(decimals);
+                                    let valueX = propertyValue.x / multiplier;
+                                    let valueY = propertyValue.y / multiplier;
+                                    let valueZ = propertyValue.z / multiplier;
+                                    if (propertyData.round !== undefined) {
+                                        valueX = Math.round(valueX * propertyData.round) / propertyData.round;
+                                        valueY = Math.round(valueY * propertyData.round) / propertyData.round;
+                                        valueZ = Math.round(valueZ * propertyData.round) / propertyData.round;
+                                    }
+                                    if (propertyData.decimals !== undefined) {
+                                        property.elInputX.value = valueX.toFixed(propertyData.decimals);
+                                        property.elInputY.value = valueY.toFixed(propertyData.decimals);
+                                        if (property.elInputZ !== undefined) {
+                                            property.elInputZ.value = valueZ.toFixed(propertyData.decimals);
+                                        }
+                                    } else {
+                                        property.elInputX.value = valueX;
+                                        property.elInputY.value = valueY;
+                                        if (property.elInputZ !== undefined) {
+                                            property.elInputZ.value = valueZ;
+                                        }
                                     }
                                     break;
                                 }
