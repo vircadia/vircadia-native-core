@@ -26,14 +26,11 @@ public:
 
     void sendChangedTraitsToMixer();
 
-    bool hasChangedTraits() { return _hasChangedTraits; }
+    bool hasChangedTraits() const { return _hasChangedTraits; }
 
-    void markTraitUpdated(AvatarTraits::TraitType updatedTrait)
-        { _traitStatuses[updatedTrait] = Updated; _hasChangedTraits = true; }
-    void markInstancedTraitUpdated(AvatarTraits::TraitType traitType, QUuid updatedInstanceID)
-        { _traitStatuses.instanceInsert(traitType, updatedInstanceID, Updated); _hasChangedTraits = true; }
-    void markInstancedTraitDeleted(AvatarTraits::TraitType traitType, QUuid deleteInstanceID)
-        { _traitStatuses.instanceInsert(traitType, deleteInstanceID, Deleted); _hasChangedTraits = true; }
+    void markTraitUpdated(AvatarTraits::TraitType updatedTrait);
+    void markInstancedTraitUpdated(AvatarTraits::TraitType traitType, QUuid updatedInstanceID);
+    void markInstancedTraitDeleted(AvatarTraits::TraitType traitType, QUuid deleteInstanceID);
 
     void resetForNewMixer();
 
@@ -41,17 +38,21 @@ public slots:
     void processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 private:
+    using Mutex = std::recursive_mutex;
+    using Lock = std::lock_guard<Mutex>;
+
     enum ClientTraitStatus {
         Unchanged,
         Updated,
         Deleted
     };
 
-    AvatarData* _owningAvatar;
+    AvatarData* const _owningAvatar;
 
+    Mutex _traitLock;
     AvatarTraits::AssociatedTraitValues<ClientTraitStatus, Unchanged> _traitStatuses;
-    AvatarTraits::TraitVersion _currentTraitVersion { AvatarTraits::DEFAULT_TRAIT_VERSION };
 
+    AvatarTraits::TraitVersion _currentTraitVersion { AvatarTraits::DEFAULT_TRAIT_VERSION };
     AvatarTraits::TraitVersion _currentSkeletonVersion { AvatarTraits::NULL_TRAIT_VERSION };
     
     bool _shouldPerformInitialSend { false };
