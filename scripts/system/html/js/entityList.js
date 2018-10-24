@@ -13,7 +13,7 @@ const DESCENDING_STRING = '&#x25BE;';
 const LOCKED_GLYPH = "&#xe006;";
 const VISIBLE_GLYPH = "&#xe007;";
 const TRANSPARENCY_GLYPH = "&#xe00b;";
-const BAKED_GLYPH = "&#xe01a;"
+const BAKED_GLYPH = "&#xe01a;";
 const SCRIPT_GLYPH = "k";
 const BYTES_PER_MEGABYTE = 1024 * 1024;
 const IMAGE_MODEL_NAME = 'default-image-model.fbx';
@@ -55,10 +55,10 @@ const COMPARE_ASCENDING = function(a, b) {
     }
 
     return 1;
-}
+};
 const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
-}
+};
 
 const FILTER_TYPES = [
     "Shape",
@@ -94,6 +94,11 @@ var visibleEntities = [];
 var selectedEntities = [];
 
 var entityList = null; // The ListView
+
+/**
+ * @type EntityListContextMenu
+ */
+var entityListContextMenu = null;
 
 var currentSortColumn = 'type';
 var currentSortOrder = ASCENDING_SORT;
@@ -184,22 +189,22 @@ function loaded() {
         };
         elRefresh.onclick = function() {
             refreshEntities();
-        }
+        };
         elToggleLocked.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
-        }
+        };
         elToggleVisible.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
-        }
+        };
         elExport.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
-        }
+        };
         elPal.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
-        }
+        };
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
-        }
+        };
         elFilterTypeSelectBox.onclick = onToggleTypeDropdown;
         elFilterSearch.onkeyup = refreshEntityList;
         elFilterSearch.onsearch = refreshEntityList;
@@ -235,17 +240,105 @@ function loaded() {
         
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
                                   createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
-        
+
+        entityListContextMenu = new EntityListContextMenu();
+
+
+        function startRenamingEntity(entityID) {
+            let entity = entitiesByID[entityID];
+            if (!entity || entity.locked || !entity.elRow) {
+                return;
+            }
+
+            let elCell = entity.elRow.childNodes[COLUMN_INDEX.NAME];
+            let elRenameInput = document.createElement("input");
+            elRenameInput.setAttribute('class', 'rename-entity');
+            elRenameInput.value = entity.name;
+            let ignoreClicks = function(event) {
+                event.stopPropagation();
+            };
+            elRenameInput.onclick = ignoreClicks;
+            elRenameInput.ondblclick = ignoreClicks;
+            elRenameInput.onkeyup = function(keyEvent) {
+                if (keyEvent.key === "Enter") {
+                    elRenameInput.blur();
+                }
+            };
+
+            elRenameInput.onblur = function(event) {
+                let value = elRenameInput.value;
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: 'rename',
+                    entityID: entityID,
+                    name: value
+                }));
+                entity.name = value;
+                elCell.innerText = value;
+            };
+
+            elCell.innerHTML = "";
+            elCell.appendChild(elRenameInput);
+
+            elRenameInput.select();
+        }
+
+        entityListContextMenu.setOnSelectedCallback(function(optionName, selectedEntityID) {
+            switch (optionName) {
+                case "Cut":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'cut' }));
+                    break;
+                case "Copy":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
+                    break;
+                case "Paste":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'paste' }));
+                    break;
+                case "Rename":
+                    startRenamingEntity(selectedEntityID);
+                    break;
+                case "Duplicate":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
+                    break;
+                case "Delete":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+                    break;
+            }
+        });
+
+        function onRowContextMenu(clickEvent) {
+            let entityID = this.dataset.entityID;
+
+            if (!selectedEntities.includes(entityID)) {
+                let selection = [entityID];
+                updateSelectedEntities(selection);
+
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "selectionUpdate",
+                    focus: false,
+                    entityIds: selection,
+                }));
+            }
+
+            let enabledContextMenuItems = ['Copy', 'Paste', 'Duplicate'];
+            if (entitiesByID[entityID] && !entitiesByID[entityID].locked) {
+                enabledContextMenuItems.push('Cut');
+                enabledContextMenuItems.push('Rename');
+                enabledContextMenuItems.push('Delete');
+            }
+
+            entityListContextMenu.open(clickEvent, entityID, enabledContextMenuItems);
+        }
+
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
             let selection = [entityID];
-            
+
             if (clickEvent.ctrlKey) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
                     selection = [];
                     selection = selection.concat(selectedEntities);
-                    selection.splice(selectedIndex, 1)
+                    selection.splice(selectedIndex, 1);
                 } else {
                     selection = selection.concat(selectedEntities);
                 }
@@ -272,28 +365,29 @@ function loaded() {
                     }
                 }
             } else if (!clickEvent.ctrlKey && !clickEvent.shiftKey && selectedEntities.length === 1) {
-                // if reselecting the same entity then deselect it
+                // if reselecting the same entity then start renaming it
                 if (selectedEntities[0] === entityID) {
-                    selection = [];
+                    startRenamingEntity(entityID);
                 }
             }
             
-            updateSelectedEntities(selection);
+            updateSelectedEntities(selection, false);
 
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
                 focus: false,
                 entityIds: selection,
             }));
-
-            refreshFooter();
         }
 
         function onRowDoubleClicked() {
+            let selection = [this.dataset.entityID];
+            updateSelectedEntities(selection, false);
+
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
                 focus: true,
-                entityIds: [this.dataset.entityID],
+                entityIds: selection,
             }));
         }
         
@@ -340,7 +434,7 @@ function loaded() {
                         hasScript: entity.hasScript,
                         elRow: null, // if this entity has a visible row element assigned to it
                         selected: false // if this entity is selected for edit regardless of having a visible row
-                    }
+                    };
                     
                     entities.push(entityData);
                     entitiesByID[entityData.id] = entityData;
@@ -468,7 +562,7 @@ function loaded() {
             isBaked: document.querySelector('#entity-isBaked .sort-order'),
             drawCalls: document.querySelector('#entity-drawCalls .sort-order'),
             hasScript: document.querySelector('#entity-hasScript .sort-order'),
-        }
+        };
         function setSortColumn(column) {
             PROFILE("set-sort-column", function() {
                 if (currentSortColumn === column) {
@@ -503,7 +597,7 @@ function loaded() {
             }
         }
         
-        function updateSelectedEntities(selectedIDs) {
+        function updateSelectedEntities(selectedIDs, autoScroll) {
             let notFound = false;
             
             // reset all currently selected entities and their rows first
@@ -532,6 +626,26 @@ function loaded() {
                 }
             });
 
+            if (autoScroll && selectedIDs.length > 0) {
+                let firstItem = Number.MAX_VALUE;
+                let lastItem = -1;
+                let itemFound = false;
+                visibleEntities.forEach(function(entity, index) {
+                    if (selectedIDs.indexOf(entity.id) !== -1) {
+                        if (firstItem > index) {
+                            firstItem = index;
+                        }
+                        if (lastItem < index) {
+                            lastItem = index;
+                        }
+                        itemFound = true;
+                    }
+                });
+                if (itemFound) {
+                    entityList.scrollToRow(firstItem, lastItem);
+                }
+            }
+
             refreshFooter();
 
             return notFound;
@@ -552,6 +666,7 @@ function loaded() {
                 }
                 row.appendChild(column);
             }
+            row.oncontextmenu = onRowContextMenu;
             row.onclick = onRowClicked;
             row.ondblclick = onRowDoubleClicked;
             return row;
@@ -736,7 +851,7 @@ function loaded() {
                 if (data.type === "clearEntityList") {
                     clearEntities();
                 } else if (data.type === "selectionUpdate") {
-                    let notFound = updateSelectedEntities(data.selectedIDs);
+                    let notFound = updateSelectedEntities(data.selectedIDs, true);
                     if (notFound) {
                         refreshEntities();
                     }
@@ -748,13 +863,13 @@ function loaded() {
                                 clearEntities();
                             } else {
                                 updateEntityData(newEntities);
-                                updateSelectedEntities(data.selectedIDs);
+                                updateSelectedEntities(data.selectedIDs, true);
                             }
                         }
                     });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
                     removeEntities(data.deletedIDs);
-                    updateSelectedEntities(data.selectedIDs);
+                    updateSelectedEntities(data.selectedIDs, true);
                 } else if (data.type === "deleted" && data.ids) {
                     removeEntities(data.ids);
                 }
@@ -767,8 +882,15 @@ function loaded() {
     
     augmentSpinButtons();
 
-    // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function (event) {
+        entityListContextMenu.close();
+
+        // Disable default right-click context menu which is not visible in the HMD and makes it seem like the app has locked
         event.preventDefault();
     }, false);
+
+    // close context menu when switching focus to another window
+    $(window).blur(function() {
+        entityListContextMenu.close();
+    });
 }

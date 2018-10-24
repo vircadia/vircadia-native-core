@@ -12,13 +12,13 @@
 //
 <@include graphics/ShaderConstants.h@>
 
-layout(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
+LAYOUT(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
 
 struct Skybox {
     vec4 color;
 };
 
-layout(binding=GRAPHICS_BUFFER_SKYBOX_PARAMS) uniform skyboxBuffer {
+LAYOUT(binding=GRAPHICS_BUFFER_SKYBOX_PARAMS) uniform skyboxBuffer {
     Skybox skybox;
 };
 
