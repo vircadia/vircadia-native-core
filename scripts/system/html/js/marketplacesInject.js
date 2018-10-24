@@ -302,7 +302,8 @@
 
             if (parseInt(cost) > 0) {
                 if (disable) {
-                    priceElement.html('N/A');
+                    priceElement.html('N/A'); // In case the following fails
+                    $(this).parent().parent().parent().parent().parent().css({"display": "none"}); // HRS FIXME
                 } else {
                     priceElement.css({ "width": "auto" });
                     priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
