@@ -2186,10 +2186,8 @@ var PropertiesTool = function (opts) {
                 entity.properties.emitOrientation = Quat.safeEulerAngles(entity.properties.emitOrientation);
             }
             if (entity.properties.keyLight !== undefined && entity.properties.keyLight.direction !== undefined) {
-                print("DBACK TEST entity.properties.keyLight.direction pre " + entity.properties.keyLight.direction.x + " " + entity.properties.keyLight.direction.y + " " + entity.properties.keyLight.direction.z);
                 entity.properties.keyLight.direction = Vec3.toPolar(entity.properties.keyLight.direction);
                 entity.properties.keyLight.direction.z = 0.0;
-                print("DBACK TEST entity.properties.keyLight.direction post " + entity.properties.keyLight.direction.x + " " + entity.properties.keyLight.direction.y + " " + entity.properties.keyLight.direction.z);
             }
             selections.push(entity);
         }
@@ -2231,16 +2229,13 @@ var PropertiesTool = function (opts) {
                 }
                 if (data.properties.keyLight !== undefined && data.properties.keyLight.direction !== undefined) {
                     var currentKeyLightDirection = Vec3.toPolar(Entities.getEntityProperties(selectionManager.selections[0], ['keyLight.direction']).keyLight.direction);
-                    print("DBACK TEST data.properties.keyLight.direction pre pre " + data.properties.keyLight.direction.x + " " + data.properties.keyLight.direction.y + " " + data.properties.keyLight.direction.z + "  currentKeyLightDirection " + currentKeyLightDirection.x + " " + currentKeyLightDirection.y + " " + currentKeyLightDirection.z);
                     if (data.properties.keyLight.direction.x === undefined) {
                         data.properties.keyLight.direction.x = currentKeyLightDirection.x;
                     }
                     if (data.properties.keyLight.direction.y === undefined) {
                         data.properties.keyLight.direction.y = currentKeyLightDirection.y;
                     }
-                    print("DBACK TEST data.properties.keyLight.direction pre " + data.properties.keyLight.direction.x + " " + data.properties.keyLight.direction.y + " " + data.properties.keyLight.direction.z);
                     data.properties.keyLight.direction = Vec3.fromPolar(data.properties.keyLight.direction.x, data.properties.keyLight.direction.y);
-                    print("DBACK TEST data.properties.keyLight.direction post " + data.properties.keyLight.direction.x + " " + data.properties.keyLight.direction.y + " " + data.properties.keyLight.direction.z);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
                 if (data.properties.name !== undefined || data.properties.modelURL !== undefined || data.properties.materialURL !== undefined ||
