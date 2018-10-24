@@ -15,7 +15,7 @@ var PROFILING_ENABLED = false;
 var profileIndent = '';
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
-} ;
+};
 PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Script " + profileIndent + "(" + name + ") Begin");
     var previousIndent = profileIndent;
@@ -245,7 +245,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                 Window.saveAsync("Select Where to Save", "", "*.json");
             }
         } else if (data.type === "pal") {
-            var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.
+            var sessionIds = {}; // Collect the sessionsIds of all selected entities, w/o duplicates.
             selectionManager.selections.forEach(function (id) {
                 var lastEditedBy = Entities.getEntityProperties(id, 'lastEditedBy').lastEditedBy;
                 if (lastEditedBy) {
@@ -271,6 +271,19 @@ EntityListTool = function(shouldUseEditTabletApp) {
             filterInView = data.filterInView === true;
         } else if (data.type === "radius") {
             searchRadius = data.radius;
+        } else if (data.type === "cut") {
+            SelectionManager.cutSelectedEntities();
+        } else if (data.type === "copy") {
+            SelectionManager.copySelectedEntities();
+        } else if (data.type === "paste") {
+            SelectionManager.pasteEntities();
+        } else if (data.type === "duplicate") {
+            SelectionManager.duplicateSelection();
+            that.sendUpdate();
+        } else if (data.type === "rename") {
+            Entities.editEntity(data.entityID, {name: data.name});
+            // make sure that the name also gets updated in the properties window
+            SelectionManager._update();
         }
     };
 
