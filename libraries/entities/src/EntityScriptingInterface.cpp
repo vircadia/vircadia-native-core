@@ -360,11 +360,13 @@ void synchronizeGrabJoints(const GrabPropertyGroup& grabProperties, QJsonObject&
             QJsonValue::fromVariant(quatToQMap(grabProperties.getEquippableRightRotation())).toObject();
     }
 
-    rightHand[0] = rightHandPosition;
-    rightHand[1] = rightHandRotation;
+    rightHand = QJsonArray();
+    rightHand.append(rightHandPosition);
+    rightHand.append(rightHandRotation);
     joints["RightHand"] = rightHand;
-    leftHand[0] = leftHandPosition;
-    leftHand[1] = leftHandRotation;
+    leftHand = QJsonArray();
+    leftHand.append(leftHandPosition);
+    leftHand.append(leftHandRotation);
     joints["LeftHand"] = leftHand;
 }
 
@@ -398,7 +400,8 @@ void synchronizeEquipHotspot(const GrabPropertyGroup& grabProperties, QJsonObjec
         }
 
         equipHotspot["joints"] = joints;
-        equipHotspots[0] = equipHotspot;
+        equipHotspots = QJsonArray();
+        equipHotspots.append(equipHotspot);
         userData["equipHotspots"] = equipHotspots;
         userDataChanged = true;
     }
