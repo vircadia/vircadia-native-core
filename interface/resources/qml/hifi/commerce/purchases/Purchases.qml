@@ -476,7 +476,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.leftMargin: 16;
                 width: paintedWidth;
-                text: "Inventory"; // HRS FIXME isShowingMyItems ? "My Items" : "My Purchases";
+                text: isShowingMyItems ? "My Items" : "Inventory"; //"My Purchases";
                 color: hifi.colors.black;
                 size: 22;
             }
