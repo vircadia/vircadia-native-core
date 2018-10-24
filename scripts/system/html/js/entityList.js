@@ -23,6 +23,7 @@ const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
 const WINDOW_NONVARIABLE_HEIGHT = 227;
 const NUM_COLUMNS = 12;
 const EMPTY_ENTITY_ID = "0";
+const MAX_LENGTH_RADIUS = 9;
 const DELETE = 46; // Key code for the delete key.
 const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 
@@ -59,6 +60,30 @@ const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
 };
 
+const FILTER_TYPES = [
+    "Shape",
+    "Model",
+    "Image",
+    "Light",
+    "Zone",
+    "Web",
+    "Material",
+    "ParticleEffect",
+    "Text",
+];
+
+const ICON_FOR_TYPE = {
+    Shape: "n",
+    Model: "&#xe008;",
+    Image: "&#xe02a;",
+    Light: "p",
+    Zone: "o",
+    Web: "q",
+    Material: "&#xe00b;",
+    ParticleEffect: "&#xe004;",
+    Text: "l",
+};
+
 // List of all entities
 var entities = [];
 // List of all entities, indexed by Entity ID
@@ -77,6 +102,7 @@ var entityListContextMenu = null;
 
 var currentSortColumn = 'type';
 var currentSortOrder = ASCENDING_SORT;
+var typeFilters = [];
 var isFilterInView = false;
 var showExtraInfo = false;
 
@@ -110,9 +136,12 @@ function loaded() {
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
         elDelete = document.getElementById("delete");
-        elFilter = document.getElementById("filter");
-        elInView = document.getElementById("in-view")
-        elRadius = document.getElementById("radius");
+        elFilterTypeSelectBox = document.getElementById("filter-type-select-box");
+        elFilterTypeText = document.getElementById("filter-type-text");
+        elFilterTypeCheckboxes = document.getElementById("filter-type-checkboxes");
+        elFilterSearch = document.getElementById("filter-search");
+        elFilterInView = document.getElementById("filter-in-view")
+        elFilterRadius = document.getElementById("filter-radius");
         elExport = document.getElementById("export");
         elPal = document.getElementById("pal");
         elInfoToggle = document.getElementById("info-toggle");
@@ -120,9 +149,8 @@ function loaded() {
         elSelectedEntitiesCount = document.getElementById("selected-entities-count");
         elVisibleEntitiesCount = document.getElementById("visible-entities-count");
         elNoEntitiesMessage = document.getElementById("no-entities");
-        elNoEntitiesInView = document.getElementById("no-entities-in-view");
-        elNoEntitiesRadius = document.getElementById("no-entities-radius");
         
+        document.body.onclick = onBodyClick;
         document.getElementById("entity-name").onclick = function() {
             setSortColumn('name');
         };
@@ -132,31 +160,31 @@ function loaded() {
         document.getElementById("entity-url").onclick = function() {
             setSortColumn('url');
         };
-        document.getElementById("entity-locked").onclick = function () {
+        document.getElementById("entity-locked").onclick = function() {
             setSortColumn('locked');
         };
-        document.getElementById("entity-visible").onclick = function () {
+        document.getElementById("entity-visible").onclick = function() {
             setSortColumn('visible');
         };
-        document.getElementById("entity-verticesCount").onclick = function () {
+        document.getElementById("entity-verticesCount").onclick = function() {
             setSortColumn('verticesCount');
         };
-        document.getElementById("entity-texturesCount").onclick = function () {
+        document.getElementById("entity-texturesCount").onclick = function() {
             setSortColumn('texturesCount');
         };
-        document.getElementById("entity-texturesSize").onclick = function () {
+        document.getElementById("entity-texturesSize").onclick = function() {
             setSortColumn('texturesSize');
         };
-        document.getElementById("entity-hasTransparent").onclick = function () {
+        document.getElementById("entity-hasTransparent").onclick = function() {
             setSortColumn('hasTransparent');
         };
-        document.getElementById("entity-isBaked").onclick = function () {
+        document.getElementById("entity-isBaked").onclick = function() {
             setSortColumn('isBaked');
         };
-        document.getElementById("entity-drawCalls").onclick = function () {
+        document.getElementById("entity-drawCalls").onclick = function() {
             setSortColumn('drawCalls');
         };
-        document.getElementById("entity-hasScript").onclick = function () {
+        document.getElementById("entity-hasScript").onclick = function() {
             setSortColumn('hasScript');
         };
         elRefresh.onclick = function() {
@@ -177,15 +205,38 @@ function loaded() {
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         };
-        elFilter.onkeyup = refreshEntityList;
-        elFilter.onpaste = refreshEntityList;
-        elFilter.onchange = onFilterChange;
-        elFilter.onblur = refreshFooter;
-        elInView.onclick = toggleFilterInView;
-        elRadius.onchange = onRadiusChange;
+        elFilterTypeSelectBox.onclick = onToggleTypeDropdown;
+        elFilterSearch.onkeyup = refreshEntityList;
+        elFilterSearch.onsearch = refreshEntityList;
+        elFilterInView.onclick = toggleFilterInView;
+        elFilterRadius.onkeyup = onRadiusChange;
+        elFilterRadius.onchange = onRadiusChange;
+        elFilterRadius.onclick = onRadiusChange;
         elInfoToggle.onclick = toggleInfo;
         
-        elNoEntitiesInView.style.display = "none";
+        // create filter type dropdown checkboxes with label and icon for each type
+        for (let i = 0; i < FILTER_TYPES.length; ++i) {
+            let type = FILTER_TYPES[i];
+            let typeFilterID = "filter-type-" + type;
+            let elDiv = document.createElement('div');
+            let elLabel = document.createElement('label');
+            elLabel.setAttribute("for", typeFilterID);
+            elLabel.innerText = type;
+            let elSpan = document.createElement('span');
+            elSpan.setAttribute("class", "typeIcon");
+            elSpan.innerHTML = ICON_FOR_TYPE[type];
+            let elInput = document.createElement('input');
+            elInput.setAttribute("type", "checkbox");
+            elInput.setAttribute("id", typeFilterID);
+            elInput.setAttribute("filterType", type);
+            elInput.checked = true; // all types are checked initially
+            toggleTypeFilter(elInput, false); // add all types to the initial types filter
+            elDiv.appendChild(elInput);
+            elLabel.insertBefore(elSpan, elLabel.childNodes[0]);
+            elDiv.appendChild(elLabel);
+            elFilterTypeCheckboxes.appendChild(elDiv);
+            elDiv.onclick = onToggleTypeFilter;
+        }
         
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
                                   createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
@@ -396,17 +447,16 @@ function loaded() {
         function refreshEntityList() {
             PROFILE("refresh-entity-list", function() {
                 PROFILE("filter", function() {
-                    let searchTerm = elFilter.value.toLowerCase();
-                    if (searchTerm === '') {
-                        visibleEntities = entities.slice(0);
-                    } else {
-                        visibleEntities = entities.filter(function(e) {
-                            return e.name.toLowerCase().indexOf(searchTerm) > -1
-                                || e.type.toLowerCase().indexOf(searchTerm) > -1
-                                || e.fullUrl.toLowerCase().indexOf(searchTerm) > -1
-                                || e.id.toLowerCase().indexOf(searchTerm) > -1;
-                        });
-                    }
+                    let searchTerm = elFilterSearch.value.toLowerCase();
+                    visibleEntities = entities.filter(function(e) {
+                        let type = e.type === "Box" || e.type === "Sphere" ? "Shape" : e.type;
+                        let typeFilter = typeFilters.indexOf(type) > -1;
+                        let searchFilter = searchTerm === '' || (e.name.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 e.type.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 e.fullUrl.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 e.id.toLowerCase().indexOf(searchTerm) > -1);
+                        return typeFilter && searchFilter;
+                    });
                 });
                 
                 PROFILE("sort", function() {
@@ -697,29 +747,74 @@ function loaded() {
         function toggleFilterInView() {
             isFilterInView = !isFilterInView;
             if (isFilterInView) {
-                elInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
-                elNoEntitiesInView.style.display = "inline";
+                elFilterInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
             } else {
-                elInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
-                elNoEntitiesInView.style.display = "none";
+                elFilterInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
             }
             EventBridge.emitWebEvent(JSON.stringify({ type: "filterInView", filterInView: isFilterInView }));
             refreshEntities();
         }
         
-        function onFilterChange() {
-            refreshEntityList();
-            entityList.resize();
-        }
-        
         function onRadiusChange() {
-            elRadius.value = Math.max(elRadius.value, 0);
-            elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
-            elNoEntitiesMessage.style.display = "none";
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));
+            elFilterRadius.value = elFilterRadius.value.replace(/[^0-9]/g, '');
+            elFilterRadius.value = Math.max(elFilterRadius.value, 0);
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elFilterRadius.value }));
             refreshEntities();
         }
-
+        
+        function isTypeDropdownVisible() {
+            return elFilterTypeCheckboxes.style.display === "block";
+        }
+        
+        function toggleTypeDropdown() {
+            elFilterTypeCheckboxes.style.display = isTypeDropdownVisible() ? "none" : "block";
+        }
+        
+        function onToggleTypeDropdown(event) {
+            toggleTypeDropdown();
+            event.stopPropagation();
+        }
+        
+        function toggleTypeFilter(elInput, refresh) {
+            let type = elInput.getAttribute("filterType");
+            let typeChecked = elInput.checked;
+            
+            let typeFilterIndex = typeFilters.indexOf(type);
+            if (!typeChecked && typeFilterIndex > -1) {
+                typeFilters.splice(typeFilterIndex, 1);
+            } else if (typeChecked && typeFilterIndex === -1) {
+                typeFilters.push(type);
+            }
+            
+            if (typeFilters.length === 0) {
+                elFilterTypeText.innerText = "No Types";
+            } else if (typeFilters.length === FILTER_TYPES.length) {
+                elFilterTypeText.innerText = "All Types";
+            } else {
+                elFilterTypeText.innerText = "Types...";
+            }
+            
+            if (refresh) {
+                refreshEntityList();
+            }
+        }
+        
+        function onToggleTypeFilter(event) {
+            let elTarget = event.target;
+            if (elTarget instanceof HTMLInputElement) {
+                toggleTypeFilter(elTarget, true);
+            }
+            event.stopPropagation();
+        }
+        
+        function onBodyClick(event) {
+            // if clicking anywhere outside of the type filter dropdown (since click event bubbled up to onBodyClick and  
+            // propagation wasn't stopped by onToggleTypeFilter or onToggleTypeDropdown) and the dropdown is open then close it
+            if (isTypeDropdownVisible()) {
+                toggleTypeDropdown();
+            }
+        }
+        
         function toggleInfo(event) {
             showExtraInfo = !showExtraInfo;
             if (showExtraInfo) {
@@ -732,7 +827,7 @@ function loaded() {
             entityList.resize();
             event.stopPropagation();
         }
-
+    
         document.addEventListener("keydown", function (keyDownEvent) {
             if (keyDownEvent.target.nodeName === "INPUT") {
                 return;
