@@ -27,8 +27,10 @@ struct ovr {
     static void releaseRenderSession(ovrSession session);
     static void withSession(const std::function<void(ovrSession)>& f);
     static ovrSessionStatus getStatus();
-    static ovrTrackingState getTrackingState();
+    static ovrSessionStatus getStatus(ovrResult& result);
+    static ovrTrackingState getTrackingState(double absTime = 0.0, ovrBool latencyMarker = ovrFalse);
     static QString getError();
+    static bool handleOVREvents();
 
     static inline bool quitRequested() { return quitRequested(getStatus()); }
     static inline bool reorientRequested() { return reorientRequested(getStatus()); }
