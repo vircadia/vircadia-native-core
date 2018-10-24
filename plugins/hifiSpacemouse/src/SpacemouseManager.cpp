@@ -116,8 +116,8 @@ controller::Input::NamedVector SpacemouseDevice::getAvailableInputs() const {
         makePair(TRANSLATE_X, "TranslateX"),
         makePair(TRANSLATE_Y, "TranslateY"),
         makePair(TRANSLATE_Z, "TranslateZ"),
-        //makePair(ROTATE_X, "RotateX"),
-        //makePair(ROTATE_Y, "RotateY"),
+        makePair(ROTATE_X, "RotateX"),
+        makePair(ROTATE_Y, "RotateY"),
         makePair(ROTATE_Z, "RotateZ"),
 
     };
