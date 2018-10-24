@@ -113,7 +113,10 @@ public:
     void destroyAnimGraph();
 
     void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    void triggerNetworkAnimation(const QString& animName);
     void restoreAnimation();
+    void restoreNetworkAnimation();
+
     QStringList getAnimationRoles() const;
     void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreRoleAnimation(const QString& role);
@@ -269,6 +272,7 @@ protected:
 
     // Only accessed by the main thread
     PoseSet _internalPoseSet;
+    PoseSet _networkPoseSet;
 
     // Copy of the _poseSet for external threads.
     PoseSet _externalPoseSet;
@@ -300,9 +304,12 @@ protected:
 
     QUrl _animGraphURL;
     std::shared_ptr<AnimNode> _animNode;
+    std::shared_ptr<AnimNode> _networkNode;
     std::shared_ptr<AnimSkeleton> _animSkeleton;
     std::unique_ptr<AnimNodeLoader> _animLoader;
+    std::unique_ptr<AnimNodeLoader> _networkLoader;
     AnimVariantMap _animVars;
+    AnimVariantMap _networkVars;
 
     enum class RigRole {
         Idle = 0,
@@ -315,6 +322,25 @@ protected:
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
     float _desiredStateAge { 0.0f };
+    
+    struct NetworkAnimState {
+        enum ClipNodeEnum {
+            Idle = 0,
+            PreTransit,
+            Transit,
+            PostTransit
+        };
+        NetworkAnimState() : clipNodeEnum(NetworkAnimState::Idle) {}
+        NetworkAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
+
+        ClipNodeEnum clipNodeEnum;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
+    };
 
     struct UserAnimState {
         enum ClipNodeEnum {
@@ -349,6 +375,7 @@ protected:
     };
 
     UserAnimState _userAnimState;
+    NetworkAnimState _networkAnimState;
     std::map<QString, RoleAnimState> _roleAnimStates;
 
     float _leftHandOverlayAlpha { 0.0f };
@@ -382,6 +409,7 @@ protected:
 
     int _rigId;
     bool _headEnabled { false };
+    bool _sendNetworkNode { false };
 
     AnimContext _lastContext;
     AnimVariantMap _lastAnimVars;

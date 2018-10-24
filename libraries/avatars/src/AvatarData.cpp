@@ -375,12 +375,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAvatarGlobalPosition) {
         auto startSection = destinationBuffer;
-        if (_overrideGlobalPosition) {
-            AVATAR_MEMCPY(_globalPositionOverride);
-        } else {
-            AVATAR_MEMCPY(_globalPosition);
-        }
-        
+        AVATAR_MEMCPY(_globalPosition);        
 
         int numBytes = destinationBuffer - startSection;
 
@@ -887,20 +882,22 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             offset = glm::vec3(row * SPACE_BETWEEN_AVATARS, 0.0f, col * SPACE_BETWEEN_AVATARS);
         }
 
-        auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
-        if (_globalPosition != newValue) {
-            _globalPosition = newValue;
+        _serverPosition = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
+        auto oneStepDistance = glm::length(_globalPosition - _serverPosition);
+        if (oneStepDistance <= AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE || oneStepDistance >= AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE) {
+            _globalPosition = _serverPosition;
+            // if we don't have a parent, make sure to also set our local position
+            if (!hasParent()) {
+                setLocalPosition(_serverPosition);
+            }
+        }
+        if (_globalPosition != _serverPosition) {
             _globalPositionChanged = now;
         }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _globalPositionRate.increment(numBytesRead);
         _globalPositionUpdateRate.increment();
-
-        // if we don't have a parent, make sure to also set our local position
-        if (!hasParent()) {
-            setLocalPosition(newValue);
-        }
     }
 
     if (hasAvatarBoundingBox) {
@@ -2113,10 +2110,6 @@ void AvatarData::sendAvatarDataPacket(bool sendAll) {
                 return;
             }
         }
-    }
-
-    if (_overrideGlobalPosition) {
-        _overrideGlobalPosition = false;
     }
 
     doneEncoding(cullSmallData);
