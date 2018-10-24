@@ -5,6 +5,8 @@ const process = require('process');
 const hfApp = require('./hf-app');
 const path = require('path');
 const AccountInfo = require('./hf-acctinfo').AccountInfo;
+const url = require('url');
+const shell = require('electron').shell;
 const GetBuildInfo = hfApp.getBuildInfo;
 const buildInfo = GetBuildInfo();
 const osType = os.type();
@@ -154,8 +156,13 @@ function HifiNotifications(config, menuNotificationCallback) {
 
     var _menuNotificationCallback = menuNotificationCallback;
     notifier.on('click', function (notifierObject, options) {
-        StartInterface(options.url);
-        _menuNotificationCallback(options.notificationType, false);
+        const optUrl = url.parse(options.url);
+        if ((optUrl.protocol === "hifi:") || (optUrl.protocol === "hifiapp:")) {
+            StartInterface(options.url);
+            _menuNotificationCallback(options.notificationType, false);
+        } else {
+            shell.openExternal(options.url);
+        }
     });
 }
 
