@@ -315,7 +315,7 @@ QString QmlCommerce::getInstalledApps(const QString& justInstalledAppID) {
     return installedAppsFromMarketplace;
 }
 
-bool QmlCommerce::installApp(const QString& itemHref) {
+bool QmlCommerce::installApp(const QString& itemHref, const bool& alsoOpenImmediately) {
     if (!QDir(_appsPath).exists()) {
         if (!QDir().mkdir(_appsPath)) {
             qCDebug(commerce) << "Couldn't make _appsPath directory.";
@@ -325,7 +325,8 @@ bool QmlCommerce::installApp(const QString& itemHref) {
 
     QUrl appHref(itemHref);
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref);
+    auto request =
+        DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref, true, -1, "QmlCommerce::installApp");
 
     if (!request) {
         qCDebug(commerce) << "Couldn't create resource request for app.";
@@ -357,13 +358,22 @@ bool QmlCommerce::installApp(const QString& itemHref) {
         QJsonObject appFileJsonObject = appFileJsonDocument.object();
         QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
-        if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
-            qCDebug(commerce) << "Couldn't load script.";
-            return false;
+        // Don't try to re-load (install) a script if it's already running
+        QStringList runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();
+        if (!runningScripts.contains(scriptUrl)) {
+            if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
+                qCDebug(commerce) << "Couldn't load script.";
+                return false;
+            }
+
+            QFileInfo appFileInfo(appFile);
+            emit appInstalled(appFileInfo.baseName());
         }
 
-        QFileInfo appFileInfo(appFile);
-        emit appInstalled(appFileInfo.baseName());
+        if (alsoOpenImmediately) {
+            QmlCommerce::openApp(itemHref);
+        }
+
         return true;
     });
     request->send();

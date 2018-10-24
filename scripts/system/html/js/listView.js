@@ -38,7 +38,7 @@ function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunctio
     this.lastRowShiftScrollTop = 0;
     
     this.initialize();
-};
+}
     
 ListView.prototype = {
     getNumRows: function() {
@@ -150,6 +150,30 @@ ListView.prototype = {
         // if scrolling more than the total number of visible rows at once then refresh all row data
         if (numScrollRowsAbsolute > this.getNumRows()) {
             this.refresh();
+        }
+    },
+
+    /**
+     * Scrolls firstRowIndex with least effort, also tries to make the window include the other selections in case lastRowIndex is set.
+     * In the case that firstRowIndex and lastRowIndex are already within the visible bounds then nothing will happen.
+     * @param {number} firstRowIndex - The row that will be scrolled to.
+     * @param {number} lastRowIndex - The last index of the bound.
+     */
+    scrollToRow: function (firstRowIndex, lastRowIndex) {
+        lastRowIndex = lastRowIndex ? lastRowIndex : firstRowIndex;
+        let boundingTop = firstRowIndex * this.rowHeight;
+        let boundingBottom = (lastRowIndex * this.rowHeight) + this.rowHeight;
+        if ((boundingBottom - boundingTop) > this.elTableScroll.clientHeight) {
+            boundingBottom = boundingTop + this.elTableScroll.clientHeight;
+        }
+
+        let currentVisibleAreaTop = this.elTableScroll.scrollTop;
+        let currentVisibleAreaBottom = currentVisibleAreaTop + this.elTableScroll.clientHeight;
+
+        if (boundingTop < currentVisibleAreaTop) {
+            this.elTableScroll.scrollTop = boundingTop;
+        } else if (boundingBottom > currentVisibleAreaBottom) {
+            this.elTableScroll.scrollTop = boundingBottom - (this.elTableScroll.clientHeight);
         }
     },
     

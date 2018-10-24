@@ -1801,3 +1801,43 @@ input[type=button]#export {
 body#entity-list-body {
     padding-bottom: 0;
 }
+
+.context-menu {
+    display: none;
+    position: fixed;
+    color: #000000;
+    background-color: #afafaf;
+    padding: 5px 0 5px 0;
+    cursor: default;
+}
+.context-menu li {
+    list-style-type: none;
+    padding: 4px 18px 4px 18px;
+    margin: 0;
+    white-space: nowrap;
+}
+.context-menu li:hover {
+    background-color: #e3e3e3;
+}
+.context-menu li.separator {
+    border-top: 1px solid #333333;
+    margin: 5px 5px;
+    padding: 0 0;
+}
+.context-menu li.disabled {
+    color: #333333;
+}
+.context-menu li.separator:hover, .context-menu li.disabled:hover {
+    background-color: #afafaf;
+}
+
+input.rename-entity {
+    height: 100%;
+    width: 100%;
+    border: none;
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    /* need this to show the text cursor when the input field is empty */
+    padding-left: 2px;
+}
+

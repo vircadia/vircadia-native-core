@@ -221,6 +221,7 @@ private:
     // frequently grabs a read lock on the hash to get a given avatar by ID
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar,
                              KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
+    void handleTransitAnimations(AvatarTransit::Status status);
 
     QVector<AvatarSharedPointer> _avatarsToFade;
 
