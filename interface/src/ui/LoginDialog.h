@@ -20,6 +20,8 @@ class QNetworkReply;
 
 class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
+    Q_PROPERTY(bool atSignIn READ getAtSignIn WRITE setAtSignIn)
+    Q_PROPERTY(bool isLogIn READ getIsLogIn WRITE setIsLogIn)
     HIFI_QML_DECL
 
 public:
@@ -65,6 +67,13 @@ protected slots:
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 
     Q_INVOKABLE void openUrl(const QString& url) const;
+private:
+    bool getAtSignIn() const { return _atSignIn; }
+    void setAtSignIn(const bool atSignIn) { _atSignIn = atSignIn; }
+    bool getIsLogIn() const { return _isLogIn; }
+    void setIsLogIn(const bool isLogIn) { _isLogIn = isLogIn; }
+    bool _atSignIn { false };
+    bool _isLogIn { false };
 };
 
 #endif // hifi_LoginDialog_h
