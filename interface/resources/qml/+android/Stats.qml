@@ -10,6 +10,7 @@ Item {
     property int modality: Qt.NonModal
     implicitHeight: row.height
     implicitWidth: row.width
+    visible: false
 
     Component.onCompleted: {
         stats.parentChanged.connect(fill);
