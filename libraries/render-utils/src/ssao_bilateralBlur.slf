@@ -20,9 +20,9 @@
 <$declarePackOcclusionDepth()$>
 
 // the source occlusion texture
-layout(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2D occlusionMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2D occlusionMap;
 
-layout(binding=RENDER_UTILS_BUFFER_SSAO_BLUR_PARAMS) uniform blurParamsBuffer {
+LAYOUT(binding=RENDER_UTILS_BUFFER_SSAO_BLUR_PARAMS) uniform blurParamsBuffer {
     AmbientOcclusionBlurParams blurParams;
 };
 

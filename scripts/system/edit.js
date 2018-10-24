@@ -348,12 +348,12 @@ var toolBar = (function () {
 
             if (!properties.grab) {
                 properties.grab = {};
-            }
-            if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
-                !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
-                properties.grab.grabbable = true;
-            } else {
-                properties.grab.grabbable = false;
+                if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
+                    !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
+                    properties.grab.grabbable = true;
+                } else {
+                    properties.grab.grabbable = false;
+                }
             }
 
             SelectionManager.saveProperties();
@@ -442,9 +442,9 @@ var toolBar = (function () {
 
     function handleNewModelDialogResult(result) {
         if (result) {
-            var url = result.textInput;
+            var url = result.url;
             var shapeType;
-            switch (result.comboBox) {
+            switch (result.collisionShapeIndex) {
             case SHAPE_TYPE_SIMPLE_HULL:
                 shapeType = "simple-hull";
                 break;
@@ -464,7 +464,7 @@ var toolBar = (function () {
                 shapeType = "none";
             }
 
-            var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
+            var dynamic = result.dynamic !== null ? result.dynamic : DYNAMIC_DEFAULT;
             if (shapeType === "static-mesh" && dynamic) {
                 // The prompt should prevent this case
                 print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
@@ -473,6 +473,9 @@ var toolBar = (function () {
                     type: "Model",
                     modelURL: url,
                     shapeType: shapeType,
+                    grab: {
+                        grabbable: result.grabbable
+                    },
                     dynamic: dynamic,
                     gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
                 });
@@ -1251,7 +1254,7 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Redo",
-        shortcutKey: 'Ctrl+Shift+Z',
+        shortcutKey: 'Ctrl+Y',
         position: 1,
     });
 
@@ -1930,14 +1933,6 @@ function gridKey(value) {
         }
     }
 }
-var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
-mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.D]).when([Controller.Hardware.Keyboard.Control]).to(deselectKey);
-mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
-mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
-mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
-
 function recursiveAdd(newParentID, parentData) {
     if (parentData.children !== undefined) {
         var children = parentData.children;
@@ -2395,6 +2390,7 @@ var PropertiesTool = function (opts) {
     return that;
 };
 
+
 var PopupMenu = function () {
     var self = this;
 
@@ -2563,6 +2559,46 @@ var PopupMenu = function () {
 
     return this;
 };
+
+function whenPressed(fn) {
+    return function(value) {
+        if (value > 0) {
+            fn();
+        }
+    };
+}
+
+function whenReleased(fn) {
+    return function(value) {
+        if (value === 0) {
+            fn();
+        }
+    };
+}
+
+var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
+mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
+mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
+mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
+mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
+mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
+mapping.from([Controller.Hardware.Keyboard.X])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.cutSelectedEntities() }));
+mapping.from([Controller.Hardware.Keyboard.C])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.copySelectedEntities() }));
+mapping.from([Controller.Hardware.Keyboard.V])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.pasteEntities() }));
+mapping.from([Controller.Hardware.Keyboard.D])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.duplicateSelection() }));
+
+// Bind undo to ctrl-shift-z to maintain backwards-compatibility
+mapping.from([Controller.Hardware.Keyboard.Z])
+    .when([Controller.Hardware.Keyboard.Control, Controller.Hardware.Keyboard.Shift])
+    .to(whenPressed(function() { undoHistory.redo() }));
 
 
 var propertyMenu = new PopupMenu();

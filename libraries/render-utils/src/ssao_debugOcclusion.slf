@@ -26,7 +26,7 @@ struct DebugParams{
     vec4 pixelInfo;
 };
 
-layout(binding=RENDER_UTILS_BUFFER_SSAO_DEBUG_PARAMS) uniform debugAmbientOcclusionBuffer {
+LAYOUT(binding=RENDER_UTILS_BUFFER_SSAO_DEBUG_PARAMS) uniform debugAmbientOcclusionBuffer {
     DebugParams debugParams;
 };
 

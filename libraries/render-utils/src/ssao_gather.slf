@@ -18,7 +18,7 @@
 <$declareAmbientOcclusion()$>
 
 // the source occlusion texture
-layout(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2DArray occlusionMaps;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2DArray occlusionMaps;
 
 layout(location=0) in vec4 varTexCoord0;
 

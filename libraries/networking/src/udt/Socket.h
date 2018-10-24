@@ -95,7 +95,6 @@ public:
 
 signals:
     void clientHandshakeRequestComplete(const HifiSockAddr& sockAddr);
-    void pendingDatagrams(int datagramCount);
 
 public slots:
     void cleanupConnection(HifiSockAddr sockAddr);
@@ -103,7 +102,6 @@ public slots:
     
 private slots:
     void readPendingDatagrams();
-    void processPendingDatagrams(int datagramCount);
     void checkForReadyReadBackup();
 
     void handleSocketError(QAbstractSocket::SocketError socketError);
@@ -111,7 +109,7 @@ private slots:
 
 private:
     void setSystemBufferSizes();
-    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr);
+    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreation = false);
     bool socketMatchesNodeOrDomain(const HifiSockAddr& sockAddr);
    
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
@@ -147,17 +145,6 @@ private:
     int _lastPacketSizeRead { 0 };
     SequenceNumber _lastReceivedSequenceNumber;
     HifiSockAddr _lastPacketSockAddr;
-
-    struct Datagram {
-        QHostAddress _senderAddress;
-        int _senderPort;
-        int _datagramLength;
-        std::unique_ptr<char[]> _datagram;
-        p_high_resolution_clock::time_point _receiveTime;
-    };
-
-    std::list<Datagram> _incomingDatagrams;
-    int _maxDatagramsRead { 0 };
     
     friend UDTTest;
 };

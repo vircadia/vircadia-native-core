@@ -21,7 +21,7 @@ struct BlurParameters {
     vec2 taps[BLUR_MAX_NUM_TAPS];
 };
 
-layout(binding=0) uniform blurParamsBuffer {
+LAYOUT(binding=0) uniform blurParamsBuffer {
     BlurParameters parameters;
 };
 
@@ -76,7 +76,7 @@ float getPosLinearDepthFar() {
 
 <$declareBlurUniforms()$>
 
-layout(binding=0) uniform sampler2D sourceMap;
+LAYOUT(binding=0) uniform sampler2D sourceMap;
 
 vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
     texcoord = evalTexcoordTransformed(texcoord);
@@ -112,8 +112,8 @@ vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
 
 <$declareBlurUniforms()$>
 
-layout(binding=0) uniform sampler2D sourceMap;
-layout(binding=1) uniform sampler2D depthMap;
+LAYOUT(binding=0) uniform sampler2D sourceMap;
+LAYOUT(binding=1) uniform sampler2D depthMap;
 
 vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep) {
     texcoord = evalTexcoordTransformed(texcoord);

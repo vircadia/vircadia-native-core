@@ -18,6 +18,7 @@
 #include <iostream>
 #include <sstream>
 #include <memory>
+#include <unordered_set>
 
 class TextTemplate {
 public:
@@ -26,6 +27,7 @@ public:
     typedef std::vector< String > StringVector;
     typedef std::map< String, String > Vars;
     typedef std::map< String, TextTemplate::Pointer > Includes;
+    using PathSet = std::unordered_set<String>;
 
     class Tag {
     public:
@@ -123,7 +125,7 @@ public:
     public:
         typedef std::shared_ptr< Config > Pointer;
         typedef bool (*IncluderCallback) (const Config::Pointer& config, const char* filename, String& source);
-
+        PathSet         _includeFullPaths;
         Includes        _includes;
         Funcs           _funcs;
         std::ostream*   _logStream;
@@ -139,6 +141,8 @@ public:
         void addIncludePath(const char* path);
 
         void displayTree(std::ostream& dst, int& level) const;
+
+        void displayMakefileDeps(std::ostream& dst) const;
     };
 
     static bool loadFile(const Config::Pointer& config, const char* filename, String& source);
@@ -156,9 +160,12 @@ public:
 
     void displayTree(std::ostream& dst, int& level) const;
 
+    void displayMakefileDeps(std::ostream& dst) const { _config->displayMakefileDeps(dst); }
+
 protected:
     Config::Pointer _config;
     Block::Pointer _root;
+    PathSet _includeFullPaths;
     int _numErrors;
     bool _steppingStarted;
 

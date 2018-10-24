@@ -24,7 +24,7 @@ struct CameraCorrection {
     mat4 _prevViewInverse;
 };
  
-layout(binding=GPU_BUFFER_CAMERA_CORRECTION) uniform cameraCorrectionBuffer {
+LAYOUT(binding=GPU_BUFFER_CAMERA_CORRECTION) uniform cameraCorrectionBuffer {
     CameraCorrection cameraCorrection;
 };
 
@@ -42,7 +42,7 @@ struct DeferredFrameTransform {
     mat4 _invProjectionUnJittered[2];
 };
 
-layout(binding=RENDER_UTILS_BUFFER_DEFERRED_FRAME_TRANSFORM) uniform deferredFrameTransformBuffer {
+LAYOUT(binding=RENDER_UTILS_BUFFER_DEFERRED_FRAME_TRANSFORM) uniform deferredFrameTransformBuffer {
     DeferredFrameTransform frameTransform;
 };
 

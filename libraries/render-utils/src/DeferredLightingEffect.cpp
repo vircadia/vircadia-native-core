@@ -44,7 +44,7 @@ using namespace render;
 struct LightLocations {
     bool shadowTransform{ false };
     void initialize(const gpu::ShaderPointer& program) {
-        shadowTransform = program->getUniformBuffers().isValid(ru::Buffer::ShadowParams);
+        shadowTransform = program->getReflection().validUniformBuffer(ru::Buffer::ShadowParams);
     }
 };
 
