@@ -419,11 +419,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     IF_AVATAR_SPACE(PACKET_HAS_AVATAR_GLOBAL_POSITION, sizeof _globalPosition) {
         auto startSection = destinationBuffer;
-        if (_overrideGlobalPosition) {
-            AVATAR_MEMCPY(_globalPositionOverride);
-        } else {
-            AVATAR_MEMCPY(_globalPosition);
-        }
+        AVATAR_MEMCPY(_globalPosition);
         
         int numBytes = destinationBuffer - startSection;
 
