@@ -42,6 +42,9 @@ var TITLE_OFFSET = 60;
 var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 
+var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
+var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
+
 var createToolsWindow = new CreateWindow(
     Script.resourcesPath() + "qml/hifi/tablet/EditTools.qml",
     'Create Tools',
@@ -294,6 +297,202 @@ function checkEditPermissionsAndUpdate() {
     }
 }
 
+const DEFAULT_ENTITY_PROPERTIES = {
+    All: {
+        description: "",
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        collidesWith: "static,dynamic,kinematic,otherAvatar",
+        collisionSoundURL: "",
+        cloneable: false,
+        ignoreIK: true,
+        canCastShadow: true,
+        href: "",
+        script: "",
+        serverScripts:"",
+        velocity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        damping: 0,
+        angularVelocity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        angularDamping: 0,
+        restitution: 0.5,
+        friction: 0.5,
+        density: 1000,
+        gravity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        acceleration: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        dynamic: false,
+    },
+    Shape: {
+        shape: "Box",
+        dimensions: { x: 0.2, y: 0.2, z: 0.2 },
+        color: { red: 0, green: 180, blue: 239 },
+    },
+    Text: {
+        text: "Text",
+        dimensions: {
+            x: 0.65,
+            y: 0.3,
+            z: 0.01
+        },
+        textColor: { red: 255, green: 255, blue: 255 },
+        backgroundColor: { red: 0, green: 0, blue: 0 },
+        lineHeight: 0.06,
+        faceCamera: false,
+    },
+    Zone: {
+        dimensions: {
+            x: 10,
+            y: 10,
+            z: 10
+        },
+        flyingAllowed: true,
+        ghostingAllowed: true,
+        filter: "",
+        keyLightMode: "inherit",
+        keyLightColor: { red: 255, green: 255, blue: 255 },
+        keyLight: {
+            intensity: 1.0,
+            direction: {
+                x: 0.0,
+                y: -0.707106769084930, // 45 degrees
+                z: 0.7071067690849304
+            },
+            castShadows: true
+        },
+        ambientLightMode: "inherit",
+        ambientLight: {
+            ambientIntensity: 0.5,
+            ambientURL: ""
+        },
+        hazeMode: "inherit",
+        haze: {
+            hazeRange: 1000,
+            hazeAltitudeEffect: false,
+            hazeBaseRef: 0,
+            hazeColor: {
+                red: 128,
+                green: 154,
+                blue: 179
+            },
+            hazeBackgroundBlend: 0,
+            hazeEnableGlare: false,
+            hazeGlareColor: {
+                red: 255,
+                green: 229,
+                blue: 179
+            },
+        },
+        bloomMode: "inherit"
+    },
+    Model: {
+        collisionShape: "none",
+        compoundShapeURL: "",
+        animation: {
+            url: "",
+            running: false,
+            allowTranslation: false,
+            loop: true,
+            hold: false,
+            currentFrame: 0,
+            firstFrame: 0,
+            lastFrame: 100000,
+            fps: 30.0,
+        }
+    },
+    Image: {
+        dimensions: {
+            x: 0.5385,
+            y: 0.2819,
+            z: 0.0092
+        },
+        shapeType: "box",
+        collisionless: true,
+        modelURL: IMAGE_MODEL,
+        textures: JSON.stringify({ "tex.picture": "" })
+    },
+    Web: {
+        dimensions: {
+            x: 1.6,
+            y: 0.9,
+            z: 0.01
+        },
+        sourceUrl: "https://highfidelity.com/",
+        dpi: 30,
+    },
+    ParticleEffect: {
+        lifespan: 1.5,
+        maxParticles: 10,
+        textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png",
+        emitRate: 5.5,
+        emitSpeed: 0,
+        speedSpread: 0,
+        emitDimensions: { x: 0, y: 0, z: 0 },
+        emitOrientation: { x: 0, y: 0, z: 0, w: 1 },
+        emitterShouldTrail: true,
+        particleRadius: 0.25,
+        radiusStart: 0,
+        radiusFinish: 0.1,
+        radiusSpread: 0,
+        particleColor: {
+            red: 255,
+            green: 255,
+            blue: 255
+        },
+        colorSpread: {
+            red: 0,
+            green: 0,
+            blue: 0
+        },
+        alpha: 0,
+        alphaStart: 1,
+        alphaFinish: 0,
+        alphaSpread: 0,
+        emitAcceleration: {
+            x: 0,
+            y: 2.5,
+            z: 0
+        },
+        accelerationSpread: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        particleSpin: 0,
+        spinStart: 0,
+        spinFinish: 0,
+        spinSpread: 0,
+        rotateWithEntity: false,
+        polarStart: 0,
+        polarFinish: 0,
+        azimuthStart: -Math.PI,
+        azimuthFinish: Math.PI
+    },
+    Light: {
+        color: { red: 255, green: 255, blue: 255 },
+        intensity: 5.0,
+        dimensions: DEFAULT_LIGHT_DIMENSIONS,
+        falloffRadius: 1.0,
+        isSpotlight: false,
+        exponent: 1.0,
+        cutoff: 75.0,
+        dimensions: { x: 20, y: 20, z: 20 },
+    },
+};
+
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
     var that = {},
@@ -303,10 +502,28 @@ var toolBar = (function () {
         dialogWindow = null,
         tablet = null;
 
+    function applyProperties(originalProperties, newProperties) {
+        for (var key in newProperties) {
+            originalProperties[key] = newProperties[key];
+        }
+    }
     function createNewEntity(properties) {
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
+
+        applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.All);
+
+        var type = properties.type;
+        if (type == "Box" || type == "Sphere") {
+            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
+        } else if (type == "Image") {
+            properties.type = "Model";
+            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Image);
+        } else {
+            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES[type]);
+        }
+
 
         if (position !== null && position !== undefined) {
             var direction;
@@ -679,14 +896,12 @@ var toolBar = (function () {
         addButton("newLightButton", function () {
             createNewEntity({
                 type: "Light",
-                dimensions: DEFAULT_LIGHT_DIMENSIONS,
                 isSpotlight: false,
                 color: {
                     red: 150,
                     green: 150,
                     blue: 150
                 },
-
                 constantAttenuation: 1,
                 linearAttenuation: 0,
                 quadraticAttenuation: 0,
@@ -698,116 +913,30 @@ var toolBar = (function () {
         addButton("newTextButton", function () {
             createNewEntity({
                 type: "Text",
-                dimensions: {
-                    x: 0.65,
-                    y: 0.3,
-                    z: 0.01
-                },
-                backgroundColor: {
-                    red: 64,
-                    green: 64,
-                    blue: 64
-                },
-                textColor: {
-                    red: 255,
-                    green: 255,
-                    blue: 255
-                },
-                text: "some text",
-                lineHeight: 0.06
             });
         });
 
         addButton("newImageButton", function () {
-            var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
-            var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
             createNewEntity({
-                type: "Model",
-                dimensions: {
-                    x: 0.5385,
-                    y: 0.2819,
-                    z: 0.0092
-                },
-                shapeType: "box",
-                collisionless: true,
-                modelURL: IMAGE_MODEL,
-                textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE })
+                type: "Image",
             });
         });
 
         addButton("newWebButton", function () {
             createNewEntity({
                 type: "Web",
-                dimensions: {
-                    x: 1.6,
-                    y: 0.9,
-                    z: 0.01
-                },
-                sourceUrl: "https://highfidelity.com/"
             });
         });
 
         addButton("newZoneButton", function () {
             createNewEntity({
                 type: "Zone",
-                dimensions: {
-                    x: 10,
-                    y: 10,
-                    z: 10
-                }
             });
         });
 
         addButton("newParticleButton", function () {
             createNewEntity({
                 type: "ParticleEffect",
-                isEmitting: true,
-                emitterShouldTrail: true,
-                color: {
-                    red: 200,
-                    green: 200,
-                    blue: 200
-                },
-                colorSpread: {
-                    red: 0,
-                    green: 0,
-                    blue: 0
-                },
-                colorStart: {
-                    red: 200,
-                    green: 200,
-                    blue: 200
-                },
-                colorFinish: {
-                    red: 0,
-                    green: 0,
-                    blue: 0
-                },
-                emitAcceleration: {
-                    x: -0.5,
-                    y: 2.5,
-                    z: -0.5
-                },
-                accelerationSpread: {
-                    x: 0.5,
-                    y: 1,
-                    z: 0.5
-                },
-                emitRate: 5.5,
-                emitSpeed: 0,
-                speedSpread: 0,
-                lifespan: 1.5,
-                maxParticles: 10,
-                particleRadius: 0.25,
-                radiusStart: 0,
-                radiusFinish: 0.1,
-                radiusSpread: 0,
-                alpha: 0,
-                alphaStart: 1,
-                alphaFinish: 0,
-                polarStart: 0,
-                polarFinish: 0,
-                textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png"
             });
         });
 
