@@ -13,8 +13,8 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
-import "qrc:///qml//controls-uit" as HifiControlsUit
-import "qrc:///qml//styles-uit" as HifiStylesUit
+import "qrc:////qml//controls-uit" as HifiControlsUit
+import "qrc:////qml//styles-uit" as HifiStylesUit
 
 import TabletScriptingInterface 1.0
 
@@ -138,36 +138,34 @@ Item {
         successTimer.start();
     }
 
-    function toggleSignIn(signIn, isLogIn) {
+    function toggleSignIn(isLogIn) {
         // going to/from sign in/up dialog.
-        loginDialog.atSignIn = signIn;
         loginDialog.isLogIn = isLogIn;
-        if (signIn) {
-            usernameField.visible = !isLogIn;
-            cantAccessContainer.visible = isLogIn;
-            if (isLogIn) {
-                loginButtonAtSignIn.text = "Log In";
-                loginButtonAtSignIn.color = hifi.buttons.black;
-                emailField.placeholderText = "Username or Email";
-                var savedUsername = Settings.getValue("wallet/savedUsername", "");
-                emailField.text = savedUsername === "Unknown user" ? "" : savedUsername;
-                emailField.anchors.top = loginContainer.top;
-                emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.pane.height : 0.24 * root.pane.height;
-                cantAccessContainer.anchors.topMargin = !root.isTablet ? 3.5 * hifi.dimensions.contentSpacing.y : hifi.dimensions.contentSpacing.y;
-            } else if (loginDialog.isSteamRunning()) {
-                signInBody.toggleLoading();
-                loginDialog.loginWithSteam();
-            } else {
-                loginButtonAtSignIn.text = "Sign Up";
-                loginButtonAtSignIn.color = hifi.buttons.blue;
-                emailField.placeholderText = "Email";
-                emailField.text = "";
-                emailField.anchors.top = usernameField.bottom;
-                emailField.anchors.topMargin = 1.5 * hifi.dimensions.contentSpacing.y;
-                passwordField.text = "";
-            }
-            loginErrorMessage.visible = false;
+        usernameField.visible = !isLogIn;
+        cantAccessContainer.visible = isLogIn;
+        if (isLogIn) {
+            loginButtonAtSignIn.text = "Log In";
+            loginButtonAtSignIn.color = hifi.buttons.black;
+            emailField.placeholderText = "Username or Email";
+            var savedUsername = Settings.getValue("wallet/savedUsername", "");
+            emailField.text = savedUsername === "Unknown user" ? "" : savedUsername;
+            emailField.anchors.top = loginContainer.top;
+            emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.pane.height : 0.24 * root.pane.height;
+            cantAccessContainer.anchors.topMargin = !root.isTablet ? 3.5 * hifi.dimensions.contentSpacing.y : hifi.dimensions.contentSpacing.y;
+        } else if (loginDialog.isSteamRunning()) {
+            signInBody.toggleLoading();
+            loginDialog.loginWithSteam();
+        } else {
+            loginButtonAtSignIn.text = "Sign Up";
+            loginButtonAtSignIn.color = hifi.buttons.blue;
+            emailField.placeholderText = "Email";
+            emailField.text = "";
+            emailField.anchors.top = usernameField.bottom;
+            emailField.anchors.topMargin = 1.5 * hifi.dimensions.contentSpacing.y;
+            passwordField.text = "";
         }
+        loginErrorMessage.visible = false;
+    }
 
         loginContainer.visible = signIn;
 
@@ -514,7 +512,6 @@ Item {
                     onLinkActivated: loginDialog.openUrl(link)
                 }
             }
-
         }
     }
 
@@ -527,8 +524,7 @@ Item {
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
         d.resize();
-        print(loginDialog.atSignIn, loginDialog.isLogIn)
-        toggleSignIn(loginDialog.atSignIn, loginDialog.isLogIn)
+        toggleSignIn(loginDialog.isLogIn)
     }
 
     Connections {
@@ -595,7 +591,7 @@ Item {
     }
 
     Keys.onPressed: {
-        if (!visible && !loginDialog.atSignIn) {
+        if (!visible) {
             return;
         }
 

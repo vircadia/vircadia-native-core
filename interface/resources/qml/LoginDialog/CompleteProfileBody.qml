@@ -1,8 +1,8 @@
 //
 //  CompleteProfileBody.qml
 //
-//  Created by Clement on 7/18/16
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Wayne Chen on 10/18/18
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,8 +12,8 @@ import Hifi 1.0
 import QtQuick 2.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
-import "qrc:///qml//controls-uit" as HifiControlsUit
-import "qrc:///qml//styles-uit" as HifiStylesUit
+import "qrc:////qml//controls-uit" as HifiControlsUit
+import "qrc:////qml//styles-uit" as HifiStylesUit
 
 Item {
     id: completeProfileBody
@@ -146,44 +146,81 @@ Item {
                 visible: false;
 
             }
-            Row {
-                id: buttons
+            // Row {
+            //     id: buttons
+            //     anchors {
+            //         top: parent.top
+            //         topMargin: (parent.height - additionalTextContainer.height) / 2 - hifi.dimensions.contentSpacing.y
+            //         horizontalCenter: parent.horizontalCenter
+            //         margins: 0
+            //     }
+            //     spacing: hifi.dimensions.contentSpacing.x
+            //     onHeightChanged: d.resize(); onWidthChanged: d.resize();
+            //
+            //
+            //     HifiControlsUit.Button {
+            //         id: cancelButton
+            //         anchors.verticalCenter: parent.verticalCenter
+            //         text: qsTr("Cancel")
+            //         fontFamily: completeProfileBody.fontFamily
+            //         fontSize: completeProfileBody.fontSize
+            //         fontBold: completeProfileBody.fontBold
+            //         onClicked: {
+            //             bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+            //         }
+            //     }
+            // }
+
+            Item {
+                id: cancelContainer
+                width: cancelText.width
+                height: d.minHeightButton
                 anchors {
                     top: parent.top
+                    topMargin: hifi.dimensions.contentSpacing.y
                     topMargin: (parent.height - additionalTextContainer.height) / 2 - hifi.dimensions.contentSpacing.y
-                    horizontalCenter: parent.horizontalCenter
-                    margins: 0
+                    left: parent.left
+                    leftMargin: (parent.width - banner.width) / 2
                 }
-                spacing: hifi.dimensions.contentSpacing.x
-                onHeightChanged: d.resize(); onWidthChanged: d.resize();
+                Text {
+                    id: cancelText
+                    anchors.centerIn: parent
+                    text: qsTr("Cancel");
 
-                HifiControlsUit.Button {
-                    id: profileButton
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 256
-
-                    text: qsTr("Create your profile")
-                    color: hifi.buttons.blue
-
-                    fontFamily: completeProfileBody.fontFamily
-                    fontSize: completeProfileBody.fontSize
-                    fontBold: completeProfileBody.fontBold
-                    onClicked: {
-                        loginErrorMessage.visible = false;
-                        loginDialog.createAccountFromStream()
-                    }
+                    lineHeight: 1
+                    color: "white"
+                    font.family: completeProfileBody.fontFamily
+                    font.pixelSize: completeProfileBody.fontSize
+                    font.capitalization: Font.AllUppercase;
+                    font.bold: completeProfileBody.fontBold
+                    lineHeightMode: Text.ProportionalHeight
                 }
-
-                HifiControlsUit.Button {
-                    id: cancelButton
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Cancel")
-                    fontFamily: completeProfileBody.fontFamily
-                    fontSize: completeProfileBody.fontSize
-                    fontBold: completeProfileBody.fontBold
+                MouseArea {
+                    id: cancelArea
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
                     onClicked: {
+                        loginDialog.atSignIn = false;
                         bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                     }
+                }
+            }
+
+
+            HifiControlsUit.Button {
+                id: profileButton
+                anchors.verticalCenter: parent.verticalCenter
+                width: 256
+
+                text: qsTr("Create your profile")
+                color: hifi.buttons.blue
+
+                fontFamily: completeProfileBody.fontFamily
+                fontSize: completeProfileBody.fontSize
+                fontBold: completeProfileBody.fontBold
+                onClicked: {
+                    loginErrorMessage.visible = false;
+                    loginDialog.createAccountFromStream()
                 }
             }
 

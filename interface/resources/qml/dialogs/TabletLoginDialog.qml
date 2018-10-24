@@ -11,13 +11,13 @@
 import Hifi 1.0
 import QtQuick 2.5
 
-import "../controls-uit"
-import "../styles-uit"
-import "../windows"
+import "qrc:////qml//controls-uit" as HifiControlsUit
+import "qrc:////qml//styles-uit" as HifiStylesUit
+import "../windows" as Windows
 
 import "../LoginDialog"
 
-TabletModalWindow {
+Windows.TabletModalWindow {
     id: realRoot
     objectName: "LoginDialog"
 
@@ -81,7 +81,7 @@ TabletModalWindow {
     property alias loginDialog: loginDialog
     property alias hifi: hifi
 
-    HifiConstants { id: hifi }
+    HifiStylesUit.HifiConstants { id: hifi }
 
     onCanceled: {
         if (bodyLoader.active === true) {
@@ -95,9 +95,10 @@ TabletModalWindow {
         }
     }
 
-    TabletModalFrame {
+    Item {
         id: mfRoot
 
+        readonly property int frameMarginTop: hifi.dimensions.modalDialogMargin.y
         width: root.width
         height: root.height + frameMarginTop + hifi.dimensions.contentMargin.x
 
@@ -126,7 +127,7 @@ TabletModalWindow {
         }
     }
 
-    Keyboard {
+    HifiControlsUit.Keyboard {
         id: loginKeyboard
         raised: root.keyboardEnabled && root.keyboardRaised
         numeric: root.punctuationMode
@@ -173,6 +174,6 @@ TabletModalWindow {
         }
     }
     Component.onCompleted: {
-        bodyLoader.setSource("../LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root });
+        bodyLoader.setSource("../LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
     }
 }

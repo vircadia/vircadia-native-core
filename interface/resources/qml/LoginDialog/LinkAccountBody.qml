@@ -13,8 +13,8 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
-import "qrc:///qml//controls-uit" as HifiControlsUit
-import "qrc:///qml//styles-uit" as HifiStylesUit
+import "qrc:////qml//controls-uit" as HifiControlsUit
+import "qrc:////qml//styles-uit" as HifiStylesUit
 
 import TabletScriptingInterface 1.0
 
@@ -60,84 +60,8 @@ Item {
         }
     }
 
-    // timer to kill the dialog upon login success
-    Timer {
-        id: successTimer
-        interval: 500;
-        running: false;
-        repeat: false;
-        onTriggered: {
-            root.tryDestroy();
-        }
-    }
-
-    // timer to kill the dialog upon login failure
-    Timer {
-        id: failureTimer
-        interval: 1000;
-        running: false;
-        repeat: false;
-        onTriggered: {
-            resetContainers();
-            loginContainer.visible = true;
-        }
-    }
-
-    function login() {
-        linkAccountBody.toggleLoading();
-        if (linkAccountBody.isLogIn) {
-            loginDialog.login(emailField.text, passwordField.text);
-        } else {
-            loginDialog.signup(usernameField.text, emailField.text, passwordField.text);
-        }
-    }
-    function resetContainers() {
-        splashContainer.visible = false;
-        loggingInContainer.visible = false;
-        loginContainer.visible = false;
-    }
-
-    function toggleLoading() {
-        // For the process of logging in.
-        linkAccountBody.resetContainers();
-        loggingInContainer.visible = true;
-        if (loginDialog.isSteamRunning()) {
-            loggingInGlyph.visible = true;
-            loggingInText.text = "Logging in to Steam";
-            loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
-        } else {
-            loggingInText.text = "Logging in";
-            loggingInText.anchors.bottom = loggingInHeader.bottom;
-            loggingInText.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
-        }
-        linkAccountSpinner.visible = true;
-    }
-    function loadingSuccess(success, errorString) {
-        linkAccountSpinner.visible = false;
-        if (!success) {
-            loginErrorMessage.visible = true;
-            loginErrorMessage.text = errorString !== "" ? errorString : linkAccountBody.isLogIn ? "bad user/pass combo." : "unknown error.";
-            loginErrorMessage.anchors.bottom = linkAccountBody.isLogIn ? emailField.top : usernameField.top;
-            failureTimer.start();
-            return;
-        }
-        if (loginDialog.isSteamRunning()) {
-            // reset the flag.
-            linkAccountBody.withSteam = false;
-            loggingInGlyph.visible = false;
-            loggingInText.text = "You are now logged into Steam!"
-            loggingInText.anchors.centerIn = loggingInHeader;
-            loggingInText.anchors.bottom = loggingInHeader.bottom;
-            loggedInGlyph.visible = true;
-        } else {
-            loggingInText.text = "You are now logged in!";
-        }
-        successTimer.start();
-    }
-
-    function toggleSignIn(signIn, isLogIn) {
+    function toggleSignIn(isLogIn) {
         // going to/from sign in/up dialog.
-        loginDialog.atSignIn = signIn;
         loginDialog.isLogIn = isLogIn;
 
         bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
@@ -193,7 +117,7 @@ Item {
                 lineHeight: 0.5
                 color: "white"
                 font.family: linkAccountBody.fontFamily
-                font.pixelSize: 2 * linkAccountBody.fontSize
+                font.pixelSize: !root.isTablet ? 2 * linkAccountBody.fontSize : linkAccountBody.fontSize
                 font.bold: linkAccountBody.fontBold
                 lineHeightMode: Text.ProportionalHeight
                 horizontalAlignment: Text.AlignHCenter
@@ -215,7 +139,7 @@ Item {
                     leftMargin: (parent.width - d.minWidthButton) / 2
                 }
                 onClicked: {
-                    toggleSignIn(true, false);
+                    toggleSignIn(false);
                 }
             }
         }
@@ -256,7 +180,7 @@ Item {
                 }
 
                 onClicked: {
-                    toggleSignIn(true, true);
+                    toggleSignIn(true);
                 }
             }
             HifiControlsUit.Button {
@@ -312,7 +236,6 @@ Item {
                 onClicked: {
                     var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
                     if (poppedUp) {
-
                         console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
                         var data = {
                             "action": "user dismissed login screen"
@@ -334,67 +257,5 @@ Item {
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
         d.resize();
-    }
-
-    Connections {
-        target: loginDialog
-        onHandleCreateFailed: {
-            console.log("Create Failed")
-        }
-        onHandleCreateCompleted: {
-            console.log("Create Completed")
-        }
-        onHandleSignupFailed: {
-            console.log("Sign Up Failed")
-            loadingSuccess(false, errorString)
-        }
-        onHandleSignupCompleted: {
-            console.log("Sign Up Completed")
-            loadingSuccess(true)
-        }
-        onHandleLoginCompleted: {
-            console.log("Login Succeeded")
-            var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
-            if (poppedUp) {
-                console.log("[ENCOURAGELOGINDIALOG]: logging in")
-                var data = {
-                    "action": "user logged in"
-                };
-                UserActivityLogger.logAction("encourageLoginDialog", data);
-                Settings.setValue("loginDialogPoppedUp", false);
-            }
-            if (loginDialog.isSteamRunning()) {
-                loginDialog.linkSteam();
-            }
-            loadingSuccess(true)
-        }
-        onHandleLoginFailed: {
-            console.log("Login Failed")
-            var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
-            if (poppedUp) {
-                console.log("[ENCOURAGELOGINDIALOG]: failed logging in")
-                var data = {
-                    "action": "user failed logging in"
-                };
-                UserActivityLogger.logAction("encourageLoginDialog", data);
-                Settings.setValue("loginDialogPoppedUp", false);
-            }
-            loadingSuccess(false)
-        }
-        onHandleLinkCompleted: {
-            console.log("Link Succeeded")
-            loadingSuccess(true)
-        }
-        onHandleLinkFailed: {
-            console.log("Link Failed")
-            var error = "There was an unknown error while creating your account. Please try again later.";
-            loadingSuccess(false, error);
-        }
-    }
-
-    Keys.onPressed: {
-        if (!visible) {
-            return;
-        }
     }
 }
