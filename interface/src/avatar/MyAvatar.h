@@ -337,7 +337,7 @@ public:
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
 
     // compute the hip to hand average azimuth.
-    glm::vec2 computeHandAzimuth();
+    glm::vec2 computeHandAzimuth() const;
 
     // read the location of a hand controller and save the transform
     void updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache);
@@ -1732,7 +1732,6 @@ private:
     glm::quat _averageHeadRotation { 0.0f, 0.0f, 0.0f, 1.0f };
 
     glm::vec2 _hipToHandController { 0.0f, 1.0f };  // spine2 facing vector in xz plane (spine2 space)
-    glm::vec3 _spine2PositionAvatarSpace { 0.0f, 0.0f, 0.0f };
 
     float _currentStandingHeight { 0.0f };
     bool _resetMode { true };
