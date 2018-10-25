@@ -151,6 +151,6 @@ Windows.TabletModalWindow {
         }
     }
     Component.onCompleted: {
-        bodyLoader.setSource("../LoginDialog/UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+        bodyLoader.setSource("../LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
     }
 }
