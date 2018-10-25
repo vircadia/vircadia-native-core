@@ -296,6 +296,17 @@ namespace AvatarDataPacket {
     } PACKED_END;
     const size_t FAR_GRAB_JOINTS_SIZE = 84;
     static_assert(sizeof(FarGrabJoints) == FAR_GRAB_JOINTS_SIZE, "AvatarDataPacket::FarGrabJoints size doesn't match.");
+
+    static const size_t MIN_BULK_PACKET_SIZE = NUM_BYTES_RFC4122_UUID + HEADER_SIZE;
+    static const size_t FAUX_JOINTS_SIZE = 2 * (sizeof(SixByteQuat) + sizeof(SixByteTrans));
+
+    struct SendStatus {
+        HasFlags itemFlags { 0 };
+        bool sendUUID { false };
+        int rotationsSent { 0 };  // ie: index of next unsent joint
+        int translationsSent { 0 };
+        operator bool() { return itemFlags == 0; }
+    };
 }
 
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
@@ -463,8 +474,8 @@ public:
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false);
 
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-        AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition,
-        QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut = nullptr) const;
+        AvatarDataPacket::SendStatus& sendStatus, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition,
+        QVector<JointData>* sentJointDataOut, int maxDataSize = 0, AvatarDataRate* outboundDataRateOut = nullptr) const;
 
     virtual void doneEncoding(bool cullSmallChanges);
 
@@ -971,7 +982,7 @@ public:
 
     // identityChanged returns true if identity has changed, false otherwise.
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
-    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
+    void processAvatarIdentity(QDataStream& packetStream, bool& identityChanged, bool& displayNameChanged);
 
     qint64 packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
                      AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
@@ -1112,6 +1123,7 @@ public:
 
     glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
     AABox getGlobalBoundingBox() const { return AABox(_globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
+    AABox getDefaultBubbleBox() const;
 
     /**jsdoc
      * @function MyAvatar.getAvatarEntityData
@@ -1203,6 +1215,9 @@ public:
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
     void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
     int getReplicaIndex() { return _replicaIndex; }
+
+    static const float DEFAULT_BUBBLE_SCALE;  /* = 2.4 */
+    AABox computeBubbleBox(float bubbleScale = DEFAULT_BUBBLE_SCALE) const;
 
     void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
     bool getIsNewAvatar() { return _isNewAvatar; }
@@ -1439,6 +1454,8 @@ protected:
 
     glm::vec3 _globalBoundingBoxDimensions;
     glm::vec3 _globalBoundingBoxOffset;
+
+    AABox _defaultBubbleBox;
 
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
