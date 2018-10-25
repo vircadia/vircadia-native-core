@@ -175,7 +175,8 @@ public:
     AnimPose getJointPose(int jointIndex) const;
 
     // Start or stop animations as needed.
-    void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState);
+    void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity,
+                                     const glm::quat& worldRotation, CharacterControllerState ccState, float sensorToWorldScale);
 
     // Regardless of who started the animations or how many, update the joints.
     void updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform);

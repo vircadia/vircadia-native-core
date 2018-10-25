@@ -30,6 +30,7 @@
 #include "AnimOverlay.h"
 #include "AnimSkeleton.h"
 #include "AnimUtil.h"
+#include "AvatarConstants.h"
 #include "IKTarget.h"
 #include "PathUtils.h"
 
@@ -692,7 +693,8 @@ bool Rig::getRelativeDefaultJointTranslation(int index, glm::vec3& translationOu
     }
 }
 
-void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState) {
+void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity,
+                                      const glm::quat& worldRotation, CharacterControllerState ccState, float sensorToWorldScale) {
 
     glm::vec3 forward = worldRotation * IDENTITY_FORWARD;
     glm::vec3 workingVelocity = worldVelocity;
@@ -987,9 +989,15 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             }
             _animVars.set("isNotInAir", false);
 
-            // compute blend based on velocity
-            const float JUMP_SPEED = 3.5f;
-            float alpha = glm::clamp(-workingVelocity.y / JUMP_SPEED, -1.0f, 1.0f) + 1.0f;
+            // We want to preserve the apparent jump height in sensor space.
+            const float jumpHeight = std::max(sensorToWorldScale * DEFAULT_AVATAR_JUMP_HEIGHT, DEFAULT_AVATAR_MIN_JUMP_HEIGHT);
+
+            // convert jump height to a initial jump speed with the given gravity.
+            const float jumpSpeed = sqrtf(2.0f * -DEFAULT_AVATAR_GRAVITY * jumpHeight);
+
+            // compute inAirAlpha blend based on velocity
+            float alpha = glm::clamp((-workingVelocity.y * sensorToWorldScale) / jumpSpeed, -1.0f, 1.0f) + 1.0f;
+
             _animVars.set("inAirAlpha", alpha);
         }
 
