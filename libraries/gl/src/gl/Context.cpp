@@ -41,13 +41,6 @@ bool Context::enableDebugLogger() {
     static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
     static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 #endif
-    static std::once_flag once;
-    std::call_once(once, [&] {
-        // If the previous run crashed, force GL debug logging on
-        if (qApp->property(hifi::properties::CRASHED).toBool()) {
-            enableDebugLogger = true;
-        }
-    });
     return enableDebugLogger;
 #endif
 }
