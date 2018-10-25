@@ -327,7 +327,6 @@ void TestRunner::startLocalServerProcesses() {
 
 void TestRunner::runInterfaceWithTestScript() {
     QString exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"";
-    QString snapshotFolder = QString("\"") + QDir::toNativeSeparators(_snapshotFolder) + "\"";
 
     QString url = QString("hifi://localhost");
     if (_runServerless->isChecked()) {
@@ -340,8 +339,11 @@ void TestRunner::runInterfaceWithTestScript() {
     QString testScript =
         QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/testRecursive.js";
 
-    QString commandLine = exeFile + " --url " + url + " --no-updater --no-login" + " --testScript " + testScript +
-                          " quitWhenFinished --testResultsLocation " + snapshotFolder;
+    QString commandLine = exeFile + " --url " + url + " --no-updater" + " --testScript " + testScript +
+                          " quitWhenFinished --testResultsLocation " + _snapshotFolder;
+
+    // Helpful for debugging
+    appendLog(commandLine);
 
     interfaceWorker->setCommandLine(commandLine);
     emit startInterface();
