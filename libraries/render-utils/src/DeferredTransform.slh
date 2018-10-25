@@ -126,8 +126,7 @@ vec2 getSideImageSize(int resolutionLevel) {
 
 ivec4 getStereoSideInfo(int xPos, int resolutionLevel) {
     int sideWidth = int(getStereoSideWidth(resolutionLevel));
-    int check = int(xPos < sideWidth);
-    return ivec4((1 - check) * ivec2(1, sideWidth), sideWidth, isStereo());
+    return ivec4((1 - int(xPos < sideWidth)) * ivec2(1, sideWidth), sideWidth, isStereo());
 }
 
 float evalZeyeFromZdb(float depth) {

@@ -183,43 +183,24 @@ vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius,
     }
     bool redoTap = false;
 
-    if ((tapPos.x < 0.5)) {
-        tapPos.x = -tapPos.x;
-        redoTap = true;
-    } else if ((tapPos.x > imageSize.x - 0.5)) {
-        tapPos.x -= (imageSize.x - tapPos.x);
-        redoTap = true;
+    {
+        float check1 = float(tapPos.x < 0.5);
+        float check2 = (1.0 - check1) * float(tapPos.x > imageSize.x - 0.5);
+        tapPos.x = mix(tapPos.x, -tapPos.x, check1) - check2 * (imageSize.x - tapPos.x);
+        redoTap = (check1 > 0.0 || check2 > 0.0);
     }
 
-    if ((tapPos.y < 0.5)) {
-        tapPos.y = -tapPos.y;
-        redoTap = true;
-    } else if ((tapPos.y > imageSize.y - 0.5)) {
-        tapPos.y -= (imageSize.y - tapPos.y);
-        redoTap = true;
-    }
-/*
-    if ((tapPos.x < 0.5)) {
-        tapPos.x = 0.5;
-        redoTap = true;
-    } else if ((tapPos.x > imageSize.x - 0.5)) {
-        tapPos.x = imageSize.x - 0.5;
-        redoTap = true;
+    {
+        float check1 = float(tapPos.y < 0.5);
+        float check2 = (1.0 - check1) * float(tapPos.y > imageSize.y - 0.5);
+        tapPos.y =  mix(tapPos.y, -tapPos.y, check1) - check2 * (imageSize.y - tapPos.y);
+        redoTap = (check1 > 0.0 || check2 > 0.0);
     }
 
-    if ((tapPos.y < 0.5)) {
-        tapPos.y = 0.5;
-        redoTap = true;
-    } else if ((tapPos.y > imageSize.y - 0.5)) {
-        tapPos.y = imageSize.y - 0.5;
-        redoTap = true;
-    }
-*/
-   
-    if (redoTap) {
-        tap.xy = tapPos - pixelPos;
-        tap.z = length(tap.xy);
-        tap.z = 0.0;  
+    {
+        float check = float(redoTap);
+        tap.xy = mix(tap.xy, tapPos - pixelPos, check);
+        tap.z = (1.0 - check) * tap.z;
     }
     
     return tap;

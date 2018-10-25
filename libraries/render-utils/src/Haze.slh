@@ -64,9 +64,8 @@ vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirectionWS, vec3
     float height_95p = 2000.0;
     const float log_p_005 = log(0.05);
 
-    {
-        float check = float(hazeParams.hazeKeyLightAltitudeFactor > 0.0f);
-        height_95p = check * -log_p_005 / hazeParams.hazeKeyLightAltitudeFactor + (1.0 - check) * height_95p;
+    if (hazeParams.hazeKeyLightAltitudeFactor > 0.0f) {
+        height_95p = -log_p_005 / hazeParams.hazeKeyLightAltitudeFactor;
     }
 
     // Note that we need the sine to be positive
@@ -144,8 +143,7 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
         float deltaHeight = fragPositionWS.y - eyeWorldHeight;
         float t = hazeParams.hazeHeightFactor * deltaHeight;
         if (abs(t) > EPSILON) {
-            float check = float(abs(deltaHeight) > slopeThreshold);
-            hazeIntegral *= check * (1.0 - exp(-t)) / t + (1.0 - check);
+            hazeIntegral *= mix(1.0, (1.0 - exp(-t)) / t, float(abs(deltaHeight) > slopeThreshold));
         }
 
         vec3 hazeAmount = 1.0 - exp(-hazeIntegral);
@@ -173,8 +171,7 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
         float deltaHeight = fragPositionWS.y - eyeWorldHeight;
         float t = hazeParams.hazeHeightFactor * deltaHeight;
         if (abs(t) > EPSILON) {
-            float check = float(abs(deltaHeight) > slopeThreshold);
-            hazeIntegral *= check * (1.0 - exp(-t)) / t + (1.0 - check);
+            hazeIntegral *= mix(1.0, (1.0 - exp(-t)) / t, float(abs(deltaHeight) > slopeThreshold));
         }
 
         float hazeAmount = 1.0 - exp(-hazeIntegral);
@@ -186,8 +183,7 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
     // Mix with background at far range
     const float BLEND_DISTANCE = 27000.0f;
     vec4 outFragColor = potentialFragColor;
-    float check = float(distance > BLEND_DISTANCE);
-    outFragColor.a *= check * hazeParams.backgroundBlend + (1.0 - check);
+    outFragColor.a *= mix(1.0, hazeParams.backgroundBlend, float(distance > BLEND_DISTANCE));
 
     return outFragColor;
 }

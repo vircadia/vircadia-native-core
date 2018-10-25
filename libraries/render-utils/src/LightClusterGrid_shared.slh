@@ -7,8 +7,12 @@
 
 #ifdef __cplusplus
 #   define _MIN glm::min
+#   define _MIX(x, y, a) glm::mix((float)x, (float)y, (float)a)
+#   define _ABS(x) (int)fabsf()
 #else
 #   define _MIN min
+#   define _MIX mix
+#   define _ABS abs
 #endif
 
 float frustumGrid_depthRampGridToVolume(float ngrid) {
@@ -124,7 +128,7 @@ ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
 
     // make sure the frontEyePos is always in the front to eval the grid pos correctly
     vec3 frontEyePos = eyePos;
-    frontEyePos.z = -abs(eyePos.z);
+    frontEyePos.z = -_ABS(eyePos.z);
     vec3 volumePos = frustumGrid_eyeToVolume(frontEyePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
 
 
@@ -147,8 +151,7 @@ ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
 
 int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
     if (eyeDir.z >= 0.0f) {
-        int check = int(eyeDir.x > 0.0f);
-        return check * frustumGrid.dims.x + (check - 1);
+        return int(_MIX(-1, frustumGrid.dims.x, int(eyeDir.x > 0.0f)));
     }
 
     float eyeDepth = -eyeDir.z;
@@ -162,8 +165,7 @@ int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
 
 int frustumGrid_eyeToClusterDirV(vec3 eyeDir) {
     if (eyeDir.z >= 0.0f) {
-        int check = int(eyeDir.y > 0.0f);
-        return check * frustumGrid.dims.y + (check - 1);
+        return int(_MIX(-1, frustumGrid.dims.y, int(eyeDir.y > 0.0f)));
     }
 
     float eyeDepth = -eyeDir.z;

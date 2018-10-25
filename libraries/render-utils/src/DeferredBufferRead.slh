@@ -79,10 +79,7 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
     unpackModeMetallic(diffuseVal.w, frag.mode, frag.metallic);
 
     frag.obscurance = min(specularVal.w, frag.obscurance);
-
-    float check = float(frag.mode == FRAG_MODE_SCATTERING);
-    frag.scattering = check * specularVal.x;
-
+    frag.scattering = float(frag.mode == FRAG_MODE_SCATTERING) * specularVal.x;
     frag.fresnel = getFresnelF0(frag.metallic, diffuseVal.xyz);
 
     return frag;
@@ -121,10 +118,10 @@ DeferredFragment unpackDeferredFragmentNoPositionNoAmbient(vec2 texcoord) {
 
 vec4 unpackDeferredPosition(float depthValue, vec2 texcoord) {
     float check = float(isStereo());
-    float check2 = float(texcoord.x > 0.5);
-    texcoord.x -= check * check2 * 0.5;
-    int side = int(check * check2);
-    texcoord.x *= check * 2.0 + (1.0 - check) * 1.0;
+    float check2 = check * float(texcoord.x > 0.5);
+    texcoord.x -= check2 * 0.5;
+    int side = int(check2);
+    texcoord.x *= mix(1.0, 2.0, check);
 
     return vec4(evalEyePositionFromZdb(side, depthValue, texcoord), 1.0);
 }
@@ -137,11 +134,13 @@ vec4 unpackDeferredPositionFromZdb(vec2 texcoord) {
 
 vec4 unpackDeferredPositionFromZeye(vec2 texcoord) {
     float Zeye = -texture(linearZeyeMap, texcoord).x;
+
     float check = float(isStereo());
-    float check2 = float(texcoord.x > 0.5);
-    texcoord.x -= check * check2 * 0.5;
-    int side = int(check * check2);
-    texcoord.x *= check * 2.0 + (1.0 - check) * 1.0;
+    float check2 = check * float(texcoord.x > 0.5);
+    texcoord.x -= check2 * 0.5;
+    int side = int(check2);
+    texcoord.x *= mix(1.0, 2.0, check);
+
     return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
 }
 

@@ -68,13 +68,8 @@ void main(void) {
      // KEEP IT for Debugging
     // Bilateral box-filter over a quad for free, respecting depth edges
     // (the difference that this makes is subtle)
-    if (abs(dFdx(Cp.z)) < 0.02) {
-        A -= dFdx(A) * (float(ssC.x & 1) - 0.5);
-    }
-    if (abs(dFdy(Cp.z)) < 0.02) {
-        A -= dFdy(A) * (float(ssC.y & 1) - 0.5);
-    }
-    
+    A -= float(abs(dFdx(Cp.z)) < 0.02) * dFdx(A) * (float(ssC.x & 1) - 0.5);
+    A -= float(abs(dFdy(Cp.z)) < 0.02) * dFdy(A) * (float(ssC.y & 1) - 0.5);
 
     outFragColor = vec4(packOcclusionDepth(A, CSZToDephtKey(Cp.z)), 1.0);
 

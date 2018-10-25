@@ -83,8 +83,7 @@ int clusterGrid_getClusterLightId(int index, int offset) {
     return element;
     */
     int element = _clusterGridContent[GRID_FETCH_BUFFER((elementIndex >> 1))];
-    int check = int((elementIndex & 0x00000001) == 1);
-    return (check * (element >> 16) + (1 - check) * element) & 0x0000FFFF;
+    return int(mix(element, element >> 16, int((elementIndex & 0x00000001) == 1))) & 0x0000FFFF;
 }
 
 

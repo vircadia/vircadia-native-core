@@ -39,14 +39,11 @@ void evalLightingPoint(out vec3 diffuse, out vec3 specular, Light light,
     lightEnergy *= isPointEnabled();
     diffuse *= lightEnergy * isDiffuseEnabled();
     specular *= lightEnergy * isSpecularEnabled();
-    
-    {
-        // Show edges
-        float edge = abs(2.0 * ((lightVolume_getRadius(light.volume) - fragLightDistance) / (0.1)) - 1.0);
-        float check = float(isShowLightContour() > 0.0 && edge < 1.0);
-        float edgeCoord = exp2(-8.0 * edge * edge);
-        diffuse = check * vec3(edgeCoord * edgeCoord * getLightColor(light)) + (1.0 - check) * diffuse;
-    }
+
+    // Show edges
+    float edge = abs(2.0 * ((lightVolume_getRadius(light.volume) - fragLightDistance) / (0.1)) - 1.0);
+    float edgeCoord = exp2(-8.0 * edge * edge);
+    diffuse = mix(diffuse, vec3(edgeCoord * edgeCoord * getLightColor(light)), float(isShowLightContour() > 0.0 && edge < 1.0));
 }
 
 <@endfunc@>
@@ -59,13 +56,10 @@ bool evalLightPointEdge(out vec3 color, Light light, vec4 fragLightDirLen, vec3 
     float fragLightDistance = fragLightDirLen.w;
     vec3 fragLightDir = fragLightDirLen.xyz;
     
+    // Show edges
     float edge = abs(2.0 * ((lightVolume_getRadius(light.volume) - fragLightDistance) / (0.1)) - 1.0);
-    {
-        // Show edges
-        float check = float(edge < 1.0);
-        float edgeCoord = exp2(-8.0 * edge * edge);
-        color = check * vec3(edgeCoord * edgeCoord * getLightColor(light)) + (1.0 - check) * color;
-    }
+    float edgeCoord = exp2(-8.0 * edge * edge);
+    color = mix(color, vec3(edgeCoord * edgeCoord * getLightColor(light)), float(edge < 1.0));
 
     return (edge < 1.0);
 }

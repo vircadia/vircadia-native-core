@@ -115,22 +115,10 @@ float evalShadowAttenuation(vec3 worldLightDir, vec4 worldPosition, float viewDe
     isPixelOnCascade.z = isShadowCascadeProjectedOnPixel(cascadeShadowCoords[2]);
     isPixelOnCascade.w = isShadowCascadeProjectedOnPixel(cascadeShadowCoords[3]);
 
-    {
-        float check = float(isPixelOnCascade.x);
-        cascadeAttenuations.x = check * evalShadowCascadeAttenuation(0, offsets, cascadeShadowCoords[0], oneMinusNdotL) + (1.0 - check);   
-    }
-    {
-        float check = float(isPixelOnCascade.y);
-        cascadeAttenuations.y = check * evalShadowCascadeAttenuation(1, offsets, cascadeShadowCoords[1], oneMinusNdotL) + (1.0 - check);
-    }
-    {
-        float check = float(isPixelOnCascade.z);
-        cascadeAttenuations.z = check * evalShadowCascadeAttenuation(2, offsets, cascadeShadowCoords[2], oneMinusNdotL) + (1.0 - check);
-    }
-    {
-        float check = float(isPixelOnCascade.w);
-        cascadeAttenuations.w = check * evalShadowCascadeAttenuation(3, offsets, cascadeShadowCoords[3], oneMinusNdotL) + (1.0 - check);
-    }
+    cascadeAttenuations.x = mix(1.0, evalShadowCascadeAttenuation(0, offsets, cascadeShadowCoords[0], oneMinusNdotL), float(isPixelOnCascade.x));
+    cascadeAttenuations.y = mix(1.0, evalShadowCascadeAttenuation(1, offsets, cascadeShadowCoords[1], oneMinusNdotL), float(isPixelOnCascade.y));
+    cascadeAttenuations.z = mix(1.0, evalShadowCascadeAttenuation(2, offsets, cascadeShadowCoords[2], oneMinusNdotL), float(isPixelOnCascade.z));
+    cascadeAttenuations.w = mix(1.0, evalShadowCascadeAttenuation(3, offsets, cascadeShadowCoords[3], oneMinusNdotL), float(isPixelOnCascade.w));
 
     cascadeWeights.x = evalShadowCascadeWeight(cascadeShadowCoords[0]);
     cascadeWeights.y = evalShadowCascadeWeight(cascadeShadowCoords[1]);

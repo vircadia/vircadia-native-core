@@ -40,8 +40,5 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color.rgb;
 
-     if (opacity != 1.0) {
-        discard;
-    }
     _fragColor0 = vec4(albedo * isUnlitEnabled(), 1.0);
 }
