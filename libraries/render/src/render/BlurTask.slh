@@ -99,9 +99,9 @@ vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
         }
     }
     
-    if (totalWeight>0.0) {
-        srcBlurred /= totalWeight;
-    }
+    float check = float(totalWeight > 0.0);
+    srcBlurred *= check / totalWeight + (1.0 - check);
+
     srcBlurred.a = getOutputAlpha();
     return srcBlurred;
 }
@@ -160,9 +160,9 @@ vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep
         }
     }   
     
-    if (totalWeight>0.0) {
-        srcBlurred /= totalWeight;
-    }
+    float check = float(totalWeight > 0.0);
+    srcBlurred *= check / totalWeight + (1.0 - check);
+
     return srcBlurred;
 }
 
