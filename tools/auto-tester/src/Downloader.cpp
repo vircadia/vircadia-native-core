@@ -17,7 +17,7 @@ Downloader::Downloader(QUrl fileURL, QObject *parent) : QObject(parent) {
         this, SLOT (fileDownloaded(QNetworkReply*))
     );
 
-    QNetworkRequest request(fileURL);
+    QNetworkRequest request(QUrl::fromPercentEncoding(fileURL.toString().toLatin1()));
     _networkAccessManager.get(request);
 }
 
