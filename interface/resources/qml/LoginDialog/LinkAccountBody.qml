@@ -96,7 +96,7 @@ Item {
             topMargin: hifi.dimensions.contentSpacing.y
         }
 
-        text: qsTr("Sign in to High Fidelity to make friends, get HFC, and buy interesting things on the Marketplace!")
+        text: qsTr("Sign in to High Fidelity to make friends, get HFC, and get interesting things on the Marketplace!")
         width: parent.width
         wrapMode: Text.WordWrap
         lineHeight: 1
