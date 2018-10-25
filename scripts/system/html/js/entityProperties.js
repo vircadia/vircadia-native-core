@@ -672,6 +672,15 @@ const GROUPS = [
                 propertyID: "emitDimensions",
             },
             {
+                label: "Emit Radius Start",
+                type: "slider",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "emitRadiusStart"
+            },
+            {
                 label: "Emit Orientation",
                 type: "vec3",
                 vec3Type: "pyr",
