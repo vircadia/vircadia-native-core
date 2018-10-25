@@ -259,7 +259,7 @@ JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_fragment_HomeFragme
 }
 
 JNIEXPORT void JNICALL
-Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeCancelLogin(JNIEnv *env, jobject instance) {
+Java_io_highfidelity_hifiinterface_fragment_LoginFragment_cancelLogin(JNIEnv *env, jobject instance) {
 
     auto accountManager = DependencyManager::get<AccountManager>();
 
@@ -269,17 +269,15 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeCancelLogin(JNIE
 }
 
 JNIEXPORT void JNICALL
-Java_io_highfidelity_hifiinterface_fragment_SignupFragment_nativeCancelLogin(JNIEnv *env,
+Java_io_highfidelity_hifiinterface_fragment_SignupFragment_cancelLogin(JNIEnv *env,
                                                                              jobject instance) {
 
-    Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeCancelLogin(env, instance);
+    Java_io_highfidelity_hifiinterface_fragment_LoginFragment_cancelLogin(env, instance);
 }
 
-
 JNIEXPORT void JNICALL
-Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *env, jobject instance,
-                                                            jstring username_, jstring password_,
-                                                            jobject usernameChangedListener) {
+Java_io_highfidelity_hifiinterface_fragment_LoginFragment_login(JNIEnv *env, jobject instance,
+                                                            jstring username_, jstring password_) {
     const char *c_username = env->GetStringUTFChars(username_, 0);
     const char *c_password = env->GetStringUTFChars(password_, 0);
     QString username = QString(c_username);
@@ -290,7 +288,6 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *en
     auto accountManager = DependencyManager::get<AccountManager>();
 
     __loginCompletedListener = QAndroidJniObject(instance);
-    __usernameChangedListener = QAndroidJniObject(usernameChangedListener);
 
     QObject::connect(accountManager.data(), &AccountManager::loginComplete, [](const QUrl& authURL) {
         jboolean jSuccess = (jboolean) true;
@@ -306,24 +303,16 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *en
         }
     });
 
-    QObject::connect(accountManager.data(), &AccountManager::usernameChanged, [](const QString& username) {
-        QAndroidJniObject string = QAndroidJniObject::fromString(username);
-        if (__usernameChangedListener.isValid()) {
-            __usernameChangedListener.callMethod<void>("handleUsernameChanged", "(Ljava/lang/String;)V", string.object<jstring>());
-        }
-    });
-
     QMetaObject::invokeMethod(accountManager.data(), "requestAccessToken",
                               Q_ARG(const QString&, username), Q_ARG(const QString&, password));
 }
 
 JNIEXPORT void JNICALL
-Java_io_highfidelity_hifiinterface_fragment_SignupFragment_nativeLogin(JNIEnv *env,
+Java_io_highfidelity_hifiinterface_fragment_SignupFragment_login(JNIEnv *env,
                                                                        jobject instance,
                                                                        jstring username_,
-                                                                       jstring password_,
-                                                                       jobject usernameChangedListener) {
-    Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(env, instance, username_, password_, usernameChangedListener);
+                                                                       jstring password_) {
+    Java_io_highfidelity_hifiinterface_fragment_LoginFragment_login(env, instance, username_, password_);
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeInitAfterAppLoaded(JNIEnv* env, jobject obj) {
@@ -331,7 +320,7 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeInitAf
 }
 
 JNIEXPORT void JNICALL
-Java_io_highfidelity_hifiinterface_fragment_SignupFragment_nativeSignup(JNIEnv *env, jobject instance,
+Java_io_highfidelity_hifiinterface_fragment_SignupFragment_signup(JNIEnv *env, jobject instance,
                                                                        jstring email_, jstring username_,
                                                                        jstring password_) {
 
@@ -359,8 +348,6 @@ Java_io_highfidelity_hifiinterface_fragment_SignupFragment_nativeSignup(JNIEnv *
     });
 
     QObject::connect(&AndroidHelper::instance(), &AndroidHelper::handleSignupFailed, [](QString errorString) {
-        jboolean jSuccess = (jboolean) false;
-        jstring jError = QAndroidJniObject::fromString(errorString).object<jstring>();
         if (__signupCompletedListener.isValid()) {
             QAndroidJniObject string = QAndroidJniObject::fromString(errorString);
             __signupCompletedListener.callMethod<void>("handleSignupFailed", "(Ljava/lang/String;)V", string.object<jstring>());
@@ -371,17 +358,11 @@ Java_io_highfidelity_hifiinterface_fragment_SignupFragment_nativeSignup(JNIEnv *
 }
 
 JNIEXPORT void JNICALL
-Java_io_highfidelity_hifiinterface_fragment_SignupFragment_nativeCancelSignup(JNIEnv *env, jobject instance) {
+Java_io_highfidelity_hifiinterface_fragment_SignupFragment_cancelSignup(JNIEnv *env, jobject instance) {
     QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::handleSignupCompleted, nullptr, nullptr);
     QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::handleSignupFailed, nullptr, nullptr);
 
     __signupCompletedListener = nullptr;
-}
-
-JNIEXPORT jboolean JNICALL
-Java_io_highfidelity_hifiinterface_fragment_FriendsFragment_nativeIsLoggedIn(JNIEnv *env, jobject instance) {
-    auto accountManager = DependencyManager::get<AccountManager>();
-    return accountManager->isLoggedIn();
 }
 
 JNIEXPORT jstring JNICALL
@@ -407,20 +388,41 @@ Java_io_highfidelity_hifiinterface_SplashActivity_registerLoadCompleteListener(J
 
 }
 JNIEXPORT jboolean JNICALL
-Java_io_highfidelity_hifiinterface_MainActivity_nativeIsLoggedIn(JNIEnv *env, jobject instance) {
+Java_io_highfidelity_hifiinterface_HifiUtils_isUserLoggedIn(JNIEnv *env, jobject instance) {
     return DependencyManager::get<AccountManager>()->isLoggedIn();
 }
 
 JNIEXPORT void JNICALL
-Java_io_highfidelity_hifiinterface_MainActivity_nativeLogout(JNIEnv *env, jobject instance) {
+Java_io_highfidelity_hifiinterface_MainActivity_logout(JNIEnv *env, jobject instance) {
     DependencyManager::get<AccountManager>()->logout();
 }
 
 JNIEXPORT jstring JNICALL
-Java_io_highfidelity_hifiinterface_MainActivity_nativeGetDisplayName(JNIEnv *env,
+Java_io_highfidelity_hifiinterface_MainActivity_getUsername(JNIEnv *env,
                                                                      jobject instance) {
     QString username = DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
     return env->NewStringUTF(username.toLatin1().data());
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_MainActivity_setUsernameChangedListener(JNIEnv *env,
+                                                                           jobject instance,
+                                                                           jobject usernameChangedListener) {
+    __usernameChangedListener = QAndroidJniObject(usernameChangedListener);
+
+    if (!__usernameChangedListener.isValid()) {
+        return;
+    }
+
+    auto accountManager = DependencyManager::get<AccountManager>();
+
+    QObject::connect(accountManager.data(), &AccountManager::usernameChanged, [](const QString& username) {
+        QAndroidJniObject string = QAndroidJniObject::fromString(username);
+        if (__usernameChangedListener.isValid()) {
+            __usernameChangedListener.callMethod<void>("handleUsernameChanged", "(Ljava/lang/String;)V", string.object<jstring>());
+        }
+    });
+
 }
 
 JNIEXPORT void JNICALL

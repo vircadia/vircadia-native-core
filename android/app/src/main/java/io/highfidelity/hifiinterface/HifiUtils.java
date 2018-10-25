@@ -64,4 +64,7 @@ public class HifiUtils {
 
     public native String protocolVersionSignature();
 
+    public native boolean isUserLoggedIn();
+
+
 }

@@ -313,11 +313,10 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
                 break;
             case "Login":
                 nativeBeforeEnterBackground();
-                Intent loginIntent = new Intent(this, MainActivity.class);
-                loginIntent.putExtra(MainActivity.EXTRA_FRAGMENT, activityName);
-                loginIntent.putExtra(MainActivity.EXTRA_BACK_TO_SCENE, backToScene);
+                Intent loginIntent = new Intent(this, LoginMenuActivity.class);
+                loginIntent.putExtra(LoginMenuActivity.EXTRA_BACK_TO_SCENE, backToScene);
                 if (args != null && args.containsKey(DOMAIN_URL)) {
-                    loginIntent.putExtra(DOMAIN_URL, (String) args.get(DOMAIN_URL));
+                    loginIntent.putExtra(LoginMenuActivity.EXTRA_DOMAIN_URL, (String) args.get(DOMAIN_URL));
                 }
                 startActivity(loginIntent);
                 break;
