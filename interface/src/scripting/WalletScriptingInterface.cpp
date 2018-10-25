@@ -15,10 +15,6 @@ CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(q
     Q_ASSERT(QThread::currentThread() == qApp->thread());
 }
 
-WalletScriptingInterface::WalletScriptingInterface() {
-
-}
-
 void WalletScriptingInterface::refreshWalletStatus() {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->getWalletStatus();

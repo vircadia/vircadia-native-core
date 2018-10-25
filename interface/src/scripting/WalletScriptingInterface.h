@@ -29,7 +29,6 @@ public:
     CheckoutProxy(QObject* qmlObject, QObject* parent = nullptr);
 };
 
-
 /**jsdoc
  * @namespace Wallet
  *
@@ -40,11 +39,12 @@ public:
  */
 class WalletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
 
     Q_PROPERTY(uint walletStatus READ getWalletStatus WRITE setWalletStatus NOTIFY walletStatusChanged)
+    Q_PROPERTY(bool limitedCommerce READ getLimitedCommerce WRITE setLimitedCommerce)
 
 public:
-    WalletScriptingInterface();
 
     /**jsdoc
      * @function Wallet.refreshWalletStatus
@@ -66,6 +66,9 @@ public:
     // setWalletStatus() should never be made Q_INVOKABLE. If it were,
     //     scripts could cause the Wallet to incorrectly report its status.
     void setWalletStatus(const uint& status);
+
+  bool getLimitedCommerce() { return _limitedCommerce; }
+  void setLimitedCommerce(bool isLimited) { _limitedCommerce = isLimited; }
 
 signals:
 
@@ -97,6 +100,7 @@ signals:
 
 private:
     uint _walletStatus;
+    bool _limitedCommerce = false;
 };
 
 #endif // hifi_WalletScriptingInterface_h

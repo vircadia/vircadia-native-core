@@ -1144,7 +1144,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the OCULUS_STORE property so the oculus plugin can know if we ran from the Oculus Store
     static const QString OCULUS_STORE_ARG = "--oculus-store";
-    setProperty(hifi::properties::OCULUS_STORE, arguments().indexOf(OCULUS_STORE_ARG) != -1);
+    bool isStore = arguments().indexOf(OCULUS_STORE_ARG) != -1;
+    setProperty(hifi::properties::OCULUS_STORE, isStore);
+    DependencyManager::get<WalletScriptingInterface>()->setLimitedCommerce(isStore);  // Or we could make it a separate arg, or if either arg is set, etc. And should this instead by a hifi::properties?
 
     updateHeartbeat();
 
