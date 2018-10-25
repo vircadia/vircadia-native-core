@@ -2481,6 +2481,12 @@ var PropertiesTool = function (opts) {
             }
         } else if (data.type === "propertiesPageReady") {
             updateSelections(true);
+        } else if (data.type === "tooltipsRequest") {
+            emitScriptEvent({
+                type: 'tooltipsReply',
+                tooltips: Script.require('./assets/data/createAppTooltips.json'),
+                hmdActive: HMD.active,
+            });
         }
     };
 
