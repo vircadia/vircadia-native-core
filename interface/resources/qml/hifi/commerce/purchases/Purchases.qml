@@ -180,8 +180,8 @@ Rectangle {
     HifiCommerceCommon.EmulatedMarketplaceHeader {
         id: titleBarContainer;
         z: 997;
-        visible: false; //HRS FIXME !needsLogIn.visible;
-        height: 100; // HRS FIXME
+        visible: false;
+        height: 100; // HRS FIXME: get rid of the header and associated code entirely?
         // Size
         width: parent.width;
         // Anchors
@@ -476,7 +476,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.leftMargin: 16;
                 width: paintedWidth;
-                text: isShowingMyItems ? "My Items" : "Inventory"; //"My Purchases";
+                text: isShowingMyItems ? "My Items" : "Inventory";
                 color: hifi.colors.black;
                 size: 22;
             }

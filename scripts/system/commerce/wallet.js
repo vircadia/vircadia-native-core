@@ -490,6 +490,7 @@ function walletOpened() {
     triggerPressMapping.enable();
     shouldShowDot = false;
     ui.messagesWaiting(shouldShowDot);
+    ui.sendMessage({method: 'setLimitedCommerce', limitedCommerce: Wallet.limitedCommerce}); // HRS FIXME Wallet should be accessible in qml. Why isn't it?
 }
 
 function walletClosed() {
@@ -582,7 +583,7 @@ function uninstallMarketplaceItemTester() {
     }
 }
 
-var BUTTON_NAME = "ASSETS"; //HRS FIXME "WALLET";
+var BUTTON_NAME = "ASSETS";
 var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
 var ui;
 function startup() {

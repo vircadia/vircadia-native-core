@@ -30,6 +30,7 @@ Rectangle {
     property string activeView: "initialize";
     property bool keyboardRaised: false;
     property bool isPassword: false;
+    property bool limitedCommerce: true;
 
     anchors.fill: (typeof parent === undefined) ? undefined : parent;
 
@@ -65,7 +66,7 @@ Rectangle {
                 }
             } else if (walletStatus === 5) {
                 if (root.activeView !== "walletSetup") {
-                    root.activeView = "walletInventory"; // HRS FIXME "walletHome";
+                    root.activeView = "walletInventory";
                     Commerce.getSecurityImage();
                 }
             } else {
@@ -125,7 +126,7 @@ Rectangle {
         // Title Bar text
         RalewaySemiBold {
             id: titleBarText;
-            text: "ASSETS"; //"WALLET";
+            text: "ASSETS";
             // Text size
             size: hifi.fontSizes.overlayTitle;
             // Anchors
@@ -370,6 +371,7 @@ Rectangle {
         listModelName: "Send Money Connections";
         z: 997;
         visible: root.activeView === "sendMoney";
+        keyboardContainer: root;
         anchors.fill: parent;
         parentAppTitleBarHeight: titleBarContainer.height;
         parentAppNavBarHeight: tabButtonsContainer.height;
@@ -464,13 +466,13 @@ Rectangle {
             visible: !walletSetup.visible;
             color: root.activeView === "walletHome" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
-            anchors.left: exchangeMoneyButtonContainer.right; // HRS FIXME parent.left;
+            anchors.left: exchangeMoneyButtonContainer.right;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
         
             HiFiGlyphs {
                 id: homeTabIcon;
-                text: hifi.glyphs.leftRightArrows; // HRS FIXME hifi.glyphs.home2;
+                text: hifi.glyphs.leftRightArrows;
                 // Size
                 size: 50;
                 // Anchors
@@ -478,11 +480,11 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.topMargin: -2;
                 // Style
-                color: hifi.colors.lightGray50; // HRS FIXME root.activeView === "walletHome" || walletHomeTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
+                color: root.limitedCommerce ? hifi.colors.lightGray50 : ((root.activeView === "walletHome" || walletHomeTabMouseArea.containsMouse) ? hifi.colors.white : hifi.colors.blueHighlight);
             }
 
             RalewaySemiBold {
-                text: "RECENT ACTIVITY"; //"WALLET HOME";
+                text: "RECENT ACTIVITY";
                 // Text size
                 size: 16;
                 // Anchors
@@ -493,15 +495,16 @@ Rectangle {
                 anchors.right: parent.right;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.lightGray50; // HRS FIXME root.activeView === "walletHome" || walletHomeTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
+                color: root.limitedCommerce ? hifi.colors.lightGray50 : ((root.activeView === "walletHome" || walletHomeTabMouseArea.containsMouse) ? hifi.colors.white : hifi.colors.blueHighlight);
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignTop;
             }
-            /* HRS FIXME MouseArea {
+            MouseArea {
                 id: walletHomeTabMouseArea;
                 anchors.fill: parent;
+                enabled: !root.limitedCommerce;
                 hoverEnabled: enabled;
                 onClicked: {
                     root.activeView = "walletHome";
@@ -509,22 +512,22 @@ Rectangle {
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = root.activeView === "walletHome" ? hifi.colors.blueAccent : hifi.colors.black;
-            }*/
+            }
         }
 
         // "EXCHANGE MONEY" tab button
         Rectangle {
             id: exchangeMoneyButtonContainer;
             visible: !walletSetup.visible;
-            color: root.activeView === "walletInventory" ? hifi.colors.blueAccent : hifi.colors.black; // HRS FIXME hifi.colors.black;
+            color: root.activeView === "walletInventory" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
-            anchors.left: parent.left; // FIXME walletHomeButtonContainer.right;
+            anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
         
             HiFiGlyphs {
                 id: exchangeMoneyTabIcon;
-                text: hifi.glyphs.home2; // HRS FIXME hifi.glyphs.leftRightArrows;
+                text: hifi.glyphs.home2;
                 // Size
                 size: 50;
                 // Anchors
@@ -532,11 +535,11 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.topMargin: -2;
                 // Style
-                color: root.activeView === "walletInventory" || walletHomeTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight; // HRS FIXMEhifi.colors.lightGray50;
+                color: root.activeView === "walletInventory" || walletHomeTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
             }
 
             RalewaySemiBold {
-                text: "INVENTORY"; // HRS FIXME "EXCHANGE MONEY";
+                text: "INVENTORY";
                 // Text size
                 size: 16;
                 // Anchors
@@ -547,7 +550,7 @@ Rectangle {
                 anchors.right: parent.right;
                 anchors.rightMargin: 4;
                 // Style
-                color: root.activeView === "walletInventory" || walletHomeTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;  // HRS FIXME hifi.colors.lightGray50;
+                color: root.activeView === "walletInventory" || walletHomeTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
@@ -574,7 +577,7 @@ Rectangle {
             visible: !walletSetup.visible;
             color: root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
-            anchors.left: walletHomeButtonContainer.right; // HRS FIXME exchangeMoneyButtonContainer.right;
+            anchors.left: walletHomeButtonContainer.right;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
         
@@ -588,7 +591,7 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.topMargin: -2;
                 // Style
-                color: hifi.colors.lightGray50; // HRS FIXME root.activeView === "sendMoney" || sendMoneyTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
+                color: root.limitedCommerce ? hifi.colors.lightGray50 : ((root.activeView === "sendMoney" || sendMoneyTabMouseArea.containsMouse) ? hifi.colors.white : hifi.colors.blueHighlight);
             }
 
             RalewaySemiBold {
@@ -603,16 +606,17 @@ Rectangle {
                 anchors.right: parent.right;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.lightGray50; // HRS FIXME root.activeView === "sendMoney" || sendMoneyTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
+                color: root.limitedCommerce ? hifi.colors.lightGray50 : ((root.activeView === "sendMoney" || sendMoneyTabMouseArea.containsMouse) ? hifi.colors.white : hifi.colors.blueHighlight);
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignTop;
             }
 
-            /* HRS FIXME MouseArea {
+            MouseArea {
                 id: sendMoneyTabMouseArea;
                 anchors.fill: parent;
+                enabled: !root.limitedCommerce;
                 hoverEnabled: enabled;
                 onClicked: {
                     root.activeView = "sendMoney";
@@ -620,7 +624,7 @@ Rectangle {
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
-            } */
+            }
         }
 
         // "SECURITY" tab button
@@ -737,7 +741,7 @@ Rectangle {
             sendMoneyButtonContainer.color = hifi.colors.black;
             securityButtonContainer.color = hifi.colors.black;
             helpButtonContainer.color = hifi.colors.black;
-            exchangeMoneyButtonContainer.color = hifi.colors.black; // HRS FIXME
+            exchangeMoneyButtonContainer.color = hifi.colors.black;
             if (root.activeView === "walletHome") {
                 walletHomeButtonContainer.color = hifi.colors.blueAccent;
             } else if (root.activeView === "sendMoney") {
@@ -746,7 +750,7 @@ Rectangle {
                 securityButtonContainer.color = hifi.colors.blueAccent;
             } else if (root.activeView === "help") {
                 helpButtonContainer.color = hifi.colors.blueAccent;
-            } else if (root.activeView == "walletInventory") {  // HRS FIXME
+            } else if (root.activeView == "walletInventory") {
                 exchangeMoneyButtonContainer.color = hifi.colors.blueAccent;
             }
         }
@@ -825,6 +829,9 @@ Rectangle {
             case 'avatarDisconnected':
                 // Because we don't have "channels" for sending messages to a specific QML object, the messages are broadcast to all QML Items. If an Item of yours happens to be visible when some script sends a message with a method you don't expect, you'll get "Unrecognized message..." logs.
             break;
+            case 'setLimitedCommerce':
+                root.limitedCommerce = message.limitedCommerce;
+                break;
             default:
                 // HRS FIXME console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
                 walletInventory.fromScript(message);

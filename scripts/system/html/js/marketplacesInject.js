@@ -27,6 +27,7 @@
     var xmlHttpRequest = null;
     var isPreparing = false; // Explicitly track download request status.
 
+    var limitedCommerce = false;
     var commerceMode = false;
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
@@ -219,7 +220,9 @@
             purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
                 "px;position:relative;z-index:999;";
             navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
-            $('#purchasesButton').css('display', 'none'); // HRS FIXME
+            if (limitedCommerce) {
+                $('#purchasesButton').css('display', 'none');
+            }
             $('#purchasesButton').on('click', function () {
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: "PURCHASES",
@@ -285,7 +288,7 @@
             }
             cost = $(this).closest('.col-xs-3').find('.item-cost').text();
             var costInt = parseInt(cost, 10);
-            var disable = costInt > 0;  // HRS FIXME
+            var disable = limitedCommerce && (costInt > 0);
 
             $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
             $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
@@ -303,7 +306,7 @@
             if (parseInt(cost) > 0) {
                 if (disable) {
                     priceElement.html('N/A'); // In case the following fails
-                    $(this).parent().parent().parent().parent().parent().css({"display": "none"}); // HRS FIXME
+                    $(this).parent().parent().parent().parent().parent().css({"display": "none"}); // HRS FIXME, oh and do I have to set display non-none in the other branch?
                 } else {
                     priceElement.css({ "width": "auto" });
                     priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
@@ -315,7 +318,6 @@
 
         // change pricing to GET/BUY on button hover
         $('body').on('mouseenter', '#price-or-edit .price', function () {
-            if (disable) { return; }
             var $this = $(this);
             var buyString = "BUY";
             var getString = "GET";
@@ -340,14 +342,12 @@
         });
 
         $('body').on('mouseleave', '#price-or-edit .price', function () {
-            if (disable) { return; }
             var $this = $(this);
             $this.html($this.data('initialHtml'));
         });
 
 
         $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
-            if (disable) { return false; }
             if ($(this).closest('.grid-item').find('.price').text() === 'invalidated') {
                 return false;
             }
@@ -433,8 +433,8 @@
                 var cost = $('.item-cost').text();
                 var costInt = parseInt(cost, 10);
                 var availability = $.trim($('.item-availability').text());
-                if (costInt > 0) {
-                    availability = ''; // HRS FIXME
+                if (limitedCommerce && (costInt > 0)) {
+                    availability = '';
                 }
                 if (availability === 'available') {
                     purchaseButton.css({
@@ -757,6 +757,7 @@
                 cancelClaraDownload();
             } else if (message.type === "marketplaces") {
                 if (message.action === "commerceSetting") {
+                    limitedCommerce = !!message.data.limitedCommerce;
                     commerceMode = !!message.data.commerceMode;
                     userIsLoggedIn = !!message.data.userIsLoggedIn;
                     walletNeedsSetup = !!message.data.walletNeedsSetup;

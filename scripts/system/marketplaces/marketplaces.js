@@ -230,7 +230,8 @@ function sendCommerceSettings() {
             userIsLoggedIn: Account.loggedIn,
             walletNeedsSetup: walletNeedsSetup(),
             metaverseServerURL: Account.metaverseServerURL,
-            messagesWaiting: shouldShowDot
+            messagesWaiting: shouldShowDot,
+            limitedCommerce: Wallet.limitedCommerce
         }
     });
 }
