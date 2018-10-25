@@ -31,6 +31,7 @@
 #include "filters/RotateFilter.h"
 #include "filters/LowVelocityFilter.h"
 #include "filters/ExponentialSmoothingFilter.h"
+#include "filters/AccelerationLimiterFilter.h"
 
 using namespace controller;
 
@@ -51,6 +52,7 @@ REGISTER_FILTER_CLASS_INSTANCE(PostTransformFilter, "postTransform")
 REGISTER_FILTER_CLASS_INSTANCE(RotateFilter, "rotate")
 REGISTER_FILTER_CLASS_INSTANCE(LowVelocityFilter, "lowVelocity")
 REGISTER_FILTER_CLASS_INSTANCE(ExponentialSmoothingFilter, "exponentialSmoothing")
+REGISTER_FILTER_CLASS_INSTANCE(AccelerationLimiterFilter, "accelerationLimiter")
 
 const QString JSON_FILTER_TYPE = QStringLiteral("type");
 const QString JSON_FILTER_PARAMS = QStringLiteral("params");

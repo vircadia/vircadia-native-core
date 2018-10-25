@@ -24,6 +24,7 @@
 #include "AnimNode.h"
 #include "AnimNodeLoader.h"
 #include "SimpleMovingAverage.h"
+#include "AnimUtil.h"
 
 class Rig;
 class AnimInverseKinematics;
@@ -414,6 +415,9 @@ protected:
 
     AnimContext _lastContext;
     AnimVariantMap _lastAnimVars;
+
+    SnapshotBlendPoseHelper _hipsBlendHelper;
+    ControllerParameters _previousControllerParameters;
 };
 
 #endif /* defined(__hifi__Rig__) */
