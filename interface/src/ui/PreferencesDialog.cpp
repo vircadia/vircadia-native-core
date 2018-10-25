@@ -260,6 +260,39 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [myAvatar]()->int {
+            switch (myAvatar->getUserRecenterModel()) {
+                case MyAvatar::SitStandModelType::Auto:
+                    default:
+                    return 0;
+                case MyAvatar::SitStandModelType::ForceSit:
+                    return 1;
+                case MyAvatar::SitStandModelType::DisableHMDLean:
+                    return 2;
+            }
+        };
+        auto setter = [myAvatar](int value) {
+            switch (value) {
+                case 0:
+                default:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::Auto);
+                    break;
+                case 1:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceSit);
+                    break;
+                case 2:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::DisableHMDLean);
+                    break;
+            }
+        };
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Disable Recenter", getter, setter);
+        QStringList items;
+        items << "Auto - turns on avatar leaning when standing in real world" << "Seated - disables all avatar leaning while sitting in real world" << "Disabled - allows avatar sitting on the floor [Experimental]";
+        preference->setHeading("Avatar leaning behavior");
+        preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
         auto getter = [=]()->float { return myAvatar->getUserHeight(); };
         auto setter = [=](float value) { myAvatar->setUserHeight(value); };
         auto preference = new SpinnerPreference(VR_MOVEMENT, "User real-world height (meters)", getter, setter);

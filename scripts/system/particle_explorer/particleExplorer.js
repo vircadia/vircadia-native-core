@@ -171,13 +171,6 @@
                     }
                 },
                 {
-                    id: "emitRadiusStart",
-                    name: "Emit Radius Start",
-                    type: "SliderFloat",
-                    max: 1,
-                    min: 0
-                },
-                {
                     type: "Row"
                 },
                 {

@@ -24,7 +24,7 @@
 #include "AnimUtil.h"
 
 static const int MAX_TARGET_MARKERS = 30;
-static const float JOINT_CHAIN_INTERP_TIME = 0.25f;
+static const float JOINT_CHAIN_INTERP_TIME = 0.5f;
 
 static void lookupJointInfo(const AnimInverseKinematics::JointChainInfo& jointChainInfo,
                             int indexA, int indexB,
@@ -253,11 +253,25 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
         if (numLoops == MAX_IK_LOOPS) {
             for (size_t i = 0; i < _prevJointChainInfoVec.size(); i++) {
                 if (_prevJointChainInfoVec[i].timer > 0.0f) {
+
                     float alpha = (JOINT_CHAIN_INTERP_TIME - _prevJointChainInfoVec[i].timer) / JOINT_CHAIN_INTERP_TIME;
+
+                    // ease in expo
+                    alpha = 1.0f - powf(2.0f, -10.0f * alpha);
+
                     size_t chainSize = std::min(_prevJointChainInfoVec[i].jointInfoVec.size(), jointChainInfoVec[i].jointInfoVec.size());
-                    for (size_t j = 0; j < chainSize; j++) {
-                        jointChainInfoVec[i].jointInfoVec[j].rot = safeMix(_prevJointChainInfoVec[i].jointInfoVec[j].rot, jointChainInfoVec[i].jointInfoVec[j].rot, alpha);
-                        jointChainInfoVec[i].jointInfoVec[j].trans = lerp(_prevJointChainInfoVec[i].jointInfoVec[j].trans, jointChainInfoVec[i].jointInfoVec[j].trans, alpha);
+
+                    if (jointChainInfoVec[i].target.getType() != IKTarget::Type::Unknown) {
+                        // if we are interping into an enabled target type, i.e. not off, lerp the rot and the trans.
+                        for (size_t j = 0; j < chainSize; j++) {
+                            jointChainInfoVec[i].jointInfoVec[j].rot = safeMix(_prevJointChainInfoVec[i].jointInfoVec[j].rot, jointChainInfoVec[i].jointInfoVec[j].rot, alpha);
+                            jointChainInfoVec[i].jointInfoVec[j].trans = lerp(_prevJointChainInfoVec[i].jointInfoVec[j].trans, jointChainInfoVec[i].jointInfoVec[j].trans, alpha);
+                        }
+                    } else {
+                        // if we are interping into a disabled target type, keep the rot & trans the same, but lerp the weight down to zero.
+                        jointChainInfoVec[i].target.setType((int)_prevJointChainInfoVec[i].target.getType());
+                        jointChainInfoVec[i].target.setWeight(_prevJointChainInfoVec[i].target.getWeight() * (1.0f - alpha));
+                        jointChainInfoVec[i].jointInfoVec = _prevJointChainInfoVec[i].jointInfoVec;
                     }
                 }
             }

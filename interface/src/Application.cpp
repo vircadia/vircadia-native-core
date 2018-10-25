@@ -226,6 +226,7 @@
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
+#include "ResourceRequestObserver.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
@@ -947,6 +948,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<WalletScriptingInterface>();
 
     DependencyManager::set<FadeEffect>();
+    DependencyManager::set<ResourceRequestObserver>();
 
     return previousSessionCrashed;
 }
@@ -3129,6 +3131,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+    surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -5022,12 +5025,12 @@ void Application::saveSettings() const {
     PluginManager::getInstance()->saveSettings();
 }
 
-bool Application::importEntities(const QString& urlOrFilename) {
+bool Application::importEntities(const QString& urlOrFilename, const bool isObservable, const qint64 callerId) {
     bool success = false;
     _entityClipboard->withWriteLock([&] {
         _entityClipboard->eraseAllOctreeElements();
 
-        success = _entityClipboard->readFromURL(urlOrFilename);
+        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId);
         if (success) {
             _entityClipboard->reaverageOctreeElements();
         }
@@ -5812,6 +5815,42 @@ void Application::update(float deltaTime) {
             controller::Pose pose = userInputMapper->getPoseState(action);
             myAvatar->setControllerPoseInSensorFrame(action, pose.transform(avatarToSensorMatrix));
         }
+
+        static const std::vector<QString> trackedObjectStringLiterals = {
+            QStringLiteral("_TrackedObject00"), QStringLiteral("_TrackedObject01"), QStringLiteral("_TrackedObject02"), QStringLiteral("_TrackedObject03"),
+            QStringLiteral("_TrackedObject04"), QStringLiteral("_TrackedObject05"), QStringLiteral("_TrackedObject06"), QStringLiteral("_TrackedObject07"),
+            QStringLiteral("_TrackedObject08"), QStringLiteral("_TrackedObject09"), QStringLiteral("_TrackedObject10"), QStringLiteral("_TrackedObject11"),
+            QStringLiteral("_TrackedObject12"), QStringLiteral("_TrackedObject13"), QStringLiteral("_TrackedObject14"), QStringLiteral("_TrackedObject15")
+        };
+
+        // Controlled by the Developer > Avatar > Show Tracked Objects menu.
+        if (_showTrackedObjects) {
+            static const std::vector<controller::Action> trackedObjectActions = {
+                controller::Action::TRACKED_OBJECT_00, controller::Action::TRACKED_OBJECT_01, controller::Action::TRACKED_OBJECT_02, controller::Action::TRACKED_OBJECT_03,
+                controller::Action::TRACKED_OBJECT_04, controller::Action::TRACKED_OBJECT_05, controller::Action::TRACKED_OBJECT_06, controller::Action::TRACKED_OBJECT_07,
+                controller::Action::TRACKED_OBJECT_08, controller::Action::TRACKED_OBJECT_09, controller::Action::TRACKED_OBJECT_10, controller::Action::TRACKED_OBJECT_11,
+                controller::Action::TRACKED_OBJECT_12, controller::Action::TRACKED_OBJECT_13, controller::Action::TRACKED_OBJECT_14, controller::Action::TRACKED_OBJECT_15
+            };
+
+            int i = 0;
+            glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+            for (auto& action : trackedObjectActions) {
+                controller::Pose pose = userInputMapper->getPoseState(action);
+                if (pose.valid) {
+                    glm::vec3 pos = transformPoint(myAvatarMatrix, pose.translation);
+                    glm::quat rot = glmExtractRotation(myAvatarMatrix) * pose.rotation;
+                    DebugDraw::getInstance().addMarker(trackedObjectStringLiterals[i], rot, pos, BLUE);
+                } else {
+                    DebugDraw::getInstance().removeMarker(trackedObjectStringLiterals[i]);
+                }
+                i++;
+            }
+        } else if (_prevShowTrackedObjects) {
+            for (auto& key : trackedObjectStringLiterals) {
+                DebugDraw::getInstance().removeMarker(key);
+            }
+        }
+        _prevShowTrackedObjects = _showTrackedObjects;
     }
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
@@ -6811,6 +6850,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
+    scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
@@ -7197,7 +7237,8 @@ void Application::addAssetToWorldFromURL(QString url) {
 
     addAssetToWorldInfo(filename, "Downloading model file " + filename + ".");
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, QUrl(url));
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        nullptr, QUrl(url), true, -1, "Application::addAssetToWorldFromURL");
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
 }
@@ -8304,6 +8345,10 @@ void Application::setShowBulletConstraints(bool value) {
 
 void Application::setShowBulletConstraintLimits(bool value) {
     _physicsEngine->setShowBulletConstraintLimits(value);
+}
+
+void Application::setShowTrackedObjects(bool value) {
+    _showTrackedObjects = value;
 }
 
 void Application::startHMDStandBySession() {

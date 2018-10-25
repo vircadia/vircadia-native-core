@@ -402,36 +402,31 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
 }
 
 void DebugHighlight::initializePipelines() {
-    static const auto FRAGMENT_SHADER_SOURCE = gpu::Shader::createPixel(shader::render_utils::fragment::debug_deferred_buffer)->getSource();
-    static const std::string SOURCE_PLACEHOLDER{ "//SOURCE_PLACEHOLDER" };
-    static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER_SOURCE.getCode().find(SOURCE_PLACEHOLDER);
-    Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
-               "Could not find source placeholder");
-
-    auto state = std::make_shared<gpu::State>();
-    state->setDepthTest(gpu::State::DepthTest(false, false));
-    state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
-    state->setColorWriteMask(true, true, true, true);
-
-    const auto vs = gpu::Shader::createVertex(shader::render_utils::vertex::debug_deferred_buffer);
-
+    static const std::string REPLACEMENT_MARKER{ "//SOURCE_PLACEHOLDER" };
     // Depth shader
-    {
-        static const std::string DEPTH_SHADER{ R"SHADER(
+    static const std::string DEPTH_SHADER{ R"SHADER(
             vec4 getFragmentColor() {
                float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
                Zdb = 1.0-(1.0-Zdb)*100;
                return vec4(Zdb, Zdb, Zdb, 1.0); 
             }
         )SHADER" };
+    static const auto& vs = gpu::Shader::createVertex(shader::render_utils::vertex::debug_deferred_buffer);
 
-        auto fragmentShader = FRAGMENT_SHADER_SOURCE.getCode();
-        fragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(), DEPTH_SHADER);
 
-        const auto ps = gpu::Shader::createPixel({ fragmentShader, FRAGMENT_SHADER_SOURCE.getReflection() });
-        const auto program = gpu::Shader::createProgram(vs, ps);
-        _depthPipeline = gpu::Pipeline::create(program, state);
-    }
+    gpu::Shader::Source fragmentSource;
+    fragmentSource = gpu::Shader::Source::get(shader::render_utils::fragment::debug_deferred_buffer);
+    fragmentSource.replacements[REPLACEMENT_MARKER] = DEPTH_SHADER;
+
+    const auto ps = gpu::Shader::createPixel(fragmentSource);
+    const auto program = gpu::Shader::createProgram(vs, ps);
+
+    auto state = std::make_shared<gpu::State>();
+    state->setDepthTest(gpu::State::DepthTest(false, false));
+    state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
+    state->setColorWriteMask(true, true, true, true);
+
+    _depthPipeline = gpu::Pipeline::create(program, state);
 }
 
 const gpu::PipelinePointer& DebugHighlight::getDepthPipeline() {

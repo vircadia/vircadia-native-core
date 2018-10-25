@@ -327,6 +327,17 @@ const float AVATAR_DISTANCE_LEVEL_5 = 200.0f; // meters
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
 const glm::vec3 START_LOCATION(6270, 211, 6000);
 
+// Avatar Transit Constants
+const float AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE = 1.0f;
+const float AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE = 30.0f;
+const int AVATAR_TRANSIT_FRAME_COUNT = 11;
+const float AVATAR_TRANSIT_FRAMES_PER_METER = 0.5f;
+const float AVATAR_TRANSIT_ABORT_DISTANCE = 0.1f;
+const bool AVATAR_TRANSIT_DISTANCE_BASED = true;
+const float AVATAR_TRANSIT_FRAMES_PER_SECOND = 30.0f;
+const float AVATAR_PRE_TRANSIT_FRAME_COUNT = 10.0f;
+const float AVATAR_POST_TRANSIT_FRAME_COUNT = 27.0f;
+
 enum KeyState {
     NO_KEY_DOWN = 0,
     INSERT_KEY_DOWN,
@@ -1378,8 +1389,7 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition { 0, 0, 0 };
-    glm::vec3 _globalPositionOverride { 0, 0, 0 };
-    bool _overrideGlobalPosition { false };
+    glm::vec3 _serverPosition { 0, 0, 0 };
 
     quint64 _globalPositionChanged { 0 };
     quint64 _avatarBoundingBoxChanged { 0 };
