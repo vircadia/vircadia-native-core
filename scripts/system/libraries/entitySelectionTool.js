@@ -14,7 +14,7 @@
 //
 
 /* global SelectionManager, SelectionDisplay, grid, rayPlaneIntersection, rayPlaneIntersection2, pushCommandForSelections,
-   getMainTabletIDs, getControllerWorldLocation, TRIGGER_ON_VALUE */
+   getMainTabletIDs, getControllerWorldLocation, TRIGGER_ON_VALUE, HIFI_EDIT_MANIPULATION_CHANNEL */
 
 const SPACE_LOCAL = "local";
 const SPACE_WORLD = "world";
@@ -983,6 +983,7 @@ SelectionDisplay = (function() {
     that.triggerPressMapping = Controller.newMapping(Script.resolvePath('') + '-press');
     that.triggeredHand = NO_HAND;
     that.pressedHand = NO_HAND;
+    that.editingHand = NO_HAND;
     that.triggered = function() {
         return that.triggeredHand !== NO_HAND;
     };
@@ -1115,6 +1116,11 @@ SelectionDisplay = (function() {
                 activeTool = hitTool;
                 that.clearDebugPickPlane();
                 if (activeTool.onBegin) {
+                    Messages.sendLocalMessage(HIFI_EDIT_MANIPULATION_CHANNEL, JSON.stringify({
+                        action: "startEdit",
+                        hand: that.triggeredHand
+                    }));
+                    that.editingHand = that.triggeredHand;
                     activeTool.onBegin(event, pickRay, results);
                 } else {
                     print("ERROR: entitySelectionTool.mousePressEvent - ActiveTool(" + activeTool.mode + ") missing onBegin");
@@ -1263,6 +1269,11 @@ SelectionDisplay = (function() {
                 if (wantDebug) {
                     print("    Triggering ActiveTool(" + activeTool.mode + ")'s onEnd");
                 }
+                Messages.sendLocalMessage(HIFI_EDIT_MANIPULATION_CHANNEL, JSON.stringify({
+                    action: "finishEdit",
+                    hand: that.editingHand
+                }));
+                that.editingHand = NO_HAND;
                 activeTool.onEnd(event);
             } else if (wantDebug) {
                 print("    ActiveTool(" + activeTool.mode + ")'s missing onEnd");

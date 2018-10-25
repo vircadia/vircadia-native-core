@@ -9,7 +9,7 @@
 /* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    makeDispatcherModuleParameters, Overlays, makeRunningValues, Vec3, resizeTablet, getTabletWidthFromSettings,
-   NEAR_GRAB_RADIUS, HMD, Uuid
+   NEAR_GRAB_RADIUS, HMD, Uuid, HIFI_EDIT_MANIPULATION_CHANNEL
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -172,10 +172,14 @@ Script.include("/~/system/libraries/utils.js");
             return null;
         };
 
+        this.isEditing = false;
+        this.setIsEditing = function (editing) {
+            this.isEditing = editing;
+        };
 
         this.isReady = function (controllerData) {
-            if ((controllerData.triggerClicks[this.hand] === 0 &&
-                 controllerData.secondaryValues[this.hand] === 0)) {
+            if ((controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0)
+                    || this.isEditing) {
                 this.robbed = false;
                 return makeRunningValues(false, [], []);
             }
@@ -198,7 +202,8 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
+            if ((controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0)
+                    || this.isEditing) {
                 this.endNearParentingGrabOverlay();
                 this.robbed = false;
                 return makeRunningValues(false, [], []);
@@ -225,6 +230,28 @@ Script.include("/~/system/libraries/utils.js");
 
     enableDispatcherModule("LeftNearParentingGrabOverlay", leftNearParentingGrabOverlay);
     enableDispatcherModule("RightNearParentingGrabOverlay", rightNearParentingGrabOverlay);
+
+    function onMessageReceived(channel, data, senderID) {
+        var message;
+
+        if (channel !== HIFI_EDIT_MANIPULATION_CHANNEL || senderID !== MyAvatar.sessionUUID) {
+            return;
+        }
+
+        try {
+            message = JSON.parse(data);
+        } catch (e) {
+            return;
+        }
+
+        if (message.hand === Controller.Standard.LeftHand) {
+            leftNearParentingGrabOverlay.setIsEditing(message.action === "startEdit");
+        } else if (message.hand === Controller.Standard.RightHand) {
+            rightNearParentingGrabOverlay.setIsEditing(message.action === "startEdit");
+        }
+    }
+    Messages.subscribe(HIFI_EDIT_MANIPULATION_CHANNEL);
+    Messages.messageReceived.connect(onMessageReceived);
 
     function cleanup() {
         leftNearParentingGrabOverlay.cleanup();
