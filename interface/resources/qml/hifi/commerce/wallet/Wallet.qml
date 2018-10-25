@@ -563,6 +563,7 @@ Rectangle {
                 hoverEnabled: enabled;
                 onClicked: {
                     root.activeView = "walletInventory";
+                    walletInventory.isShowingMyItems = false;
                     tabButtonsContainer.resetTabButtonColors();
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
