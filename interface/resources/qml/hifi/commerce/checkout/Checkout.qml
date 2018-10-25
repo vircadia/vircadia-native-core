@@ -448,7 +448,7 @@ Rectangle {
                 // "HFC" balance label
                 HiFiGlyphs {
                     id: itemPriceTextLabel;
-                    visible: !(root.isUpdating && root.itemEdition > 0);
+                    visible: !(root.isUpdating && root.itemEdition > 0) && (root.itemPrice > 0);
                     text: hifi.glyphs.hfc;
                     // Size
                     size: 30;
@@ -464,7 +464,7 @@ Rectangle {
                 }
                 FiraSansSemiBold {
                     id: itemPriceText;
-                    text: (root.isUpdating && root.itemEdition > 0) ? "FREE\nUPDATE" : ((root.itemPrice === -1) ? "--" : root.itemPrice);
+                    text: (root.isUpdating && root.itemEdition > 0) ? "FREE\nUPDATE" : ((root.itemPrice === -1) ? "--" : ((root.itemPrice > 0) ? root.itemPrice : "FREE"));
                     // Text size
                     size: (root.isUpdating && root.itemEdition > 0) ? 20 : 26;
                     // Anchors
