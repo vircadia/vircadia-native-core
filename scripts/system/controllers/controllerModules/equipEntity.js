@@ -189,15 +189,19 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     var UNEQUIP_KEY = "u";
 
     function getWearableData(props) {
-        return {
-            joints: {
-                LeftHand: [ props.grab.equippableLeftPosition, props.grab.equippableLeftRotation ],
-                RightHand: [ props.grab.equippableRightPosition, props.grab.equippableRightRotation ]
-            },
-            indicatorURL: props.grab.equippableIndicatorURL,
-            indicatorScale: props.grab.equippableIndicatorScale,
-            indicatorOffset: props.grab.equippableIndicatorOffset
-        };
+        if (props.grab.equippable) {
+            return {
+                joints: {
+                    LeftHand: [ props.grab.equippableLeftPosition, props.grab.equippableLeftRotation ],
+                    RightHand: [ props.grab.equippableRightPosition, props.grab.equippableRightRotation ]
+                },
+                indicatorURL: props.grab.equippableIndicatorURL,
+                indicatorScale: props.grab.equippableIndicatorScale,
+                indicatorOffset: props.grab.equippableIndicatorOffset
+            };
+        } else {
+            return null
+        }
     }
 
     function getAttachPointSettings() {
