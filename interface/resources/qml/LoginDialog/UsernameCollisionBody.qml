@@ -29,7 +29,6 @@ Item {
         loginDialog.createAccountFromStream(textField.text)
     }
 
-
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
@@ -48,14 +47,14 @@ Item {
         function resize() {
             maxWidth = root.isTablet ? 1280 : Window.innerWidth;
             maxHeight = root.isTablet ? 720 : Window.innerHeight;
-            var targetWidth = Math.max(Math.max(titleWidth, mainTextContainer.contentWidth), mainContainer.width)
+            var targetWidth = Math.max(titleWidth, mainContainer.width);
             var targetHeight =  mainTextContainer.height +
                                 hifi.dimensions.contentSpacing.y + textField.height +
-                                hifi.dimensions.contentSpacing.y + buttons.height
+                                hifi.dimensions.contentSpacing.y + buttons.height;
 
-            parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
-            parent.height = root.height = Math.max(Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)), mainContainer.height)
-                    + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y)
+            parent.width = root.pane.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
+            parent.height = root.pane.height = Math.max(Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)), mainContainer.height +
+                (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y));
         }
     }
 
@@ -64,6 +63,7 @@ Item {
         width: root.pane.width
         height: root.pane.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
+        anchors.fill: parent
 
         Rectangle {
             id: opaqueRect
@@ -157,20 +157,61 @@ Item {
                 bottomMargin: keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
             }
         }
-        Row {
+
+        Item {
             id: buttons
+            width: Math.max(banner.width, cancelContainer.width + profileButton.width)
+            height: d.minHeightButton
             anchors {
                 top: textField.bottom
-                topMargin: 5 * hifi.dimensions.contentSpacing.y
-                horizontalCenter: parent.horizontalCenter
-                margins: 0
+                topMargin: hifi.dimensions.contentSpacing.y
+                left: parent.left
+                leftMargin: (parent.width - banner.width) / 2
             }
-            spacing: hifi.dimensions.contentSpacing.x
-            onHeightChanged: d.resize(); onWidthChanged: d.resize();
+
+            Item {
+                id: cancelContainer
+                width: cancelText.width
+                height: d.minHeightButton
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                }
+                Text {
+                    id: cancelText
+                    text: qsTr("Cancel");
+
+                    lineHeight: 1
+                    color: "white"
+                    font.family: usernameCollisionBody.fontFamily
+                    font.pixelSize: usernameCollisionBody.fontSize
+                    font.capitalization: Font.AllUppercase;
+                    font.bold: usernameCollisionBody.fontBold
+                    lineHeightMode: Text.ProportionalHeight
+                    anchors.centerIn: parent
+                }
+                MouseArea {
+                    id: cancelArea
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onClicked: {
+                        bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                    }
+                }
+            }
+            TextMetrics {
+                id: profileButtonTextMetrics
+                font: cancelText.font
+                text: qsTr("CREATE YOUR PROFILE")
+            }
             HifiControlsUit.Button {
                 id: profileButton
-                anchors.verticalCenter: parent.verticalCenter
-                width: 256
+                anchors {
+                    top: parent.top
+                    right: parent.right
+                }
+                width: Math.max(profileButtonTextMetrics.width + 2 * hifi.dimensions.contentSpacing.x, d.minWidthButton)
+                height: d.minHeightButton
 
                 text: qsTr("Create your profile")
                 color: hifi.buttons.blue
@@ -179,18 +220,7 @@ Item {
                 fontSize: usernameCollisionBody.fontSize
                 fontBold: usernameCollisionBody.fontBold
                 onClicked: {
-                    usernameCollisionBody.create()
-                }
-            }
-            HifiControlsUit.Button {
-                id: cancelButton
-                anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Cancel")
-                fontFamily: usernameCollisionBody.fontFamily
-                fontSize: usernameCollisionBody.fontSize
-                fontBold: usernameCollisionBody.fontBold
-                onClicked: {
-                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                    usernameCollisionBody.create();
                 }
             }
         }
@@ -212,7 +242,6 @@ Item {
         target: loginDialog
         onHandleCreateCompleted: {
             console.log("Create Succeeded")
-
             loginDialog.loginThroughSteam()
         }
         onHandleCreateFailed: {
@@ -223,12 +252,10 @@ Item {
         }
         onHandleLoginCompleted: {
             console.log("Login Succeeded")
-
         }
 
         onHandleLoginFailed: {
             console.log("Login Failed")
         }
     }
-
 }

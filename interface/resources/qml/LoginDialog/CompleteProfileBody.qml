@@ -40,10 +40,10 @@ Item {
             if (root.isTablet === false) {
                 var targetWidth = Math.max(Math.max(titleWidth, Math.max(additionalTextContainer.contentWidth,
                                                                 termsContainer.contentWidth)), mainContainer.width)
-                parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
+                parent.width = root.pane.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
             }
-            var targetHeight = Math.max(5 * hifi.dimensions.contentSpacing.y + buttons.height + additionalTextContainer.height + termsContainer.height, d.maxHeight)
-            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            var targetHeight = Math.max(5 * hifi.dimensions.contentSpacing.y + d.minHeightButton + additionalTextContainer.height + termsContainer.height, d.maxHeight)
+            parent.height = root.pane.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
         }
     }
 
@@ -119,7 +119,7 @@ Item {
                 id: loginErrorMessage
                 anchors.top: parent.top;
                 // above buttons.
-                anchors.topMargin: (parent.height - additionalTextContainer.height) / 2 - hifi.dimensions.contentSpacing.y - buttons.height
+                anchors.topMargin: (parent.height - additionalTextContainer.height) / 2 - hifi.dimensions.contentSpacing.y - profileButton.height
                 anchors.left: parent.left;
                 color: "red";
                 font.family: "Cairo"
@@ -146,81 +146,70 @@ Item {
                 visible: false;
 
             }
-            // Row {
-            //     id: buttons
-            //     anchors {
-            //         top: parent.top
-            //         topMargin: (parent.height - additionalTextContainer.height) / 2 - hifi.dimensions.contentSpacing.y
-            //         horizontalCenter: parent.horizontalCenter
-            //         margins: 0
-            //     }
-            //     spacing: hifi.dimensions.contentSpacing.x
-            //     onHeightChanged: d.resize(); onWidthChanged: d.resize();
-            //
-            //
-            //     HifiControlsUit.Button {
-            //         id: cancelButton
-            //         anchors.verticalCenter: parent.verticalCenter
-            //         text: qsTr("Cancel")
-            //         fontFamily: completeProfileBody.fontFamily
-            //         fontSize: completeProfileBody.fontSize
-            //         fontBold: completeProfileBody.fontBold
-            //         onClicked: {
-            //             bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
-            //         }
-            //     }
-            // }
-
             Item {
-                id: cancelContainer
-                width: cancelText.width
+                id: buttons
+                width: Math.max(banner.width, cancelContainer.width + profileButton.width)
                 height: d.minHeightButton
                 anchors {
                     top: parent.top
-                    topMargin: hifi.dimensions.contentSpacing.y
                     topMargin: (parent.height - additionalTextContainer.height) / 2 - hifi.dimensions.contentSpacing.y
                     left: parent.left
                     leftMargin: (parent.width - banner.width) / 2
                 }
-                Text {
-                    id: cancelText
-                    anchors.centerIn: parent
-                    text: qsTr("Cancel");
+                Item {
+                    id: cancelContainer
+                    width: cancelText.width
+                    height: d.minHeightButton
+                    anchors {
+                        top: parent.top
+                        left: parent.left
+                    }
+                    Text {
+                        id: cancelText
+                        text: qsTr("Cancel");
 
-                    lineHeight: 1
-                    color: "white"
-                    font.family: completeProfileBody.fontFamily
-                    font.pixelSize: completeProfileBody.fontSize
-                    font.capitalization: Font.AllUppercase;
-                    font.bold: completeProfileBody.fontBold
-                    lineHeightMode: Text.ProportionalHeight
-                }
-                MouseArea {
-                    id: cancelArea
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onClicked: {
-                        loginDialog.atSignIn = false;
-                        bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                        lineHeight: 1
+                        color: "white"
+                        font.family: completeProfileBody.fontFamily
+                        font.pixelSize: completeProfileBody.fontSize
+                        font.capitalization: Font.AllUppercase;
+                        font.bold: completeProfileBody.fontBold
+                        lineHeightMode: Text.ProportionalHeight
+                        anchors.centerIn: parent
+                    }
+                    MouseArea {
+                        id: cancelArea
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton
+                        onClicked: {
+                            bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                        }
                     }
                 }
-            }
+                TextMetrics {
+                    id: profileButtonTextMetrics
+                    font: cancelText.font
+                    text: qsTr("CREATE YOUR PROFILE")
+                }
+                HifiControlsUit.Button {
+                    id: profileButton
+                    anchors {
+                        top: parent.top
+                        right: parent.right
+                    }
+                    width: Math.max(profileButtonTextMetrics.width + 2 * hifi.dimensions.contentSpacing.x, d.minWidthButton)
+                    height: d.minHeightButton
 
+                    text: qsTr("Create your profile")
+                    color: hifi.buttons.blue
 
-            HifiControlsUit.Button {
-                id: profileButton
-                anchors.verticalCenter: parent.verticalCenter
-                width: 256
-
-                text: qsTr("Create your profile")
-                color: hifi.buttons.blue
-
-                fontFamily: completeProfileBody.fontFamily
-                fontSize: completeProfileBody.fontSize
-                fontBold: completeProfileBody.fontBold
-                onClicked: {
-                    loginErrorMessage.visible = false;
-                    loginDialog.createAccountFromStream()
+                    fontFamily: completeProfileBody.fontFamily
+                    fontSize: completeProfileBody.fontSize
+                    fontBold: completeProfileBody.fontBold
+                    onClicked: {
+                        loginErrorMessage.visible = false;
+                        loginDialog.createAccountFromStream()
+                    }
                 }
             }
 
@@ -244,7 +233,6 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
 
                 onLinkActivated: {
-                    loginDialog.atSignIn = true;
                     loginDialog.isLogIn = true;
                     bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                 }

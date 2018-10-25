@@ -59,8 +59,6 @@ Windows.TabletModalWindow {
         }
     }
 
-    //property int colorScheme: hifi.colorSchemes.dark
-
     MouseArea {
         width: realRoot.width
         height: realRoot.height
@@ -71,29 +69,11 @@ Windows.TabletModalWindow {
     property var items;
     property string label: ""
 
-    //onTitleWidthChanged: d.resize();
-
-    //onKeyboardRaisedChanged: d.resize();
-
-    signal canceled();
-
     property alias bodyLoader: bodyLoader
     property alias loginDialog: loginDialog
     property alias hifi: hifi
 
     HifiStylesUit.HifiConstants { id: hifi }
-
-    onCanceled: {
-        if (bodyLoader.active === true) {
-            //bodyLoader.active = false
-        }
-        if (gotoPreviousApp) {
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.returnToPreviousApp();
-        } else {
-            Tablet.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
-        }
-    }
 
     Item {
         id: mfRoot
@@ -105,7 +85,6 @@ Windows.TabletModalWindow {
         anchors {
             horizontalCenter: parent.horizontalCenter
             verticalCenter: parent.verticalCenter
-            verticalCenterOffset: -loginKeyboard.height / 2
         }
 
         LoginDialog {
@@ -114,8 +93,6 @@ Windows.TabletModalWindow {
             anchors {
                 fill: parent
                 topMargin: parent.frameMarginTop
-                leftMargin: hifi.dimensions.contentMargin.x
-                rightMargin: hifi.dimensions.contentMargin.x
                 horizontalCenter: parent.horizontalCenter
             }
 
@@ -174,6 +151,6 @@ Windows.TabletModalWindow {
         }
     }
     Component.onCompleted: {
-        bodyLoader.setSource("../LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+        bodyLoader.setSource("../LoginDialog/UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
     }
 }

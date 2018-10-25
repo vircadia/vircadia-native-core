@@ -138,7 +138,7 @@ Item {
         successTimer.start();
     }
 
-    function toggleSignIn(isLogIn) {
+    function init(isLogIn) {
         // going to/from sign in/up dialog.
         loginDialog.isLogIn = isLogIn;
         usernameField.visible = !isLogIn;
@@ -165,10 +165,7 @@ Item {
             passwordField.text = "";
         }
         loginErrorMessage.visible = false;
-    }
-
-        loginContainer.visible = signIn;
-
+        loginContainer.visible = true;
     }
 
     Item {
@@ -337,6 +334,7 @@ Item {
                     left: parent.left
                     leftMargin: (parent.width - usernameField.width) / 2
                 }
+                focus: !loginDialog.isLogIn
                 visible: false
             }
 
@@ -351,7 +349,7 @@ Item {
                     left: parent.left
                     leftMargin: (parent.width - emailField.width) / 2
                 }
-                focus: true
+                focus: loginDialog.isLogIn
                 placeholderText: "Username or Email"
                 activeFocusOnPress: true
                 onHeightChanged: d.resize(); onWidthChanged: d.resize();
@@ -524,7 +522,7 @@ Item {
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
         d.resize();
-        toggleSignIn(loginDialog.isLogIn)
+        init(loginDialog.isLogIn)
     }
 
     Connections {
@@ -603,5 +601,4 @@ Item {
             break
         }
     }
-
 }

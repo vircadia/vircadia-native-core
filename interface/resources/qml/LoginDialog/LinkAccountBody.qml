@@ -52,10 +52,10 @@ Item {
 
             var newWidth = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             if (!isNaN(newWidth)) {
-                parent.width = root.width = newWidth;
+                parent.width = root.pane.width = newWidth;
             }
 
-            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            parent.height = root.pane.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
         }
     }
@@ -63,9 +63,7 @@ Item {
     function toggleSignIn(isLogIn) {
         // going to/from sign in/up dialog.
         loginDialog.isLogIn = isLogIn;
-
         bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
-
     }
 
     Item {
@@ -73,6 +71,11 @@ Item {
         width: root.pane.width
         height: 0.6 * root.pane.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
 
         Rectangle {
             id: topOpaqueRect
@@ -149,7 +152,11 @@ Item {
         width: root.pane.width
         height: 0.4 * root.pane.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
-        anchors.top: topContainer.bottom
+        anchors {
+            top: topContainer.bottom
+            left: parent.left
+            right: parent.right
+        }
 
         Rectangle {
             id: bottomOpaqueRect
@@ -217,6 +224,7 @@ Item {
                 right: parent.right
                 margins: 10
             }
+            visible: !root.isTablet
             Text {
                 id: dismissText
                 text: qsTr("No thanks, take me in-world! >")
@@ -257,5 +265,16 @@ Item {
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
         d.resize();
+    }
+    Component.onDestruction: {
+        var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
+        if (poppedUp && root.isTablet) {
+            // it popped up and was clicked with the X
+            console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
+            var data = {
+                "action": "user dismissed login screen"
+            };
+            Settings.setValue("loginDialogPoppedUp", false);
+        }
     }
 }
