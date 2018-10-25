@@ -594,7 +594,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 text: (root.isUpdating && root.itemEdition > 0) ? "CONFIRM UPDATE" : (((root.isCertified) ? ((ownershipStatusReceived && balanceReceived && availableUpdatesReceived) ?
-                    ((viewInMyPurchasesButton.visible && !root.isUpdating) ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item"));
+                    ((viewInMyPurchasesButton.visible && !root.isUpdating) ? "Get It Again" : "Confirm") : "--") : "Get Item"));
                 onClicked: {
                     if (root.isUpdating && root.itemEdition > 0) {
                         // If we're updating an app, the existing app needs to be uninstalled.
