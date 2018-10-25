@@ -11,7 +11,7 @@
 //
 
 /* global LEFT_HAND, RIGHT_HAND, makeDispatcherModuleParameters, makeRunningValues, enableDispatcherModule, 
- * disableDispatcherModule */
+ * disableDispatcherModule, HIFI_EDIT_MANIPULATION_CHANNEL */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
@@ -66,12 +66,17 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             100
         );
 
+        this.isEditing = false;
+        this.setIsEditing = function (editing) {
+            this.isEditing = editing;
+        };
+
         this.isNearTablet = function (controllerData) {
             return HMD.tabletID && controllerData.nearbyOverlayIDs[this.hand].indexOf(HMD.tabletID) !== -1;
         };
 
         this.isReady = function (controllerData) {
-            if (this.isNearTablet(controllerData)) {
+            if (!this.isEditing && this.isNearTablet(controllerData)) {
                 return makeRunningValues(true, [], []);
             }
             setTabletNearGrabbable(this.hand, false);
@@ -79,7 +84,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.run = function (controllerData) {
-            if (!this.isNearTablet(controllerData)) {
+            if (this.isEditing || !this.isNearTablet(controllerData)) {
                 setTabletNearGrabbable(this.hand, false);
                 return makeRunningValues(false, [], []);
             }
@@ -110,6 +115,28 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     HMD.displayModeChanged.connect(onDisplayModeChanged);
     HMD.mountedChanged.connect(onDisplayModeChanged);
     onDisplayModeChanged();
+
+    function onMessageReceived(channel, data, senderID) {
+        var message;
+
+        if (channel !== HIFI_EDIT_MANIPULATION_CHANNEL || senderID !== MyAvatar.sessionUUID) {
+            return;
+        }
+
+        try {
+            message = JSON.parse(data);
+        } catch (e) {
+            return;
+        }
+
+        if (message.hand === Controller.Standard.LeftHand) {
+            leftNearTabletHighlight.setIsEditing(message.action === "startEdit");
+        } else if (message.hand === Controller.Standard.RightHand) {
+            rightNearTabletHighlight.setIsEditing(message.action === "startEdit");
+        }
+    }
+    Messages.subscribe(HIFI_EDIT_MANIPULATION_CHANNEL);
+    Messages.messageReceived.connect(onMessageReceived);
 
     function cleanUp() {
         disableDispatcherModule("LeftNearTabletHighlight");
