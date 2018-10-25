@@ -19,6 +19,23 @@ if (scripts.length >= 2) {
     return;
 }
 
+var SUPPRESS_DEFAULT_SCRIPTS_MENU_NAME  = "Developer"
+var SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME = "Suppress messages from default scripts in Debug Window";
+var DEBUG_WINDOW_SUPPRESS_DEFAULTS_SCRIPTS = 'debugWindowSuppressDefaultScripts';
+var suppressDefaultScripts = Settings.getValue(DEBUG_WINDOW_SUPPRESS_DEFAULTS_SCRIPTS, false)
+Menu.addMenuItem({
+    menuName: SUPPRESS_DEFAULT_SCRIPTS_MENU_NAME,
+    menuItemName: SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME,
+    isCheckable: true,
+    isChecked: suppressDefaultScripts
+});
+
+Menu.menuItemEvent.connect(function(menuItem) {
+    if (menuItem === SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME) {
+        suppressDefaultScripts = Menu.isOptionChecked(SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME);
+    }
+});
+
 // Set up the qml ui
 var qml = Script.resolvePath('debugWindow.qml');
 
@@ -61,17 +78,24 @@ window.visibleChanged.connect(function() {
 
 window.closed.connect(function () { Script.stop(); });
 
+function shouldLogMessage(scriptFileName) {
+    return !suppressDefaultScripts
+        || (scriptFileName !== "defaultScripts.js" && scriptFileName != "controllerScripts.js");
+}
+
 var getFormattedDate = function() {
     var date = new Date();
     return date.getMonth() + "/" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
 };
 
 var sendToLogWindow = function(type, message, scriptFileName) {
-    var typeFormatted = "";
-    if (type) {
-        typeFormatted = type + " - ";
+    if (shouldLogMessage(scriptFileName)) {
+        var typeFormatted = "";
+        if (type) {
+            typeFormatted = type + " - ";
+        }
+        window.sendToQml("[" + getFormattedDate() + "] " + "[" + scriptFileName + "] " + typeFormatted + message);
     }
-    window.sendToQml("[" + getFormattedDate() + "] " + "[" + scriptFileName + "] " + typeFormatted + message);
 };
 
 ScriptDiscoveryService.printedMessage.connect(function(message, scriptFileName) {
@@ -95,6 +119,10 @@ ScriptDiscoveryService.clearDebugWindow.connect(function() {
 });
 
 Script.scriptEnding.connect(function () {
+    Settings.setValue(DEBUG_WINDOW_SUPPRESS_DEFAULTS_SCRIPTS,
+                      Menu.isOptionChecked(SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME));
+    Menu.removeMenuItem(SUPPRESS_DEFAULT_SCRIPTS_MENU_NAME, SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME);
+
     var geometry = JSON.stringify({
         x: window.position.x,
         y: window.position.y,
