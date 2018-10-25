@@ -137,7 +137,7 @@ Original.Button {
             text: control.text
             Component.onCompleted: {
                 if (control.buttonGlyph !== "") {
-                    buttonText.x = buttonContentItem.width/2 - buttonTextMetrics.width/2 + buttonGlyphTextMetrics.width/2;
+                    buttonText.x = buttonContentItem.width/2 - buttonTextMetrics.width/2 + (buttonGlyphTextMetrics.width + control.buttonGlyphRightMargin)/2;
                 } else {
                     buttonText.anchors.centerIn = parent;
                 }

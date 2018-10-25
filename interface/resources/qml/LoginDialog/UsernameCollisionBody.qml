@@ -24,6 +24,8 @@ Item {
     readonly property int fontSize: 24
     readonly property bool fontBold: true
 
+    readonly property string errorString: errorString
+
     function create() {
         mainTextContainer.visible = false
         loginDialog.createAccountFromStream(textField.text)
@@ -236,6 +238,10 @@ Item {
         }
 
         d.resize();
+        if (usernameCollisionBody.errorString !== "") {
+            mainTextContainer.visible = true;
+            mainTextContainer.text = usernameCollisionBody.errorString;
+        }
     }
 
     Connections {
@@ -243,6 +249,7 @@ Item {
         onHandleCreateCompleted: {
             console.log("Create Succeeded")
             loginDialog.loginThroughSteam()
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "fromBody": "UsernameCollisionBody" })
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error)

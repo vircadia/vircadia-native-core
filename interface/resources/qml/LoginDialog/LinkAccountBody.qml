@@ -28,6 +28,8 @@ Item {
     property int fontSize: 24
     property bool fontBold: true
 
+    property bool withSteam: false
+
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
@@ -63,7 +65,13 @@ Item {
     function toggleSignIn(isLogIn) {
         // going to/from sign in/up dialog.
         loginDialog.isLogIn = isLogIn;
-        bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+        if (linkAccountBody.withSteam) {
+            loginDialog.loginThroughSteam();
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
+                "withSteam": linkAccountBody.withSteam, "fromBody": "LinkAccountBody" });
+        } else {
+            bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "" });
+        }
     }
 
     Item {
@@ -142,6 +150,7 @@ Item {
                     leftMargin: (parent.width - d.minWidthButton) / 2
                 }
                 onClicked: {
+                    linkAccountBody.withSteam = false;
                     toggleSignIn(false);
                 }
             }
@@ -187,12 +196,19 @@ Item {
                 }
 
                 onClicked: {
+                    linkAccountBody.withSteam = false;
                     toggleSignIn(true);
                 }
             }
+            TextMetrics {
+                id: steamLoginButtonTextMetrics
+                font: dismissText.font
+                text: qsTr("STEAM LOG IN")
+            }
             HifiControlsUit.Button {
                 id: steamLoginButton;
-                width: d.minWidthButton
+                // textWidth + size of glyph + rightMargin
+                width: Math.max(d.minWidthButton, steamLoginButtonTextMetrics.width + 34 + buttonGlyphRightMargin + 2 * hifi.dimensions.contentSpacing.x);
                 height: d.minHeightButton
                 color: hifi.buttons.black;
                 anchors {
@@ -209,8 +225,7 @@ Item {
                 buttonGlyphRightMargin: 10
                 onClicked: {
                     linkAccountBody.withSteam = true;
-                    linkAccountBody.toggleLoading();
-                    loginDialog.linkSteam();
+                    toggleSignIn(true);
                 }
                 visible: loginDialog.isSteamRunning();
             }

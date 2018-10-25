@@ -55,7 +55,6 @@ public slots:
     void signupCompleted(QNetworkReply* reply);
     void signupFailed(QNetworkReply* reply);
 
-protected slots:
     Q_INVOKABLE bool isSteamRunning() const;
 
     Q_INVOKABLE void login(const QString& username, const QString& password) const;
@@ -66,6 +65,7 @@ protected slots:
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 
     Q_INVOKABLE void openUrl(const QString& url) const;
+
 private:
     bool getIsLogIn() const { return _isLogIn; }
     void setIsLogIn(const bool isLogIn) { _isLogIn = isLogIn; }

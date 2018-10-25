@@ -47,36 +47,6 @@ Item {
         }
     }
 
-    // timer to kill the dialog upon login success
-    Timer {
-        id: successTimer
-        interval: 500;
-        running: false;
-        repeat: false;
-        onTriggered: {
-            root.tryDestroy();
-        }
-    }
-
-    function hideContents(hide) {
-        additionalTextContainer.visible = !hide;
-        termsContainer.visible = !hide;
-        buttons.visible = !hide;
-    }
-
-    function loginSuccess(success) {
-        loginErrorMessage.visible = true;
-        loggedInGlyph.visible = success;
-        loginErrorMessage.text = success ? "You are now logged into Steam!" : "Error logging into Steam."
-        loginErrorMessage.color = success ? "white" : "red";
-        loginErrorMessage.font.pixelSize = success ? 24 : 12;
-        loginErrorMessage.anchors.leftMargin = (mainContainer.width - loginErrorMessageTextMetrics.width) / 2;
-        completeProfileBody.hideContents(success);
-        if (success) {
-            successTimer.start();
-        }
-    }
-
     Item {
         id: mainContainer
         width: root.pane.width
@@ -234,7 +204,7 @@ Item {
 
                 onLinkActivated: {
                     loginDialog.isLogIn = true;
-                    bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                    bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "" });
                 }
             }
 
@@ -281,8 +251,8 @@ Item {
         target: loginDialog
         onHandleCreateCompleted: {
             console.log("Create Succeeded")
-
             loginDialog.loginThroughSteam()
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "fromBody": "CompleteProfileBody" })
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error)
@@ -294,7 +264,7 @@ Item {
                 };
                 UserActivityLogger.logAction("encourageLoginDialog", data);
             }
-            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "" });
         }
         onHandleLoginCompleted: {
             console.log("Login Succeeded")

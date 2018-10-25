@@ -24,7 +24,6 @@ Item {
     height: root.pane.height
     width: root.pane.width
     property int textFieldHeight: 31
-    property bool failAfterSignUp: false
     property string fontFamily: "Cairo"
     property int fontSize: 24
     property bool fontBold: true
@@ -33,9 +32,9 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
-    property bool withSteam: loginDialog.isSteamRunning()
-
     onKeyboardRaisedChanged: d.resize();
+
+    property string errorString: errorString
 
     QtObject {
         id: d
@@ -63,79 +62,13 @@ Item {
         }
     }
 
-    // timer to kill the dialog upon login success
-    Timer {
-        id: successTimer
-        interval: 500;
-        running: false;
-        repeat: false;
-        onTriggered: {
-            root.tryDestroy();
-        }
-    }
-
-    // timer to kill the dialog upon login failure
-    Timer {
-        id: failureTimer
-        interval: 1000;
-        running: false;
-        repeat: false;
-        onTriggered: {
-            resetContainers();
-            loginContainer.visible = true;
-        }
-    }
-
     function login() {
-        signInBody.toggleLoading();
         if (loginDialog.isLogIn) {
             loginDialog.login(emailField.text, passwordField.text);
         } else {
             loginDialog.signup(usernameField.text, emailField.text, passwordField.text);
         }
-    }
-
-    function resetContainers() {
-        loggingInContainer.visible = false;
-        loginContainer.visible = false;
-    }
-
-    function toggleLoading() {
-        // For the process of logging in.
-        signInBody.resetContainers();
-        loggingInContainer.visible = true;
-        if (loginDialog.isSteamRunning()) {
-            loggingInGlyph.visible = true;
-            loggingInText.text = "Logging in to Steam";
-            loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
-        } else {
-            loggingInText.text = "Logging in";
-            loggingInText.anchors.bottom = loggingInHeader.bottom;
-            loggingInText.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
-        }
-        linkAccountSpinner.visible = true;
-    }
-    function loadingSuccess(success, errorString) {
-        linkAccountSpinner.visible = false;
-        if (!success) {
-            loginErrorMessage.visible = true;
-            loginErrorMessage.text = errorString !== "" ? errorString : "unknown error.";
-            loginErrorMessage.anchors.bottom = loginDialog.isLogIn ? emailField.top : usernameField.top;
-            failureTimer.start();
-            return;
-        }
-        if (loginDialog.isSteamRunning() && !loginDialog.isLogIn) {
-            // reset the flag.
-            signInBody.withSteam = false;
-            loggingInGlyph.visible = false;
-            loggingInText.text = "You are now logged into Steam!"
-            loggingInText.anchors.centerIn = loggingInHeader;
-            loggingInText.anchors.bottom = loggingInHeader.bottom;
-            loggedInGlyph.visible = true;
-        } else {
-            loggingInText.text = "You are now logged in!";
-        }
-        successTimer.start();
+        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "fromBody": "" });
     }
 
     function init(isLogIn) {
@@ -143,6 +76,12 @@ Item {
         loginDialog.isLogIn = isLogIn;
         usernameField.visible = !isLogIn;
         cantAccessContainer.visible = isLogIn;
+        loginErrorMessage.visible = (signInBody.errorString !== "");
+        if (signInBody.errorString !== "") {
+            loginErrorMessage.text = signInBody.errorString;
+            errorContainer.anchors.bottom = loginDialog.isLogIn ? emailField.top : usernameField.top;
+            errorContainer.anchors.left = emailField.left;
+        }
         if (isLogIn) {
             loginButtonAtSignIn.text = "Log In";
             loginButtonAtSignIn.color = hifi.buttons.black;
@@ -152,9 +91,6 @@ Item {
             emailField.anchors.top = loginContainer.top;
             emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.pane.height : 0.24 * root.pane.height;
             cantAccessContainer.anchors.topMargin = !root.isTablet ? 3.5 * hifi.dimensions.contentSpacing.y : hifi.dimensions.contentSpacing.y;
-        } else if (loginDialog.isSteamRunning()) {
-            signInBody.toggleLoading();
-            loginDialog.loginWithSteam();
         } else {
             loginButtonAtSignIn.text = "Sign Up";
             loginButtonAtSignIn.color = hifi.buttons.blue;
@@ -164,8 +100,8 @@ Item {
             emailField.anchors.topMargin = 1.5 * hifi.dimensions.contentSpacing.y;
             passwordField.text = "";
         }
-        loginErrorMessage.visible = false;
         loginContainer.visible = true;
+        print(loginErrorMessage.visible);
     }
 
     Item {
@@ -199,106 +135,6 @@ Item {
         }
 
         Item {
-            id: loggingInContainer
-            width: parent.width
-            height: parent.height
-            onHeightChanged: d.resize(); onWidthChanged: d.resize();
-            visible: false
-
-            Item {
-                id: loggingInHeader
-                width: parent.width
-                height: 0.5 * parent.height
-                anchors {
-                    top: parent.top
-                }
-                TextMetrics {
-                    id: loggingInGlyphTextMetrics;
-                    font: loggingInGlyph.font;
-                    text: loggingInGlyph.text;
-                }
-                HifiStylesUit.HiFiGlyphs {
-                    id: loggingInGlyph;
-                    text: hifi.glyphs.steamSquare;
-                    // Color
-                    color: "white";
-                    // Size
-                    size: 31;
-                    // Anchors
-                    anchors.right: loggingInText.left;
-                    anchors.rightMargin: signInBody.loggingInGlyphRightMargin
-                    anchors.bottom: parent.bottom;
-                    anchors.bottomMargin: hifi.dimensions.contentSpacing.y
-                    // Alignment
-                    horizontalAlignment: Text.AlignHCenter;
-                    verticalAlignment: Text.AlignVCenter;
-                    visible: loginDialog.isSteamRunning();
-                }
-
-                TextMetrics {
-                    id: loggingInTextMetrics;
-                    font: loggingInText.font;
-                    text: loggingInText.text;
-                }
-                Text {
-                    id: loggingInText;
-                    width: loggingInTextMetrics.width
-                    anchors.bottom: parent.bottom;
-                    anchors.bottomMargin: hifi.dimensions.contentSpacing.y
-                    anchors.left: parent.left;
-                    anchors.leftMargin: (parent.width - loggingInTextMetrics.width) / 2
-                    color: "white";
-                    font.family: signInBody.fontFamily
-                    font.pixelSize: signInBody.fontSize
-                    font.bold: signInBody.fontBold
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    text: "Logging in"
-                }
-            }
-            Item {
-                id: loggingInFooter
-                width: parent.width
-                height: 0.5 * parent.height
-                anchors {
-                    top: loggingInHeader.bottom
-                }
-                AnimatedImage {
-                    id: linkAccountSpinner
-                    source: "../../icons/loader-snake-64-w.gif"
-                    width: 128
-                    height: width
-                    anchors.left: parent.left;
-                    anchors.leftMargin: (parent.width - width) / 2;
-                    anchors.top: parent.top
-                    anchors.topMargin: hifi.dimensions.contentSpacing.y
-                }
-                TextMetrics {
-                    id: loggedInGlyphTextMetrics;
-                    font: loggedInGlyph.font;
-                    text: loggedInGlyph.text;
-                }
-                HifiStylesUit.HiFiGlyphs {
-                    id: loggedInGlyph;
-                    text: hifi.glyphs.steamSquare;
-                    // color
-                    color: "white"
-                    // Size
-                    size: 78;
-                    // Anchors
-                    anchors.left: parent.left;
-                    anchors.leftMargin: (parent.width - loggedInGlyph.size) / 2;
-                    anchors.top: parent.top
-                    anchors.topMargin: hifi.dimensions.contentSpacing.y
-                    // Alignment
-                    horizontalAlignment: Text.AlignHCenter;
-                    verticalAlignment: Text.AlignVCenter;
-                    visible: loginDialog.isSteamRunning();
-
-                }
-            }
-        }
-        Item {
             id: loginContainer
             width: parent.width
             height: parent.height - (bannerContainer.height + 1.5 * hifi.dimensions.contentSpacing.y)
@@ -308,18 +144,30 @@ Item {
             }
             visible: true
 
-            Text {
-                id: loginErrorMessage;
-                anchors.bottom: emailField.top;
-                anchors.bottomMargin: 2
-                anchors.left: emailField.left;
-                color: "red";
-                font.family: signInBody.fontFamily
-                font.pixelSize: 12
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                text: ""
-                visible: false
+            Item {
+                id: errorContainer
+                width: loginErrorMessageTextMetrics.width
+                height: loginErrorMessageTextMetrics.height
+                anchors {
+                    bottom: emailField.top;
+                    bottomMargin: 2;
+                    left: emailField.left;
+                }
+                TextMetrics {
+                    id: loginErrorMessageTextMetrics
+                    font: loginErrorMessage.font
+                    text: loginErrorMessage.text
+                }
+                Text {
+                    id: loginErrorMessage;
+                    color: "red";
+                    font.family: signInBody.fontFamily
+                    font.pixelSize: 12
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    text: ""
+                    visible: false
+                }
             }
 
             HifiControlsUit.TextField {
@@ -464,7 +312,6 @@ Item {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
                     onClicked: {
-                        loginDialog.atSignIn = false;
                         bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                     }
                 }
@@ -522,7 +369,8 @@ Item {
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
         d.resize();
-        init(loginDialog.isLogIn)
+        init(loginDialog.isLogIn);
+        print(signInBody.errorString);
     }
 
     Connections {
@@ -594,6 +442,8 @@ Item {
         }
 
         switch (event.key) {
+        case Qt.Key_Escape:
+            break
         case Qt.Key_Enter:
         case Qt.Key_Return:
             event.accepted = true
