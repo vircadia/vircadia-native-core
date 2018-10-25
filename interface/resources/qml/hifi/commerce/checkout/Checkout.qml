@@ -383,7 +383,7 @@ Rectangle {
             anchors.leftMargin: 16;
             width: paintedWidth;
             height: paintedHeight;
-            text: "Review Purchase:";
+            text: "Review:";
             color: hifi.colors.black;
             size: 28;
         }
@@ -570,7 +570,7 @@ Rectangle {
                 height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: root.isUpdating ? "UPDATE TO THIS ITEM FOR FREE" : "VIEW THIS ITEM IN MY PURCHASES";
+                text: root.isUpdating ? "UPDATE TO THIS ITEM FOR FREE" : "VIEW THIS ITEM IN YOUR INVENTORY";
                 onClicked: {
                     if (root.isUpdating) {
                         sendToScript({method: 'checkout_goToPurchases', filterText: root.baseItemName});
@@ -608,9 +608,9 @@ Rectangle {
                     } else if (root.isCertified) {
                         if (!root.shouldBuyWithControlledFailure) {
                             if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
-                                lightboxPopup.titleText = "Purchase Content Set";
+                                lightboxPopup.titleText = "Get Content Set";
                                 lightboxPopup.bodyText = "You will not be able to replace this domain's content with <b>" + root.itemName +
-                                    " </b>until the server owner gives you 'Replace Content' permissions.<br><br>Are you sure you want to purchase this content set?";
+                                    " </b>until the server owner gives you 'Replace Content' permissions.<br><br>Are you sure you want to get this content set?";
                                 lightboxPopup.button1text = "CANCEL";
                                 lightboxPopup.button1method = function() {
                                     lightboxPopup.visible = false;
@@ -694,7 +694,7 @@ Rectangle {
             id: completeText2;
             text: "The " + (root.itemTypesText)[itemTypesArray.indexOf(root.itemType)] +
                 ' <font color="' + hifi.colors.blueAccent + '"><a href="#">' + root.itemName + '</a></font>' +
-                " has been added to your Purchases and a receipt will appear in your Wallet's transaction history.";
+                " has been added to your Inventory.";
             // Text size
             size: 18;
             // Anchors
@@ -864,7 +864,7 @@ Rectangle {
 
         RalewaySemiBold {
             id: myPurchasesLink;
-            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View this item in My Purchases</a></font>';
+            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View this item in your Inventory</a></font>';
             // Text size
             size: 18;
             // Anchors
@@ -908,7 +908,7 @@ Rectangle {
 
         RalewayRegular {
             id: pendingText;
-            text: 'Your item is marked "pending" while your purchase is being confirmed. ' +
+            text: 'Your item is marked "pending" while it is being confirmed. ' +
             '<b><font color="' + hifi.colors.primaryHighlight + '"><a href="#">Learn More</a></font></b>';
             // Text size
             size: 18;
@@ -925,8 +925,8 @@ Rectangle {
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignVCenter;
             onLinkActivated: {
-                lightboxPopup.titleText = "Purchase Confirmations";
-                lightboxPopup.bodyText = 'Your item is marked "pending" while your purchase is being confirmed.<br><br>' +
+                lightboxPopup.titleText = "Confirmations";
+                lightboxPopup.bodyText = 'Your item is marked "pending" while it is being confirmed.<br><br>' +
                 'Confirmations usually take about 90 seconds.';
                 lightboxPopup.button1text = "CLOSE";
                 lightboxPopup.button1method = function() {
@@ -971,7 +971,7 @@ Rectangle {
 
         RalewayRegular {
             id: failureHeaderText;
-            text: "<b>Purchase Failed.</b><br>Your Purchases and HFC balance haven't changed.";
+            text: "<b>Purchase Failed.</b><br>Your Inventory and HFC balance haven't changed.";
             // Text size
             size: 24;
             // Anchors
@@ -1122,10 +1122,10 @@ Rectangle {
         if (root.balanceAfterPurchase < 0) {
             // If you already own the item...
             if (!root.alreadyOwned) {
-                buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item.</b>";
+                buyText.text = "<b>You do not have sufficient funds to purchase this item.</b>";
             // Else if you don't already own the item...
             } else if (canBuyAgain()) {
-                buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.</b>";
+                buyText.text = "<b>You do not have sufficient funds to purchase this item again.</b>";
             } else {
                 buyText.text = "<b>While you do not have sufficient funds to buy this, you already have this item.</b>"
             }
@@ -1171,7 +1171,7 @@ Rectangle {
                 buyText.text = "";
             }
         } else {
-            buyText.text = '<i>This type of item cannot currently be certified, so it will not show up in "My Purchases". You can access it again for free from the Marketplace.</i>';
+            buyText.text = '<i>This type of item cannot currently be certified, so it will not show up in "Inventory". You can access it again for free from the Marketplace.</i>';
             buyTextContainer.color = hifi.colors.white;
             buyTextContainer.border.color = hifi.colors.white;
             buyGlyph.text = "";

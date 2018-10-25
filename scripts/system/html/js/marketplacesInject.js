@@ -458,7 +458,7 @@
                 if (isUpdating) {
                     purchaseButton.html('UPDATE FOR FREE');
                 } else if (availability !== 'available') {
-                    purchaseButton.html('UNAVAILABLE (' + availability + ')');
+                    purchaseButton.html('UNAVAILABLE' + (availability ? ('(' + availability + ')') : ''));
                 } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
                     purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
                         'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);

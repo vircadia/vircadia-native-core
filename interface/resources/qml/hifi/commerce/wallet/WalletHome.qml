@@ -181,7 +181,7 @@ Item {
 
         RalewaySemiBold {
             id: myPurchasesLink;
-            text: '<font color="#0093C5"><a href="#myPurchases">My Purchases</a></font>';
+            text: '<font color="#0093C5"><a href="#myPurchases">Inventory</a></font>';
             // Anchors
             anchors.top: parent.top;
             anchors.topMargin: 26;

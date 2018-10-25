@@ -946,7 +946,7 @@ Rectangle {
             // Explanitory text
             RalewayRegular {
                 id: haventPurchasedYet;
-                text: "<b>You haven't purchased anything yet!</b><br><br>Get an item from <b>Marketplace</b> to add it to My Purchases.";
+                text: "<b>You haven't gotten anything yet!</b><br><br>Get an item from <b>Marketplace</b> to add it to your Inventory.";
                 // Text size
                 size: 22;
                 // Anchors

@@ -128,7 +128,7 @@ Item {
 
                 RalewaySemiBold {
                     id: myPurchasesText;
-                    text: "My Purchases";
+                    text: "Inventory";
                     // Text size
                     size: 18;
                     // Style
