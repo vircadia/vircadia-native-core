@@ -24,6 +24,9 @@
 #include <udt/PacketHeaders.h>
 #include <SettingHandle.h>
 
+#define AUTO_LOGOUT_SETTING_NAME "wallet/autoLogout"
+#define WALLET_USERNAME_SETTING_NAME "wallet/savedUsername"
+
 QAndroidJniObject __interfaceActivity;
 QAndroidJniObject __loginCompletedListener;
 QAndroidJniObject __signupCompletedListener;
@@ -259,6 +262,55 @@ JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_fragment_HomeFragme
 }
 
 JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_HifiUtils_updateHifiSetting(JNIEnv *env, jobject instance,
+                                                               jstring group_, jstring key_,
+                                                               jboolean value_) {
+    const char *c_group = env->GetStringUTFChars(group_, 0);
+    const char *c_key = env->GetStringUTFChars(key_, 0);
+
+    const QString group = QString::fromUtf8(c_group);
+    const QString key = QString::fromUtf8(c_key);
+
+    env->ReleaseStringUTFChars(group_, c_group);
+    env->ReleaseStringUTFChars(key_, c_key);
+
+    bool value = value_;
+
+    Setting::Handle<bool> setting { QStringList() << group << key , !value };
+    setting.set(value);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_io_highfidelity_hifiinterface_HifiUtils_getHifiSettingBoolean(JNIEnv *env,
+                                                                   jobject instance,
+                                                                   jstring group_,
+                                                                   jstring key_,
+                                                                   jboolean defaultValue) {
+    const char *c_group = env->GetStringUTFChars(group_, 0);
+    const char *c_key = env->GetStringUTFChars(key_, 0);
+
+    const QString group = QString::fromUtf8(c_group);
+    const QString key = QString::fromUtf8(c_key);
+
+    env->ReleaseStringUTFChars(group_, c_group);
+    env->ReleaseStringUTFChars(key_, c_key);
+
+    Setting::Handle<bool> setting { QStringList() << group << key , defaultValue};
+    return setting.get();
+}
+
+JNIEXPORT jboolean JNICALL
+Java_io_highfidelity_hifiinterface_HifiUtils_isUserLoggedIn(JNIEnv *env, jobject instance) {
+    return DependencyManager::get<AccountManager>()->isLoggedIn();
+}
+
+JNIEXPORT jboolean JNICALL
+Java_io_highfidelity_hifiinterface_HifiUtils_isKeepingLoggedIn(JNIEnv *env, jobject instance) {
+    Setting::Handle<bool> setting(AUTO_LOGOUT_SETTING_NAME, true);
+    return !setting.get();
+}
+
+JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_fragment_LoginFragment_cancelLogin(JNIEnv *env, jobject instance) {
 
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -277,7 +329,8 @@ Java_io_highfidelity_hifiinterface_fragment_SignupFragment_cancelLogin(JNIEnv *e
 
 JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_fragment_LoginFragment_login(JNIEnv *env, jobject instance,
-                                                            jstring username_, jstring password_) {
+                                                            jstring username_, jstring password_,
+                                                            jboolean keepLoggedIn) {
     const char *c_username = env->GetStringUTFChars(username_, 0);
     const char *c_password = env->GetStringUTFChars(password_, 0);
     QString username = QString(c_username);
@@ -289,11 +342,14 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_login(JNIEnv *env, job
 
     __loginCompletedListener = QAndroidJniObject(instance);
 
-    QObject::connect(accountManager.data(), &AccountManager::loginComplete, [](const QUrl& authURL) {
+    QObject::connect(accountManager.data(), &AccountManager::loginComplete, [username, keepLoggedIn](const QUrl& authURL) {
         jboolean jSuccess = (jboolean) true;
         if (__loginCompletedListener.isValid()) {
             __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
         }
+        Setting::Handle<QVariant>(AUTO_LOGOUT_SETTING_NAME).set(!keepLoggedIn);
+        QString usernameToSave = keepLoggedIn ? username : "";
+        Setting::Handle<QVariant>(WALLET_USERNAME_SETTING_NAME).set(usernameToSave);
     });
 
     QObject::connect(accountManager.data(), &AccountManager::loginFailed, []() {
@@ -311,8 +367,9 @@ JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_fragment_SignupFragment_login(JNIEnv *env,
                                                                        jobject instance,
                                                                        jstring username_,
-                                                                       jstring password_) {
-    Java_io_highfidelity_hifiinterface_fragment_LoginFragment_login(env, instance, username_, password_);
+                                                                       jstring password_,
+                                                                       jboolean keepLoggedIn) {
+    Java_io_highfidelity_hifiinterface_fragment_LoginFragment_login(env, instance, username_, password_, keepLoggedIn);
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeInitAfterAppLoaded(JNIEnv* env, jobject obj) {
@@ -387,10 +444,6 @@ Java_io_highfidelity_hifiinterface_SplashActivity_registerLoadCompleteListener(J
     });
 
 }
-JNIEXPORT jboolean JNICALL
-Java_io_highfidelity_hifiinterface_HifiUtils_isUserLoggedIn(JNIEnv *env, jobject instance) {
-    return DependencyManager::get<AccountManager>()->isLoggedIn();
-}
 
 JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_MainActivity_logout(JNIEnv *env, jobject instance) {
@@ -443,46 +496,6 @@ Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeEnterForeground(JNIEn
 JNIEXPORT void Java_io_highfidelity_hifiinterface_WebViewActivity_nativeProcessURL(JNIEnv* env, jobject obj, jstring url_str) {
     const char *nativeString = env->GetStringUTFChars(url_str, 0);
     AndroidHelper::instance().processURL(QString::fromUtf8(nativeString));
-}
-
-JNIEXPORT void JNICALL
-Java_io_highfidelity_hifiinterface_fragment_SettingsFragment_updateHifiSetting(JNIEnv *env,
-                                                                               jobject instance,
-                                                                               jstring group_,
-                                                                               jstring key_,
-                                                                               jboolean value_) {
-    const char *c_group = env->GetStringUTFChars(group_, 0);
-    const char *c_key = env->GetStringUTFChars(key_, 0);
-
-    const QString group = QString::fromUtf8(c_group);
-    const QString key = QString::fromUtf8(c_key);
-
-    env->ReleaseStringUTFChars(group_, c_group);
-    env->ReleaseStringUTFChars(key_, c_key);
-
-    bool value = value_;
-
-    Setting::Handle<bool> setting { QStringList() << group << key , !value };
-    setting.set(value);
-}
-
-JNIEXPORT jboolean JNICALL
-Java_io_highfidelity_hifiinterface_fragment_SettingsFragment_getHifiSettingBoolean(JNIEnv *env,
-                                                                                   jobject instance,
-                                                                                   jstring group_,
-                                                                                   jstring key_,
-                                                                                   jboolean defaultValue) {
-    const char *c_group = env->GetStringUTFChars(group_, 0);
-    const char *c_key = env->GetStringUTFChars(key_, 0);
-
-    const QString group = QString::fromUtf8(c_group);
-    const QString key = QString::fromUtf8(c_key);
-
-    env->ReleaseStringUTFChars(group_, c_group);
-    env->ReleaseStringUTFChars(key_, c_key);
-
-    Setting::Handle<bool> setting { QStringList() << group << key , defaultValue};
-    return setting.get();
 }
 
 JNIEXPORT void JNICALL

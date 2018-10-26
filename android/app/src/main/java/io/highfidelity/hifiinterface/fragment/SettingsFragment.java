@@ -7,12 +7,10 @@ import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.support.annotation.Nullable;
 
+import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.R;
 
 public class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
-
-    public native void updateHifiSetting(String group, String key, boolean value);
-    public native boolean getHifiSettingBoolean(String group, String key, boolean defaultValue);
 
     private final String HIFI_SETTINGS_ANDROID_GROUP = "Android";
     private final String HIFI_SETTINGS_AEC_KEY = "aec";
@@ -28,7 +26,7 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
         }
 
         getPreferenceScreen().getSharedPreferences().edit().putBoolean(PREFERENCE_KEY_AEC,
-                getHifiSettingBoolean(HIFI_SETTINGS_ANDROID_GROUP, HIFI_SETTINGS_AEC_KEY, false));
+                HifiUtils.getInstance().getHifiSettingBoolean(HIFI_SETTINGS_ANDROID_GROUP, HIFI_SETTINGS_AEC_KEY, false));
     }
 
     public static SettingsFragment newInstance() {
@@ -54,7 +52,7 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
         Preference pref = findPreference(key);
         switch (key) {
             case "aec":
-                updateHifiSetting(HIFI_SETTINGS_ANDROID_GROUP, HIFI_SETTINGS_AEC_KEY, sharedPreferences.getBoolean(key, false));
+                HifiUtils.getInstance().updateHifiSetting(HIFI_SETTINGS_ANDROID_GROUP, HIFI_SETTINGS_AEC_KEY, sharedPreferences.getBoolean(key, false));
                 break;
             default:
                 break;

@@ -12,11 +12,13 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import org.qtproject.qt5.android.QtNative;
 
+import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.R;
 
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationActive;
@@ -29,13 +31,14 @@ public class LoginFragment extends Fragment
     private EditText mPassword;
     private TextView mError;
     private Button mLoginButton;
+    private CheckBox mKeepMeLoggedInCheckbox;
     private ViewGroup mLoginForm;
     private ViewGroup mLoggingInFrame;
     private ViewGroup mLoggedInFrame;
     private boolean mLoginInProgress;
     private boolean mLoginSuccess;
 
-    public native void login(String username, String password, Fragment usernameChangedListener);
+    public native void login(String username, String password, boolean keepLoggedIn);
     public native void cancelLogin();
 
     private LoginFragment.OnLoginInteractionListener mListener;
@@ -61,6 +64,7 @@ public class LoginFragment extends Fragment
         mLoginForm = rootView.findViewById(R.id.loginForm);
         mLoggingInFrame = rootView.findViewById(R.id.loggingInFrame);
         mLoggedInFrame = rootView.findViewById(R.id.loggedInFrame);
+        mKeepMeLoggedInCheckbox = rootView.findViewById(R.id.keepMeLoggedIn);
 
         rootView.findViewById(R.id.forgotPassword).setOnClickListener(view -> onForgotPasswordClicked());
 
@@ -72,6 +76,8 @@ public class LoginFragment extends Fragment
 
         rootView.findViewById(R.id.takeMeInWorld).setOnClickListener(view -> skipLogin());
         mPassword.setOnEditorActionListener((textView, actionId, keyEvent) -> onPasswordEditorAction(textView, actionId, keyEvent));
+
+        mKeepMeLoggedInCheckbox.setChecked(HifiUtils.getInstance().isKeepingLoggedIn());
 
         return rootView;
     }
@@ -147,7 +153,8 @@ public class LoginFragment extends Fragment
             showActivityIndicator();
             mLoginInProgress = true;
             mLoginSuccess = false;
-            login(username, password, this);
+            boolean keepUserLoggedIn = mKeepMeLoggedInCheckbox.isChecked();
+            login(username, password, keepUserLoggedIn);
         }
     }
 

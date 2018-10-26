@@ -10,11 +10,13 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import org.qtproject.qt5.android.QtNative;
 
+import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.R;
 
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationActive;
@@ -29,6 +31,7 @@ public class SignupFragment extends Fragment
     private TextView mError;
     private TextView mActivityText;
     private Button mSignupButton;
+    private CheckBox mKeepMeLoggedInCheckbox;
 
     private ViewGroup mSignupForm;
     private ViewGroup mLoggingInFrame;
@@ -40,7 +43,7 @@ public class SignupFragment extends Fragment
 
     public native void signup(String email, String username, String password); // move to SignupFragment
     public native void cancelSignup();
-    public native void login(String username, String password);
+    public native void login(String username, String password, boolean keepLoggedIn);
     public native void cancelLogin();
 
     private SignupFragment.OnSignupInteractionListener mListener;
@@ -65,6 +68,7 @@ public class SignupFragment extends Fragment
         mError = rootView.findViewById(R.id.error);
         mSignupButton = rootView.findViewById(R.id.signupButton);
         mActivityText = rootView.findViewById(R.id.activityText);
+        mKeepMeLoggedInCheckbox = rootView.findViewById(R.id.keepMeLoggedIn);
 
         mSignupForm = rootView.findViewById(R.id.signupForm);
         mLoggedInFrame = rootView.findViewById(R.id.loggedInFrame);
@@ -77,6 +81,8 @@ public class SignupFragment extends Fragment
         rootView.findViewById(R.id.getStarted).setOnClickListener(view -> onGetStartedClicked());
 
         mPassword.setOnEditorActionListener((textView, actionId, keyEvent) -> onPasswordEditorAction(textView, actionId, keyEvent));
+
+        mKeepMeLoggedInCheckbox.setChecked(HifiUtils.getInstance().isKeepingLoggedIn());
 
         return rootView;
     }
@@ -201,7 +207,8 @@ public class SignupFragment extends Fragment
             mActivityText.setText(R.string.logging_in);
         });
         mLoginInProgress = true;
-        login(username, password);
+        boolean keepUserLoggedIn = mKeepMeLoggedInCheckbox.isChecked();
+        login(username, password, keepUserLoggedIn);
     }
 
     public void handleSignupFailed(String error) {

@@ -66,5 +66,8 @@ public class HifiUtils {
 
     public native boolean isUserLoggedIn();
 
+    public native void updateHifiSetting(String group, String key, boolean value);
+    public native boolean getHifiSettingBoolean(String group, String key, boolean defaultValue);
 
+    public native boolean isKeepingLoggedIn();
 }
