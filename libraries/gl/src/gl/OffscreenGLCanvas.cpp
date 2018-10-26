@@ -73,6 +73,7 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
     if (!_context->makeCurrent(_offscreenSurface)) {
         qFatal("Unable to make offscreen surface current");
     }
+    _context->doneCurrent();
 #else
     if (!_offscreenSurface->isValid()) {
         qFatal("Offscreen surface is invalid");

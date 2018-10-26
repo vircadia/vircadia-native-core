@@ -88,6 +88,7 @@ public:
         // Move the OpenGL context to the present thread
         // Extra code because of the widget 'wrapper' context
         _context = context;
+        _context->doneCurrent();
         _context->moveToThread(this);
     }
 
