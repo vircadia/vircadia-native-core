@@ -3803,6 +3803,16 @@ bool EntityItemProperties::queryAACubeRelatedPropertyChanged() const {
     return parentRelatedPropertyChanged() || dimensionsChanged();
 }
 
+bool EntityItemProperties::grabbingRelatedPropertyChanged() const {
+    const GrabPropertyGroup& grabProperties = getGrab();
+    return grabProperties.triggerableChanged() || grabProperties.grabbableChanged() ||
+        grabProperties.grabFollowsControllerChanged() || grabProperties.grabKinematicChanged() ||
+        grabProperties.equippableChanged() || grabProperties.equippableLeftPositionChanged() ||
+        grabProperties.equippableRightPositionChanged() || grabProperties.equippableLeftRotationChanged() ||
+        grabProperties.equippableRightRotationChanged() || grabProperties.equippableIndicatorURLChanged() ||
+        grabProperties.equippableIndicatorScaleChanged() || grabProperties.equippableIndicatorOffsetChanged();
+}
+
 // Checking Certifiable Properties
 #define ADD_STRING_PROPERTY(n, N) if (!get##N().isEmpty()) json[#n] = get##N()
 #define ADD_ENUM_PROPERTY(n, N) json[#n] = get##N##AsString()
