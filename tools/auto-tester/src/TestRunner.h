@@ -155,4 +155,3 @@ private:
     QString _commandLine;
 };
 #endif  // hifi_testRunner_h
-
