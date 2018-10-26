@@ -1110,7 +1110,7 @@ public:
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
-    glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
+    glm::vec3 getClientGlobalPosition() const { return _serverPosition; }
     AABox getGlobalBoundingBox() const { return AABox(_globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
 
     /**jsdoc
