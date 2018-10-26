@@ -88,7 +88,7 @@ signals:
 private:
     bool _automatedTestIsRunning{ false };
 
-#ifndef Q_OS_WIN
+#ifdef Q_OS_WIN
     const QString INSTALLER_FILENAME_LATEST{ "HighFidelity-Beta-latest-dev.exe" };
 #elif defined(Q_OS_MAC)
     const QString INSTALLER_FILENAME_LATEST{ "HighFidelity-Beta-latest-dev.dmg" };
@@ -155,3 +155,4 @@ private:
     QString _commandLine;
 };
 #endif  // hifi_testRunner_h
+
