@@ -607,5 +607,11 @@
         }
     }
 
+    // location.hostname may already be set by the time the script is loaded.
+    // Show the interstitial page if the domain isn't loaded.
+    if (!location.isConnected) {
+        domainChanged(location.hostname);
+    }
+
     Script.scriptEnding.connect(cleanup);
 }());
