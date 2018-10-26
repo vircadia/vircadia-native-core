@@ -102,6 +102,7 @@ Item {
             loggingInText.text = "You are now logged in!";
         }
         successTimer.start();
+        loginDialog.resumeLoading();
     }
 
     Item {
@@ -245,14 +246,13 @@ Item {
 
         onHandleSignupCompleted: {
             console.log("SignUp completed!");
+            successTimer.start();
         }
 
         onHandleSignupFailed: {
             console.log("SignUp failed!");
             var errorStringEdited = errorString.replace(/[\n\r]+/g, ' ');
-            console.log(errorStringEdited);
             bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorStringEdited });
-            // bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "yellow" });
         }
 
         onHandleLoginCompleted: {
@@ -275,7 +275,11 @@ Item {
                 bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
             } else {
                 errorString = loginDialog.isLogIn ? "Username or password is incorrect." : "Failed to sign up. Please try again.";
-                bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
+                if (loginDialog.isLogIn && loginDialog.isSteamRunning()) {
+                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                } else {
+                    bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
+                }
             }
         }
     }

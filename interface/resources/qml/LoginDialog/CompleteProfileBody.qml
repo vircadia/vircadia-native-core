@@ -178,7 +178,9 @@ Item {
                     fontBold: completeProfileBody.fontBold
                     onClicked: {
                         loginErrorMessage.visible = false;
-                        loginDialog.createAccountFromStream()
+                        loginDialog.createAccountFromSteam();
+                        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
+                            "withSteam": true, "fromBody": "CompleteProfileBody" })
                     }
                 }
             }
@@ -245,42 +247,5 @@ Item {
 
     Component.onCompleted: {
         d.resize();
-    }
-
-    Connections {
-        target: loginDialog
-        onHandleCreateCompleted: {
-            console.log("Create Succeeded")
-            loginDialog.loginThroughSteam()
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "fromBody": "CompleteProfileBody" })
-        }
-        onHandleCreateFailed: {
-            console.log("Create Failed: " + error)
-            var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
-            if (poppedUp) {
-                console.log("[ENCOURAGELOGINDIALOG]: failed creating an account")
-                var data = {
-                    "action": "user failed creating an account"
-                };
-                UserActivityLogger.logAction("encourageLoginDialog", data);
-            }
-            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "" });
-        }
-        onHandleLoginCompleted: {
-            console.log("Login Succeeded")
-            loginSuccess(true)
-        }
-        onHandleLoginFailed: {
-            console.log("Login Failed")
-            var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
-            if (poppedUp) {
-                console.log("[ENCOURAGELOGINDIALOG]: failed logging in")
-                var data = {
-                    "action": "user failed logging in"
-                };
-                UserActivityLogger.logAction("encourageLoginDialog", data);
-            }
-            loginSuccess(false)
-        }
     }
 }

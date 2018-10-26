@@ -118,9 +118,6 @@ void DialogsManager::showLoginDialog() {
     LoginDialog::showWithSelection();
 }
 
-void DialogsManager::showLoginScreenDialog() {
-}
-
 void DialogsManager::showUpdateDialog() {
     UpdateDialog::show();
 }

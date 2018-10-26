@@ -232,7 +232,7 @@ public:
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
 
-     Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
+    Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
@@ -319,6 +319,10 @@ public:
     int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
+    bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
+    void pauseUntilLoginDetermined();
+    void resumeAfterLoginDialogActionTaken();
+
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
     void enterBackground();
@@ -338,7 +342,6 @@ signals:
     void interstitialModeChanged(bool isInInterstitialMode);
 
     void loginScreenStateChanged(bool isInLoginScreenState);
-    void loginDialogPoppedUp();
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
@@ -506,6 +509,8 @@ private slots:
     void setShowBulletContactPoints(bool value);
     void setShowBulletConstraints(bool value);
     void setShowBulletConstraintLimits(bool value);
+
+    void onDismissedLoginDialog();
 
 private:
     void init();
@@ -676,6 +681,7 @@ private:
     glm::uvec2 _renderResolution;
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
+    bool _loginDialogPoppedUp = false;
 
     quint64 _lastFaceTrackerUpdate;
 

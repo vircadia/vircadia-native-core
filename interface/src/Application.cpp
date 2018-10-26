@@ -373,7 +373,9 @@ static const float INITIAL_QUERY_RADIUS = 10.0f;  // priority radius for entitie
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
-Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+Setting::Handle<int> maxOctreePacketsPerSecond{"maxOctreePPS", DEFAULT_MAX_OCTREE_PPS};
+
+Setting::Handle<bool> loginDialogPoppedUp{"loginDialogPoppedUp", false};
 
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
@@ -2472,7 +2474,7 @@ void Application::onAboutToQuit() {
     // so its persisted explicitly here
     Setting::Handle<QString>{ ACTIVE_DISPLAY_PLUGIN_SETTING_NAME }.set(getActiveDisplayPlugin()->getName());
 
-    Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
+    loginDialogPoppedUp.set(false);
 
     getActiveDisplayPlugin()->deactivate();
     if (_autoSwitchDisplayModeSupportedHMDPlugin
@@ -2889,8 +2891,8 @@ void Application::showLoginScreen() {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     if (!accountManager->isLoggedIn()) {
-        Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
 //         dialogsManager->showLoginScreenDialog();
+        _loginDialogPoppedUp = true;
         dialogsManager->showLoginDialog();
         QJsonObject loginData = {};
         loginData["action"] = "login dialog shown";
@@ -2902,7 +2904,8 @@ void Application::showLoginScreen() {
             goToLoginScreenDomainURL(loginScreenDomainURL);
         }
     }
-    Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
+    _loginDialogPoppedUp = !accountManager->isLoggedIn();
+    loginDialogPoppedUp.set(_loginDialogPoppedUp);
 }
 
 void Application::initializeQml() {
@@ -8388,6 +8391,13 @@ void Application::setShowBulletConstraints(bool value) {
 
 void Application::setShowBulletConstraintLimits(bool value) {
     _physicsEngine->setShowBulletConstraintLimits(value);
+}
+
+void Application::onDismissedLoginDialog() {
+    // TODO something with login dialog.
+    qDebug() << "dismissed login dialog";
+    _loginDialogPoppedUp = false;
+    loginDialogPoppedUp.set(false);
 }
 
 void Application::startHMDStandBySession() {

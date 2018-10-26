@@ -28,7 +28,8 @@ Item {
 
     function create() {
         mainTextContainer.visible = false
-        loginDialog.createAccountFromStream(textField.text)
+        loginDialog.createAccountFromSteam(textField.text)
+        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "fromBody": "UsernameCollisionBody" });
     }
 
     property bool keyboardEnabled: false
@@ -248,7 +249,7 @@ Item {
         target: loginDialog
         onHandleCreateCompleted: {
             console.log("Create Succeeded")
-            loginDialog.loginThroughSteam()
+            loginDialog.loginThroughSteam();
             bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "fromBody": "UsernameCollisionBody" })
         }
         onHandleCreateFailed: {
@@ -258,11 +259,14 @@ Item {
             mainTextContainer.text = "\"" + textField.text + qsTr("\" is invalid or already taken.")
         }
         onHandleLoginCompleted: {
-            console.log("Login Succeeded")
+            console.log("Login Succeeded");
+            loginDialog.dismissLoginDialog();
+            root.tryDestroy();
         }
 
         onHandleLoginFailed: {
             console.log("Login Failed")
+            mainTextContainer.text = "Login Failed";
         }
     }
 }

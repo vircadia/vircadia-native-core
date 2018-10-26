@@ -138,11 +138,6 @@ Windows.TabletModalWindow {
                 }
                 break
         } else switch (event.key) {
-            case Qt.Key_Escape:
-            case Qt.Key_Back:
-                event.accepted = true
-                destroy()
-                break
 
             case Qt.Key_Enter:
             case Qt.Key_Return:

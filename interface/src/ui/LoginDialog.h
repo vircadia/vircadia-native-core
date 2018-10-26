@@ -15,6 +15,7 @@
 #define hifi_LoginDialog_h
 
 #include <OffscreenQmlDialog.h>
+#include <SettingHandle.h>
 
 class QNetworkReply;
 
@@ -45,6 +46,9 @@ signals:
     void handleSignupCompleted();
     void handleSignupFailed(QString errorString);
 
+    // occurs upon dismissing the encouraging log in.
+    void dismissedLoginDialog();
+
 public slots:
     void linkCompleted(QNetworkReply* reply);
     void linkFailed(QNetworkReply* reply);
@@ -55,16 +59,21 @@ public slots:
     void signupCompleted(QNetworkReply* reply);
     void signupFailed(QNetworkReply* reply);
 
+protected slots:
+    Q_INVOKABLE void dismissLoginDialog();
+
     Q_INVOKABLE bool isSteamRunning() const;
 
     Q_INVOKABLE void login(const QString& username, const QString& password) const;
     Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void linkSteam();
-    Q_INVOKABLE void createAccountFromStream(QString username = QString());
+    Q_INVOKABLE void createAccountFromSteam(QString username = QString());
     
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 
     Q_INVOKABLE void openUrl(const QString& url) const;
+
+    Q_INVOKABLE bool getLoginDialogPoppedUp() const;
 
 private:
     bool getIsLogIn() const { return _isLogIn; }

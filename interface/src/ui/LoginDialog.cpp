@@ -33,22 +33,17 @@ HIFI_QML_DEF(LoginDialog)
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
+    // the login hasn't been dismissed yet if the user isn't logged in and is encouraged to login.
 #if !defined(Q_OS_ANDROID)
     connect(accountManager.data(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
     connect(accountManager.data(), &AccountManager::loginFailed,
             this, &LoginDialog::handleLoginFailed);
 #endif
+    connect(this, SIGNAL(dismissedLoginDialog()), qApp, SLOT(onDismissedLoginDialog()));
 }
 
 LoginDialog::~LoginDialog() {
-    Setting::Handle<bool> loginDialogPoppedUp{ "loginDialogPoppedUp", false };
-    if (loginDialogPoppedUp.get()) {
-        QJsonObject data;
-        data["action"] = "user opted out";
-        UserActivityLogger::getInstance().logAction("encourageLoginDialog", data);
-    }
-    loginDialogPoppedUp.set(false);
 }
 
 void LoginDialog::showWithSelection() {
@@ -56,14 +51,28 @@ void LoginDialog::showWithSelection() {
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
 
-    if (tablet->getToolbarMode()) {
-        LoginDialog::show();
-    } else {
-        static const QUrl url("dialogs/TabletLoginDialog.qml");
-        tablet->initialScreen(url);
-        if (!hmd->getShouldShowTablet()) {
-            hmd->openTablet();
+    static const QUrl url("dialogs/TabletLoginDialog.qml");
+    if (!qApp->isHMDMode()) {
+    
+        if (qApp->getLoginDialogPoppedUp()) {
+            LoginDialog::show();
+            return;
+        } else {
+            if (!tablet->isPathLoaded(url)) {
+                tablet->loadQMLSource(url);
+            }
         }
+    } else {
+        //if (qApp->getLoginDialogPoppedUp()) {
+        //    // pop up those overlay things.
+        //    return;
+        //} else {
+        //    tablet->initialScreen(url);
+        //}
+
+    }
+    if (!hmd->getShouldShowTablet()) {
+        hmd->openTablet();
     }
 }
 
@@ -90,6 +99,12 @@ void LoginDialog::toggleAction() {
 bool LoginDialog::isSteamRunning() const {
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     return steamClient && steamClient->isRunning();
+}
+
+void LoginDialog::dismissLoginDialog() {
+    // it'll only pop up once.
+    qDebug() << "LoginDialog::dismissLoginDialog";
+    emit dismissedLoginDialog();
 }
 
 void LoginDialog::login(const QString& username, const QString& password) const {
@@ -138,7 +153,7 @@ void LoginDialog::linkSteam() {
     }
 }
 
-void LoginDialog::createAccountFromStream(QString username) {
+void LoginDialog::createAccountFromSteam(QString username) {
     qDebug() << "Attempting to create account from Steam info";
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->requestTicket([this, username](Ticket ticket) {
@@ -162,7 +177,7 @@ void LoginDialog::createAccountFromStream(QString username) {
 
             auto accountManager = DependencyManager::get<AccountManager>();
             accountManager->sendRequest(CREATE_ACCOUNT_FROM_STEAM_PATH, AccountManagerAuth::None,
-                                        QNetworkAccessManager::PostOperation, callbackParams,
+                                        NetworkAccessManager::PostOperation, callbackParams,
                                         QJsonDocument(payload).toJson());
         });
     }
@@ -231,6 +246,10 @@ void LoginDialog::signup(const QString& email, const QString& username, const QS
 
 void LoginDialog::signupCompleted(QNetworkReply* reply) {
     emit handleSignupCompleted();
+}
+
+bool LoginDialog::getLoginDialogPoppedUp() const {
+    return qApp->getLoginDialogPoppedUp();
 }
 
 QString errorStringFromAPIObject(const QJsonValue& apiObject) {

@@ -239,7 +239,7 @@ Item {
                 right: parent.right
                 margins: 10
             }
-            visible: !root.isTablet
+            visible: !root.isTablet && !HMD.active
             Text {
                 id: dismissText
                 text: qsTr("No thanks, take me in-world! >")
@@ -257,13 +257,13 @@ Item {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton
                 onClicked: {
-                    var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
-                    if (poppedUp) {
+                    if (loginDialog.getLoginDialogPoppedUp()) {
                         console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
                         var data = {
                             "action": "user dismissed login screen"
                         };
-                        Settings.setValue("loginDialogPoppedUp", false);
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                        loginDialog.dismissLoginDialog();
                     }
                     root.tryDestroy();
                 }
@@ -282,14 +282,14 @@ Item {
         d.resize();
     }
     Component.onDestruction: {
-        var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
-        if (poppedUp && root.isTablet) {
+        if (loginDialog.getLoginDialogPoppedUp() && root.isTablet) {
             // it popped up and was clicked with the X
-            console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
+            console.log("[ENCOURAGELOGINDIALOG]: user closed login screen")
             var data = {
                 "action": "user dismissed login screen"
             };
-            Settings.setValue("loginDialogPoppedUp", false);
+            UserActivityLogger.logAction("encourageLoginDialog", data);
+            loginDialog.dismissLoginDialog();
         }
     }
 }

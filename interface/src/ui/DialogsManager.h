@@ -50,8 +50,6 @@ public slots:
     void toggleLoginDialog();
     // shows login screen that appears upon `File > Log In/Sign Up`.
     void showLoginDialog();
-    // toggles login screen that appears upon application startup.
-    void showLoginScreenDialog();
     void octreeStatsDetails();
     void lodTools();
     void hmdTools(bool showTools);

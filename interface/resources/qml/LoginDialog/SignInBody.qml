@@ -373,69 +373,6 @@ Item {
         print(signInBody.errorString);
     }
 
-    Connections {
-        target: loginDialog
-        onHandleCreateFailed: {
-            console.log("Create Failed")
-            var error = "There was an unknown error while creating your account. Please try again later.";
-            loadingSuccess(false, error);
-        }
-        onHandleCreateCompleted: {
-            console.log("Create Completed")
-        }
-        onHandleSignupFailed: {
-            console.log("Sign Up Failed")
-            loadingSuccess(false, "");
-        }
-        onHandleSignupCompleted: {
-            console.log("Sign Up Completed");
-            loadingSuccess(true, "");
-        }
-        onHandleLoginCompleted: {
-            console.log("Login Succeeded")
-            var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
-            if (poppedUp) {
-                console.log("[ENCOURAGELOGINDIALOG]: logging in")
-                var data = {
-                    "action": "user logged in"
-                };
-                UserActivityLogger.logAction("encourageLoginDialog", data);
-                Settings.setValue("loginDialogPoppedUp", false);
-            }
-            if (loginDialog.isSteamRunning()) {
-                loginDialog.linkSteam();
-            }
-            loadingSuccess(true, "")
-        }
-        onHandleLoginFailed: {
-            console.log("Login Failed")
-            var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
-            if (poppedUp) {
-                console.log("[ENCOURAGELOGINDIALOG]: failed logging in")
-                var data = {
-                    "action": "user failed logging in"
-                };
-                UserActivityLogger.logAction("encourageLoginDialog", data);
-                Settings.setValue("loginDialogPoppedUp", false);
-            }
-            if (loginDialog.isSteamRunning()) {
-                bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
-            }
-
-            var error = "Username or password incorrect."
-            loadingSuccess(false, error)
-        }
-        onHandleLinkCompleted: {
-            console.log("Link Succeeded")
-            loadingSuccess(true, "")
-        }
-        onHandleLinkFailed: {
-            console.log("Link Failed")
-            var error = "There was an unknown error while creating your account. Please try again later.";
-            loadingSuccess(false, error);
-        }
-    }
-
     Keys.onPressed: {
         if (!visible) {
             return;
