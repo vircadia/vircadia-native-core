@@ -538,6 +538,7 @@ void TestRunner::parseBuildInformation() {
 #elif defined(Q_OS_MAC)
         platformOfInterest = "mac";
 #endif
+
         QDomElement element = domDocument.documentElement();
 
         // Verify first element is "projects"
@@ -554,41 +555,47 @@ void TestRunner::parseBuildInformation() {
             throw("File is not from 'interface' build");
         }
 
-        // Now loop over the platforms
+        // Now loop over the platforms, looking for ours
+        bool platformFound{ false };
+        element = element.firstChild().toElement();
         while (!element.isNull()) {
-            element = element.firstChild().toElement();
-            if (element.tagName() != "platform" || element.attribute("name") != platformOfInterest) {
-                continue;
+            if (element.attribute("name") == platformOfInterest) {
+                platformFound = true;
+                break;
             }
-
-            // Next element should be the build
-            element = element.firstChild().toElement();
-            if (element.tagName() != "build") {
-                throw("File seems to be in wrong format");
-            }
-
-            // Next element should be the version
-            element = element.firstChild().toElement();
-            if (element.tagName() != "version") {
-                throw("File seems to be in wrong format");
-            }
-
-            // Add the build number to the end of the filename
-            _buildInformation.build = element.text();
-
-            // First sibling should be stable_version
             element = element.nextSibling().toElement();
-            if (element.tagName() != "stable_version") {
-                throw("File seems to be in wrong format");
-            }
-
-            // Next sibling should be url
-            element = element.nextSibling().toElement();
-            if (element.tagName() != "url") {
-                throw("File seems to be in wrong format");
-            }
-            _buildInformation.url = element.text();
         }
+
+        if (!platformFound) {
+            throw("File seems to be in wrong format - platform " + platformOfInterest + " not found");
+        }
+
+        element = element.firstChild().toElement();
+        if (element.tagName() != "build") {
+            throw("File seems to be in wrong format");
+        }
+
+        // Next element should be the version
+        element = element.firstChild().toElement();
+        if (element.tagName() != "version") {
+            throw("File seems to be in wrong format");
+        }
+
+        // Add the build number to the end of the filename
+        _buildInformation.build = element.text();
+
+        // First sibling should be stable_version
+        element = element.nextSibling().toElement();
+        if (element.tagName() != "stable_version") {
+            throw("File seems to be in wrong format");
+        }
+
+        // Next sibling should be url
+        element = element.nextSibling().toElement();
+        if (element.tagName() != "url") {
+            throw("File seems to be in wrong format");
+        }
+        _buildInformation.url = element.text();
 
     } catch (QString errorMessage) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);

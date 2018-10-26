@@ -88,7 +88,13 @@ signals:
 private:
     bool _automatedTestIsRunning{ false };
 
+#ifndef Q_OS_WIN
     const QString INSTALLER_FILENAME_LATEST{ "HighFidelity-Beta-latest-dev.exe" };
+#elif defined(Q_OS_MAC)
+    const QString INSTALLER_FILENAME_LATEST{ "HighFidelity-Beta-latest-dev.dmg" };
+#else
+    const QString INSTALLER_FILENAME_LATEST{ "just to pass compilation" };
+#endif
 
     QString _installerURL;
     QString _installerFilename;
