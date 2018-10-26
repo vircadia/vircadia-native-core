@@ -22,7 +22,8 @@ import io.highfidelity.hifiinterface.R;
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationActive;
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationInactive;
 
-public class LoginFragment extends Fragment {
+public class LoginFragment extends Fragment
+                            implements  OnBackPressedListener {
 
     private EditText mUsername;
     private EditText mPassword;
@@ -31,6 +32,8 @@ public class LoginFragment extends Fragment {
     private ViewGroup mLoginForm;
     private ViewGroup mLoggingInFrame;
     private ViewGroup mLoggedInFrame;
+    private boolean mLoginInProgress;
+    private boolean mLoginSuccess;
 
     public native void login(String username, String password, Fragment usernameChangedListener);
     public native void cancelLogin();
@@ -142,6 +145,8 @@ public class LoginFragment extends Fragment {
             mLoginButton.setEnabled(false);
             hideError();
             showActivityIndicator();
+            mLoginInProgress = true;
+            mLoginSuccess = false;
             login(username, password, this);
         }
     }
@@ -188,15 +193,33 @@ public class LoginFragment extends Fragment {
     }
 
     public void handleLoginCompleted(boolean success) {
+        mLoginInProgress = false;
         getActivity().runOnUiThread(() -> {
             mLoginButton.setEnabled(true);
             if (success) {
+                mLoginSuccess = true;
                 showLoggedInMessage();
             } else {
                 showLoginForm();
                 showError(getString(R.string.login_username_or_password_incorrect));
             }
         });
+    }
+
+    @Override
+    public boolean doBack() {
+        if (mLoginInProgress) {
+            cancelLogin();
+            showLoginForm();
+            mLoginInProgress = false;
+            mLoginButton.setEnabled(true);
+            return true;
+        } else if (mLoginSuccess) {
+            onGetStartedClicked();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public interface OnLoginInteractionListener {

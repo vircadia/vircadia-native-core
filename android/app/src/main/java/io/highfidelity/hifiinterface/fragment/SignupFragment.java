@@ -20,7 +20,8 @@ import io.highfidelity.hifiinterface.R;
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationActive;
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationInactive;
 
-public class SignupFragment extends Fragment {
+public class SignupFragment extends Fragment
+                            implements  OnBackPressedListener {
 
     private EditText mEmail;
     private EditText mUsername;
@@ -32,6 +33,10 @@ public class SignupFragment extends Fragment {
     private ViewGroup mSignupForm;
     private ViewGroup mLoggingInFrame;
     private ViewGroup mLoggedInFrame;
+
+    private boolean mLoginInProgress;
+    private boolean mSignupInProgress;
+    private boolean mSignupSuccess;
 
     public native void signup(String email, String username, String password); // move to SignupFragment
     public native void cancelSignup();
@@ -69,7 +74,7 @@ public class SignupFragment extends Fragment {
 
         mSignupButton.setOnClickListener(view -> signup());
 
-        rootView.findViewById(R.id.getStarted).setOnClickListener(view -> onGetStartedPressed());
+        rootView.findViewById(R.id.getStarted).setOnClickListener(view -> onGetStartedClicked());
 
         mPassword.setOnEditorActionListener((textView, actionId, keyEvent) -> onPasswordEditorAction(textView, actionId, keyEvent));
 
@@ -135,6 +140,8 @@ public class SignupFragment extends Fragment {
             hideError();
             mActivityText.setText(R.string.creating_account);
             showActivityIndicator();
+            mSignupInProgress = true;
+            mSignupSuccess = false;
             signup(email, username, password);
         }
     }
@@ -179,7 +186,7 @@ public class SignupFragment extends Fragment {
         void onCancelSignup();
     }
 
-    private void onGetStartedPressed() {
+    private void onGetStartedClicked() {
         if (mListener != null) {
             mListener.onSignupCompleted();
         }
@@ -187,16 +194,18 @@ public class SignupFragment extends Fragment {
 
 
     public void handleSignupCompleted() {
+        mSignupInProgress = false;
         String username = mUsername.getText().toString().trim();
         String password = mPassword.getText().toString();
         getActivity().runOnUiThread(() -> {
             mActivityText.setText(R.string.logging_in);
         });
-
+        mLoginInProgress = true;
         login(username, password);
     }
 
     public void handleSignupFailed(String error) {
+        mSignupInProgress = false;
         getActivity().runOnUiThread(() -> {
             mSignupButton.setEnabled(true);
             showSignupForm();
@@ -206,9 +215,11 @@ public class SignupFragment extends Fragment {
     }
 
     public void handleLoginCompleted(boolean success) {
+        mLoginInProgress = false;
         getActivity().runOnUiThread(() -> {
             mSignupButton.setEnabled(true);
             if (success) {
+                mSignupSuccess = true;
                 showLoggedInMessage();
             } else {
                 // Registration was successful but login failed.
@@ -219,4 +230,25 @@ public class SignupFragment extends Fragment {
         });
     }
 
+    @Override
+    public boolean doBack() {
+        if (mSignupInProgress) {
+           cancelSignup();
+        } else if (mLoginInProgress) {
+            cancelLogin();
+        }
+
+        if (mSignupInProgress || mLoginInProgress) {
+            showSignupForm();
+            mLoginInProgress = false;
+            mSignupInProgress = false;
+            mSignupButton.setEnabled(true);
+            return true;
+        } else if (mSignupSuccess) {
+            onGetStartedClicked();
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

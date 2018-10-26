@@ -148,11 +148,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         startActivity(new Intent(this, LoginMenuActivity.class));
     }
 
-    private void loadSignupFragment() {
-        Fragment fragment = SignupFragment.newInstance();
-        loadFragment(fragment, getString(R.string.signup), getString(R.string.tagFragmentSignup), true, false);
-    }
-
     private void loadPrivacyPolicyFragment() {
         Fragment fragment = PolicyFragment.newInstance();
 

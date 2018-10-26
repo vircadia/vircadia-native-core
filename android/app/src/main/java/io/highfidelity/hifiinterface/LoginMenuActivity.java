@@ -8,8 +8,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
-
 import io.highfidelity.hifiinterface.fragment.LoginFragment;
+import io.highfidelity.hifiinterface.fragment.OnBackPressedListener;
 import io.highfidelity.hifiinterface.fragment.SignupFragment;
 import io.highfidelity.hifiinterface.fragment.StartMenuFragment;
 
@@ -105,8 +105,9 @@ public class LoginMenuActivity extends AppCompatActivity
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         Fragment fragment = SignupFragment.newInstance();
-        fragmentTransaction.replace(R.id.content_frame, fragment);
-        fragmentTransaction.addToBackStack(fragment.toString());
+        String tag = getString(R.string.tagFragmentSignup);
+        fragmentTransaction.replace(R.id.content_frame, fragment, tag);
+        fragmentTransaction.addToBackStack(tag);
         fragmentTransaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
         fragmentTransaction.commit();
         hideStatusBar();
@@ -116,8 +117,9 @@ public class LoginMenuActivity extends AppCompatActivity
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         Fragment fragment = LoginFragment.newInstance();
-        fragmentTransaction.replace(R.id.content_frame, fragment);
-        fragmentTransaction.addToBackStack(fragment.toString());
+        String tag = getString(R.string.tagFragmentLogin);
+        fragmentTransaction.replace(R.id.content_frame, fragment, tag);
+        fragmentTransaction.addToBackStack(tag);
         fragmentTransaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
         fragmentTransaction.commit();
         hideStatusBar();
@@ -167,7 +169,15 @@ public class LoginMenuActivity extends AppCompatActivity
         FragmentManager fm = getFragmentManager();
         int index = fm.getBackStackEntryCount() - 1;
         if (index > 0) {
-            super.onBackPressed();
+            FragmentManager.BackStackEntry backEntry = fm.getBackStackEntryAt(index);
+            String tag = backEntry.getName();
+            Fragment topFragment = getFragmentManager().findFragmentByTag(tag);
+            if (topFragment instanceof OnBackPressedListener &&
+                    ((OnBackPressedListener) topFragment).doBack()) {
+
+            } else {
+                super.onBackPressed();
+            }
         } else if (finishOnBack){
             finishAffinity();
         } else {
