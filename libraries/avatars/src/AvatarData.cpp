@@ -883,13 +883,23 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
 
         _serverPosition = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
-        if (_globalPosition != _serverPosition) {
-            _globalPositionChanged = now;
-        }
-        auto oneStepDistance = glm::length(_globalPosition - _serverPosition);
-        if (oneStepDistance <= AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE || oneStepDistance >= AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE) {
-            _globalPosition = _serverPosition;
-            // if we don't have a parent, make sure to also set our local position
+        if (_isClientAvatar) {
+            auto oneStepDistance = glm::length(_globalPosition - _serverPosition);
+            if (oneStepDistance <= AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE || oneStepDistance >= AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE) {
+                _globalPosition = _serverPosition;
+                // if we don't have a parent, make sure to also set our local position
+                if (!hasParent()) {
+                    setLocalPosition(_serverPosition);
+                }
+            }
+            if (_globalPosition != _serverPosition) {
+                _globalPositionChanged = now;
+            }
+        } else {
+            if (_globalPosition != _serverPosition) {
+                _globalPosition = _serverPosition;
+                _globalPositionChanged = now;
+            }
             if (!hasParent()) {
                 setLocalPosition(_serverPosition);
             }

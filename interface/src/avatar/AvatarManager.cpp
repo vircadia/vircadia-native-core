@@ -266,6 +266,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (avatar->getSkeletonModel()->isLoaded()) {
             // remove the orb if it is there
             avatar->removeOrb();
+            avatar->setIsClientAvatar(true);
             if (avatar->needsPhysicsUpdate()) {
                 _avatarsToChangeInPhysics.insert(avatar);
             }

@@ -1110,8 +1110,8 @@ public:
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
-    glm::vec3 getClientGlobalPosition() const { return _serverPosition; }
-    AABox getGlobalBoundingBox() const { return AABox(_serverPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
+    glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
+    AABox getGlobalBoundingBox() const { return AABox(_globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
 
     /**jsdoc
      * @function MyAvatar.getAvatarEntityData
@@ -1206,6 +1206,7 @@ public:
 
     void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
     bool getIsNewAvatar() { return _isNewAvatar; }
+    void setIsClientAvatar(bool isClientAvatar) { _isClientAvatar = isClientAvatar; }
 
 signals:
 
@@ -1469,6 +1470,7 @@ protected:
     float _density;
     int _replicaIndex { 0 };
     bool _isNewAvatar { true };
+    bool _isClientAvatar { false };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;
