@@ -1111,7 +1111,7 @@ public:
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
     glm::vec3 getClientGlobalPosition() const { return _serverPosition; }
-    AABox getGlobalBoundingBox() const { return AABox(_globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
+    AABox getGlobalBoundingBox() const { return AABox(_serverPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
 
     /**jsdoc
      * @function MyAvatar.getAvatarEntityData

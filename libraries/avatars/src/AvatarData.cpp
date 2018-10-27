@@ -883,6 +883,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
 
         _serverPosition = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
+        if (_globalPosition != _serverPosition) {
+            _globalPositionChanged = now;
+        }
         auto oneStepDistance = glm::length(_globalPosition - _serverPosition);
         if (oneStepDistance <= AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE || oneStepDistance >= AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE) {
             _globalPosition = _serverPosition;
@@ -890,9 +893,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             if (!hasParent()) {
                 setLocalPosition(_serverPosition);
             }
-        }
-        if (_globalPosition != _serverPosition) {
-            _globalPositionChanged = now;
         }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
         int numBytesRead = sourceBuffer - startSection;
