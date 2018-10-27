@@ -512,6 +512,8 @@ private slots:
 
     void onDismissedLoginDialog();
 
+    void setShowTrackedObjects(bool value);
+
 private:
     void init();
     bool handleKeyEventForFocusedEntityOrOverlay(QEvent* event);
@@ -794,5 +796,8 @@ private:
     std::atomic<bool> _pendingRenderEvent { true };
 
     bool quitWhenFinished { false };
+
+    bool _showTrackedObjects { false };
+    bool _prevShowTrackedObjects { false };
 };
 #endif // hifi_Application_h
