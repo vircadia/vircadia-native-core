@@ -419,16 +419,34 @@ protected:
     static const size_t INVALID_OFFSET = (size_t)-1;
     bool _inRenderTransferPass{ false };
     int _currentDraw{ -1 };
-
-    std::list<std::string> profileRanges;
+    
+    struct FrameTrash {
+        GLsync fence = nullptr;
+        std::list<std::pair<GLuint, Size>> buffersTrash;
+        std::list<std::pair<GLuint, Size>> texturesTrash;
+        std::list<std::pair<GLuint, Texture::ExternalRecycler>> externalTexturesTrash;
+        std::list<GLuint> framebuffersTrash;
+        std::list<GLuint> shadersTrash;
+        std::list<GLuint> programsTrash;
+        std::list<GLuint> queriesTrash;
+        
+        void swap(FrameTrash& other) {
+            buffersTrash.swap(other.buffersTrash);
+            texturesTrash.swap(other.texturesTrash);
+            externalTexturesTrash.swap(other.externalTexturesTrash);
+            framebuffersTrash.swap(other.framebuffersTrash);
+            shadersTrash.swap(other.shadersTrash);
+            programsTrash.swap(other.programsTrash);
+            queriesTrash.swap(other.queriesTrash);
+        }
+        
+        void cleanup();
+    };
+    
     mutable Mutex _trashMutex;
-    mutable std::list<std::pair<GLuint, Size>> _buffersTrash;
-    mutable std::list<std::pair<GLuint, Size>> _texturesTrash;
-    mutable std::list<std::pair<GLuint, Texture::ExternalRecycler>> _externalTexturesTrash;
-    mutable std::list<GLuint> _framebuffersTrash;
-    mutable std::list<GLuint> _shadersTrash;
-    mutable std::list<GLuint> _programsTrash;
-    mutable std::list<GLuint> _queriesTrash;
+    mutable FrameTrash _currentFrameTrash;
+    mutable std::list<FrameTrash> _previousFrameTrashes;
+    std::list<std::string> profileRanges;
     mutable std::list<std::function<void()>> _lambdaQueue;
 
     void renderPassTransfer(const Batch& batch);

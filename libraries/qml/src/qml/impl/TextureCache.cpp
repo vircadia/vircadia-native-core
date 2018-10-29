@@ -51,8 +51,10 @@ uint32_t TextureCache::acquireTexture(const QSize& size) {
     if (!textureSet.returnedTextures.empty()) {
         auto textureAndFence = textureSet.returnedTextures.front();
         textureSet.returnedTextures.pop_front();
-        glWaitSync((GLsync)textureAndFence.second, 0, GL_TIMEOUT_IGNORED);
-        glDeleteSync((GLsync)textureAndFence.second);
+        if (textureAndFence.second) {
+            glWaitSync((GLsync)textureAndFence.second, 0, GL_TIMEOUT_IGNORED);
+            glDeleteSync((GLsync)textureAndFence.second);
+        }
         return textureAndFence.first;
     }
     return createTexture(size);
@@ -101,9 +103,11 @@ void TextureCache::destroyTexture(uint32_t texture) {
 
 void TextureCache::destroy(const Value& textureAndFence) {
     const auto& fence = textureAndFence.second;
-    // FIXME prevents crash on shutdown, but we should migrate to a global functions object owned by the shared context.
-    glWaitSync((GLsync)fence, 0, GL_TIMEOUT_IGNORED);
-    glDeleteSync((GLsync)fence);
+    if (fence) {
+        // FIXME prevents crash on shutdown, but we should migrate to a global functions object owned by the shared context.
+        glWaitSync((GLsync)fence, 0, GL_TIMEOUT_IGNORED);
+        glDeleteSync((GLsync)fence);
+    }
     destroyTexture(textureAndFence.first);
 }
 
