@@ -413,10 +413,10 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setAltitudeBased(_hazeProperties.getHazeAltitudeEffect());
 
     haze->setHazeRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
-    xColor hazeColor = _hazeProperties.getHazeColor();
-    haze->setHazeColor(glm::vec3(hazeColor.red / 255.0, hazeColor.green / 255.0, hazeColor.blue / 255.0));
-    xColor hazeGlareColor = _hazeProperties.getHazeGlareColor();
-    haze->setHazeGlareColor(glm::vec3(hazeGlareColor.red / 255.0, hazeGlareColor.green / 255.0, hazeGlareColor.blue / 255.0));
+    glm::u8vec3 hazeColor = _hazeProperties.getHazeColor();
+    haze->setHazeColor(toGlm(hazeColor));
+    glm::u8vec3 hazeGlareColor = _hazeProperties.getHazeGlareColor();
+    haze->setHazeGlareColor(toGlm(hazeGlareColor));
     haze->setHazeEnableGlare(_hazeProperties.getHazeEnableGlare());
     haze->setHazeGlareBlend(graphics::Haze::convertGlareAngleToPower(_hazeProperties.getHazeGlareAngle()));
 
@@ -447,7 +447,7 @@ void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer&
     setSkyboxMode((ComponentMode)entity->getSkyboxMode());
 
     editBackground();
-    setSkyboxColor(_skyboxProperties.getColorVec3());
+    setSkyboxColor(toGlm(_skyboxProperties.getColor()));
     setProceduralUserData(entity->getUserData());
     setSkyboxURL(_skyboxProperties.getURL());
 }

@@ -20,6 +20,29 @@ using namespace gpu::gl41;
 
 const std::string GL41Backend::GL41_VERSION { "GL41" };
 
+void GL41Backend::draw(GLenum mode, uint32 numVertices, uint32 startVertex) {
+    if (isStereo()) {
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+        glDrawArraysInstanced(mode, startVertex, numVertices, 2);
+#else
+        setupStereoSide(0);
+        glDrawArrays(mode, startVertex, numVertices);
+        setupStereoSide(1);
+        glDrawArrays(mode, startVertex, numVertices);
+#endif
+        _stats._DSNumTriangles += 2 * numVertices / 3;
+        _stats._DSNumDrawcalls += 2;
+
+    } else {
+        glDrawArrays(mode, startVertex, numVertices);
+        _stats._DSNumTriangles += numVertices / 3;
+        _stats._DSNumDrawcalls++;
+    }
+    _stats._DSNumAPIDrawcalls++;
+
+    (void)CHECK_GL_ERROR();
+}
+
 void GL41Backend::do_draw(const Batch& batch, size_t paramOffset) {
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];

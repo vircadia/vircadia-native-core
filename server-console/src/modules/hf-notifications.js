@@ -5,6 +5,8 @@ const process = require('process');
 const hfApp = require('./hf-app');
 const path = require('path');
 const AccountInfo = require('./hf-acctinfo').AccountInfo;
+const url = require('url');
+const shell = require('electron').shell;
 const GetBuildInfo = hfApp.getBuildInfo;
 const buildInfo = GetBuildInfo();
 const osType = os.type();
@@ -73,11 +75,17 @@ HifiNotification.prototype = {
                         text = this.data + " of your connections are online."
                     }
                     message = "Click to open PEOPLE.";
-                    url="hifiapp:PEOPLE"
+                    url="hifiapp:PEOPLE";
                 } else {
-                    text = this.data.username + " is available in " + this.data.location.root.name + ".";
-                    message = "Click to join them.";
-                    url="hifi://" + this.data.location.root.name + this.data.location.path;
+                    if (this.data.location) {
+                        text = this.data.username + " is available in " + this.data.location.root.name + ".";
+                        message = "Click to join them.";
+                        url="hifi://" + this.data.location.root.name + this.data.location.path;
+                    } else {
+                        text = this.data.username + " is online.";
+                        message = "Click to open PEOPLE.";
+                        url="hifiapp:PEOPLE";
+                    }
                 }
                 break;
 
@@ -136,7 +144,8 @@ HifiNotification.prototype = {
 function HifiNotifications(config, menuNotificationCallback) {
     this.config = config;
     this.menuNotificationCallback = menuNotificationCallback;
-    this.onlineUsers = new Set([]);
+    this.onlineUsers = {};
+    this.currentStories = {};
     this.storiesSince = new Date(this.config.get("storiesNotifySince", "1970-01-01T00:00:00.000Z"));
     this.peopleSince = new Date(this.config.get("peopleNotifySince", "1970-01-01T00:00:00.000Z"));
     this.walletSince = new Date(this.config.get("walletNotifySince", "1970-01-01T00:00:00.000Z"));
@@ -147,8 +156,13 @@ function HifiNotifications(config, menuNotificationCallback) {
 
     var _menuNotificationCallback = menuNotificationCallback;
     notifier.on('click', function (notifierObject, options) {
-        StartInterface(options.url);
-        _menuNotificationCallback(options.notificationType, false);
+        const optUrl = url.parse(options.url);
+        if ((optUrl.protocol === "hifi:") || (optUrl.protocol === "hifiapp:")) {
+            StartInterface(options.url);
+            _menuNotificationCallback(options.notificationType, false);
+        } else {
+            shell.openExternal(options.url);
+        }
     });
 }
 
@@ -213,6 +227,12 @@ HifiNotifications.prototype = {
             clearInterval(this.marketplacePollTimer);
         }
     },
+    getOnlineUsers: function () {
+        return this.onlineUsers;
+    },
+    getCurrentStories: function () {
+        return this.currentStories;
+    },
     _showNotification: function () {
         var _this = this;
 
@@ -225,7 +245,7 @@ HifiNotifications.prototype = {
                 // previous notification immediately when a
                 // new one is submitted
                 _this.pendingNotifications.shift();
-                if(_this.pendingNotifications.length > 0) {
+                if (_this.pendingNotifications.length > 0) {
                     _this._showNotification();
                 }
             });
@@ -289,7 +309,6 @@ HifiNotifications.prototype = {
                     finished(false);
                     return;
                 }
-                console.log(content);
                 if (!content.total_entries) {
                     finished(true, token);
                     return;
@@ -313,7 +332,6 @@ HifiNotifications.prototype = {
                             notifyData = content.data.updates;
                             break;
                     }
-
                     notifyData.forEach(function (notifyDataEntry) {
                         _this._addNotification(new HifiNotification(notifyType, notifyDataEntry));
                     });
@@ -346,7 +364,7 @@ HifiNotifications.prototype = {
                         'include_actions=announcement',
                         'restriction=open,hifi',
                         'require_online=true',
-                        'per_page=1'
+                        'per_page=' + MAX_NOTIFICATION_ITEMS
                     ];            
                     var url = METAVERSE_SERVER_URL + STORIES_URL + '?' + options.join('&');
                     // call a second time to determine if there are no more stories and we should
@@ -357,7 +375,34 @@ HifiNotifications.prototype = {
                             'bearer': token
                           }
                         }, function (error, data) {
-                            _this._pollToDisableHighlight(NotificationType.GOTO, error, data);
+                            if (error || !data.body) {
+                                console.log("Error: unable to get " + url);
+                                finished(false);
+                                return;
+                            }
+                            var content = JSON.parse(data.body);
+                            if (!content || content.status != 'success') {
+                                console.log("Error: unable to get " + url);
+                                finished(false);
+                                return;
+                            }
+
+                            if (!content.total_entries) {
+                                finished(true, token);
+                                return;
+                            }
+                            if (!content.total_entries) {
+                                _this.menuNotificationCallback(NotificationType.GOTO, false);
+                            }
+                            _this.currentStories = {};
+                            content.user_stories.forEach(function (story) {
+                                // only show a single instance of each story location
+                                // in the menu.  This may cause issues with domains
+                                // where the story locations are significantly different
+                                // for each story.
+                                _this.currentStories[story.place_name] = story;
+                            });
+                            _this.menuNotificationCallback(NotificationType.GOTO);
                     });
                 }
         });
@@ -400,20 +445,19 @@ HifiNotifications.prototype = {
                     console.log("Error: unable to get " + url);
                     return false;
                 }
-                console.log(content);
                 if (!content.total_entries) {
                     _this.menuNotificationCallback(NotificationType.PEOPLE, false);
-                    _this.onlineUsers = new Set([]);
+                    _this.onlineUsers = {};
                     return;
                 }
 
-                var currentUsers = new Set([]);
+                var currentUsers = {};
                 var newUsers = new Set([]);
                 content.data.users.forEach(function (user) {
-                    currentUsers.add(user.username);
-                    if (!_this.onlineUsers.has(user.username)) {
+                    currentUsers[user.username] = user;
+                    if (!(user.username in _this.onlineUsers)) {
                         newUsers.add(user);
-                        _this.onlineUsers.add(user.username);     
+                        _this.onlineUsers[user.username] = user;     
                     }
                 });
                 _this.onlineUsers = currentUsers;

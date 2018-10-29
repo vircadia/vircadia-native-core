@@ -130,6 +130,9 @@ public:
     };
 
 protected:
+
+    void draw(GLenum mode, uint32 numVertices, uint32 startVertex) override;
+
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 
@@ -167,8 +170,7 @@ protected:
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
 
-    std::string getBackendShaderHeader() const override;
-
+    shader::Dialect getShaderDialect() const override { return shader::Dialect::glsl410; }
     void postLinkProgram(ShaderObject& programObject, const Shader& program) const override;
 };
 

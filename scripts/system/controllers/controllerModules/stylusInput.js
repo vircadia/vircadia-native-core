@@ -5,11 +5,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   enableDispatcherModule, disableDispatcherModule, makeRunningValues,
-   Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, ZERO_VEC,
-   HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
-   getEnabledModuleByName, Pointers, Picks, PickType
+/* global Script, MyAvatar, Controller, Uuid, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
+   makeRunningValues, Vec3, makeDispatcherModuleParameters, Overlays, HMD, Settings, getEnabledModuleByName, Pointers,
+   Picks, PickType
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -63,7 +61,13 @@ Script.include("/~/system/libraries/controllers.js");
             var farGrabModuleName = this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity";
             var farGrabModule = getEnabledModuleByName(farGrabModuleName);
             var farGrabModuleReady = farGrabModule ? farGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
-            return grabOverlayModuleReady.active || farGrabModuleReady.active || grabEntityModuleReady.active;
+            var nearTabletHighlightModuleName =
+                this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight";
+            var nearTabletHighlightModule = getEnabledModuleByName(nearTabletHighlightModuleName);
+            var nearTabletHighlightModuleReady = nearTabletHighlightModule
+                ? nearTabletHighlightModule.isReady(controllerData) : makeRunningValues(false, [], []);
+            return grabOverlayModuleReady.active || farGrabModuleReady.active || grabEntityModuleReady.active
+                || nearTabletHighlightModuleReady.active;
         };
 
         this.overlayLaserActive = function(controllerData) {
@@ -200,7 +204,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     Overlays.hoverEnterOverlay.connect(mouseHoverEnter);
     Overlays.hoverLeaveOverlay.connect(mouseHoverLeave);
-    Overlays.mousePressOnOverlay.connect(mousePress); 
+    Overlays.mousePressOnOverlay.connect(mousePress);
 
     this.cleanup = function () {
         leftTabletStylusInput.cleanup();

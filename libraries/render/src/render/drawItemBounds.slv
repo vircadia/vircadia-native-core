@@ -24,7 +24,7 @@ struct DrawItemBoundsParams {
     vec4 color;
 };
 
-layout(binding=0) uniform drawItemBoundsParamsBuffer {
+LAYOUT(binding=0) uniform drawItemBoundsParamsBuffer {
     DrawItemBoundsParams params;
 };
 
@@ -35,7 +35,7 @@ struct ItemBound {
 };
 
 #if !defined(GPU_SSBO_TRANSFORM_OBJECT)
-layout(binding=0) uniform samplerBuffer ssbo0Buffer;
+LAYOUT(binding=0) uniform samplerBuffer ssbo0Buffer;
 ItemBound getItemBound(int i) {
     int offset = 2 * i;
     ItemBound bound;
@@ -44,7 +44,7 @@ ItemBound getItemBound(int i) {
     return bound;
 }
 #else
-layout(std140, binding=0) buffer ssbo0Buffer {
+LAYOUT_STD140(binding=0) buffer ssbo0Buffer {
     ItemBound bounds[];
 };
 ItemBound getItemBound(int i) {

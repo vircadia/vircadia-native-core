@@ -40,7 +40,20 @@ const QString STAT_FILE_RESOURCE_TOTAL_BYTES = "FILEBytesDownloaded";
 class ResourceRequest : public QObject {
     Q_OBJECT
 public:
-    ResourceRequest(const QUrl& url);
+    static const bool IS_OBSERVABLE = true;
+    static const bool IS_NOT_OBSERVABLE = false;
+
+    ResourceRequest(
+        const QUrl& url,
+        const bool isObservable = IS_OBSERVABLE,
+        const qint64 callerId = -1,
+        const QString& extra = ""
+    ) : _url(url),
+        _isObservable(isObservable),
+        _callerId(callerId),
+        _extra(extra)
+    { }
+
     virtual ~ResourceRequest() = default;
 
     enum State {
@@ -99,6 +112,9 @@ protected:
     bool _rangeRequestSuccessful { false };
     uint64_t _totalSizeOfResource { 0 };
     int64_t _lastRecordedBytesDownloaded { 0 };
+    bool _isObservable;
+    qint64 _callerId;
+    QString _extra;
 };
 
 #endif

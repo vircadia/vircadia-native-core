@@ -209,6 +209,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
 
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+    _meshNumVertices = (int)modelMesh->getNumVertices();
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
@@ -238,19 +239,16 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     initCache(model);
 
-    if (_isBlendShaped) {
-        auto buffer = model->_blendshapeBuffers.find(meshIndex);
-        if (buffer != model->_blendshapeBuffers.end()) {
-            _blendshapeBuffer = buffer->second;
-        }
-    }
-
 #ifdef Q_OS_MAC
-    // On mac AMD, we specifically need to have a _blendshapeBuffer bound when using a deformed mesh pipeline
+    // On mac AMD, we specifically need to have a _meshBlendshapeBuffer bound when using a deformed mesh pipeline
     // it cannot be null otherwise we crash in the drawcall using a deformed pipeline with a skinned only (not blendshaped) mesh
-    if ((_isBlendShaped || _isSkinned) && !_blendshapeBuffer) {
-        glm::vec4 data;
-        _blendshapeBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), reinterpret_cast<const gpu::Byte*>(&data));
+    if (_isBlendShaped) {
+        std::vector<BlendshapeOffset> data(_meshNumVertices);
+        const auto blendShapeBufferSize = _meshNumVertices * sizeof(BlendshapeOffset);
+        _meshBlendshapeBuffer = std::make_shared<gpu::Buffer>(blendShapeBufferSize, reinterpret_cast<const gpu::Byte*>(data.data()), blendShapeBufferSize);
+    } else if (_isSkinned) {
+        BlendshapeOffset data;
+        _meshBlendshapeBuffer = std::make_shared<gpu::Buffer>(sizeof(BlendshapeOffset), reinterpret_cast<const gpu::Byte*>(&data), sizeof(BlendshapeOffset));
     }
 #endif
 
@@ -292,8 +290,7 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clu
         if (!_clusterBuffer) {
             _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
                 (const gpu::Byte*) clusterMatrices.data());
-        }
-        else {
+        } else {
             _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
                 (const gpu::Byte*) clusterMatrices.data());
         }
@@ -313,8 +310,7 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<Model::Transfor
         if (!_clusterBuffer) {
             _clusterBuffer = std::make_shared<gpu::Buffer>(clusterDualQuaternions.size() * sizeof(Model::TransformDualQuaternion),
                 (const gpu::Byte*) clusterDualQuaternions.data());
-        }
-        else {
+        } else {
             _clusterBuffer->setSubData(0, clusterDualQuaternions.size() * sizeof(Model::TransformDualQuaternion),
                 (const gpu::Byte*) clusterDualQuaternions.data());
         }
@@ -403,8 +399,8 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
     batch.setInputFormat((_drawMesh->getVertexFormat()));
-    if (_blendshapeBuffer) {
-        batch.setResourceBuffer(0, _blendshapeBuffer);
+    if (_meshBlendshapeBuffer) {
+        batch.setResourceBuffer(0, _meshBlendshapeBuffer);
     }
     batch.setInputStream(0, _drawMesh->getVertexStream());
 }
@@ -431,7 +427,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // IF deformed pass the mesh key
-    auto drawcallInfo = (uint16_t) (((_isBlendShaped && args->_enableBlendshape) << 0) | ((_isSkinned && args->_enableSkinning) << 1));
+    auto drawcallInfo = (uint16_t) (((_isBlendShaped && _meshBlendshapeBuffer && args->_enableBlendshape) << 0) | ((_isSkinned && args->_enableSkinning) << 1));
     if (drawcallInfo) {
         batch.setDrawcallUniform(drawcallInfo);
     }
@@ -480,6 +476,15 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::Tr
                                 clusterDualQuaternions[i].getTranslation());
             clusterBound.transform(transform);
             _adjustedLocalBound += clusterBound;
+        }
+    }
+}
+
+void ModelMeshPartPayload::setBlendshapeBuffer(const std::unordered_map<int, gpu::BufferPointer>& blendshapeBuffers, const QVector<int>& blendedMeshSizes) {
+    if (_meshIndex < blendedMeshSizes.length() && blendedMeshSizes.at(_meshIndex) == _meshNumVertices) {
+        auto blendshapeBuffer = blendshapeBuffers.find(_meshIndex);
+        if (blendshapeBuffer != blendshapeBuffers.end()) {
+            _meshBlendshapeBuffer = blendshapeBuffer->second;
         }
     }
 }

@@ -10,9 +10,8 @@
 /* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation,
    controllerDispatcherPlugins:true, controllerDispatcherPluginsNeedSort:true,
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
-   getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers, COLORS_GRAB_SEARCHING_HALF_SQUEEZE
-   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, TRIGGER_ON_VALUE, PointerManager, print
    getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers,
+   PointerManager, getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers,
    PointerManager, print, Selection, DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE
 */
 
@@ -34,6 +33,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
     var PROFILE = false;
     var DEBUG = false;
+    var SHOW_GRAB_SPHERE = false;
+
 
     if (typeof Test !== "undefined") {
         PROFILE = true;
@@ -51,6 +52,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.tabletID = null;
         this.blacklist = [];
         this.pointerManager = new PointerManager();
+        this.grabSphereOverlays = [null, null];
 
         // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
         // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
@@ -251,7 +253,28 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
                 if (controllerLocations[h].valid) {
                     var controllerPosition = controllerLocations[h].position;
-                    var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_MAX_RADIUS * sensorScaleFactor);
+                    var findRadius = NEAR_MAX_RADIUS * sensorScaleFactor;
+
+                    if (SHOW_GRAB_SPHERE) {
+                        if (this.grabSphereOverlays[h]) {
+                            Overlays.editOverlay(this.grabSphereOverlays[h], { position: controllerLocations[h].position });
+                        } else {
+                            var grabSphereSize = findRadius * 2;
+                            this.grabSphereOverlays[h] = Overlays.addOverlay("sphere", {
+                                position: controllerLocations[h].position,
+                                dimensions: { x: grabSphereSize, y: grabSphereSize, z: grabSphereSize },
+                                color: { red: 30, green: 30, blue: 255 },
+                                alpha: 0.3,
+                                solid: true,
+                                visible: true,
+                                // lineWidth: 2.0,
+                                drawInFront: false,
+                                grabbable: false
+                            });
+                        }
+                    }
+
+                    var nearbyEntityIDs = Entities.findEntities(controllerPosition, findRadius);
                     for (var j = 0; j < nearbyEntityIDs.length; j++) {
                         var entityID = nearbyEntityIDs[j];
                         var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
@@ -505,6 +528,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Selection.disableListHighlight(DISPATCHER_HOVERING_LIST);
         };
     }
+
     function mouseReleaseOnOverlay(overlayID, event) {
         if (HMD.homeButtonID && overlayID === HMD.homeButtonID && event.button === "Primary") {
             Messages.sendLocalMessage("home", overlayID);
@@ -523,9 +547,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
         }
     }
+
     Overlays.mouseReleaseOnOverlay.connect(mouseReleaseOnOverlay);
     Overlays.mousePressOnOverlay.connect(mousePress);
     Entities.mousePressOnEntity.connect(mousePress);
+
     var controllerDispatcher = new ControllerDispatcher();
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);

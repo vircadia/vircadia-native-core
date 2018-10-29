@@ -7,6 +7,11 @@ else()
   cmake_minimum_required(VERSION 3.2)
 endif()
 
+# squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
+if ((${CMAKE_MAJOR_VERSION} EQUAL 3 AND ${CMAKE_MINOR_VERSION} GREATER 11) OR ${CMAKE_MAJOR_VERSION} GREATER 3)
+   cmake_policy(SET CMP0074 NEW)
+endif()
+
 project(hifi)
 
 include("cmake/init.cmake")
@@ -61,7 +66,7 @@ if (ANDROID)
   set(GLES_OPTION ON)
   set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
 else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+  set(PLATFORM_QT_COMPONENTS WebEngine)
 endif ()
 
 if (USE_GLES AND (NOT ANDROID))

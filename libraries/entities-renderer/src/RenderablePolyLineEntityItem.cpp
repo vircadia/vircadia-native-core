@@ -142,7 +142,7 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
     }
     if (strokeColorsChanged) {
         _lastStrokeColors = entity->getStrokeColors();
-        _lastStrokeColors = _lastNormals.size() == _lastStrokeColors.size() ? _lastStrokeColors : QVector<glm::vec3>({ toGlm(entity->getXColor()) });
+        _lastStrokeColors = _lastNormals.size() == _lastStrokeColors.size() ? _lastStrokeColors : QVector<glm::vec3>({ toGlm(entity->getColor()) });
     }
     if (pointsChanged || strokeWidthsChanged || normalsChanged || strokeColorsChanged) {
         _empty = std::min(_lastPoints.size(), std::min(_lastNormals.size(), _lastStrokeWidths.size())) < 2;
@@ -161,10 +161,10 @@ void PolyLineEntityRenderer::updateGeometry(const std::vector<Vertex>& vertices)
     _verticesBuffer->setSubData(0, vertices);
 }
 
-std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertices(const QVector<glm::vec3>& points, 
-                                                                                   const QVector<glm::vec3>& normals, 
+std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertices(const QVector<glm::vec3>& points,
+                                                                                   const QVector<glm::vec3>& normals,
                                                                                    const QVector<float>& strokeWidths, 
-                                                                                   const QVector<glm::vec3>& strokeColors, 
+                                                                                   const QVector<glm::vec3>& strokeColors,
                                                                                    const bool isUVModeStretch,
                                                                                    const float textureAspectRatio) {
     // Calculate the minimum vector size out of normals, points, and stroke widths
