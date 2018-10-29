@@ -888,6 +888,12 @@ void TabletProxy::desktopWindowClosed() {
     gotoHomeScreen();
 }
 
+void TabletProxy::unfocus() {
+    if (_qmlOffscreenSurface) {
+        _qmlOffscreenSurface->lowerKeyboard();
+    }
+}
+
 
 QQuickItem* TabletProxy::getQmlTablet() const {
     if (!_qmlTabletRoot) {

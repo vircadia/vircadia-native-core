@@ -16,6 +16,11 @@
 #include "LaserPointer.h"
 #include "StylusPointer.h"
 #include "ParabolaPointer.h"
+#include "StylusPick.h"
+
+static const glm::quat X_ROT_NEG_90{ 0.70710678f, -0.70710678f, 0.0f, 0.0f };
+static const glm::vec3 DEFAULT_POSITION_OFFSET{0.0f, 0.0f, -StylusPick::WEB_STYLUS_LENGTH / 2.0f};
+static const glm::vec3 DEFAULT_MODEL_DIMENSIONS{0.01f, 0.01f, StylusPick::WEB_STYLUS_LENGTH};
 
 void PointerScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) const {
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
@@ -50,6 +55,8 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
  * @typedef {object} Pointers.StylusPointerProperties
  * @property {boolean} [hover=false] If this pointer should generate hover events.
  * @property {boolean} [enabled=false]
+ * @property {Vec3} [tipOffset] The specified offset of the from the joint index.
+ * @property {object} [model] Data to replace the default model url, positionOffset and rotationOffset.
  */
 unsigned int PointerScriptingInterface::createStylus(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
@@ -64,7 +71,28 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
         enabled = propertyMap["enabled"].toBool();
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(properties, StylusPointer::buildStylusOverlay(propertyMap), hover, enabled));
+    glm::vec3 modelPositionOffset = DEFAULT_POSITION_OFFSET;
+    glm::quat modelRotationOffset = X_ROT_NEG_90;
+    glm::vec3 modelDimensions = DEFAULT_MODEL_DIMENSIONS;
+
+    if (propertyMap["model"].isValid()) {
+        QVariantMap modelData = propertyMap["model"].toMap();
+
+        if (modelData["positionOffset"].isValid()) {
+            modelPositionOffset = vec3FromVariant(modelData["positionOffset"]);
+        }
+
+        if (modelData["rotationOffset"].isValid()) {
+            modelRotationOffset = quatFromVariant(modelData["rotationOffset"]);
+        }
+
+        if (modelData["dimensions"].isValid()) {
+            modelDimensions = vec3FromVariant(modelData["dimensions"]);
+        }
+    }
+
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(properties, StylusPointer::buildStylusOverlay(propertyMap), hover, enabled, modelPositionOffset,
+                                                                                                modelRotationOffset, modelDimensions));
 }
 
 /**jsdoc

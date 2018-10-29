@@ -127,6 +127,10 @@ TabletModalWindow {
         }
     }
 
+    Component.onDestruction: {
+        loginKeyboard.raised = false;
+    }
+
     Keyboard {
         id: loginKeyboard
         raised: root.keyboardEnabled && root.keyboardRaised

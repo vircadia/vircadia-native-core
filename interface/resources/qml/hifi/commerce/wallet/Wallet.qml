@@ -40,6 +40,10 @@ Rectangle {
         source: "images/wallet-bg.jpg";
     }
 
+    Component.onDestruction: {
+        keyboard.raised = false;
+    }
+
     Connections {
         target: Commerce;
 

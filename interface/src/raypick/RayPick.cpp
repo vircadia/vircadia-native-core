@@ -10,6 +10,7 @@
 #include "Application.h"
 #include "EntityScriptingInterface.h"
 #include "ui/overlays/Overlays.h"
+#include "ui/Keyboard.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "DependencyManager.h"
@@ -40,9 +41,12 @@ PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
 
 PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
     bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
+    auto keyboard = DependencyManager::get<Keyboard>();
+    QVector<OverlayID> ignoreItems = keyboard->getKeysID();
+    ignoreItems.append(getIgnoreItemsAs<OverlayID>());
     RayToOverlayIntersectionResult overlayRes =
         qApp->getOverlays().findRayIntersectionVector(pick, precisionPicking,
-            getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
+            getIncludeItemsAs<OverlayID>(), ignoreItems, !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
     if (overlayRes.intersects) {
         return std::make_shared<RayPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, pick, overlayRes.surfaceNormal, overlayRes.extraInfo);
     } else {
