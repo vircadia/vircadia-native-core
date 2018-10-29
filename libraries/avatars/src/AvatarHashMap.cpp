@@ -85,8 +85,9 @@ std::vector<AvatarSharedPointer> AvatarReplicas::takeReplicas(const QUuid& paren
 void AvatarReplicas::processAvatarIdentity(const QUuid& parentID, const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged) {
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         auto &replicas = _replicasMap[parentID];
+        QDataStream identityDataStream(identityData);
         for (auto avatar : replicas) {
-            avatar->processAvatarIdentity(identityData, identityChanged, displayNameChanged);
+            avatar->processAvatarIdentity(identityDataStream, identityChanged, displayNameChanged);
         }
     }
 }
@@ -284,39 +285,45 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
 }
 
 void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    QDataStream avatarIdentityStream(message->getMessage());
 
-    // peek the avatar UUID from the incoming packet
-    QUuid identityUUID = QUuid::fromRfc4122(message->peek(NUM_BYTES_RFC4122_UUID));
+    while (!avatarIdentityStream.atEnd()) {
+        // peek the avatar UUID from the incoming packet
+        avatarIdentityStream.startTransaction();
+        QUuid identityUUID;
+        avatarIdentityStream >> identityUUID;
+        avatarIdentityStream.rollbackTransaction();
 
-    if (identityUUID.isNull()) {
-        qCDebug(avatars) << "Refusing to process identity packet for null avatar ID";
-        return;
-    }
-
-    // make sure this isn't for an ignored avatar
-    auto nodeList = DependencyManager::get<NodeList>();
-    static auto EMPTY = QUuid();
-
-    {
-        QReadLocker locker(&_hashLock);
-        auto me = _avatarHash.find(EMPTY);
-        if ((me != _avatarHash.end()) && (identityUUID == me.value()->getSessionUUID())) {
-            // We add MyAvatar to _avatarHash with an empty UUID. Code relies on this. In order to correctly handle an
-            // identity packet for ourself (such as when we are assigned a sessionDisplayName by the mixer upon joining),
-            // we make things match here.
-            identityUUID = EMPTY;
+        if (identityUUID.isNull()) {
+            qCDebug(avatars) << "Refusing to process identity packet for null avatar ID";
+            return;
         }
-    }
-    
-    if (!nodeList->isIgnoringNode(identityUUID) || nodeList->getRequestsDomainListData()) {
-        // mesh URL for a UUID, find avatar in our list
-        bool isNewAvatar;
-        auto avatar = newOrExistingAvatar(identityUUID, sendingNode, isNewAvatar);
-        bool identityChanged = false;
-        bool displayNameChanged = false;
-        // In this case, the "sendingNode" is the Avatar Mixer.
-        avatar->processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged);
-        _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
+
+        // make sure this isn't for an ignored avatar
+        auto nodeList = DependencyManager::get<NodeList>();
+        static auto EMPTY = QUuid();
+
+        {
+            QReadLocker locker(&_hashLock);
+            auto me = _avatarHash.find(EMPTY);
+            if ((me != _avatarHash.end()) && (identityUUID == me.value()->getSessionUUID())) {
+                // We add MyAvatar to _avatarHash with an empty UUID. Code relies on this. In order to correctly handle an
+                // identity packet for ourself (such as when we are assigned a sessionDisplayName by the mixer upon joining),
+                // we make things match here.
+                identityUUID = EMPTY;
+            }
+        }
+
+        if (!nodeList->isIgnoringNode(identityUUID) || nodeList->getRequestsDomainListData()) {
+            // mesh URL for a UUID, find avatar in our list
+            bool isNewAvatar;
+            auto avatar = newOrExistingAvatar(identityUUID, sendingNode, isNewAvatar);
+            bool identityChanged = false;
+            bool displayNameChanged = false;
+            // In this case, the "sendingNode" is the Avatar Mixer.
+            avatar->processAvatarIdentity(avatarIdentityStream, identityChanged, displayNameChanged);
+            _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
+        }
     }
 }
 
