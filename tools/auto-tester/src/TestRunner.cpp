@@ -176,10 +176,26 @@ void TestRunner::runInstaller() {
 
     QString installerFullPath = _workingFolder + "/" + _installerFilename;
 
+#ifdef Q_OS_WIN
     QString commandLine =
         "\"" + QDir::toNativeSeparators(installerFullPath) + "\"" + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
 
     installerWorker->setCommandLine(commandLine);
+#elif defined Q_OS_MAC
+    QFile script;
+    script.setFileName(_workingFolder + "/install_app.sh");
+    if (!script.open(QIODevice::Append | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open 'install_app.sh'");
+        exit(-1);
+    }
+    
+    script.write("#/bin/sh\n\n");
+    script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`");
+    script.write((QString("#cp -rf \"$VOLUME/") + _installerFilename + "High Fidelity/interface.app\"").toStdString().c_str());
+    
+    QString commandLine = "yes | ../install_app.sh HighFidelity-Beta-latest-dev.dmg";
+#endif
     emit startInstaller();
 }
 
