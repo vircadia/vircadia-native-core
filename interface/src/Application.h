@@ -320,8 +320,6 @@ public:
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
-    void pauseUntilLoginDetermined();
-    void resumeAfterLoginDialogActionTaken();
 
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
@@ -514,6 +512,8 @@ private slots:
 
 private:
     void init();
+    void pauseUntilLoginDetermined();
+    void resumeAfterLoginDialogActionTaken();
     bool handleKeyEventForFocusedEntityOrOverlay(QEvent* event);
     bool handleFileOpenEvent(QFileOpenEvent* event);
     void cleanupBeforeQuit();

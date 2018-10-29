@@ -76,8 +76,11 @@ protected slots:
     Q_INVOKABLE bool getLoginDialogPoppedUp() const;
 
 private:
+    static void createLoginScreenDialog();
+
     bool getIsLogIn() const { return _isLogIn; }
     void setIsLogIn(const bool isLogIn) { _isLogIn = isLogIn; }
+
     bool _isLogIn { false };
 };
 

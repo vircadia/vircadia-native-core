@@ -5181,6 +5181,12 @@ void Application::init() {
     _entitySimulation->setWorkloadSpace(getEntities()->getWorkloadSpace());
 }
 
+void Application::pauseUntilLoginDetermined() {
+}
+
+void Application::resumeAfterLoginDialogActionTaken() {
+}
+
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     auto runningScripts = scriptEngines->getRunningScripts();
@@ -8398,6 +8404,7 @@ void Application::onDismissedLoginDialog() {
     qDebug() << "dismissed login dialog";
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
+    resumeAfterLoginDialogActionTaken();
 }
 
 void Application::startHMDStandBySession() {

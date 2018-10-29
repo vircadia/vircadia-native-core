@@ -26,6 +26,8 @@
 #include "Menu.h"
 
 #include "Application.h"
+#include "overlays/Overlays.h"
+#include "overlays/Web3DOverlay.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "Constants.h"
 
@@ -63,12 +65,13 @@ void LoginDialog::showWithSelection() {
             }
         }
     } else {
-        //if (qApp->getLoginDialogPoppedUp()) {
-        //    // pop up those overlay things.
-        //    return;
-        //} else {
-        //    tablet->initialScreen(url);
-        //}
+        if (qApp->getLoginDialogPoppedUp()) {
+            // pop up those overlay things.
+            createLoginScreenDialog();
+            return;
+        } else {
+            tablet->initialScreen(url);
+        }
 
     }
     if (!hmd->getShouldShowTablet()) {
@@ -250,6 +253,10 @@ void LoginDialog::signupCompleted(QNetworkReply* reply) {
 
 bool LoginDialog::getLoginDialogPoppedUp() const {
     return qApp->getLoginDialogPoppedUp();
+}
+
+void LoginDialog::createLoginScreenDialog() {
+    
 }
 
 QString errorStringFromAPIObject(const QJsonValue& apiObject) {
