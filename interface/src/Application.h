@@ -339,8 +339,6 @@ signals:
 
     void interstitialModeChanged(bool isInInterstitialMode);
 
-    void loginScreenStateChanged(bool isInLoginScreenState);
-
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
@@ -349,7 +347,6 @@ public slots:
     void updateThreadPoolCount() const;
     void updateSystemTabletMode();
     void goToErrorDomainURL(QUrl errorDomainURL);
-    void goToLoginScreenDomainURL(QUrl loginScreenDomainURL);
 
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
@@ -444,7 +441,6 @@ public slots:
 
     void loadServerlessDomain(QUrl domainURL);
     void loadErrorDomain(QUrl domainURL);
-    void loadLoginScreenDomain(QUrl domainURL);
     void setIsInterstitialMode(bool interstitialMode);
 
     void updateVerboseLogging();
@@ -663,6 +659,8 @@ private:
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
     QPointer<EntityScriptServerLogDialog> _entityScriptServerLogDialog;
+
+    QDir _defaultScriptsLocation{""};
 
     FileLogger* _logger;
 

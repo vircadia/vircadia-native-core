@@ -62,16 +62,6 @@ DomainHandler::DomainHandler(QObject* parent) :
 
     // stop the refresh timer if redirected to the error domain
     connect(this, &DomainHandler::redirectToErrorDomainURL, &_apiRefreshTimer, &QTimer::stop);
-
-    // stop the refresh timer if redirected to the login screen domain
-    connect(this, &DomainHandler::redirectToLoginScreenDomainURL, &_apiRefreshTimer, &QTimer::stop);
-
-
-    // stop the refresh timer if redirected to the login screen domain
-    connect(this, &DomainHandler::redirectToLoginScreenDomainURL, [this]() {
-        _isInLoginScreenState = true;
-        qCDebug(networking) << "Redirecting user to " << _loginScreenDomainURL;
-    });
 }
 
 void DomainHandler::disconnect() {
@@ -123,7 +113,7 @@ void DomainHandler::softReset() {
     QMetaObject::invokeMethod(&_settingsTimer, "stop");
 
     // restart the API refresh timer in case we fail to connect and need to refresh information
-    if (!_isInErrorState || !_isInLoginScreenState) {
+    if (!_isInErrorState) {
         QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
     }
 }
@@ -134,9 +124,6 @@ void DomainHandler::hardReset() {
     softReset();
     _isInErrorState = false;
     emit redirectErrorStateChanged(_isInErrorState);
-
-    _isInLoginScreenState = false;
-    emit loginScreenStateChanged(_isInLoginScreenState);
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
     _pendingDomainID = QUuid();
@@ -173,11 +160,6 @@ void DomainHandler::setInterstitialModeEnabled(bool enableInterstitialMode) {
 
 void DomainHandler::setErrorDomainURL(const QUrl& url) {
     _errorDomainURL = url;
-    return;
-}
-
-void DomainHandler::setLoginScreenDomainURL(const QUrl& url) {
-    _loginScreenDomainURL = url;
     return;
 }
 
@@ -373,17 +355,6 @@ void DomainHandler::connectedToServerless(std::map<QString, QString> namedPaths)
 }
 
 void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
-    auto lookup = namedPaths.find("/");
-    QString viewpoint;
-    if (lookup != namedPaths.end()) {
-        viewpoint = lookup->second;
-    } else {
-        viewpoint = DOMAIN_SPAWNING_POINT;
-    }
-    DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, QString());
-}
-
-void DomainHandler::loadedLoginScreenDomain(std::map<QString, QString> namedPaths) {
     auto lookup = namedPaths.find("/");
     QString viewpoint;
     if (lookup != namedPaths.end()) {
