@@ -242,9 +242,13 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 #ifdef Q_OS_MAC
     // On mac AMD, we specifically need to have a _meshBlendshapeBuffer bound when using a deformed mesh pipeline
     // it cannot be null otherwise we crash in the drawcall using a deformed pipeline with a skinned only (not blendshaped) mesh
-    if ((_isBlendShaped || _isSkinned)) {
-        glm::vec4 data;
-        _meshBlendshapeBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), reinterpret_cast<const gpu::Byte*>(&data));
+    if (_isBlendShaped) {
+        std::vector<BlendshapeOffset> data(_meshNumVertices);
+        const auto blendShapeBufferSize = _meshNumVertices * sizeof(BlendshapeOffset);
+        _meshBlendshapeBuffer = std::make_shared<gpu::Buffer>(blendShapeBufferSize, reinterpret_cast<const gpu::Byte*>(data.data()), blendShapeBufferSize);
+    } else if (_isSkinned) {
+        BlendshapeOffset data;
+        _meshBlendshapeBuffer = std::make_shared<gpu::Buffer>(sizeof(BlendshapeOffset), reinterpret_cast<const gpu::Byte*>(&data), sizeof(BlendshapeOffset));
     }
 #endif
 

@@ -16,8 +16,9 @@ Script.include("/~/system/libraries/Xform.js");
 
 (function() { // BEGIN LOCAL_SCOPE
 
-var TABLET_BUTTON_NAME = "PUCKTACH";
-var TABLET_APP_URL = "https://hifi-content.s3.amazonaws.com/seefo/production/puck-attach/puck-attach.html";
+var TABLET_BUTTON_NAME = "PUCKATTACH";
+var TABLET_APP_URL = "https://s3.amazonaws.com/hifi-public/tony/html/filtered-puck-attach.html?2";
+var NUM_TRACKED_OBJECTS = 16;
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
@@ -33,6 +34,7 @@ function onScreenChanged(type, url) {
         if (!shown) {
             // hook up to event bridge
             tablet.webEventReceived.connect(onWebEventReceived);
+            shownChanged(true);
         }
         shown = true;
     } else {
@@ -40,6 +42,7 @@ function onScreenChanged(type, url) {
         if (shown) {
             // disconnect from event bridge
             tablet.webEventReceived.disconnect(onWebEventReceived);
+            shownChanged(false);
         }
         shown = false;
     }
@@ -55,7 +58,6 @@ function indexToTrackedObjectName(index) {
 }
 function getAvailableTrackedObjects() {
     var available = [];
-    var NUM_TRACKED_OBJECTS = 16;
     var i;
     for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
         var key = indexToTrackedObjectName(i);
@@ -95,11 +97,118 @@ var VIVE_PUCK_NAME = "Tracked Puck";
 var trackedPucks = { };
 var lastPuck;
 
+var DEFAULT_ROTATION_SMOOTHING_CONSTANT = 1.0; // no smoothing
+var DEFAULT_TRANSLATION_SMOOTHING_CONSTANT = 1.0; // no smoothing
+var DEFAULT_TRANSLATION_ACCELERATION_LIMIT = 1000; // only extreme accelerations are smoothed
+var DEFAULT_ROTATION_ACCELERATION_LIMIT = 10000; // only extreme accelerations are smoothed
+var DEFAULT_TRANSLATION_SNAP_THRESHOLD = 0; // no snapping
+var DEFAULT_ROTATION_SNAP_THRESHOLD = 0; // no snapping
+
+function buildMappingJson() {
+    var obj = {name: "com.highfidelity.testing.filteredPuckAttach", channels: []};
+    var i;
+    for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
+        obj.channels.push({
+            from: "Vive." + indexToTrackedObjectName(i),
+            to: "Standard." + indexToTrackedObjectName(i),
+            filters: [
+                {
+                    type: "accelerationLimiter",
+                    translationAccelerationLimit: DEFAULT_TRANSLATION_ACCELERATION_LIMIT,
+                    rotationAccelerationLimit: DEFAULT_ROTATION_ACCELERATION_LIMIT,
+                    translationSnapThreshold: DEFAULT_TRANSLATION_SNAP_THRESHOLD,
+                    rotationSnapThreshold: DEFAULT_ROTATION_SNAP_THRESHOLD,
+                },
+                {
+                    type: "exponentialSmoothing",
+                    translation: DEFAULT_TRANSLATION_SMOOTHING_CONSTANT,
+                    rotation: DEFAULT_ROTATION_SMOOTHING_CONSTANT
+                }
+            ]
+        });
+    }
+    return obj;
+}
+
+var mappingJson = buildMappingJson();
+
+var mapping;
+function mappingChanged() {
+    if (mapping) {
+        mapping.disable();
+    }
+    mapping = Controller.parseMapping(JSON.stringify(mappingJson));
+    mapping.enable();
+}
+
+function shownChanged(newShown) {
+    if (newShown) {
+        mappingChanged();
+    } else {
+        mapping.disable();
+    }
+}
+
+function setTranslationAccelerationLimit(value) {
+    var i;
+    for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
+        mappingJson.channels[i].filters[0].translationAccelerationLimit = value;
+    }
+    mappingChanged();
+}
+
+function setTranslationSnapThreshold(value) {
+    // convert from mm
+    var MM_PER_M = 1000;
+    var meters = value / MM_PER_M;
+    var i;
+    for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
+        mappingJson.channels[i].filters[0].translationSnapThreshold = meters;
+    }
+    mappingChanged();
+}
+
+function setRotationAccelerationLimit(value) {
+    var i;
+    for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
+        mappingJson.channels[i].filters[0].rotationAccelerationLimit = value;
+    }
+    mappingChanged();
+}
+
+function setRotationSnapThreshold(value) {
+    // convert from degrees
+    var PI_IN_DEGREES = 180;
+    var radians = value * (Math.pi / PI_IN_DEGREES);
+    var i;
+    for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
+        mappingJson.channels[i].filters[0].translationSnapThreshold = radians;
+    }
+    mappingChanged();
+}
+
+function setTranslationSmoothingConstant(value) {
+    var i;
+    for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
+        mappingJson.channels[i].filters[1].translation = value;
+    }
+    mappingChanged();
+}
+
+function setRotationSmoothingConstant(value) {
+    var i;
+    for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
+        mappingJson.channels[i].filters[1].rotation = value;
+    }
+    mappingChanged();
+}
+
+
 function createPuck(puck) {
     // create a puck entity and add it to our list of pucks
     var action = indexToTrackedObjectName(puck.puckno);
     var pose = Controller.getPoseValue(Controller.Standard[action]);
-    
+
     if (pose && pose.valid) {
         var spawnOffset = Vec3.multiply(Vec3.FRONT, VIVE_PUCK_SPAWN_DISTANCE);
         var spawnPosition = getRelativePosition(MyAvatar.position, MyAvatar.orientation, spawnOffset);
@@ -115,7 +224,7 @@ function createPuck(puck) {
         };
 
         var puckEntityID = Entities.addEntity(puckEntityProperties);
-        
+
         // if we've already created this puck, destroy it
         if (trackedPucks.hasOwnProperty(puck.puckno)) {
             destroyPuck(puck.puckno);
@@ -135,7 +244,7 @@ function createPuck(puck) {
 }
 function finalizePuck(puckName) {
     // find nearest entity and change its parent to the puck
-	
+
     if (!trackedPucks.hasOwnProperty(puckName)) {
         print('2');
         return;
@@ -148,7 +257,7 @@ function finalizePuck(puckName) {
         print('1');
         return;
     }
-	
+
     var puckPosition = getPropertyForEntity(lastPuck.puckEntityID, "position");
     var foundEntities = Entities.findEntities(puckPosition, VIVE_PUCK_SEARCH_DISTANCE);
 
@@ -171,12 +280,12 @@ function finalizePuck(puckName) {
 
     if (foundEntity) {
         lastPuck.trackedEntityID = foundEntity;
-        // remember the userdata and collisionless flag for the tracked entity since 
+        // remember the userdata and collisionless flag for the tracked entity since
         // we're about to remove it and make it ungrabbable and collisionless
         lastPuck.trackedEntityUserData = getPropertyForEntity(foundEntity, "userData");
         lastPuck.trackedEntityCollisionFlag = getPropertyForEntity(foundEntity, "collisionless");
         // update properties of the tracked entity
-        Entities.editEntity(lastPuck.trackedEntityID, { 
+        Entities.editEntity(lastPuck.trackedEntityID, {
             "parentID": lastPuck.puckEntityID,
             "userData": '{ "grabbableKey": { "grabbable": false } }',
             "collisionless": 1
@@ -200,7 +309,7 @@ function updatePucks() {
                     var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
                     var puckXform = new Xform(pose.rotation, pose.translation);
                     var finalXform = Xform.mul(avatarXform, puckXform);
-                    
+
                     var d = Vec3.distance(MyAvatar.position, finalXform.pos);
                     if (d > VIVE_PUCK_TRACKED_OBJECT_MAX_DISTANCE) {
                         print('tried to move tracked object too far away: ' + d);
@@ -211,8 +320,8 @@ function updatePucks() {
                         position: finalXform.pos,
                         rotation: finalXform.rot
                     });
-                    
-                    // in case someone grabbed both entities and destroyed the 
+
+                    // in case someone grabbed both entities and destroyed the
                     // child/parent relationship
                     Entities.editEntity(puck.trackedEntityID, {
                         parentID: puck.puckEntityID
@@ -220,7 +329,7 @@ function updatePucks() {
                 } else {
                     destroyPuck(puckName);
                 }
-            } 
+            }
         }
     }
 }
@@ -229,29 +338,30 @@ function destroyPuck(puckName) {
     if (!trackedPucks.hasOwnProperty(puckName)) {
         return;
     }
-	
+
     var puck = trackedPucks[puckName];
     var puckEntityID = puck.puckEntityID;
     var trackedEntityID = puck.trackedEntityID;
 
-    // remove the puck as a parent entity and restore the tracked entities 
+    // remove the puck as a parent entity and restore the tracked entities
     // former userdata and collision flag
-    Entities.editEntity(trackedEntityID, { 
+    Entities.editEntity(trackedEntityID, {
         "parentID": "{00000000-0000-0000-0000-000000000000}",
         "userData": puck.trackedEntityUserData,
         "collisionless": puck.trackedEntityCollisionFlag
     });
-    
+
     delete trackedPucks[puckName];
-    
+
     // in some cases, the entity deletion may occur before the parent change
     // has been processed, resulting in both the puck and the tracked entity
     // to be deleted so we wait 100ms before deleting the puck, assuming
     // that the parent change has occured
+    var DELETE_TIMEOUT = 100; // ms
     Script.setTimeout(function() {
         // delete the puck
         Entities.deleteEntity(puckEntityID);
-    }, 100);
+    }, DELETE_TIMEOUT);
 }
 function destroyPucks() {
     // remove all pucks and unparent entities
@@ -265,10 +375,10 @@ function destroyPucks() {
 function onWebEventReceived(msg) {
     var obj = {};
 
-    try { 
+    try {
         obj = JSON.parse(msg);
-    } catch (err) { 
-        return; 
+    } catch (err) {
+        return;
     }
 
     switch (obj.cmd) {
@@ -284,6 +394,24 @@ function onWebEventReceived(msg) {
     case "destroy":
         destroyPuck(obj.puckno);
         break;
+    case "translation-acceleration-limit":
+        setTranslationAccelerationLimit(Number(obj.val));
+        break;
+    case "translation-snap-threshold":
+        setTranslationSnapThreshold(Number(obj.val));
+        break;
+    case "rotation-acceleration-limit":
+        setRotationAccelerationLimit(Number(obj.val));
+        break;
+    case "rotation-snap-threshold":
+        setRotationSnapThreshold(Number(obj.val));
+        break;
+    case "translation-smoothing-constant":
+        setTranslationSmoothingConstant(Number(obj.val));
+        break;
+    case "rotation-smoothing-constant":
+        setRotationSmoothingConstant(Number(obj.val));
+        break;
     }
 }
 
@@ -296,6 +424,9 @@ Script.scriptEnding.connect(function () {
         tablet.gotoHomeScreen();
     }
     tablet.screenChanged.disconnect(onScreenChanged);
+    if (mapping) {
+        mapping.disable();
+    }
 });
 tabletButton.clicked.connect(function () {
     if (shown) {
