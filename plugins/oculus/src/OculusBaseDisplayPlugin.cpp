@@ -41,6 +41,10 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         _hmdMounted = !_hmdMounted;
         emit hmdMountedChanged();
     }
+    if (ovr::isVisible(status) != _visible) {
+        _visible = !_visible;
+        emit hmdVisibleChanged(_visible);
+    }
 
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
