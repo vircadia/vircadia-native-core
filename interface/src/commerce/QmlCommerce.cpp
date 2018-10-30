@@ -151,8 +151,7 @@ void QmlCommerce::balance() {
     }
 }
 
-void QmlCommerce::inventory(const QString& editionFilter,
-                            const QString& typeFilter,
+void QmlCommerce::inventory(const QString& typeFilter,
                             const QString& titleFilter,
                             const int& page,
                             const int& perPage) {
@@ -160,7 +159,7 @@ void QmlCommerce::inventory(const QString& editionFilter,
     auto wallet = DependencyManager::get<Wallet>();
     QStringList cachedPublicKeys = wallet->listPublicKeys();
     if (!cachedPublicKeys.isEmpty()) {
-        ledger->inventory(editionFilter, typeFilter, titleFilter, page, perPage);
+        ledger->inventory(typeFilter, titleFilter, page, perPage);
     }
 }
 

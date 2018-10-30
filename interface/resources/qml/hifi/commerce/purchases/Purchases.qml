@@ -518,8 +518,13 @@ Rectangle {
                             "filterName": "wearable"
                         },
                         {
+                            "separator" : true,
                             "displayName": "Updatable",
                             "filterName": "updated"
+                        },
+                        {
+                            "displayName": "Proofs",
+                            "filterName": "proofs"
                         }
                     ]
                     filterBar.primaryFilterChoices.clear();
