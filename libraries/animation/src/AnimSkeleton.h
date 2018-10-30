@@ -67,6 +67,7 @@ protected:
     void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints);
 
     std::vector<FBXJoint> _joints;
+    AnimPoseVec _avatarTPoseOffsets;
     int _jointsSize { 0 };
     AnimPoseVec _relativeDefaultPoses;
     AnimPoseVec _absoluteDefaultPoses;

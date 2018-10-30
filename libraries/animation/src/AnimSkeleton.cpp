@@ -20,11 +20,30 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry) {
     // convert to std::vector of joints
     std::vector<FBXJoint> joints;
     joints.reserve(fbxGeometry.joints.size());
+    AnimPose identity;
     for (auto& joint : fbxGeometry.joints) {
         joints.push_back(joint);
+        _avatarTPoseOffsets.push_back(identity);
     }
     buildSkeletonFromJoints(joints);
-}
+    //add offsets for spine2 and the neck
+    _avatarTPoseOffsets[nameToJointIndex("Spine2")] = AnimPose(glm::quat(-0.707107f, 0.0f, 0.0f, 0.707107f), glm::vec3());
+    _avatarTPoseOffsets[nameToJointIndex("Neck")] = AnimPose(glm::quat(0.0f, 0.707107f, 0.0f, 0.707107f), glm::vec3());
+
+    for (int i = 0; i < (int)fbxGeometry.meshes.size(); i++) {
+        const FBXMesh& mesh = fbxGeometry.meshes.at(i);
+        for (int j = 0; j < mesh.clusters.size(); j++) {
+            // cast into a non-const reference, so we can mutate the FBXCluster
+            FBXCluster& cluster = const_cast<FBXCluster&>(mesh.clusters.at(j));
+            // AJT: mutate bind pose! this allows us to oreint the skeleton back into the authored orientaiton before
+            // rendering, with no runtime overhead.
+            // this works if clusters match joints one for one.
+            //cluster.inverseBindMatrix = (glm::mat4)_avatarTPoseOffsets[cluster.jointIndex].inverse() * cluster.inverseBindMatrix;
+            cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
+
+        }
+    }
+}	
 
 AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
     buildSkeletonFromJoints(joints);
@@ -189,8 +208,19 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
         // build relative and absolute default poses
         glm::mat4 relDefaultMat = glm::translate(_joints[i].translation) * preRotationTransform * glm::mat4_cast(_joints[i].rotation) * postRotationTransform;
         AnimPose relDefaultPose(relDefaultMat);
-        _relativeDefaultPoses.push_back(relDefaultPose);
+
         int parentIndex = getParentIndex(i);
+
+        // putting the pipeline code is
+        // remember the inverse bind pose already has the offset added into it.  the total effect is offset^-1 * relDefPose * offset.
+        // this gives us the correct transform for the joint that has been put in t-pose with an offset rotation.
+        //relDefaultPose = relDefaultPose * _avatarTPoseOffsets[i];
+        //if (parentIndex >= 0) {
+        //    relDefaultPose = _avatarTPoseOffsets[parentIndex].inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * _avatarTPoseOffsets[parentIndex] * AnimPose(relDefaultPose.rot(), glm::vec3());
+        //}
+
+        _relativeDefaultPoses.push_back(relDefaultPose);
+
         if (parentIndex >= 0) {
             _absoluteDefaultPoses.push_back(_absoluteDefaultPoses[parentIndex] * relDefaultPose);
         } else {
