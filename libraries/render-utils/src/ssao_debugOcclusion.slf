@@ -93,7 +93,8 @@ void main(void) {
         {
             bool check = dot(fragToTap,fragToTap) < keepTapRadius;
             keep = keep || check;
-            keepedMip = int(mix(keepedMip, evalMipFromRadius(tap.z * float(doFetchMips())), int(check)));
+            int checki = int(check);
+            keepedMip = checki * evalMipFromRadius(tap.z * float(doFetchMips())) + (1 - checki) * keepedMip;
         }
 
         vec3 tapUVZ = fetchTap(side, ssC, tap, imageSize);

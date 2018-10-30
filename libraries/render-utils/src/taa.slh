@@ -125,13 +125,13 @@ float taa_fetchDepth(vec2 uv) {
 
 vec2 taa_getImageSize() {
     vec2 imageSize = getWidthHeight(0);
-    imageSize.x *= mix(1.0, 2.0, float(isStereo()));
+    imageSize.x *= 1.0 + float(isStereo());
     return imageSize;
 }
 
 vec2 taa_getTexelSize() {
     vec2 texelSize = getInvWidthHeight();
-    texelSize.x *= mix(1.0, 0.5, float(isStereo()));
+    texelSize.x *= 1.0 - 0.5 * float(isStereo());
     return texelSize;
 }
 
@@ -216,14 +216,14 @@ vec2 taa_fromFragUVToEyeUVAndSide(vec2 fragUV, out int stereoSide) {
     float check2 = float(eyeUV.x > 0.5);
     eyeUV.x -= check * check2 * 0.5;
     stereoSide = int(check * check2);
-    eyeUV.x *= mix(1.0, 2.0, check);
+    eyeUV.x *= 1.0 + check;
     return eyeUV;
 }
 
 vec2 taa_fromEyeUVToFragUV(vec2 eyeUV, int stereoSide) {
     vec2 fragUV = eyeUV;
     float check = float(isStereo());
-    fragUV.x *= mix(1.0, 0.5, check);
+    fragUV.x *= 1.0 - 0.5 * check;
     fragUV.x += check * float(stereoSide) * 0.5;
     return fragUV;
 }

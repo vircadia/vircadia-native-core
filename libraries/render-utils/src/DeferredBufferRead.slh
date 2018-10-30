@@ -121,7 +121,7 @@ vec4 unpackDeferredPosition(float depthValue, vec2 texcoord) {
     float check2 = check * float(texcoord.x > 0.5);
     texcoord.x -= check2 * 0.5;
     int side = int(check2);
-    texcoord.x *= mix(1.0, 2.0, check);
+    texcoord.x *= 1.0 + check;
 
     return vec4(evalEyePositionFromZdb(side, depthValue, texcoord), 1.0);
 }
@@ -139,7 +139,7 @@ vec4 unpackDeferredPositionFromZeye(vec2 texcoord) {
     float check2 = check * float(texcoord.x > 0.5);
     texcoord.x -= check2 * 0.5;
     int side = int(check2);
-    texcoord.x *= mix(1.0, 2.0, check);
+    texcoord.x *= 1.0 + check;
 
     return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
 }

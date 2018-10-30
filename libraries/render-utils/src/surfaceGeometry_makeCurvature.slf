@@ -89,7 +89,7 @@ void main(void) {
     vec2 texcoordPos;
     ivec4 stereoSide;
     ivec2 framePixelPos = getPixelPosTexcoordPosAndSide(gl_FragCoord.xy, pixelPos, texcoordPos, stereoSide);
-    vec2 stereoSideClip = vec2(stereoSide.x, mix(1.0, 0.5, float(isStereo())));
+    vec2 stereoSideClip = vec2(stereoSide.x, 1.0 - 0.5 * float(isStereo()));
 
     // Texcoord to fetch in the deferred texture are the exact UVs comming from vertex shader
     // sideToFrameTexcoord(stereoSideClip, texcoordPos);
@@ -124,7 +124,7 @@ void main(void) {
 
     // Calculate dF/du and dF/dv
     vec2 viewportScale = perspectiveScale * getInvWidthHeight();
-    vec2 du = vec2(viewportScale.x * mix(1.0, 0.5, float(float(stereoSide.w) > 0.0)), 0.0);
+    vec2 du = vec2(viewportScale.x * (1.0 - 0.5 * float(stereoSide.w > 0)), 0.0);
     vec2 dv = vec2( 0.0f, viewportScale.y);
 
     vec4 dFdu = vec4(getWorldNormalDiff(frameTexcoordPos, du), getEyeDepthDiff(frameTexcoordPos, du));

@@ -7,11 +7,9 @@
 
 #ifdef __cplusplus
 #   define _MIN glm::min
-#   define _MIX(x, y, a) glm::mix((float)x, (float)y, (float)a)
-#   define _ABS(x) (int)fabsf()
+#   define _ABS(x) (int)fabsf(x)
 #else
 #   define _MIN min
-#   define _MIX mix
 #   define _ABS abs
 #endif
 
@@ -151,7 +149,7 @@ ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
 
 int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
     if (eyeDir.z >= 0.0f) {
-        return int(_MIX(-1, frustumGrid.dims.x, int(eyeDir.x > 0.0f)));
+        return int(eyeDir.x > 0.0f) * (frustumGrid.dims.x + 1) - 1;
     }
 
     float eyeDepth = -eyeDir.z;
@@ -165,7 +163,7 @@ int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
 
 int frustumGrid_eyeToClusterDirV(vec3 eyeDir) {
     if (eyeDir.z >= 0.0f) {
-        return int(_MIX(-1, frustumGrid.dims.y, int(eyeDir.y > 0.0f)));
+        return int(eyeDir.y > 0.0f) * (frustumGrid.dims.y + 1) - 1;
     }
 
     float eyeDepth = -eyeDir.z;
