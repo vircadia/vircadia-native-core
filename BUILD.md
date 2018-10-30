@@ -10,14 +10,11 @@
 - [cmake](https://cmake.org/download/):  3.9
 - [Qt](https://www.qt.io/download-open-source):   5.10.1
 - [Python](https://www.python.org/downloads/): 3.6 or higher
-- [OpenSSL](https://www.openssl.org/): Use the latest available 1.0 version (**NOT** 1.1) of OpenSSL to avoid security vulnerabilities.
-- [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
 
 ### CMake External Project Dependencies
 
 These dependencies need not be installed manually. They are automatically downloaded on the platforms where they are required.  
 - [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases):  2.83
-- [GLEW](http://glew.sourceforge.net/):   1.13
 - [glm](https://glm.g-truc.net/0.9.8/index.html):  0.9.8
 - [Oculus SDK](https://developer.oculus.com/downloads/):   1.11 (Win32) / 0.5 (Mac)
 - [OpenVR](https://github.com/ValveSoftware/openvr):   1.0.6 (Win32 only)
@@ -25,9 +22,10 @@ These dependencies need not be installed manually. They are automatically downlo
 - [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/):   0.7.3
 - [SDL2](https://www.libsdl.org/download-2.0.php):   2.0.3
 - [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/):   4.3
-- [Sixense](http://sixense.com/):   071615
+- [vcpkg](https://github.com/highfidelity/vcpkg): 
+- [VHACD](https://github.com/virneo/v-hacd)
 - [zlib](http://www.zlib.net/):   1.28 (Win32 only)
-- nVidia Texture Tools:   2.1
+- [nvtt](https://github.com/highfidelity/nvidia-texture-tools):   2.1.1 (customized)
 
 The above dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build/ext` folder in each of the subfolders for each external project.
 
@@ -82,8 +80,21 @@ In the examples below the variable $NAME would be replaced by the name of the de
 * $NAME_ROOT_DIR - set this variable in your ENV
 * HIFI_LIB_DIR - set this variable in your ENV to your High Fidelity lib folder, should contain a folder '$name'
 
-
 ### Optional Components
+
+#### Build Options 
+
+The following build options can be used when running CMake
+
+* BUILD_CLIENT
+* BUILD_SERVER
+* BUILD_TESTS
+* BUILD_TOOLS
+
+#### Developer Build Options 
+
+* USE_GLES
+* DISABLE_UI
 
 #### Devices
 
