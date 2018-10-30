@@ -19,7 +19,6 @@ import "../../../controls" as HifiControls
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 import "../wallet" as HifiWallet
 import "../common" as HifiCommerceCommon
-import "../inspectionCertificate" as HifiInspectionCertificate
 import "../common/sendAsset" as HifiSendAsset
 import "../.." as HifiCommon
 
@@ -118,19 +117,6 @@ Rectangle {
         }
     }
 
-    HifiInspectionCertificate.InspectionCertificate {
-        id: inspectionCertificate;
-        z: 998;
-        visible: false;
-        anchors.fill: parent;
-
-        Connections {
-            onSendToScript: {
-                sendToScript(message);
-            }
-        }
-    }
-
     HifiCommerceCommon.CommerceLightbox {
         id: lightboxPopup;
         z: 999;
@@ -200,11 +186,6 @@ Rectangle {
                     lightboxPopup.button1method = function() {
                         lightboxPopup.visible = false;
                     }
-                    lightboxPopup.button2text = "GO TO WALLET";
-                    lightboxPopup.button2method = function() {
-                        sendToScript({method: 'purchases_openWallet'});
-                        lightboxPopup.visible = false;
-                    };
                     lightboxPopup.visible = true;
                 } else {
                     sendToScript(msg);
@@ -632,8 +613,6 @@ Rectangle {
                                 sendToScript({ method: 'purchases_updateWearables' });
                             }
                         } else if (msg.method === 'purchases_itemCertificateClicked') {
-                            inspectionCertificate.visible = true;
-                            inspectionCertificate.isLightbox = true;
                             sendToScript(msg);
                         } else if (msg.method === "showInvalidatedLightbox") {
                             lightboxPopup.titleText = "Item Invalidated";
@@ -646,7 +625,7 @@ Rectangle {
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showPendingLightbox") {
                             lightboxPopup.titleText = "Item Pending";
-                            lightboxPopup.bodyText = 'Your item is marked "pending" while your purchase is being confirmed. ' +
+                            lightboxPopup.bodyText = 'Your item is marked "pending" while the transfer is being confirmed. ' +
                             "Usually, purchases take about 90 seconds to confirm.";
                             lightboxPopup.button1text = "CLOSE";
                             lightboxPopup.button1method = function() {
@@ -1070,9 +1049,6 @@ Rectangle {
                 referrerURL = message.referrerURL || "";
                 titleBarContainer.referrerURL = message.referrerURL || "";
                 filterBar.text = message.filterText ? message.filterText : "";
-            break;
-            case 'inspectionCertificate_setCertificateId':
-                inspectionCertificate.fromScript(message);
             break;
             case 'purchases_showMyItems':
                 root.isShowingMyItems = true;

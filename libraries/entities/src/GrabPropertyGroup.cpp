@@ -51,6 +51,9 @@ void GrabPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _d
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, equippableLeftRotation, quat, setEquippableLeftRotation);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, equippableRightPosition, vec3, setEquippableRightPosition);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, equippableRightRotation, quat, setEquippableRightRotation);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, equippableIndicatorURL, QString, setEquippableIndicatorURL);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, equippableIndicatorScale, vec3, setEquippableIndicatorScale);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, equippableIndicatorOffset, vec3, setEquippableIndicatorOffset);
 }
 
 void GrabPropertyGroup::merge(const GrabPropertyGroup& other) {
@@ -63,6 +66,9 @@ void GrabPropertyGroup::merge(const GrabPropertyGroup& other) {
     COPY_PROPERTY_IF_CHANGED(equippableLeftRotation);
     COPY_PROPERTY_IF_CHANGED(equippableRightPosition);
     COPY_PROPERTY_IF_CHANGED(equippableRightRotation);
+    COPY_PROPERTY_IF_CHANGED(equippableIndicatorURL);
+    COPY_PROPERTY_IF_CHANGED(equippableIndicatorScale);
+    COPY_PROPERTY_IF_CHANGED(equippableIndicatorOffset);
 }
 
 void GrabPropertyGroup::debugDump() const {
@@ -77,6 +83,9 @@ void GrabPropertyGroup::debugDump() const {
     qCDebug(entities) << "            _equippableLeftRotation:" << _equippableLeftRotation;
     qCDebug(entities) << "            _equippableRightPosition:" << _equippableRightPosition;
     qCDebug(entities) << "            _equippableRightRotation:" << _equippableRightRotation;
+    qCDebug(entities) << "            _equippableIndicatorURL:" << _equippableIndicatorURL;
+    qCDebug(entities) << "            _equippableIndicatorScale:" << _equippableIndicatorScale;
+    qCDebug(entities) << "            _equippableIndicatorOffset:" << _equippableIndicatorOffset;
 }
 
 void GrabPropertyGroup::listChangedProperties(QList<QString>& out) {
@@ -106,6 +115,15 @@ void GrabPropertyGroup::listChangedProperties(QList<QString>& out) {
     }
     if (equippableRightRotationChanged()) {
         out << "grab-equippableRightRotation";
+    }
+    if (equippableIndicatorURLChanged()) {
+        out << "grab-equippableIndicatorURL";
+    }
+    if (equippableIndicatorScaleChanged()) {
+        out << "grab-equippableIndicatorScale";
+    }
+    if (equippableIndicatorOffsetChanged()) {
+        out << "grab-equippableIndicatorOffset";
     }
 }
 
@@ -184,6 +202,9 @@ void GrabPropertyGroup::markAllChanged() {
     _equippableLeftRotationChanged = true;
     _equippableRightPositionChanged = true;
     _equippableRightRotationChanged = true;
+    _equippableIndicatorURLChanged = true;
+    _equippableIndicatorScaleChanged = true;
+    _equippableIndicatorOffsetChanged = true;
 }
 
 EntityPropertyFlags GrabPropertyGroup::getChangedProperties() const {
@@ -215,6 +236,9 @@ void GrabPropertyGroup::getProperties(EntityItemProperties& properties) const {
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, EquippableLeftRotation, getEquippableLeftRotation);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, EquippableRightPosition, getEquippableRightPosition);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, EquippableRightRotation, getEquippableRightRotation);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, EquippableIndicatorURL, getEquippableIndicatorURL);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, EquippableIndicatorScale, getEquippableIndicatorScale);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, EquippableIndicatorOffset, getEquippableIndicatorOffset);
 }
 
 bool GrabPropertyGroup::setProperties(const EntityItemProperties& properties) {
@@ -231,6 +255,12 @@ bool GrabPropertyGroup::setProperties(const EntityItemProperties& properties) {
                                               setEquippableRightPosition);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, EquippableRightRotation, equippableRightRotation,
                                               setEquippableRightRotation);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, EquippableIndicatorURL, equippableIndicatorURL,
+                                              setEquippableIndicatorURL);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, EquippableIndicatorScale, equippableIndicatorScale,
+                                              setEquippableIndicatorScale);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, EquippableIndicatorOffset, equippableIndicatorOffset,
+                                              setEquippableIndicatorOffset);
 
     return somethingChanged;
 }

@@ -345,6 +345,7 @@ Item {
 
             Rectangle {
                 id: permissionExplanationCard;
+                visible: false;
                 anchors.left: parent.left;
                 anchors.leftMargin: 30;
                 anchors.top: parent.top;

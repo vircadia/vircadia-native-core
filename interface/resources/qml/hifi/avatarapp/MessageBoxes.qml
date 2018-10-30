@@ -89,7 +89,7 @@ MessageBox {
 
     function showDeleteFavorite(favoriteName, callback) {
         popup.titleText = 'Delete Favorite: {AvatarName}'.replace('{AvatarName}', favoriteName)
-        popup.bodyText = 'This will delete your favorite. You will retain access to the wearables and avatar that made up the favorite from My Purchases.'
+        popup.bodyText = 'This will delete your favorite. You will retain access to the wearables and avatar that made up the favorite from Inventory.'
         popup.imageSource = null;
         popup.button1text = 'CANCEL'
         popup.button2text = 'DELETE'
