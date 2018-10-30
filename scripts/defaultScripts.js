@@ -45,7 +45,7 @@ if (Window.interstitialModeEnabled) {
 }
 
 // add a menu item for debugging
-var MENU_CATEGORY = "Developer";
+var MENU_CATEGORY = "Developer > Scripting";
 var MENU_ITEM = "Debug defaultScripts.js";
 
 var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
