@@ -188,15 +188,21 @@ void TestRunner::runInstaller() {
         exit(-1);
     }
     
+    QString installFolder = QString("\"") + _workingFolder + "/High Fidelity\"";
+    if (!QDir().exists(installFolder)) {
+        QDir().mkdir(installFolder);
+    }
+    
+    // This script installs High Fidelity.  It is run as "yes | install_app.sh... so "yes" is killed at the end
     script.write("#/bin/sh\n\n");
     script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`\n");
-    script.write((QString("mkdir \"") + _workingFolder + "/High Fidelity\"\n").toStdString().c_str());
     
     QStringList urlParts = _buildInformation.url.split('/');
     QString installerFileName = urlParts[urlParts.length() - 1].split('.')[0];
     script.write((QString("cp -rf \"$VOLUME/") + "/High Fidelity/interface.app\" \"" + _workingFolder + "/High Fidelity/\"\n").toStdString().c_str());
     
     script.write("hdiutil detach \"$VOLUME\"\n");
+    script.write("killall yes\n");
     script.close();
     script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
     
@@ -350,8 +356,6 @@ void TestRunner::startLocalServerProcesses() {
 }
 
 void TestRunner::runInterfaceWithTestScript() {
-    QString exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"";
-
     QString url = QString("hifi://localhost");
     if (_runServerless->isChecked()) {
         // Move to an empty area
@@ -363,9 +367,14 @@ void TestRunner::runInterfaceWithTestScript() {
     QString testScript =
         QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/testRecursive.js";
 
+#ifdef Q_OS_WIN
+    QString exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"";
     QString commandLine = exeFile + " --url " + url + " --no-updater" + " --testScript " + testScript +
                           " quitWhenFinished --testResultsLocation " + _snapshotFolder;
-
+#elif defined Q_OS_MAC
+    QString commandLine = "open -a \"" +_installationFolder + "/interface.app\"";
+#endif
+    
     // Helpful for debugging
     appendLog(commandLine);
 
