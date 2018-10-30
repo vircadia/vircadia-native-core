@@ -81,6 +81,7 @@ bool TextTemplate::loadFile(const ConfigPointer& config, const char* filename, S
         std::ifstream ifs;
         ifs.open(fullfilename.c_str());
         if (ifs.is_open()) {
+            config->_includeFullPaths.insert(fullfilename);
             std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
             source = str;
             ifs.close();
@@ -1002,4 +1003,10 @@ void TextTemplate::Config::displayTree(std::ostream& dst, int& level) const {
         TextTemplate::Block::displayTree( func.second, dst, level);
     }
     level--;
+}
+
+void TextTemplate::Config::displayMakefileDeps(std::ostream& dst) const {
+    for (const auto& include : _includeFullPaths) {
+        std::cout << include << std::endl;
+    }
 }

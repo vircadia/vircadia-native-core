@@ -31,7 +31,27 @@ ClientTraitsHandler::ClientTraitsHandler(AvatarData* owningAvatar) :
     nodeList->getPacketReceiver().registerListener(PacketType::SetAvatarTraits, this, "processTraitOverride");
 }
 
+void ClientTraitsHandler::markTraitUpdated(AvatarTraits::TraitType updatedTrait) {
+    Lock lock(_traitLock);
+    _traitStatuses[updatedTrait] = Updated;
+    _hasChangedTraits = true;
+}
+
+void ClientTraitsHandler::markInstancedTraitUpdated(AvatarTraits::TraitType traitType, QUuid updatedInstanceID) {
+    Lock lock(_traitLock);
+    _traitStatuses.instanceInsert(traitType, updatedInstanceID, Updated);
+    _hasChangedTraits = true;
+}
+
+void ClientTraitsHandler::markInstancedTraitDeleted(AvatarTraits::TraitType traitType, QUuid deleteInstanceID) {
+    Lock lock(_traitLock);
+    _traitStatuses.instanceInsert(traitType, deleteInstanceID, Deleted);
+    _hasChangedTraits = true;
+}
+
 void ClientTraitsHandler::resetForNewMixer() {
+    Lock lock(_traitLock);
+
     // re-set the current version to 0
     _currentTraitVersion = AvatarTraits::DEFAULT_TRAIT_VERSION;
 
@@ -46,6 +66,8 @@ void ClientTraitsHandler::resetForNewMixer() {
 }
 
 void ClientTraitsHandler::sendChangedTraitsToMixer() {
+    Lock lock(_traitLock);
+
     if (hasChangedTraits() || _shouldPerformInitialSend) {
         // we have at least one changed trait to send
 
@@ -113,6 +135,7 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
 
 void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     if (sendingNode->getType() == NodeType::AvatarMixer) {
+        Lock lock(_traitLock);
         while (message->getBytesLeftToRead()) {
             AvatarTraits::TraitType traitType;
             message->readPrimitive(&traitType);

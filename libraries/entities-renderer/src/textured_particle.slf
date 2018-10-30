@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-layout(binding=0) uniform sampler2D colorMap;
+LAYOUT(binding=0) uniform sampler2D colorMap;
 
 layout(location=0) in vec4 varColor;
 layout(location=1) in vec2 varTexcoord;

@@ -18,7 +18,7 @@
 const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
 
-layout(std140, binding=GRAPHICS_BUFFER_SKINNING) uniform skinClusterBuffer {
+LAYOUT_STD140(binding=GRAPHICS_BUFFER_SKINNING) uniform skinClusterBuffer {
     mat4 clusterMatrices[MAX_CLUSTERS];
 };
 

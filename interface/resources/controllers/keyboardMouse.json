@@ -133,7 +133,7 @@
         { "from": "Keyboard.W", "when": "!Keyboard.Control", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.S", "when": "!Keyboard.Control", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.Shift", "when": ["!Keyboard.Left", "!Keyboard.Right"], "to": "Actions.SPRINT" },
-        { "from": "Keyboard.C", "to": "Actions.VERTICAL_DOWN" },
+        { "from": "Keyboard.C", "when": "!Keyboard.Control", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.Left", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.Right", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.Up", "when": "Application.CameraFirstPerson", "to": "Actions.LONGITUDINAL_FORWARD" },

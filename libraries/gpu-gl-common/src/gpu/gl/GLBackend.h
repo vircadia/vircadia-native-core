@@ -288,6 +288,7 @@ public:
     virtual void do_setIndexBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setIndirectBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_generateTextureMips(const Batch& batch, size_t paramOffset) final;
+    virtual void do_generateTextureMipsWithPipeline(const Batch& batch, size_t paramOffset) final;
 
     // Transform Stage
     virtual void do_setModelTransform(const Batch& batch, size_t paramOffset) final;
@@ -407,6 +408,8 @@ public:
 protected:
     virtual GLint getRealUniformLocation(GLint location) const;
 
+    virtual void draw(GLenum mode, uint32 numVertices, uint32 startVertex) = 0;
+
     void recycle() const override;
 
     // FIXME instead of a single flag, create a features struct similar to
@@ -416,16 +419,34 @@ protected:
     static const size_t INVALID_OFFSET = (size_t)-1;
     bool _inRenderTransferPass{ false };
     int _currentDraw{ -1 };
-
-    std::list<std::string> profileRanges;
+    
+    struct FrameTrash {
+        GLsync fence = nullptr;
+        std::list<std::pair<GLuint, Size>> buffersTrash;
+        std::list<std::pair<GLuint, Size>> texturesTrash;
+        std::list<std::pair<GLuint, Texture::ExternalRecycler>> externalTexturesTrash;
+        std::list<GLuint> framebuffersTrash;
+        std::list<GLuint> shadersTrash;
+        std::list<GLuint> programsTrash;
+        std::list<GLuint> queriesTrash;
+        
+        void swap(FrameTrash& other) {
+            buffersTrash.swap(other.buffersTrash);
+            texturesTrash.swap(other.texturesTrash);
+            externalTexturesTrash.swap(other.externalTexturesTrash);
+            framebuffersTrash.swap(other.framebuffersTrash);
+            shadersTrash.swap(other.shadersTrash);
+            programsTrash.swap(other.programsTrash);
+            queriesTrash.swap(other.queriesTrash);
+        }
+        
+        void cleanup();
+    };
+    
     mutable Mutex _trashMutex;
-    mutable std::list<std::pair<GLuint, Size>> _buffersTrash;
-    mutable std::list<std::pair<GLuint, Size>> _texturesTrash;
-    mutable std::list<std::pair<GLuint, Texture::ExternalRecycler>> _externalTexturesTrash;
-    mutable std::list<GLuint> _framebuffersTrash;
-    mutable std::list<GLuint> _shadersTrash;
-    mutable std::list<GLuint> _programsTrash;
-    mutable std::list<GLuint> _queriesTrash;
+    mutable FrameTrash _currentFrameTrash;
+    mutable std::list<FrameTrash> _previousFrameTrashes;
+    std::list<std::string> profileRanges;
     mutable std::list<std::function<void()>> _lambdaQueue;
 
     void renderPassTransfer(const Batch& batch);
@@ -640,18 +661,21 @@ protected:
         }
     } _pipeline;
 
-    // Backend dependant compilation of the shader
+    // Backend dependent compilation of the shader
     virtual void postLinkProgram(ShaderObject& programObject, const Shader& program) const;
     virtual GLShader* compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler);
     virtual GLShader* compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler);
-    virtual std::string getBackendShaderHeader() const = 0;
-    // For a program, this will return a string containing all the source files (without any
-    // backend headers or defines).  For a vertex, fragment or geometry shader, this will
-    // return the fully customized shader with all the version and backend specific
+
+    // For a program, this will return a string containing all the source files (without any 
+    // backend headers or defines).  For a vertex, fragment or geometry shader, this will 
+    // return the fully customized shader with all the version and backend specific 
     // preprocessor directives
     // The program string returned can be used as a key for a cache of shader binaries
     // The shader strings can be reliably sent to the low level `compileShader` functions
-    virtual std::string getShaderSource(const Shader& shader, int version) final;
+    virtual std::string getShaderSource(const Shader& shader, shader::Variant version) final;
+    shader::Variant getShaderVariant() const { return isStereo() ? shader::Variant::Stereo : shader::Variant::Mono; }
+    virtual shader::Dialect getShaderDialect() const = 0;
+
     class ElementResource {
     public:
         gpu::Element _element;
@@ -695,6 +719,8 @@ protected:
     } _textureManagement;
     virtual void initTextureManagementStage();
     virtual void killTextureManagementStage();
+
+    GLuint _mipGenerationFramebufferId{ 0 };
 
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

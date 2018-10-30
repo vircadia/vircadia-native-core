@@ -424,4 +424,6 @@ private:
     std::map<QString, QString> _namedPaths;
 };
 
+void convertGrabUserDataToProperties(EntityItemProperties& properties);
+
 #endif // hifi_EntityTree_h

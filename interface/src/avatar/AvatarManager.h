@@ -55,6 +55,7 @@ using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
  * @borrows AvatarList.sessionUUIDChanged as sessionUUIDChanged
  * @borrows AvatarList.processAvatarDataPacket as processAvatarDataPacket
  * @borrows AvatarList.processAvatarIdentityPacket as processAvatarIdentityPacket
+ * @borrows AvatarList.processBulkAvatarTraits as processBulkAvatarTraits
  * @borrows AvatarList.processKillAvatar as processKillAvatar
  */
 
@@ -152,6 +153,13 @@ public:
                                                                         const QVector<EntityItemID>& avatarsToInclude,
                                                                         const QVector<EntityItemID>& avatarsToDiscard);
 
+    /**jsdoc
+     * @function AvatarManager.findParabolaIntersectionVector
+     * @param {PickParabola} pick
+     * @param {Uuid[]} avatarsToInclude
+     * @param {Uuid[]} avatarsToDiscard
+     * @returns {ParabolaToAvatarIntersectionResult}
+     */
     Q_INVOKABLE ParabolaToAvatarIntersectionResult findParabolaIntersectionVector(const PickParabola& pick,
                                                                                   const QVector<EntityItemID>& avatarsToInclude,
                                                                                   const QVector<EntityItemID>& avatarsToDiscard);
@@ -176,7 +184,7 @@ public:
      * than iterating over each avatar and obtaining data about them in JavaScript, as that method
      * locks and unlocks each avatar's data structure potentially hundreds of times per update tick.
      * @function AvatarManager.getPalData
-     * @param {string[]} specificAvatarIdentifiers - A list of specific Avatar Identifiers about
+     * @param {string[]} [specificAvatarIdentifiers] - A list of specific Avatar Identifiers about
      * which you want to get PAL data
      * @returns {object}
      */
@@ -213,6 +221,7 @@ private:
     // frequently grabs a read lock on the hash to get a given avatar by ID
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar,
                              KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
+    void handleTransitAnimations(AvatarTransit::Status status);
 
     QVector<AvatarSharedPointer> _avatarsToFade;
 

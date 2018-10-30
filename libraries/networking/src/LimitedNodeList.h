@@ -386,7 +386,7 @@ protected:
     void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
 
-    bool sockAddrBelongsToNode(const HifiSockAddr& sockAddr) { return findNodeWithAddr(sockAddr) != SharedNodePointer(); }
+    bool sockAddrBelongsToNode(const HifiSockAddr& sockAddr);
 
     NodeHash _nodeHash;
     mutable QReadWriteLock _nodeMutex { QReadWriteLock::Recursive };

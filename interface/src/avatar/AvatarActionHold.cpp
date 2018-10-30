@@ -135,7 +135,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
         glm::vec3 palmPosition;
         glm::quat palmRotation;
 
-        bool isTransitingWithAvatar = holdingAvatar->getTransit()->isTransiting();
+        bool isTransitingWithAvatar = holdingAvatar->getTransit()->isActive();
         if (isTransitingWithAvatar != _isTransitingWithAvatar) {
             _isTransitingWithAvatar = isTransitingWithAvatar;
             auto ownerEntity = _ownerEntity.lock();
@@ -424,7 +424,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             if (ownerEntity) {
                 ownerEntity->setDynamicDataDirty(true);
                 ownerEntity->setDynamicDataNeedsTransmit(true);     
-                ownerEntity->setTransitingWithAvatar(myAvatar->getTransit()->isTransiting());
+                ownerEntity->setTransitingWithAvatar(myAvatar->getTransit()->isActive());
             }
         });
     }
