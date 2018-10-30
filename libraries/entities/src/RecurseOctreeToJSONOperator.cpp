@@ -12,10 +12,9 @@
 #include "RecurseOctreeToJSONOperator.h"
 #include "EntityItemProperties.h"
 
-RecurseOctreeToJSONOperator::RecurseOctreeToJSONOperator(const OctreeElementPointer& top, QScriptEngine* engine,
+RecurseOctreeToJSONOperator::RecurseOctreeToJSONOperator(const OctreeElementPointer&, QScriptEngine* engine,
     QString jsonPrefix /* = QString() */, bool skipDefaults /* = true */)
-    : _top(top)
-    , _engine(engine)
+    : _engine(engine)
     , _json(jsonPrefix)
     , _skipDefaults(skipDefaults)
 {
