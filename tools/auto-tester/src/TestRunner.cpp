@@ -179,23 +179,31 @@ void TestRunner::runInstaller() {
 #ifdef Q_OS_WIN
     QString commandLine =
         "\"" + QDir::toNativeSeparators(installerFullPath) + "\"" + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
-
-    installerWorker->setCommandLine(commandLine);
 #elif defined Q_OS_MAC
     QFile script;
     script.setFileName(_workingFolder + "/install_app.sh");
-    if (!script.open(QIODevice::Append | QIODevice::Text)) {
+    if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
                               "Could not open 'install_app.sh'");
         exit(-1);
     }
     
     script.write("#/bin/sh\n\n");
-    script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`");
-    script.write((QString("#cp -rf \"$VOLUME/") + _installerFilename + "High Fidelity/interface.app\"").toStdString().c_str());
+    script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`\n");
+    script.write((QString("mkdir \"") + _workingFolder + "/High Fidelity\"\n").toStdString().c_str());
     
-    QString commandLine = "yes | ../install_app.sh HighFidelity-Beta-latest-dev.dmg";
+    QStringList urlParts = _buildInformation.url.split('/');
+    QString installerFileName = urlParts[urlParts.length() - 1].split('.')[0];
+    script.write((QString("cp -rf \"$VOLUME/") + "/High Fidelity/interface.app\" \"" + _workingFolder + "/High Fidelity/\"\n").toStdString().c_str());
+    
+    script.write("hdiutil detach \"$VOLUME\"\n");
+    script.close();
+    script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+    
+    QString commandLine = "yes | " + _workingFolder + "/install_app.sh " + _workingFolder + "/HighFidelity-Beta-latest-dev.dmg";
 #endif
+
+    installerWorker->setCommandLine(commandLine);
     emit startInstaller();
 }
 
