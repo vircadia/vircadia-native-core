@@ -36,6 +36,9 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
 static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     glm::mat4 worldToSensorMat = glm::inverse(myAvatar->getSensorToWorldMatrix());
 
+    //experiment to fix crazy legs.
+    glm::vec3 floorPosition = transformPoint(myAvatar->getSensorToWorldMatrix(), glm::vec3(0.0f, 0.0f, 0.0f));
+
     // check for pinned hips.
     auto hipsIndex = myAvatar->getJointIndex("Hips");
     if (myAvatar->isJointPinned(hipsIndex)) {
@@ -55,6 +58,15 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     }
     glm::vec3 hipsPos = extractTranslation(hipsMat);
     glm::quat hipsRot = glmExtractRotation(hipsMat);
+
+    // if we are less the floor with the hips then lock them to the floor.
+    // if, if that is, we are using cg or hmd lean is off.
+    if (myAvatar->getCenterOfGravityModelEnabled() || !myAvatar->getHMDLeanRecenterEnabled()) {
+        if (hipsPos.y < 0.02f) {
+            hipsPos.y = 0.02f;
+        }
+    }
+
 
     glm::mat4 avatarToWorldMat = myAvatar->getTransform().getMatrix();
     glm::mat4 avatarToSensorMat = worldToSensorMat * avatarToWorldMat;
