@@ -38,6 +38,7 @@ struct ovr {
     static inline bool hasInputFocus() { return hasInputFocus(getStatus()); }
 
     static inline bool quitRequested(const ovrSessionStatus& status) { return status.ShouldQuit != ovrFalse; }
+    static inline bool displayLost(const ovrSessionStatus& status) { return status.DisplayLost != ovrFalse; }
     static inline bool reorientRequested(const ovrSessionStatus& status) { return status.ShouldRecenter != ovrFalse; }
     static inline bool hmdMounted(const ovrSessionStatus& status) { return status.HmdMounted != ovrFalse; }
     static inline bool hasInputFocus(const ovrSessionStatus& status) { return status.HasInputFocus != ovrFalse; }

@@ -195,6 +195,10 @@ void OculusDisplayPlugin::hmdPresent() {
 
         if (!OVR_SUCCESS(result)) {
             qWarning(oculusLog) << "Failed to present" << ovr::getError();
+            if (result == ovrError_DisplayLost) {
+                qWarning(oculusLog) << "Display lost, shutting down";
+                return;
+            }
         }
 
         static int compositorDroppedFrames = 0;

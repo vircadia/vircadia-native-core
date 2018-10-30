@@ -30,7 +30,7 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         return false;
     }
 
-    if (ovr::quitRequested(status) || !ovr::handleOVREvents()) {
+    if (ovr::quitRequested(status) || ovr::displayLost(status) || !ovr::handleOVREvents()) {
         QMetaObject::invokeMethod(qApp, "quit");
         return false;
     }
