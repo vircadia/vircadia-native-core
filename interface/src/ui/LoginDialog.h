@@ -18,6 +18,7 @@
 #include <SettingHandle.h>
 
 class QNetworkReply;
+class Web3DOverlay;
 
 class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
@@ -76,9 +77,15 @@ protected slots:
     Q_INVOKABLE bool getLoginDialogPoppedUp() const;
 
 private:
+    // for HMD mode on pop up.
+    static void createLoginDialogOverlay();
+
     bool getIsLogIn() const { return _isLogIn; }
     void setIsLogIn(const bool isLogIn) { _isLogIn = isLogIn; }
+
     bool _isLogIn { false };
+
+    Web3DOverlay _loginDialogOverlay;
 };
 
 #endif // hifi_LoginDialog_h
