@@ -15,7 +15,7 @@ Script.include("../libraries/WebTablet.js");
 
 var toolIconUrl = Script.resolvePath("../assets/images/tools/");
 
-var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
+var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace" + (WalletScriptingInterface.limitedCommerce ? "?isFree=1" : "");
 var marketplaceWindow = new OverlayWebWindow({
     title: "Marketplace",
     source: "about:blank",

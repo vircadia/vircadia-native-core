@@ -96,7 +96,6 @@ Web3DOverlay::Web3DOverlay() {
     _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
     _webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
     _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-    _webSurface->getSurfaceContext()->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
 }
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
@@ -271,8 +270,8 @@ void Web3DOverlay::setupQmlSurface(bool isTablet) {
         _webSurface->getSurfaceContext()->setContextProperty("Web3DOverlay", this);
         _webSurface->getSurfaceContext()->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Reticle", qApp->getApplicationCompositor().getReticleInterface());
-        _webSurface->getSurfaceContext()->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
         // Override min fps for tablet UI, for silky smooth scrolling

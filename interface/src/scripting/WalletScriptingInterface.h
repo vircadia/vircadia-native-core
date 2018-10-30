@@ -36,29 +36,29 @@ public:
  * @hifi-client-entity
  *
  * @property {number} walletStatus
+ * @property {bool} limitedCommerce
  */
 class WalletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-
     Q_PROPERTY(uint walletStatus READ getWalletStatus WRITE setWalletStatus NOTIFY walletStatusChanged)
-    Q_PROPERTY(bool limitedCommerce READ getLimitedCommerce WRITE setLimitedCommerce)
+    Q_PROPERTY(bool limitedCommerce READ getLimitedCommerce WRITE setLimitedCommerce NOTIFY limitedCommerceChanged)
 
 public:
 
     /**jsdoc
-     * @function Wallet.refreshWalletStatus
+     * @function WalletScriptingInterface.refreshWalletStatus
      */
     Q_INVOKABLE void refreshWalletStatus();
 
     /**jsdoc
-     * @function Wallet.getWalletStatus
+     * @function WalletScriptingInterface.getWalletStatus
      * @returns {number}
      */
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
 
     /**jsdoc
-     * @function Wallet.proveAvatarEntityOwnershipVerification
+     * @function WalletScriptingInterface.proveAvatarEntityOwnershipVerification
      * @param {Uuid} entityID
      */
     Q_INVOKABLE void proveAvatarEntityOwnershipVerification(const QUuid& entityID);
@@ -67,32 +67,38 @@ public:
     //     scripts could cause the Wallet to incorrectly report its status.
     void setWalletStatus(const uint& status);
 
-  bool getLimitedCommerce() { return _limitedCommerce; }
-  void setLimitedCommerce(bool isLimited) { _limitedCommerce = isLimited; }
+    bool getLimitedCommerce() { return _limitedCommerce; }
+    void setLimitedCommerce(bool isLimited) { _limitedCommerce = isLimited; }
 
 signals:
 
     /**jsdoc
-     * @function Wallet.walletStatusChanged
+     * @function WalletScriptingInterface.walletStatusChanged
      * @returns {Signal}
      */
     void walletStatusChanged();
 
     /**jsdoc
-     * @function Wallet.walletNotSetup
+     * @function WalletScriptingInterface.limitedCommerceChanged
+     * @returns {Signal}
+     */
+    void limitedCommerceChanged();
+
+    /**jsdoc
+     * @function WalletScriptingInterface.walletNotSetup
      * @returns {Signal}
      */
     void walletNotSetup();
 
     /**jsdoc
-     * @function Wallet.ownershipVerificationSuccess
+     * @function WalletScriptingInterface.ownershipVerificationSuccess
      * @param {Uuid} entityID
      * @returns {Signal}
      */
     void ownershipVerificationSuccess(const QUuid& entityID);
 
     /**jsdoc
-     * @function Wallet.ownershipVerificationFailed
+     * @function WalletScriptingInterface.ownershipVerificationFailed
      * @param {Uuid} entityID
      * @returns {Signal}
      */

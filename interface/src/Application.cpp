@@ -3154,7 +3154,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
     surfaceContext->setContextProperty("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
-    surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
+    surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
     surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
@@ -6876,7 +6876,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
     scriptEngine->registerGlobalObject("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
-    scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
     scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
@@ -7881,6 +7881,10 @@ void Application::loadAvatarBrowser() const {
     auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     // construct the url to the marketplace item
     QString url = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace?category=avatars";
+    if (DependencyManager::get<WalletScriptingInterface>()->getLimitedCommerce()) {
+        url += "&isFree=1";
+    }
+
     QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
     tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
     DependencyManager::get<HMDScriptingInterface>()->openTablet();

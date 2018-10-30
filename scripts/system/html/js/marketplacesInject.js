@@ -60,7 +60,7 @@
         );
 
         // Footer.
-        var isInitialHiFiPage = location.href === marketplaceBaseURL + "/marketplace?";
+        var isInitialHiFiPage = location.href === (marketplaceBaseURL + "/marketplace" + (limitedCommerce ? "?isFree=1" : "?"));
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
@@ -72,7 +72,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            (document.referrer !== "") ? window.history.back() : window.location = (marketplaceBaseURL + "/marketplace?");
+            (document.referrer !== "") ? window.history.back() : window.location = (marketplaceBaseURL + "/marketplace?") + (limitedCommerce ? "isFree=1" : "");
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(JSON.stringify({
@@ -93,7 +93,7 @@
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
         $('#exploreHifiMarketplace').on('click', function () {
-            window.location = marketplaceBaseURL + "/marketplace";
+            window.location = marketplaceBaseURL + "/marketplace" + (limitedCommerce ? "?isFree=1" : "?");
         });
     }
 
@@ -193,43 +193,6 @@
             dummyRow.classList.add("row");
             dummyRow.style = "height:15px;";
             resultsElement.insertBefore(dummyRow, resultsElement.firstChild);
-        }
-    }
-
-    function maybeAddPurchasesButton() {
-        if (userIsLoggedIn) {
-            // Why isn't this an id?! This really shouldn't be a class on the website, but it is.
-            var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
-            var purchasesElement = document.createElement('a');
-            var dropDownElement = document.getElementById('user-dropdown');
-
-            $('#user-dropdown').find('.username')[0].style = "max-width:80px;white-space:nowrap;overflow:hidden;" +
-                "text-overflow:ellipsis;display:inline-block;position:relative;top:4px;";
-            $('#user-dropdown').find('.caret')[0].style = "position:relative;top:-3px;";
-
-            purchasesElement.id = "purchasesButton";
-            purchasesElement.setAttribute('href', "#");
-            purchasesElement.innerHTML = "";
-            if (messagesWaiting) {
-                purchasesElement.innerHTML += "<span style='width:10px;height:10px;background-color:red;border-radius:50%;display:inline-block;'></span> ";
-            }
-            purchasesElement.innerHTML += "My Purchases";
-            // FRONTEND WEBDEV RANT: The username dropdown should REALLY not be programmed to be on the same
-            //     line as the search bar, overlaid on top of the search bar, floated right, and then relatively bumped up using "top:-50px".
-            $('.navbar-brand').css('margin-right', '10px');
-            purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
-                "px;position:relative;z-index:999;";
-            navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
-            if (limitedCommerce) {
-                $('#purchasesButton').css('display', 'none');
-            }
-            $('#purchasesButton').on('click', function () {
-                EventBridge.emitWebEvent(JSON.stringify({
-                    type: "PURCHASES",
-                    referrerURL: window.location.href,
-                    hasUpdates: messagesWaiting
-                }));
-            });
         }
     }
 
@@ -409,7 +372,6 @@
                 // Try this here in case it works (it will if the user just pressed the "back" button,
                 //     since that doesn't trigger another AJAX request.
                 injectBuyButtonOnMainPage();
-                maybeAddPurchasesButton();
             }
         }
 
@@ -458,7 +420,7 @@
                 if (isUpdating) {
                     purchaseButton.html('UPDATE FOR FREE');
                 } else if (availability !== 'available') {
-                    purchaseButton.html('UNAVAILABLE' + (availability ? ('(' + availability + ')') : ''));
+                    purchaseButton.html('UNAVAILABLE ' + (availability ? ('(' + availability + ')') : ''));
                 } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
                     purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
                         'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
@@ -476,7 +438,6 @@
                             type);
                     }
                 });
-                maybeAddPurchasesButton();
             }
         }
 

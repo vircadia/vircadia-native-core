@@ -559,7 +559,7 @@ Rectangle {
                 }
             }
 
-            // "View in My Purchases" button
+            // "View in Inventory" button
             HifiControlsUit.Button {
                 id: viewInMyPurchasesButton;
                 visible: false;
@@ -833,7 +833,7 @@ Rectangle {
                 }
                 lightboxPopup.button2text = "OPEN GOTO";
                 lightboxPopup.button2method = function() {
-                    sendToScript({method: 'purchases_openGoTo'});
+                    sendToScript({method: 'checkout_openGoTo'});
                     lightboxPopup.visible = false;
                 };
                 lightboxPopup.visible = true;
@@ -886,7 +886,8 @@ Rectangle {
 
         RalewaySemiBold {
             id: walletLink;
-            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View receipt in Wallet</a></font>';
+            visible: !WalletScriptingInterface.limitedCommerce;
+            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View receipt in Recent Activity</a></font>';
             // Text size
             size: 18;
             // Anchors
@@ -902,18 +903,18 @@ Rectangle {
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignVCenter;
             onLinkActivated: {
-                sendToScript({method: 'purchases_openWallet'});
+                sendToScript({method: 'checkout_openWallet'});
             }
         }
 
         RalewayRegular {
             id: pendingText;
-            text: 'Your item is marked "pending" while it is being confirmed. ' +
+            text: 'Your item is marked "pending" while the transfer is being confirmed. ' +
             '<b><font color="' + hifi.colors.primaryHighlight + '"><a href="#">Learn More</a></font></b>';
             // Text size
             size: 18;
             // Anchors
-            anchors.top: walletLink.bottom;
+            anchors.top: walletLink.visible ? walletLink.bottom : myPurchasesLink.bottom;
             anchors.topMargin: 32;
             height: paintedHeight;
             anchors.left: parent.left;
@@ -926,7 +927,7 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter;
             onLinkActivated: {
                 lightboxPopup.titleText = "Confirmations";
-                lightboxPopup.bodyText = 'Your item is marked "pending" while it is being confirmed.<br><br>' +
+                lightboxPopup.bodyText = 'Your item is marked "pending" while the transfer is being confirmed.<br><br>' +
                 'Confirmations usually take about 90 seconds.';
                 lightboxPopup.button1text = "CLOSE";
                 lightboxPopup.button1method = function() {
