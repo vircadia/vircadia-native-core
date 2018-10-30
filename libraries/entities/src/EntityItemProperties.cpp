@@ -3207,6 +3207,8 @@ void EntityItemProperties::markAllChanged() {
 
     _queryAACubeChanged = true;
 
+    _shapeChanged = true;
+
     _flyingAllowedChanged = true;
     _ghostingAllowedChanged = true;
     _filterURLChanged = true;
