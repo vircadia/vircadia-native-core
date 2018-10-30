@@ -25,25 +25,24 @@
 #include "GLLogging.h"
 #include "Config.h"
 #include "GLHelpers.h"
+#include "QOpenGLContextWrapper.h"
 
 using namespace gl;
 
 
 bool Context::enableDebugLogger() {
+#if defined(Q_OS_MAC)
+    // OSX does not support GL_KHR_debug or GL_ARB_debug_output
+    return false;
+#else
 #if defined(DEBUG) || defined(USE_GLES)
     static bool enableDebugLogger = true;
 #else
     static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
     static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 #endif
-    static std::once_flag once;
-    std::call_once(once, [&] {
-        // If the previous run crashed, force GL debug logging on
-        if (qApp->property(hifi::properties::CRASHED).toBool()) {
-            enableDebugLogger = true;
-        }
-    });
     return enableDebugLogger;
+#endif
 }
 
 
@@ -67,8 +66,6 @@ void Context::updateSwapchainMemoryUsage(size_t prevSize, size_t newSize) {
     }
 }
 
-
-Context* Context::PRIMARY = nullptr;
 
 Context::Context() {}
 
@@ -97,9 +94,6 @@ void Context::release() {
     _context = nullptr;
 #endif
     _window = nullptr;
-    if (PRIMARY == this) {
-        PRIMARY = nullptr;
-    }
     updateSwapchainMemoryCounter();
 }
 
@@ -235,16 +229,9 @@ typedef HGLRC(APIENTRYP PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC hDC, HGLRC hShare
 GLAPI PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
 GLAPI PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 
+Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
 
-void Context::create() {
-    if (!PRIMARY) {
-        PRIMARY = static_cast<Context*>(qApp->property(hifi::properties::gl::PRIMARY_CONTEXT).value<void*>());
-    }
-
-    if (PRIMARY) {
-        _version = PRIMARY->_version;
-    }
-
+void Context::create(QOpenGLContext* shareContext) {
     assert(0 != _hwnd);
     assert(0 == _hdc);
     auto hwnd = _hwnd;
@@ -338,17 +325,15 @@ void Context::create() {
             contextAttribs.push_back(0);
         }
         contextAttribs.push_back(0);
-        auto shareHglrc = PRIMARY ? PRIMARY->_hglrc : 0;
+        if (!shareContext) {
+            shareContext = qt_gl_global_share_context();
+        }
+        HGLRC shareHglrc = (HGLRC)QOpenGLContextWrapper::nativeContext(shareContext);
         _hglrc = wglCreateContextAttribsARB(_hdc, shareHglrc, &contextAttribs[0]);
     }
 
     if (_hglrc == 0) {
         throw std::runtime_error("Could not create GL context");
-    }
-
-    if (!PRIMARY) {
-        PRIMARY = this;
-        qApp->setProperty(hifi::properties::gl::PRIMARY_CONTEXT, QVariant::fromValue((void*)PRIMARY));
     }
 
     if (!makeCurrent()) {
@@ -363,12 +348,11 @@ void Context::create() {
 
 #endif
 
-
 OffscreenContext::~OffscreenContext() {
     _window->deleteLater();
 }
 
-void OffscreenContext::create() {
+void OffscreenContext::create(QOpenGLContext* shareContext) {
     if (!_window) {
         _window = new QWindow();
         _window->setFlags(Qt::MSWindowsOwnDC);
@@ -379,5 +363,5 @@ void OffscreenContext::create() {
         qCDebug(glLogging) << "New Offscreen GLContext, window size = " << windowSize.width() << " , " << windowSize.height();
         QGuiApplication::processEvents();
     }
-    Parent::create();
+    Parent::create(shareContext);
 }

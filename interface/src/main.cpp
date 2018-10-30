@@ -23,6 +23,7 @@
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
 #include <NetworkAccessManager.h>
+#include <gl/GLHelpers.h>
 
 #include "AddressManager.h"
 #include "Application.h"
@@ -40,6 +41,18 @@ extern "C" {
 #endif
 
 int main(int argc, const char* argv[]) {
+#ifdef Q_OS_MAC
+    auto format = getDefaultOpenGLSurfaceFormat();
+    // Deal with some weirdness in the chromium context sharing on Mac.
+    // The primary share context needs to be 3.2, so that the Chromium will
+    // succeed in it's creation of it's command stub contexts.  
+    format.setVersion(3, 2);
+    // This appears to resolve the issues with corrupted fonts on OSX.  No
+    // idea why.
+    qputenv("QT_ENABLE_GLYPH_CACHE_WORKAROUND", "true");
+	// https://i.kym-cdn.com/entries/icons/original/000/008/342/ihave.jpg
+    QSurfaceFormat::setDefaultFormat(format);
+#endif
     setupHifiApplication(BuildInfo::INTERFACE_NAME);
 
     QStringList arguments;
