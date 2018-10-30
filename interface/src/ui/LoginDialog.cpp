@@ -29,7 +29,6 @@
 #include "avatar/AvatarManager.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "ui/overlays/Overlays.h"
-#include "ui/overlays/Web3DOverlay.h"
 #include "Constants.h"
 
 HIFI_QML_DEF(LoginDialog)
@@ -75,8 +74,8 @@ void LoginDialog::showWithSelection() {
         } else {
             tablet->initialScreen(TABLET_LOGIN_DIALOG_URL);
         }
-
     }
+
     if (!hmd->getShouldShowTablet()) {
         hmd->openTablet();
     }

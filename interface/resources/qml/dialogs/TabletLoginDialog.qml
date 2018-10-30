@@ -17,51 +17,40 @@ import "../windows" as Windows
 
 import "../LoginDialog"
 
-Windows.TabletModalWindow {
-    id: realRoot
+FocusScope {
+    id: root
     objectName: "LoginDialog"
+    visible: true
+    anchors.fill: parent
 
     signal sendToScript(var message);
     property bool isHMD: false
     property bool gotoPreviousApp: false;
-    color: hifi.colors.baseGray
-    title: qsTr("Sign in to High Fidelity")
-    property alias titleWidth: root.titleWidth
-    property alias punctuationMode: root.punctuationMode
 
-    //fake root for shared components expecting root here
-    property var root: QtObject {
-        id: root
+    property bool keyboardEnabled: false
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+    property bool isPassword: false
+    property alias text: loginKeyboard.mirroredText
 
-        property bool keyboardEnabled: false
-        property bool keyboardRaised: false
-        property bool punctuationMode: false
-        property bool isPassword: false
-        property alias text: loginKeyboard.mirroredText
+    readonly property bool isTablet: true
 
-        readonly property bool isTablet: true
+    property int titleWidth: 0
+    property string iconText: hifi.glyphs.avatar
+    property int iconSize: 35
 
-        property alias title: realRoot.title
-        property real width: realRoot.width
-        property real height: realRoot.height
+    property var pane: QtObject {
+        property real width: root.width
+        property real height: root.height
+    }
 
-        property int titleWidth: 0
-        property string iconText: hifi.glyphs.avatar
-        property int iconSize: 35
-
-        property var pane: QtObject {
-            property real width: root.width
-            property real height: root.height
-        }
-
-        function tryDestroy() {
-            canceled()
-        }
+    function tryDestroy() {
+        canceled()
     }
 
     MouseArea {
-        width: realRoot.width
-        height: realRoot.height
+        width: root.width
+        height: root.height
     }
 
     property bool keyboardOverride: true
@@ -75,32 +64,13 @@ Windows.TabletModalWindow {
 
     HifiStylesUit.HifiConstants { id: hifi }
 
-    Item {
-        id: mfRoot
+    readonly property int frameMarginTop: hifi.dimensions.modalDialogMargin.y
 
-        readonly property int frameMarginTop: hifi.dimensions.modalDialogMargin.y
-        width: root.width
-        height: root.height + frameMarginTop + hifi.dimensions.contentMargin.x
+    LoginDialog {
+        id: loginDialog
 
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            verticalCenter: parent.verticalCenter
-        }
-
-        LoginDialog {
-            id: loginDialog
-
-            anchors {
-                fill: parent
-                topMargin: parent.frameMarginTop
-                horizontalCenter: parent.horizontalCenter
-            }
-
-            Loader {
-                id: bodyLoader
-                anchors.fill: parent
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
+        Loader {
+            id: bodyLoader
         }
     }
 
@@ -110,9 +80,9 @@ Windows.TabletModalWindow {
         numeric: root.punctuationMode
         password: root.isPassword
         anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
+            left: bodyLoader.left
+            right: bodyLoader.right
+            top: bodyLoader.bottom
         }
     }
 
@@ -138,7 +108,6 @@ Windows.TabletModalWindow {
                 }
                 break
         } else switch (event.key) {
-
             case Qt.Key_Enter:
             case Qt.Key_Return:
                 event.accepted = true

@@ -17,6 +17,8 @@
 #include <OffscreenQmlDialog.h>
 #include <SettingHandle.h>
 
+#include "ui/overlays/Web3DOverlay.h"
+
 class QNetworkReply;
 class Web3DOverlay;
 
