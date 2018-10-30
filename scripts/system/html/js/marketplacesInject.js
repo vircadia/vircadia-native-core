@@ -312,11 +312,12 @@
             var getString = "GET";
             // Protection against the button getting stuck in the "BUY"/"GET" state.
             // That happens when the browser gets two MOUSEENTER events before getting a
-            // MOUSELEAVE event.
-            if ($this.text() === buyString || $this.text() === getString) {
-                return;
-            }
-            if ($this.text() === 'invalidated') {
+            // MOUSELEAVE event. Also, if not available for sale, just return.
+            if ($this.text() === buyString ||
+                $this.text() === getString ||
+                $this.text() === 'invalidated' ||
+                $this.text() === 'sold out' ||
+                $this.text() === 'not for sale' ) {
                 return;
             }
             $this.data('initialHtml', $this.html());
@@ -337,7 +338,10 @@
 
 
         $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
-            if ($(this).closest('.grid-item').find('.price').text() === 'invalidated') {
+            var price = $(this).closest('.grid-item').find('.price').text();
+            if (price === 'invalidated' ||
+                price === 'sold out' ||
+                price === 'not for sale') {
                 return false;
             }
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
