@@ -711,15 +711,6 @@ const GROUPS = [
                 propertyID: "particleRadius",
             },
             {
-                label: "Size Spread",
-                type: "slider",
-                min: 0,
-                max: 4,
-                step: 0.01,
-                decimals: 2,
-                propertyID: "radiusSpread",
-            },
-            {
                 label: "Size Start",
                 type: "slider",
                 min: 0,
@@ -738,6 +729,15 @@ const GROUPS = [
                 decimals: 2,
                 propertyID: "radiusFinish",
                 fallbackProperty: "particleRadius",
+            },
+            {
+                label: "Size Spread",
+                type: "slider",
+                min: 0,
+                max: 4,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "radiusSpread",
             },
         ]
     },
@@ -784,15 +784,6 @@ const GROUPS = [
                 propertyID: "alpha",
             },
             {
-                label: "Alpha Spread",
-                type: "slider",
-                min: 0,
-                max: 1,
-                step: 0.01,
-                decimals: 2,
-                propertyID: "alphaSpread",
-            },
-            {
                 label: "Alpha Start",
                 type: "slider",
                 min: 0,
@@ -811,6 +802,15 @@ const GROUPS = [
                 decimals: 2,
                 propertyID: "alphaFinish",
                 fallbackProperty: "alpha",
+            },
+            {
+                label: "Alpha Spread",
+                type: "slider",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "alphaSpread",
             },
         ]
     },
@@ -854,17 +854,6 @@ const GROUPS = [
                 propertyID: "particleSpin",
             },
             {
-                label: "Spin Spread",
-                type: "slider",
-                min: 0,
-                max: 360,
-                step: 1,
-                decimals: 0,
-                multiplier: DEGREES_TO_RADIANS,
-                unit: "deg",
-                propertyID: "spinSpread",
-            },
-            {
                 label: "Spin Start",
                 type: "slider",
                 min: -360,
@@ -887,6 +876,17 @@ const GROUPS = [
                 unit: "deg",
                 propertyID: "spinFinish",
                 fallbackProperty: "particleSpin",
+            },
+            {
+                label: "Spin Spread",
+                type: "slider",
+                min: 0,
+                max: 360,
+                step: 1,
+                decimals: 0,
+                multiplier: DEGREES_TO_RADIANS,
+                unit: "deg",
+                propertyID: "spinSpread",
             },
             {
                 label: "Rotate with Entity",
@@ -1356,15 +1356,15 @@ function getPropertyInputElement(propertyID) {
 }
 
 function enableChildren(el, selector) {
-    var elSelectors = el.querySelectorAll(selector);
-    for (var selectorIndex = 0; selectorIndex < elSelectors.length; ++selectorIndex) {
+    let elSelectors = el.querySelectorAll(selector);
+    for (let selectorIndex = 0; selectorIndex < elSelectors.length; ++selectorIndex) {
         elSelectors[selectorIndex].removeAttribute('disabled');
     }
 }
 
 function disableChildren(el, selector) {
-    var elSelectors = el.querySelectorAll(selector);
-    for (var selectorIndex = 0; selectorIndex < elSelectors.length; ++selectorIndex) {
+    let elSelectors = el.querySelectorAll(selector);
+    for (let selectorIndex = 0; selectorIndex < elSelectors.length; ++selectorIndex) {
         elSelectors[selectorIndex].setAttribute('disabled', 'disabled');
     }
 }
@@ -1372,7 +1372,7 @@ function disableChildren(el, selector) {
 function enableProperties() {
     enableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
     enableChildren(document, ".colpick");
-    var elLocked = getPropertyInputElement("locked");
+    let elLocked = getPropertyInputElement("locked");
 
     if (elLocked.checked === false) {
         removeStaticUserData();
@@ -1383,10 +1383,10 @@ function enableProperties() {
 function disableProperties() {
     disableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
     disableChildren(document, ".colpick");
-    for (var pickKey in colorPickers) {
+    for (let pickKey in colorPickers) {
         colorPickers[pickKey].colpickHide();
     }
-    var elLocked = getPropertyInputElement("locked");
+    let elLocked = getPropertyInputElement("locked");
 
     if (elLocked.checked === true) {
         if ($('#property-userData-editor').css('display') === "block") {
@@ -1527,7 +1527,7 @@ function getPropertyValue(originalPropertyName) {
  * PROPERTY UPDATE FUNCTIONS
  */
 
-function updateProperty(originalPropertyName, propertyValue) {
+function updateProperty(originalPropertyName, propertyValue, isParticleProperty) {
     let propertyUpdate = {};
     // if this is a compound property name (i.e. animation.running) then split it by . up to 3 times
     let splitPropertyName = originalPropertyName.split('.');
@@ -1546,8 +1546,8 @@ function updateProperty(originalPropertyName, propertyValue) {
         propertyUpdate[originalPropertyName] = propertyValue;
     }
     // queue up particle property changes with the debounced sync to avoid  
-    // causing particle emitting to reset each frame when updating values
-    if (properties[originalPropertyName].isParticleProperty) {
+    // causing particle emitting to reset excessively with each value change
+    if (isParticleProperty) {
         Object.keys(propertyUpdate).forEach(function (propertyUpdateKey) {
             particlePropertyUpdates[propertyUpdateKey] = propertyUpdate[propertyUpdateKey];
         });
@@ -1570,30 +1570,29 @@ function updateProperties(propertiesToUpdate) {
     }));
 }
 
-
-function createEmitTextPropertyUpdateFunction(propertyName) {
+function createEmitTextPropertyUpdateFunction(propertyName, isParticleProperty) {
     return function() {
-        updateProperty(propertyName, this.value);
+        updateProperty(propertyName, this.value, isParticleProperty);
     };
 }
 
-function createEmitCheckedPropertyUpdateFunction(propertyName, inverse) {
+function createEmitCheckedPropertyUpdateFunction(propertyName, inverse, isParticleProperty) {
     return function() {
-        updateProperty(propertyName, inverse ? !this.checked : this.checked);
+        updateProperty(propertyName, inverse ? !this.checked : this.checked, isParticleProperty);
     };
 }
 
-function createEmitNumberPropertyUpdateFunction(propertyName, multiplier) {
+function createEmitNumberPropertyUpdateFunction(propertyName, multiplier, isParticleProperty) {
     return function() {
         if (multiplier === undefined) {
             multiplier = 1;
         }
         let value = parseFloat(this.value) * multiplier;
-        updateProperty(propertyName, value);
+        updateProperty(propertyName, value, isParticleProperty);
     };
 }
 
-function createEmitVec2PropertyUpdateFunction(propertyName, elX, elY, multiplier) {
+function createEmitVec2PropertyUpdateFunction(propertyName, elX, elY, multiplier, isParticleProperty) {
     return function () {
         if (multiplier === undefined) {
             multiplier = 1;
@@ -1602,11 +1601,11 @@ function createEmitVec2PropertyUpdateFunction(propertyName, elX, elY, multiplier
             x: elX.value * multiplier,
             y: elY.value * multiplier
         };
-        updateProperty(propertyName, newValue);
+        updateProperty(propertyName, newValue, isParticleProperty);
     };
 }
 
-function createEmitVec3PropertyUpdateFunction(propertyName, elX, elY, elZ, multiplier) {
+function createEmitVec3PropertyUpdateFunction(propertyName, elX, elY, elZ, multiplier, isParticleProperty) {
     return function() {
         if (multiplier === undefined) {
             multiplier = 1;
@@ -1616,26 +1615,26 @@ function createEmitVec3PropertyUpdateFunction(propertyName, elX, elY, elZ, multi
             y: elY.value * multiplier,
             z: elZ.value * multiplier
         };
-        updateProperty(propertyName, newValue);
+        updateProperty(propertyName, newValue, isParticleProperty);
     };
 }
 
-function createEmitColorPropertyUpdateFunction(propertyName, elRed, elGreen, elBlue) {
+function createEmitColorPropertyUpdateFunction(propertyName, elRed, elGreen, elBlue, isParticleProperty) {
     return function() {
-        emitColorPropertyUpdate(propertyName, elRed.value, elGreen.value, elBlue.value);
+        emitColorPropertyUpdate(propertyName, elRed.value, elGreen.value, elBlue.value, isParticleProperty);
     };
 }
 
-function emitColorPropertyUpdate(propertyName, red, green, blue) {
+function emitColorPropertyUpdate(propertyName, red, green, blue, isParticleProperty) {
     let newValue = {
         red: red,
         green: green,
         blue: blue
     };
-    updateProperty(propertyName, newValue);
+    updateProperty(propertyName, newValue, isParticleProperty);
 }
 
-function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString) {
+function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString, isParticleProperty) {
     if (subPropertyElement.checked) {
         if (propertyValue.indexOf(subPropertyString)) {
             propertyValue += subPropertyString + ',';
@@ -1644,13 +1643,13 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
         // We've unchecked, so remove
         propertyValue = propertyValue.replace(subPropertyString + ",", "");
     }
-    updateProperty(propertyName, propertyValue);
+    updateProperty(propertyName, propertyValue, isParticleProperty);
 }
 
-function createImageURLUpdateFunction(propertyName) {
+function createImageURLUpdateFunction(propertyName, isParticleProperty) {
     return function () {
-        var newTextures = JSON.stringify({ "tex.picture": this.value });
-        updateProperty(propertyName, newTextures);
+        let newTextures = JSON.stringify({ "tex.picture": this.value });
+        updateProperty(propertyName, newTextures, isParticleProperty);
     };
 }
 
@@ -1673,7 +1672,7 @@ function createStringProperty(property, elProperty, elLabel) {
         elInput.readOnly = true;
     }
     
-    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName, property.isParticleProperty));
     
     elProperty.appendChild(elLabel);
     elProperty.appendChild(elInput);
@@ -1709,10 +1708,10 @@ function createBoolProperty(property, elProperty, elLabel) {
     let subPropertyOf = propertyData.subPropertyOf;
     if (subPropertyOf !== undefined) {
         elInput.addEventListener('change', function() {
-            updateCheckedSubProperty(subPropertyOf, selectedEntityProperties[subPropertyOf], elInput, propertyName);
+            updateCheckedSubProperty(subPropertyOf, selectedEntityProperties[subPropertyOf], elInput, propertyName, property.isParticleProperty);
         });
     } else {
-        elInput.addEventListener('change', createEmitCheckedPropertyUpdateFunction(propertyName, propertyData.inverse));
+        elInput.addEventListener('change', createEmitCheckedPropertyUpdateFunction(propertyName, propertyData.inverse, property.isParticleProperty));
     }
     
     return elInput;
@@ -1745,7 +1744,7 @@ function createNumberProperty(property, elProperty, elLabel) {
         elInput.value = defaultValue;
     }
     
-    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, propertyData.decimals));
+    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, propertyData.decimals, property.isParticleProperty));
     
     elProperty.appendChild(elLabel);
     elProperty.appendChild(elInput);
@@ -1791,7 +1790,7 @@ function createSliderProperty(property, elProperty, elLabel) {
         if (propertyData.multiplier !== undefined) {
             inputValue *= propertyData.multiplier;
         }
-        updateProperty(property.name, inputValue);
+        updateProperty(property.name, inputValue, property.isParticleProperty);
     };
     elSlider.oninput = function (event) {
         let sliderValue = event.target.value;
@@ -1807,7 +1806,7 @@ function createSliderProperty(property, elProperty, elLabel) {
         if (propertyData.multiplier !== undefined) {
             sliderValue *= propertyData.multiplier;
         }
-        updateProperty(property.name, sliderValue);
+        updateProperty(property.name, sliderValue, property.isParticleProperty);
     };
 
     elDiv.appendChild(elLabel);
@@ -1843,8 +1842,8 @@ function createVec3Property(property, elProperty, elLabel) {
     let elInputZ = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Z_INPUT], 
                                           propertyData.min, propertyData.max, propertyData.step);
     
-    let inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elInputX, elInputY, 
-                                                                   elInputZ, propertyData.multiplier);
+    let inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elInputX, elInputY, elInputZ, 
+                                                                   propertyData.multiplier, property.isParticleProperty);
     elInputX.addEventListener('change', inputChangeFunction);
     elInputY.addEventListener('change', inputChangeFunction);
     elInputZ.addEventListener('change', inputChangeFunction);
@@ -1876,8 +1875,8 @@ function createVec2Property(property, elProperty, elLabel) {
     let elInputY = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
                                           propertyData.min, propertyData.max, propertyData.step);
     
-    let inputChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elInputX, 
-                                                                   elInputY, propertyData.multiplier);
+    let inputChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elInputX, elInputY, 
+                                                                   propertyData.multiplier, property.isParticleProperty);
     elInputX.addEventListener('change', inputChangeFunction);
     elInputY.addEventListener('change', inputChangeFunction);
     
@@ -1908,7 +1907,8 @@ function createColorProperty(property, elProperty, elLabel) {
     let elInputG = createTupleNumberInput(elTuple, elementID, "green", COLOR_MIN, COLOR_MAX, COLOR_STEP);
     let elInputB = createTupleNumberInput(elTuple, elementID, "blue", COLOR_MIN, COLOR_MAX, COLOR_STEP);
     
-    let inputChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elInputR, elInputG, elInputB);  
+    let inputChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elInputR, elInputG, elInputB, 
+                                                                    property.isParticleProperty);  
     elInputR.addEventListener('change', inputChangeFunction);
     elInputG.addEventListener('change', inputChangeFunction);
     elInputB.addEventListener('change', inputChangeFunction);
@@ -1964,7 +1964,7 @@ function createDropdownProperty(property, propertyID, elProperty, elLabel) {
         elInput.add(option);
     }
     
-    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName, property.isParticleProperty));
     
     elProperty.appendChild(elLabel);
     elProperty.appendChild(elInput);
@@ -1991,7 +1991,7 @@ function createTextareaProperty(property, elProperty, elLabel) {
         elInput.readOnly = true;
     }                   
     
-    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName));
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName, property.isParticleProperty));
     
     elProperty.appendChild(elInput);
     
@@ -2057,9 +2057,9 @@ function createTextureProperty(property, elProperty, elLabel) {
     elInput.imageLoad = imageLoad;
     elInput.oninput = function (event) {
         // Add throttle
-        var url = event.target.value;
+        let url = event.target.value;
         imageLoad(url);
-        updateProperty(property.name, url)
+        updateProperty(property.name, url, property.isParticleProperty)
     };
     elInput.onchange = elInput.oninput;
 
@@ -2200,7 +2200,7 @@ function reloadServerScripts() {
 function copySkyboxURLToAmbientURL() {
     let skyboxURL = getPropertyInputElement("skybox.url").value;
     getPropertyInputElement("ambientLight.ambientURL").value = skyboxURL;
-    updateProperty("ambientLight.ambientURL", skyboxURL);
+    updateProperty("ambientLight.ambientURL", skyboxURL, false);
 }
 
 
@@ -2215,13 +2215,13 @@ function clearUserData() {
     showUserDataTextArea();
     showNewJSONEditorButton();
     hideSaveUserDataButton();
-    updateProperty('userData', elUserData.value);
+    updateProperty('userData', elUserData.value, false);
 }
 
 function newJSONEditor() {
     deleteJSONEditor();
     createJSONEditor();
-    var data = {};
+    let data = {};
     setEditorJSON(data);
     hideUserDataTextArea();
     hideNewJSONEditorButton();
@@ -2233,7 +2233,7 @@ function saveUserData() {
 }
 
 function setUserDataFromEditor(noUpdate) {
-    var json = null;
+    let json = null;
     try {
         json = editor.get();
     } catch (e) {
@@ -2242,7 +2242,7 @@ function setUserDataFromEditor(noUpdate) {
     if (json === null) {
         return;
     } else {
-        var text = editor.getText();
+        let text = editor.getText();
         if (noUpdate === true) {
             EventBridge.emitWebEvent(
                 JSON.stringify({
@@ -2255,15 +2255,15 @@ function setUserDataFromEditor(noUpdate) {
             );
             return;
         } else {
-            updateProperty('userData', text);
+            updateProperty('userData', text, false);
         }
     }
 }
 
 function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, removeKeys) {
-    var propertyUpdate = {};
-    var parsedData = {};
-    var keysToBeRemoved = removeKeys ? removeKeys : [];
+    let propertyUpdate = {};
+    let parsedData = {};
+    let keysToBeRemoved = removeKeys ? removeKeys : [];
     try {
         if ($('#property-userData-editor').css('height') !== "0px") {
             // if there is an expanded, we want to use its json.
@@ -2278,14 +2278,14 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, r
     if (!(groupName in parsedData)) {
         parsedData[groupName] = {};
     }
-    var keys = Object.keys(updateKeyPair);
+    let keys = Object.keys(updateKeyPair);
     keys.forEach(function (key) {
         if (updateKeyPair[key] !== null && updateKeyPair[key] !== "null") {
             if (updateKeyPair[key] instanceof Element) {
                 if (updateKeyPair[key].type === "checkbox") {
                     parsedData[groupName][key] = updateKeyPair[key].checked;
                 } else {
-                    var val = isNaN(updateKeyPair[key].value) ? updateKeyPair[key].value : parseInt(updateKeyPair[key].value);
+                    let val = isNaN(updateKeyPair[key].value) ? updateKeyPair[key].value : parseInt(updateKeyPair[key].value);
                     parsedData[groupName][key] = val;
                 }
             } else {
@@ -2318,8 +2318,8 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, r
 var editor = null;
 
 function createJSONEditor() {
-    var container = document.getElementById("property-userData-editor");
-    var options = {
+    let container = document.getElementById("property-userData-editor");
+    let options = {
         search: false,
         mode: 'tree',
         modes: ['code', 'tree'],
@@ -2331,7 +2331,7 @@ function createJSONEditor() {
             alert('JSON editor:' + e);
         },
         onChange: function() {
-            var currentJSONString = editor.getText();
+            let currentJSONString = editor.getText();
 
             if (currentJSONString === '{"":""}') {
                 return;
@@ -2432,13 +2432,13 @@ function clearMaterialData() {
     showMaterialDataTextArea();
     showNewJSONMaterialEditorButton();
     hideSaveMaterialDataButton();
-    updateProperty('materialData', elMaterialData.value);
+    updateProperty('materialData', elMaterialData.value, false);
 }
 
 function newJSONMaterialEditor() {
     deleteJSONMaterialEditor();
     createJSONMaterialEditor();
-    var data = {};
+    let data = {};
     setMaterialEditorJSON(data);
     hideMaterialDataTextArea();
     hideNewJSONMaterialEditorButton();
@@ -2450,7 +2450,7 @@ function saveMaterialData() {
 }
 
 function setMaterialDataFromEditor(noUpdate) {
-    var json = null;
+    let json = null;
     try {
         json = materialEditor.get();
     } catch (e) {
@@ -2459,7 +2459,7 @@ function setMaterialDataFromEditor(noUpdate) {
     if (json === null) {
         return;
     } else {
-        var text = materialEditor.getText();
+        let text = materialEditor.getText();
         if (noUpdate === true) {
             EventBridge.emitWebEvent(
                 JSON.stringify({
@@ -2472,7 +2472,7 @@ function setMaterialDataFromEditor(noUpdate) {
             );
             return;
         } else {
-            updateProperty('materialData', text);
+            updateProperty('materialData', text, false);
         }
     }
 }
@@ -2480,8 +2480,8 @@ function setMaterialDataFromEditor(noUpdate) {
 var materialEditor = null;
 
 function createJSONMaterialEditor() {
-    var container = document.getElementById("property-materialData-editor");
-    var options = {
+    let container = document.getElementById("property-materialData-editor");
+    let options = {
         search: false,
         mode: 'tree',
         modes: ['code', 'tree'],
@@ -2493,7 +2493,7 @@ function createJSONMaterialEditor() {
             alert('JSON editor:' + e);
         },
         onChange: function() {
-            var currentJSONString = materialEditor.getText();
+            let currentJSONString = materialEditor.getText();
 
             if (currentJSONString === '{"":""}') {
                 return;
@@ -2583,11 +2583,11 @@ function saveJSONMaterialData(noUpdate) {
 }
 
 function bindAllNonJSONEditorElements() {
-    var inputs = $('input');
-    var i;
+    let inputs = $('input');
+    let i;
     for (i = 0; i < inputs.length; ++i) {
-        var input = inputs[i];
-        var field = $(input);
+        let input = inputs[i];
+        let field = $(input);
         // TODO FIXME: (JSHint) Functions declared within loops referencing 
         //             an outer scoped variable may lead to confusing semantics.
         field.on('focus', function(e) {
@@ -2650,7 +2650,7 @@ function setDropdownValue(event) {
  */
 
 function setTextareaScrolling(element) {
-    var isScrolling = element.scrollHeight > element.offsetHeight;
+    let isScrolling = element.scrollHeight > element.offsetHeight;
     element.setAttribute("scrolling", isScrolling ? "true" : "false");
 }
 
@@ -3236,22 +3236,22 @@ function loaded() {
         let elParentMaterialNameNumber = getPropertyInputElement("submeshToReplace");
         let elParentMaterialNameCheckbox = getPropertyInputElement("selectSubmesh");
         elParentMaterialNameString.addEventListener('change', function () { 
-            updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + this.value); 
+            updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + this.value, false); 
         });
         elParentMaterialNameNumber.addEventListener('change', function () { 
-            updateProperty("parentMaterialName", this.value); 
+            updateProperty("parentMaterialName", this.value, false); 
         });
         elParentMaterialNameCheckbox.addEventListener('change', function () {
             if (this.checked) {
-                updateProperty("parentMaterialName", elParentMaterialNameNumber.value);
+                updateProperty("parentMaterialName", elParentMaterialNameNumber.value, false);
                 showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
             } else {
-                updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + elParentMaterialNameString.value);
+                updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + elParentMaterialNameString.value, false);
                 showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
             }
         });
         
-        getPropertyInputElement("image").addEventListener('change', createImageURLUpdateFunction('textures'));
+        getPropertyInputElement("image").addEventListener('change', createImageURLUpdateFunction('textures', false));
         
         // Collapsible sections
         let elCollapsible = document.getElementsByClassName("section-header");
@@ -3346,12 +3346,12 @@ function loaded() {
             let propertyID = elDropdown.getAttribute("propertyID");
             let property = properties[propertyID];
             property.elInput = dt;
-            dt.addEventListener('change', createEmitTextPropertyUpdateFunction(property.name));
+            dt.addEventListener('change', createEmitTextPropertyUpdateFunction(property.name, property.isParticleProperty));
         }
         
         elDropdowns = document.getElementsByTagName("select");
         while (elDropdowns.length > 0) {
-            var el = elDropdowns[0];
+            let el = elDropdowns[0];
             el.parentNode.removeChild(el);
             elDropdowns = document.getElementsByTagName("select");
         }

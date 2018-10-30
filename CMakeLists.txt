@@ -66,7 +66,7 @@ if (ANDROID)
   set(GLES_OPTION ON)
   set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
 else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+  set(PLATFORM_QT_COMPONENTS WebEngine)
 endif ()
 
 if (USE_GLES AND (NOT ANDROID))

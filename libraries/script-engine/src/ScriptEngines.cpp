@@ -28,6 +28,7 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 static const bool HIFI_SCRIPT_DEBUGGABLES { true };
 static const QString SETTINGS_KEY { "RunningScripts" };
 static const QUrl DEFAULT_SCRIPTS_LOCATION { "file:///~//defaultScripts.js" };
+static const QUrl CONTROLLER_SCRIPTS_LOCATION { "file:///~//system//controllers//controllerScripts.js" };
 // Using a QVariantList so this is human-readable in the settings file
 static Setting::Handle<QVariantList> runningScriptsHandle(SETTINGS_KEY, { QVariant(DEFAULT_SCRIPTS_LOCATION) });
 
@@ -285,6 +286,10 @@ QVariantList ScriptEngines::getRunning() {
 
 void ScriptEngines::loadDefaultScripts() {
     loadScript(DEFAULT_SCRIPTS_LOCATION);
+}
+
+void ScriptEngines::loadControllerScripts() {
+    loadScript(CONTROLLER_SCRIPTS_LOCATION);
 }
 
 void ScriptEngines::loadOneScript(const QString& scriptFilename) {

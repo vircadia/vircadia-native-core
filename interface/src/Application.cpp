@@ -52,6 +52,8 @@
 #include <QTemporaryDir>
 
 #include <gl/QOpenGLContextWrapper.h>
+#include <gl/GLWindow.h>
+#include <gl/GLHelpers.h>
 
 #include <shared/FileUtils.h>
 #include <shared/QtHelpers.h>
@@ -973,8 +975,10 @@ OffscreenGLCanvas* _qmlShareContext { nullptr };
 // and manually set THAT to be the shared context for the Chromium helper
 #if !defined(DISABLE_QML)
 OffscreenGLCanvas* _chromiumShareContext { nullptr };
-Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 #endif
+
+Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
+Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
@@ -1021,6 +1025,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
+
     {
         const QStringList args = arguments();
 
@@ -1219,7 +1224,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
 
     nodeList->getDomainHandler().setErrorDomainURL(QUrl(REDIRECT_HIFI_ADDRESS));
-    nodeList->getDomainHandler().setLoginScreenDomainURL(QUrl(LOGIN_SCREEN_HIFI_ADDRESS));
 
     // We could clear ATP assets only when changing domains, but it's possible that the domain you are connected
     // to has gone down and switched to a new content set, so when you reconnect the cached ATP assets will no longer be valid.
@@ -1374,7 +1378,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _glWidget->setMouseTracking(true);
     // Make sure the window is set to the correct size by processing the pending events
     QCoreApplication::processEvents();
-    _glWidget->createContext();
 
     // Create the main thread context, the GPU backend
     initializeGL();
@@ -1742,27 +1745,30 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         userInputMapper->registerDevice(_touchscreenVirtualPadDevice->getInputDevice());
     }
 
-    {
-        auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-        // this will force the model the look at the correct directory (weird order of operations issue)
-        scriptEngines->reloadLocalFiles();
+    QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
+    _defaultScriptsLocation = getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str());
 
-        // do this as late as possible so that all required subsystems are initialized
-        // If we've overridden the default scripts location, just load default scripts
-        // otherwise, load 'em all
+    //{
+    //    auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
+    //    // this will force the model the look at the correct directory (weird order of operations issue)
+    //    scriptEngines->reloadLocalFiles();
 
-        // we just want to see if --scripts was set, we've already parsed it and done
-        // the change in PathUtils.  Rather than pass that in the constructor, lets just
-        // look (this could be debated)
-        QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
-        QDir defaultScriptsLocation(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
-        if (!defaultScriptsLocation.exists()) {
-            scriptEngines->loadDefaultScripts();
-            scriptEngines->defaultScriptsLocationOverridden(true);
-        } else {
-            scriptEngines->loadScripts();
-        }
-    }
+    //    // do this as late as possible so that all required subsystems are initialized
+    //    // If we've overridden the default scripts location, just load default scripts
+    //    // otherwise, load 'em all
+
+    //    // we just want to see if --scripts was set, we've already parsed it and done
+    //    // the change in PathUtils.  Rather than pass that in the constructor, lets just
+    //    // look (this could be debated)
+    //    QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
+    //    QDir defaultScriptsLocation(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
+    //    if (!defaultScriptsLocation.exists()) {
+    //        scriptEngines->loadDefaultScripts();
+    //        scriptEngines->defaultScriptsLocationOverridden(true);
+    //    } else {
+    //        scriptEngines->loadScripts();
+    //    }
+    //}
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -2244,28 +2250,28 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snapshot/snap.wav"));
 
-    QVariant testProperty = property(hifi::properties::TEST);
-    qDebug() << testProperty;
-    if (testProperty.isValid()) {
-        const auto testScript = property(hifi::properties::TEST).toUrl();
+    //QVariant testProperty = property(hifi::properties::TEST);
+    //qDebug() << testProperty;
+    //if (testProperty.isValid()) {
+    //    const auto testScript = property(hifi::properties::TEST).toUrl();
 
-        // Set last parameter to exit interface when the test script finishes, if so requested
-        DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
+    //    // Set last parameter to exit interface when the test script finishes, if so requested
+    //    DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
 
-        // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
-        if (arguments().contains("--url")) {
-            auto reply = SandboxUtils::getStatus();
-            connect(reply, &QNetworkReply::finished, this, [this, reply] {
-                handleSandboxStatus(reply);
-            });
-        }
-    } else {
-        PROFILE_RANGE(render, "GetSandboxStatus");
-        auto reply = SandboxUtils::getStatus();
-        connect(reply, &QNetworkReply::finished, this, [this, reply] {
-            handleSandboxStatus(reply);
-        });
-    }
+    //    // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
+    //    if (arguments().contains("--url")) {
+    //        auto reply = SandboxUtils::getStatus();
+    //        connect(reply, &QNetworkReply::finished, this, [this, reply] {
+    //            handleSandboxStatus(reply);
+    //        });
+    //    }
+    //} else {
+    //    PROFILE_RANGE(render, "GetSandboxStatus");
+    //    auto reply = SandboxUtils::getStatus();
+    //    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+    //        handleSandboxStatus(reply);
+    //    });
+    //}
 
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
     static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
@@ -2285,7 +2291,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
     connect(&domainHandler, &DomainHandler::domainURLChanged, this, &Application::addAssetToWorldMessageClose);
     connect(&domainHandler, &DomainHandler::redirectToErrorDomainURL, this, &Application::addAssetToWorldMessageClose);
-    connect(&domainHandler, &DomainHandler::redirectToLoginScreenDomainURL, this, &Application::addAssetToWorldMessageClose);
 
     updateSystemTabletMode();
 
@@ -2341,6 +2346,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
 #endif
+    pauseUntilLoginDetermined();
 }
 
 void Application::updateVerboseLogging() {
@@ -2718,46 +2724,66 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
-    if (!_glWidget->makeCurrent()) {
-        qCWarning(interfaceapp, "Unable to make window context current");
-    }
+    _glWidget->windowHandle()->setFormat(getDefaultOpenGLSurfaceFormat());
 
+    // When loading QtWebEngineWidgets, it creates a global share context on startup.
+    // We have to account for this possibility by checking here for an existing 
+    // global share context
+    auto globalShareContext = qt_gl_global_share_context();
+    
 #if !defined(DISABLE_QML)
     // Build a shared canvas / context for the Chromium processes
-    {
-        // Disable signed distance field font rendering on ATI/AMD GPUs, due to
-        // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
-        std::string vendor{ (const char*)glGetString(GL_VENDOR) };
-        if ((vendor.find("AMD") != std::string::npos) || (vendor.find("ATI") != std::string::npos)) {
-            qputenv("QTWEBENGINE_CHROMIUM_FLAGS", QByteArray("--disable-distance-field-text"));
-        }
-
+    if (!globalShareContext) {
         // Chromium rendering uses some GL functions that prevent nSight from capturing
         // frames, so we only create the shared context if nsight is NOT active.
         if (!nsightActive()) {
             _chromiumShareContext = new OffscreenGLCanvas();
             _chromiumShareContext->setObjectName("ChromiumShareContext");
-            _chromiumShareContext->create(_glWidget->qglContext());
+            auto format =QSurfaceFormat::defaultFormat();
+#ifdef Q_OS_MAC
+            // On mac, the primary shared OpenGL context must be a 3.2 core context,
+            // or chromium flips out and spews error spam (but renders fine)
+            format.setMajorVersion(3);
+            format.setMinorVersion(2);
+#endif
+            _chromiumShareContext->setFormat(format);
+            _chromiumShareContext->create();
             if (!_chromiumShareContext->makeCurrent()) {
                 qCWarning(interfaceapp, "Unable to make chromium shared context current");
             }
-            qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+            globalShareContext = _chromiumShareContext->getContext();
+            qt_gl_set_global_share_context(globalShareContext);
             _chromiumShareContext->doneCurrent();
-            // Restore the GL widget context
-            if (!_glWidget->makeCurrent()) {
-                qCWarning(interfaceapp, "Unable to make window context current");
-            }
-        } else {
-            qCWarning(interfaceapp) << "nSight detected, disabling chrome rendering";
         }
     }
 #endif
+
+
+    _glWidget->createContext(globalShareContext);
+
+    if (!_glWidget->makeCurrent()) {
+        qCWarning(interfaceapp, "Unable to make window context current");
+    }
+
+#if !defined(DISABLE_QML)
+    // Disable signed distance field font rendering on ATI/AMD GPUs, due to
+    // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
+    std::string vendor{ (const char*)glGetString(GL_VENDOR) };
+    if ((vendor.find("AMD") != std::string::npos) || (vendor.find("ATI") != std::string::npos)) {
+        qputenv("QTWEBENGINE_CHROMIUM_FLAGS", QByteArray("--disable-distance-field-text"));
+    }
+#endif
+
+    if (!globalShareContext) {
+        globalShareContext = _glWidget->qglContext();
+        qt_gl_set_global_share_context(globalShareContext);
+    }
 
     // Build a shared canvas / context for the QML rendering
     {
         _qmlShareContext = new OffscreenGLCanvas();
         _qmlShareContext->setObjectName("QmlShareContext");
-        _qmlShareContext->create(_glWidget->qglContext());
+        _qmlShareContext->create(globalShareContext);
         if (!_qmlShareContext->makeCurrent()) {
             qCWarning(interfaceapp, "Unable to make QML shared context current");
         }
@@ -2891,18 +2917,14 @@ void Application::showLoginScreen() {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     if (!accountManager->isLoggedIn()) {
-//         dialogsManager->showLoginScreenDialog();
         _loginDialogPoppedUp = true;
         dialogsManager->showLoginDialog();
         QJsonObject loginData = {};
         loginData["action"] = "login dialog shown";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        if (qApp->isHMDMode()) {
-            // create web overlay.
-            auto nodeList = DependencyManager::get<NodeList>();
-            auto loginScreenDomainURL = nodeList->getDomainHandler().getLoginScreenDomainURL();
-            goToLoginScreenDomainURL(loginScreenDomainURL);
-        }
+        _window->setWindowTitle("High Fidelity Interface");
+    } else {
+        resumeAfterLoginDialogActionTaken();
     }
     _loginDialogPoppedUp = !accountManager->isLoggedIn();
     loginDialogPoppedUp.set(_loginDialogPoppedUp);
@@ -3043,14 +3065,12 @@ void Application::initializeUi() {
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 
     flushMenuUpdates();
-
     // Now that the menu is instantiated, ensure the display plugin menu is properly updated
     {
         auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
         // first sort the plugins into groupings: standard, advanced, developer
         std::stable_sort(displayPlugins.begin(), displayPlugins.end(),
-            [](const DisplayPluginPointer& a, const DisplayPluginPointer& b)->bool { return a->getGrouping() < b->getGrouping(); });
-
+            [](const DisplayPluginPointer& a, const DisplayPluginPointer& b) -> bool { return a->getGrouping() < b->getGrouping(); });
         int dpIndex = 1;
         // concatenate the groupings into a single list in the order: standard, advanced, developer
         for(const auto& displayPlugin : displayPlugins) {
@@ -3062,6 +3082,7 @@ void Application::initializeUi() {
         auto parent = getPrimaryMenu()->getMenu(MenuOption::OutputMenu);
         parent->addSeparator();
     }
+
 
     // The display plugins are created before the menu now, so we need to do this here to hide the menu bar
     // now that it exists
@@ -3638,24 +3659,6 @@ void Application::loadErrorDomain(QUrl domainURL) {
     _fullSceneReceivedCounter++;
 }
 
-void Application::loadLoginScreenDomain(QUrl domainURL) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadLoginScreenDomain", Q_ARG(QUrl, domainURL));
-        return;
-    }
-
-    if (domainURL.isEmpty()) {
-        return;
-    }
-
-    auto namedPaths = prepareServerlessDomainContents(domainURL);
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    nodeList->getDomainHandler().loadedLoginScreenDomain(namedPaths);
-
-    _fullSceneReceivedCounter++;
-}
-
 bool Application::importImage(const QString& urlString) {
     qCDebug(interfaceapp) << "An image file has been dropped in";
     QString filepath(urlString);
@@ -3890,7 +3893,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
         return;
     }
 
-    if (hasFocus()) {
+    if (hasFocus() && !_loginDialogPoppedUp) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->keyPressEvent(event);
         }
@@ -5179,6 +5182,86 @@ void Application::init() {
 
     _gameWorkload.startup(getEntities()->getWorkloadSpace(), _main3DScene, _entitySimulation);
     _entitySimulation->setWorkloadSpace(getEntities()->getWorkloadSpace());
+}
+
+void Application::pauseUntilLoginDetermined() {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "pauseUntilLoginDetermined");
+        return;
+    }
+
+    auto myAvatar = qApp->getMyAvatar();
+    myAvatar->setEnableMeshVisible(false);
+
+    const auto& nodeList = DependencyManager::get<NodeList>();
+    // disconnect domain handler.
+    nodeList->getDomainHandler().disconnect();
+    Menu::getInstance()->setVisible(false);
+
+    {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
+        scriptEngines->reloadLocalFiles();
+        scriptEngines->loadControllerScripts();
+    }
+}
+
+void Application::resumeAfterLoginDialogActionTaken() {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "resumeAfterLoginDialogActionTaken");
+        return;
+    }
+
+    auto myAvatar = qApp->getMyAvatar();
+    myAvatar->setEnableMeshVisible(true);
+
+    {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
+        // this will force the model the look at the correct directory (weird order of operations issue)
+        scriptEngines->reloadLocalFiles();
+
+        // do this as late as possible so that all required subsystems are initialized
+        // If we've overridden the default scripts location, just load default scripts
+        // otherwise, load 'em all
+
+        // we just want to see if --scripts was set, we've already parsed it and done
+        // the change in PathUtils.  Rather than pass that in the constructor, lets just
+        // look (this could be debated)
+        if (!_defaultScriptsLocation.exists()) {
+            scriptEngines->loadDefaultScripts();
+            scriptEngines->defaultScriptsLocationOverridden(true);
+        } else {
+            scriptEngines->loadScripts();
+        }
+    }
+
+    QVariant testProperty = property(hifi::properties::TEST);
+    qDebug() << testProperty;
+    if (testProperty.isValid()) {
+        const auto testScript = property(hifi::properties::TEST).toUrl();
+
+        // Set last parameter to exit interface when the test script finishes, if so requested
+        DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
+
+        // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
+        if (arguments().contains("--url")) {
+            auto reply = SandboxUtils::getStatus();
+            connect(reply, &QNetworkReply::finished, this, [this, reply] {
+                handleSandboxStatus(reply);
+            });
+        }
+    } else {
+        PROFILE_RANGE(render, "GetSandboxStatus");
+        auto reply = SandboxUtils::getStatus();
+        connect(reply, &QNetworkReply::finished, this, [this, reply] {
+            handleSandboxStatus(reply);
+        });
+    }
+
+    const auto& nodeList = DependencyManager::get<NodeList>();
+    // disconnect domain handler.
+    nodeList->getDomainHandler().resetting();
+
+    Menu::getInstance()->setVisible(true);
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -6516,7 +6599,6 @@ void Application::updateWindowTitle() const {
     auto nodeList = DependencyManager::get<NodeList>();
     auto accountManager = DependencyManager::get<AccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
-    auto isInLoginScreenState = nodeList->getDomainHandler().isInLoginScreenState();
 
     QString buildVersion = " - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
@@ -6526,8 +6608,6 @@ void Application::updateWindowTitle() const {
 
     QString connectionStatus = isInErrorState ? " (ERROR CONNECTING)" :
         nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
-    // check for login state - login state needs empty connection status
-    connectionStatus = isInLoginScreenState ? "" : connectionStatus;
     QString username = accountManager->getAccountInfo().getUsername();
 
     setCrashAnnotation("username", username.toStdString());
@@ -6536,8 +6616,6 @@ void Application::updateWindowTitle() const {
     if (isServerlessMode()) {
         if (isInErrorState) {
             currentPlaceName = "serverless: " + nodeList->getDomainHandler().getErrorDomainURL().toString();
-        } else if (isInLoginScreenState) {
-            currentPlaceName = "High Fidelity Interface";
         } else {
             currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
         }
@@ -6612,23 +6690,6 @@ void Application::goToErrorDomainURL(QUrl errorDomainURL) {
     setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
         loadErrorDomain(errorDomainURL);
-    }
-    updateWindowTitle();
-}
-
-void Application::goToLoginScreenDomainURL(QUrl loginScreenDomainURL) {
-    // disable physics until we have enough information about our new location to not cause craziness.
-    resetPhysicsReadyInformation();
-    setIsServerlessMode(loginScreenDomainURL.scheme() != URL_SCHEME_HIFI);
-
-    // show avatar as a mesh and show hand controllers.
-    qApp->getMyAvatar()->setEnableMeshVisible(false);
-    DependencyManager::get<HMDScriptingInterface>()->requestShowHandControllers();
-    // set into login screen state.
-    emit loginScreenStateChanged(true);
-
-    if (isServerlessMode()) {
-        loadLoginScreenDomain(loginScreenDomainURL);
     }
     updateWindowTitle();
 }
@@ -8430,10 +8491,9 @@ void Application::setShowBulletConstraintLimits(bool value) {
 }
 
 void Application::onDismissedLoginDialog() {
-    // TODO something with login dialog.
-    qDebug() << "dismissed login dialog";
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
+    resumeAfterLoginDialogActionTaken();
 }
 
 void Application::setShowTrackedObjects(bool value) {

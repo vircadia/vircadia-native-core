@@ -65,6 +65,7 @@ public:
     void setDebugScriptUrl(const QString& url) { _debugScriptUrl = url; };
 
     void loadDefaultScripts();
+    void loadControllerScripts();
     void reloadLocalFiles();
 
     QStringList getRunningScripts();
