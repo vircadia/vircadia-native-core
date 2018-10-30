@@ -44,6 +44,7 @@
 #include "AvatarLogging.h"
 #include "AvatarTraits.h"
 #include "ClientTraitsHandler.h"
+#include "ResourceRequestObserver.h"
 
 //#define WANT_DEBUG
 
@@ -65,7 +66,7 @@ size_t AvatarDataPacket::maxFaceTrackerInfoSize(size_t numBlendshapeCoefficients
 }
 
 size_t AvatarDataPacket::maxJointDataSize(size_t numJoints, bool hasGrabJoints) {
-    const size_t validityBitsSize = (size_t)std::ceil(numJoints / (float)BITS_IN_BYTE);
+    const size_t validityBitsSize = calcBitVectorSize((int)numJoints);
 
     size_t totalSize = sizeof(uint8_t); // numJoints
 
@@ -227,18 +228,18 @@ float AvatarData::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPositio
 
 // we want to track outbound data in this case...
 QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
-    AvatarDataPacket::HasFlags hasFlagsOut;
     auto lastSentTime = _lastToByteArray;
     _lastToByteArray = usecTimestampNow();
-    return AvatarData::toByteArray(dataDetail, lastSentTime, getLastSentJointData(),
-                        hasFlagsOut, dropFaceTracking, false, glm::vec3(0), nullptr,
-                        &_outboundDataRate);
+    AvatarDataPacket::SendStatus sendStatus;
+    auto avatarByteArray = AvatarData::toByteArray(dataDetail, lastSentTime, getLastSentJointData(),
+        sendStatus, dropFaceTracking, false, glm::vec3(0), nullptr, 0, &_outboundDataRate);
+    return avatarByteArray;
 }
 
 QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime,
                                    const QVector<JointData>& lastSentJointData,
-    AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust,
-    glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut) const {
+    AvatarDataPacket::SendStatus& sendStatus, bool dropFaceTracking, bool distanceAdjust,
+    glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut, int maxDataSize, AvatarDataRate* outboundDataRateOut) const {
 
     bool cullSmallChanges = (dataDetail == CullSmallData);
     bool sendAll = (dataDetail == SendAllData);
@@ -246,11 +247,23 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     bool sendPALMinimum = (dataDetail == PALMinimum);
 
     lazyInitHeadData();
+    ASSERT(maxDataSize == 0 || (size_t)maxDataSize >= AvatarDataPacket::MIN_BULK_PACKET_SIZE);
+
+    // Leading flags, to indicate how much data is actually included in the packet...
+    AvatarDataPacket::HasFlags wantedFlags = 0;
+    AvatarDataPacket::HasFlags includedFlags = 0;
+    AvatarDataPacket::HasFlags extraReturnedFlags = 0;  // For partial joint data.
 
     // special case, if we were asked for no data, then just include the flags all set to nothing
     if (dataDetail == NoData) {
-        AvatarDataPacket::HasFlags packetStateFlags = 0;
-        QByteArray avatarDataByteArray(reinterpret_cast<char*>(&packetStateFlags), sizeof(packetStateFlags));
+        sendStatus.itemFlags = wantedFlags;
+
+        QByteArray avatarDataByteArray;
+        if (sendStatus.sendUUID) {
+            avatarDataByteArray.append(getSessionUUID().toRfc4122().data(), NUM_BYTES_RFC4122_UUID);
+        }
+
+        avatarDataByteArray.append((char*) &wantedFlags, sizeof wantedFlags);
         return avatarDataByteArray;
     }
 
@@ -273,114 +286,141 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     //              3 translations * 6 bytes = 6.48kbps
     //
 
-    auto parentID = getParentID();
-
-    bool hasAvatarGlobalPosition = true; // always include global position
-    bool hasAvatarOrientation = false;
-    bool hasAvatarBoundingBox = false;
-    bool hasAvatarScale = false;
-    bool hasLookAtPosition = false;
-    bool hasAudioLoudness = false;
-    bool hasSensorToWorldMatrix = false;
-    bool hasAdditionalFlags = false;
-
-    // local position, and parent info only apply to avatars that are parented. The local position
-    // and the parent info can change independently though, so we track their "changed since"
-    // separately
-    bool hasParentInfo = false;
-    bool hasAvatarLocalPosition = false;
-
-    bool hasFaceTrackerInfo = false;
-    bool hasJointData = false;
-    bool hasJointDefaultPoseFlags = false;
-    bool hasGrabJoints = false;
+    QUuid parentID;
 
     glm::mat4 leftFarGrabMatrix;
     glm::mat4 rightFarGrabMatrix;
     glm::mat4 mouseFarGrabMatrix;
 
-    if (sendPALMinimum) {
-        hasAudioLoudness = true;
-    } else {
-        hasAvatarOrientation = sendAll || rotationChangedSince(lastSentTime);
-        hasAvatarBoundingBox = sendAll || avatarBoundingBoxChangedSince(lastSentTime);
-        hasAvatarScale = sendAll || avatarScaleChangedSince(lastSentTime);
-        hasLookAtPosition = sendAll || lookAtPositionChangedSince(lastSentTime);
-        hasAudioLoudness = sendAll || audioLoudnessChangedSince(lastSentTime);
-        hasSensorToWorldMatrix = sendAll || sensorToWorldMatrixChangedSince(lastSentTime);
-        hasAdditionalFlags = sendAll || additionalFlagsChangedSince(lastSentTime);
-        hasParentInfo = sendAll || parentInfoChangedSince(lastSentTime);
-        hasAvatarLocalPosition = hasParent() && (sendAll ||
-            tranlationChangedSince(lastSentTime) ||
-            parentInfoChangedSince(lastSentTime));
+    if (sendStatus.itemFlags == 0) {
+        // New avatar ...
+        bool hasAvatarGlobalPosition = true; // always include global position
+        bool hasAvatarOrientation = false;
+        bool hasAvatarBoundingBox = false;
+        bool hasAvatarScale = false;
+        bool hasLookAtPosition = false;
+        bool hasAudioLoudness = false;
+        bool hasSensorToWorldMatrix = false;
+        bool hasJointData = false;
+        bool hasJointDefaultPoseFlags = false;
+        bool hasAdditionalFlags = false;
 
-        hasFaceTrackerInfo = !dropFaceTracking && (hasFaceTracker() || getHasScriptedBlendshapes()) &&
-            (sendAll || faceTrackerInfoChangedSince(lastSentTime));
-        hasJointData = sendAll || !sendMinimum;
-        hasJointDefaultPoseFlags = hasJointData;
-        if (hasJointData) {
-            bool leftValid;
-            leftFarGrabMatrix = _farGrabLeftMatrixCache.get(leftValid);
-            if (!leftValid) {
-                leftFarGrabMatrix = glm::mat4();
-            }
-            bool rightValid;
-            rightFarGrabMatrix = _farGrabRightMatrixCache.get(rightValid);
-            if (!rightValid) {
-                rightFarGrabMatrix = glm::mat4();
-            }
-            bool mouseValid;
-            mouseFarGrabMatrix = _farGrabMouseMatrixCache.get(mouseValid);
-            if (!mouseValid) {
-                mouseFarGrabMatrix = glm::mat4();
-            }
-            hasGrabJoints = (leftValid || rightValid || mouseValid);
+        // local position, and parent info only apply to avatars that are parented. The local position
+        // and the parent info can change independently though, so we track their "changed since"
+        // separately
+        bool hasParentInfo = false;
+        bool hasAvatarLocalPosition = false;
+
+        bool hasFaceTrackerInfo = false;
+
+        if (sendPALMinimum) {
+            hasAudioLoudness = true;
+        } else {
+            hasAvatarOrientation = sendAll || rotationChangedSince(lastSentTime);
+            hasAvatarBoundingBox = sendAll || avatarBoundingBoxChangedSince(lastSentTime);
+            hasAvatarScale = sendAll || avatarScaleChangedSince(lastSentTime);
+            hasLookAtPosition = sendAll || lookAtPositionChangedSince(lastSentTime);
+            hasAudioLoudness = sendAll || audioLoudnessChangedSince(lastSentTime);
+            hasSensorToWorldMatrix = sendAll || sensorToWorldMatrixChangedSince(lastSentTime);
+            hasAdditionalFlags = sendAll || additionalFlagsChangedSince(lastSentTime);
+            hasParentInfo = sendAll || parentInfoChangedSince(lastSentTime);
+            hasAvatarLocalPosition = hasParent() && (sendAll ||
+                tranlationChangedSince(lastSentTime) ||
+                parentInfoChangedSince(lastSentTime));
+
+            hasFaceTrackerInfo = !dropFaceTracking && (hasFaceTracker() || getHasScriptedBlendshapes()) &&
+                (sendAll || faceTrackerInfoChangedSince(lastSentTime));
+            hasJointData = !sendMinimum;
+            hasJointDefaultPoseFlags = hasJointData;
+        }
+
+        wantedFlags =
+            (hasAvatarGlobalPosition ? AvatarDataPacket::PACKET_HAS_AVATAR_GLOBAL_POSITION : 0)
+            | (hasAvatarBoundingBox ? AvatarDataPacket::PACKET_HAS_AVATAR_BOUNDING_BOX : 0)
+            | (hasAvatarOrientation ? AvatarDataPacket::PACKET_HAS_AVATAR_ORIENTATION : 0)
+            | (hasAvatarScale ? AvatarDataPacket::PACKET_HAS_AVATAR_SCALE : 0)
+            | (hasLookAtPosition ? AvatarDataPacket::PACKET_HAS_LOOK_AT_POSITION : 0)
+            | (hasAudioLoudness ? AvatarDataPacket::PACKET_HAS_AUDIO_LOUDNESS : 0)
+            | (hasSensorToWorldMatrix ? AvatarDataPacket::PACKET_HAS_SENSOR_TO_WORLD_MATRIX : 0)
+            | (hasAdditionalFlags ? AvatarDataPacket::PACKET_HAS_ADDITIONAL_FLAGS : 0)
+            | (hasParentInfo ? AvatarDataPacket::PACKET_HAS_PARENT_INFO : 0)
+            | (hasAvatarLocalPosition ? AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION : 0)
+            | (hasFaceTrackerInfo ? AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO : 0)
+            | (hasJointData ? AvatarDataPacket::PACKET_HAS_JOINT_DATA : 0)
+            | (hasJointDefaultPoseFlags ? AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS : 0)
+            | (hasJointData ? AvatarDataPacket::PACKET_HAS_GRAB_JOINTS : 0);
+
+            sendStatus.itemFlags = wantedFlags;
+            sendStatus.rotationsSent = 0;
+            sendStatus.translationsSent = 0;
+    } else {  // Continuing avatar ...
+        wantedFlags = sendStatus.itemFlags;
+        if (wantedFlags & AvatarDataPacket::PACKET_HAS_GRAB_JOINTS) {
+            // Must send joints for grab joints -
+            wantedFlags |= AvatarDataPacket::PACKET_HAS_JOINT_DATA;
         }
     }
 
+    if (wantedFlags & AvatarDataPacket::PACKET_HAS_GRAB_JOINTS) {
+        bool leftValid;
+        leftFarGrabMatrix = _farGrabLeftMatrixCache.get(leftValid);
+        if (!leftValid) {
+            leftFarGrabMatrix = glm::mat4();
+        }
+        bool rightValid;
+        rightFarGrabMatrix = _farGrabRightMatrixCache.get(rightValid);
+        if (!rightValid) {
+            rightFarGrabMatrix = glm::mat4();
+        }
+        bool mouseValid;
+        mouseFarGrabMatrix = _farGrabMouseMatrixCache.get(mouseValid);
+        if (!mouseValid) {
+            mouseFarGrabMatrix = glm::mat4();
+        }
+        if (!(leftValid || rightValid || mouseValid)) {
+            wantedFlags &= ~AvatarDataPacket::PACKET_HAS_GRAB_JOINTS;
+        }
+    }
+    if (wantedFlags & (AvatarDataPacket::PACKET_HAS_ADDITIONAL_FLAGS | AvatarDataPacket::PACKET_HAS_PARENT_INFO)) {
+        parentID = getParentID();
+    }
 
-    const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE +
-        (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getBlendshapeCoefficients().size()) : 0) +
-        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size(), hasGrabJoints) : 0) +
-        (hasJointDefaultPoseFlags ? AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size()) : 0);
+    const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE + NUM_BYTES_RFC4122_UUID +
+         AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getBlendshapeCoefficients().size()) +
+         AvatarDataPacket::maxJointDataSize(_jointData.size(), true) +
+         AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size());
+
+    if (maxDataSize == 0) {
+        maxDataSize = (int)byteArraySize;
+    }
 
     QByteArray avatarDataByteArray((int)byteArraySize, 0);
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
-    unsigned char* startPosition = destinationBuffer;
-
-    // Leading flags, to indicate how much data is actually included in the packet...
-    AvatarDataPacket::HasFlags packetStateFlags =
-        (hasAvatarGlobalPosition ? AvatarDataPacket::PACKET_HAS_AVATAR_GLOBAL_POSITION : 0)
-        | (hasAvatarBoundingBox ? AvatarDataPacket::PACKET_HAS_AVATAR_BOUNDING_BOX : 0)
-        | (hasAvatarOrientation ? AvatarDataPacket::PACKET_HAS_AVATAR_ORIENTATION : 0)
-        | (hasAvatarScale ? AvatarDataPacket::PACKET_HAS_AVATAR_SCALE : 0)
-        | (hasLookAtPosition ? AvatarDataPacket::PACKET_HAS_LOOK_AT_POSITION : 0)
-        | (hasAudioLoudness ? AvatarDataPacket::PACKET_HAS_AUDIO_LOUDNESS : 0)
-        | (hasSensorToWorldMatrix ? AvatarDataPacket::PACKET_HAS_SENSOR_TO_WORLD_MATRIX : 0)
-        | (hasAdditionalFlags ? AvatarDataPacket::PACKET_HAS_ADDITIONAL_FLAGS : 0)
-        | (hasParentInfo ? AvatarDataPacket::PACKET_HAS_PARENT_INFO : 0)
-        | (hasAvatarLocalPosition ? AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION : 0)
-        | (hasFaceTrackerInfo ? AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO : 0)
-        | (hasJointData ? AvatarDataPacket::PACKET_HAS_JOINT_DATA : 0)
-        | (hasJointDefaultPoseFlags ? AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS : 0)
-        | (hasGrabJoints ? AvatarDataPacket::PACKET_HAS_GRAB_JOINTS : 0);
-
-    memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
-    destinationBuffer += sizeof(packetStateFlags);
+    const unsigned char* const startPosition = destinationBuffer;
+    const unsigned char* const packetEnd = destinationBuffer + maxDataSize;
 
 #define AVATAR_MEMCPY(src)                          \
     memcpy(destinationBuffer, &(src), sizeof(src)); \
     destinationBuffer += sizeof(src);
 
-    if (hasAvatarGlobalPosition) {
-        auto startSection = destinationBuffer;
-        if (_overrideGlobalPosition) {
-            AVATAR_MEMCPY(_globalPositionOverride);
-        } else {
-            AVATAR_MEMCPY(_globalPosition);
-        }
-        
+// If we want an item and there's sufficient space:
+#define IF_AVATAR_SPACE(flag, space)                              \
+    if ((wantedFlags & AvatarDataPacket::flag)                    \
+        && (packetEnd - destinationBuffer) >= (ptrdiff_t)(space)  \
+        && (includedFlags |= AvatarDataPacket::flag))
 
+    if (sendStatus.sendUUID) {
+        memcpy(destinationBuffer, getSessionUUID().toRfc4122(), NUM_BYTES_RFC4122_UUID);
+        destinationBuffer += NUM_BYTES_RFC4122_UUID;
+    }
+
+    unsigned char * packetFlagsLocation = destinationBuffer;
+    destinationBuffer += sizeof(wantedFlags);
+
+    IF_AVATAR_SPACE(PACKET_HAS_AVATAR_GLOBAL_POSITION, sizeof _globalPosition) {
+        auto startSection = destinationBuffer;
+        AVATAR_MEMCPY(_globalPosition);
+        
         int numBytes = destinationBuffer - startSection;
 
         if (outboundDataRateOut) {
@@ -388,7 +428,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
-    if (hasAvatarBoundingBox) {
+    IF_AVATAR_SPACE(PACKET_HAS_AVATAR_BOUNDING_BOX, sizeof _globalBoundingBoxDimensions + sizeof _globalBoundingBoxOffset) {
         auto startSection = destinationBuffer;
         AVATAR_MEMCPY(_globalBoundingBoxDimensions);
         AVATAR_MEMCPY(_globalBoundingBoxOffset);
@@ -399,7 +439,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
-    if (hasAvatarOrientation) {
+    IF_AVATAR_SPACE(PACKET_HAS_AVATAR_ORIENTATION, sizeof(AvatarDataPacket::SixByteQuat)) {
         auto startSection = destinationBuffer;
         auto localOrientation = getOrientationOutbound();
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, localOrientation);
@@ -410,7 +450,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
-    if (hasAvatarScale) {
+    IF_AVATAR_SPACE(PACKET_HAS_AVATAR_SCALE, sizeof(AvatarDataPacket::AvatarScale)) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AvatarScale*>(destinationBuffer);
         auto scale = getDomainLimitedScale();
@@ -423,7 +463,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
-    if (hasLookAtPosition) {
+    IF_AVATAR_SPACE(PACKET_HAS_LOOK_AT_POSITION, sizeof(_headData->getLookAtPosition()) ) {
         auto startSection = destinationBuffer;
         AVATAR_MEMCPY(_headData->getLookAtPosition());
         int numBytes = destinationBuffer - startSection;
@@ -432,7 +472,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
-    if (hasAudioLoudness) {
+    IF_AVATAR_SPACE(PACKET_HAS_AUDIO_LOUDNESS, sizeof(AvatarDataPacket::AudioLoudness)) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
         data->audioLoudness = packFloatGainToByte(getAudioLoudness() / AUDIO_LOUDNESS_SCALE);
@@ -444,7 +484,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
-    if (hasSensorToWorldMatrix) {
+    IF_AVATAR_SPACE(PACKET_HAS_SENSOR_TO_WORLD_MATRIX, sizeof(AvatarDataPacket::SensorToWorldMatrix)) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::SensorToWorldMatrix*>(destinationBuffer);
         glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
@@ -462,7 +502,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
-    if (hasAdditionalFlags) {
+    IF_AVATAR_SPACE(PACKET_HAS_ADDITIONAL_FLAGS, sizeof (uint16_t)) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AdditionalFlags*>(destinationBuffer);
 
@@ -510,7 +550,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
-    if (hasParentInfo) {
+    IF_AVATAR_SPACE(PACKET_HAS_PARENT_INFO, sizeof(AvatarDataPacket::ParentInfo)) {
         auto startSection = destinationBuffer;
         auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
         QByteArray referentialAsBytes = parentID.toRfc4122();
@@ -524,7 +564,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
-    if (hasAvatarLocalPosition) {
+    IF_AVATAR_SPACE(PACKET_HAS_AVATAR_LOCAL_POSITION, sizeof(getLocalPosition()) ) {
         auto startSection = destinationBuffer;
         const auto localPosition = getLocalPosition();
         AVATAR_MEMCPY(localPosition);
@@ -535,11 +575,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
+    const auto& blendshapeCoefficients = _headData->getBlendshapeCoefficients();
     // If it is connected, pack up the data
-    if (hasFaceTrackerInfo) {
+    IF_AVATAR_SPACE(PACKET_HAS_FACE_TRACKER_INFO, sizeof(AvatarDataPacket::FaceTrackerInfo) + (size_t)blendshapeCoefficients.size() * sizeof(float)) {
         auto startSection = destinationBuffer;
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
-        const auto& blendshapeCoefficients = _headData->getBlendshapeCoefficients();
         // note: we don't use the blink and average loudness, we just use the numBlendShapes and
         // compute the procedural info on the client side.
         faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
@@ -559,125 +599,125 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     }
 
     QVector<JointData> jointData;
-    if (hasJointData || hasJointDefaultPoseFlags) {
+    if (wantedFlags & (AvatarDataPacket::PACKET_HAS_JOINT_DATA | AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS)) {
         QReadLocker readLock(&_jointDataLock);
         jointData = _jointData;
     }
+    const int numJoints = jointData.size();
+    assert(numJoints <= 255);
+    const int jointBitVectorSize = calcBitVectorSize(numJoints);
 
-    // If it is connected, pack up the data
-    if (hasJointData) {
+    // Start joints if room for at least the faux joints.
+    IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, 1 + 2 * jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE) {
+        // Allow for faux joints + translation bit-vector:
+        const ptrdiff_t minSizeForJoint = sizeof(AvatarDataPacket::SixByteQuat)
+            + jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE;
         auto startSection = destinationBuffer;
 
         // joint rotation data
-        int numJoints = jointData.size();
         *destinationBuffer++ = (uint8_t)numJoints;
 
         unsigned char* validityPosition = destinationBuffer;
-        unsigned char validity = 0;
-        int validityBit = 0;
-        int numValidityBytes = calcBitVectorSize(numJoints);
+        memset(validityPosition, 0, jointBitVectorSize);
 
 #ifdef WANT_DEBUG
         int rotationSentCount = 0;
         unsigned char* beforeRotations = destinationBuffer;
 #endif
 
-        destinationBuffer += numValidityBytes; // Move pointer past the validity bytes
+        destinationBuffer += jointBitVectorSize; // Move pointer past the validity bytes
 
         // sentJointDataOut and lastSentJointData might be the same vector
         if (sentJointDataOut) {
             sentJointDataOut->resize(numJoints); // Make sure the destination is resized before using it
         }
+        const JointData *const joints = jointData.data();
+        JointData *const sentJoints = sentJointDataOut ? sentJointDataOut->data() : nullptr;
 
         float minRotationDOT = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinRotationDOT(viewerPosition) : AVATAR_MIN_ROTATION_DOT;
 
-        for (int i = 0; i < jointData.size(); i++) {
-            const JointData& data = jointData[i];
+        int i = sendStatus.rotationsSent;
+        for (; i < numJoints; ++i) {
+            const JointData& data = joints[i];
             const JointData& last = lastSentJointData[i];
 
-            if (!data.rotationIsDefaultPose) {
-                // The dot product for larger rotations is a lower number.
-                // So if the dot() is less than the value, then the rotation is a larger angle of rotation
-                if (sendAll || last.rotationIsDefaultPose || (!cullSmallChanges && last.rotation != data.rotation)
-                    || (cullSmallChanges && fabsf(glm::dot(last.rotation, data.rotation)) < minRotationDOT) ) {
-                    validity |= (1 << validityBit);
+            if (packetEnd - destinationBuffer >= minSizeForJoint) {
+                if (!data.rotationIsDefaultPose) {
+                    // The dot product for larger rotations is a lower number,
+                    // so if the dot() is less than the value, then the rotation is a larger angle of rotation
+                    if (sendAll || last.rotationIsDefaultPose || (!cullSmallChanges && last.rotation != data.rotation)
+                        || (cullSmallChanges && fabsf(glm::dot(last.rotation, data.rotation)) < minRotationDOT)) {
+                        validityPosition[i / BITS_IN_BYTE] |= 1 << (i % BITS_IN_BYTE);
 #ifdef WANT_DEBUG
-                    rotationSentCount++;
+                        rotationSentCount++;
 #endif
-                    destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
+                        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
 
-                    if (sentJointDataOut) {
-                        (*sentJointDataOut)[i].rotation = data.rotation;
+                        if (sentJoints) {
+                            sentJoints[i].rotation = data.rotation;
+                        }
                     }
                 }
+            } else {
+                break;
             }
 
-            if (sentJointDataOut) {
-                (*sentJointDataOut)[i].rotationIsDefaultPose = data.rotationIsDefaultPose;
+            if (sentJoints) {
+                sentJoints[i].rotationIsDefaultPose = data.rotationIsDefaultPose;
             }
 
-            if (++validityBit == BITS_IN_BYTE) {
-                *validityPosition++ = validity;
-                validityBit = validity = 0;
-            }
         }
-        if (validityBit != 0) {
-            *validityPosition++ = validity;
-        }
+        sendStatus.rotationsSent = i;
 
         // joint translation data
         validityPosition = destinationBuffer;
-        validity = 0;
-        validityBit = 0;
 
 #ifdef WANT_DEBUG
         int translationSentCount = 0;
         unsigned char* beforeTranslations = destinationBuffer;
 #endif
 
-        destinationBuffer += numValidityBytes; // Move pointer past the validity bytes
+        memset(destinationBuffer, 0, jointBitVectorSize);
+        destinationBuffer += jointBitVectorSize; // Move pointer past the validity bytes
 
         float minTranslation = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinTranslationDistance(viewerPosition) : AVATAR_MIN_TRANSLATION;
 
         float maxTranslationDimension = 0.0;
-        for (int i = 0; i < jointData.size(); i++) {
-            const JointData& data = jointData[i];
+        i = sendStatus.translationsSent;
+        for (; i < numJoints; ++i) {
+            const JointData& data = joints[i];
             const JointData& last = lastSentJointData[i];
 
-            if (!data.translationIsDefaultPose) {
-                if (sendAll || last.translationIsDefaultPose || (!cullSmallChanges && last.translation != data.translation)
-                    || (cullSmallChanges && glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation)) {
-                   
-                    validity |= (1 << validityBit);
+            if (packetEnd - destinationBuffer >= minSizeForJoint) {
+                if (!data.translationIsDefaultPose) {
+                    if (sendAll || last.translationIsDefaultPose || (!cullSmallChanges && last.translation != data.translation)
+                        || (cullSmallChanges && glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation)) {
+                        validityPosition[i / BITS_IN_BYTE] |= 1 << (i % BITS_IN_BYTE);
 #ifdef WANT_DEBUG
-                    translationSentCount++;
+                        translationSentCount++;
 #endif
-                    maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
-                    maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
-                    maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
+                        maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
+                        maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
+                        maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
 
-                    destinationBuffer +=
-                        packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+                        destinationBuffer +=
+                            packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
 
-                    if (sentJointDataOut) {
-                        (*sentJointDataOut)[i].translation = data.translation;
+                        if (sentJoints) {
+                            sentJoints[i].translation = data.translation;
+                        }
                     }
                 }
+            } else {
+                break;
             }
 
-            if (sentJointDataOut) {
-                (*sentJointDataOut)[i].translationIsDefaultPose = data.translationIsDefaultPose;
+            if (sentJoints) {
+                sentJoints[i].translationIsDefaultPose = data.translationIsDefaultPose;
             }
 
-            if (++validityBit == BITS_IN_BYTE) {
-                *validityPosition++ = validity;
-                validityBit = validity = 0;
-            }
         }
-
-        if (validityBit != 0) {
-            *validityPosition++ = validity;
-        }
+        sendStatus.translationsSent = i;
 
         // faux joints
         Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
@@ -690,7 +730,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
             TRANSLATION_COMPRESSION_RADIX);
 
-        if (hasGrabJoints) {
+        IF_AVATAR_SPACE(PACKET_HAS_GRAB_JOINTS, sizeof (AvatarDataPacket::FarGrabJoints)) {
             // the far-grab joints may range further than 3 meters, so we can't use packFloatVec3ToSignedTwoByteFixed etc
             auto startSection = destinationBuffer;
 
@@ -732,18 +772,20 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
 #endif
 
+        if (sendStatus.rotationsSent != numJoints || sendStatus.translationsSent != numJoints) {
+            extraReturnedFlags |= AvatarDataPacket::PACKET_HAS_JOINT_DATA;
+        }
+
         int numBytes = destinationBuffer - startSection;
         if (outboundDataRateOut) {
             outboundDataRateOut->jointDataRate.increment(numBytes);
         }
-
     }
-
-    if (hasJointDefaultPoseFlags) {
+    
+    IF_AVATAR_SPACE(PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS, 1 + 2 * jointBitVectorSize) {
         auto startSection = destinationBuffer;
 
         // write numJoints
-        int numJoints = jointData.size();
         *destinationBuffer++ = (uint8_t)numJoints;
 
         // write rotationIsDefaultPose bits
@@ -762,6 +804,10 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
+    memcpy(packetFlagsLocation, &includedFlags, sizeof(includedFlags));
+    // Return dropped items.
+    sendStatus.itemFlags = (wantedFlags & ~includedFlags) | extraReturnedFlags;
+
     int avatarDataSize = destinationBuffer - startPosition;
 
     if (avatarDataSize > (int)byteArraySize) {
@@ -770,6 +816,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     }
 
     return avatarDataByteArray.left(avatarDataSize);
+
+#undef AVATAR_MEMCPY
+#undef IF_AVATAR_SPACE
 }
 
 // NOTE: This is never used in a "distanceAdjust" mode, so it's ok that it doesn't use a variable minimum rotation/translation
@@ -886,20 +935,32 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             offset = glm::vec3(row * SPACE_BETWEEN_AVATARS, 0.0f, col * SPACE_BETWEEN_AVATARS);
         }
 
-        auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
-        if (_globalPosition != newValue) {
-            _globalPosition = newValue;
-            _globalPositionChanged = now;
+        _serverPosition = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
+        if (_isClientAvatar) {
+            auto oneStepDistance = glm::length(_globalPosition - _serverPosition);
+            if (oneStepDistance <= AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE || oneStepDistance >= AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE) {
+                _globalPosition = _serverPosition;
+                // if we don't have a parent, make sure to also set our local position
+                if (!hasParent()) {
+                    setLocalPosition(_serverPosition);
+                }
+            }
+            if (_globalPosition != _serverPosition) {
+                _globalPositionChanged = now;
+            }
+        } else {
+            if (_globalPosition != _serverPosition) {
+                _globalPosition = _serverPosition;
+                _globalPositionChanged = now;
+            }
+            if (!hasParent()) {
+                setLocalPosition(_serverPosition);
+            }
         }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _globalPositionRate.increment(numBytesRead);
         _globalPositionUpdateRate.increment();
-
-        // if we don't have a parent, make sure to also set our local position
-        if (!hasParent()) {
-            setLocalPosition(newValue);
-        }
     }
 
     if (hasAvatarBoundingBox) {
@@ -919,6 +980,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             _globalBoundingBoxOffset = newOffset;
             _avatarBoundingBoxChanged = now;
         }
+
+        _defaultBubbleBox = computeBubbleBox();
 
         sourceBuffer += sizeof(AvatarDataPacket::AvatarBoundingBox);
         int numBytesRead = sourceBuffer - startSection;
@@ -1729,10 +1792,8 @@ glm::quat AvatarData::getOrientationOutbound() const {
     return (getLocalOrientation());
 }
 
-void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
+void AvatarData::processAvatarIdentity(QDataStream& packetStream, bool& identityChanged,
                                        bool& displayNameChanged) {
-
-    QDataStream packetStream(identityData);
 
     QUuid avatarSessionID;
 
@@ -1748,16 +1809,17 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             << (udt::SequenceNumber::Type) incomingSequenceNumber;
     }
 
-    if (incomingSequenceNumber > _identitySequenceNumber) {
-        Identity identity;
+    Identity identity;
 
-        packetStream
-            >> identity.attachmentData
-            >> identity.displayName
-            >> identity.sessionDisplayName
-            >> identity.isReplicated
-            >> identity.lookAtSnappingEnabled
+    packetStream
+        >> identity.attachmentData
+        >> identity.displayName
+        >> identity.sessionDisplayName
+        >> identity.isReplicated
+        >> identity.lookAtSnappingEnabled
         ;
+
+    if (incomingSequenceNumber > _identitySequenceNumber) {
 
         // set the store identity sequence number to match the incoming identity
         _identitySequenceNumber = incomingSequenceNumber;
@@ -2114,10 +2176,6 @@ void AvatarData::sendAvatarDataPacket(bool sendAll) {
         }
     }
 
-    if (_overrideGlobalPosition) {
-        _overrideGlobalPosition = false;
-    }
-
     doneEncoding(cullSmallData);
 
     static AvatarDataSequenceNumber sequenceNumber = 0;
@@ -2161,11 +2219,21 @@ void AvatarData::updateJointMappings() {
     }
 
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
+        ////
+        // TODO: Should we rely upon HTTPResourceRequest for ResourceRequestObserver instead?
+        // HTTPResourceRequest::doSend() covers all of the following and
+        // then some. It doesn't cover the connect() call, so we may
+        // want to add a HTTPResourceRequest::doSend() method that does
+        // connects.
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        DependencyManager::get<ResourceRequestObserver>()->update(
+            _skeletonModelURL, -1, "AvatarData::updateJointMappings");
         QNetworkReply* networkReply = networkAccessManager.get(networkRequest);
+        //
+        ////
         connect(networkReply, &QNetworkReply::finished, this, &AvatarData::setJointMappingsFromNetworkReply);
     }
 }
@@ -2897,4 +2965,22 @@ void AvatarEntityMapFromScriptValue(const QScriptValue& object, AvatarEntityMap&
 
         value[EntityID] = binaryEntityProperties;
     }
+}
+
+const float AvatarData::DEFAULT_BUBBLE_SCALE = 2.4f; // magic number determined empirically
+
+AABox AvatarData::computeBubbleBox(float bubbleScale) const {
+    AABox box = AABox(_globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions);
+    glm::vec3 size = box.getScale();
+    size *= bubbleScale;
+    const glm::vec3 MIN_BUBBLE_SCALE(0.3f, 1.3f, 0.3);
+    size= glm::max(size, MIN_BUBBLE_SCALE);
+    box.setScaleStayCentered(size);
+    return box;
+}
+
+AABox AvatarData::getDefaultBubbleBox() const {
+    AABox bubbleBox(_defaultBubbleBox);
+    bubbleBox.translate(_globalPosition);
+    return bubbleBox;
 }

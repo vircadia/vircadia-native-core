@@ -98,21 +98,6 @@ enum Attribute {
 };
 } // namespace attr
 
-namespace uniform {
-enum Uniform {
-    Extra0 = GPU_UNIFORM_EXTRA0,
-    Extra1 = GPU_UNIFORM_EXTRA1,
-    Extra2 = GPU_UNIFORM_EXTRA2,
-    Extra3 = GPU_UNIFORM_EXTRA3,
-    Extra4 = GPU_UNIFORM_EXTRA4,
-    Extra5 = GPU_UNIFORM_EXTRA5,
-    Extra6 = GPU_UNIFORM_EXTRA6,
-    Extra7 = GPU_UNIFORM_EXTRA7,
-    Extra8 = GPU_UNIFORM_EXTRA8,
-    Extra9 = GPU_UNIFORM_EXTRA9,
-};
-} // namespace uniform
-
 } } // namespace gpu::slot
 
 // !>

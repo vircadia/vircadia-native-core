@@ -85,6 +85,11 @@ private:
         if (!OVR_SUCCESS(ovr_Create(&session, &luid))) {
             qCWarning(oculusLog) << "Failed to acquire Oculus session" << ovr::getError();
             return;
+        } else {
+            ovrResult setFloorLevelOrigin = ovr_SetTrackingOriginType(session, ovrTrackingOrigin::ovrTrackingOrigin_FloorLevel);
+            if (!OVR_SUCCESS(setFloorLevelOrigin)) {
+                qCWarning(oculusLog) << "Failed to set the Oculus tracking origin to floor level" << ovr::getError();
+            }
         }
     }
 

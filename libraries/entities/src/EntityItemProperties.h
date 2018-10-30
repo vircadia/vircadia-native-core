@@ -108,6 +108,7 @@ public:
     bool getScalesWithParent() const;
     bool parentRelatedPropertyChanged() const;
     bool queryAACubeRelatedPropertyChanged() const;
+    bool grabbingRelatedPropertyChanged() const;
 
     AABox getAABox() const;
 
@@ -349,13 +350,18 @@ public:
 
     void setCreated(QDateTime& v);
 
-    bool hasTerseUpdateChanges() const;
+    bool hasTransformOrVelocityChanges() const;
     bool hasMiscPhysicsChanges() const;
+
+    bool hasSimulationRestrictedChanges() const;
+    void copySimulationRestrictedProperties(const EntityItemPointer& entity);
+    void clearSimulationRestrictedProperties();
 
     void clearSimulationOwner();
     void setSimulationOwner(const QUuid& id, uint8_t priority);
     void setSimulationOwner(const QByteArray& data);
     void setSimulationPriority(uint8_t priority) { _simulationOwner.setPriority(priority); }
+    uint8_t computeSimulationBidPriority() const;
 
     void setActionDataDirty() { _actionDataChanged = true; }
 

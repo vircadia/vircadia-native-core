@@ -13,6 +13,7 @@
 #define hifi_QOpenGLContextWrapper_h
 
 #include <stdint.h>
+#include <QtGlobal>
 
 class QOpenGLContext;
 class QSurface;
@@ -21,6 +22,10 @@ class QThread;
 
 class QOpenGLContextWrapper {
 public:
+#ifdef Q_OS_WIN
+    static void* nativeContext(QOpenGLContext* context);
+#endif
+
     QOpenGLContextWrapper();
     QOpenGLContextWrapper(QOpenGLContext* context);
     virtual ~QOpenGLContextWrapper();

@@ -52,7 +52,6 @@
 #include <RunningMarker.h>
 
 #include "avatar/MyAvatar.h"
-#include "BandwidthRecorder.h"
 #include "FancyCamera.h"
 #include "ConnectionMonitor.h"
 #include "CursorManager.h"
@@ -335,13 +334,15 @@ signals:
 
     void uploadRequest(QString path);
 
+    void interstitialModeChanged(bool isInInterstitialMode);
+
     void loginDialogPoppedUp();
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
-    bool importEntities(const QString& url);
+    bool importEntities(const QString& url, const bool isObservable = true, const qint64 callerId = -1);
     void updateThreadPoolCount() const;
     void updateSystemTabletMode();
     void goToErrorDomainURL(QUrl errorDomainURL);
@@ -496,6 +497,8 @@ private slots:
     void setShowBulletContactPoints(bool value);
     void setShowBulletConstraints(bool value);
     void setShowBulletConstraintLimits(bool value);
+
+    void setShowTrackedObjects(bool value);
 
 private:
     void init();
@@ -778,5 +781,8 @@ private:
     std::atomic<bool> _pendingRenderEvent { true };
 
     bool quitWhenFinished { false };
+
+    bool _showTrackedObjects { false };
+    bool _prevShowTrackedObjects { false };
 };
 #endif // hifi_Application_h

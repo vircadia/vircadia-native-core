@@ -19,11 +19,8 @@ class InvertFilter : public ScaleFilter {
 public:
     using ScaleFilter::parseParameters;
     InvertFilter() : ScaleFilter(-1.0f) {}
-    virtual ~InvertFilter() {}
 
     virtual bool parseParameters(const QJsonArray& parameters) { return true; }
-
-private:
 };
 
 }

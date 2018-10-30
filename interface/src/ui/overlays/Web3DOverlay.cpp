@@ -59,6 +59,7 @@
 #include "raypick/PointerScriptingInterface.h"
 #include <display-plugins/CompositorHelper.h>
 #include "AboutUtil.h"
+#include "ResourceRequestObserver.h"
 
 static int MAX_WINDOW_SIZE = 4096;
 static const float METERS_TO_INCHES = 39.3701f;
@@ -269,6 +270,7 @@ void Web3DOverlay::setupQmlSurface(bool isTablet) {
         _webSurface->getSurfaceContext()->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Reticle", qApp->getApplicationCompositor().getReticleInterface());
         _webSurface->getSurfaceContext()->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);

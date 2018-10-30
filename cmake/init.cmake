@@ -10,6 +10,10 @@ if (POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
 endif ()
 
+if (POLICY CMP0074)
+  cmake_policy(SET CMP0074 OLD)
+endif ()
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
 # Hide automoc folders (for IDEs)

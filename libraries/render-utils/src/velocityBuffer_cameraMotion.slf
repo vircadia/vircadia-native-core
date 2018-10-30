@@ -17,7 +17,7 @@
 layout(location=0) in vec2 varTexCoord0;
 layout(location=0) out vec4 outFragColor;
 
-layout(binding=RENDER_UTILS_TEXTURE_TAA_DEPTH) uniform sampler2D depthMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_TAA_DEPTH) uniform sampler2D depthMap;
 
 
 void main(void) {

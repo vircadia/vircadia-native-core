@@ -39,7 +39,18 @@ layout(location=0) out vec4 _fragColor0;
 <@include procedural/ProceduralCommon.slh@>
 
 #line 1001
-//PROCEDURAL_BLOCK
+
+//PROCEDURAL_BLOCK_BEGIN
+
+vec3 getProceduralColor() {
+    return _color.rgb;
+}
+
+float getProceduralColors(inout vec3 diffuse, inout vec3 specular, inout float shininess) {
+    return 1.0;
+}
+
+//PROCEDURAL_BLOCK_END
 
 #line 2030
 void main(void) {

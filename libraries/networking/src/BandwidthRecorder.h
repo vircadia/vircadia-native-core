@@ -32,33 +32,33 @@ public:
     class Channel {
     public:
         Channel();
-        float getAverageInputPacketsPerSecond();
-        float getAverageOutputPacketsPerSecond();
-        float getAverageInputKilobitsPerSecond();
-        float getAverageOutputKilobitsPerSecond();
+        float getAverageInputPacketsPerSecond() const;
+        float getAverageOutputPacketsPerSecond() const;
+        float getAverageInputKilobitsPerSecond() const;
+        float getAverageOutputKilobitsPerSecond() const;
 
         void updateInputAverage(const float sample);
         void updateOutputAverage(const float sample);
 
     private:
-        SimpleMovingAverage _input = SimpleMovingAverage();
-        SimpleMovingAverage _output = SimpleMovingAverage();
+        SimpleMovingAverage _input;
+        SimpleMovingAverage _output;
     };
 
-    float getAverageInputPacketsPerSecond(const quint8 channelType);
-    float getAverageOutputPacketsPerSecond(const quint8 channelType);
-    float getAverageInputKilobitsPerSecond(const quint8 channelType);
-    float getAverageOutputKilobitsPerSecond(const quint8 channelType);
+    float getAverageInputPacketsPerSecond(const quint8 channelType) const;
+    float getAverageOutputPacketsPerSecond(const quint8 channelType) const;
+    float getAverageInputKilobitsPerSecond(const quint8 channelType) const;
+    float getAverageOutputKilobitsPerSecond(const quint8 channelType) const;
 
-    float getTotalAverageInputPacketsPerSecond();
-    float getTotalAverageOutputPacketsPerSecond();
-    float getTotalAverageInputKilobitsPerSecond();
-    float getTotalAverageOutputKilobitsPerSecond();
+    float getTotalAverageInputPacketsPerSecond() const;
+    float getTotalAverageOutputPacketsPerSecond() const;
+    float getTotalAverageInputKilobitsPerSecond() const;
+    float getTotalAverageOutputKilobitsPerSecond() const;
 
-    float getCachedTotalAverageInputPacketsPerSecond();
-    float getCachedTotalAverageOutputPacketsPerSecond();
-    float getCachedTotalAverageInputKilobitsPerSecond();
-    float getCachedTotalAverageOutputKilobitsPerSecond();
+    float getCachedTotalAverageInputPacketsPerSecond() const;
+    float getCachedTotalAverageOutputPacketsPerSecond() const;
+    float getCachedTotalAverageInputKilobitsPerSecond() const;
+    float getCachedTotalAverageOutputKilobitsPerSecond() const;
 
 
 private:
