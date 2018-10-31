@@ -345,16 +345,21 @@ void TestRunner::killProcesses() {
 }
 
 void TestRunner::startLocalServerProcesses() {
-#ifdef Q_OS_WIN
     QString commandLine;
-
+    
+#ifdef Q_OS_WIN
     commandLine = "start \"domain-server.exe\" \"" + QDir::toNativeSeparators(_installationFolder) + "\\domain-server.exe\"";
     system(commandLine.toStdString().c_str());
 
     commandLine =
         "start \"assignment-client.exe\" \"" + QDir::toNativeSeparators(_installationFolder) + "\\assignment-client.exe\" -n 6";
     system(commandLine.toStdString().c_str());
+
+#elif defined Q_OS_MAC
+    commandLine = "open -a \"" +_installationFolder + "/Sandbox.app\"";
+    system(commandLine.toStdString().c_str());
 #endif
+
     // Give server processes time to stabilize
     QThread::sleep(20);
 }
