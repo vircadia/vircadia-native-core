@@ -18,6 +18,7 @@
 #include <DebugDraw.h>
 #include <AnimDebugDraw.h>
 #include <CharacterController.h>
+#include <FSTReader.h>
 
 #include "Avatar.h"
 #include "Logging.h"
@@ -82,7 +83,7 @@ void SkeletonModel::initJointStates() {
 
     // Skeleton may have already been scaled so unscale it
     _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
-
+    _rig.setJointRotationOffsets(FSTReader::getJointRotationOffsets(getGeometry()->getMapping()));
     computeBoundingShape();
 
     Extents meshExtents = getMeshExtents();
