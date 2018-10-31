@@ -12,7 +12,7 @@
 
 /* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager,
    Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera,
-   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool, OverlaySystemWindow */
+   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, OverlaySystemWindow */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -32,7 +32,6 @@ Script.include([
     "libraries/gridTool.js",
     "libraries/entityList.js",
     "libraries/utils.js",
-    "particle_explorer/particleExplorerTool.js",
     "libraries/entityIconOverlayManager.js"
 ]);
 
@@ -112,28 +111,6 @@ var entityListTool = new EntityListTool(shouldUseEditTabletApp);
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
     entityIconOverlayManager.updatePositions();
-
-    // Update particle explorer
-    var needToDestroyParticleExplorer = false;
-    if (selectionManager.selections.length === 1) {
-        var selectedEntityID = selectionManager.selections[0];
-        if (selectedEntityID === selectedParticleEntityID) {
-            return;
-        }
-        var type = Entities.getEntityProperties(selectedEntityID, "type").type;
-        if (type === "ParticleEffect") {
-            selectParticleEntity(selectedEntityID);
-        } else {
-            needToDestroyParticleExplorer = true;
-        }
-    } else {
-        needToDestroyParticleExplorer = true;
-    }
-
-    if (needToDestroyParticleExplorer && selectedParticleEntityID !== null) {
-        selectedParticleEntityID = null;
-        particleExplorerTool.destroyWebView();
-    }
 });
 
 var KEY_P = 80; //Key code for letter p used for Parenting hotkey.
@@ -579,10 +556,6 @@ var toolBar = (function () {
                 entityID: entityID,
                 properties: properties
             }], [], true);
-
-            if (properties.type === "ParticleEffect") {
-                selectParticleEntity(entityID);
-            }
 
             var POST_ADJUST_ENTITY_TYPES = ["Model"];
             if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
@@ -1314,13 +1287,6 @@ function mouseClickEvent(event) {
             orientation = MyAvatar.orientation;
             intersection = rayPlaneIntersection(pickRay, P, Quat.getForward(orientation));
 
-            if (event.isShifted) {
-                particleExplorerTool.destroyWebView();
-            }
-            if (properties.type !== "ParticleEffect") {
-                particleExplorerTool.destroyWebView();
-            }
-
             if (!event.isShifted) {
                 selectionManager.setSelections([foundEntity], this);
             } else {
@@ -1739,8 +1705,6 @@ function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         var deletedIDs = [];
 
-        selectedParticleEntityID = null;
-        particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
         var newSortedSelection = sortSelectedEntities(selectionManager.selections);
@@ -2347,9 +2311,11 @@ var PropertiesTool = function (opts) {
             if (entity.properties.rotation !== undefined) {
                 entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
             }
+            if (entity.properties.emitOrientation !== undefined) {
+                entity.properties.emitOrientation = Quat.safeEulerAngles(entity.properties.emitOrientation);
+            }
             if (entity.properties.keyLight !== undefined && entity.properties.keyLight.direction !== undefined) {
-                entity.properties.keyLight.direction = Vec3.multiply(RADIANS_TO_DEGREES,
-                                                                     Vec3.toPolar(entity.properties.keyLight.direction));
+                entity.properties.keyLight.direction = Vec3.toPolar(entity.properties.keyLight.direction);
                 entity.properties.keyLight.direction.z = 0.0;
             }
             selections.push(entity);
@@ -2385,18 +2351,24 @@ var PropertiesTool = function (opts) {
                     data.properties.angularVelocity = Vec3.ZERO;
                 }
                 if (data.properties.rotation !== undefined) {
-                    var rotation = data.properties.rotation;
-                    data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
+                    data.properties.rotation = Quat.fromVec3Degrees(data.properties.rotation);
+                }
+                if (data.properties.emitOrientation !== undefined) {
+                    data.properties.emitOrientation = Quat.fromVec3Degrees(data.properties.emitOrientation);
                 }
                 if (data.properties.keyLight !== undefined && data.properties.keyLight.direction !== undefined) {
-                    data.properties.keyLight.direction = Vec3.fromPolar(
-                        data.properties.keyLight.direction.x * DEGREES_TO_RADIANS,
-                        data.properties.keyLight.direction.y * DEGREES_TO_RADIANS
-                    );
+                    var currentKeyLightDirection = Vec3.toPolar(Entities.getEntityProperties(selectionManager.selections[0], ['keyLight.direction']).keyLight.direction);
+                    if (data.properties.keyLight.direction.x === undefined) {
+                        data.properties.keyLight.direction.x = currentKeyLightDirection.x;
+                    }
+                    if (data.properties.keyLight.direction.y === undefined) {
+                        data.properties.keyLight.direction.y = currentKeyLightDirection.y;
+                    }
+                    data.properties.keyLight.direction = Vec3.fromPolar(data.properties.keyLight.direction.x, data.properties.keyLight.direction.y);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
                 if (data.properties.name !== undefined || data.properties.modelURL !== undefined || data.properties.materialURL !== undefined ||
-                        data.properties.visible !== undefined || data.properties.locked !== undefined) {
+                    data.properties.visible !== undefined || data.properties.locked !== undefined) {
                     entityListTool.sendUpdate();
                 }
             }
@@ -2509,6 +2481,12 @@ var PropertiesTool = function (opts) {
             }
         } else if (data.type === "propertiesPageReady") {
             updateSelections(true);
+        } else if (data.type === "tooltipsRequest") {
+            emitScriptEvent({
+                type: 'tooltipsReply',
+                tooltips: Script.require('./assets/data/createAppTooltips.json'),
+                hmdActive: HMD.active,
+            });
         }
     };
 
@@ -2742,31 +2720,6 @@ propertyMenu.onSelectMenuItem = function (name) {
 var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
-var particleExplorerTool = new ParticleExplorerTool(createToolsWindow);
-var selectedParticleEntityID = null;
-
-function selectParticleEntity(entityID) {
-    selectedParticleEntityID = entityID;
-
-    var properties = Entities.getEntityProperties(entityID);
-    if (properties.emitOrientation) {
-        properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
-    }
-
-    particleExplorerTool.destroyWebView();
-    particleExplorerTool.createWebView();
-
-    particleExplorerTool.setActiveParticleEntity(entityID);
-
-    // Switch to particle explorer
-    var selectTabMethod = { method: 'selectTab', params: { id: 'particle' } };
-    if (shouldUseEditTabletApp()) {
-        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        tablet.sendToQml(selectTabMethod);
-    } else {
-        createToolsWindow.sendToQml(selectTabMethod);
-    }
-}
 
 entityListTool.webView.webEventReceived.connect(function(data) {
     try {
@@ -2780,20 +2733,6 @@ entityListTool.webView.webEventReceived.connect(function(data) {
         parentSelectedEntities();
     } else if (data.type === 'unparent') {
         unparentSelectedEntities();
-    } else if (data.type === "selectionUpdate") {
-        var ids = data.entityIds;
-        if (ids.length === 1) {
-            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
-                if (JSON.stringify(selectedParticleEntityID) === JSON.stringify(ids[0])) {
-                    // This particle entity is already selected, so return
-                    return;
-                }
-                // Destroy the old particles web view first
-            } else {
-                selectedParticleEntityID = 0;
-                particleExplorerTool.destroyWebView();
-            }
-        }
     }
 });
 

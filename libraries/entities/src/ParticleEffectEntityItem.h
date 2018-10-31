@@ -177,9 +177,10 @@ namespace particle {
         Properties& operator =(const Properties& other) {
             color = other.color;
             alpha = other.alpha;
+            radiusStart = other.radiusStart;
+            radius = other.radius;
             spin = other.spin;
             rotateWithEntity = other.rotateWithEntity;
-            radius = other.radius;
             lifespan = other.lifespan;
             maxParticles = other.maxParticles;
             emission = other.emission;
