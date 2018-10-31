@@ -261,7 +261,7 @@ Item {
             anchors.fill: parent;
             model: filterBarModel;
             delegate: Item {
-                width:   parent.width;
+                width: parent.width;
                 height: 50;
                 Rectangle {
                     id: dropDownButton;
