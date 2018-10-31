@@ -14,19 +14,6 @@
 #include <QProcess>
 
 PythonInterface::PythonInterface() {
-    if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
-        QString _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
-        if (!QFile::exists(_pythonPath + "/" + _pythonExe)) {
-            QMessageBox::critical(0, _pythonExe, QString("Python executable not found in ") + _pythonPath);
-            exit(-1);
-        }
-        
-        _pythonCommand = _pythonPath + "/" + _pythonExe;
-    } else {
-        QMessageBox::critical(0, "PYTHON_PATH not defined",
-                              "Please set PYTHON_PATH to directory containing the Python executable");
-        exit(-1);
-    }
 }
 
 QString PythonInterface::getPythonCommand() {
