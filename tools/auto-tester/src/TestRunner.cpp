@@ -20,7 +20,7 @@ extern AutoTester* autoTester;
 #include <windows.h>
 #include <tlhelp32.h>
 #endif
-
+#include <iostream>
 TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
                        std::vector<QCheckBox*> timeEditCheckboxes,
                        std::vector<QTimeEdit*> timeEdits,
@@ -247,11 +247,10 @@ void TestRunner::verifyInstallationSucceeded() {
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
+#ifdef Q_OS_WIN
     QString dataDirectory{ "NOT FOUND" };
 
-#ifdef Q_OS_WIN
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
-#endif
 
     if (_runLatest->isChecked()) {
         _appDataFolder = dataDirectory + "\\High Fidelity";
@@ -272,6 +271,9 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
 
     // Copy an "empty" AppData folder (i.e. no entities)
     copyFolder(QDir::currentPath() + "/AppDataHighFidelity", _appDataFolder.path());
+#elif defined Q_OS_MAC
+    // TODO:  find Mac equivalent of AppData
+#endif
 }
 
 void TestRunner::createSnapshotFolder() {
@@ -341,6 +343,13 @@ void TestRunner::killProcesses() {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
         exit(-1);
     }
+#elif defined Q_OS_MAC
+    // TODO: this doesn't allow interface to run
+    //QString commandLine = "killall interface\n";
+    //system(commandLine.toStdString().c_str());
+
+    //commandLine = "killall Sandbox\n";
+    //system(commandLine.toStdString().c_str());
 #endif
 }
 
@@ -370,7 +379,12 @@ void TestRunner::runInterfaceWithTestScript() {
         // Move to an empty area
         url = "file:///~serverless/tutorial.json";
     } else {
+#ifdef Q_OS_WIN
         url = "hifi://localhost";
+#elif defined Q_OS_MAC
+        // TODO: Find out Mac equivalent of AppData, then this win't be needed
+        url = "hifi://localhost/9999,9999,9999";
+#endif
     }
 
     QString testScript =
@@ -381,7 +395,8 @@ void TestRunner::runInterfaceWithTestScript() {
     QString commandLine = exeFile + " --url " + url + " --no-updater" + " --testScript " + testScript +
                           " quitWhenFinished --testResultsLocation " + _snapshotFolder;
 #elif defined Q_OS_MAC
-    QString commandLine = "open -a \"" +_installationFolder + "/interface.app\"";
+    QString commandLine = "open -a \"" +_installationFolder + "/interface.app\"" + " --args --url " + url + " --no-updater" + " --testScript " + testScript +
+    " quitWhenFinished --testResultsLocation " + _snapshotFolder;
 #endif
     
     // Helpful for debugging
@@ -448,11 +463,15 @@ void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
 }
 
 void TestRunner::restoreHighFidelityAppDataFolder() {
+#ifdef Q_OS_WIN
     _appDataFolder.removeRecursively();
 
     if (_savedAppDataFolder != QDir()) {
         _appDataFolder.rename(_savedAppDataFolder.path(), _appDataFolder.path());
     }
+#elif defined Q_OS_MAC
+    // TODO:  find Mac equivalent of AppData
+#endif
 }
 
 // Copies a folder recursively
