@@ -929,7 +929,7 @@ HFMGeometry* GLTFReader::readGLTF(QByteArray& model, const QVariantHash& mapping
 
     buildGeometry(geometry, url);
     
-    //fbxDebugDump(geometry);
+    //hfmDebugDump(geometry);
     return geometryPtr;
     
 }
@@ -1181,37 +1181,37 @@ void GLTFReader::retriangulate(const QVector<int>& inIndices, const QVector<glm:
     }
 }
 
-void GLTFReader::fbxDebugDump(const HFMGeometry& fbxgeo) {
+void GLTFReader::hfmDebugDump(const HFMGeometry& hfmgeo) {
     qCDebug(modelformat) << "---------------- hfmGeometry ----------------";
-    qCDebug(modelformat) << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
-    qCDebug(modelformat) << "  offset =" << fbxgeo.offset;
+    qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmgeo.hasSkeletonJoints;
+    qCDebug(modelformat) << "  offset =" << hfmgeo.offset;
 
-    qCDebug(modelformat) << "  leftEyeJointIndex =" << fbxgeo.leftEyeJointIndex;
-    qCDebug(modelformat) << "  rightEyeJointIndex =" << fbxgeo.rightEyeJointIndex;
-    qCDebug(modelformat) << "  neckJointIndex =" << fbxgeo.neckJointIndex;
-    qCDebug(modelformat) << "  rootJointIndex =" << fbxgeo.rootJointIndex;
-    qCDebug(modelformat) << "  leanJointIndex =" << fbxgeo.leanJointIndex;
-    qCDebug(modelformat) << "  headJointIndex =" << fbxgeo.headJointIndex;
-    qCDebug(modelformat) << "  leftHandJointIndex" << fbxgeo.leftHandJointIndex;
-    qCDebug(modelformat) << "  rightHandJointIndex" << fbxgeo.rightHandJointIndex;
-    qCDebug(modelformat) << "  leftToeJointIndex" << fbxgeo.leftToeJointIndex;
-    qCDebug(modelformat) << "  rightToeJointIndex" << fbxgeo.rightToeJointIndex;
-    qCDebug(modelformat) << "  leftEyeSize = " << fbxgeo.leftEyeSize;
-    qCDebug(modelformat) << "  rightEyeSize = " << fbxgeo.rightEyeSize;
+    qCDebug(modelformat) << "  leftEyeJointIndex =" << hfmgeo.leftEyeJointIndex;
+    qCDebug(modelformat) << "  rightEyeJointIndex =" << hfmgeo.rightEyeJointIndex;
+    qCDebug(modelformat) << "  neckJointIndex =" << hfmgeo.neckJointIndex;
+    qCDebug(modelformat) << "  rootJointIndex =" << hfmgeo.rootJointIndex;
+    qCDebug(modelformat) << "  leanJointIndex =" << hfmgeo.leanJointIndex;
+    qCDebug(modelformat) << "  headJointIndex =" << hfmgeo.headJointIndex;
+    qCDebug(modelformat) << "  leftHandJointIndex" << hfmgeo.leftHandJointIndex;
+    qCDebug(modelformat) << "  rightHandJointIndex" << hfmgeo.rightHandJointIndex;
+    qCDebug(modelformat) << "  leftToeJointIndex" << hfmgeo.leftToeJointIndex;
+    qCDebug(modelformat) << "  rightToeJointIndex" << hfmgeo.rightToeJointIndex;
+    qCDebug(modelformat) << "  leftEyeSize = " << hfmgeo.leftEyeSize;
+    qCDebug(modelformat) << "  rightEyeSize = " << hfmgeo.rightEyeSize;
 
-    qCDebug(modelformat) << "  palmDirection = " << fbxgeo.palmDirection;
+    qCDebug(modelformat) << "  palmDirection = " << hfmgeo.palmDirection;
 
-    qCDebug(modelformat) << "  neckPivot = " << fbxgeo.neckPivot;
+    qCDebug(modelformat) << "  neckPivot = " << hfmgeo.neckPivot;
 
-    qCDebug(modelformat) << "  bindExtents.size() = " << fbxgeo.bindExtents.size();
-    qCDebug(modelformat) << "  meshExtents.size() = " << fbxgeo.meshExtents.size();
+    qCDebug(modelformat) << "  bindExtents.size() = " << hfmgeo.bindExtents.size();
+    qCDebug(modelformat) << "  meshExtents.size() = " << hfmgeo.meshExtents.size();
 
-    qCDebug(modelformat) << "  jointIndices.size() =" << fbxgeo.jointIndices.size();
-    qCDebug(modelformat) << "  joints.count() =" << fbxgeo.joints.count();
+    qCDebug(modelformat) << "  jointIndices.size() =" << hfmgeo.jointIndices.size();
+    qCDebug(modelformat) << "  joints.count() =" << hfmgeo.joints.count();
     qCDebug(modelformat) << "---------------- Meshes ----------------";
-    qCDebug(modelformat) << "  meshes.count() =" << fbxgeo.meshes.count();
-    qCDebug(modelformat) << "  blendshapeChannelNames = " << fbxgeo.blendshapeChannelNames;
-    foreach(HFMMesh mesh, fbxgeo.meshes) {
+    qCDebug(modelformat) << "  meshes.count() =" << hfmgeo.meshes.count();
+    qCDebug(modelformat) << "  blendshapeChannelNames = " << hfmgeo.blendshapeChannelNames;
+    foreach(HFMMesh mesh, hfmgeo.meshes) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "    meshpointer =" << mesh._mesh.get();
         qCDebug(modelformat) << "    meshindex =" << mesh.meshIndex;
@@ -1254,18 +1254,18 @@ void GLTFReader::fbxDebugDump(const HFMGeometry& fbxgeo) {
         qCDebug(modelformat) << "\n";
     }
     qCDebug(modelformat) << "---------------- AnimationFrames ----------------";
-    foreach(HFMAnimationFrame anim, fbxgeo.animationFrames) {
+    foreach(HFMAnimationFrame anim, hfmgeo.animationFrames) {
         qCDebug(modelformat) << "  anim.translations = " << anim.translations;
         qCDebug(modelformat) << "  anim.rotations = " << anim.rotations;
     }
-    QList<int> mitomona_keys = fbxgeo.meshIndicesToModelNames.keys();
+    QList<int> mitomona_keys = hfmgeo.meshIndicesToModelNames.keys();
     foreach(int key, mitomona_keys) {
-        qCDebug(modelformat) << "    meshIndicesToModelNames key =" << key << "  val =" << fbxgeo.meshIndicesToModelNames[key];
+        qCDebug(modelformat) << "    meshIndicesToModelNames key =" << key << "  val =" << hfmgeo.meshIndicesToModelNames[key];
     }
 
     qCDebug(modelformat) << "---------------- Materials ----------------";
 
-    foreach(HFMMaterial mat, fbxgeo.materials) {
+    foreach(HFMMaterial mat, hfmgeo.materials) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "  mat.materialID =" << mat.materialID;
         qCDebug(modelformat) << "  diffuseColor =" << mat.diffuseColor;
@@ -1314,7 +1314,7 @@ void GLTFReader::fbxDebugDump(const HFMGeometry& fbxgeo) {
 
     qCDebug(modelformat) << "---------------- Joints ----------------";
 
-    foreach(HFMJoint joint, fbxgeo.joints) {
+    foreach(HFMJoint joint, hfmgeo.joints) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "    shapeInfo.avgPoint =" << joint.shapeInfo.avgPoint;
         qCDebug(modelformat) << "    shapeInfo.debugLines =" << joint.shapeInfo.debugLines;

@@ -780,7 +780,7 @@ private:
 
     void setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material);
     HFMTexture getHFMTexture(const GLTFTexture& texture);
-    void fbxDebugDump(const HFMGeometry& fbxgeo);
+    void hfmDebugDump(const HFMGeometry& hfmgeo);
 };
 
 #endif // hifi_GLTFReader_h

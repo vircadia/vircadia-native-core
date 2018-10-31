@@ -824,7 +824,7 @@ HFMGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         // Build the single mesh.
         FBXReader::buildModelMesh(mesh, url.toString());
 
-        // fbxDebugDump(geometry);
+        // hfmDebugDump(geometry);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
@@ -991,12 +991,12 @@ HFMGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
     return geometryPtr;
 }
 
-void fbxDebugDump(const HFMGeometry& fbxgeo) {
+void hfmDebugDump(const HFMGeometry& hfmgeo) {
     qCDebug(modelformat) << "---------------- hfmGeometry ----------------";
-    qCDebug(modelformat) << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
-    qCDebug(modelformat) << "  offset =" << fbxgeo.offset;
-    qCDebug(modelformat) << "  meshes.count() =" << fbxgeo.meshes.count();
-    foreach (HFMMesh mesh, fbxgeo.meshes) {
+    qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmgeo.hasSkeletonJoints;
+    qCDebug(modelformat) << "  offset =" << hfmgeo.offset;
+    qCDebug(modelformat) << "  meshes.count() =" << hfmgeo.meshes.count();
+    foreach (HFMMesh mesh, hfmgeo.meshes) {
         qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
         qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
         qCDebug(modelformat) << "    normals.count() =" << mesh.normals.count();
@@ -1037,10 +1037,10 @@ void fbxDebugDump(const HFMGeometry& fbxgeo) {
         }
     }
 
-    qCDebug(modelformat) << "  jointIndices =" << fbxgeo.jointIndices;
-    qCDebug(modelformat) << "  joints.count() =" << fbxgeo.joints.count();
+    qCDebug(modelformat) << "  jointIndices =" << hfmgeo.jointIndices;
+    qCDebug(modelformat) << "  joints.count() =" << hfmgeo.joints.count();
 
-    foreach (HFMJoint joint, fbxgeo.joints) {
+    foreach (HFMJoint joint, hfmgeo.joints) {
         qCDebug(modelformat) << "    isFree =" << joint.isFree;
         qCDebug(modelformat) << "    freeLineage" << joint.freeLineage;
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
