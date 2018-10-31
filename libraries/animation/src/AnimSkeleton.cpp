@@ -20,12 +20,14 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry) {
     // convert to std::vector of joints
     std::vector<FBXJoint> joints;
     joints.reserve(fbxGeometry.joints.size());
-    AnimPose identity;
+    _avatarTPoseOffsets.reserve(fbxGeometry.joints.size());
+    AnimPose identity(glm::quat(), glm::vec3());
     for (auto& joint : fbxGeometry.joints) {
         joints.push_back(joint);
         _avatarTPoseOffsets.push_back(identity);
     }
     buildSkeletonFromJoints(joints);
+    /*
     //add offsets for spine2 and the neck
     _avatarTPoseOffsets[nameToJointIndex("Spine2")] = AnimPose(glm::quat(-0.707107f, 0.0f, 0.0f, 0.707107f), glm::vec3());
     _avatarTPoseOffsets[nameToJointIndex("Neck")] = AnimPose(glm::quat(0.0f, 0.707107f, 0.0f, 0.707107f), glm::vec3());
@@ -43,6 +45,7 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry) {
 
         }
     }
+    */
 }	
 
 AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
