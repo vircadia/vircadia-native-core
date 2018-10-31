@@ -135,7 +135,7 @@ Rectangle {
         // Title Bar text
         RalewaySemiBold {
             id: titleBarText;
-            text: "ASSETS";
+            text: "INVENTORY";
             // Text size
             size: hifi.fontSizes.overlayTitle;
             // Anchors
@@ -376,7 +376,7 @@ Rectangle {
         id: walletInventory;
         visible: root.activeView === "walletInventory";
         anchors.top: titleBarContainer.bottom;
-        anchors.bottom: tabButtonsContainer.top;
+        anchors.bottom: !WalletScriptingInterface.limitedCommerce ? tabButtonsContainer.top : parent.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
         Connections {
@@ -475,7 +475,7 @@ Rectangle {
     //
     Item {
         id: tabButtonsContainer;
-        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange" && sendMoney.currentActiveView !== "sendAssetStep";
+        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange" && sendMoney.currentActiveView !== "sendAssetStep" && !WalletScriptingInterface.limitedCommerce;
         property int numTabs: 5;
         // Size
         width: root.width;
@@ -585,7 +585,7 @@ Rectangle {
             }
 
             RalewaySemiBold {
-                text: "INVENTORY";
+                text: "ITEMS";
                 // Text size
                 size: 16;
                 // Anchors

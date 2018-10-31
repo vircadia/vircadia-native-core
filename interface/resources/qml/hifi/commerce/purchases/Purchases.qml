@@ -452,7 +452,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.leftMargin: 16;
                 width: paintedWidth;
-                text: "Inventory";
+                text: "Items";
                 color: hifi.colors.black;
                 size: 22;
             }

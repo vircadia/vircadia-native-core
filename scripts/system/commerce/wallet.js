@@ -644,14 +644,13 @@ function uninstallMarketplaceItemTester() {
     }
 }
 
-var BUTTON_NAME = "ASSETS";
+var BUTTON_NAME = "INVENTORY";
 var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
 var NOTIFICATION_POLL_TIMEOUT = 300000;
 var ui;
 function startup() {
     ui = new AppUi({
         buttonName: BUTTON_NAME,
-        buttonPrefix: "wallet-",
         sortOrder: 10,
         home: WALLET_QML_SOURCE,
         onOpened: walletOpened,
