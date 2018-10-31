@@ -655,6 +655,22 @@ var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
 var NOTIFICATION_POLL_TIMEOUT = 300000;
 var ui;
 function startup() {
+    var notificationPollEndpointArray = ["/api/v1/commerce/available_updates?per_page=10"];
+    var notificationPollTimeoutMsArray = [NOTIFICATION_POLL_TIMEOUT];
+    var notificationDataProcessPageArray = [notificationDataProcessPageUpdates];
+    var notificationPollCallbackArray = [notificationPollCallbackUpdates];
+    var notificationPollStopPaginatingConditionMetArray = [isReturnedDataEmptyUpdates];
+    var notificationPollCaresAboutSinceArray = [false];
+
+    if (!WalletScriptingInterface.limitedCommerce) {
+        notificationPollEndpointArray[1] = "/api/v1/commerce/history?per_page=10";
+        notificationPollTimeoutMsArray[1] = NOTIFICATION_POLL_TIMEOUT;
+        notificationDataProcessPageArray[1] = notificationDataProcessPageHistory;
+        notificationPollCallbackArray[1] = notificationPollCallbackHistory;
+        notificationPollStopPaginatingConditionMetArray[1] = isReturnedDataEmptyHistory;
+        notificationPollCaresAboutSinceArray[1] = true;
+    }
+
     ui = new AppUi({
         buttonName: BUTTON_NAME,
         buttonPrefix: "wallet-",
@@ -663,12 +679,12 @@ function startup() {
         onOpened: walletOpened,
         onClosed: walletClosed,
         onMessage: fromQml,
-        notificationPollEndpoint: ["/api/v1/commerce/available_updates?per_page=10", "/api/v1/commerce/history?per_page=10"],
-        notificationPollTimeoutMs: [NOTIFICATION_POLL_TIMEOUT, NOTIFICATION_POLL_TIMEOUT],
-        notificationDataProcessPage: [notificationDataProcessPageUpdates, notificationDataProcessPageHistory],
-        notificationPollCallback: [notificationPollCallbackUpdates, notificationPollCallbackHistory],
-        notificationPollStopPaginatingConditionMet: [isReturnedDataEmptyUpdates, isReturnedDataEmptyHistory],
-        notificationPollCaresAboutSince: [false, true]
+        notificationPollEndpoint: notificationPollEndpointArray,
+        notificationPollTimeoutMs: notificationPollTimeoutMsArray,
+        notificationDataProcessPage: notificationDataProcessPageArray,
+        notificationPollCallback: notificationPollCallbackArray,
+        notificationPollStopPaginatingConditionMet: notificationPollStopPaginatingConditionMetArray,
+        notificationPollCaresAboutSince: notificationPollCaresAboutSinceArray
     });
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
     installMarketplaceItemTester();
