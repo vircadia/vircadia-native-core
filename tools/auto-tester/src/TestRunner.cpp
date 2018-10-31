@@ -365,7 +365,7 @@ void TestRunner::startLocalServerProcesses() {
     system(commandLine.toStdString().c_str());
 
 #elif defined Q_OS_MAC
-    commandLine = "open -a \"" +_installationFolder + "/Sandbox.app\"";
+    commandLine = "open \"" +_installationFolder + "/Sandbox.app\"";
     system(commandLine.toStdString().c_str());
 #endif
 
@@ -395,7 +395,7 @@ void TestRunner::runInterfaceWithTestScript() {
     QString commandLine = exeFile + " --url " + url + " --no-updater" + " --testScript " + testScript +
                           " quitWhenFinished --testResultsLocation " + _snapshotFolder;
 #elif defined Q_OS_MAC
-    QString commandLine = "open -a \"" +_installationFolder + "/interface.app\"" + " --args --url " + url + " --no-updater" + " --testScript " + testScript +
+    QString commandLine = "open \"" +_installationFolder + "/interface.app\"" + " --args --url " + url + " --no-updater" + " --testScript " + testScript +
     " quitWhenFinished --testResultsLocation " + _snapshotFolder;
 #endif
     
