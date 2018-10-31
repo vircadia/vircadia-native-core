@@ -2490,6 +2490,13 @@ var PropertiesTool = function (opts) {
         }
     };
 
+    HMD.displayModeChanged.connect(function() {
+        emitScriptEvent({
+            type: 'hmdActiveChanged',
+            hmdActive: HMD.active,
+        });
+    });
+
     createToolsWindow.webEventReceived.addListener(this, onWebEventReceived);
 
     webView.webEventReceived.connect(onWebEventReceived);

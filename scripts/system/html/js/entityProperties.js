@@ -3165,8 +3165,13 @@ function loaded() {
                 } else if (data.type === 'tooltipsReply') {
                     createAppTooltip.setIsEnabled(!data.hmdActive);
                     createAppTooltip.setTooltipData(data.tooltips);
+                } else if (data.type === 'hmdActiveChanged') {
+                    createAppTooltip.setIsEnabled(!data.hmdActive);
                 }
             });
+
+            // Request tooltips as soon as we can process a reply:
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
         }
         
         // Server Script Status
@@ -3397,6 +3402,5 @@ function loaded() {
 
     setTimeout(function() {
         EventBridge.emitWebEvent(JSON.stringify({ type: 'propertiesPageReady' }));
-        EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
     }, 1000);
 }

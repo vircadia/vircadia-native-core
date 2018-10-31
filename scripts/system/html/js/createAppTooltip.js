@@ -58,15 +58,15 @@ CreateAppTooltip.prototype = {
                     if (!TOOLTIP_DEBUG) {
                         return;
                     }
-                    tooltipData = {tooltip: 'PLEASE SET THIS TOOLTIP'};
+                    tooltipData = { tooltip: 'PLEASE SET THIS TOOLTIP' };
                 }
 
                 let elementRect = element.getBoundingClientRect();
                 let elTip = document.createElement("div");
-                elTip.className = "createAppTooltip";
+                elTip.className = "create-app-tooltip";
 
                 let elTipDescription = document.createElement("div");
-                elTipDescription.className = "createAppTooltipDescription";
+                elTipDescription.className = "create-app-tooltip-description";
                 elTipDescription.innerText = tooltipData.tooltip;
                 elTip.appendChild(elTipDescription);
 
@@ -77,7 +77,7 @@ CreateAppTooltip.prototype = {
 
                 if (!tooltipData.skipJSProperty) {
                     let elTipJSAttribute = document.createElement("div");
-                    elTipJSAttribute.className = "createAppTooltipJSAttribute";
+                    elTipJSAttribute.className = "create-app-tooltip-js-attribute";
                     elTipJSAttribute.innerText = `JS Attribute: ${jsAttribute}`;
                     elTip.appendChild(elTipJSAttribute);
                 }
@@ -93,7 +93,7 @@ CreateAppTooltip.prototype = {
                     // show above when otherwise out of bounds
                     elTip.style.top = elementTop - CREATE_APP_TOOLTIP_OFFSET - elTip.clientHeight;
                 } else {
-                    // show tooltip on below by default
+                    // show tooltip below by default
                     elTip.style.top = desiredTooltipTop;
                 }
                 if ((window.innerWidth + window.pageXOffset) < (desiredTooltipLeft + elTip.clientWidth)) {
