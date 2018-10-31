@@ -142,7 +142,7 @@ Rectangle {
         Image {
             id: titleBarSecurityImage;
             source: "";
-            visible: titleBarSecurityImage.source !== "" && !securityImageChange.visible;
+            visible: titleBarSecurityImage.source !== "";
             anchors.right: parent.right;
             anchors.rightMargin: 6;
             anchors.top: parent.top;
@@ -361,7 +361,7 @@ Rectangle {
     //
     Item {
         id: tabButtonsContainer;
-        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange" && sendMoney.currentActiveView !== "sendAssetStep";
+        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && sendMoney.currentActiveView !== "sendAssetStep";
         property int numTabs: 4;
         // Size
         width: root.width;

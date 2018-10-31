@@ -20,7 +20,7 @@ import "qrc:////qml//controls" as HifiControls
 // references XXX from root context
 
 Item {
-    HifiConstants { id: hifi; }
+    HifiStylesUit.HifiConstants { id: hifi; }
 
     id: root;
     property alias currentIndex: securityImageGrid.currentIndex;
@@ -64,10 +64,10 @@ Item {
             }
         }
         highlight: Rectangle {
-                width: securityImageGrid.cellWidth;
-                height: securityImageGrid.cellHeight;
-                color: hifi.colors.blueHighlight;
-            }
+            width: securityImageGrid.cellWidth;
+            height: securityImageGrid.cellHeight;
+            color: hifi.colors.blueHighlight;
+        }
     }
 
     //

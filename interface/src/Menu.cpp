@@ -268,8 +268,9 @@ Menu::Menu() {
     // Settings > Security...
     action = addActionToQMenuAndActionHash(settingsMenu, "Security...");
     connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/security/SecurityWrapper.qml"),
-            QString("hifi/dialogs/security/Security.qml"), "SecurityDialog");
+        auto tablet = dynamic_cast<TabletProxy*>(
+            DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+        tablet->loadQMLSource(QString("hifi/dialogs/security/Security.qml"));
     });
 
     // Settings > Developer Menu

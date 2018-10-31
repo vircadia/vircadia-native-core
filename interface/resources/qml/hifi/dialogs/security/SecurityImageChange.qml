@@ -19,10 +19,11 @@ import "qrc:////qml//controls" as HifiControls
 
 // references XXX from root context
 
-Item {
-    HifiConstants { id: hifi; }
+Rectangle {
+    HifiStylesUit.HifiConstants { id: hifi; }
 
     id: root;
+    color: hifi.colors.darkGray;
     property bool justSubmitted: false;
 
     Connections {
@@ -72,7 +73,7 @@ Item {
             anchors.bottom: parent.bottom;
             height: 22;
             // Lock icon
-            HiFiGlyphs {
+            HifiStylesUit.HiFiGlyphs {
                 id: lockIcon;
                 text: hifi.glyphs.lock;
                 anchors.bottom: parent.bottom;
@@ -84,9 +85,9 @@ Item {
                 color: hifi.colors.white;
             }
             // "Security image" text below image
-            RalewayRegular {
+            HifiStylesUit.RalewayRegular {
                 id: securityImageText;
-                text: "SECURITY IMAGE";
+                text: "SECURITY PIC";
                 // Text size
                 size: 12;
                 // Anchors
@@ -116,7 +117,7 @@ Item {
         anchors.bottom: parent.bottom;
 
         // "Change Security Image" text
-        RalewaySemiBold {
+        HifiStylesUit.RalewaySemiBold {
             id: securityImageTitle;
             text: "Change Security Image:";
             // Text size

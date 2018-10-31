@@ -239,7 +239,10 @@ Item {
 
             }
 
-            Keys.onReturnPressed: linkAccountBody.login()
+            Keys.onReturnPressed: {
+                Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                linkAccountBody.login();
+            }
         }
 
         InfoItem {
@@ -264,14 +267,14 @@ Item {
             CheckBox {
                 id: autoLogoutCheckbox
                 checked: Settings.getValue("keepMeLoggedIn", false)
-                text: "Keep me signed in"
+                text: "Keep me logged in"
                 boxSize: 20;
                 labelFontSize: 15
                 color: hifi.colors.black
                 onCheckedChanged: {
                     Settings.setValue("keepMeLoggedIn", checked);
                     if (checked) {
-                        Settings.setValue("keepMeLoggedIn/savedUsername", Account.username);
+                        Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
                     } else {
                         Settings.setValue("keepMeLoggedIn/savedUsername", "");
                     }
@@ -289,7 +292,10 @@ Item {
                 text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Log in")
                 color: hifi.buttons.blue
 
-                onClicked: linkAccountBody.login()
+                onClicked: {
+                    Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                    linkAccountBody.login();
+                }
             }
         }
 
@@ -403,6 +409,7 @@ Item {
         case Qt.Key_Enter:
         case Qt.Key_Return:
             event.accepted = true
+            Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
             linkAccountBody.login()
             break
         }

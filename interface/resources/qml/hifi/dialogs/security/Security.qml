@@ -29,6 +29,17 @@ Rectangle {
     
     property string title: "Security Settings";
     property bool walletSetUp;
+    
+    QtObject {
+        id: margins
+        property real paddings: root.width / 20.25
+
+        property real sizeCheckBox: root.width / 13.5
+        property real sizeText: root.width / 2.5
+        property real sizeLevel: root.width / 5.8
+        property real sizeDesktop: root.width / 5.8
+        property real sizeVR: root.width / 13.5
+    }
 
     Connections {
         target: Commerce;
@@ -50,16 +61,37 @@ Rectangle {
         }
     }
 
+    Component.onCompleted: {
+        Commerce.getWalletStatus();
+    }
+
     HifiCommerceCommon.CommerceLightbox {
+        z: 996;
         id: lightboxPopup;
         visible: false;
         anchors.fill: parent;
     }
 
+    SecurityImageChange {
+        id: securityImageChange;
+        visible: false;
+        z: 997;
+        anchors.top: usernameText.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        anchors.bottom: parent.bottom;
+
+        Connections {
+            onSendSignalToParent: {
+                securityImageChange.visible = false;
+            }
+        }
+    }
+
     // Username Text
     HifiStylesUit.RalewayRegular {
         id: usernameText;
-        text: Account.username === "" ? Account.username : "Please Log In";
+        text: Account.username === "Unknown user" ? "Please Log In" : Account.username;
         // Text size
         size: 24;
         // Style
@@ -71,12 +103,12 @@ Rectangle {
         anchors.leftMargin: 20;
         anchors.right: parent.right;
         anchors.rightMargin: 20;
-        height: 80;
+        height: 60;
     }
 
     Item {
         id: pleaseLogInContainer;
-        visible: Account.username === "";
+        visible: Account.username === "Unknown user";
         anchors.top: usernameText.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
@@ -94,7 +126,7 @@ Rectangle {
             anchors.right: parent.right;
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
-            height: 80;
+            height: 60;
         }
         
         HifiControlsUit.Button {
@@ -104,7 +136,7 @@ Rectangle {
             anchors.centerIn: parent;
             width: 140;
             height: 40;
-            text: "Change";
+            text: "Log In";
             onClicked: {
                 DialogsManager.showLoginDialog();
             }
@@ -131,13 +163,15 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                height: 80;
+                height: 70;
                 color: hifi.colors.baseGrayHighlight;
 
                 HifiStylesUit.RalewaySemiBold {
                     text: "Account";
                     anchors.fill: parent;
                     anchors.leftMargin: 20;
+                    color: hifi.colors.white;
+                    size: 18;
                 }
             }
 
@@ -156,9 +190,11 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter;
                     anchors.left: parent.left;
                     anchors.leftMargin: 20;
-                    boxSize: 28;
+                    boxSize: 24;
                     labelFontSize: 18;
+                    colorScheme: hifi.colorSchemes.dark
                     color: hifi.colors.white;
+                    width: 240;
                     onCheckedChanged: {
                         Settings.setValue("keepMeLoggedIn", checked);
                         if (checked) {
@@ -218,13 +254,15 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                height: 80;
+                height: 70;
                 color: hifi.colors.baseGrayHighlight;
 
                 HifiStylesUit.RalewaySemiBold {
                     text: "Wallet";
                     anchors.fill: parent;
                     anchors.leftMargin: 20;
+                    color: hifi.colors.white;
+                    size: 18;
                 }
             }
 
@@ -249,7 +287,7 @@ Rectangle {
                     cache: false;
                 }
 
-                HifiStylesUit.RalewayRegular {
+                HifiStylesUit.RalewaySemiBold {
                     id: securityPictureText;
                     text: "Wallet Security Picture";
                     // Anchors
@@ -270,12 +308,14 @@ Rectangle {
                     color: hifi.buttons.white;
                     colorScheme: hifi.colorSchemes.dark;
                     anchors.left: securityPictureText.right;
+                    anchors.leftMargin: 12;
                     anchors.verticalCenter: parent.verticalCenter;
                     width: 140;
                     height: 40;
                     text: "Change";
                     onClicked: {
-                    
+                        securityImageChange.visible = true;
+                        securityImageChange.initModel();
                     }
                 }
             }
@@ -286,7 +326,7 @@ Rectangle {
                 anchors.top: walletHeaderContainer.bottom;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                height: 80;
+                height: 60;
 
                 HifiStylesUit.RalewayRegular {
                     text: "Your wallet is not set up.\n" +
