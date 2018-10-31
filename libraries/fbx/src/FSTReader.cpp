@@ -220,8 +220,8 @@ QMap<QString, glm::quat> FSTReader::getJointRotationOffsets(const QVariantHash& 
                 float eulerY = eulerAngles[1].toFloat();
                 float eulerZ = eulerAngles[2].mid(0, eulerAngles[2].size() - 1).toFloat();
                 if (!isNaN(eulerX) && !isNaN(eulerY) && !isNaN(eulerZ)) {
-                    glm::quat rotationOffset = (glm::angleAxis(eulerX * RADIANS_PER_DEGREE, Vectors::UNIT_Y) *
-                        glm::angleAxis(eulerY * RADIANS_PER_DEGREE, Vectors::UNIT_X) *
+                    glm::quat rotationOffset = (glm::angleAxis(eulerX * RADIANS_PER_DEGREE, Vectors::UNIT_X) *
+                        glm::angleAxis(eulerY * RADIANS_PER_DEGREE, Vectors::UNIT_Y) *
                         glm::angleAxis(eulerZ * RADIANS_PER_DEGREE, Vectors::UNIT_Z));
                     jointRotationOffsets.insert(jointName, rotationOffset);
                 }
