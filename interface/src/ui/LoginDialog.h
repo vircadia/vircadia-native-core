@@ -14,13 +14,12 @@
 #ifndef hifi_LoginDialog_h
 #define hifi_LoginDialog_h
 
+#include <QtCore/QUuid>
+
 #include <OffscreenQmlDialog.h>
 #include <SettingHandle.h>
 
-#include "ui/overlays/Web3DOverlay.h"
-
 class QNetworkReply;
-class Web3DOverlay;
 
 class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
@@ -45,7 +44,7 @@ signals:
 
     void handleCreateCompleted();
     void handleCreateFailed(QString error);
-    
+
     void handleSignupCompleted();
     void handleSignupFailed(QString errorString);
 
@@ -58,7 +57,7 @@ public slots:
 
     void createCompleted(QNetworkReply* reply);
     void createFailed(QNetworkReply* reply);
-    
+
     void signupCompleted(QNetworkReply* reply);
     void signupFailed(QNetworkReply* reply);
 
@@ -71,7 +70,7 @@ protected slots:
     Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void linkSteam();
     Q_INVOKABLE void createAccountFromSteam(QString username = QString());
-    
+
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 
     Q_INVOKABLE void openUrl(const QString& url) const;
@@ -79,15 +78,10 @@ protected slots:
     Q_INVOKABLE bool getLoginDialogPoppedUp() const;
 
 private:
-    // for HMD mode on pop up.
-    static void createLoginDialogOverlay();
-
     bool getIsLogIn() const { return _isLogIn; }
     void setIsLogIn(const bool isLogIn) { _isLogIn = isLogIn; }
 
-    bool _isLogIn { false };
-
-    Web3DOverlay _loginDialogOverlay;
+    bool _isLogIn{ false };
 };
 
-#endif // hifi_LoginDialog_h
+#endif  // hifi_LoginDialog_h

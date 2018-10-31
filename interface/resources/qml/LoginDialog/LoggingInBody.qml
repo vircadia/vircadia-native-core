@@ -45,10 +45,10 @@ Item {
 
             var newWidth = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             if (!isNaN(newWidth)) {
-                parent.width = root.pane.width = newWidth;
+                parent.width = root.width = newWidth;
             }
 
-            parent.height = root.pane.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)) + hifi.dimensions.contentSpacing.y;
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)) + hifi.dimensions.contentSpacing.y;
         }
     }
 
@@ -102,13 +102,13 @@ Item {
             loggingInText.text = "You are now logged in!";
         }
         successTimer.start();
-        loginDialog.resumeLoading();
+        loginDialog.dismissLoginDialog();
     }
 
     Item {
         id: mainContainer
-        width: root.pane.width
-        height: root.pane.height
+        width: root.width
+        height: root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
         Rectangle {

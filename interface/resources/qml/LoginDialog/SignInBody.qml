@@ -21,8 +21,8 @@ import TabletScriptingInterface 1.0
 Item {
     id: signInBody
     clip: true
-    height: root.pane.height
-    width: root.pane.width
+    height: root.height
+    width: root.width
     property int textFieldHeight: 31
     property string fontFamily: "Cairo"
     property int fontSize: 24
@@ -40,14 +40,18 @@ Item {
         id: d
         readonly property int minWidth: 480
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
-        property int maxWidth: root.isTablet ? 1280 : Window.innerWidth
+        // property int maxWidth: root.isTablet ? 1280 : Window.innerWidth
+        property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
         readonly property int minHeightButton: !root.isTablet ? 56 : 42
-        property int maxHeight: root.isTablet ? 720 : Window.innerHeight
+        // property int maxHeight: root.isTablet ? 720 : Window.innerHeight
+        property int maxHeight: root.isTablet ? 720 : root.height
 
         function resize() {
-            maxWidth = root.isTablet ? 1280 : Window.innerWidth;
-            maxHeight = root.isTablet ? 720 : Window.innerHeight;
+            // maxWidth = root.isTablet ? 1280 : Window.innerWidth;
+            maxWidth = root.isTablet ? 1280 : root.width;
+            // maxHeight = root.isTablet ? 720 : Window.innerHeight;
+            maxHeight = root.isTablet ? 720 : root.height;
             var targetWidth = Math.max(titleWidth, mainContainer.width);
             var targetHeight =  hifi.dimensions.contentSpacing.y + mainContainer.height +
                     4 * hifi.dimensions.contentSpacing.y;
@@ -86,10 +90,11 @@ Item {
             loginButtonAtSignIn.text = "Log In";
             loginButtonAtSignIn.color = hifi.buttons.black;
             emailField.placeholderText = "Username or Email";
-            var savedUsername = Settings.getValue("wallet/savedUsername", "");
+            // var savedUsername = Settings.getValue("wallet/savedUsername", "");
+            var savedUsername = "";
             emailField.text = savedUsername === "Unknown user" ? "" : savedUsername;
             emailField.anchors.top = loginContainer.top;
-            emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.pane.height : 0.24 * root.pane.height;
+            emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.height : 0.24 * root.height;
             cantAccessContainer.anchors.topMargin = !root.isTablet ? 3.5 * hifi.dimensions.contentSpacing.y : hifi.dimensions.contentSpacing.y;
         } else {
             loginButtonAtSignIn.text = "Sign Up";
@@ -106,8 +111,8 @@ Item {
 
     Item {
         id: mainContainer
-        width: root.pane.width
-        height: root.pane.height
+        width: root.width
+        height: root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
         Rectangle {
@@ -191,7 +196,8 @@ Item {
                 width: banner.width
                 height: signInBody.textFieldHeight
                 font.family: signInBody.fontFamily
-                text: Settings.getValue("wallet/savedUsername", "");
+                // text: Settings.getValue("wallet/savedUsername", "");
+                text: "";
                 anchors {
                     top: parent.top
                     left: parent.left
@@ -200,7 +206,6 @@ Item {
                 focus: loginDialog.isLogIn
                 placeholderText: "Username or Email"
                 activeFocusOnPress: true
-                onHeightChanged: d.resize(); onWidthChanged: d.resize();
             }
             HifiControlsUit.TextField {
                 id: passwordField

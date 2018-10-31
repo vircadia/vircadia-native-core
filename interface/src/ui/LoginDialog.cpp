@@ -29,12 +29,12 @@
 #include "avatar/AvatarManager.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "ui/overlays/Overlays.h"
+#include "ui/overlays/Web3DOverlay.h"
 #include "Constants.h"
 
 HIFI_QML_DEF(LoginDialog)
 
 static const QUrl TABLET_LOGIN_DIALOG_URL("dialogs/TabletLoginDialog.qml");
-static const QUrl OVERLAY_LOGIN_DIALOG_URL("../LoginDialog.qml");
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -69,7 +69,7 @@ void LoginDialog::showWithSelection() {
     } else {
         if (qApp->getLoginDialogPoppedUp()) {
             // pop up those overlay things.
-            createLoginDialogOverlay();
+            qApp->createLoginDialogOverlay();
             return;
         } else {
             tablet->initialScreen(TABLET_LOGIN_DIALOG_URL);
@@ -255,24 +255,6 @@ void LoginDialog::signupCompleted(QNetworkReply* reply) {
 
 bool LoginDialog::getLoginDialogPoppedUp() const {
     return qApp->getLoginDialogPoppedUp();
-}
-
-void LoginDialog::createLoginDialogOverlay() {
-    Overlays& overlays = qApp->getOverlays();
-    auto avatarManager = DependencyManager::get<AvatarManager>();
-    auto myAvatar = avatarManager->getMyAvatar();
-
-    QVariantMap overlayProperties {
-        { "name", "" },
-        { "visible", true },
-        { "grabbable", false },
-        { "ignoreRayIntersection", false },
-        { "url", OVERLAY_LOGIN_DIALOG_URL },
-        { "dimensions", myAvatar->getSessionUUID().toString() },
-        {}
-    };
-
-    overlays.addOverlay("web3d", overlayProperties);
 }
 
 QString errorStringFromAPIObject(const QJsonValue& apiObject) {

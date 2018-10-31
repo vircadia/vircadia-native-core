@@ -18,8 +18,8 @@ import "qrc:////qml//styles-uit" as HifiStylesUit
 Item {
     id: usernameCollisionBody
     clip: true
-    width: root.pane.width
-    height: root.pane.height
+    width: root.width
+    height: root.height
     readonly property string fontFamily: "Cairo"
     readonly property int fontSize: 24
     readonly property bool fontBold: true
@@ -55,16 +55,16 @@ Item {
                                 hifi.dimensions.contentSpacing.y + textField.height +
                                 hifi.dimensions.contentSpacing.y + buttons.height;
 
-            parent.width = root.pane.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
-            parent.height = root.pane.height = Math.max(Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)), mainContainer.height +
+            parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
+            parent.height = root.height = Math.max(Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)), mainContainer.height +
                 (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y));
         }
     }
 
     Item {
         id: mainContainer
-        width: root.pane.width
-        height: root.pane.height
+        width: root.width
+        height: root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
         anchors.fill: parent
 

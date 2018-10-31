@@ -18,8 +18,8 @@ import "qrc:////qml//styles-uit" as HifiStylesUit
 Item {
     id: completeProfileBody
     clip: true
-    width: root.pane.width
-    height: root.pane.height
+    width: root.width
+    height: root.height
     readonly property string termsContainerText: qsTr("By creating this user profile, you agree to High Fidelity's Terms of Service")
     readonly property string fontFamily: "Cairo"
     readonly property int fontSize: 24
@@ -40,17 +40,17 @@ Item {
             if (root.isTablet === false) {
                 var targetWidth = Math.max(Math.max(titleWidth, Math.max(additionalTextContainer.contentWidth,
                                                                 termsContainer.contentWidth)), mainContainer.width)
-                parent.width = root.pane.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
+                parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
             }
             var targetHeight = Math.max(5 * hifi.dimensions.contentSpacing.y + d.minHeightButton + additionalTextContainer.height + termsContainer.height, d.maxHeight)
-            parent.height = root.pane.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
         }
     }
 
     Item {
         id: mainContainer
-        width: root.pane.width
-        height: root.pane.height
+        width: root.width
+        height: root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
         Rectangle {

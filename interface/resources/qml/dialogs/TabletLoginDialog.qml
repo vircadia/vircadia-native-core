@@ -79,18 +79,6 @@ FocusScope {
         }
     }
 
-    HifiControlsUit.Keyboard {
-        id: loginKeyboard
-        raised: root.keyboardEnabled && root.keyboardRaised
-        numeric: root.punctuationMode
-        password: root.isPassword
-        anchors {
-            left: bodyLoader.left
-            right: bodyLoader.right
-            top: bodyLoader.bottom
-        }
-    }
-
     Keys.onPressed: {
         if (!visible) {
             return

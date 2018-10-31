@@ -17,16 +17,11 @@ import "windows" as Windows
 
 import "LoginDialog"
 
-Rectangle {
+FocusScope {
     id: root
     HifiStylesUit.HifiConstants { id: hifi }
     objectName: "LoginDialog"
-    // implicitWidth: 520
-    // implicitHeight: 320
-    // destroyOnCloseButton: true
-    // destroyOnHidden: true
     visible: true
-    // frame: Item {}
 
     anchors.fill: parent
 
@@ -87,5 +82,4 @@ Rectangle {
     Component.onCompleted: {
         bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
     }
-
 }

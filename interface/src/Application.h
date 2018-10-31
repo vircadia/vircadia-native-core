@@ -320,6 +320,7 @@ public:
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
+    void createLoginDialogOverlay();
 
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
@@ -682,6 +683,8 @@ private:
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
     bool _loginDialogPoppedUp = false;
+    bool _interstitialModeEnabled{ false };
+    OverlayID _loginDialogOverlayID;
 
     quint64 _lastFaceTrackerUpdate;
 

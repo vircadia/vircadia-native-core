@@ -15,10 +15,10 @@ import Qt.labs.settings 1.0
 
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
-import "../../windows"
+import "../../windows" as Windows
 import "../"
 
-ScrollingWindow {
+Windows.ScrollingWindow {
     id: root
     objectName: "RunningScripts"
     title: "Running Scripts"
@@ -45,7 +45,7 @@ ScrollingWindow {
 
     Component {
         id: letterBoxMessage
-        Window {
+        Windows.Window {
             implicitWidth: 400
             implicitHeight: 300
             minSize: Qt.vector2d(424, 300)

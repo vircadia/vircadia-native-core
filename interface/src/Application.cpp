@@ -378,6 +378,7 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 Setting::Handle<int> maxOctreePacketsPerSecond{"maxOctreePPS", DEFAULT_MAX_OCTREE_PPS};
 
 Setting::Handle<bool> loginDialogPoppedUp{"loginDialogPoppedUp", false};
+static const QUrl OVERLAY_LOGIN_DIALOG_URL(PathUtils::qmlUrl("LoginDialog.qml"));
 
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
@@ -5194,14 +5195,15 @@ void Application::pauseUntilLoginDetermined() {
     myAvatar->setEnableMeshVisible(false);
 
     const auto& nodeList = DependencyManager::get<NodeList>();
+    // save interstitial mode setting until resuming.
+    _interstitialModeEnabled = nodeList->getDomainHandler().getInterstitialModeEnabled();
+    nodeList->getDomainHandler().setInterstitialModeEnabled(false);
     // disconnect domain handler.
     nodeList->getDomainHandler().disconnect();
-    Menu::getInstance()->setIsOptionChecked(MenuOption::Stats, false);
     Menu::getInstance()->setVisible(false);
 
     {
         auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-        scriptEngines->reloadLocalFiles();
         scriptEngines->loadControllerScripts();
     }
 }
@@ -5260,6 +5262,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
 
     const auto& nodeList = DependencyManager::get<NodeList>();
     // disconnect domain handler.
+    nodeList->getDomainHandler().setInterstitialModeEnabled(_interstitialModeEnabled);
     nodeList->getDomainHandler().resetting();
 
     Menu::getInstance()->setVisible(true);
@@ -8495,9 +8498,36 @@ void Application::setShowBulletConstraintLimits(bool value) {
     _physicsEngine->setShowBulletConstraintLimits(value);
 }
 
+void Application::createLoginDialogOverlay() {
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto myAvatar = avatarManager->getMyAvatar();
+    Overlays& overlays = qApp->getOverlays();
+    // DEFAULT_DPI / tablet scale percentage
+    float overlayDpi = 31.0f / (60 / 100.0f);
+    QVariantMap overlayProperties {
+        { "name", "pleasework" },
+        { "url", OVERLAY_LOGIN_DIALOG_URL },
+        { "position", vec3toVariant(myAvatar->getHeadPosition() - glm::vec3(0.0f, -0.1f, 1.0f)) },
+        { "orientation", quatToVariant(myAvatar->getWorldOrientation()) },
+        { "isSolid", true },
+        { "grabbable", false },
+        { "ignorePickIntersection", false },
+        { "alpha", 1.0 },
+        { "dpi", overlayDpi },
+        { "visible", true }
+    };
+
+    _loginDialogOverlayID = overlays.addOverlay("web3d", overlayProperties);
+}
+
 void Application::onDismissedLoginDialog() {
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
+    if (!_loginDialogOverlayID.isNull()) {
+        // deleting overlay.
+        qDebug() << "Deleting overlay";
+        getOverlays().deleteOverlay(_loginDialogOverlayID);
+    }
     resumeAfterLoginDialogActionTaken();
 }
 

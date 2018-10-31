@@ -132,7 +132,7 @@ Windows.Window {
             import QtQuick 2.3;
             import QtQuick.Window 2.3;
 
-            Window {
+            Windows.Window {
                 id: root;
                 Rectangle {
                     color: hifi.colors.baseGray
