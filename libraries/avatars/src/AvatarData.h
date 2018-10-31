@@ -1221,6 +1221,7 @@ public:
 
     void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
     bool getIsNewAvatar() { return _isNewAvatar; }
+    void setIsClientAvatar(bool isClientAvatar) { _isClientAvatar = isClientAvatar; }
 
 signals:
 
@@ -1486,6 +1487,7 @@ protected:
     float _density;
     int _replicaIndex { 0 };
     bool _isNewAvatar { true };
+    bool _isClientAvatar { false };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;
