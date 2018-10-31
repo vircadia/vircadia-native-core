@@ -40,17 +40,13 @@ Item {
         id: d
         readonly property int minWidth: 480
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
-        // property int maxWidth: root.isTablet ? 1280 : Window.innerWidth
         property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
         readonly property int minHeightButton: !root.isTablet ? 56 : 42
-        // property int maxHeight: root.isTablet ? 720 : Window.innerHeight
         property int maxHeight: root.isTablet ? 720 : root.height
 
         function resize() {
-            // maxWidth = root.isTablet ? 1280 : Window.innerWidth;
             maxWidth = root.isTablet ? 1280 : root.width;
-            // maxHeight = root.isTablet ? 720 : Window.innerHeight;
             maxHeight = root.isTablet ? 720 : root.height;
             var targetWidth = Math.max(titleWidth, mainContainer.width);
             var targetHeight =  hifi.dimensions.contentSpacing.y + mainContainer.height +
@@ -105,7 +101,6 @@ Item {
             passwordField.text = "";
         }
         loginContainer.visible = true;
-        print(loginErrorMessage.visible);
     }
 
     Item {
@@ -188,6 +183,25 @@ Item {
                 }
                 focus: !loginDialog.isLogIn
                 visible: false
+                Keys.onPressed: {
+                    if (!usernameField.visible) {
+                        return;
+                    }
+                    switch (event.key) {
+                        case Qt.Key_Tab:
+                            event.accepted = true;
+                            if (event.modifiers === Qt.ShiftModifier) {
+                                passwordField.focus = true;
+                            } else {
+                                emailField.focus = true;
+                            }
+                            break;
+                        case Qt.Key_Backtab:
+                            event.accepted = true;
+                            passwordField.focus = true;
+                            break;
+                    }
+                }
             }
 
             HifiControlsUit.TextField {
@@ -204,6 +218,24 @@ Item {
                 focus: loginDialog.isLogIn
                 placeholderText: "Username or Email"
                 activeFocusOnPress: true
+                Keys.onPressed: {
+                    switch (event.key) {
+                        case Qt.Key_Tab:
+                            event.accepted = true;
+                            if (event.modifiers === Qt.ShiftModifier) {
+                                if (usernameField.visible) {
+                                    usernameField.focus = true;
+                                    break;
+                                }
+                            }
+                            passwordField.focus = true;
+                            break;
+                        case Qt.Key_Backtab:
+                            event.accepted = true;
+                            usernameField.focus = true;
+                            break;
+                    }
+                }
             }
             HifiControlsUit.TextField {
                 id: passwordField
@@ -258,8 +290,23 @@ Item {
                         }
                     }
                 }
-                Keys.onReturnPressed: {
-                    signInBody.login()
+                Keys.onPressed: {
+                    switch (event.key) {
+                        case Qt.Key_Tab:
+                            event.accepted = true;
+                            if (event.modifiers === Qt.ShiftModifier) {
+                                emailField.focus = true;
+                            } else if (usernameField.visible) {
+                                usernameField.focus = true;
+                            } else {
+                                emailField.focus = true;
+                            }
+                            break;
+                        case Qt.Key_Backtab:
+                            event.accepted = true;
+                            emailField.focus = true;
+                            break;
+                    }
                 }
             }
             HifiControlsUit.CheckBox {
@@ -381,13 +428,11 @@ Item {
         }
 
         switch (event.key) {
-        case Qt.Key_Escape:
-            break
-        case Qt.Key_Enter:
-        case Qt.Key_Return:
-            event.accepted = true
-            signInBody.login()
-            break
+            case Qt.Key_Enter:
+            case Qt.Key_Return:
+                event.accepted = true;
+                signInBody.login();
+                break;
         }
     }
 }

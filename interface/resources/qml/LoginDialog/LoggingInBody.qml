@@ -31,14 +31,14 @@ Item {
         id: d
         readonly property int minWidth: 480
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
-        property int maxWidth: root.isTablet ? 1280 : Window.innerWidth
+        property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
         readonly property int minHeightButton: !root.isTablet ? 56 : 42
-        property int maxHeight: root.isTablet ? 720 : Window.innerHeight
+        property int maxHeight: root.isTablet ? 720 : root.height
 
         function resize() {
-            maxWidth = root.isTablet ? 1280 : Window.innerWidth;
-            maxHeight = root.isTablet ? 720 : Window.innerHeight;
+            maxWidth = root.isTablet ? 1280 : root.width;
+            maxHeight = root.isTablet ? 720 : root.height;
             var targetWidth = Math.max(titleWidth, mainContainer.width);
             var targetHeight =  hifi.dimensions.contentSpacing.y + mainContainer.height +
                     4 * hifi.dimensions.contentSpacing.y;

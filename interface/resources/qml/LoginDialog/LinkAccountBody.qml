@@ -40,11 +40,9 @@ Item {
         id: d
         readonly property int minWidth: 480
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
-        // property int maxWidth: root.isTablet ? 1280 : Window.innerWidth
         property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
         readonly property int minHeightButton: !root.isTablet ? 56 : 42
-        // property int maxHeight: root.isTablet ? 720 : Window.innerHeight
         property int maxHeight: root.isTablet ? 720 : root.height
 
         function resize() {
@@ -130,9 +128,7 @@ Item {
                     }
                     wrapMode: Text.WordWrap
                     lineHeight: 0.5
-                    // TODO change back to white when background is chosen
-                    // color: "white"
-                    color: "black"
+                    color: "white"
                     font.family: linkAccountBody.fontFamily
                     font.pixelSize: !root.isTablet ? 2 * linkAccountBody.fontSize : linkAccountBody.fontSize
                     font.bold: linkAccountBody.fontBold
