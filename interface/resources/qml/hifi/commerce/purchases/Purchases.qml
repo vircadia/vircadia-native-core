@@ -161,7 +161,7 @@ Rectangle {
         id: titleBarContainer;
         z: 997;
         visible: false;
-        height: 100; // HRS FIXME: get rid of the header and associated code entirely?
+        height: 100;
         // Size
         width: parent.width;
         // Anchors
