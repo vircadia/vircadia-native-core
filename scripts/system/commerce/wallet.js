@@ -506,10 +506,6 @@ function fromQml(message) {
 
         ui.tablet.sendToQml({ method: 'updateWearables', wornWearables: currentlyWornWearables });
         break;
-    case 'purchases_availableUpdatesReceived':
-        shouldShowDot = message.numUpdates > 0;
-        ui.messagesWaiting(shouldShowDot && !ui.isOpen);
-        break;
     case 'purchases_walletNotSetUp':
         ui.tablet.sendToQml({
             method: 'updateWalletReferrer',
@@ -524,6 +520,10 @@ function fromQml(message) {
         if (itemId && itemId !== "") {
             openMarketplace(itemId);
         }
+        break;
+    case 'clearShouldShowDotHistory':
+        shouldShowDotHistory = false;
+        ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
         break;
     case 'http.request':
         // Handled elsewhere, don't log.
@@ -541,8 +541,13 @@ function walletOpened() {
     triggerMapping.enable();
     triggerPressMapping.enable();
     isWired = true;
-    shouldShowDot = false;
-    ui.messagesWaiting(shouldShowDot);
+
+    if (shouldShowDotHistory) {
+        ui.sendMessage({
+            method: 'updateRecentActivityMessageLight',
+            messagesWaiting: shouldShowDotHistory
+        });
+    }
 }
 
 function walletClosed() {
@@ -557,20 +562,20 @@ function notificationDataProcessPageHistory(data) {
     return data.data.history;
 }
 
-var shouldShowDot = false;
+var shouldShowDotUpdates = false;
 function notificationPollCallbackUpdates(updatesArray) {
-    shouldShowDot = shouldShowDot || updatesArray.length > 0;
-    ui.messagesWaiting(shouldShowDot && !ui.isOpen);
+    shouldShowDotUpdates = shouldShowDotUpdates || updatesArray.length > 0;
+    ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
 
     if (updatesArray.length > 0) {
         var message;
-        if (!ui.notificationInitialCallbackMade) {
+        if (!ui.notificationInitialCallbackMade[0]) {
             message = updatesArray.length + " of your purchased items " +
                 (updatesArray.length === 1 ? "has an update " : "have updates ") +
                 "available. Open WALLET to update.";
             ui.notificationDisplayBanner(message);
 
-            ui.notificationPollCaresAboutSince = true;
+            ui.notificationPollCaresAboutSince[0] = true;
         } else {
             for (var i = 0; i < updatesArray.length; i++) {
                 message = "Update available for \"" +
@@ -581,15 +586,16 @@ function notificationPollCallbackUpdates(updatesArray) {
         }
     }
 }
+var shouldShowDotHistory = false;
 function notificationPollCallbackHistory(historyArray) {
     if (!ui.isOpen) {
         var notificationCount = historyArray.length;
-        shouldShowDot = shouldShowDot || notificationCount > 0;
-        ui.messagesWaiting(shouldShowDot);
+        shouldShowDotHistory = shouldShowDotHistory || notificationCount > 0;
+        ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
 
         if (notificationCount > 0) {
             var message;
-            if (!ui.notificationInitialCallbackMade) {
+            if (!ui.notificationInitialCallbackMade[1]) {
                 message = "You have " + notificationCount + " unread wallet " +
                     "transaction" + (notificationCount === 1 ? "" : "s") + ". Open WALLET to see all activity.";
                 ui.notificationDisplayBanner(message);
@@ -605,8 +611,8 @@ function notificationPollCallbackHistory(historyArray) {
 }
 
 function isReturnedDataEmptyUpdates(data) {
-    var historyArray = data.data.history;
-    return historyArray.length === 0;
+    var updatesArray = data.data.updates;
+    return updatesArray.length === 0;
 }
 
 function isReturnedDataEmptyHistory(data) {
@@ -657,20 +663,12 @@ function startup() {
         onOpened: walletOpened,
         onClosed: walletClosed,
         onMessage: fromQml,
-/* Gotta re-add all this stuff once I get it working
         notificationPollEndpoint: ["/api/v1/commerce/available_updates?per_page=10", "/api/v1/commerce/history?per_page=10"],
         notificationPollTimeoutMs: [NOTIFICATION_POLL_TIMEOUT, NOTIFICATION_POLL_TIMEOUT],
         notificationDataProcessPage: [notificationDataProcessPageUpdates, notificationDataProcessPageHistory],
         notificationPollCallback: [notificationPollCallbackUpdates, notificationPollCallbackHistory],
         notificationPollStopPaginatingConditionMet: [isReturnedDataEmptyUpdates, isReturnedDataEmptyHistory],
         notificationPollCaresAboutSince: [false, true]
-*/
-        notificationPollEndpoint: "/api/v1/commerce/available_updates?per_page=10",
-        notificationPollTimeoutMs: 300000,
-        notificationDataProcessPage: notificationDataProcessPageUpdates,
-        notificationPollCallback: notificationPollCallbackUpdates,
-        notificationPollStopPaginatingConditionMet: isReturnedDataEmptyUpdates,
-        notificationPollCaresAboutSince: false
     });
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
     installMarketplaceItemTester();

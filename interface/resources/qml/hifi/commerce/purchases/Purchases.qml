@@ -91,7 +91,6 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
-                sendToScript({method: 'purchases_availableUpdatesReceived', numUpdates: result.data.updates.length });
                 root.numUpdatesAvailable = result.total_entries;
             }
         }

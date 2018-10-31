@@ -99,6 +99,13 @@ Rectangle {
         }
     }
 
+    onActiveViewChanged: {
+        if (activeView === "walletHome") {
+            walletHomeButtonContainer.messagesWaiting = false;
+            sendToScript({method: 'clearShouldShowDotHistory'});
+        }
+    }
+
     HifiCommerceCommon.CommerceLightbox {
         id: lightboxPopup;
         visible: false;
@@ -494,6 +501,7 @@ Rectangle {
         // "WALLET HOME" tab button
         Rectangle {
             id: walletHomeButtonContainer;
+            property bool messagesWaiting: false;
             visible: !walletSetup.visible;
             color: root.activeView === "walletHome" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
@@ -512,6 +520,19 @@ Rectangle {
                 anchors.topMargin: -2;
                 // Style
                 color: WalletScriptingInterface.limitedCommerce ? hifi.colors.lightGray50 : ((root.activeView === "walletHome" || walletHomeTabMouseArea.containsMouse) ? hifi.colors.white : hifi.colors.blueHighlight);
+            }
+
+            Rectangle {
+                id: recentActivityMessagesWaitingLight;
+                visible: parent.messagesWaiting;
+                anchors.right: homeTabIcon.left;
+                anchors.rightMargin: -4;
+                anchors.top: homeTabIcon.top;
+                anchors.topMargin: 16;
+                height: 10;
+                width: height;
+                radius: height/2;
+                color: "red";
             }
 
             RalewaySemiBold {
@@ -572,7 +593,7 @@ Rectangle {
             }
 
             Rectangle {
-                id: messagesWaitingLight;
+                id: exchangeMoneyMessagesWaitingLight;
                 visible: parent.messagesWaiting;
                 anchors.right: exchangeMoneyTabIcon.left;
                 anchors.rightMargin: -4;
@@ -888,6 +909,9 @@ Rectangle {
             case 'updateSelectedRecipientUsername':
             case 'updateWearables':
                 walletInventory.fromScript(message);
+            break;
+            case 'updateRecentActivityMessageLight':
+                walletHomeButtonContainer.messagesWaiting = message.messagesWaiting;
             break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
