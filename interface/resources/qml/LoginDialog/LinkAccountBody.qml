@@ -136,7 +136,7 @@ Item {
 
         TextField {
             id: usernameField
-            text: Settings.getValue("wallet/savedUsername", "");
+            text: Settings.getValue("keepMeLoggedIn/savedUsername", "");
             width: parent.width
             focus: true
             placeholderText: "Username or Email"
@@ -165,7 +165,7 @@ Item {
                 root.text = "";
             }
             Component.onCompleted: {
-                var savedUsername = Settings.getValue("wallet/savedUsername", "");
+                var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
                 usernameField.text = savedUsername === "Unknown user" ? "" : savedUsername;
             }
         }
@@ -263,21 +263,21 @@ Item {
 
             CheckBox {
                 id: autoLogoutCheckbox
-                checked: !Settings.getValue("wallet/autoLogout", true)
+                checked: Settings.getValue("keepMeLoggedIn", false)
                 text: "Keep me signed in"
                 boxSize: 20;
                 labelFontSize: 15
                 color: hifi.colors.black
                 onCheckedChanged: {
-                    Settings.setValue("wallet/autoLogout", !checked);
+                    Settings.setValue("keepMeLoggedIn", checked);
                     if (checked) {
-                        Settings.setValue("wallet/savedUsername", Account.username);
+                        Settings.setValue("keepMeLoggedIn/savedUsername", Account.username);
                     } else {
-                        Settings.setValue("wallet/savedUsername", "");
+                        Settings.setValue("keepMeLoggedIn/savedUsername", "");
                     }
                 }
                 Component.onDestruction: {
-                    Settings.setValue("wallet/autoLogout", !checked);
+                    Settings.setValue("keepMeLoggedIn", checked);
                 }
             }
 

@@ -14,9 +14,9 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
-import "../../../controls" as HifiControls
+import "qrc:////qml//styles-uit"
+import "qrc:////qml//controls-uit" as HifiControlsUit
+import "qrc:////qml//controls" as HifiControls
 
 // references XXX from root context
 
@@ -40,6 +40,8 @@ Rectangle {
     anchors.fill: parent;
     color: Qt.rgba(0, 0, 0, 0.5);
     z: 999;
+    
+    HifiConstants { id: hifi; }
 
     onVisibleChanged: {
         if (!visible) {

@@ -265,6 +265,13 @@ Menu::Menu() {
             QString("hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
     });
 
+    // Settings > Security...
+    action = addActionToQMenuAndActionHash(settingsMenu, "Security...");
+    connect(action, &QAction::triggered, [] {
+        qApp->showDialog(QString("hifi/dialogs/security/SecurityWrapper.qml"),
+            QString("hifi/dialogs/security/Security.qml"), "SecurityDialog");
+    });
+
     // Settings > Developer Menu
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menu", 0, false, this, SLOT(toggleDeveloperMenus()));
 
