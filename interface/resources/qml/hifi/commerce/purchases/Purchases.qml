@@ -33,7 +33,6 @@ Rectangle {
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
-    property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
     property string installedApps;
     property bool keyboardRaised: false;
@@ -103,10 +102,6 @@ Rectangle {
         onAppUninstalled: {
             root.installedApps = Commerce.getInstalledApps();
         }
-    }
-
-    onIsShowingMyItemsChanged: {
-        getPurchases();
     }
 
     Timer {
@@ -457,7 +452,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.leftMargin: 16;
                 width: paintedWidth;
-                text: isShowingMyItems ? "My Items" : "Inventory";
+                text: "Inventory";
                 color: hifi.colors.black;
                 size: 22;
             }
@@ -520,6 +515,7 @@ Rectangle {
                 onTextChanged: {
                     purchasesModel.searchFilter = filterBar.text;
                     filterBar.previousText = filterBar.text;
+
                 }
             }
         }
@@ -543,9 +539,8 @@ Rectangle {
             listModelName: 'purchases';
             listView: purchasesContentsList;
             getPage: function () {
-                console.debug('getPage', purchasesModel.listModelName, root.isShowingMyItems, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
+                console.debug('getPage', purchasesModel.listModelName, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
                 Commerce.inventory(
-                    root.isShowingMyItems ? "proofs" : "purchased",
                     filterBar.primaryFilter_filterName,
                     filterBar.text,
                     purchasesModel.currentPageToRetrieve,
@@ -596,7 +591,6 @@ Rectangle {
                 upgradeUrl: model.upgrade_url;
                 upgradeTitle: model.upgrade_title;
                 itemType: model.item_type;
-                isShowingMyItems: root.isShowingMyItems;
                 valid: model.valid;
                 anchors.topMargin: 10;
                 anchors.bottomMargin: 10;
@@ -807,7 +801,8 @@ Rectangle {
 
         Rectangle {
             id: updatesAvailableBanner;
-            visible: root.numUpdatesAvailable > 0 && !root.isShowingMyItems;
+            visible: root.numUpdatesAvailable > 0 &&
+                     filterBar.primaryFilter_filterName !== "proofs";
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -868,9 +863,8 @@ Rectangle {
             id: noItemsAlertContainer;
             visible: !purchasesContentsList.visible &&
                 root.purchasesReceived &&
-                root.isShowingMyItems &&
                 filterBar.text === "" &&
-                filterBar.primaryFilter_displayName === "";
+                filterBar.primaryFilter_filterName === "proofs";
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
@@ -918,7 +912,6 @@ Rectangle {
             id: noPurchasesAlertContainer;
             visible: !purchasesContentsList.visible &&
                 root.purchasesReceived &&
-                !root.isShowingMyItems &&
                 filterBar.text === "" &&
                 filterBar.primaryFilter_displayName === "";
             anchors.top: filterBarContainer.bottom;
@@ -1051,7 +1044,9 @@ Rectangle {
                 filterBar.text = message.filterText ? message.filterText : "";
             break;
             case 'purchases_showMyItems':
-                root.isShowingMyItems = true;
+                filterBar.primaryFilter_filterName = "proofs";
+                filterBar.primaryFilter_displayName = "Proofs";
+                filterBar.primaryFilter_index = 6;
             break;
             case 'updateConnections':
                 sendAsset.updateConnections(message.connections);
