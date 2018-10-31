@@ -231,6 +231,8 @@ public:
     const AnimContext::DebugAlphaMap& getDebugAlphaMap() const { return _lastContext.getDebugAlphaMap(); }
     const AnimVariantMap& getAnimVars() const { return _lastAnimVars; }
     const AnimContext::DebugStateMachineMap& getStateMachineMap() const { return _lastContext.getStateMachineMap(); }
+    
+    void setJointRotationOffsets(const QMap<QString, glm::quat>& offsets);
 
 signals:
     void onLoadComplete();
@@ -299,6 +301,8 @@ protected:
     int _rightHandJointIndex { -1 };
     int _rightElbowJointIndex { -1 };
     int _rightShoulderJointIndex { -1 };
+
+    QMap<int, glm::quat> _jointRotationOffsets;
 
     glm::vec3 _lastForward;
     glm::vec3 _lastPosition;
