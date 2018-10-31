@@ -19,6 +19,7 @@
     var MIN_LOADING_PROGRESS = 3.6;
     var TOTAL_LOADING_PROGRESS = 3.7;
     var FINAL_Y_DIMENSIONS = 2.8;
+    var BEGIN_Y_DIMENSIONS = 0.03;
     var EPSILON = 0.05;
     var TEXTURE_EPSILON = 0.01;
     var isVisible = false;
@@ -457,12 +458,13 @@
     function updateProgressBar(progress) {
         var progressPercentage = progress / TOTAL_LOADING_PROGRESS;
         var subImageWidth = progressPercentage * LOADING_IMAGE_WIDTH_PIXELS;
+        var subImageWidthPercentage = subImageWidth / LOADING_IMAGE_WIDTH_PIXELS;
 
         var properties = {
             localPosition: { x: (TOTAL_LOADING_PROGRESS / 2) - (currentProgress / 2), y: -0.86, z: 0.0 },
             dimensions: {
                 x: currentProgress,
-                y: FINAL_Y_DIMENSIONS * (subImageWidth / LOADING_IMAGE_WIDTH_PIXELS)
+                y: (subImageWidthPercentage * (FINAL_Y_DIMENSIONS - BEGIN_Y_DIMENSIONS)) + BEGIN_Y_DIMENSIONS
             },
             subImage: {
                 x: 0.0,
@@ -477,6 +479,7 @@
 
     var MAX_TEXTURE_STABILITY_COUNT = 30;
     var INTERVAL_PROGRESS = 0.04;
+    var INTERVAL_PROGRESS_PHYSICS_ENABLED = 0.2;
     function update() {
         var renderStats = Render.getConfig("Stats");
         var physicsEnabled = Window.isPhysicsEnabled();
@@ -518,7 +521,7 @@
             target = TOTAL_LOADING_PROGRESS;
         }
 
-        currentProgress = lerp(currentProgress, target, INTERVAL_PROGRESS);
+        currentProgress = lerp(currentProgress, target, (physicsEnabled ? INTERVAL_PROGRESS_PHYSICS_ENABLED : INTERVAL_PROGRESS));
 
         updateProgressBar(currentProgress);
 
