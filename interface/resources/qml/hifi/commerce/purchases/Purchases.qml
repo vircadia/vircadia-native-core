@@ -540,8 +540,17 @@ Rectangle {
             listView: purchasesContentsList;
             getPage: function () {
                 console.debug('getPage', purchasesModel.listModelName, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
+                var editionFilter = "";
+                var primaryFilter = "";
+
+                if (filterBar.primaryFilter_filterName === "proofs") {
+                    editionFilter = "proofs";
+                } else {
+                    primaryFilter = filterBar.primaryFilter_filterName;
+                }
                 Commerce.inventory(
-                    filterBar.primaryFilter_filterName,
+                    editionFilter,
+                    primaryFilter,
                     filterBar.text,
                     purchasesModel.currentPageToRetrieve,
                     purchasesModel.itemsPerPage
