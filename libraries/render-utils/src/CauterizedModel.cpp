@@ -32,8 +32,8 @@ bool CauterizedModel::updateGeometry() {
     bool needsFullUpdate = Model::updateGeometry();
     if (_isCauterized && needsFullUpdate) {
         assert(_cauterizeMeshStates.empty());
-        const FBXGeometry& fbxGeometry = getFBXGeometry();
-        foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
+        const HFMGeometry& hfmGeometry = getHFMGeometry();
+        foreach (const HFMMesh& mesh, hfmGeometry.meshes) {
             Model::MeshState state;
             if (_useDualQuaternionSkinning) {
                 state.clusterDualQuaternions.resize(mesh.clusters.size());
@@ -76,7 +76,7 @@ void CauterizedModel::createRenderItemSet() {
         // Run through all of the meshes, and place them into their segregated, but unsorted buckets
         int shapeID = 0;
         uint32_t numMeshes = (uint32_t)meshes.size();
-        const FBXGeometry& fbxGeometry = getFBXGeometry();
+        const HFMGeometry& hfmGeometry = getHFMGeometry();
         for (uint32_t i = 0; i < numMeshes; i++) {
             const auto& mesh = meshes.at(i);
             if (!mesh) {
@@ -86,7 +86,7 @@ void CauterizedModel::createRenderItemSet() {
             // Create the render payloads
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                initializeBlendshapes(fbxGeometry.meshes[i], i);
+                initializeBlendshapes(hfmGeometry.meshes[i], i);
 
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
@@ -109,13 +109,13 @@ void CauterizedModel::updateClusterMatrices() {
         return;
     }
     _needsUpdateClusterMatrices = false;
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMGeometry& geometry = getHFMGeometry();
 
     for (int i = 0; i < (int)_meshStates.size(); i++) {
         Model::MeshState& state = _meshStates[i];
-        const FBXMesh& mesh = geometry.meshes.at(i);
+        const HFMMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
-            const FBXCluster& cluster = mesh.clusters.at(j);
+            const HFMCluster& cluster = mesh.clusters.at(j);
             if (_useDualQuaternionSkinning) {
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
                 Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
@@ -145,10 +145,10 @@ void CauterizedModel::updateClusterMatrices() {
 
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
-            const FBXMesh& mesh = geometry.meshes.at(i);
+            const HFMMesh& mesh = geometry.meshes.at(i);
 
             for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
+                const HFMCluster& cluster = mesh.clusters.at(j);
 
                 if (_useDualQuaternionSkinning) {
                     if (_cauterizeBoneSet.find(cluster.jointIndex) == _cauterizeBoneSet.end()) {

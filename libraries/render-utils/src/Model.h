@@ -185,7 +185,7 @@ public:
 
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getGeometry() isn't chained everywhere
-    const FBXGeometry& getFBXGeometry() const { assert(isLoaded()); return _renderGeometry->getFBXGeometry(); }
+    const HFMGeometry& getHFMGeometry() const { assert(isLoaded()); return _renderGeometry->getHFMGeometry(); }
 
     bool isActive() const { return isLoaded(); }
 
@@ -450,7 +450,7 @@ protected:
 
     bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
-    void calculateTriangleSets(const FBXGeometry& geometry);
+    void calculateTriangleSets(const HFMGeometry& geometry);
     std::vector<std::vector<TriangleSet>> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
 
     virtual void createRenderItemSet();
@@ -506,7 +506,7 @@ protected:
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
-    void initializeBlendshapes(const FBXMesh& mesh, int index);
+    void initializeBlendshapes(const HFMMesh& mesh, int index);
 
 private:
     float _loadingPriority { 0.0f };

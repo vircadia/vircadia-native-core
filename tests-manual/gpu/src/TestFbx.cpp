@@ -100,7 +100,7 @@ bool TestFbx::isReady() const {
 
 void TestFbx::parseFbx(const QByteArray& fbxData) {
     QVariantHash mapping;
-    FBXGeometry* fbx = readFBX(fbxData, mapping);
+    HFMGeometry* fbx = readFBX(fbxData, mapping);
     size_t totalVertexCount = 0;
     size_t totalIndexCount = 0;
     size_t totalPartCount = 0;

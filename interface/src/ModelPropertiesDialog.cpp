@@ -27,7 +27,7 @@
 
 
 ModelPropertiesDialog::ModelPropertiesDialog(FSTReader::ModelType modelType, const QVariantHash& originalMapping,
-                                             const QString& basePath, const FBXGeometry& geometry) :
+                                             const QString& basePath, const HFMGeometry& geometry) :
 _modelType(modelType),
 _originalMapping(originalMapping),
 _basePath(basePath),
@@ -249,7 +249,7 @@ QComboBox* ModelPropertiesDialog::createJointBox(bool withNone) const {
     if (withNone) {
         box->addItem("(none)");
     }
-    foreach (const FBXJoint& joint, _geometry.joints) {
+    foreach (const HFMJoint& joint, _geometry.joints) {
         if (joint.isSkeletonJoint || !_geometry.hasSkeletonJoints) {
             box->addItem(joint.name);
         }

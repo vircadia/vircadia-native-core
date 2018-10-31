@@ -206,7 +206,7 @@ void FBXBaker::importScene() {
     }
 #endif
 
-    _geometry = reader.extractFBXGeometry({}, _modelURL.toString());
+    _geometry = reader.extractHFMGeometry({}, _modelURL.toString());
     _textureContentMap = reader._textureContent;
 }
 
@@ -329,7 +329,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                     for (FBXNode& textureChild : object->children) {
 
                         if (textureChild.name == "RelativeFilename") {
-                            QString fbxTextureFileName { textureChild.properties.at(0).toString() };
+                            QString hfmTextureFileName { textureChild.properties.at(0).toString() };
                             
                             // grab the ID for this texture so we can figure out the
                             // texture type from the loaded materials
@@ -337,7 +337,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                             auto textureType = textureTypes[textureID];
 
                             // Compress the texture information and return the new filename to be added into the FBX scene
-                            auto bakedTextureFile = compressTexture(fbxTextureFileName, textureType);
+                            auto bakedTextureFile = compressTexture(hfmTextureFileName, textureType);
 
                             // If no errors or warnings have occurred during texture compression add the filename to the FBX scene
                             if (!bakedTextureFile.isNull()) {
