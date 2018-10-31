@@ -21,7 +21,10 @@ FocusScope {
     id: root
     objectName: "LoginDialog"
     visible: true
+
     anchors.fill: parent
+    width: parent.width
+    height: parent.height
 
     signal sendToScript(var message);
     property bool isHMD: false
@@ -69,8 +72,10 @@ FocusScope {
     LoginDialog {
         id: loginDialog
 
+        anchors.fill: parent
         Loader {
             id: bodyLoader
+            anchors.fill: parent
         }
     }
 

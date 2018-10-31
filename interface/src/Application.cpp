@@ -5196,6 +5196,7 @@ void Application::pauseUntilLoginDetermined() {
     const auto& nodeList = DependencyManager::get<NodeList>();
     // disconnect domain handler.
     nodeList->getDomainHandler().disconnect();
+    Menu::getInstance()->setIsOptionChecked(MenuOption::Stats, false);
     Menu::getInstance()->setVisible(false);
 
     {

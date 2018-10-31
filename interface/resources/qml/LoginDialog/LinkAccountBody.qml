@@ -21,8 +21,8 @@ import TabletScriptingInterface 1.0
 Item {
     id: linkAccountBody
     clip: true
-    height: root.pane.height
-    width: root.pane.width
+    height: root.height
+    width: root.width
     property bool failAfterSignUp: false
     property string fontFamily: "Cairo"
     property int fontSize: 24
@@ -54,10 +54,10 @@ Item {
 
             var newWidth = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             if (!isNaN(newWidth)) {
-                parent.width = root.pane.width = newWidth;
+                parent.width = root.width = newWidth;
             }
 
-            parent.height = root.pane.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
         }
     }
@@ -76,8 +76,8 @@ Item {
 
     Item {
         id: topContainer
-        width: root.pane.width
-        height: 0.6 * root.pane.height
+        width: root.width
+        height: 0.6 * root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
         anchors {
             top: parent.top
@@ -158,8 +158,8 @@ Item {
     }
     Item {
         id: bottomContainer
-        width: root.pane.width
-        height: 0.4 * root.pane.height
+        width: root.width
+        height: 0.4 * root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
         anchors {
             top: topContainer.bottom

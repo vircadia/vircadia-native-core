@@ -13,7 +13,7 @@ import QtQuick 2.5
 import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 
-import "."
+import "." as Windows
 import "../styles-uit"
 import "../controls-uit" as HiFiControls
 
@@ -25,7 +25,7 @@ import "../controls-uit" as HiFiControls
 // of the desktop?  How do I ensure when the desktop resizes all the windows
 // are still at least partially visible?
 
-Window {
+Windows.Window {
     id: window
     HifiConstants { id: hifi }
     children: [ swallower, frame, defocuser, pane, activator ]

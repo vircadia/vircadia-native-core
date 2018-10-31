@@ -370,7 +370,6 @@ Item {
         }
         d.resize();
         init(loginDialog.isLogIn);
-        print(signInBody.errorString);
     }
 
     Keys.onPressed: {

@@ -17,16 +17,16 @@ import "windows" as Windows
 
 import "LoginDialog"
 
-Windows.ModalWindow {
+Rectangle {
     id: root
     HifiStylesUit.HifiConstants { id: hifi }
     objectName: "LoginDialog"
-    implicitWidth: 520
-    implicitHeight: 320
-    destroyOnCloseButton: true
-    destroyOnHidden: true
+    // implicitWidth: 520
+    // implicitHeight: 320
+    // destroyOnCloseButton: true
+    // destroyOnHidden: true
     visible: true
-    frame: Item {}
+    // frame: Item {}
 
     anchors.fill: parent
 
