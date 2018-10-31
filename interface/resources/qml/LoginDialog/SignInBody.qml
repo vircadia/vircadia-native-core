@@ -90,8 +90,7 @@ Item {
             loginButtonAtSignIn.text = "Log In";
             loginButtonAtSignIn.color = hifi.buttons.black;
             emailField.placeholderText = "Username or Email";
-            // var savedUsername = Settings.getValue("wallet/savedUsername", "");
-            var savedUsername = "";
+            var savedUsername = Settings.getValue("wallet/savedUsername", "");
             emailField.text = savedUsername === "Unknown user" ? "" : savedUsername;
             emailField.anchors.top = loginContainer.top;
             emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.height : 0.24 * root.height;
@@ -196,8 +195,7 @@ Item {
                 width: banner.width
                 height: signInBody.textFieldHeight
                 font.family: signInBody.fontFamily
-                // text: Settings.getValue("wallet/savedUsername", "");
-                text: "";
+                text: Settings.getValue("wallet/savedUsername", "");
                 anchors {
                     top: parent.top
                     left: parent.left
