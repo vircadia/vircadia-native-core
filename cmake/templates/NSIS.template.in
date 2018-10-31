@@ -968,30 +968,43 @@ Function ReadPostInstallOptions
 
   ; check if the user asked for a desktop shortcut to console
   ${NSD_GetState} $DesktopConsoleCheckbox $DesktopConsoleState
-
+  ${LogText} "Option: Start Desktop Console: $DesktopConsoleState"
+  
   ; check if the user asked to have console launched every startup
   ${NSD_GetState} $ConsoleStartupCheckbox $ConsoleStartupState
+  ${LogText} "Option: Start Desktop Console On Startup: $ConsoleStartupState"
 
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ${LogText} "Option: Install Server"
+  ${EndIf}  
+  
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
+    ${LogText} "Option: Install Client"
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
+    ${LogText} "Option: Create Client Desktop Shortcut: $DesktopClientState"
   ${EndIf}
 
   ${If} @PR_BUILD@ == 1
+    ${LogText} "Option: PR Build"  
     ; check if we need to copy settings/content from production for this PR build
     ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
+    ${LogText} "Option: Copy Settings From Production: $CopyFromProductionState"
   ${EndIf}
 
   ; check if we need to launch the console post-install
   ${NSD_GetState} $LaunchConsoleNowCheckbox $LaunchConsoleNowState
+    ${LogText} "Option: Launch Console Now: $LaunchConsoleNowState"
 
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if we need to launch the client post-install
     ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
+    ${LogText} "Option: Launch Client Now: $LaunchClientNowState"
   ${EndIf}
 
   ; check if the user asked for a clean install
   ${NSD_GetState} $CleanInstallCheckbox $CleanInstallState
+  ${LogText} "Option: Clean Install: $CleanInstallState"
 FunctionEnd
 
 Function HandlePostInstallOptions
