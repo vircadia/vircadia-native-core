@@ -551,7 +551,7 @@ graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl
 
 graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel) {
     auto textureCache = DependencyManager::get<TextureCache>();
-    if (textureCache) {
+    if (textureCache && !url.isEmpty()) {
         auto texture = textureCache->getTexture(url, type);
         _textures[channel].texture = texture;
 
