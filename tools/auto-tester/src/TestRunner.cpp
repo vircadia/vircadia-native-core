@@ -20,7 +20,10 @@ extern AutoTester* autoTester;
 #include <windows.h>
 #include <tlhelp32.h>
 #endif
+
+// TODO: for debug
 #include <iostream>
+
 TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
                        std::vector<QCheckBox*> timeEditCheckboxes,
                        std::vector<QTimeEdit*> timeEdits,
@@ -98,6 +101,51 @@ void TestRunner::setWorkingFolder() {
     _timer = new QTimer(this);
     connect(_timer, SIGNAL(timeout()), this, SLOT(checkTime()));
     _timer->start(30 * 1000);  //time specified in ms
+    
+#ifdef Q_OS_MAC
+    // Create MAC shell scripts
+    QFile script;
+    script.setFileName(_workingFolder + "/install_app.sh");
+    if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open 'install_app.sh'");
+        exit(-1);
+    }
+    
+    QString installFolder = QString("\"") + _workingFolder + "/High_Fidelity\"";
+    if (!QDir().exists(installFolder)) {
+        QDir().mkdir(installFolder);
+    }
+    
+    // This script installs High Fidelity.  It is run as "yes | install_app.sh... so "yes" is killed at the end
+    script.write("#/bin/sh\n\n");
+    script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`\n");
+    
+    script.write((QString("cp -rf \"$VOLUME/") + "/High Fidelity/interface.app\" \"" + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
+    script.write((QString("cp -rf \"$VOLUME/") + "/High Fidelity/Sandbox.app\" \""   + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
+    
+    script.write("hdiutil detach \"$VOLUME\"\n");
+    script.write("killall yes\n");
+    script.close();
+    script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+
+    // The Mac shell command returns immediately.  This little script waits for a process to complete
+    script.setFileName(_workingFolder + "/waitForCompletion.sh");
+    if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open 'install_app.sh'");
+        exit(-1);
+    }
+    
+    script.write("#/bin/sh\n\n");
+    script.write("PROCESS=\"$1\"\n");
+    script.write("while (pgrep $PROCESS)\n");
+    script.write("do\n");
+    script.write("\tsleep 2\n");
+    script.write("done\n");
+    script.close();
+    script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+    #endif
 }
 
 void TestRunner::run() {
@@ -185,31 +233,6 @@ void TestRunner::runInstaller() {
     QString commandLine =
         "\"" + QDir::toNativeSeparators(installerFullPath) + "\"" + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
 #elif defined Q_OS_MAC
-    QFile script;
-    script.setFileName(_workingFolder + "/install_app.sh");
-    if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not open 'install_app.sh'");
-        exit(-1);
-    }
-    
-    QString installFolder = QString("\"") + _workingFolder + "/High_Fidelity\"";
-    if (!QDir().exists(installFolder)) {
-        QDir().mkdir(installFolder);
-    }
-    
-    // This script installs High Fidelity.  It is run as "yes | install_app.sh... so "yes" is killed at the end
-    script.write("#/bin/sh\n\n");
-    script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`\n");
-    
-    script.write((QString("cp -rf \"$VOLUME/") + "/High Fidelity/interface.app\" \"" + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
-    script.write((QString("cp -rf \"$VOLUME/") + "/High Fidelity/Sandbox.app\" \""   + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
-
-    script.write("hdiutil detach \"$VOLUME\"\n");
-    script.write("killall yes\n");
-    script.close();
-    script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
-    
     QString commandLine = "yes | " + _workingFolder + "/install_app.sh " + _workingFolder + "/HighFidelity-Beta-latest-dev.dmg";
 #endif
 
@@ -344,12 +367,11 @@ void TestRunner::killProcesses() {
         exit(-1);
     }
 #elif defined Q_OS_MAC
-    // TODO: this doesn't allow interface to run
-    //QString commandLine = "killall interface\n";
-    //system(commandLine.toStdString().c_str());
+    QString commandLine = QString("killall interface") + "; " + _workingFolder +"/waitForCompletion.sh interface";
+    system(commandLine.toStdString().c_str());
 
-    //commandLine = "killall Sandbox\n";
-    //system(commandLine.toStdString().c_str());
+    commandLine = QString("killall Sandbox") + "; " + _workingFolder +"/waitForCompletion.sh interface";
+    system(commandLine.toStdString().c_str());
 #endif
 }
 
@@ -357,7 +379,8 @@ void TestRunner::startLocalServerProcesses() {
     QString commandLine;
     
 #ifdef Q_OS_WIN
-    commandLine = "start \"domain-server.exe\" \"" + QDir::toNativeSeparators(_installationFolder) + "\\domain-server.exe\"";
+    commandLine =
+        "start \"domain-server.exe\" \"" + QDir::toNativeSeparators(_installationFolder) + "\\domain-server.exe\"";
     system(commandLine.toStdString().c_str());
 
     commandLine =
@@ -395,8 +418,12 @@ void TestRunner::runInterfaceWithTestScript() {
     QString commandLine = exeFile + " --url " + url + " --no-updater" + " --testScript " + testScript +
                           " quitWhenFinished --testResultsLocation " + _snapshotFolder;
 #elif defined Q_OS_MAC
-    QString commandLine = "open \"" +_installationFolder + "/interface.app\"" + " --args --url " + url + " --no-updater" + " --testScript " + testScript +
-    " quitWhenFinished --testResultsLocation " + _snapshotFolder;
+    QString commandLine = "open \"" +_installationFolder + "/interface.app\" --args" +
+        " --url " + url +
+        " --no-updater" +
+        " --testScript " + testScript + " quitWhenFinished" +
+        " --testResultsLocation " + _snapshotFolder +
+        "; " + _workingFolder +"/waitForCompletion.sh interface";
 #endif
     
     // Helpful for debugging
