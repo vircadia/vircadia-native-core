@@ -129,7 +129,9 @@ function AppUi(properties) {
                 }
                 that.isOpen = true;
             }
-        } else { // Not us.  Should we do something for type Home, Menu, and particularly Closed (meaning tablet hidden?
+        } else {
+            // A different screen is now visible, or the tablet has been closed.
+            // Tablet visibility is controlled separately by `tabletShownChanged()`
             that.wireEventBridge(false);
             if (that.isOpen) {
                 that.buttonActive(false);
@@ -139,12 +141,12 @@ function AppUi(properties) {
                 that.isOpen = false;
             }
         }
-        // console.debug(that.buttonName + " app reports: Tablet screen changed.\nNew screen type: " + type +
-        //    "\nNew screen URL: " + url + "\nCurrent app open status: " + that.isOpen + "\n");
     };
 
     // Overwrite with the given properties:
-    Object.keys(properties).forEach(function (key) { that[key] = properties[key]; });
+    Object.keys(properties).forEach(function (key) {
+        that[key] = properties[key];
+    });
 
     //
     // START Notification Handling
@@ -157,22 +159,20 @@ function AppUi(properties) {
         concatenatedServerResponse[i] = new Array();
     }
 
+    var MAX_LOG_LENGTH_CHARACTERS = 300;
     function requestCallback(error, response, optionalParams) {
         var indexOfRequest = optionalParams.indexOfRequest;
         var urlOfRequest = optionalParams.urlOfRequest;
 
         if (error || (response.status !== 'success')) {
             print("Error: unable to get", urlOfRequest, error || response.status);
-            that.notificationPollTimeout[indexOfRequest] = Script.setTimeout(
-                that.notificationPoll(indexOfRequest), that.notificationPollTimeoutMs[indexOfRequest]);
+            startNotificationTimer(indexOfRequest);
             return;
         }
 
         if (!that.notificationPollStopPaginatingConditionMet[indexOfRequest] ||
             that.notificationPollStopPaginatingConditionMet[indexOfRequest](response)) {
-            that.notificationPollTimeout[indexOfRequest] = Script.setTimeout(function () {
-                that.notificationPoll(indexOfRequest);
-            }, that.notificationPollTimeoutMs[indexOfRequest]);
+            startNotificationTimer(indexOfRequest);
 
             var notificationData;
             if (concatenatedServerResponse[indexOfRequest].length) {
@@ -181,7 +181,8 @@ function AppUi(properties) {
                 notificationData = that.notificationDataProcessPage[indexOfRequest](response);
             }
             console.debug(that.buttonName, that.notificationPollEndpoint[indexOfRequest],
-                'notification data for processing:', JSON.stringify(notificationData));
+                'truncated notification data for processing:',
+                JSON.stringify(notificationData).substring(0, MAX_LOG_LENGTH_CHARACTERS));
             that.notificationPollCallback[indexOfRequest](notificationData);
             that.notificationInitialCallbackMade[indexOfRequest] = true;
             currentDataPageToRetrieve[indexOfRequest] = 1;
@@ -199,15 +200,19 @@ function AppUi(properties) {
 
 
     var METAVERSE_BASE = Account.metaverseServerURL;
+    var MS_IN_SEC = 1000;
     that.notificationPoll = function (i) {
         if (!that.notificationPollEndpoint[i]) {
             return;
         }
 
-        // User is "appearing offline" or is offline
-        if (GlobalServices.findableBy === "none" || Account.username === "") {
-            that.notificationPollTimeout[i] = Script.setTimeout(
-                that.notificationPoll(i), that.notificationPollTimeoutMs[i]);
+        // User is "appearing offline" or is not logged in
+        if (GlobalServices.findableBy === "none" || Account.username === "Unknown user") {
+            // The notification polling will restart when the user changes their availability
+            // or when they log in, so it's not necessary to restart a timer here.
+            console.debug(that.buttonName + " Notifications: User is appearing offline or not logged in. " +
+                that.buttonName + " will poll for notifications when user logs in and has their availability " +
+                "set to not appear offline.");
             return;
         }
 
@@ -217,7 +222,7 @@ function AppUi(properties) {
         var currentTimestamp = new Date().getTime();
         var lastPollTimestamp = Settings.getValue(settingsKey, currentTimestamp);
         if (that.notificationPollCaresAboutSince[i]) {
-            url = url + "&since=" + lastPollTimestamp / 1000;
+            url = url + "&since=" + lastPollTimestamp / MS_IN_SEC;
         }
         Settings.setValue(settingsKey, currentTimestamp);
 
@@ -237,6 +242,12 @@ function AppUi(properties) {
     // This won't do anything if there isn't a notification endpoint set
     for (i = 0; i < that.notificationPollEndpoint.length; i++) {
         that.notificationPoll(i);
+    }
+
+    function startNotificationTimer(indexOfRequest) {
+        that.notificationPollTimeout[indexOfRequest] = Script.setTimeout(function () {
+            that.notificationPoll(indexOfRequest);
+        }, that.notificationPollTimeoutMs[indexOfRequest]);
     }
 
     function restartNotificationPoll() {

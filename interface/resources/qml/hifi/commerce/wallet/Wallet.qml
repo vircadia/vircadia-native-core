@@ -355,10 +355,6 @@ Rectangle {
                 if (msg.method === 'transactionHistory_usernameLinkClicked') {
                     userInfoViewer.url = msg.usernameLink;
                     userInfoViewer.visible = true;
-                } else if (msg.method === 'goToPurchases_fromWalletHome') {
-                    root.activeView = "walletInventory";
-                    walletInventory.isShowingMyItems = false;
-                    tabButtonsContainer.resetTabButtonColors();
                 } else {
                     sendToScript(msg);
                 }
@@ -630,7 +626,6 @@ Rectangle {
                 hoverEnabled: enabled;
                 onClicked: {
                     root.activeView = "walletInventory";
-                    walletInventory.isShowingMyItems = false;
                     tabButtonsContainer.resetTabButtonColors();
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
@@ -961,7 +956,6 @@ Rectangle {
             Commerce.getWalletStatus();
         } else if (msg.referrer === 'purchases') {
             root.activeView = "walletInventory";
-            walletInventory.isShowingMyItems = false;
             tabButtonsContainer.resetTabButtonColors();
         } else if (msg.referrer === 'marketplace cta' || msg.referrer === 'mainPage') {
             sendToScript({method: 'goToMarketplaceMainPage', itemId: msg.referrer});

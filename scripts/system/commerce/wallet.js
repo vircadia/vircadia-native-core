@@ -401,6 +401,14 @@ function openMarketplace(optionalItemOrUrl) {
     ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
 }
 
+function setCertificateInfo(itemCertificateId) {
+    ui.tablet.sendToQml({
+        method: 'inspectionCertificate_setCertificateId',
+        entityId: "",
+        certificateId: itemCertificateId
+    });
+}
+
 // Function Name: fromQml()
 //
 // Description:
@@ -520,6 +528,9 @@ function fromQml(message) {
         if (itemId && itemId !== "") {
             openMarketplace(itemId);
         }
+        break;
+    case 'purchases_itemCertificateClicked':
+        setCertificateInfo(message.itemCertificateId);
         break;
     case 'clearShouldShowDotHistory':
         shouldShowDotHistory = false;
@@ -698,6 +709,7 @@ function off() {
         Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         triggerMapping.disable();
         triggerPressMapping.disable();
+        isWired = false;
     }
 
     if (isUpdateOverlaysWired) {
