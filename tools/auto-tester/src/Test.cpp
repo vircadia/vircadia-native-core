@@ -1052,11 +1052,11 @@ void Test::createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit) {
         return;
     }
 
-    QString tempDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store temporary files in",
+    QString snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store temporary files in",
                                                               nullptr, QFileDialog::ShowDirsOnly);
-    if (tempDirectory.isNull()) {
+    if (snapshotDirectory.isNull()) {
         return;
     }
 
-    _awsInterface.createWebPageFromResults(testResults, tempDirectory, updateAWSCheckBox, urlLineEdit);
+    _awsInterface.createWebPageFromResults(testResults, snapshotDirectory, updateAWSCheckBox, urlLineEdit);
 }
