@@ -264,6 +264,13 @@
                 "font-weight": "600",
                 "line-height": "34px"
             });
+
+            if (parseInt(cost) > 0) {
+                priceElement.css({ "width": "auto" });
+                priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
+                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                priceElement.css({ "min-width": priceElement.width() + 30 });
+            }
         });
 
         // change pricing to GET/BUY on button hover
@@ -382,6 +389,9 @@
                 var cost = $('.item-cost').text();
                 var costInt = parseInt(cost, 10);
                 var availability = $.trim($('.item-availability').text());
+                if (limitedCommerce && (costInt > 0)) {
+                    availability = '';
+                }
                 if (availability === 'available') {
                     purchaseButton.css({
                         "background": "linear-gradient(#00b4ef, #0093C5)",
