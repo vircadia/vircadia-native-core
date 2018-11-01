@@ -551,7 +551,7 @@
             // Trigger values.
             leftTriggerOn = 0,
             rightTriggerOn = 0,
-            MAX_TRIGGER_ON_TIME = 100,
+            MAX_TRIGGER_ON_TIME = 400,
 
             // Visibility.
             MAX_HAND_CAMERA_ANGLE = 30,
