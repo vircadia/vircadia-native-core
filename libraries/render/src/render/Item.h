@@ -531,6 +531,7 @@ public:
     typedef UpdateFunctor<T> Updater;
 
     Payload(const DataPointer& data) : _data(data) {}
+    virtual ~Payload() = default;
 
     // Payload general interface
     virtual const ItemKey getKey() const override { return payloadGetKey<T>(_data); }

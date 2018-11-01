@@ -36,6 +36,7 @@ public:
 
     Geometry() = default;
     Geometry(const Geometry& geometry);
+    virtual ~Geometry() = default;
 
     // Immutable over lifetime
     using GeometryMeshes = std::vector<std::shared_ptr<const graphics::Mesh>>;
@@ -175,6 +176,9 @@ public:
     void setEmissiveMap(const QUrl& url);
     void setScatteringMap(const QUrl& url);
     void setLightmapMap(const QUrl& url);
+
+    bool isMissingTexture();
+    void checkResetOpacityMap();
 
 protected:
     friend class Geometry;

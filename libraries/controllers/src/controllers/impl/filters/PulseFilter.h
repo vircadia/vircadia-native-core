@@ -18,7 +18,7 @@ namespace controller {
 class PulseFilter : public Filter {
     REGISTER_FILTER_CLASS(PulseFilter);
 public:
-    PulseFilter() {}
+    PulseFilter() = default;
     PulseFilter(float interval) : _interval(interval) {}
 
     virtual float apply(float value) const override;

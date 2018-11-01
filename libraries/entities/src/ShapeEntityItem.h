@@ -31,7 +31,7 @@ namespace entity {
     };
 
     Shape shapeFromString(const ::QString& shapeString);
-    ::QString stringFromShape(Shape shape);
+    QString stringFromShape(Shape shape);
 }
 
 class ShapeEntityItem : public EntityItem {
@@ -52,7 +52,7 @@ public:
     //ALLOW_INSTANTIATION 
     
     // methods for getting/setting all properties of an entity
-    EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     bool setProperties(const EntityItemProperties& properties) override;
 
     EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -77,16 +77,10 @@ public:
     float getAlpha() const { return _alpha; };
     void setAlpha(float alpha);
 
-    const rgbColor& getColor() const { return _color; }
-    void setColor(const rgbColor& value);
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
 
     void setUnscaledDimensions(const glm::vec3& value) override;
-
-    xColor getXColor() const;
-    void setColor(const xColor& value);
-
-    QColor getQColor() const;
-    void setColor(const QColor& value);
 
     bool shouldBePhysical() const override { return !isDead(); }
     
@@ -110,7 +104,7 @@ public:
 protected:
 
     float _alpha { 1.0f };
-    rgbColor _color;
+    glm::u8vec3 _color;
     entity::Shape _shape { entity::Shape::Sphere };
 
     //! This is SHAPE_TYPE_ELLIPSOID rather than SHAPE_TYPE_NONE to maintain

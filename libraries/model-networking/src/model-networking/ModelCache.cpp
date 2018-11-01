@@ -414,33 +414,13 @@ bool Geometry::areTexturesLoaded() const {
     if (!_areTexturesLoaded) {
         for (auto& material : _materials) {
             // Check if material textures are loaded
-            bool materialMissingTexture = std::any_of(material->_textures.cbegin(), material->_textures.cend(),
-                [](const NetworkMaterial::Textures::value_type& it) { 
-                auto texture = it.texture;
-                if (!texture) {
-                    return false;
-                }
-                // Failed texture downloads need to be considered as 'loaded' 
-                // or the object will never fade in
-                bool finished = texture->isFailed() || (texture->isLoaded() && texture->getGPUTexture() && texture->getGPUTexture()->isDefined());
-                if (!finished) {
-                    return true;
-                }
-                return false;
-            });
+            bool materialMissingTexture = material->isMissingTexture();
 
             if (materialMissingTexture) {
                 return false;
             }
 
-            // If material textures are loaded, check the material translucency
-            // FIXME: This should not be done here.  The opacity map should already be reset in Material::setTextureMap.
-            // However, currently that code can be called before the albedo map is defined, so resetOpacityMap will fail.
-            // Geometry::areTexturesLoaded() is called repeatedly until it returns true, so we do the check here for now
-            const auto albedoTexture = material->_textures[NetworkMaterial::MapChannel::ALBEDO_MAP];
-            if (albedoTexture.texture) {
-                material->resetOpacityMap();
-            }
+            material->checkResetOpacityMap();
         }
 
         _areTexturesLoaded = true;
@@ -551,6 +531,11 @@ QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const FBXTexture& textu
 
 graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
                                                           image::TextureUsage::Type type, MapChannel channel) {
+
+    if (baseUrl.isEmpty()) {
+        return nullptr;
+    }
+
     const auto url = getTextureUrl(baseUrl, fbxTexture);
     const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, fbxTexture.content, fbxTexture.maxNumPixels);
     _textures[channel] = Texture { fbxTexture.name, texture };
@@ -775,6 +760,33 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
         map->setTextureTransform(_lightmapTransform);
         map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
         setTextureMap(MapChannel::LIGHTMAP_MAP, map);
+    }
+}
+
+bool NetworkMaterial::isMissingTexture() {
+    for (auto& networkTexture : _textures) {
+        auto& texture = networkTexture.texture;
+        if (!texture) {
+            continue;
+        }
+        // Failed texture downloads need to be considered as 'loaded'
+        // or the object will never fade in
+        bool finished = texture->isFailed() || (texture->isLoaded() && texture->getGPUTexture() && texture->getGPUTexture()->isDefined());
+        if (!finished) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void NetworkMaterial::checkResetOpacityMap() {
+    // If material textures are loaded, check the material translucency
+    // FIXME: This should not be done here.  The opacity map should already be reset in Material::setTextureMap.
+    // However, currently that code can be called before the albedo map is defined, so resetOpacityMap will fail.
+    // Geometry::areTexturesLoaded() is called repeatedly until it returns true, so we do the check here for now
+    const auto& albedoTexture = _textures[NetworkMaterial::MapChannel::ALBEDO_MAP];
+    if (albedoTexture.texture) {
+        resetOpacityMap();
     }
 }
 

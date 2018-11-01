@@ -14,13 +14,9 @@
 #include "Application.h"
 #include <PickManager.h>
 
-#include "StaticRayPick.h"
-#include "JointRayPick.h"
-#include "MouseRayPick.h"
+#include "RayPick.h"
 #include "StylusPick.h"
-#include "StaticParabolaPick.h"
-#include "JointParabolaPick.h"
-#include "MouseParabolaPick.h"
+#include "ParabolaPick.h"
 #include "CollisionPick.h"
 
 #include "SpatialParentFinder.h"
@@ -56,9 +52,9 @@ unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, 
  * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
  * @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
  * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
- * @property {string} [joint] Only for Joint or Mouse Ray Picks.  If "Mouse", it will create a Ray Pick that follows the system mouse, in desktop or HMD.
- *   If "Avatar", it will create a Joint Ray Pick that follows your avatar's head.  Otherwise, it will create a Joint Ray Pick that follows the given joint, if it
- *   exists on your current avatar.
+ * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, an overlay, or a pick.
+ * @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
+ * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
  * @property {Vec3} [posOffset=Vec3.ZERO] Only for Joint Ray Picks.  A local joint position offset, in meters.  x = upward, y = forward, z = lateral
  * @property {Vec3} [dirOffset=Vec3.UP] Only for Joint Ray Picks.  A local joint direction offset.  x = upward, y = forward, z = lateral
  * @property {Vec3} [position] Only for Static Ray Picks.  The world-space origin of the ray.
@@ -82,38 +78,29 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
         maxDistance = propMap["maxDistance"].toFloat();
     }
 
-    if (propMap["joint"].isValid()) {
-        std::string jointName = propMap["joint"].toString().toStdString();
-
-        if (jointName != "Mouse") {
-            // x = upward, y = forward, z = lateral
-            glm::vec3 posOffset = Vectors::ZERO;
-            if (propMap["posOffset"].isValid()) {
-                posOffset = vec3FromVariant(propMap["posOffset"]);
-            }
-
-            glm::vec3 dirOffset = Vectors::UP;
-            if (propMap["dirOffset"].isValid()) {
-                dirOffset = vec3FromVariant(propMap["dirOffset"]);
-            }
-
-            return DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
-
-        } else {
-            return DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<MouseRayPick>(filter, maxDistance, enabled));
-        }
-    } else if (propMap["position"].isValid()) {
-        glm::vec3 position = vec3FromVariant(propMap["position"]);
-
-        glm::vec3 direction = -Vectors::UP;
-        if (propMap["direction"].isValid()) {
-            direction = vec3FromVariant(propMap["direction"]);
-        }
-
-        return DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
+    glm::vec3 position = Vectors::ZERO;
+    if (propMap["position"].isValid()) {
+        position = vec3FromVariant(propMap["position"]);
+    } else if (propMap["posOffset"].isValid()) {
+        position = vec3FromVariant(propMap["posOffset"]);
     }
 
-    return PickManager::INVALID_PICK_ID;
+    // direction has two defaults to ensure compatibility with older scripts
+    // Joint ray picks had default direction = Vec3.UP
+    // Static ray picks had default direction = -Vec3.UP
+    glm::vec3 direction = propMap["joint"].isValid() ? Vectors::UP : -Vectors::UP;
+    if (propMap["orientation"].isValid()) {
+        direction = quatFromVariant(propMap["orientation"]) * Vectors::UP;
+    } else if (propMap["direction"].isValid()) {
+        direction = vec3FromVariant(propMap["direction"]);
+    } else if (propMap["dirOffset"].isValid()) {
+        direction = vec3FromVariant(propMap["dirOffset"]);
+    }
+
+    auto rayPick = std::make_shared<RayPick>(position, direction, filter, maxDistance, enabled);
+    setParentTransform(rayPick, propMap);
+
+    return DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, rayPick);
 }
 
 /**jsdoc
@@ -153,23 +140,25 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
     return DependencyManager::get<PickManager>()->addPick(PickQuery::Stylus, std::make_shared<StylusPick>(side, filter, maxDistance, enabled));
 }
 
+// NOTE: Laser pointer still uses scaleWithAvatar. Until scaleWithAvatar is also deprecated for pointers, scaleWithAvatar should not be removed from the pick API.
 /**jsdoc
  * A set of properties that can be passed to {@link Picks.createPick} to create a new Parabola Pick.
  * @typedef {object} Picks.ParabolaPickProperties
  * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
  * @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
  * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
- * @property {string} [joint] Only for Joint or Mouse Parabola Picks.  If "Mouse", it will create a Parabola Pick that follows the system mouse, in desktop or HMD.
- *   If "Avatar", it will create a Joint Parabola Pick that follows your avatar's head.  Otherwise, it will create a Joint Parabola Pick that follows the given joint, if it
- *   exists on your current avatar.
+ * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, an overlay, or a pick.
+ * @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
+ * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
  * @property {Vec3} [posOffset=Vec3.ZERO] Only for Joint Parabola Picks.  A local joint position offset, in meters.  x = upward, y = forward, z = lateral
  * @property {Vec3} [dirOffset=Vec3.UP] Only for Joint Parabola Picks.  A local joint direction offset.  x = upward, y = forward, z = lateral
  * @property {Vec3} [position] Only for Static Parabola Picks.  The world-space origin of the parabola segment.
  * @property {Vec3} [direction=-Vec3.FRONT] Only for Static Parabola Picks.  The world-space direction of the parabola segment.
  * @property {number} [speed=1] The initial speed of the parabola, i.e. the initial speed of the projectile whose trajectory defines the parabola.
  * @property {Vec3} [accelerationAxis=-Vec3.UP] The acceleration of the parabola, i.e. the acceleration of the projectile whose trajectory defines the parabola, both magnitude and direction.
- * @property {boolean} [rotateAccelerationWithAvatar=true] Whether or not the acceleration axis should rotate with your avatar's local Y axis.
- * @property {boolean} [scaleWithAvatar=false] If true, the velocity and acceleration of the Pick will scale linearly with your avatar.
+ * @property {boolean} [rotateAccelerationWithAvatar=true] Whether or not the acceleration axis should rotate with the avatar's local Y axis.
+ * @property {boolean} [rotateAccelerationWithParent=false] Whether or not the acceleration axis should rotate with the parent's local Y axis, if available.
+ * @property {boolean} [scaleWithParent=true] If true, the velocity and acceleration of the Pick will scale linearly with the parent, if available. scaleWithAvatar is an alias but is deprecated.
  */
 unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
@@ -204,48 +193,37 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
         rotateAccelerationWithAvatar = propMap["rotateAccelerationWithAvatar"].toBool();
     }
 
-    bool scaleWithAvatar = false;
-    if (propMap["scaleWithAvatar"].isValid()) {
-        scaleWithAvatar = propMap["scaleWithAvatar"].toBool();
+    bool rotateAccelerationWithParent = false;
+    if (propMap["rotateAccelerationWithParent"].isValid()) {
+        rotateAccelerationWithParent = propMap["rotateAccelerationWithParent"].toBool();
     }
 
-    if (propMap["joint"].isValid()) {
-        std::string jointName = propMap["joint"].toString().toStdString();
-
-        if (jointName != "Mouse") {
-            // x = upward, y = forward, z = lateral
-            glm::vec3 posOffset = Vectors::ZERO;
-            if (propMap["posOffset"].isValid()) {
-                posOffset = vec3FromVariant(propMap["posOffset"]);
-            }
-
-            glm::vec3 dirOffset = Vectors::UP;
-            if (propMap["dirOffset"].isValid()) {
-                dirOffset = vec3FromVariant(propMap["dirOffset"]);
-            }
-
-            return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<JointParabolaPick>(jointName, posOffset, dirOffset,
-                                                                                                                           speed, accelerationAxis, rotateAccelerationWithAvatar,
-                                                                                                                           scaleWithAvatar, filter, maxDistance, enabled));
-
-        } else {
-            return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<MouseParabolaPick>(speed, accelerationAxis, rotateAccelerationWithAvatar,
-                                                                                                                           scaleWithAvatar, filter, maxDistance, enabled));
-        }
-    } else if (propMap["position"].isValid()) {
-        glm::vec3 position = vec3FromVariant(propMap["position"]);
-
-        glm::vec3 direction = -Vectors::FRONT;
-        if (propMap["direction"].isValid()) {
-            direction = vec3FromVariant(propMap["direction"]);
-        }
-
-        return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<StaticParabolaPick>(position, direction, speed, accelerationAxis,
-                                                                                                                        rotateAccelerationWithAvatar, scaleWithAvatar,
-                                                                                                                        filter, maxDistance, enabled));
+    bool scaleWithParent = true;
+    if (propMap["scaleWithParent"].isValid()) {
+        scaleWithParent = propMap["scaleWithParent"].toBool();
+    } else if (propMap["scaleWithAvatar"].isValid()) {
+        scaleWithParent = propMap["scaleWithAvatar"].toBool();
     }
 
-    return PickManager::INVALID_PICK_ID;
+    glm::vec3 position = Vectors::ZERO;
+    glm::vec3 direction = propMap["joint"].isValid() ? Vectors::UP : -Vectors::FRONT;
+    if (propMap["position"].isValid()) {
+        position = vec3FromVariant(propMap["position"]);
+    } else if (propMap["posOffset"].isValid()) {
+        position = vec3FromVariant(propMap["posOffset"]);
+    }
+    if (propMap["orientation"].isValid()) {
+        direction = quatFromVariant(propMap["orientation"]) * Vectors::UP;
+    } else if (propMap["direction"].isValid()) {
+        direction = vec3FromVariant(propMap["direction"]);
+    } else if (propMap["dirOffset"].isValid()) {
+        direction = vec3FromVariant(propMap["dirOffset"]);
+    }
+
+    auto parabolaPick = std::make_shared<ParabolaPick>(position, direction, speed, accelerationAxis,
+        rotateAccelerationWithAvatar, rotateAccelerationWithParent, scaleWithParent, filter, maxDistance, enabled);
+    setParentTransform(parabolaPick, propMap);
+    return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, parabolaPick);
 }
 
 /**jsdoc
@@ -272,9 +250,10 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 * The depth is measured in world space, but will scale with the parent if defined.
 * @property {CollisionMask} [collisionGroup=8] - The type of object this collision pick collides as. Objects whose collision masks overlap with the pick's collision group
 * will be considered colliding with the pick.
-* @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
-* @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
+* @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, an overlay, or a pick.
+* @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
 * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
+* @property {boolean} [scaleWithParent=true] If true, the collision pick's dimensions and threshold will adjust according to the scale of the parent.
 */
 unsigned int PickScriptingInterface::createCollisionPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
@@ -294,9 +273,14 @@ unsigned int PickScriptingInterface::createCollisionPick(const QVariant& propert
         maxDistance = propMap["maxDistance"].toFloat();
     }
 
+    bool scaleWithParent = true;
+    if (propMap["scaleWithParent"].isValid()) {
+        scaleWithParent = propMap["scaleWithParent"].toBool();
+    }
+
     CollisionRegion collisionRegion(propMap);
-    auto collisionPick = std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, qApp->getPhysicsEngine());
-    collisionPick->parentTransform = createTransformNode(propMap);
+    auto collisionPick = std::make_shared<CollisionPick>(filter, maxDistance, enabled, scaleWithParent, collisionRegion, qApp->getPhysicsEngine());
+    setParentTransform(collisionPick, propMap);
 
     return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, collisionPick);
 }
@@ -373,51 +357,63 @@ void PickScriptingInterface::setPerFrameTimeBudget(unsigned int numUsecs) {
     DependencyManager::get<PickManager>()->setPerFrameTimeBudget(numUsecs);
 }
 
-std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const QVariantMap& propMap) {
-    if (propMap["parentID"].isValid()) {
-        QUuid parentUuid = propMap["parentID"].toUuid();
-        if (!parentUuid.isNull()) {
-            // Infer object type from parentID
-            // For now, assume a QUuuid is a SpatiallyNestable. This should change when picks are converted over to QUuids.
-            bool success;
-            std::weak_ptr<SpatiallyNestable> nestablePointer = DependencyManager::get<SpatialParentFinder>()->find(parentUuid, success, nullptr);
-            int parentJointIndex = 0;
-            if (propMap["parentJointIndex"].isValid()) {
-                parentJointIndex = propMap["parentJointIndex"].toInt();
-            }
-            auto sharedNestablePointer = nestablePointer.lock();
-            if (success && sharedNestablePointer) {
-                NestableType nestableType = sharedNestablePointer->getNestableType();
-                if (nestableType == NestableType::Avatar) {
-                    return std::make_shared<AvatarTransformNode>(std::static_pointer_cast<Avatar>(sharedNestablePointer), parentJointIndex);
-                } else if (nestableType == NestableType::Overlay) {
-                    return std::make_shared<OverlayTransformNode>(std::static_pointer_cast<Base3DOverlay>(sharedNestablePointer), parentJointIndex);
-                } else if (nestableType == NestableType::Entity) {
-                    return std::make_shared<EntityTransformNode>(std::static_pointer_cast<EntityItem>(sharedNestablePointer), parentJointIndex);
-                } else {
-                    return std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
-                }
-            }
-        }
+void PickScriptingInterface::setParentTransform(std::shared_ptr<PickQuery> pick, const QVariantMap& propMap) {
+    QUuid parentUuid;
+    int parentJointIndex = 0;
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
-        unsigned int pickID = propMap["parentID"].toUInt();
-        if (pickID != 0) {
-            return std::make_shared<PickTransformNode>(pickID);
+    if (propMap["parentID"].isValid()) {
+        parentUuid = propMap["parentID"].toUuid();
+        if (propMap["parentJointIndex"].isValid()) {
+            parentJointIndex = propMap["parentJointIndex"].toInt();
         }
-    }
-    
-    if (propMap["joint"].isValid()) {
+    } else if (propMap["joint"].isValid()) {
         QString joint = propMap["joint"].toString();
         if (joint == "Mouse") {
-            return std::make_shared<MouseTransformNode>();
+            pick->parentTransform = std::make_shared<MouseTransformNode>();
+            pick->setJointState(PickQuery::JOINT_STATE_MOUSE);
+            return;
         } else if (joint == "Avatar") {
-            return std::make_shared<MyAvatarHeadTransformNode>();
-        } else if (!joint.isNull()) {
-            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            int jointIndex = myAvatar->getJointIndex(joint);
-            return std::make_shared<AvatarTransformNode>(myAvatar, jointIndex);
+            pick->parentTransform = std::make_shared<MyAvatarHeadTransformNode>();
+            return;
+        } else {
+            parentUuid = myAvatar->getSessionUUID();
+            parentJointIndex = myAvatar->getJointIndex(joint);
         }
     }
 
-    return std::shared_ptr<TransformNode>();
+    if (parentUuid == myAvatar->getSessionUUID()) {
+        if (parentJointIndex == CONTROLLER_LEFTHAND_INDEX || parentJointIndex == CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX) {
+            pick->setJointState(PickQuery::JOINT_STATE_LEFT_HAND);
+        } else if (parentJointIndex == CONTROLLER_RIGHTHAND_INDEX || parentJointIndex == CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX) {
+            pick->setJointState(PickQuery::JOINT_STATE_RIGHT_HAND);
+        }
+
+        pick->parentTransform = std::make_shared<AvatarTransformNode>(myAvatar, parentJointIndex);
+    } else if (!parentUuid.isNull()) {
+        // Infer object type from parentID
+        // For now, assume a QUuid is a SpatiallyNestable. This should change when picks are converted over to QUuids.
+        bool success;
+        std::weak_ptr<SpatiallyNestable> nestablePointer = DependencyManager::get<SpatialParentFinder>()->find(parentUuid, success, nullptr);
+        auto sharedNestablePointer = nestablePointer.lock();
+
+        if (success && sharedNestablePointer) {
+            NestableType nestableType = sharedNestablePointer->getNestableType();
+            if (nestableType == NestableType::Avatar) {
+                pick->parentTransform = std::make_shared<AvatarTransformNode>(std::static_pointer_cast<Avatar>(sharedNestablePointer), parentJointIndex);
+            } else if (nestableType == NestableType::Overlay) {
+                pick->parentTransform = std::make_shared<OverlayTransformNode>(std::static_pointer_cast<Base3DOverlay>(sharedNestablePointer), parentJointIndex);
+            } else if (nestableType == NestableType::Entity) {
+                pick->parentTransform = std::make_shared<EntityTransformNode>(std::static_pointer_cast<EntityItem>(sharedNestablePointer), parentJointIndex);
+            } else {
+                pick->parentTransform = std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
+            }
+        }
+    } else {
+        unsigned int pickID = propMap["parentID"].toUInt();
+
+        if (pickID != 0) {
+            pick->parentTransform = std::make_shared<PickTransformNode>(pickID);
+        }
+    }
 }

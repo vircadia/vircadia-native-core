@@ -49,6 +49,42 @@ var NO_BUTTON = 0; // QMessageBox::NoButton
 
 var NO_PERMISSIONS_ERROR_MESSAGE = "Cannot download model because you can't write to \nthe domain's Asset Server.";
 
+
+var resourceRequestEvents = [];
+function signalResourceRequestEvent(data) {
+    // Once we can tie resource request events to specific resources,
+    // we will have to update the "0" in here.
+    var resourceData = "from: " + data.extra + ": " + data.url.toString().replace("__NONE__,", "");
+
+    if (resourceObjectsInTest[0].resourceDataArray.indexOf(resourceData) === -1) {
+        resourceObjectsInTest[0].resourceDataArray.push(resourceData);
+
+        resourceObjectsInTest[0].resourceAccessEventText += "[" + data.date.toISOString() + "] " +
+            resourceData + "\n";
+
+        ui.tablet.sendToQml({
+            method: "resourceRequestEvent",
+            data: data,
+            resourceAccessEventText: resourceObjectsInTest[0].resourceAccessEventText
+        });
+    }
+}
+
+function onResourceRequestEvent(data) {
+    // Once we can tie resource request events to specific resources,
+    // we will have to update the "0" in here.
+    if (resourceObjectsInTest[0] && resourceObjectsInTest[0].currentlyRecordingResources) {
+        var resourceRequestEvent = {
+            "date": new Date(),
+            "url": data.url,
+            "callerId": data.callerId,
+            "extra": data.extra
+        };
+        resourceRequestEvents.push(resourceRequestEvent);
+        signalResourceRequestEvent(resourceRequestEvent);
+    }
+}
+
 function onMessageBoxClosed(id, button) {
     if (id === messageBox && button === CANCEL_BUTTON) {
         isDownloadBeingCancelled = true;
@@ -87,6 +123,49 @@ function setTabletVisibleInSecondaryCamera(visibleInSecondaryCam) {
 
 function openWallet() {
     ui.open(MARKETPLACE_WALLET_QML_PATH);
+}
+function setupWallet(referrer) {
+    // Needs to be done within the QML page in order to get access to QmlCommerce
+    openWallet();
+    var ALLOWANCE_FOR_EVENT_BRIDGE_SETUP = 0;
+    Script.setTimeout(function () {
+        ui.tablet.sendToQml({
+            method: 'updateWalletReferrer',
+            referrer: referrer
+        });
+    }, ALLOWANCE_FOR_EVENT_BRIDGE_SETUP);
+}
+
+function onMarketplaceOpen(referrer) {
+    var cta = referrer, match;
+    if (Account.loggedIn && walletNeedsSetup()) {
+        if (referrer === MARKETPLACE_URL_INITIAL) {
+            setupWallet('marketplace cta');
+        } else {
+            match = referrer.match(/\/item\/(\w+)$/);
+            if (match && match[1]) {
+                setupWallet(match[1]);
+            } else if (referrer.indexOf(METAVERSE_SERVER_URL) === -1) { // not a url
+                setupWallet(referrer);
+            } else {
+                print("WARNING: opening marketplace to", referrer, "without wallet setup.");
+            }
+        }
+    }
+}
+
+function openMarketplace(optionalItemOrUrl) {
+    // This is a bit of a kluge, but so is the whole file.
+    // If given a whole path, use it with no cta.
+    // If given an id, build the appropriate url and use the id as the cta.
+    // Otherwise, use home and 'marketplace cta'.
+    // AND... if call onMarketplaceOpen to setupWallet if we need to.
+    var url = optionalItemOrUrl || MARKETPLACE_URL_INITIAL;
+    // If optionalItemOrUrl contains the metaverse base, then it's a url, not an item id.
+    if (optionalItemOrUrl && optionalItemOrUrl.indexOf(METAVERSE_SERVER_URL) === -1) {
+        url = MARKETPLACE_URL + '/items/' + optionalItemOrUrl;
+    }
+    ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
 }
 
 // Function Name: wireQmlEventBridge()
@@ -134,11 +213,14 @@ function setCertificateInfo(currentEntityWithContextOverlay, itemCertificateId) 
 
 function onUsernameChanged() {
     if (onMarketplaceScreen) {
-        ui.open(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace();
     }
 }
 
-var userHasUpdates = false;
+function walletNeedsSetup() {
+    return Wallet.walletStatus === 1;
+}
+
 function sendCommerceSettings() {
     ui.sendToHtml({
         type: "marketplaces",
@@ -146,9 +228,9 @@ function sendCommerceSettings() {
         data: {
             commerceMode: Settings.getValue("commerce", true),
             userIsLoggedIn: Account.loggedIn,
-            walletNeedsSetup: Wallet.walletStatus === 1,
+            walletNeedsSetup: walletNeedsSetup(),
             metaverseServerURL: Account.metaverseServerURL,
-            messagesWaiting: userHasUpdates
+            messagesWaiting: shouldShowDot
         }
     });
 }
@@ -476,13 +558,18 @@ function getPositionToCreateEntity(extra) {
     return position;
 }
 
-function rezEntity(itemHref, itemType) {
+function defaultFor(arg, val) {
+    return typeof arg !== 'undefined' ? arg : val;
+}
+
+function rezEntity(itemHref, itemType, marketplaceItemTesterId) {
     var isWearable = itemType === "wearable";
-    var success = Clipboard.importEntities(itemHref);
+    var success = Clipboard.importEntities(itemHref, true, marketplaceItemTesterId);
     var wearableLocalPosition = null;
     var wearableLocalRotation = null;
     var wearableLocalDimensions = null;
     var wearableDimensions = null;
+    marketplaceItemTesterId = defaultFor(marketplaceItemTesterId, -1);
 
     if (itemType === "contentSet") {
         console.log("Item is a content set; codepath shouldn't go here.");
@@ -627,6 +714,8 @@ var filterText; // Used for updating Purchases QML
 function onWebEventReceived(message) {
     message = JSON.parse(message);
     if (message.type === GOTO_DIRECTORY) {
+        // This is the chooser between marketplaces. Only OUR markteplace
+        // requires/makes-use-of wallet, so doesn't go through openMarketplace bottleneck.
         ui.open(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
     } else if (message.type === QUERY_CAN_WRITE_ASSETS) {
         ui.sendToHtml(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
@@ -668,12 +757,7 @@ function onWebEventReceived(message) {
     } else if (message.type === "LOGIN") {
         openLoginWindow();
     } else if (message.type === "WALLET_SETUP") {
-        wireQmlEventBridge(true);
-        ui.tablet.sendToQml({
-            method: 'updateWalletReferrer',
-            referrer: "marketplace cta"
-        });
-        openWallet();
+        setupWallet('marketplace cta');
     } else if (message.type === "MY_ITEMS") {
         referrerURL = MARKETPLACE_URL_INITIAL;
         filterText = "";
@@ -773,7 +857,8 @@ var resourceObjectsInTest = [];
 function signalNewResourceObjectInTest(resourceObject) {
     ui.tablet.sendToQml({
         method: "newResourceObjectInTest",
-        resourceObject: resourceObject });
+        resourceObject: resourceObject
+    });
 }
 
 var onQmlMessageReceived = function onQmlMessageReceived(message) {
@@ -781,6 +866,14 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         return;
     }
     switch (message.method) {
+    case 'gotoBank':
+	    ui.close();
+        if (Account.metaverseServerURL.indexOf("staging") >= 0) {
+            Window.location = "hifi://hifiqa-master-metaverse-staging"; // So that we can test in staging.
+        } else {
+            Window.location = "hifi://BankOfHighFidelity";
+        }
+	break;
     case 'purchases_openWallet':
     case 'checkout_openWallet':
     case 'checkout_setUpClicked':
@@ -803,7 +896,7 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         openWallet();
         break;
     case 'checkout_cancelClicked':
-        ui.open(MARKETPLACE_URL + '/items/' + message.params, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace(message.params);
         break;
     case 'header_goToPurchases':
     case 'checkout_goToPurchases':
@@ -812,25 +905,29 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         ui.open(MARKETPLACE_PURCHASES_QML_PATH);
         break;
     case 'checkout_itemLinkClicked':
-        ui.open(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace(message.itemId);
         break;
     case 'checkout_continueShopping':
-        ui.open(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace();
         break;
     case 'purchases_itemInfoClicked':
         var itemId = message.itemId;
         if (itemId && itemId !== "") {
-            ui.open(MARKETPLACE_URL + '/items/' + itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+            openMarketplace(itemId);
         }
         break;
     case 'checkout_rezClicked':
     case 'purchases_rezClicked':
     case 'tester_rezClicked':
-        rezEntity(message.itemHref, message.itemType);
+        rezEntity(message.itemHref, message.itemType, message.itemId);
         break;
     case 'tester_newResourceObject':
         var resourceObject = message.resourceObject;
-        resourceObjectsInTest[resourceObject.id] = resourceObject;
+        resourceObjectsInTest = []; // REMOVE THIS once we support specific referrers
+        resourceObject.currentlyRecordingResources = false;
+        resourceObject.resourceAccessEventText = "";
+        resourceObjectsInTest[resourceObject.resourceObjectId] = resourceObject;
+        resourceObjectsInTest[resourceObject.resourceObjectId].resourceDataArray = [];
         signalNewResourceObjectInTest(resourceObject);
         break;
     case 'tester_updateResourceObjectAssetType':
@@ -839,22 +936,29 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     case 'tester_deleteResourceObject':
         delete resourceObjectsInTest[message.objectId];
         break;
+    case 'tester_updateResourceRecordingStatus':
+        resourceObjectsInTest[message.objectId].currentlyRecordingResources = message.status;
+        if (message.status) {
+            resourceObjectsInTest[message.objectId].resourceDataArray = [];
+            resourceObjectsInTest[message.objectId].resourceAccessEventText = "";
+        }
+        break;
     case 'header_marketplaceImageClicked':
     case 'purchases_backClicked':
-        ui.open(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace(message.referrerURL);
         break;
     case 'purchases_goToMarketplaceClicked':
-        ui.open(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace();
         break;
     case 'updateItemClicked':
-        ui.open(message.upgradeUrl + "?edition=" + message.itemEdition,
-            MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace(message.upgradeUrl + "?edition=" + message.itemEdition);
         break;
     case 'giftAsset':
 
         break;
     case 'passphrasePopup_cancelClicked':
     case 'needsLogIn_cancelClicked':
+        // Should/must NOT check for wallet setup.
         ui.open(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
         break;
     case 'needsLogIn_loginClicked':
@@ -884,7 +988,7 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         ContextOverlay.requestOwnershipVerification(message.entity);
         break;
     case 'inspectionCertificate_showInMarketplaceClicked':
-        ui.open(message.marketplaceUrl, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace(message.marketplaceUrl);
         break;
     case 'header_myItemsClicked':
         referrerURL = MARKETPLACE_URL_INITIAL;
@@ -924,10 +1028,9 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
             removeOverlays();
         }
         break;
-    case 'wallet_availableUpdatesReceived':
     case 'purchases_availableUpdatesReceived':
-        userHasUpdates = message.numUpdates > 0;
-        ui.messagesWaiting(userHasUpdates);
+        shouldShowDot = message.numUpdates > 0;
+        ui.messagesWaiting(shouldShowDot && !ui.isOpen);
         break;
     case 'purchases_updateWearables':
         var currentlyWornWearables = [];
@@ -979,16 +1082,22 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
 };
 
 function pushResourceObjectsInTest() {
-    var maxObjectId = -1;
-    for (var objectId in resourceObjectsInTest) {
-        signalNewResourceObjectInTest(resourceObjectsInTest[objectId]);
-        maxObjectId = (maxObjectId < objectId) ? parseInt(objectId) : maxObjectId;
+    var maxResourceObjectId = -1;
+    var length = resourceObjectsInTest.length;
+    for (var i = 0; i < length; i++) {
+        if (i in resourceObjectsInTest) {
+            signalNewResourceObjectInTest(resourceObjectsInTest[i]);
+            var resourceObjectId = resourceObjectsInTest[i].resourceObjectId;
+            maxResourceObjectId = (maxResourceObjectId < resourceObjectId) ? parseInt(resourceObjectId) : maxResourceObjectId;
+        }
     }
     // N.B. Thinking about removing the following sendToQml? Be sure
     // that the marketplace item tester QML has heard from us, at least
     // so that it can indicate to the user that all of the resoruce
     // objects in test have been transmitted to it.
-    ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: maxObjectId + 1 });
+    //ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: maxResourceObjectId + 1 });
+    // Since, for now, we only support 1 object in test, always send id: 0
+    ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: 0 });
 }
 
 // Function Name: onTabletScreenChanged()
@@ -1026,12 +1135,7 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
     onCommerceScreen = onCommerceScreenNow;
     onWalletScreen = onWalletScreenNow;
     onMarketplaceItemTesterScreen = onMarketplaceItemTesterScreenNow;
-
-    wireQmlEventBridge(
-        onMarketplaceScreen ||
-        onCommerceScreen ||
-        onWalletScreen ||
-        onMarketplaceItemTesterScreen);
+    wireQmlEventBridge(onCommerceScreen || onWalletScreen || onMarketplaceItemTesterScreen);
 
     if (url === MARKETPLACE_PURCHASES_QML_PATH) {
         // FIXME? Is there a race condition here in which the event
@@ -1068,6 +1172,9 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
         isWired = true;
         Wallet.refreshWalletStatus();
     } else {
+        if (onMarketplaceScreen) {
+            onMarketplaceOpen('marketplace cta');
+        }
         ui.tablet.sendToQml({
             method: 'inspectionCertificate_resetCert'
         });
@@ -1085,9 +1192,41 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
         "\nNew screen URL: " + url + "\nCurrent app open status: " + ui.isOpen + "\n");
 };
 
-//
-// Manage the connection between the button and the window.
-//
+function notificationDataProcessPage(data) {
+    return data.data.updates;
+}
+
+var shouldShowDot = false;
+function notificationPollCallback(updatesArray) {
+    shouldShowDot = shouldShowDot || updatesArray.length > 0;
+    ui.messagesWaiting(shouldShowDot && !ui.isOpen);
+
+    if (updatesArray.length > 0) {
+        var message;
+        if (!ui.notificationInitialCallbackMade) {
+            message = updatesArray.length + " of your purchased items " +
+                (updatesArray.length === 1 ? "has an update " : "have updates ") +
+                "available. Open MARKET to update.";
+            ui.notificationDisplayBanner(message);
+
+            ui.notificationPollCaresAboutSince = true;
+        } else {
+            for (var i = 0; i < updatesArray.length; i++) {
+                message = "Update available for \"" +
+                    updatesArray[i].base_item_title + "\"." +
+                    "Open MARKET to update.";
+                ui.notificationDisplayBanner(message);
+            }
+        }
+    }
+}
+
+function isReturnedDataEmpty(data) {
+    var historyArray = data.data.updates;
+    return historyArray.length === 0;
+}
+
+
 var BUTTON_NAME = "MARKET";
 var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
 var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?"; // Append "?" to signal injected script that it's the initial page.
@@ -1099,7 +1238,13 @@ function startup() {
         inject: MARKETPLACES_INJECT_SCRIPT_URL,
         home: MARKETPLACE_URL_INITIAL,
         onScreenChanged: onTabletScreenChanged,
-        onMessage: onQmlMessageReceived
+        onMessage: onQmlMessageReceived,
+        notificationPollEndpoint: "/api/v1/commerce/available_updates?per_page=10",
+        notificationPollTimeoutMs: 300000,
+        notificationDataProcessPage: notificationDataProcessPage,
+        notificationPollCallback: notificationPollCallback,
+        notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
+        notificationPollCaresAboutSince: false // Changes to true after first poll
     });
     ContextOverlay.contextOverlayClicked.connect(openInspectionCertificateQML);
     Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
@@ -1107,6 +1252,7 @@ function startup() {
     ui.tablet.webEventReceived.connect(onWebEventReceived);
     Wallet.walletStatusChanged.connect(sendCommerceSettings);
     Window.messageBoxClosed.connect(onMessageBoxClosed);
+    ResourceRequestObserver.resourceRequestEvent.connect(onResourceRequestEvent);
 
     Wallet.refreshWalletStatus();
 }
@@ -1140,6 +1286,7 @@ function shutdown() {
     GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
     Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
     ContextOverlay.contextOverlayClicked.disconnect(openInspectionCertificateQML);
+    ResourceRequestObserver.resourceRequestEvent.disconnect(onResourceRequestEvent);
 
     off();
 }

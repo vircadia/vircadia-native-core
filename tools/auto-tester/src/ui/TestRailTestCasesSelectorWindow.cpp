@@ -25,6 +25,7 @@ void TestRailTestCasesSelectorWindow::reset() {
     userLineEdit->setDisabled(false);
     passwordLineEdit->setDisabled(false);
     projectIDLineEdit->setDisabled(false);
+    suiteIDLineEdit->setDisabled(false);
 
     OKButton->setDisabled(true);
 
@@ -37,6 +38,7 @@ void TestRailTestCasesSelectorWindow::on_acceptButton_clicked() {
     userLineEdit->setDisabled(true);
     passwordLineEdit->setDisabled(true);
     projectIDLineEdit->setDisabled(true);
+    suiteIDLineEdit->setDisabled(true);
 
     OKButton->setDisabled(false);
 

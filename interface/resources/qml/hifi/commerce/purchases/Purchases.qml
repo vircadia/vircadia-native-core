@@ -93,7 +93,7 @@ Rectangle {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
                 sendToScript({method: 'purchases_availableUpdatesReceived', numUpdates: result.data.updates.length });
-                root.numUpdatesAvailable = result.data.updates.length;
+                root.numUpdatesAvailable = result.total_entries;
             }
         }
 
@@ -158,6 +158,7 @@ Rectangle {
         listModelName: "Gift Connections";
         z: 998;
         visible: root.activeView === "giftAsset";
+        keyboardContainer: root;
         anchors.fill: parent;
         parentAppTitleBarHeight: 70;
         parentAppNavBarHeight: 0;
@@ -585,7 +586,7 @@ Rectangle {
             visible: purchasesModel.count !== 0;
             clip: true;
             model: purchasesModel;
-            snapMode: ListView.SnapToItem;
+            snapMode: ListView.NoSnap;
             // Anchors
             anchors.top: separator.bottom;
             anchors.left: parent.left;

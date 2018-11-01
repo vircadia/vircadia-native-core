@@ -12,6 +12,8 @@
 
 class TransformNode {
 public:
+    virtual ~TransformNode() = default;
+
     virtual Transform getTransform() = 0;
 };
 

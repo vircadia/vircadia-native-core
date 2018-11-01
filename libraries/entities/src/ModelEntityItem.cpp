@@ -39,7 +39,6 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(
     // set the last animated when interface (re)starts
     _type = EntityTypes::Model;
     _lastKnownCurrentFrame = -1;
-    _color[0] = _color[1] = _color[2] = 0;
     _visuallyReady = false;
 }
 
@@ -54,9 +53,9 @@ void ModelEntityItem::setTextures(const QString& textures) {
     _textures = textures;
 }
 
-EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
+EntityItemProperties ModelEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
@@ -117,7 +116,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
     bool animationPropertiesChanged = false;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
@@ -154,6 +153,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
+    requestedProperties += PROP_COLOR;
     requestedProperties += PROP_MODEL_URL;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_TEXTURES;
@@ -520,9 +520,6 @@ QVector<bool> ModelEntityItem::getJointTranslationsSet() const {
 }
 
 
-xColor ModelEntityItem::getXColor() const { 
-    xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; 
-}
 bool ModelEntityItem::hasModel() const { 
     return resultWithReadLock<bool>([&] {
         return !_modelURL.isEmpty();
@@ -554,17 +551,19 @@ QString ModelEntityItem::getCompoundShapeURL() const {
     return _compoundShapeURL.get();
 }
 
-void ModelEntityItem::setColor(const rgbColor& value) { 
+QString ModelEntityItem::getCollisionShapeURL() const {
+    return getShapeType() == SHAPE_TYPE_COMPOUND ? getCompoundShapeURL() : getModelURL();
+}
+
+void ModelEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
-        memcpy(_color, value, sizeof(_color));
+        _color = value;
     });
 }
 
-void ModelEntityItem::setColor(const xColor& value) {
-    withWriteLock([&] {
-        _color[RED_INDEX] = value.red;
-        _color[GREEN_INDEX] = value.green;
-        _color[BLUE_INDEX] = value.blue;
+glm::u8vec3 ModelEntityItem::getColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
+        return _color;
     });
 }
 
@@ -627,30 +626,6 @@ void ModelEntityItem::setAnimationHold(bool hold) {
 bool ModelEntityItem::getAnimationHold() const { 
     return resultWithReadLock<bool>([&] {
         return _animationProperties.getHold();
-    });
-}
-
-void ModelEntityItem::setAnimationFirstFrame(float firstFrame) { 
-    withWriteLock([&] {
-        _animationProperties.setFirstFrame(firstFrame);
-    });
-}
-
-float ModelEntityItem::getAnimationFirstFrame() const { 
-    return resultWithReadLock<float>([&] {
-        return _animationProperties.getFirstFrame();
-    });
-}
-
-void ModelEntityItem::setAnimationLastFrame(float lastFrame) { 
-    withWriteLock([&] {
-        _animationProperties.setLastFrame(lastFrame);
-    });
-}
-
-float ModelEntityItem::getAnimationLastFrame() const { 
-    return resultWithReadLock<float>([&] {
-        return _animationProperties.getLastFrame();
     });
 }
 

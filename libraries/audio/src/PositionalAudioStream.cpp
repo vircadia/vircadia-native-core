@@ -14,7 +14,6 @@
 
 #include <cstring>
 
-#include <glm/detail/func_common.hpp>
 #include <QtCore/QDataStream>
 #include <QtCore/QLoggingCategory>
 
@@ -78,19 +77,14 @@ int PositionalAudioStream::parsePositionalData(const QByteArray& positionalByteA
     QDataStream packetStream(positionalByteArray);
 
     packetStream.readRawData(reinterpret_cast<char*>(&_position), sizeof(_position));
-
-    // if the client sends us a bad position, flag it so that we don't consider this stream for mixing
-    if (glm::isnan(_position.x) || glm::isnan(_position.y) || glm::isnan(_position.z)) {
-        HIFI_FDEBUG("PositionalAudioStream unpacked invalid position for node" << uuidStringWithoutCurlyBraces(getNodeID()) );
-
-        _hasValidPosition = false;
-    } else {
-        _hasValidPosition = true;
-    }
-
     packetStream.readRawData(reinterpret_cast<char*>(&_orientation), sizeof(_orientation));
     packetStream.readRawData(reinterpret_cast<char*>(&_avatarBoundingBoxCorner), sizeof(_avatarBoundingBoxCorner));
     packetStream.readRawData(reinterpret_cast<char*>(&_avatarBoundingBoxScale), sizeof(_avatarBoundingBoxScale));
+
+    if (_avatarBoundingBoxCorner != _ignoreBox.getCorner()) {
+        // if the ignore box corner changes, we need to re-calculate the ignore box
+        calculateIgnoreBox();
+    }
 
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
     if (glm::isnan(_orientation.x)) {
@@ -106,4 +100,30 @@ AudioStreamStats PositionalAudioStream::getAudioStreamStats() const {
     AudioStreamStats streamStats = InboundAudioStream::getAudioStreamStats();
     streamStats._streamType = _type;
     return streamStats;
+}
+
+void PositionalAudioStream::calculateIgnoreBox() {
+    if (_avatarBoundingBoxScale != glm::vec3(0)) {
+        auto scale = _avatarBoundingBoxScale;
+
+        // enforce a minimum scale
+        static const glm::vec3 MIN_IGNORE_BOX_SCALE = glm::vec3(0.3f, 1.3f, 0.3f);
+        if (glm::any(glm::lessThan(scale, MIN_IGNORE_BOX_SCALE))) {
+            scale = MIN_IGNORE_BOX_SCALE;
+        }
+
+        // (this is arbitrary number determined empirically for comfort)
+        const float IGNORE_BOX_SCALE_FACTOR = 2.4f;
+        scale *= IGNORE_BOX_SCALE_FACTOR;
+
+        // create the box (we use a box for the zone for convenience)
+        _ignoreBox.setBox(_avatarBoundingBoxCorner, scale);
+    }
+}
+
+void PositionalAudioStream::enableIgnoreBox() {
+    // re-calculate the ignore box using the latest values
+    calculateIgnoreBox();
+
+    _isIgnoreBoxEnabled = true;
 }

@@ -432,6 +432,9 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // this case is prevented by setting _ownershipState to UNOWNABLE in EntityMotionState::ctor
     assert(!(_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
 
+    if (_entity->getTransitingWithAvatar()) {
+        return false;
+    }
     if (_entity->dynamicDataNeedsTransmit()) {
         return true;
     }
@@ -499,36 +502,18 @@ void EntityMotionState::sendBid(OctreeEditPacketSender* packetSender, uint32_t s
     properties.setVelocity(linearVelocity);
     properties.setAcceleration(_entity->getAcceleration());
     properties.setAngularVelocity(angularVelocity);
-    if (_entity->dynamicDataNeedsTransmit()) {
-        _entity->setDynamicDataNeedsTransmit(false);
-        properties.setActionData(_entity->getDynamicData());
-    }
-
-    if (_entity->updateQueryAACube()) {
-        // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
-        properties.setQueryAACube(_entity->getQueryAACube());
-    }
-
-    // set the LastEdited of the properties but NOT the entity itself
-    quint64 now = usecTimestampNow();
-    properties.setLastEdited(now);
 
     // we don't own the simulation for this entity yet, but we're sending a bid for it
+    quint64 now = usecTimestampNow();
     uint8_t finalBidPriority = computeFinalBidPriority();
-    _entity->clearScriptSimulationPriority();
-    properties.setSimulationOwner(Physics::getSessionUUID(), finalBidPriority);
-    _entity->setPendingOwnershipPriority(finalBidPriority);
+    _entity->prepareForSimulationOwnershipBid(properties, now, finalBidPriority);
 
     EntityTreeElementPointer element = _entity->getElement();
     EntityTreePointer tree = element ? element->getTree() : nullptr;
 
-    properties.setClientOnly(_entity->getClientOnly());
-    properties.setOwningAvatarID(_entity->getOwningAvatarID());
-
     EntityItemID id(_entity->getID());
     EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
     entityPacketSender->queueEditEntityMessage(PacketType::EntityPhysics, tree, id, properties);
-    _entity->setLastBroadcast(now); // for debug/physics status icons
 
     // NOTE: we don't descend to children for ownership bid.  Instead, if we win ownership of the parent
     // then in sendUpdate() we'll walk descendents and send updates for their QueryAACubes if necessary.

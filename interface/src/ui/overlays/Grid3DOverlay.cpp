@@ -57,11 +57,9 @@ void Grid3DOverlay::render(RenderArgs* args) {
         return; // do nothing if we're not visible
     }
 
-    const float MAX_COLOR = 255.0f;
-
     float alpha = getAlpha();
-    xColor color = getColor();
-    glm::vec4 gridColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::u8vec3 color = getColor();
+    glm::vec4 gridColor(toGlm(color), alpha);
 
     auto batch = args->_batch;
 

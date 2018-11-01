@@ -174,7 +174,8 @@ public:
     template <class T, class O, class C = Config> using ModelO = Model<T, C, None, O>;
     template <class T, class I, class O, class C = Config> using ModelIO = Model<T, C, I, O>;
 
-    Job(ConceptPointer concept) : _concept(concept) {}
+    Job(const ConceptPointer& concept) : _concept(concept) {}
+    virtual ~Job() = default;
 
     const std::string& getName() const { return _concept->getName(); }
     const Varying getInput() const { return _concept->getInput(); }
@@ -417,6 +418,7 @@ protected:
     template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5 > using VaryingSet6 = task::VaryingSet6<T0, T1, T2, T3, T4, T5>; \
     template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6 > using VaryingSet7 = task::VaryingSet7<T0, T1, T2, T3, T4, T5, T6>; \
     template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7 > using VaryingSet8 = task::VaryingSet8<T0, T1, T2, T3, T4, T5, T6, T7>; \
+    template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8 > using VaryingSet9 = task::VaryingSet9<T0, T1, T2, T3, T4, T5, T6, T7, T8>; \
     template < class T, int NUM > using VaryingArray = task::VaryingArray<T, NUM>;
 
 

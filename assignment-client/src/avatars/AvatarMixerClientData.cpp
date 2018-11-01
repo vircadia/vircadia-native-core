@@ -26,20 +26,20 @@ AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID 
     _avatar->setID(nodeID);
 }
 
-uint64_t AvatarMixerClientData::getLastOtherAvatarEncodeTime(QUuid otherAvatar) const {
-    std::unordered_map<QUuid, uint64_t>::const_iterator itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
+uint64_t AvatarMixerClientData::getLastOtherAvatarEncodeTime(NLPacket::LocalID otherAvatar) const {
+    const auto itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
     if (itr != _lastOtherAvatarEncodeTime.end()) {
         return itr->second;
     }
     return 0;
 }
 
-void AvatarMixerClientData::setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time) {
-    std::unordered_map<QUuid, uint64_t>::iterator itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
+void AvatarMixerClientData::setLastOtherAvatarEncodeTime(NLPacket::LocalID otherAvatar, uint64_t time) {
+    auto itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
     if (itr != _lastOtherAvatarEncodeTime.end()) {
         itr->second = time;
     } else {
-        _lastOtherAvatarEncodeTime.emplace(std::pair<QUuid, uint64_t>(otherAvatar, time));
+        _lastOtherAvatarEncodeTime.emplace(std::pair<NLPacket::LocalID, uint64_t>(otherAvatar, time));
     }
 }
 
@@ -112,6 +112,11 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
 
+            if (traitSize < -1 || traitSize > message.getBytesLeftToRead()) {
+                qWarning() << "Refusing to process simple trait of size" << traitSize << "from" << message.getSenderSockAddr();
+                break;
+            }
+
             if (packetTraitVersion > _lastReceivedTraitVersions[traitType]) {
                 _avatar->processTrait(traitType, message.read(traitSize));
                 _lastReceivedTraitVersions[traitType] = packetTraitVersion;
@@ -128,26 +133,41 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
         } else {
             AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
+            if (message.getBytesLeftToRead() == 0) {
+                qWarning () << "Received an instanced trait with no size from" << message.getSenderSockAddr();
+                break;
+            }
+
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
 
-            auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
+            if (traitSize < -1 || traitSize > message.getBytesLeftToRead()) {
+                qWarning() << "Refusing to process instanced trait of size" << traitSize << "from" << message.getSenderSockAddr();
+                break;
+            }
 
-            if (packetTraitVersion > instanceVersionRef) {
-                if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
-                    _avatar->processDeletedTraitInstance(traitType, instanceID);
+            if (traitType == AvatarTraits::AvatarEntity) {
+                auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
 
-                    // to track a deleted instance but keep version information
-                    // the avatar mixer uses the negative value of the sent version
-                    instanceVersionRef = -packetTraitVersion;
+                if (packetTraitVersion > instanceVersionRef) {
+                    if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
+                        _avatar->processDeletedTraitInstance(traitType, instanceID);
+
+                        // to track a deleted instance but keep version information
+                        // the avatar mixer uses the negative value of the sent version
+                        instanceVersionRef = -packetTraitVersion;
+                    } else {
+                        _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
+                        instanceVersionRef = packetTraitVersion;
+                    }
+
+                    anyTraitsChanged = true;
                 } else {
-                    _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
-                    instanceVersionRef = packetTraitVersion;
+                    message.seek(message.getPosition() + traitSize);
                 }
-
-                anyTraitsChanged = true;
             } else {
-                message.seek(message.getPosition() + traitSize);
+                qWarning() << "Refusing to process traits packet with instanced trait of unprocessable type from" << message.getSenderSockAddr();
+                break;
             }
         }
     }
@@ -200,7 +220,7 @@ void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedDa
     }
 }
 
-uint64_t AvatarMixerClientData::getLastBroadcastTime(const QUuid& nodeUUID) const {
+uint64_t AvatarMixerClientData::getLastBroadcastTime(NLPacket::LocalID nodeUUID) const {
     // return the matching PacketSequenceNumber, or the default if we don't have it
     auto nodeMatch = _lastBroadcastTimes.find(nodeUUID);
     if (nodeMatch != _lastBroadcastTimes.end()) {
@@ -209,9 +229,9 @@ uint64_t AvatarMixerClientData::getLastBroadcastTime(const QUuid& nodeUUID) cons
     return 0;
 }
 
-uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const {
+uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(NLPacket::LocalID nodeID) const {
     // return the matching PacketSequenceNumber, or the default if we don't have it
-    auto nodeMatch = _lastBroadcastSequenceNumbers.find(nodeUUID);
+    auto nodeMatch = _lastBroadcastSequenceNumbers.find(nodeID);
     if (nodeMatch != _lastBroadcastSequenceNumbers.end()) {
         return nodeMatch->second;
     }
@@ -227,12 +247,12 @@ void AvatarMixerClientData::ignoreOther(const Node* self, const Node* other) {
         addToRadiusIgnoringSet(other->getUUID());
         auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
         killPacket->write(other->getUUID().toRfc4122());
-        if (self->isIgnoreRadiusEnabled()) {
+        if (_isIgnoreRadiusEnabled) {
             killPacket->writePrimitive(KillAvatarReason::TheirAvatarEnteredYourBubble);
         } else {
             killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
         }
-        setLastBroadcastTime(other->getUUID(), 0);
+        setLastBroadcastTime(other->getLocalID(), 0);
 
         resetSentTraitData(other->getLocalID());
 
@@ -311,9 +331,9 @@ AvatarMixerClientData::TraitsCheckTimestamp AvatarMixerClientData::getLastOtherA
     }
 }
 
-void AvatarMixerClientData::cleanupKilledNode(const QUuid& nodeUUID, Node::LocalID nodeLocalID) {
-    removeLastBroadcastSequenceNumber(nodeUUID);
-    removeLastBroadcastTime(nodeUUID);
+void AvatarMixerClientData::cleanupKilledNode(const QUuid&, Node::LocalID nodeLocalID) {
+    removeLastBroadcastSequenceNumber(nodeLocalID);
+    removeLastBroadcastTime(nodeLocalID);
     _lastSentTraitsTimestamps.erase(nodeLocalID);
     _sentTraitVersions.erase(nodeLocalID);
 }

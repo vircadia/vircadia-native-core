@@ -296,6 +296,17 @@ namespace AvatarDataPacket {
     } PACKED_END;
     const size_t FAR_GRAB_JOINTS_SIZE = 84;
     static_assert(sizeof(FarGrabJoints) == FAR_GRAB_JOINTS_SIZE, "AvatarDataPacket::FarGrabJoints size doesn't match.");
+
+    static const size_t MIN_BULK_PACKET_SIZE = NUM_BYTES_RFC4122_UUID + HEADER_SIZE;
+    static const size_t FAUX_JOINTS_SIZE = 2 * (sizeof(SixByteQuat) + sizeof(SixByteTrans));
+
+    struct SendStatus {
+        HasFlags itemFlags { 0 };
+        bool sendUUID { false };
+        int rotationsSent { 0 };  // ie: index of next unsent joint
+        int translationsSent { 0 };
+        operator bool() { return itemFlags == 0; }
+    };
 }
 
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
@@ -309,20 +320,34 @@ const float AVATAR_SEND_FULL_UPDATE_RATIO = 0.02f;
 const float AVATAR_MIN_ROTATION_DOT = 0.9999999f;
 const float AVATAR_MIN_TRANSLATION = 0.0001f;
 
-const float ROTATION_CHANGE_15D = 0.9914449f;
-const float ROTATION_CHANGE_45D = 0.9238795f;
-const float ROTATION_CHANGE_90D = 0.7071068f;
-const float ROTATION_CHANGE_179D = 0.0087266f;
+// quaternion dot products
+const float ROTATION_CHANGE_2D = 0.99984770f; // 2 degrees
+const float ROTATION_CHANGE_4D = 0.99939083f; // 4 degrees
+const float ROTATION_CHANGE_6D = 0.99862953f; // 6 degrees
+const float ROTATION_CHANGE_15D = 0.99144486f; // 15 degrees
+const float ROTATION_CHANGE_179D = 0.00872653f; // 179 degrees
 
-const float AVATAR_DISTANCE_LEVEL_1 = 10.0f;
-const float AVATAR_DISTANCE_LEVEL_2 = 100.0f;
-const float AVATAR_DISTANCE_LEVEL_3 = 1000.0f;
-const float AVATAR_DISTANCE_LEVEL_4 = 10000.0f;
-
+// rotation culling distance thresholds
+const float AVATAR_DISTANCE_LEVEL_1 = 12.5f; // meters
+const float AVATAR_DISTANCE_LEVEL_2 = 16.6f; // meters
+const float AVATAR_DISTANCE_LEVEL_3 = 25.0f; // meters
+const float AVATAR_DISTANCE_LEVEL_4 = 50.0f; // meters
+const float AVATAR_DISTANCE_LEVEL_5 = 200.0f; // meters
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
 const glm::vec3 START_LOCATION(6270, 211, 6000);
+
+// Avatar Transit Constants
+const float AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE = 1.0f;
+const float AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE = 30.0f;
+const int AVATAR_TRANSIT_FRAME_COUNT = 11;
+const float AVATAR_TRANSIT_FRAMES_PER_METER = 0.5f;
+const float AVATAR_TRANSIT_ABORT_DISTANCE = 0.1f;
+const bool AVATAR_TRANSIT_DISTANCE_BASED = true;
+const float AVATAR_TRANSIT_FRAMES_PER_SECOND = 30.0f;
+const float AVATAR_PRE_TRANSIT_FRAME_COUNT = 10.0f;
+const float AVATAR_POST_TRANSIT_FRAME_COUNT = 27.0f;
 
 enum KeyState {
     NO_KEY_DOWN = 0,
@@ -449,8 +474,8 @@ public:
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false);
 
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-        AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition,
-        QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut = nullptr) const;
+        AvatarDataPacket::SendStatus& sendStatus, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition,
+        QVector<JointData>* sentJointDataOut, int maxDataSize = 0, AvatarDataRate* outboundDataRateOut = nullptr) const;
 
     virtual void doneEncoding(bool cullSmallChanges);
 
@@ -957,7 +982,7 @@ public:
 
     // identityChanged returns true if identity has changed, false otherwise.
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
-    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
+    void processAvatarIdentity(QDataStream& packetStream, bool& identityChanged, bool& displayNameChanged);
 
     qint64 packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
                      AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
@@ -1098,6 +1123,7 @@ public:
 
     glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
     AABox getGlobalBoundingBox() const { return AABox(_globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
+    AABox getDefaultBubbleBox() const;
 
     /**jsdoc
      * @function MyAvatar.getAvatarEntityData
@@ -1189,6 +1215,13 @@ public:
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
     void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
     int getReplicaIndex() { return _replicaIndex; }
+
+    static const float DEFAULT_BUBBLE_SCALE;  /* = 2.4 */
+    AABox computeBubbleBox(float bubbleScale = DEFAULT_BUBBLE_SCALE) const;
+
+    void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
+    bool getIsNewAvatar() { return _isNewAvatar; }
+    void setIsClientAvatar(bool isClientAvatar) { _isClientAvatar = isClientAvatar; }
 
 signals:
 
@@ -1372,7 +1405,7 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition { 0, 0, 0 };
-
+    glm::vec3 _serverPosition { 0, 0, 0 };
 
     quint64 _globalPositionChanged { 0 };
     quint64 _avatarBoundingBoxChanged { 0 };
@@ -1423,6 +1456,8 @@ protected:
     glm::vec3 _globalBoundingBoxDimensions;
     glm::vec3 _globalBoundingBoxOffset;
 
+    AABox _defaultBubbleBox;
+
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
     AvatarEntityIDs _avatarEntityForRecording; // create new entities id for avatar recording
@@ -1451,6 +1486,8 @@ protected:
     bool _hasProcessedFirstIdentity { false };
     float _density;
     int _replicaIndex { 0 };
+    bool _isNewAvatar { true };
+    bool _isClientAvatar { false };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;

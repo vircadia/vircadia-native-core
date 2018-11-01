@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 //  entityList.html
 //
 //  Created by Ryan Huffman on 19 Nov 2014
@@ -15,26 +15,40 @@
         <script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
         <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
         <script type="text/javascript" src="js/spinButtons.js"></script>
+        <script type="text/javascript" src="js/listView.js"></script>
+        <script type="text/javascript" src="js/entityListContextMenu.js"></script>
         <script type="text/javascript" src="js/entityList.js"></script>
     </head>
-    <body onload='loaded();'>
+    <body onload='loaded();' id="entity-list-body">
         <div id="entity-list-header">
             <input type="button" class="glyph" id="refresh" value="F" />
             <div>
                 <input type="button" id="locked" class="glyph" value="&#xe006;" />
                 <input type="button" id="visible" class="glyph" value="&#xe007;" />
             </div>
-            <input type="button" id="export" value="Export Selection" />
             <input type="button" id="pal" class="glyph" value="&#xe00c;" />
             <input type="button" class="red" id="delete" value="Delete" />
         </div>
         <div id="entity-list">
-            <div id="search-area">
-                <span class="icon-input"><input type="text" class="search" id="filter" placeholder="Filter" /><span>Y</span></span>
-                <input type="button" id="in-view" class="glyph" value="&#xe007;" />
-                <div id="radius-and-unit" class="number">
+            <div id="filter-area">
+                <div class="multiselect">
+                    <div class="select-box" id="filter-type-select-box">
+                        <select>
+                            <option id="filter-type-text">All Types</option>
+                        </select>
+                        <div class="over-select"></div>
+                    </div>
+                    <div id="filter-type-checkboxes">
+                        <!-- type options with checkbox, icon, and label are added at runtime in entityList -->
+                    </div>
+                </div>
+                <div id="filter-search-and-icon">
+                    <span class="icon-input"><input type="search" class="search" id="filter-search" placeholder="Search" /><span>Y</span></span>
+                </div>
+                <input type="button" id="filter-in-view" class="glyph" value="&#xe007;" />
+                <div id="filter-radius-and-unit" class="number">
                     <label for="radius">Search radius <span class="unit">m</span></label>
-                    <input type="number" id="radius" value="100" />
+                    <input type="text" id="filter-radius" maxlength="9" value="100" />
                 </div>
             </div>
             <div id="entity-table-scroll">
@@ -86,15 +100,17 @@
                             <td class="id" style="display: none"></td>
                         </tr>
                     </tbody>
-                    <tfoot>
-                        <tr>
-                            <td id="footer-text" colspan="12"> </td>
-                        </tr>
-                    </tfoot>
                 </table>
-
                 <div id="no-entities">
-                    No entities found <span id="no-entities-in-view">in view</span> within a <span id="no-entities-radius">100</span> meter radius. Try moving to a different location and refreshing.
+                    There are no entities to display. Please check your filters or create an entity to begin.
+                </div>
+            </div>
+        </div>
+        <div id="entity-list-footer">
+            <div>
+                <input type="button" id="export" value="Export Selection" />
+                <div id="footer-text">
+                    <b><span id="selected-entities-count">0</span> of <span id="visible-entities-count">0</span></b> selected
                 </div>
             </div>
         </div>

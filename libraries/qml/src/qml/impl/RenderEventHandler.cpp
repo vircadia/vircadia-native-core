@@ -12,6 +12,7 @@
 
 #include <gl/Config.h>
 #include <gl/QOpenGLContextWrapper.h>
+#include <gl/GLHelpers.h>
 
 #include <QtQuick/QQuickWindow>
 
@@ -114,6 +115,7 @@ void RenderEventHandler::onRender() {
 
     PROFILE_RANGE(render_qml_gl, __FUNCTION__);
 
+    gl::globalLock();
     if (!_shared->preRender()) {
         return;
     }
@@ -139,11 +141,12 @@ void RenderEventHandler::onRender() {
         glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
         auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        // Fence will be used in another thread / context, so a flush is required
         glFlush();
         _shared->updateTextureAndFence({ texture, fence });
-        // Fence will be used in another thread / context, so a flush is required
         _shared->_quickWindow->resetOpenGLState();
     }
+    gl::globalRelease();
 }
 
 void RenderEventHandler::onQuit() {
@@ -167,4 +170,5 @@ void RenderEventHandler::onQuit() {
     moveToThread(qApp->thread());
     QThread::currentThread()->quit();
 }
+
 #endif

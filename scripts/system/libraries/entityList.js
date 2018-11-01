@@ -15,7 +15,7 @@ var PROFILING_ENABLED = false;
 var profileIndent = '';
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
-} ;
+};
 PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Script " + profileIndent + "(" + name + ") Begin");
     var previousIndent = profileIndent;
@@ -98,7 +98,11 @@ EntityListTool = function(shouldUseEditTabletApp) {
         that.setVisible(!visible);
     };
 
-    selectionManager.addEventListener(function() {
+    selectionManager.addEventListener(function(isSelectionUpdate, caller) {
+        if (caller === that) {
+            // ignore events that we emitted from the entity list itself
+            return;
+        }
         var selectedIDs = [];
 
         for (var i = 0; i < selectionManager.selections.length; i++) {
@@ -150,11 +154,11 @@ EntityListTool = function(shouldUseEditTabletApp) {
             });
 
             var cameraPosition = Camera.position;
-            PROFILE("getProperties", function() {
-                for (var i = 0; i < ids.length; i++) {
-                    var id = ids[i];
-                    var properties = Entities.getEntityProperties(id, ['name', 'type', 'locked',
-                        'visible', 'renderInfo', 'type', 'modelURL', 'materialURL', 'script']);
+            PROFILE("getMultipleProperties", function () {
+                var multipleProperties = Entities.getMultipleEntityProperties(ids, ['name', 'type', 'locked',
+                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'script']);
+                for (var i = 0; i < multipleProperties.length; i++) {
+                    var properties = multipleProperties[i];
 
                     if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
                         var url = "";
@@ -164,7 +168,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             url = properties.materialURL;
                         }
                         entities.push({
-                            id: id,
+                            id: ids[i],
                             name: properties.name,
                             type: properties.type,
                             url: url,
@@ -224,7 +228,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             for (var i = 0; i < ids.length; i++) {
                 entityIDs.push(ids[i]);
             }
-            selectionManager.setSelections(entityIDs);
+            selectionManager.setSelections(entityIDs, that);
             if (data.focus) {
                 cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,
@@ -245,7 +249,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                 Window.saveAsync("Select Where to Save", "", "*.json");
             }
         } else if (data.type === "pal") {
-            var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.
+            var sessionIds = {}; // Collect the sessionsIds of all selected entities, w/o duplicates.
             selectionManager.selections.forEach(function (id) {
                 var lastEditedBy = Entities.getEntityProperties(id, 'lastEditedBy').lastEditedBy;
                 if (lastEditedBy) {
@@ -271,6 +275,19 @@ EntityListTool = function(shouldUseEditTabletApp) {
             filterInView = data.filterInView === true;
         } else if (data.type === "radius") {
             searchRadius = data.radius;
+        } else if (data.type === "cut") {
+            SelectionManager.cutSelectedEntities();
+        } else if (data.type === "copy") {
+            SelectionManager.copySelectedEntities();
+        } else if (data.type === "paste") {
+            SelectionManager.pasteEntities();
+        } else if (data.type === "duplicate") {
+            SelectionManager.duplicateSelection();
+            that.sendUpdate();
+        } else if (data.type === "rename") {
+            Entities.editEntity(data.entityID, {name: data.name});
+            // make sure that the name also gets updated in the properties window
+            SelectionManager._update();
         }
     };
 

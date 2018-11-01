@@ -225,8 +225,11 @@ void PluginManager::disableDisplayPlugin(const QString& name) {
 
 const InputPluginList& PluginManager::getInputPlugins() {
     static std::once_flag once;
-    static auto deviceAddedCallback = [](QString deviceName) {
+    static auto deviceAddedCallback = [&](QString deviceName) {
         qCDebug(plugins) << "Added device: " << deviceName;
+        QStringList runningDevices = getRunningInputDeviceNames();
+        bool isDeviceRunning = runningDevices.indexOf(deviceName) >= 0;
+        emit inputDeviceRunningChanged(deviceName, isDeviceRunning, runningDevices);
         UserActivityLogger::getInstance().connectedDevice("input", deviceName);
     };
     static auto subdeviceAddedCallback = [](QString pluginName, QString deviceName) {
@@ -252,11 +255,24 @@ const InputPluginList& PluginManager::getInputPlugins() {
         for (auto plugin : _inputPlugins) {
             connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback, Qt::QueuedConnection);
             connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback, Qt::QueuedConnection);
+            connect(plugin.get(), &Plugin::deviceStatusChanged, this, [&](const QString& deviceName, bool isRunning) {
+                emit inputDeviceRunningChanged(deviceName, isRunning, getRunningInputDeviceNames());
+            }, Qt::QueuedConnection);
             plugin->setContainer(_container);
             plugin->init();
         }
     });
     return _inputPlugins;
+}
+
+QStringList PluginManager::getRunningInputDeviceNames() const {
+    QStringList runningDevices;
+    for (auto plugin: _inputPlugins) {
+        if (plugin->isRunning()) {
+            runningDevices << plugin->getName();
+        }
+    }
+    return runningDevices;
 }
 
 void PluginManager::setPreferredDisplayPlugins(const QStringList& displays) {

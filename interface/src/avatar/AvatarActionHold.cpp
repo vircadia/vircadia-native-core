@@ -48,6 +48,10 @@ AvatarActionHold::~AvatarActionHold() {
             myAvatar->removeHoldAction(this);
         }
     }
+    auto ownerEntity = _ownerEntity.lock();
+    if (ownerEntity) {
+        ownerEntity->setTransitingWithAvatar(false);
+    }
 
 #if WANT_DEBUG
     qDebug() << "AvatarActionHold::~AvatarActionHold" << (void*)this;
@@ -131,6 +135,15 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
         glm::vec3 palmPosition;
         glm::quat palmRotation;
 
+        bool isTransitingWithAvatar = holdingAvatar->getTransit()->isActive();
+        if (isTransitingWithAvatar != _isTransitingWithAvatar) {
+            _isTransitingWithAvatar = isTransitingWithAvatar;
+            auto ownerEntity = _ownerEntity.lock();
+            if (ownerEntity) {
+                ownerEntity->setTransitingWithAvatar(_isTransitingWithAvatar);
+            }
+        }
+        
         if (holdingAvatar->isMyAvatar()) {
             std::shared_ptr<MyAvatar> myAvatar = avatarManager->getMyAvatar();
 
@@ -404,11 +417,14 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             _kinematicSetVelocity = kinematicSetVelocity;
             _ignoreIK = ignoreIK;
             _active = true;
+            
+            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
                 ownerEntity->setDynamicDataDirty(true);
-                ownerEntity->setDynamicDataNeedsTransmit(true);
+                ownerEntity->setDynamicDataNeedsTransmit(true);     
+                ownerEntity->setTransitingWithAvatar(myAvatar->getTransit()->isActive());
             }
         });
     }

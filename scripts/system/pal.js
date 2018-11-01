@@ -823,46 +823,40 @@ function notificationDataProcessPage(data) {
 }
 
 var shouldShowDot = false;
-var storedOnlineUsersArray = [];
+var pingPong = false;
+var storedOnlineUsers = {};
 function notificationPollCallback(connectionsArray) {
     //
     // START logic for handling online/offline user changes
     //
-    var i, j;
-    var newlyOnlineConnectionsArray = [];
-    for (i = 0; i < connectionsArray.length; i++) {
-        var currentUser = connectionsArray[i];
+    pingPong = !pingPong;
+    var newOnlineUsers = 0;
+    var message;
 
-        if (connectionsArray[i].online) {
-            var indexOfStoredOnlineUser = -1;
-            for (j = 0; j < storedOnlineUsersArray.length; j++) {
-                if (currentUser.username === storedOnlineUsersArray[j].username) {
-                    indexOfStoredOnlineUser = j;
-                    break;
-                }
-            }
-            // If the user record isn't already presesnt inside `storedOnlineUsersArray`...
-            if (indexOfStoredOnlineUser < 0) {
-                storedOnlineUsersArray.push(currentUser);
-                newlyOnlineConnectionsArray.push(currentUser);
-            }
-        } else {
-            var indexOfOfflineUser = -1;
-            for (j = 0; j < storedOnlineUsersArray.length; j++) {
-                if (currentUser.username === storedOnlineUsersArray[j].username) {
-                    indexOfOfflineUser = j;
-                    break;
-                }
-            }
-            if (indexOfOfflineUser >= 0) {
-                storedOnlineUsersArray.splice(indexOfOfflineUser);
-            }
+    connectionsArray.forEach(function (user) {
+        var stored = storedOnlineUsers[user.username];
+        var storedOrNew = stored || user;
+        storedOrNew.pingPong = pingPong;
+        if (stored) {
+            return;
+        }
+
+        newOnlineUsers++;
+        storedOnlineUsers[user.username] = user;
+
+        if (!ui.isOpen && ui.notificationInitialCallbackMade) {
+            message = user.username + " is available in " +
+                user.location.root.name + ". Open PEOPLE to join them.";
+            ui.notificationDisplayBanner(message);
+        }
+    });
+    var key;
+    for (key in storedOnlineUsers) {
+        if (storedOnlineUsers[key].pingPong !== pingPong) {
+            delete storedOnlineUsers[key];
         }
     }
-    // If there's new data, the light should turn on.
-    // If the light is already on and you have connections online, the light should stay on.
-    // In all other cases, the light should turn off or stay off.
-    shouldShowDot = newlyOnlineConnectionsArray.length > 0 || (storedOnlineUsersArray.length > 0 && shouldShowDot);
+    shouldShowDot = newOnlineUsers > 0 || (Object.keys(storedOnlineUsers).length > 0 && shouldShowDot);
     //
     // END logic for handling online/offline user changes
     //
@@ -874,19 +868,10 @@ function notificationPollCallback(connectionsArray) {
             shouldShowDot: shouldShowDot
         });
 
-        if (newlyOnlineConnectionsArray.length > 0) {
-            var message;
-            if (!ui.notificationInitialCallbackMade) {
-                message = newlyOnlineConnectionsArray.length + " of your connections " +
-                    (newlyOnlineConnectionsArray.length === 1 ? "is" : "are") + " online. Open PEOPLE to join them!";
-                ui.notificationDisplayBanner(message);
-            } else {
-                for (i = 0; i < newlyOnlineConnectionsArray.length; i++) {
-                    message = newlyOnlineConnectionsArray[i].username + " is available in " +
-                        newlyOnlineConnectionsArray[i].location.root.name + ". Open PEOPLE to join them!";
-                    ui.notificationDisplayBanner(message);
-                }
-            }
+        if (newOnlineUsers > 0 && !ui.notificationInitialCallbackMade) {
+            message = newOnlineUsers + " of your connections " +
+                (newOnlineUsers === 1 ? "is" : "are") + " available online. Open PEOPLE to join them.";
+            ui.notificationDisplayBanner(message);
         }
     }
 }
@@ -904,7 +889,7 @@ function startup() {
         onOpened: palOpened,
         onClosed: off,
         onMessage: fromQml,
-        notificationPollEndpoint: "/api/v1/users?filter=connections&per_page=10",
+        notificationPollEndpoint: "/api/v1/users?filter=connections&status=online&per_page=10",
         notificationPollTimeoutMs: 60000,
         notificationDataProcessPage: notificationDataProcessPage,
         notificationPollCallback: notificationPollCallback,

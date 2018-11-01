@@ -24,7 +24,6 @@ android {
                     '-DANDROID_STL=c++_shared',
                     '-DQT_CMAKE_PREFIX_PATH=' + HIFI_ANDROID_PRECOMPILED + '/qt/lib/cmake',
                     '-DNATIVE_SCRIBE=' + HIFI_ANDROID_PRECOMPILED + '/scribe' + EXEC_SUFFIX,
-                    '-DNATIVE_SHREFLECT=' + HIFI_ANDROID_PRECOMPILED + '/shreflect' + EXEC_SUFFIX,
                     '-DHIFI_ANDROID_PRECOMPILED=' + HIFI_ANDROID_PRECOMPILED,
                     '-DRELEASE_NUMBER=' + RELEASE_NUMBER,
                     '-DRELEASE_TYPE=' + RELEASE_TYPE,
@@ -80,8 +79,10 @@ android {
             if (Os.isFamily(Os.FAMILY_UNIX)) {
                 def uploadDumpSymsTask = rootProject.getTasksByName("uploadBreakpadDumpSyms${variant.name.capitalize()}", false).first()
                 def runDumpSymsTask = rootProject.getTasksByName("runBreakpadDumpSyms${variant.name.capitalize()}", false).first()
+                def renameHifiACTask = rootProject.getTasksByName("renameHifiACTask${variant.name.capitalize()}", false).first()
                 runDumpSymsTask.dependsOn(task)
                 variant.assemble.dependsOn(uploadDumpSymsTask)
+                variant.mergeResources.dependsOn(renameHifiACTask)
             }
         }
 
@@ -133,6 +134,10 @@ dependencies {
 
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     implementation 'com.android.support:design:26.1.0'
+    compile 'com.android.support:support-v4:26.1.0'
+    compile 'com.android.support:appcompat-v7:26.1.0'
+    compile 'com.android.support:support-vector-drawable:26.1.0'
+
     implementation 'com.android.support:appcompat-v7:26.1.0'
     compile 'com.android.support:recyclerview-v7:26.1.0'
     compile 'com.android.support:cardview-v7:26.1.0'

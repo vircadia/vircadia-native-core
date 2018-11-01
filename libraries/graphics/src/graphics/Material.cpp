@@ -20,15 +20,11 @@ using namespace gpu;
 Material::Material() :
     _key(0),
     _schemaBuffer(),
-    _texMapArrayBuffer(),
     _textureMaps()
 {
     // created from nothing: create the Buffer to store the properties
     Schema schema;
-    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
-
-    TexMapArraySchema TexMapArraySchema;
-    _texMapArrayBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(TexMapArraySchema), (const gpu::Byte*) &TexMapArraySchema));
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema, sizeof(Schema)));
 }
 
 Material::Material(const Material& material) :
@@ -38,12 +34,8 @@ Material::Material(const Material& material) :
 {
     // copied: create the Buffer to store the properties, avoid holding a ref to the old Buffer
     Schema schema;
-    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema, sizeof(Schema)));
     _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
-
-    TexMapArraySchema texMapArraySchema;
-    _texMapArrayBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(TexMapArraySchema), (const gpu::Byte*) &texMapArraySchema));
-    _texMapArrayBuffer.edit<TexMapArraySchema>() = material._texMapArrayBuffer.get<TexMapArraySchema>();
 }
 
 Material& Material::operator= (const Material& material) {
@@ -57,12 +49,8 @@ Material& Material::operator= (const Material& material) {
 
     // copied: create the Buffer to store the properties, avoid holding a ref to the old Buffer
     Schema schema;
-    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema, sizeof(Schema)));
     _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
-
-    TexMapArraySchema texMapArraySchema;
-    _texMapArrayBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(TexMapArraySchema), (const gpu::Byte*) &texMapArraySchema));
-    _texMapArrayBuffer.edit<TexMapArraySchema>() = material._texMapArrayBuffer.get<TexMapArraySchema>();
 
     return (*this);
 }
@@ -137,17 +125,17 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
         resetOpacityMap();
 
         // update the texcoord0 with albedo
-        _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[0] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
+        _schemaBuffer.edit<Schema>()._texcoordTransforms[0] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
     }
 
     if (channel == MaterialKey::OCCLUSION_MAP) {
-        _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
+        _schemaBuffer.edit<Schema>()._texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
     }
 
     if (channel == MaterialKey::LIGHTMAP_MAP) {
         // update the texcoord1 with lightmap
-        _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
-        _texMapArrayBuffer.edit<TexMapArraySchema>()._lightmapParams = (textureMap ? glm::vec4(textureMap->getLightmapOffsetScale(), 0.0, 0.0) : glm::vec4(0.0, 1.0, 0.0, 0.0));
+        _schemaBuffer.edit<Schema>()._texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
+        _schemaBuffer.edit<Schema>()._lightmapParams = (textureMap ? glm::vec4(textureMap->getLightmapOffsetScale(), 0.0, 0.0) : glm::vec4(0.0, 1.0, 0.0, 0.0));
     }
 
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
@@ -235,6 +223,6 @@ void Material::setTextureTransforms(const Transform& transform) {
         }
     }
     for (int i = 0; i < NUM_TEXCOORD_TRANSFORMS; i++) {
-        _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[i] = transform.getMatrix();
+        _schemaBuffer.edit<Schema>()._texcoordTransforms[i] = transform.getMatrix();
     }
 }

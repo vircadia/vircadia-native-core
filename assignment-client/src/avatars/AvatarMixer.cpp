@@ -541,7 +541,7 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
                     // ...For those nodes, reset the lastBroadcastTime to 0
                     // so that the AvatarMixer will send Identity data to us
                     [&](const SharedNodePointer& node) {
-                        nodeData->setLastBroadcastTime(node->getUUID(), 0);
+                        nodeData->setLastBroadcastTime(node->getLocalID(), 0);
                         nodeData->resetSentTraitData(node->getLocalID());
                 }
                 );
@@ -565,7 +565,8 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             // parse the identity packet and update the change timestamp if appropriate
             bool identityChanged = false;
             bool displayNameChanged = false;
-            avatar.processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged);
+            QDataStream avatarIdentityStream(message->getMessage());
+            avatar.processAvatarIdentity(avatarIdentityStream, identityChanged, displayNameChanged);
 
             if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
@@ -637,7 +638,7 @@ void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> 
                 // Reset the lastBroadcastTime for the ignored avatar to 0
                 // so the AvatarMixer knows it'll have to send identity data about the ignored avatar
                 // to the ignorer if the ignorer unignores.
-                nodeData->setLastBroadcastTime(ignoredUUID, 0);
+                nodeData->setLastBroadcastTime(ignoredNode->getLocalID(), 0);
                 nodeData->resetSentTraitData(ignoredNode->getLocalID());
             }
 
@@ -647,7 +648,7 @@ void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> 
             // to the ignored if the ignorer unignores.
             AvatarMixerClientData* ignoredNodeData = reinterpret_cast<AvatarMixerClientData*>(ignoredNode->getLinkedData());
             if (ignoredNodeData) {
-                ignoredNodeData->setLastBroadcastTime(senderNode->getUUID(), 0);
+                ignoredNodeData->setLastBroadcastTime(senderNode->getLocalID(), 0);
                 ignoredNodeData->resetSentTraitData(senderNode->getLocalID());
             }
         }
@@ -673,7 +674,13 @@ void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> 
 
 void AvatarMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     auto start = usecTimestampNow();
-    sendingNode->parseIgnoreRadiusRequestMessage(packet);
+
+    bool enabled;
+    packet->readPrimitive(&enabled);
+
+    auto avatarData = getOrCreateClientData(sendingNode);
+    avatarData->setIsIgnoreRadiusEnabled(enabled);
+
     auto end = usecTimestampNow();
     _handleRadiusIgnoreRequestPacketElapsedTime += (end - start);
 }

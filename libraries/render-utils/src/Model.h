@@ -75,6 +75,19 @@ struct SortedTriangleSet {
     int subMeshIndex;
 };
 
+struct BlendshapeOffsetPacked {
+    glm::uvec4 packedPosNorTan;
+};
+
+struct BlendshapeOffsetUnpacked {
+    glm::vec3 positionOffset;
+    glm::vec3 normalOffset;
+    glm::vec3 tangentOffset;
+};
+
+using BlendshapeOffset = BlendshapeOffsetPacked;
+using BlendShapeOperator = std::function<void(int, const QVector<BlendshapeOffset>&, const QVector<int>&, const render::ItemIDs&)>;
+
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
     Q_OBJECT
@@ -129,7 +142,14 @@ public:
     }
     bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction,
-                    render::Item::Status::Getters& statusGetters);
+                    BlendShapeOperator modelBlendshapeOperator) {
+        auto getters = render::Item::Status::Getters(0);
+        return addToScene(scene, transaction, getters, modelBlendshapeOperator);
+    }
+    bool addToScene(const render::ScenePointer& scene,
+                    render::Transaction& transaction,
+                    render::Item::Status::Getters& statusGetters,
+                    BlendShapeOperator modelBlendshapeOperator = nullptr);
     void removeFromScene(const render::ScenePointer& scene, render::Transaction& transaction);
     bool isRenderable() const;
 
@@ -142,9 +162,6 @@ public:
     const render::ItemIDs& fetchRenderItemIDs() const;
 
     bool maybeStartBlender();
-
-    /// Sets blended vertices computed in a separate thread.
-    void setBlendedVertices(int blendNumber, const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
@@ -327,6 +344,7 @@ public:
 
     uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
     const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
+    BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
 
     void renderDebugMeshBoxes(gpu::Batch& batch);
 
@@ -344,7 +362,7 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
-    std::unordered_map<int, QVector<NormalType>> _normalsAndTangents;
+    std::unordered_map<int, QVector<BlendshapeOffset>> _blendshapeOffsets;
 
 public slots:
     void loadURLFinished(bool success);
@@ -420,18 +438,13 @@ protected:
 
     virtual void deleteGeometry();
 
-    QVector<float> _blendshapeCoefficients;
-
     QUrl _url;
 
-    std::unordered_map<int, gpu::BufferPointer> _blendedVertexBuffers;
-    bool _blendedVertexBuffersInitialized { false };
-
-    QVector<QVector<QSharedPointer<Texture>>> _dilatedTextures;
-
+    BlendShapeOperator _modelBlendshapeOperator { nullptr };
+    QVector<float> _blendshapeCoefficients;
     QVector<float> _blendedBlendshapeCoefficients;
-    int _blendNumber;
-    int _appliedBlendNumber;
+    int _blendNumber { 0 };
+    bool _blendshapeOffsetsInitialized { false };
 
     mutable QMutex _mutex{ QMutex::Recursive };
 
@@ -447,7 +460,6 @@ protected:
 
     // debug rendering support
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
-
 
     static AbstractViewStateInterface* _viewState;
 
@@ -506,6 +518,7 @@ private:
 
 Q_DECLARE_METATYPE(ModelPointer)
 Q_DECLARE_METATYPE(Geometry::WeakPointer)
+Q_DECLARE_METATYPE(BlendshapeOffset)
 
 /// Handle management of pending models that need blending
 class ModelBlender : public QObject, public Dependency {
@@ -520,7 +533,7 @@ public:
     bool shouldComputeBlendshapes() { return _computeBlendshapes; }
 
 public slots:
-    void setBlendedVertices(ModelPointer model, int blendNumber, QVector<glm::vec3> vertices, QVector<NormalType> normalsAndTangents);
+    void setBlendedVertices(ModelPointer model, int blendNumber, QVector<BlendshapeOffset> blendshapeOffsets, QVector<int> blendedMeshSizes);
     void setComputeBlendshapes(bool computeBlendshapes) { _computeBlendshapes = computeBlendshapes; }
 
 private:

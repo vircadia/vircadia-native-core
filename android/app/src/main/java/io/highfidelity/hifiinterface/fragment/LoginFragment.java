@@ -4,12 +4,10 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,7 +17,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.qtproject.qt5.android.QtNative;
+
 import io.highfidelity.hifiinterface.R;
+
+import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationActive;
+import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationInactive;
 
 public class LoginFragment extends Fragment {
 
@@ -27,11 +30,13 @@ public class LoginFragment extends Fragment {
     private EditText mPassword;
     private TextView mError;
     private TextView mForgotPassword;
+    private TextView mSignup;
     private Button mLoginButton;
 
     private ProgressDialog mDialog;
 
     public native void nativeLogin(String username, String password, Activity usernameChangedListener);
+    public native void nativeCancelLogin();
 
     private LoginFragment.OnLoginInteractionListener mListener;
 
@@ -54,48 +59,12 @@ public class LoginFragment extends Fragment {
         mError = rootView.findViewById(R.id.error);
         mLoginButton = rootView.findViewById(R.id.loginButton);
         mForgotPassword = rootView.findViewById(R.id.forgotPassword);
-
-        mUsername.addTextChangedListener(new TextWatcher() {
-            boolean ignoreNextChange = false;
-            boolean hadBlankSpace = false;
-            @Override
-            public void beforeTextChanged(CharSequence charSequence, int start, int count, int after) {
-                hadBlankSpace = charSequence.length() > 0 && charSequence.charAt(charSequence.length()-1) == ' ';
-            }
-
-            @Override
-            public void onTextChanged(CharSequence charSequence, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable editable) {
-                if (!ignoreNextChange) {
-                    ignoreNextChange = true;
-                    boolean spaceFound = false;
-                    for (int i = 0; i < editable.length(); i++) {
-                        if (editable.charAt(i) == ' ') {
-                            spaceFound=true;
-                            editable.delete(i, i + 1);
-                            i--;
-                        }
-                    }
-
-                    if (hadBlankSpace && !spaceFound && editable.length() > 0) {
-                        editable.delete(editable.length()-1, editable.length());
-                    }
-
-                    editable.append(' ');
-                    ignoreNextChange = false;
-                }
-
-            }
-        });
-
+        mSignup = rootView.findViewById(R.id.signupButton);
 
         mLoginButton.setOnClickListener(view -> login());
 
         mForgotPassword.setOnClickListener(view -> forgotPassword());
+        mSignup.setOnClickListener(view -> signup());
 
         mPassword.setOnEditorActionListener(
                 (textView, actionId, keyEvent) -> {
@@ -126,9 +95,18 @@ public class LoginFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        // This hack intends to keep Qt threads running even after the app comes from background
+        QtNative.setApplicationState(ApplicationActive);
+    }
+
+    @Override
     public void onStop() {
         super.onStop();
         cancelActivityIndicator();
+        // Leave the Qt app paused
+        QtNative.setApplicationState(ApplicationInactive);
         hideKeyboard();
     }
 
@@ -143,6 +121,12 @@ public class LoginFragment extends Fragment {
             hideError();
             showActivityIndicator();
             nativeLogin(username, password, getActivity());
+        }
+    }
+
+    public void signup() {
+        if (mListener != null) {
+            mListener.onSignupRequested();
         }
     }
 
@@ -164,7 +148,15 @@ public class LoginFragment extends Fragment {
             mDialog = new ProgressDialog(getContext());
         }
         mDialog.setMessage(getString(R.string.logging_in));
-        mDialog.setCancelable(false);
+        mDialog.setCancelable(true);
+        mDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialogInterface) {
+                nativeCancelLogin();
+                cancelActivityIndicator();
+                mLoginButton.setEnabled(true);
+            }
+        });
         mDialog.show();
     }
 
@@ -184,7 +176,6 @@ public class LoginFragment extends Fragment {
     }
 
     public void handleLoginCompleted(boolean success) {
-        Log.d("[LOGIN]", "handleLoginCompleted " + success);
         getActivity().runOnUiThread(() -> {
             mLoginButton.setEnabled(true);
             cancelActivityIndicator();
@@ -200,6 +191,7 @@ public class LoginFragment extends Fragment {
 
     public interface OnLoginInteractionListener {
         void onLoginCompleted();
+        void onSignupRequested();
     }
 
 }

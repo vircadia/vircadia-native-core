@@ -15,18 +15,17 @@
 
 <@include Highlight_shared.slh@>
 
-layout(std140, binding=RENDER_UTILS_BUFFER_HIGHLIGHT_PARAMS) uniform highlightParamsBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_HIGHLIGHT_PARAMS) uniform highlightParamsBuffer {
     HighlightParameters params;
 };
 
-layout(binding=RENDER_UTILS_TEXTURE_HIGHLIGHT_SCENE_DEPTH) uniform sampler2D sceneDepthMap;
-layout(binding=RENDER_UTILS_TEXTURE_HIGHLIGHT_DEPTH) uniform sampler2D highlightedDepthMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_HIGHLIGHT_SCENE_DEPTH) uniform sampler2D sceneDepthMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_HIGHLIGHT_DEPTH) uniform sampler2D highlightedDepthMap;
 
 layout(location=0) in vec2 varTexCoord0;
 layout(location=0) out vec4 outFragColor;
 
 const float FAR_Z = 1.0;
-const float LINEAR_DEPTH_BIAS = 5e-3;
 const float OPACITY_EPSILON = 5e-3;
 
 <@func main(IS_FILLED)@>
@@ -46,7 +45,7 @@ void main(void) {
         highlightedDepth = -evalZeyeFromZdb(highlightedDepth);
         sceneDepth = -evalZeyeFromZdb(sceneDepth);
 
-        if (sceneDepth < (highlightedDepth-LINEAR_DEPTH_BIAS)) {
+        if (sceneDepth < highlightedDepth) {
             outFragColor = vec4(params._fillOccludedColor, params._fillOccludedAlpha);
         } else {
             outFragColor = vec4(params._fillUnoccludedColor, params._fillUnoccludedAlpha);
@@ -107,7 +106,7 @@ void main(void) {
         sceneDepth = -evalZeyeFromZdb(sceneDepth);
 
         // Are we occluded?
-        if (sceneDepth < (outlinedDepth/*-LINEAR_DEPTH_BIAS*/)) {
+        if (sceneDepth < outlinedDepth) {
             outFragColor = vec4(params._outlineOccludedColor, intensity * params._outlineOccludedAlpha);
         } else {
             outFragColor = vec4(params._outlineUnoccludedColor, intensity * params._outlineUnoccludedAlpha);

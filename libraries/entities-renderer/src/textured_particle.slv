@@ -43,7 +43,7 @@ struct ParticleUniforms {
     vec2 spare;
 };
 
-layout(std140, binding=0) uniform particleBuffer {
+LAYOUT_STD140(binding=0) uniform particleBuffer {
     ParticleUniforms particle;
 };
 

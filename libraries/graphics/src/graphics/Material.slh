@@ -13,6 +13,31 @@
 
 <@include graphics/ShaderConstants.h@>
 
+
+const int MAX_TEXCOORDS = 2;
+
+struct TexMapArray { 
+    mat4 _texcoordTransforms0;
+    mat4 _texcoordTransforms1;
+    vec4 _lightmapParams;
+};
+
+<@func declareMaterialTexMapArrayBuffer()@>
+
+<@func evalTexMapArrayTexcoord0(texMapArray, inTexcoord0, outTexcoord0)@>
+{
+    <$outTexcoord0$> = (<$texMapArray$>._texcoordTransforms0 * vec4(<$inTexcoord0$>.st, 0.0, 1.0)).st;
+}
+<@endfunc@>
+
+<@func evalTexMapArrayTexcoord1(texMapArray, inTexcoord1, outTexcoord1)@>
+{
+    <$outTexcoord1$> = (<$texMapArray$>._texcoordTransforms1 * vec4(<$inTexcoord1$>.st, 0.0, 1.0)).st;
+}
+<@endfunc@>
+
+<@endfunc@>
+
 // The material values (at least the material key) must be precisely bitwise accurate
 // to what is provided by the uniform buffer, or the material key has the wrong bits
 
@@ -23,12 +48,16 @@ struct Material {
     vec4 _scatteringSpare2Key;
 };
 
-layout(binding=GRAPHICS_BUFFER_MATERIAL) uniform materialBuffer {
+LAYOUT(binding=GRAPHICS_BUFFER_MATERIAL) uniform materialBuffer {
     Material _mat;
+    TexMapArray _texMapArray;
 };
 
 Material getMaterial() {
     return _mat;
+}
+TexMapArray getTexMapArray() {
+    return _texMapArray;
 }
 
 vec3 getMaterialEmissive(Material m) { return m._emissiveOpacity.rgb; }

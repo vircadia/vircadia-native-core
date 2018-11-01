@@ -39,6 +39,7 @@ WindowScriptingInterface::WindowScriptingInterface() {
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &WindowScriptingInterface::disconnectedFromDomain);
 
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
+    connect(&domainHandler, &DomainHandler::redirectErrorStateChanged, this, &WindowScriptingInterface::redirectErrorStateChanged);
 
     connect(qApp, &Application::svoImportRequested, [this](const QString& urlString) {
         static const QMetaMethod svoImportRequestedSignal =
@@ -53,6 +54,9 @@ WindowScriptingInterface::WindowScriptingInterface() {
     });
 
     connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &WindowScriptingInterface::onWindowGeometryChanged);
+    connect(qApp, &Application::interstitialModeChanged, [this] (bool interstitialMode) {
+        emit interstitialModeChanged(interstitialMode);
+    });
 }
 
 WindowScriptingInterface::~WindowScriptingInterface() {
@@ -134,7 +138,8 @@ void WindowScriptingInterface::openUrl(const QUrl& url) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
         } else {
 #if defined(Q_OS_ANDROID)
-            QList<QString> args = { url.toString() };
+            QMap<QString, QString> args;
+            args["url"] = url.toString();
             AndroidHelper::instance().requestActivity("WebView", true, args);
 #else
             // address manager did not handle - ask QDesktopServices to handle
