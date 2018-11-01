@@ -19,13 +19,11 @@ import "qrc:////qml//controls-uit" as HifiControlsUit
 import "qrc:////qml//controls" as HifiControls
 import "qrc:////qml//hifi//commerce//common" as HifiCommerceCommon
 
-// references XXX from root context
-
 Rectangle {
     HifiStylesUit.HifiConstants { id: hifi; }
 
     id: root;
-    color: hifi.colors.darkGray;
+    color: hifi.colors.baseGray;
     
     property string title: "Security Settings";
     property bool walletSetUp;
@@ -163,7 +161,7 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                height: 70;
+                height: 55;
                 color: hifi.colors.baseGrayHighlight;
 
                 HifiStylesUit.RalewaySemiBold {
@@ -254,7 +252,7 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                height: 70;
+                height: 55;
                 color: hifi.colors.baseGrayHighlight;
 
                 HifiStylesUit.RalewaySemiBold {

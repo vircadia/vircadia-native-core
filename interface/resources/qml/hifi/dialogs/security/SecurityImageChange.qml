@@ -23,7 +23,7 @@ Rectangle {
     HifiStylesUit.HifiConstants { id: hifi; }
 
     id: root;
-    color: hifi.colors.darkGray;
+    color: hifi.colors.baseGray;
     property bool justSubmitted: false;
 
     Connections {
