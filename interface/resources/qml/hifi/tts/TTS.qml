@@ -202,7 +202,6 @@ Rectangle {
 
         TextArea {
             id: messageToSpeak;
-            placeholderText: "<i>Message to Speak</i>";
             font.family: "Fira Sans SemiBold";
             font.pixelSize: 20;
             // Anchors
@@ -228,6 +227,17 @@ Rectangle {
                     TextToSpeech.speakText(messageToSpeak.text, 480, 10, 24000, 16, true);
                     event.accepted = true;
                 }
+            }
+
+            HifiStylesUit.FiraSansRegular {
+                text: "<i>Input Text to Speak...</i>";
+                size: 20;
+                anchors.fill: parent;
+                anchors.topMargin: 4;
+                anchors.leftMargin: 4;
+                color: hifi.colors.lightGrayText;
+                visible: !parent.activeFocus && messageToSpeak.text === "";
+                verticalAlignment: Text.AlignTop;
             }
         }
 

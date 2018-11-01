@@ -1187,10 +1187,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [&audioIO](recording::Frame::ConstPointer frame) {
             audioIO->handleRecordedAudioInput(frame->data);
         });
-        
-        auto TTS = DependencyManager::get<TTSScriptingInterface>().data();
-        connect(TTS, &TTSScriptingInterface::ttsSampleCreated, audioIO, &AudioClient::handleTTSAudioInput);
-        connect(TTS, &TTSScriptingInterface::clearTTSBuffer, audioIO, &AudioClient::clearTTSBuffer);
 
         connect(audioIO, &AudioClient::inputReceived, [](const QByteArray& audio) {
             static auto recorder = DependencyManager::get<recording::Recorder>();

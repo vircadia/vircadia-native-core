@@ -37,6 +37,9 @@ TTSScriptingInterface::TTSScriptingInterface() {
     if (FAILED(hr)) {
         qDebug() << "Can't set default voice.";
     }
+
+    _lastSoundAudioInjectorUpdateTimer.setSingleShot(true);
+    connect(&_lastSoundAudioInjectorUpdateTimer, &QTimer::timeout, this, &TTSScriptingInterface::updateLastSoundAudioInjector);
 #endif
 }
 
@@ -58,38 +61,22 @@ private:
 };
 #endif
 
-void TTSScriptingInterface::testTone(const bool& alsoInject) {
-    QByteArray byteArray(480000, 0);
-    _lastSoundByteArray.resize(0);
-    _lastSoundByteArray.resize(480000);
-
-    int32_t a = 0;
-    int16_t* samples = reinterpret_cast<int16_t*>(byteArray.data());
-    for (a = 0; a < 240000; a++) {
-        int16_t temp = (glm::sin(glm::radians((float)a))) * 32768;
-        samples[a] = temp;
-    }
-    emit ttsSampleCreated(_lastSoundByteArray, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * 50, 96);
-
-    if (alsoInject) {
+const std::chrono::milliseconds INJECTOR_INTERVAL_MS = std::chrono::milliseconds(100);
+void TTSScriptingInterface::updateLastSoundAudioInjector() {
+    if (_lastSoundAudioInjector) {
         AudioInjectorOptions options;
         options.position = DependencyManager::get<AvatarManager>()->getMyAvatarPosition();
-
-        _lastSoundAudioInjector = AudioInjector::playSound(_lastSoundByteArray, options);
+        _lastSoundAudioInjector->setOptions(options);
+        _lastSoundAudioInjectorUpdateTimer.start(INJECTOR_INTERVAL_MS);
     }
 }
 
-void TTSScriptingInterface::speakText(const QString& textToSpeak,
-                                      const int& newChunkSize,
-                                      const int& timerInterval,
-                                      const int& sampleRate,
-                                      const int& bitsPerSample,
-                                      const bool& alsoInject) {
+void TTSScriptingInterface::speakText(const QString& textToSpeak) {
 #ifdef WIN32
     WAVEFORMATEX fmt;
     fmt.wFormatTag = WAVE_FORMAT_PCM;
-    fmt.nSamplesPerSec = sampleRate;
-    fmt.wBitsPerSample = bitsPerSample;
+    fmt.nSamplesPerSec = 24000;
+    fmt.wBitsPerSample = 16;
     fmt.nChannels = 1;
     fmt.nBlockAlign = fmt.nChannels * fmt.wBitsPerSample / 8;
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
@@ -156,16 +143,17 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak,
     _lastSoundByteArray.resize(0);
     _lastSoundByteArray.append(buf1, dwSize);
 
-    // Commented out because this doesn't work completely :)
-    // Obviously, commenting this out isn't fit for production, but it's fine for a test PR
-    //emit ttsSampleCreated(_lastSoundByteArray, newChunkSize, timerInterval);
+    AudioInjectorOptions options;
+    options.position = DependencyManager::get<AvatarManager>()->getMyAvatarPosition();
 
-    if (alsoInject) {
-        AudioInjectorOptions options;
-        options.position = DependencyManager::get<AvatarManager>()->getMyAvatarPosition();
-
-        _lastSoundAudioInjector = AudioInjector::playSound(_lastSoundByteArray, options);
+    if (_lastSoundAudioInjector) {
+        _lastSoundAudioInjector->stop();
+        _lastSoundAudioInjectorUpdateTimer.stop();
     }
+
+    _lastSoundAudioInjector = AudioInjector::playSoundAndDelete(_lastSoundByteArray, options);
+
+    _lastSoundAudioInjectorUpdateTimer.start(INJECTOR_INTERVAL_MS);
 #else
     qDebug() << "Text-to-Speech isn't currently supported on non-Windows platforms.";
 #endif
@@ -174,7 +162,6 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak,
 void TTSScriptingInterface::stopLastSpeech() {
     if (_lastSoundAudioInjector) {
         _lastSoundAudioInjector->stop();
+        _lastSoundAudioInjector = NULL;
     }
-
-    emit clearTTSBuffer();
 }

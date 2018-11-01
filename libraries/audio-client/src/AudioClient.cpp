@@ -245,8 +245,6 @@ AudioClient::AudioClient() :
     packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
-
-    connect(&_TTSTimer, &QTimer::timeout, this, &AudioClient::processTTSBuffer);
 }
 
 AudioClient::~AudioClient() {
@@ -1200,45 +1198,6 @@ int rawToWav(const char* rawData, const int& rawLength, const char* wavfn, long 
     fclose(wav);
 
     return 0;
-}
-
-void AudioClient::processTTSBuffer() {
-    Lock lock(_TTSMutex);
-    if (_TTSAudioBuffer.size() > 0) {
-        QByteArray part;
-        part.append(_TTSAudioBuffer.data(), _TTSChunkSize);
-        _TTSAudioBuffer.remove(0, _TTSChunkSize);
-        handleAudioInput(part);
-    } else {
-        _isProcessingTTS = false;
-        _TTSTimer.stop();
-    }
-}
-
-void AudioClient::handleTTSAudioInput(const QByteArray& audio, const int& newChunkSize, const int& timerInterval) {
-    _TTSChunkSize = newChunkSize;
-    _TTSAudioBuffer.append(audio);
-
-    handleLocalEchoAndReverb(_TTSAudioBuffer, 48000, 1);
-
-    //QString filename = QString::number(usecTimestampNow());
-    //QString path = PathUtils::getAppDataPath() + "Audio/" + filename + "-before.wav";
-    //rawToWav(_TTSAudioBuffer.data(), _TTSAudioBuffer.size(), path.toLocal8Bit(), 24000, 1);
-
-    //QByteArray temp;
-
-    _isProcessingTTS = true;
-    _TTSTimer.start(timerInterval);
-
-    //filename = QString::number(usecTimestampNow());
-    //path = PathUtils::getAppDataPath() + "Audio/" + filename + "-after.wav";
-    //rawToWav(temp.data(), temp.size(), path.toLocal8Bit(), 12000, 1);
-}
-
-void AudioClient::clearTTSBuffer() {
-    _TTSAudioBuffer.resize(0);
-    _isProcessingTTS = false;
-    _TTSTimer.stop();
 }
 
 void AudioClient::prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock) {

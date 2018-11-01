@@ -12,6 +12,7 @@
 #define hifi_SpeechScriptingInterface_h
 
 #include <QtCore/QObject>
+#include <QTimer>
 #include <DependencyManager.h>
 #ifdef WIN32
 #pragma warning(disable : 4996)
@@ -31,18 +32,8 @@ public:
     TTSScriptingInterface();
     ~TTSScriptingInterface();
 
-    Q_INVOKABLE void testTone(const bool& alsoInject = false);
-    Q_INVOKABLE void speakText(const QString& textToSpeak,
-                               const int& newChunkSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * 50),
-                               const int& timerInterval = 96,
-                               const int& sampleRate = 24000,
-                               const int& bitsPerSample = 16,
-                               const bool& alsoInject = false);
+    Q_INVOKABLE void speakText(const QString& textToSpeak);
     Q_INVOKABLE void stopLastSpeech();
-
-signals:
-    void ttsSampleCreated(QByteArray outputArray, const int& newChunkSize, const int& timerInterval);
-    void clearTTSBuffer();
 
 private:
 #ifdef WIN32
@@ -90,6 +81,8 @@ private:
 
     QByteArray _lastSoundByteArray;
     AudioInjectorPointer _lastSoundAudioInjector;
+    QTimer _lastSoundAudioInjectorUpdateTimer;
+    void updateLastSoundAudioInjector();
 };
 
 #endif // hifi_SpeechScriptingInterface_h

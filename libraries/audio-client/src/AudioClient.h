@@ -197,11 +197,6 @@ public slots:
     void checkInputTimeout();
     void handleDummyAudioInput();
     void handleRecordedAudioInput(const QByteArray& audio);
-    void handleTTSAudioInput(const QByteArray& audio,
-                             const int& newChunkSize,
-                             const int& timerInterval);
-    void clearTTSBuffer();
-    void processTTSBuffer();
     void reset();
     void audioMixerKilled();
 
