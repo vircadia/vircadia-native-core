@@ -163,6 +163,12 @@ public slots:
     */
     Q_INVOKABLE int getOtherAvatarsReplicaCount();
 
+    /**jsdoc
+    * Returns the Operating Sytem type
+    * @function Test.getOperatingSystemType
+    */
+    QString getOperatingSystemType();
+
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
     QString _testResultsLocation;
