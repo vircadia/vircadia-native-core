@@ -425,6 +425,11 @@ void AWSInterface::updateAWS() {
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
+#ifdef Q_OS_WIN
     QStringList parameters = QStringList() << filename ;
     process->start(_pythonCommand, parameters);
+#elif defined Q_OS_MAC
+    QStringList parameters = QStringList() << "-c" <<  _pythonCommand + " " + filename;
+    process->start("sh", parameters);
+#endif
 }
