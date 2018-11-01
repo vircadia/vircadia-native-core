@@ -55,7 +55,8 @@ SkeletonDumpApp::SkeletonDumpApp(int argc, char* argv[]) : QCoreApplication(argc
     }
     QByteArray blob = file.readAll();
     std::unique_ptr<FBXGeometry> fbxGeometry(readFBX(blob, QVariantHash()));
-    std::unique_ptr<AnimSkeleton> skeleton(new AnimSkeleton(*fbxGeometry));
+    QMap<int, glm::quat> jointRotationOffsets;
+    std::unique_ptr<AnimSkeleton> skeleton(new AnimSkeleton(*fbxGeometry, jointRotationOffsets));
     skeleton->dump(verbose);
 }
 

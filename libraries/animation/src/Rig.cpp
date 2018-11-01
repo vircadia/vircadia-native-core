@@ -267,7 +267,7 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
     _rigToGeometryTransform = glm::inverse(_geometryToRigTransform);
     setModelOffset(modelOffset);
 
-    _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
+    _animSkeleton = std::make_shared<AnimSkeleton>(geometry,_jointRotationOffsets);
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -310,7 +310,7 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
 void Rig::reset(const FBXGeometry& geometry) {
     _geometryOffset = AnimPose(geometry.offset);
     _invGeometryOffset = _geometryOffset.inverse();
-    _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
+    _animSkeleton = std::make_shared<AnimSkeleton>(geometry, _jointRotationOffsets);
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();

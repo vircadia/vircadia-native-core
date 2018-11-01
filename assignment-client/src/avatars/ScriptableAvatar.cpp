@@ -84,7 +84,8 @@ void ScriptableAvatar::update(float deltatime) {
     // Run animation
     if (_animation && _animation->isLoaded() && _animation->getFrames().size() > 0 && !_bind.isNull() && _bind->isLoaded()) {
         if (!_animSkeleton) {
-            _animSkeleton = std::make_shared<AnimSkeleton>(_bind->getGeometry());
+            QMap<int, glm::quat> jointRotationOffsets;
+            _animSkeleton = std::make_shared<AnimSkeleton>(_bind->getGeometry(), jointRotationOffsets);
         }
         float currentFrame = _animationDetails.currentFrame + deltatime * _animationDetails.fps;
         if (_animationDetails.loop || currentFrame < _animationDetails.lastFrame) {
