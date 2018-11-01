@@ -14,7 +14,7 @@ Auto-tester has 5 functions, separated into 4 tabs:
 
 ## Installation
 ### Executable
-1. Download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/autoTester/AutoTester-Installer-v6.6.exe>).
+1. On Windows: download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/autoTester/AutoTester-Installer-v6.6.exe>).
 2. Double click on the installer and install to a convenient location  
 ![](./setup_7z.PNG)
 3. To run the auto-tester, double click **auto-tester.exe**.
@@ -26,7 +26,9 @@ Python 3 can be downloaded from:
 2. Linux (source)      <https://www.python.org/downloads/release/python-370/> (**Gzipped source tarball**)
 3. Mac                 <https://www.python.org/downloads/release/python-370/> (**macOS 64-bit/32-bit installer** or **macOS 64-bit/32-bit installer**)
  
-After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
+On Windows: after installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
+
+On Mac: after installation - run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.
 ### AWS interface
 #### Windows
 1.  Download the AWS CLI from `https://aws.amazon.com/cli/`
