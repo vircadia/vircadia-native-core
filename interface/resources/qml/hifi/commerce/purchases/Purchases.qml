@@ -90,7 +90,6 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
-                sendToScript({method: 'purchases_availableUpdatesReceived', numUpdates: result.data.updates.length });
                 root.numUpdatesAvailable = result.total_entries;
             }
         }
@@ -162,7 +161,7 @@ Rectangle {
         id: titleBarContainer;
         z: 997;
         visible: false;
-        height: 100; // HRS FIXME: get rid of the header and associated code entirely?
+        height: 100;
         // Size
         width: parent.width;
         // Anchors
@@ -499,7 +498,7 @@ Rectangle {
                             "filterName": "updated"
                         },
                         {
-                            "displayName": "Proofs",
+                            "displayName": "My Submissions",
                             "filterName": "proofs"
                         }
                     ]

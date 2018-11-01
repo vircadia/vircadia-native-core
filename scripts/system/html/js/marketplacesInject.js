@@ -251,7 +251,6 @@
             }
             cost = $(this).closest('.col-xs-3').find('.item-cost').text();
             var costInt = parseInt(cost, 10);
-            var disable = limitedCommerce && (costInt > 0);
 
             $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
             $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
@@ -260,22 +259,17 @@
             priceElement.css({
                 "padding": "3px 5px",
                 "height": "40px",
-                "background": disable ? "grey" : "linear-gradient(#00b4ef, #0093C5)",
+                "background": "linear-gradient(#00b4ef, #0093C5)",
                 "color": "#FFF",
                 "font-weight": "600",
                 "line-height": "34px"
             });
 
             if (parseInt(cost) > 0) {
-                if (disable) {
-                    priceElement.html('N/A'); // In case the following fails
-                    $(this).parent().parent().parent().parent().parent().css({"display": "none"}); // HRS FIXME, oh and do I have to set display non-none in the other branch?
-                } else {
-                    priceElement.css({ "width": "auto" });
-                    priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
-                                      'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
-                    priceElement.css({ "min-width": priceElement.width() + 30 });
-                }
+                priceElement.css({ "width": "auto" });
+                priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
+                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                priceElement.css({ "min-width": priceElement.width() + 30 });
             }
         });
 
