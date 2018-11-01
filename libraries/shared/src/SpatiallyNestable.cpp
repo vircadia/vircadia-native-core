@@ -74,10 +74,12 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
         }
     });
 
-    bool success = false;
-    auto parent = getParentPointer(success);
-    if (success && parent) {
-        parent->updateQueryAACube();
+    if (!_parentKnowsMe) {
+        bool success = false;
+        auto parent = getParentPointer(success);
+        if (success && parent) {
+            parent->updateQueryAACube();
+        }
     }
 }
 
