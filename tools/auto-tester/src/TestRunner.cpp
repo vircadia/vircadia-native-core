@@ -118,7 +118,7 @@ void TestRunner::setWorkingFolder() {
     }
     
     // This script installs High Fidelity.  It is run as "yes | install_app.sh... so "yes" is killed at the end
-    script.write("#/bin/sh\n\n");
+    script.write("#!/bin/sh\n\n");
     script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`\n");
     
     script.write((QString("cp -rf \"$VOLUME/") + "/High Fidelity/interface.app\" \"" + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
@@ -137,7 +137,7 @@ void TestRunner::setWorkingFolder() {
         exit(-1);
     }
     
-    script.write("#/bin/sh\n\n");
+    script.write("#!/bin/sh\n\n");
     script.write("PROCESS=\"$1\"\n");
     script.write("while (pgrep $PROCESS)\n");
     script.write("do\n");
