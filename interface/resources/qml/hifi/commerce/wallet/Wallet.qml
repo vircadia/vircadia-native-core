@@ -126,16 +126,19 @@ Rectangle {
         anchors.top: parent.top;
 
         // Wallet icon
-        HiFiGlyphs {
+        Image {
             id: walletIcon;
-            text: hifi.glyphs.wallet;
-            // Size
-            size: parent.height * 0.8;
-            // Anchors
+            source: "../../../../icons/tablet-icons/inventory-a.svg";
+            height: parent.height * 0.5;
+            width: walletIcon.height;
             anchors.left: parent.left;
             anchors.leftMargin: 8;
             anchors.verticalCenter: parent.verticalCenter;
-            // Style
+            visible: false; // When we use a white .svg instead of a glyph with color property, we set to invisible and use the following ColorOverlay.
+        }
+        ColorOverlay {
+            anchors.fill: walletIcon;
+            source: walletIcon;
             color: hifi.colors.blueHighlight;
         }
 
@@ -148,7 +151,7 @@ Rectangle {
             // Anchors
             anchors.top: parent.top;
             anchors.left: walletIcon.right;
-            anchors.leftMargin: 4;
+            anchors.leftMargin: 6;
             anchors.bottom: parent.bottom;
             width: paintedWidth;
             // Style
@@ -575,16 +578,19 @@ Rectangle {
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
         
-            HiFiGlyphs {
+            Image {
                 id: exchangeMoneyTabIcon;
-                text: hifi.glyphs.home2;
-                // Size
-                size: 50;
-                // Anchors
+                source: "images/items-tab-a.svg";
+                height: 25;
+                width: exchangeMoneyTabIcon.height;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 anchors.top: parent.top;
-                anchors.topMargin: -2;
-                // Style
+                anchors.topMargin: 10;
+                visible: false; // When we use a white .svg instead of a glyph with color property, we set to invisible and use the following ColorOverlay.
+            }
+            ColorOverlay {
+                anchors.fill: exchangeMoneyTabIcon;
+                source: exchangeMoneyTabIcon;
                 color: root.activeView === "walletInventory" || inventoryTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
             }
 
@@ -592,9 +598,9 @@ Rectangle {
                 id: exchangeMoneyMessagesWaitingLight;
                 visible: parent.messagesWaiting;
                 anchors.right: exchangeMoneyTabIcon.left;
-                anchors.rightMargin: -4;
+                anchors.rightMargin: 10;
                 anchors.top: exchangeMoneyTabIcon.top;
-                anchors.topMargin: 16;
+                anchors.topMargin: 4;
                 height: 10;
                 width: height;
                 radius: height/2;
