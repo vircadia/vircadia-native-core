@@ -33,7 +33,7 @@ Rectangle {
     property string buttonLayout: "leftright";
 
     readonly property string securityPicBodyText: "When you see your Security Pic, your actions and data are securely making use of your " +
-        "Wallet's private keys.<br><br>You can change your Security Pic in your Wallet.";
+        "private keys.<br><br>You can change your Security Pic via Settings > Security...";
 
     id: root;
     visible: false;
