@@ -42,7 +42,7 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
 void AWSInterface::extractTestFailuresFromZippedFolder() {
     // For a test results zip file called `D:/tt/TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ].zip`
     //   the folder will be called `TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ]`
-    //   and, this folder will be in the workign directory
+    //   and, this folder will be in the working directory
     QStringList parts =_testResults.split('/');
     QString zipFolderName = _snapshotDirectory + "/" + parts[parts.length() - 1].split('.')[0];
     if (QDir(zipFolderName).exists()) {

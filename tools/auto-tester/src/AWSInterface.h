@@ -26,7 +26,7 @@ public:
     explicit AWSInterface(QObject* parent = 0);
 
     void createWebPageFromResults(const QString& testResults,
-                                  const QString& testDirectory,
+                                  const QString& snapshotDirectory,
                                   QCheckBox* updateAWSCheckBox,
                                   QLineEdit* urlLineEdit);
 
