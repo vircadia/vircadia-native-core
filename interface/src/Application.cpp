@@ -3894,7 +3894,34 @@ void Application::keyPressEvent(QKeyEvent* event) {
         return;
     }
 
-    if (hasFocus() && !_loginDialogPoppedUp) {
+    if (hasFocus() && _loginDialogPoppedUp) {
+        if (_keyboardMouseDevice->isActive()) {
+            _keyboardMouseDevice->keyReleaseEvent(event);
+        }
+
+        bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
+        bool isOption = event->modifiers().testFlag(Qt::AltModifier);
+        switch (event->key()) {
+            case Qt::Key_4:
+            case Qt::Key_5:
+            case Qt::Key_6:
+            case Qt::Key_7:
+                if (isMeta || isOption) {
+                    unsigned int index = static_cast<unsigned int>(event->key() - Qt::Key_1);
+                    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+                    if (index < displayPlugins.size()) {
+                        auto targetPlugin = displayPlugins.at(index);
+                        QString targetName = targetPlugin->getName();
+                        auto menu = Menu::getInstance();
+                        QAction* action = menu->getActionForOption(targetName);
+                        if (action && !action->isChecked()) {
+                            action->trigger();
+                        }
+                    }
+                }
+                break;
+        }
+    } else if (hasFocus()) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->keyPressEvent(event);
         }
@@ -5200,7 +5227,11 @@ void Application::pauseUntilLoginDetermined() {
     nodeList->getDomainHandler().setInterstitialModeEnabled(false);
     // disconnect domain handler.
     nodeList->getDomainHandler().disconnect();
-    Menu::getInstance()->setVisible(false);
+    auto menu = Menu::getInstance();
+    menu->getMenu("Edit")->setVisible(false);
+    menu->getMenu("View")->setVisible(false);
+    menu->getMenu("Navigate")->setVisible(false);
+    menu->getMenu("Settings")->setVisible(false);
 
     {
         auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
@@ -5248,7 +5279,11 @@ void Application::resumeAfterLoginDialogActionTaken() {
     nodeList->getDomainHandler().setInterstitialModeEnabled(_interstitialModeEnabled);
     nodeList->getDomainHandler().resetting();
 
-    Menu::getInstance()->setVisible(true);
+    auto menu = Menu::getInstance();
+    menu->getMenu("Edit")->setVisible(true);
+    menu->getMenu("View")->setVisible(true);
+    menu->getMenu("Navigate")->setVisible(true);
+    menu->getMenu("Settings")->setVisible(true);
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {

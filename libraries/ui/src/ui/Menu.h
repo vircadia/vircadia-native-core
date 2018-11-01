@@ -29,6 +29,7 @@ public:
     QList<QAction*> actions();
     MenuWrapper* addMenu(const QString& menuName);
     void setEnabled(bool enabled = true);
+    void setVisible(bool visible = true);
     QAction* addSeparator();
     void addAction(QAction* action);
 

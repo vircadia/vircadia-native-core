@@ -550,6 +550,10 @@ void MenuWrapper::setEnabled(bool enabled) {
     _realMenu->setEnabled(enabled);
 }
 
+void MenuWrapper::setVisible(bool visible) {
+    _realMenu->menuAction()->setVisible(visible);
+}
+
 QAction* MenuWrapper::addSeparator() {
     QAction* action = _realMenu->addSeparator();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
