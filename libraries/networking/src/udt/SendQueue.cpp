@@ -481,6 +481,7 @@ bool SendQueue::isInactive(bool attemptedToSendPacket) {
                 auto cvStatus = _emptyCondition.wait_for(locker, EMPTY_QUEUES_INACTIVE_TIMEOUT);
                 
                 if (cvStatus == std::cv_status::timeout && (_packets.isEmpty() || isFlowWindowFull()) && _naks.isEmpty()) {
+
 #ifdef UDT_CONNECTION_DEBUG
                     qCDebug(networking) << "SendQueue to" << _destination << "has been empty for"
                         << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
