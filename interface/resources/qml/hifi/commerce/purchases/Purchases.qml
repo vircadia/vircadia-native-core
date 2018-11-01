@@ -498,7 +498,7 @@ Rectangle {
                             "filterName": "updated"
                         },
                         {
-                            "displayName": "Proofs",
+                            "displayName": "My Submissions",
                             "filterName": "proofs"
                         }
                     ]
