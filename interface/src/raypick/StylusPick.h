@@ -73,9 +73,6 @@ public:
     bool isMouse() const override { return false; }
 
     static float WEB_STYLUS_LENGTH;
-
-private:
-    glm::vec3 _tipOffset;
 };
 
 #endif // hifi_StylusPick_h

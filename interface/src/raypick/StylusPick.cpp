@@ -61,7 +61,7 @@ bool StylusPickResult::checkOrFilterAgainstMaxDistance(float maxDistance) {
 }
 
 StylusPick::StylusPick(Side side, const PickFilter& filter, float maxDistance, bool enabled, const glm::vec3& tipOffset) :
-    Pick(StylusTip(side), filter, maxDistance, enabled), _tipOffset(tipOffset)
+    Pick(StylusTip(side, tipOffset), filter, maxDistance, enabled)
 {
 }
 
@@ -127,7 +127,7 @@ StylusTip StylusPick::getMathematicalPick() const {
     if (qApp->getPreferAvatarFingerOverStylus()) {
         result = getFingerWorldLocation(_mathPick.side);
     } else {
-        result = getControllerWorldLocation(_mathPick.side, _tipOffset);
+        result = getControllerWorldLocation(_mathPick.side, _mathPick.tipOffset);
     }
     return result;
 }

@@ -18,6 +18,7 @@
 
 #include <QtCore/QObject>
 #include <QTimer>
+#include <QHash>
 #include <DependencyManager.h>
 #include <Sound.h>
 #include <AudioInjector.h>
@@ -42,7 +43,6 @@ public:
         SPACE,
         ENTER
     };
-
 
     static Key::Type getKeyTypeFromString(const QString& keyTypeString);
 
@@ -146,7 +146,7 @@ private:
 
     mutable ReadWriteLockable _ignoreItemsLock;
     QVector<OverlayID> _itemsToIgnore;
-    std::vector<std::vector<Key>> _keyboardLayers;
+    std::vector<QHash<OverlayID, Key>> _keyboardLayers;
 };
 
 #endif

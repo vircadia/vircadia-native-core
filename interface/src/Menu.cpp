@@ -356,7 +356,7 @@ Menu::Menu() {
         qApp->setHmdTabletBecomesToolbarSetting(action->isChecked());
     });
 
-    addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::Use3DKeyboard, 0, false);
+    addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::Use3DKeyboard, 0, true);
 
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");

@@ -56,8 +56,16 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
  * @property {boolean} [hover=false] If this pointer should generate hover events.
  * @property {boolean} [enabled=false]
  * @property {Vec3} [tipOffset] The specified offset of the from the joint index.
- * @property {object} [model] Data to replace the default model url, positionOffset and rotationOffset.
+ * @property {Pointers.StylusPointerProperties.model} [model] Data to replace the default model url, positionOffset and rotationOffset. {@link Pointers.StylusPointerProperties.model}
  */
+ /**jsdoc
+  * properties defining stylus pick model that can be included to {@link Pointers.StylusPointerProperties}
+  * @typedef {object} Pointers.StylusPointerProperties.model
+  * @property {string} [url] url to the model
+  * @property {Vec3} [dimensions] the dimensions of the model
+  * @property {Vec3} [positionOffset] the position offset of the model from the parent joint index
+  * @property {Vec3} [rotationOffset] the rotation offset of the model from the parent joint index
+  */
 unsigned int PointerScriptingInterface::createStylus(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
 

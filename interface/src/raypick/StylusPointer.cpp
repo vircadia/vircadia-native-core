@@ -45,7 +45,7 @@ StylusPointer::~StylusPointer() {
 
 OverlayID StylusPointer::buildStylusOverlay(const QVariantMap& properties) {
     QVariantMap overlayProperties;
-    // TODO: make these configurable per pointe
+
     QString modelUrl = DEFAULT_STYLUS_MODEL_URL;
 
     if (properties["model"].isValid()) {
@@ -55,7 +55,7 @@ OverlayID StylusPointer::buildStylusOverlay(const QVariantMap& properties) {
             modelUrl = modelData["url"].toString();
         }
     }
-
+    // TODO: make these configurable per pointer
     overlayProperties["name"] = "stylus";
     overlayProperties["url"] = modelUrl;
     overlayProperties["loadPriority"] = 10.0f;

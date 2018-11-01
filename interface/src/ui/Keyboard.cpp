@@ -316,8 +316,8 @@ void Keyboard::scaleKeyboard(float sensorToWorldScale) {
     }
 
     for (auto& keyboardLayer: _keyboardLayers) {
-        for (auto& key: keyboardLayer) {
-            key.scaleKey(sensorToWorldScale);
+        for (auto iter = keyboardLayer.begin(); iter != keyboardLayer.end(); iter++) {
+            iter.value().scaleKey(sensorToWorldScale);
         }
     }
 
@@ -354,8 +354,9 @@ void Keyboard::raiseKeyboard(bool raise) const {
         return;
     }
     Overlays& overlays = qApp->getOverlays();
-    for (const auto& key: _keyboardLayers[_layerIndex]) {
-        auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(key.getID()));
+    const auto& keyboardLayer = _keyboardLayers[_layerIndex];
+    for (auto iter = keyboardLayer.begin(); iter != keyboardLayer.end(); iter++) {
+        auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(iter.key()));
         if (base3DOverlay) {
             base3DOverlay->setVisible(raise);
         }
@@ -419,87 +420,90 @@ void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent
     auto pointerID = event.getID();
     auto buttonType = event.getButton();
 
-    for (auto index = _keyboardLayers[_layerIndex].begin(); index != _keyboardLayers[_layerIndex].end(); index++) {
-        Key& key = *index;
-        if (key.getID() == overlayID && (pointerID == _leftHandStylus || pointerID == _rightHandStylus) &&
-            buttonType == PointerEvent::PrimaryButton) {
+    if ((pointerID != _leftHandStylus && pointerID != _rightHandStylus) || buttonType != PointerEvent::PrimaryButton) {
+        return;
+    }
 
+    auto& keyboardLayer = _keyboardLayers[_layerIndex];
+    auto search = keyboardLayer.find(overlayID);
 
-            if (key.timerFinished()) {
+    if (search == keyboardLayer.end()) {
+        return;
+    }
 
-                auto handIndex = (pointerID == _leftHandStylus) ? controller::Hand::LEFT : controller::Hand::RIGHT;
-                auto userInputMapper = DependencyManager::get<UserInputMapper>();
-                userInputMapper->triggerHapticPulse(PULSE_STRENGTH, PULSE_DURATION, handIndex);
+    Key& key = search.value();
 
-                Overlays& overlays = qApp->getOverlays();
-                auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(overlayID));
+    if (key.timerFinished()) {
 
-                glm::vec3 keyWorldPosition;
-                if (base3DOverlay) {
-                    keyWorldPosition = base3DOverlay->getWorldPosition();
-                }
+        auto handIndex = (pointerID == _leftHandStylus) ? controller::Hand::LEFT : controller::Hand::RIGHT;
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        userInputMapper->triggerHapticPulse(PULSE_STRENGTH, PULSE_DURATION, handIndex);
 
-                AudioInjectorOptions audioOptions;
-                audioOptions.localOnly = true;
-                audioOptions.position = keyWorldPosition;
-                audioOptions.volume = 0.4f;
+        Overlays& overlays = qApp->getOverlays();
+        auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(overlayID));
 
-                AudioInjector::playSound(_keySound->getByteArray(), audioOptions);
-
-                int scanCode = key.getScanCode(_capsEnabled);
-                QString keyString = key.getKeyString(_capsEnabled);
-
-                auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
-
-                switch (key.getKeyType()) {
-                    case Key::Type::CLOSE:
-                        setRaised(false);
-                        tablet->unfocus();
-                        return;
-
-                    case Key::Type::CAPS:
-                        _capsEnabled = !_capsEnabled;
-                        switchToLayer(key.getSwitchToLayerIndex());
-                        return;
-                    case Key::Type::LAYER:
-                        _capsEnabled = false;
-                        switchToLayer(key.getSwitchToLayerIndex());
-                        return;
-                    case Key::Type::BACKSPACE:
-                        scanCode = Qt::Key_Backspace;
-                        keyString = "\x08";
-                        _typedCharacters = _typedCharacters.left(_typedCharacters.length() -1);
-                        updateTextDisplay();
-                        break;
-                    case Key::Type::ENTER:
-                        scanCode = Qt::Key_Return;
-                        keyString = "\x0d";
-                        _typedCharacters.clear();
-                        updateTextDisplay();
-                        break;
-                    case Key::Type::CHARACTER:
-                        if (keyString != " ") {
-                            _typedCharacters.push_back((_password ? "*" : keyString));
-                        } else {
-                            _typedCharacters.clear();
-                        }
-                        updateTextDisplay();
-                        break;
-
-                    default:
-                        break;
-                }
-
-                QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
-                QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
-                QCoreApplication::postEvent(QCoreApplication::instance(), pressEvent);
-                QCoreApplication::postEvent(QCoreApplication::instance(), releaseEvent);
-
-                key.startTimer(KEY_PRESS_TIMEOUT_MS);
-            }
-
-            break;
+        glm::vec3 keyWorldPosition;
+        if (base3DOverlay) {
+            keyWorldPosition = base3DOverlay->getWorldPosition();
         }
+
+        AudioInjectorOptions audioOptions;
+        audioOptions.localOnly = true;
+        audioOptions.position = keyWorldPosition;
+        audioOptions.volume = 0.4f;
+
+        AudioInjector::playSound(_keySound->getByteArray(), audioOptions);
+
+        int scanCode = key.getScanCode(_capsEnabled);
+        QString keyString = key.getKeyString(_capsEnabled);
+
+        auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+
+        switch (key.getKeyType()) {
+            case Key::Type::CLOSE:
+                setRaised(false);
+                tablet->unfocus();
+                return;
+
+            case Key::Type::CAPS:
+                _capsEnabled = !_capsEnabled;
+                switchToLayer(key.getSwitchToLayerIndex());
+                return;
+            case Key::Type::LAYER:
+                _capsEnabled = false;
+                switchToLayer(key.getSwitchToLayerIndex());
+                return;
+            case Key::Type::BACKSPACE:
+                scanCode = Qt::Key_Backspace;
+                keyString = "\x08";
+                _typedCharacters = _typedCharacters.left(_typedCharacters.length() -1);
+                updateTextDisplay();
+                break;
+            case Key::Type::ENTER:
+                scanCode = Qt::Key_Return;
+                keyString = "\x0d";
+                _typedCharacters.clear();
+                updateTextDisplay();
+                break;
+            case Key::Type::CHARACTER:
+                if (keyString != " ") {
+                    _typedCharacters.push_back((_password ? "*" : keyString));
+                } else {
+                    _typedCharacters.clear();
+                }
+                updateTextDisplay();
+                break;
+
+            default:
+                break;
+        }
+
+        QKeyEvent* pressEvent = new QKeyEvent(QEvent::KeyPress, scanCode, Qt::NoModifier, keyString);
+        QKeyEvent* releaseEvent = new QKeyEvent(QEvent::KeyRelease, scanCode, Qt::NoModifier, keyString);
+        QCoreApplication::postEvent(QCoreApplication::instance(), pressEvent);
+        QCoreApplication::postEvent(QCoreApplication::instance(), releaseEvent);
+
+        key.startTimer(KEY_PRESS_TIMEOUT_MS);
     }
 }
 
@@ -509,27 +513,29 @@ void Keyboard::handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& 
     }
 
     auto pointerID = event.getID();
-
-    for (auto index = _keyboardLayers[_layerIndex].begin(); index != _keyboardLayers[_layerIndex].end(); index++) {
-        Key& key = *index;
-
-        if (key.getID() == overlayID  && (pointerID == _leftHandStylus || pointerID == _rightHandStylus)) {
-            Overlays& overlays = qApp->getOverlays();
-
-            auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(overlayID));
-
-            if (base3DOverlay) {
-                base3DOverlay->setLocalPosition(key.getCurrentLocalPosition());
-            }
-
-            key.setIsPressed(false);
-            if (key.timerFinished()) {
-                key.startTimer(KEY_PRESS_TIMEOUT_MS);
-            }
-            break;
-        }
+    if (pointerID != _leftHandStylus && pointerID != _rightHandStylus) {
+        return;
     }
 
+    auto& keyboardLayer = _keyboardLayers[_layerIndex];
+    auto search = keyboardLayer.find(overlayID);
+
+    if (search == keyboardLayer.end()) {
+        return;
+    }
+
+    Key& key = search.value();;
+    Overlays& overlays = qApp->getOverlays();
+    auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(overlayID));
+
+    if (base3DOverlay) {
+        base3DOverlay->setLocalPosition(key.getCurrentLocalPosition());
+    }
+
+    key.setIsPressed(false);
+    if (key.timerFinished()) {
+        key.startTimer(KEY_PRESS_TIMEOUT_MS);
+    }
 }
 
 void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEvent& event) {
@@ -539,44 +545,40 @@ void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEv
 
     auto pointerID = event.getID();
 
-    for (auto index = _keyboardLayers[_layerIndex].begin(); index != _keyboardLayers[_layerIndex].end(); index++) {
-        Key& key = *index;
+    if (pointerID != _leftHandStylus && pointerID != _rightHandStylus) {
+        return;
+    }
 
-        if (key.getID() == overlayID && (pointerID == _leftHandStylus || pointerID == _rightHandStylus)) {
-            Overlays& overlays = qApp->getOverlays();
+    auto& keyboardLayer = _keyboardLayers[_layerIndex];
+    auto search = keyboardLayer.find(overlayID);
 
-            if (!key.isPressed()) {
-                auto pointerManager = DependencyManager::get<PointerManager>();
-                auto pickResult = pointerManager->getPrevPickResult(pointerID);
+    if (search == keyboardLayer.end()) {
+        return;
+    }
 
-                auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(overlayID));
+    Key& key = search.value();
+    Overlays& overlays = qApp->getOverlays();
 
-                if (base3DOverlay) {
-                    auto pickResultVariant = pickResult->toVariantMap();
-                    auto stylusTipVariant = pickResultVariant["stylusTip"];
-                    auto stylusTipPositionVariant = stylusTipVariant.toMap()["position"];
-                    glm::vec3 stylusTipPosition = vec3FromVariant(stylusTipPositionVariant);
+    if (!key.isPressed()) {
+        auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(overlayID));
 
-                    glm::quat overlayOrientation = base3DOverlay->getWorldOrientation();
-                    glm::vec3 overlayPosition = base3DOverlay->getWorldPosition();
+        if (base3DOverlay) {
+            auto pointerManager = DependencyManager::get<PointerManager>();
+            auto pickResult = pointerManager->getPrevPickResult(pointerID);
+            auto pickResultVariant = pickResult->toVariantMap();
 
-                    glm::mat4 overlayWorldMat = createMatFromQuatAndPos(overlayOrientation, overlayPosition);
-                    glm::mat4 overlayWorldToLocalMat = glm::inverse(overlayWorldMat);
+            float distance = pickResultVariant["distance"].toFloat();
 
-                    glm::vec3 stylusTipInOverlaySpace = transformPoint(overlayWorldToLocalMat, stylusTipPosition);
-
-                    static const float PENATRATION_THRESHOLD = 0.025f;
-                    if (stylusTipInOverlaySpace.z < PENATRATION_THRESHOLD) {
-                        static const float Z_OFFSET = 0.002f;
-                        glm::vec3 overlayYAxis = overlayOrientation * Z_AXIS;
-                        glm::vec3 overlayYOffset = overlayYAxis * Z_OFFSET;
-                        glm::vec3 localPosition = key.getCurrentLocalPosition() - overlayYOffset;
-                        base3DOverlay->setLocalPosition(localPosition);
-                        key.setIsPressed(true);
-                    }
-                }
+            static const float PENATRATION_THRESHOLD = 0.025f;
+            if (distance < PENATRATION_THRESHOLD) {
+                static const float Z_OFFSET = 0.002f;
+                glm::quat overlayOrientation = base3DOverlay->getWorldOrientation();
+                glm::vec3 overlayYAxis = overlayOrientation * Z_AXIS;
+                glm::vec3 overlayYOffset = overlayYAxis * Z_OFFSET;
+                glm::vec3 localPosition = key.getCurrentLocalPosition() - overlayYOffset;
+                base3DOverlay->setLocalPosition(localPosition);
+                key.setIsPressed(true);
             }
-            break;
         }
     }
 }
@@ -666,7 +668,7 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
         for (int keyboardLayerIndex = 0; keyboardLayerIndex < keyboardLayerCount; keyboardLayerIndex++) {
             const QJsonValue& keyboardLayer = keyboardLayers[keyboardLayerIndex].toArray();
 
-            std::vector<Key> keyboardLayerKeys;
+            QHash<OverlayID, Key> keyboardLayerKeys;
             foreach (const QJsonValue& keyboardKeyValue, keyboardLayer.toArray()) {
 
                 QVariantMap textureMap;
@@ -718,7 +720,7 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
 
                 includeItems.append(key.getID());
                 _itemsToIgnore.append(key.getID());
-                keyboardLayerKeys.push_back(key);
+                keyboardLayerKeys.insert(overlayID, key);
             }
 
             _keyboardLayers.push_back(keyboardLayerKeys);
@@ -774,8 +776,8 @@ void Keyboard::clearKeyboardKeys() {
     Overlays& overlays = qApp->getOverlays();
 
     for (const auto& keyboardLayer: _keyboardLayers) {
-        for (const Key& key: keyboardLayer) {
-            overlays.deleteOverlay(key.getID());
+        for (auto iter = keyboardLayer.begin(); iter != keyboardLayer.end(); iter++) {
+            overlays.deleteOverlay(iter.key());
         }
     }
 

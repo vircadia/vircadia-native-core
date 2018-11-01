@@ -583,7 +583,7 @@ ParabolaToOverlayIntersectionResult Overlays::findParabolaIntersectionVector(con
                                                                              bool visibleOnly, bool collidableOnly) {
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
-
+    const QVector<OverlayID> keyboardKeysToDiscard = DependencyManager::get<Keyboard>()->getKeysID();
     QMutexLocker locker(&_mutex);
     ParabolaToOverlayIntersectionResult result;
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
@@ -593,7 +593,8 @@ ParabolaToOverlayIntersectionResult Overlays::findParabolaIntersectionVector(con
         auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
 
         if ((overlaysToDiscard.size() > 0 && overlaysToDiscard.contains(thisID)) ||
-            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID))) {
+            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID)) ||
+            (keyboardKeysToDiscard.size() > 0 && keyboardKeysToDiscard.contains(thisID))) {
             continue;
         }
 
@@ -1061,7 +1062,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
         i.next();
         OverlayID thisID = i.key();
         auto overlay = std::dynamic_pointer_cast<Volume3DOverlay>(i.value());
-        // FIXME: this ignores overlays with ignorePickIntersection == true, which seems wrong
+
         if (overlay && overlay->getVisible() && overlay->isLoaded()) {
             // get AABox in frame of overlay
             glm::vec3 dimensions = overlay->getDimensions();
