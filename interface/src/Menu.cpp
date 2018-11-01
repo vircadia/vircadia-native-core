@@ -268,9 +268,13 @@ Menu::Menu() {
     // Settings > Security...
     action = addActionToQMenuAndActionHash(settingsMenu, "Security...");
     connect(action, &QAction::triggered, [] {
-        auto tablet = dynamic_cast<TabletProxy*>(
-            DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
-        tablet->loadQMLSource(QString("hifi/dialogs/security/Security.qml"));
+		auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+		auto hmd = DependencyManager::get<HMDScriptingInterface>();
+		tablet->pushOntoStack("hifi/dialogs/security/Security.qml");
+
+		if (!hmd->getShouldShowTablet()) {
+			hmd->toggleShouldShowTablet();
+		}
     });
 
     // Settings > Developer Menu
