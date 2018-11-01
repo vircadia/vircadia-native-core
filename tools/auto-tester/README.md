@@ -26,9 +26,13 @@ Python 3 can be downloaded from:
 2. Linux (source)      <https://www.python.org/downloads/release/python-370/> (**Gzipped source tarball**)
 3. Mac                 <https://www.python.org/downloads/release/python-370/> (**macOS 64-bit/32-bit installer** or **macOS 64-bit/32-bit installer**)
  
-On Windows: after installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
+#### Windows
+After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
 
-On Mac: after installation - run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.
+#### Mac
+After installation - run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
+Verify that `/usr/local/bin/python3` exists.  
+
 ### AWS interface
 #### Windows
 1.  Download the AWS CLI from `https://aws.amazon.com/cli/`
@@ -38,8 +42,23 @@ On Mac: after installation - run `open "/Applications/Python 3.6/Install Certifi
 1.  Enter the secret key
 1.  Leave region name and ouput format as default [None]
 
-1.  Install the latest release of Boto3 via pip:
->pip install boto3
+1.  Install the latest release of Boto3 via pip:  
+pip install boto3
+#### Mac
+1.  Install pip with the script provided by the Python Packaging Authority:  
+$ curl -O https://bootstrap.pypa.io/get-pip.py  
+$ python3 get-pip.py --user  
+
+1.  Use pip to install the AWS CLI.  
+$ pip3 install awscli --upgrade --user  
+This will install aws in your user.  For user XXX, aws will be located in /Users/XXX/Library/Python/3.7/bin  
+1.  Open a new command prompt and run `aws configure`  
+1.  Enter the AWS account number
+1.  Enter the secret key
+1.  Leave region name and ouput format as default [None]
+1.  Install the latest release of Boto3 via pip:  
+pip3 install boto3
+
 # Create
 ![](./Create.PNG)
 
