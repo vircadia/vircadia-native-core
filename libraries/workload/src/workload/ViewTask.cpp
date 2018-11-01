@@ -42,7 +42,7 @@ void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& i
             outViews.insert(outViews.end(), _views.begin() + 2, _views.end());
         } else {
             // otherwise we use all of the views...
-            const float MIN_HEAD_CAMERA_SEPARATION_SQUARED = 0.2f;
+            const float MIN_HEAD_CAMERA_SEPARATION_SQUARED = MIN_VIEW_BACK_FRONTS[0][1] * MIN_VIEW_BACK_FRONTS[0][1];
             if (glm::distance2(_views[0].origin, _views[1].origin) < MIN_HEAD_CAMERA_SEPARATION_SQUARED) {
                 // ... unless the first two are close enough to be considered the same
                 // in which case we only keep one of them
