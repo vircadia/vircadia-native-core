@@ -278,7 +278,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
     All: {
         description: "",
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        collidesWith: "static,dynamic,kinematic,otherAvatar",
+        collidesWith: "static,dynamic,kinematic,otherAvatar,myAvatar",
         collisionSoundURL: "",
         cloneable: false,
         ignoreIK: true,
