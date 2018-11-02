@@ -203,13 +203,9 @@ int TestScriptingInterface::getOtherAvatarsReplicaCount() {
 QString TestScriptingInterface::getOperatingSystemType() {
 #ifdef Q_OS_WIN
     return "WINDOWS";
-#elif defined Q_MAC_OS
+#elif defined Q_OS_MAC
     return "MACOS";
 #else
     return "UNKNOWN";
 #endif
-}
-
-void TestScriptingInterface::setWindowSize(int width, int height) {
-    qApp->getWindow()->resize(width, height);
 }

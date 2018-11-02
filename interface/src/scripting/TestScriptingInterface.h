@@ -170,12 +170,6 @@ public slots:
     */
     QString getOperatingSystemType();
 
-    /**jsdoc
-    * Sets the size of the Window on desktop
-    * @function Test.getOperatingSystemType
-    */
-    void setWindowSize(int width, int height);
-
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
     QString _testResultsLocation;
