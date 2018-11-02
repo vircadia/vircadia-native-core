@@ -11,7 +11,7 @@
 
 #include <render/ShapePipeline.h>
 
-class HFMGeometry;
+class HFMModel;
 
 class TestFbx : public GpuTestBase {
     size_t _partCount { 0 };

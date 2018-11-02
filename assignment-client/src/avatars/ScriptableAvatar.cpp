@@ -84,7 +84,7 @@ void ScriptableAvatar::update(float deltatime) {
     // Run animation
     if (_animation && _animation->isLoaded() && _animation->getFrames().size() > 0 && !_bind.isNull() && _bind->isLoaded()) {
         if (!_animSkeleton) {
-            _animSkeleton = std::make_shared<AnimSkeleton>(_bind->getGeometry());
+            _animSkeleton = std::make_shared<AnimSkeleton>(_bind->getHFMModel());
         }
         float currentFrame = _animationDetails.currentFrame + deltatime * _animationDetails.fps;
         if (_animationDetails.loop || currentFrame < _animationDetails.lastFrame) {
@@ -93,7 +93,7 @@ void ScriptableAvatar::update(float deltatime) {
             }
             _animationDetails.currentFrame = currentFrame;
 
-            const QVector<HFMJoint>& modelJoints = _bind->getGeometry().joints;
+            const QVector<HFMJoint>& modelJoints = _bind->getHFMModel().joints;
             QStringList animationJointNames = _animation->getJointNames();
 
             const int nJoints = modelJoints.size();
@@ -113,7 +113,7 @@ void ScriptableAvatar::update(float deltatime) {
                 const QString& name = animationJointNames[i];
                 // As long as we need the model preRotations anyway, let's get the jointIndex from the bind skeleton rather than
                 // trusting the .fst (which is sometimes not updated to match changes to .fbx).
-                int mapping = _bind->getGeometry().getJointIndex(name);
+                int mapping = _bind->getHFMModel().getJointIndex(name);
                 if (mapping != -1 && !_maskedJoints.contains(name)) {
 
                     AnimPose floorPose = composeAnimPose(modelJoints[mapping], floorFrame.rotations[i], floorFrame.translations[i] * UNIT_SCALE);

@@ -45,9 +45,9 @@ public:
     // Mutable, but must retain structure of vector
     using NetworkMaterials = std::vector<std::shared_ptr<NetworkMaterial>>;
 
-    bool isGeometryLoaded() const { return (bool)_hfmGeometry; }
+    bool isHFMModelLoaded() const { return (bool)_hfmModel; }
 
-    const HFMGeometry& getHFMGeometry() const { return *_hfmGeometry; }
+    const HFMModel& getHFMModel() const { return *_hfmModel; }
     const GeometryMeshes& getMeshes() const { return *_meshes; }
     const std::shared_ptr<NetworkMaterial> getShapeMaterial(int shapeID) const;
 
@@ -62,7 +62,7 @@ protected:
     friend class GeometryMappingResource;
 
     // Shared across all geometries, constant throughout lifetime
-    std::shared_ptr<const HFMGeometry> _hfmGeometry;
+    std::shared_ptr<const HFMModel> _hfmModel;
     std::shared_ptr<const GeometryMeshes> _meshes;
     std::shared_ptr<const GeometryMeshParts> _meshParts;
 
@@ -94,7 +94,7 @@ protected:
 
     // Geometries may not hold onto textures while cached - that is for the texture cache
     // Instead, these methods clear and reset textures from the geometry when caching/loading
-    bool shouldSetTextures() const { return _hfmGeometry && _materials.empty(); }
+    bool shouldSetTextures() const { return _hfmModel && _materials.empty(); }
     void setTextures();
     void resetTextures();
 

@@ -101,8 +101,8 @@ void AnimClip::copyFromNetworkAnim() {
 
     // build a mapping from animation joint indices to skeleton joint indices.
     // by matching joints with the same name.
-    const HFMGeometry& geom = _networkAnim->getGeometry();
-    AnimSkeleton animSkeleton(geom);
+    const HFMModel& model = _networkAnim->getHFMModel();
+    AnimSkeleton animSkeleton(model);
     const auto animJointCount = animSkeleton.getNumJoints();
     const auto skeletonJointCount = _skeleton->getNumJoints();
     std::vector<int> jointMap;
@@ -115,12 +115,12 @@ void AnimClip::copyFromNetworkAnim() {
         jointMap.push_back(skeletonJoint);
     }
 
-    const int frameCount = geom.animationFrames.size();
+    const int frameCount = model.animationFrames.size();
     _anim.resize(frameCount);
 
     for (int frame = 0; frame < frameCount; frame++) {
 
-        const HFMAnimationFrame& hfmAnimFrame = geom.animationFrames[frame];
+        const HFMAnimationFrame& hfmAnimFrame = model.animationFrames[frame];
 
         // init all joints in animation to default pose
         // this will give us a resonable result for bones in the model skeleton but not in the animation.
@@ -150,7 +150,7 @@ void AnimClip::copyFromNetworkAnim() {
 
                 // adjust translation offsets, so large translation animatons on the reference skeleton
                 // will be adjusted when played on a skeleton with short limbs.
-                const glm::vec3& hfmZeroTrans = geom.animationFrames[0].translations[animJoint];
+                const glm::vec3& hfmZeroTrans = model.animationFrames[0].translations[animJoint];
                 const AnimPose& relDefaultPose = _skeleton->getRelativeDefaultPose(skeletonJoint);
                 float boneLengthScale = 1.0f;
                 const float EPSILON = 0.0001f;

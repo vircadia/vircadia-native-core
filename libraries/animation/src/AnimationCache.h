@@ -66,7 +66,7 @@ public:
 
     QString getType() const override { return "Animation"; }
 
-    const HFMGeometry& getGeometry() const { return *_geometry; }
+    const HFMModel& getHFMModel() const { return *_hfmModel; }
 
     virtual bool isLoaded() const override;
 
@@ -88,12 +88,12 @@ protected:
     virtual void downloadFinished(const QByteArray& data) override;
 
 protected slots:
-    void animationParseSuccess(HFMGeometry::Pointer geometry);
+    void animationParseSuccess(HFMModel::Pointer hfmModel);
     void animationParseError(int error, QString str);
 
 private:
     
-    HFMGeometry::Pointer _geometry;
+    HFMModel::Pointer _hfmModel;
 };
 
 /// Reads geometry in a worker thread.
@@ -105,7 +105,7 @@ public:
     virtual void run() override;
 
 signals:
-    void onSuccess(HFMGeometry::Pointer geometry);
+    void onSuccess(HFMModel::Pointer hfmModel);
     void onError(int error, QString str);
 
 private:
