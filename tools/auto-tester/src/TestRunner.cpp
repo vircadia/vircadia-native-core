@@ -405,7 +405,7 @@ void TestRunner::runInterfaceWithTestScript() {
 #ifdef Q_OS_WIN
         url = "hifi://localhost";
 #elif defined Q_OS_MAC
-        // TODO: Find out Mac equivalent of AppData, then this win't be needed
+        // TODO: Find out Mac equivalent of AppData, then this won't be needed
         url = "hifi://localhost/9999,9999,9999";
 #endif
     }
@@ -413,12 +413,13 @@ void TestRunner::runInterfaceWithTestScript() {
     QString testScript =
         QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/testRecursive.js";
 
+    QString commandLine;
 #ifdef Q_OS_WIN
     QString exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"";
-    QString commandLine = exeFile + " --url " + url + " --no-updater" + " --testScript " + testScript +
+    commandLine = exeFile + " --url " + url + " --no-updater" + " --testScript " + testScript +
                           " quitWhenFinished --testResultsLocation " + _snapshotFolder;
 #elif defined Q_OS_MAC
-    QString commandLine = "open \"" +_installationFolder + "/interface.app\" --args" +
+    commandLine = "open \"" +_installationFolder + "/interface.app\" --args" +
         " --url " + url +
         " --no-updater" +
         " --testScript " + testScript + " quitWhenFinished" +
