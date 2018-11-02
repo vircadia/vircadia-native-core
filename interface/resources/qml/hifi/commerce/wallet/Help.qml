@@ -74,8 +74,7 @@ In your Wallet's Send Money tab, choose from your list of connections, or choose
             isExpanded: false;
             question: "What is a Security Pic?"
             answer: "Your Security Pic acts as an extra layer of Wallet security. \
-When you see your Security Pic, you know that your actions and data are securely making use of your account. \
-<br><br><b><font color='#0093C5'><a href='#securitypic'>Tap here to change your Security Pic.</a></font></b>";
+When you see your Security Pic, you know that your actions and data are securely making use of your account.";
         }
         ListElement {
             isExpanded: false;
@@ -137,7 +136,7 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
                 anchors.left: parent.left;
                 width: parent.width;
                 height: questionText.paintedHeight + 50;
-            
+
                 RalewaySemiBold {
                     id: plusMinusButton;
                     text: model.isExpanded ? "-" : "+";
@@ -217,8 +216,6 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
                             }
                         } else if (link === "#support") {
                             Qt.openUrlExternally("mailto:support@highfidelity.com");
-                        } else if (link === "#securitypic") {
-                            sendSignalToWallet({method: 'walletSecurity_changeSecurityImage'});
                         }
                     }
                 }
