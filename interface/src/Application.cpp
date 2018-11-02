@@ -3636,12 +3636,6 @@ void Application::onPresent(quint32 frameCount) {
     if (_renderEventHandler && !isAboutToQuit() && _pendingRenderEvent.compare_exchange_strong(expected, true)) {
         postEvent(_renderEventHandler, new QEvent((QEvent::Type)ApplicationEvent::Render));
     }
-	
-	// This is done here so it won't be during a resize/move event
-    if (_setGeometryRequested) {
-        _setGeometryRequested = false;
-        _window->setGeometry(requestedGeometry);
-    }
 }
 
 static inline bool isKeyEvent(QEvent::Type type) {
@@ -4808,6 +4802,12 @@ void Application::idle() {
             _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
             _idleLoopStdev.reset();
         }
+    }
+    
+    // This is done here so it won't be during a resize/move event
+    if (_setGeometryRequested) {
+        _setGeometryRequested = false;
+        _window->setGeometry(requestedGeometry);
     }
 
     _overlayConductor.update(secondsSinceLastUpdate);
