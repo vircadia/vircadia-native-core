@@ -209,3 +209,7 @@ QString TestScriptingInterface::getOperatingSystemType() {
     return "UNKNOWN";
 #endif
 }
+
+void TestScriptingInterface::setGeometry(int x, int y, int width, int height) {
+    qApp->setGeometry(x, y, width, height);
+}

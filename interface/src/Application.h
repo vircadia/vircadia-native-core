@@ -315,6 +315,8 @@ public:
 
     Q_INVOKABLE void copyToClipboard(const QString& text);
 
+    void setGeometry(int x, int y, int width, int height);
+
     int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
@@ -784,5 +786,9 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
+    // Data for the setGeometry script command
+    bool _setGeometryRequested{ false };
+    QRect requestedGeometry;
 };
 #endif // hifi_Application_h

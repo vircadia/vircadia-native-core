@@ -3636,6 +3636,12 @@ void Application::onPresent(quint32 frameCount) {
     if (_renderEventHandler && !isAboutToQuit() && _pendingRenderEvent.compare_exchange_strong(expected, true)) {
         postEvent(_renderEventHandler, new QEvent((QEvent::Type)ApplicationEvent::Render));
     }
+	
+	// This is done here so it won't be during a resize/move event
+    if (_setGeometryRequested) {
+        _setGeometryRequested = false;
+        _window->setGeometry(requestedGeometry);
+    }
 }
 
 static inline bool isKeyEvent(QEvent::Type type) {
@@ -8576,6 +8582,12 @@ void Application::copyToClipboard(const QString& text) {
 
     // assume that the address is being copied because the user wants a shareable address
     QApplication::clipboard()->setText(text);
+}
+
+void Application::setGeometry(int x, int y, int width, int height) {
+    // Note that calling setGeometry inside resizeEvent() or moveEvent() can cause infinite recursion
+    requestedGeometry = QRect(x, y, width, height);
+    _setGeometryRequested = true;
 }
 
 #if defined(Q_OS_ANDROID)
