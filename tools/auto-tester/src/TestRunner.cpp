@@ -229,11 +229,11 @@ void TestRunner::runInstaller() {
 
     QString installerFullPath = _workingFolder + "/" + _installerFilename;
 
+    QString commandLine;
 #ifdef Q_OS_WIN
-    QString commandLine =
-        "\"" + QDir::toNativeSeparators(installerFullPath) + "\"" + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
+    commandLine = "\"" + QDir::toNativeSeparators(installerFullPath) + "\"" + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
 #elif defined Q_OS_MAC
-    QString commandLine = "yes | " + _workingFolder + "/install_app.sh " + _workingFolder + "/HighFidelity-Beta-latest-dev.dmg";
+    commandLine = "yes | " + _workingFolder + "/install_app.sh " + _workingFolder + "/HighFidelity-Beta-latest-dev.dmg";
 #endif
 
     installerWorker->setCommandLine(commandLine);
