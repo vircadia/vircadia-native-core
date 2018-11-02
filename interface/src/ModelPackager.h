@@ -17,9 +17,9 @@
 #include <QFileInfo>
 #include <QVariantHash>
 
-#include "ui/ModelsBrowser.h"
+#include <HFM.h>
 
-class HFMModel;
+#include "ui/ModelsBrowser.h"
 
 class ModelPackager : public QObject {
 public:
