@@ -165,9 +165,6 @@ function openMarketplace(optionalItemOrUrl) {
     if (optionalItemOrUrl && optionalItemOrUrl.indexOf(METAVERSE_SERVER_URL) === -1) {
         url = MARKETPLACE_URL + '/items/' + optionalItemOrUrl;
     }
-    if (WalletScriptingInterface.limitedCommerce) {
-        url += "?isFree=1";
-    }
     ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
 }
 
@@ -748,7 +745,7 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
 
 
 var BUTTON_NAME = "MARKET";
-var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace" + (WalletScriptingInterface.limitedCommerce ? "?isFree=1" : "");
+var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
 // Append "?" if necessary to signal injected script that it's the initial page.
 var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + (MARKETPLACE_URL.indexOf("?") > -1 ? "" : "?");
 var ui;

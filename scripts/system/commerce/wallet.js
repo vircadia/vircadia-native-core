@@ -18,8 +18,7 @@ Script.include("/~/system/libraries/accountUtils.js");
 Script.include("/~/system/libraries/connectionUtils.js");
 var AppUi = Script.require('appUi');
 
-var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace" +
-    (WalletScriptingInterface.limitedCommerce ? "?isFree=1" : "");
+    var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";;
 
 // BEGIN AVATAR SELECTOR LOGIC
 var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6 };

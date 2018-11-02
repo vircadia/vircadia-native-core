@@ -10,6 +10,7 @@
 //
 
 #include "WalletScriptingInterface.h"
+#include <SettingHandle.h>
 
 CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(qmlObject, parent) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
@@ -38,4 +39,10 @@ void WalletScriptingInterface::proveAvatarEntityOwnershipVerification(const QUui
     } else {
         qCDebug(entities) << "Failed to prove ownership of:" << entityID << "is not an avatar entity";
     }
+}
+
+void WalletScriptingInterface::setLimitedCommerce(bool isLimited) {
+    _limitedCommerce = isLimited;
+    Setting::Handle<bool> limitedCommerceSetting{ "limitedCommerce", false };
+    limitedCommerceSetting.set(_limitedCommerce);
 }

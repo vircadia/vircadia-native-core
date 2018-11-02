@@ -15,7 +15,6 @@
 #include <QtCore/QObject>
 #include <DependencyManager.h>
 
-#include "scripting/HMDScriptingInterface.h"
 #include <ui/TabletScriptingInterface.h>
 #include <ui/QmlWrapper.h>
 #include <OffscreenUi.h>
@@ -68,7 +67,7 @@ public:
     void setWalletStatus(const uint& status);
 
     bool getLimitedCommerce() { return _limitedCommerce; }
-    void setLimitedCommerce(bool isLimited) { _limitedCommerce = isLimited; }
+    void setLimitedCommerce(bool isLimited);
 
 signals:
 

@@ -84,13 +84,10 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info,
     static const QString USER_AGENT = "User-Agent";
     const QString tokenStringMobile{ "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36" };
     const QString tokenStringMetaverse{ "Chrome/48.0 (HighFidelityInterface)" };
+    const QString tokenStringLimitedCommerce{ "Chrome/48.0 (HighFidelityInterface limitedCommerce)" };
+    Setting::Handle<bool> limitedCommerceSetting{ "limitedCommerce", false };
 
-    // During the period in which we have HFC commerce in the system, but not applied everywhere:
-    const QString tokenStringCommerce{ "Chrome/48.0 (HighFidelityInterface WithHFC)" };
-    Setting::Handle<bool> _settingSwitch{ "commerce", true };
-    bool isMoney = _settingSwitch.get();
-
-    const QString tokenString = !isAuthable ? tokenStringMobile : (isMoney ? tokenStringCommerce : tokenStringMetaverse);
+    const QString tokenString = !isAuthable ? tokenStringMobile : (limitedCommerceSetting.get() ? tokenStringLimitedCommerce : tokenStringMetaverse);
     info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
 }
 

@@ -7881,9 +7881,6 @@ void Application::loadAvatarBrowser() const {
     auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     // construct the url to the marketplace item
     QString url = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace?category=avatars";
-    if (DependencyManager::get<WalletScriptingInterface>()->getLimitedCommerce()) {
-        url += "&isFree=1";
-    }
 
     QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
     tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
