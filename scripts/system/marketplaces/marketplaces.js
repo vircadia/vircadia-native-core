@@ -554,7 +554,7 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     case 'checkout_itemLinkClicked':
         openMarketplace(message.itemId);
         break;
-    case 'checkout_continueShopping':
+    case 'checkout_continue':
         openMarketplace();
         break;
     case 'checkout_rezClicked':

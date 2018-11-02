@@ -937,9 +937,9 @@ Rectangle {
             }
         }
 
-        // "Continue Shopping" button
+        // "Continue" button
         HifiControlsUit.Button {
-            id: continueShoppingButton;
+            id: continueButton;
             color: hifi.buttons.noneBorderlessGray;
             colorScheme: hifi.colorSchemes.light;
             anchors.bottom: parent.bottom;
@@ -947,9 +947,9 @@ Rectangle {
             anchors.right: parent.right;
             width: 193;
             height: 44;
-            text: "Continue Shopping";
+            text: "Continue";
             onClicked: {
-                sendToScript({method: 'checkout_continueShopping', itemId: itemId});
+                sendToScript({method: 'checkout_continue', itemId: itemId});
             }
         }
     }
@@ -1038,7 +1038,7 @@ Rectangle {
                 width: parent.width/2 - anchors.leftMargin*2;
                 text: "Back to Marketplace";
                 onClicked: {
-                    sendToScript({method: 'checkout_continueShopping', itemId: itemId});
+                    sendToScript({method: 'checkout_continue', itemId: itemId});
                 }
             }
         }
