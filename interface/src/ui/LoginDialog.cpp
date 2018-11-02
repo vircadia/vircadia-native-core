@@ -67,12 +67,10 @@ void LoginDialog::showWithSelection() {
             }
         }
     } else {
-        if (qApp->getLoginDialogPoppedUp()) {
-            // pop up those overlay things.
-            qApp->createLoginDialogOverlay();
-            return;
-        } else {
+        if (!qApp->getLoginDialogPoppedUp()) {
             tablet->initialScreen(TABLET_LOGIN_DIALOG_URL);
+        } else {
+            // let Application handle creating login dialog overlay.
         }
     }
 

@@ -1287,6 +1287,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
     });
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
+    connect(this, &Application::activeDisplayPluginChanged, this, &Application::checkReadyToCreateLoginDialogOverlay);
 
     // Save avatar location immediately after a teleport.
     connect(myAvatar.get(), &MyAvatar::positionGoneTo,
@@ -2838,6 +2839,8 @@ void Application::initializeDisplayPlugins() {
         if (displayPlugin->isHmd()) {
             QObject::connect(dynamic_cast<HmdDisplayPlugin*>(displayPlugin.get()), &HmdDisplayPlugin::hmdMountedChanged,
                 DependencyManager::get<HMDScriptingInterface>().data(), &HMDScriptingInterface::mountedChanged);
+            QObject::connect(dynamic_cast<HmdDisplayPlugin*>(displayPlugin.get()), &HmdDisplayPlugin::hmdMountedChanged,
+                this, &Application::checkReadyToCreateLoginDialogOverlay);
         }
     }
 
@@ -5232,11 +5235,6 @@ void Application::pauseUntilLoginDetermined() {
     menu->getMenu("View")->setVisible(false);
     menu->getMenu("Navigate")->setVisible(false);
     menu->getMenu("Settings")->setVisible(false);
-
-    {
-        auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-        scriptEngines->loadControllerScripts();
-    }
 }
 
 void Application::resumeAfterLoginDialogActionTaken() {
@@ -8516,6 +8514,20 @@ void Application::setShowBulletConstraintLimits(bool value) {
     _physicsEngine->setShowBulletConstraintLimits(value);
 }
 
+void Application::checkReadyToCreateLoginDialogOverlay() {
+    if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible() && qApp->getLoginDialogPoppedUp() && _loginDialogOverlayID.isNull()) {
+        createLoginDialogOverlay();
+    } else if (qApp->getLoginDialogPoppedUp() && !qApp->isHMDMode()) {
+        auto pointer = DependencyManager::get<PointerScriptingInterface>().data();
+        if (_leftLoginPointerID > 0) {
+            pointer->disablePointer(_leftLoginPointerID);
+        }
+        if (_rightLoginPointerID > 0) {
+            pointer->disablePointer(_rightLoginPointerID);
+        }
+    }
+}
+
 void Application::createLoginDialogOverlay() {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto myAvatar = avatarManager->getMyAvatar();
@@ -8534,6 +8546,61 @@ void Application::createLoginDialogOverlay() {
         { "dpi", overlayDpi },
         { "visible", true }
     };
+    auto pointer = DependencyManager::get<PointerScriptingInterface>().data();
+    auto standard = _controllerScriptingInterface->getStandard();
+
+    glm::vec3 grabPointSphereOffsetLeft { 0.04, 0.13, 0.039 };  // x = upward, y = forward, z = lateral
+    glm::vec3 grabPointSphereOffsetRight { -0.04, 0.13, 0.039 };  // x = upward, y = forward, z = lateral
+
+    QList<QVariant> leftPointerTriggerProperties;
+    QVariantMap ltClick1 {
+        { "action", standard["LTClick"] },
+        { "button", "Focus" }
+    };
+    QVariantMap ltClick2 {
+        { "action", standard["LTClick"] },
+        { "button", "Primary" }
+    };
+
+    leftPointerTriggerProperties.append(ltClick1);
+    leftPointerTriggerProperties.append(ltClick2);
+    const unsigned int leftHand = 0;
+    QVariantMap leftPointerProperties {
+        { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
+        { "filter", PickFilter::PICK_OVERLAYS },
+        { "triggers", leftPointerTriggerProperties },
+        { "posOffset", vec3toVariant(grabPointSphereOffsetLeft) },
+        { "hover", true },
+        { "distanceScaleEnd", true },
+        { "hand", leftHand }
+    };
+    _leftLoginPointerID = pointer->createPointer(PickQuery::PickType::Ray, leftPointerProperties);
+    pointer->setRenderState(_leftLoginPointerID, "");
+    pointer->enablePointer(_leftLoginPointerID);
+    const unsigned int rightHand = 1;
+    QList<QVariant> rightPointerTriggerProperties;
+    QVariantMap rtClick1 {
+        { "action", standard["RTClick"] },
+        { "button", "Focus" }
+    };
+    QVariantMap rtClick2 {
+        { "action", standard["RTClick"] },
+        { "button", "Primary" }
+    };
+    rightPointerTriggerProperties.append(rtClick1);
+    rightPointerTriggerProperties.append(rtClick2);
+    QVariantMap rightPointerProperties{
+        { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
+        { "filter", PickFilter::PICK_OVERLAYS },
+        { "triggers", rightPointerTriggerProperties },
+        { "posOffset", vec3toVariant(grabPointSphereOffsetRight) },
+        { "hover", true },
+        { "distanceScaleEnd", true },
+        { "hand", rightHand }
+    };
+    _rightLoginPointerID = pointer->createPointer(PickQuery::PickType::Ray, rightPointerProperties);
+    pointer->setRenderState(_rightLoginPointerID, "");
+    pointer->enablePointer(_rightLoginPointerID);
 
     _loginDialogOverlayID = overlays.addOverlay("web3d", overlayProperties);
 }
@@ -8541,10 +8608,17 @@ void Application::createLoginDialogOverlay() {
 void Application::onDismissedLoginDialog() {
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
+    auto pointer = DependencyManager::get<PointerScriptingInterface>().data();
     if (!_loginDialogOverlayID.isNull()) {
         // deleting overlay.
         qDebug() << "Deleting overlay";
         getOverlays().deleteOverlay(_loginDialogOverlayID);
+    }
+    if (_leftLoginPointerID > 0) {
+        pointer->disablePointer(_leftLoginPointerID);
+    }
+    if (_rightLoginPointerID > 0) {
+        pointer->disablePointer(_rightLoginPointerID);
     }
     resumeAfterLoginDialogActionTaken();
 }

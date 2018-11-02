@@ -320,6 +320,8 @@ public:
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
+    // is only ready when user has mounted their headset and user is in HMD mode.
+    void checkReadyToCreateLoginDialogOverlay();
     void createLoginDialogOverlay();
 
 #if defined(Q_OS_ANDROID)
@@ -682,9 +684,12 @@ private:
     glm::uvec2 _renderResolution;
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
-    bool _loginDialogPoppedUp = false;
     bool _interstitialModeEnabled{ false };
+
+    bool _loginDialogPoppedUp = false;
     OverlayID _loginDialogOverlayID;
+    unsigned int _leftLoginPointerID { PointerEvent::INVALID_POINTER_ID };
+    unsigned int _rightLoginPointerID { PointerEvent::INVALID_POINTER_ID };
 
     quint64 _lastFaceTrackerUpdate;
 
