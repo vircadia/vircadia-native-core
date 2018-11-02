@@ -44,8 +44,8 @@ const mat4 Matrices::X_180 { createMatFromQuatAndPos(Quaternions::X_180, Vectors
 const mat4 Matrices::Y_180 { createMatFromQuatAndPos(Quaternions::Y_180, Vectors::ZERO) };
 const mat4 Matrices::Z_180 { createMatFromQuatAndPos(Quaternions::Z_180, Vectors::ZERO) };
 
-//  Safe version of glm::mix; based on the code in Nick Bobick's article,
-//  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
+//  Safe version of glm::mix; based on the code in Nick Bobic's article,
+//  https://www.gamasutra.com/view/feature/131686/rotating_objects_using_quaternions.php?page=1 (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
 glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
     float cosa = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
