@@ -6,8 +6,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
-
 function loaded() {
     openEventBridge(function() {
         elPosY = document.getElementById("horiz-y");
@@ -105,7 +103,7 @@ function loaded() {
             elColorBlue.value = blue;
             gridColor = { red: red, green: green, blue: blue };
             emitUpdate();
-        }
+        };
 
         elColorRed.addEventListener('change', colorChangeFunction);
         elColorGreen.addEventListener('change', colorChangeFunction);
@@ -131,15 +129,24 @@ function loaded() {
 
         EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
     });
-    document.addEventListener("keydown", function (keyDown) {
-      if (keyDown.keyCode === KEY_P && keyDown.ctrlKey) {
-          if (keyDown.shiftKey) {
-              EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
-          } else {
-              EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
-          }
-      }
-    })
+
+    document.addEventListener("keyup", function (keyUpEvent) {
+        if (keyUpEvent.target.nodeName === "INPUT") {
+            return;
+        }
+        let {code, key, altKey, ctrlKey, shiftKey} = keyUpEvent;
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: 'keyUpEvent',
+            keyUpEvent: {
+                code,
+                key,
+                altKey,
+                ctrlKey,
+                shiftKey
+            }
+        }));
+    }, false);
+
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function (event) {
         event.preventDefault();

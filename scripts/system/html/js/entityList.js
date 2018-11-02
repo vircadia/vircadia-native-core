@@ -21,8 +21,6 @@ const MAX_LENGTH_RADIUS = 9;
 const MINIMUM_COLUMN_WIDTH = 24;
 const SCROLLBAR_WIDTH = 20;
 const RESIZER_WIDTH = 10;
-const DELETE = 46; // Key code for the delete key.
-const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 
 const COLUMNS = {
     type: {
@@ -1115,21 +1113,46 @@ function loaded() {
             }
         }
     
-        document.addEventListener("keydown", function (keyDownEvent) {
-            if (keyDownEvent.target.nodeName === "INPUT") {
+        document.addEventListener("keyup", function (keyUpEvent) {
+            if (keyUpEvent.target.nodeName === "INPUT") {
                 return;
             }
-            let keyCode = keyDownEvent.keyCode;
-            if (keyCode === DELETE) {
-                EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
-            }
-            if (keyDownEvent.keyCode === KEY_P && keyDownEvent.ctrlKey) {
-                if (keyDownEvent.shiftKey) {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
-                } else {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+
+            if (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyA") {
+                let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
+                let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
+                    return selectedEntities.includes(visibleEntityID);
+                });
+
+                let selection = [];
+
+                if (!selectionIncludesAllVisibleEntityIDs) {
+                    selection = visibleEntityIDs;
                 }
+
+                updateSelectedEntities(selection);
+
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "selectionUpdate",
+                    focus: false,
+                    entityIds: selection,
+                }));
+
+                return;
             }
+
+
+            let {code, key, altKey, ctrlKey, shiftKey} = keyUpEvent;
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: 'keyUpEvent',
+                keyUpEvent: {
+                    code,
+                    key,
+                    altKey,
+                    ctrlKey,
+                    shiftKey
+                }
+            }));
         }, false);
         
         if (window.EventBridge !== undefined) {

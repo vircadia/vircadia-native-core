@@ -1352,8 +1352,6 @@ const COLOR_MIN = 0;
 const COLOR_MAX = 255;
 const COLOR_STEP = 1;
 
-const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
-
 const MATERIAL_PREFIX_STRING = "mat::";
 
 const PENDING_SCRIPT_STATUS = "[ Fetching status ]";
@@ -3494,16 +3492,23 @@ function loaded() {
             el.parentNode.removeChild(el);
             elDropdowns = document.getElementsByTagName("select");
         }
-            
-        document.addEventListener("keydown", function (keyDown) {
-            if (keyDown.keyCode === KEY_P && keyDown.ctrlKey) {
-                if (keyDown.shiftKey) {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
-                } else {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
-                }
+
+        document.addEventListener("keyup", function (keyUpEvent) {
+            if (keyUpEvent.target.nodeName === "INPUT") {
+                return;
             }
-        });
+            let {code, key, altKey, ctrlKey, shiftKey} = keyUpEvent;
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: 'keyUpEvent',
+                keyUpEvent: {
+                    code,
+                    key,
+                    altKey,
+                    ctrlKey,
+                    shiftKey
+                }
+            }));
+        }, false);
         
         window.onblur = function() {
             // Fake a change event

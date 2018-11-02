@@ -113,7 +113,6 @@ selectionManager.addEventListener(function () {
     entityIconOverlayManager.updatePositions();
 });
 
-var KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
 
@@ -1964,14 +1963,6 @@ var keyReleaseEvent = function (event) {
     if (isActive) {
         cameraManager.keyReleaseEvent(event);
     }
-    // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.key === KEY_P && event.isControl && !event.isAutoRepeat) {
-        if (event.isShifted) {
-            unparentSelectedEntities();
-        } else {
-            parentSelectedEntities();
-        }
-    }
 };
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
@@ -2365,10 +2356,6 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update(false, this);
-        } else if (data.type === 'parent') {
-            parentSelectedEntities();
-        } else if (data.type === 'unparent') {
-            unparentSelectedEntities();
         } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
@@ -2681,9 +2668,14 @@ function whenReleased(fn) {
     };
 }
 
+var isOnMacPlatform = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+
 var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
-mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
+if (isOnMacPlatform) {
+    mapping.from([Controller.Hardware.Keyboard.Backspace]).to(deleteKey);
+} else {
+    mapping.from([Controller.Hardware.Keyboard.Delete]).to(deleteKey);
+}
 mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
 mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
 mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
@@ -2706,6 +2698,51 @@ mapping.from([Controller.Hardware.Keyboard.Z])
     .to(whenPressed(function() { undoHistory.redo() }));
 
 
+mapping.from([Controller.Hardware.Keyboard.P])
+    .when([Controller.Hardware.Keyboard.Control, Controller.Hardware.Keyboard.Shift])
+    .to(whenReleased(function() { unparentSelectedEntities(); }));
+
+mapping.from([Controller.Hardware.Keyboard.P])
+    .when([Controller.Hardware.Keyboard.Control, !Controller.Hardware.Keyboard.Shift])
+    .to(whenReleased(function() { parentSelectedEntities(); }));
+
+function keyUpEventFromUIWindow(keyUpEvent) {
+    var WANT_DEBUG_MISSING_SHORTCUTS = false;
+
+    var pressedValue = 0.0;
+    // Note: For some reason the keyboardEvent for delete does not show a code, using key instead:
+    if ((!isOnMacPlatform && keyUpEvent.key === "Delete") || (isOnMacPlatform && keyUpEvent.code === "Backspace")) {
+        deleteKey(pressedValue);
+    } else if (keyUpEvent.code === "KeyT") {
+        toggleKey(pressedValue);
+    } else if (keyUpEvent.code === "KeyF") {
+        focusKey(pressedValue);
+    } else if (keyUpEvent.code === "KeyG") {
+        gridKey(pressedValue);
+    } else if (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyX") {
+        selectionManager.cutSelectedEntities();
+    } else if (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyC") {
+        selectionManager.copySelectedEntities();
+    } else if (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyV") {
+        selectionManager.pasteEntities();
+    } else if (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyD") {
+        selectionManager.duplicateSelection();
+    } else if (keyUpEvent.ctrlKey && !keyUpEvent.shiftKey && keyUpEvent.code === "KeyZ") {
+        undoHistory.undo();
+    } else if (keyUpEvent.ctrlKey && !keyUpEvent.shiftKey && keyUpEvent.code === "KeyP") {
+        parentSelectedEntities();
+    } else if (keyUpEvent.ctrlKey && keyUpEvent.shiftKey && keyUpEvent.code === "KeyP") {
+        unparentSelectedEntities();
+    } else if (
+        (keyUpEvent.ctrlKey && keyUpEvent.shiftKey && keyUpEvent.code === "KeyZ") ||
+        (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyY")) {
+
+        undoHistory.redo();
+    } else if (WANT_DEBUG_MISSING_SHORTCUTS) {
+        console.warn("unhandled key event: " + JSON.stringify(keyUpEvent))
+    }
+}
+
 var propertyMenu = new PopupMenu();
 
 propertyMenu.onSelectMenuItem = function (name) {
@@ -2718,21 +2755,6 @@ propertyMenu.onSelectMenuItem = function (name) {
 var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
-
-entityListTool.webView.webEventReceived.connect(function(data) {
-    try {
-        data = JSON.parse(data);
-    } catch(e) {
-        print("edit.js: Error parsing JSON");
-        return;
-    }
-
-    if (data.type === 'parent') {
-        parentSelectedEntities();
-    } else if (data.type === 'unparent') {
-        unparentSelectedEntities();
-    }
-});
 
 
 selectionDisplay.onSpaceModeChange = function(spaceMode) {
