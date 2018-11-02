@@ -172,7 +172,7 @@ def processCommand(line):
         scribeArgs = getCommonScribeArgs(scribeFile, libs)
         headerFlag = '-H'
         # using the old flag on Android builds for now
-        if (dialect == '310es'): headerFlag = '-H'
+        if (dialect == '310es'): headerFlag = '-h'
         for header in getDialectAndVariantHeaders(dialect, variant):
             scribeArgs.extend([headerFlag, header])
         scribeArgs.extend(['-o', unoptGlslFile])
