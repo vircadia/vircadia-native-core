@@ -16,6 +16,11 @@ CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(q
     Q_ASSERT(QThread::currentThread() == qApp->thread());
 }
 
+WalletScriptingInterface::WalletScriptingInterface() {
+    connect(DependencyManager::get<AccountManager>().data(),
+        &AccountManager::limitedCommerceChanged, this, &WalletScriptingInterface::limitedCommerceChanged);
+}
+
 void WalletScriptingInterface::refreshWalletStatus() {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->getWalletStatus();
@@ -39,10 +44,4 @@ void WalletScriptingInterface::proveAvatarEntityOwnershipVerification(const QUui
     } else {
         qCDebug(entities) << "Failed to prove ownership of:" << entityID << "is not an avatar entity";
     }
-}
-
-void WalletScriptingInterface::setLimitedCommerce(bool isLimited) {
-    _limitedCommerce = isLimited;
-    Setting::Handle<bool> limitedCommerceSetting{ "limitedCommerce", false };
-    limitedCommerceSetting.set(_limitedCommerce);
 }

@@ -70,9 +70,9 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info,
 
     // check if this is a request to a highfidelity URL
     bool isAuthable = isAuthableHighFidelityURL(info.requestUrl());
+    auto accountManager = DependencyManager::get<AccountManager>();
     if (isAuthable) {
         // if we have an access token, add it to the right HTTP header for authorization
-        auto accountManager = DependencyManager::get<AccountManager>();
 
         if (accountManager->hasValidAccessToken()) {
             static const QString OAUTH_AUTHORIZATION_HEADER = "Authorization";
@@ -85,9 +85,8 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info,
     const QString tokenStringMobile{ "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36" };
     const QString tokenStringMetaverse{ "Chrome/48.0 (HighFidelityInterface)" };
     const QString tokenStringLimitedCommerce{ "Chrome/48.0 (HighFidelityInterface limitedCommerce)" };
-    Setting::Handle<bool> limitedCommerceSetting{ "limitedCommerce", false };
 
-    const QString tokenString = !isAuthable ? tokenStringMobile : (limitedCommerceSetting.get() ? tokenStringLimitedCommerce : tokenStringMetaverse);
+    const QString tokenString = !isAuthable ? tokenStringMobile : (accountManager->getLimitedCommerce() ? tokenStringLimitedCommerce : tokenStringMetaverse);
     info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
 }
 
