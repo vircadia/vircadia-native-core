@@ -261,7 +261,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     for (auto it = sortedAvatarVector.begin(); it != sortedAvatarVector.end(); ++it) {
         const SortableAvatar& sortData = *it;
         const auto avatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
-
+        if (!avatar->_isClientAvatar) {
+            avatar->setIsClientAvatar(true);
+        }
         // TODO: to help us scale to more avatars it would be nice to not have to poll this stuff every update
         if (avatar->getSkeletonModel()->isLoaded()) {
             // remove the orb if it is there
