@@ -166,8 +166,15 @@ public slots:
     /**jsdoc
     * Returns the Operating Sytem type
     * @function Test.getOperatingSystemType
+    * @returns {string} "WINDOWS", "MACOS" or "UNKNOWN"
     */
     QString getOperatingSystemType();
+
+    /**jsdoc
+    * Sets the size of the Window on desktop
+    * @function Test.getOperatingSystemType
+    */
+    void setWindowSize(int width, int height);
 
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);

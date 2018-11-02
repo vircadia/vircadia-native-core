@@ -209,3 +209,7 @@ QString TestScriptingInterface::getOperatingSystemType() {
     return "UNKNOWN";
 #endif
 }
+
+void TestScriptingInterface::setWindowSize(int width, int height) {
+    qApp->getWindow()->resize(width, height);
+}
