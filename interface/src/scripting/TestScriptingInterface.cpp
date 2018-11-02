@@ -203,7 +203,7 @@ int TestScriptingInterface::getOtherAvatarsReplicaCount() {
 QString TestScriptingInterface::getOperatingSystemType() {
 #ifdef Q_OS_WIN
     return "WINDOWS";
-#elif #defined Q_MAC_OS
+#elif defined Q_MAC_OS
     return "MACOS";
 #else
     return "UNKNOWN";
