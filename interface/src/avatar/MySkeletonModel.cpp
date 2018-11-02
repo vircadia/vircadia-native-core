@@ -90,7 +90,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
 
 // Called within Model::simulate call, below.
 void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMGeometry& geometry = getHFMGeometry();
 
     Head* head = _owningAvatar->getHead();
 

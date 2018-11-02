@@ -36,11 +36,11 @@ class FBXNode;
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+HFMGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+HFMGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 class TextureParam {
 public:
@@ -103,20 +103,20 @@ class ExtractedMesh;
 
 class FBXReader {
 public:
-    FBXGeometry* _fbxGeometry;
+    HFMGeometry* _hfmGeometry;
 
     FBXNode _rootNode;
     static FBXNode parseFBX(QIODevice* device);
 
-    FBXGeometry* extractFBXGeometry(const QVariantHash& mapping, const QString& url);
+    HFMGeometry* extractHFMGeometry(const QVariantHash& mapping, const QString& url);
 
     static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate = true);
     QHash<QString, ExtractedMesh> meshes;
-    static void buildModelMesh(FBXMesh& extractedMesh, const QString& url);
+    static void buildModelMesh(HFMMesh& extractedMesh, const QString& url);
 
     static glm::vec3 normalizeDirForPacking(const glm::vec3& dir);
 
-    FBXTexture getTexture(const QString& textureID);
+    HFMTexture getTexture(const QString& textureID);
 
     QHash<QString, QString> _textureNames;
     // Hashes the original RelativeFilename of textures
@@ -142,9 +142,9 @@ public:
     QHash<QString, QString> ambientFactorTextures;
     QHash<QString, QString> occlusionTextures;
 
-    QHash<QString, FBXMaterial> _fbxMaterials;
+    QHash<QString, HFMMaterial> _hfmMaterials;
 
-    void consolidateFBXMaterials(const QVariantHash& mapping);
+    void consolidateHFMMaterials(const QVariantHash& mapping);
 
     bool _loadLightmaps = true;
     float _lightmapOffset = 0.0f;

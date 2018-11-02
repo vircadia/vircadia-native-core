@@ -235,7 +235,7 @@ bool ModelPackager::zipModel() {
     return true;
 }
 
-void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename, const FBXGeometry& geometry) {
+void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename, const HFMGeometry& geometry) {
 
     bool isBodyType = _modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL;
 
@@ -370,7 +370,7 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
 
 void ModelPackager::listTextures() {
     _textures.clear();
-    foreach (const FBXMaterial mat, _geometry->materials) {
+    foreach (const HFMMaterial mat, _geometry->materials) {
         if (!mat.albedoTexture.filename.isEmpty() && mat.albedoTexture.content.isEmpty() &&
             !_textures.contains(mat.albedoTexture.filename)) {
             _textures << mat.albedoTexture.filename;
