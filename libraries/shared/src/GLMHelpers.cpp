@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
 #include "GLMHelpers.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include "NumericalConstants.h"
@@ -76,9 +77,11 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
 
 // Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
 int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix) {
-    int16_t twoByteFixed = (int16_t)(scalar * (float)(1 << radix));
-    memcpy(buffer, &twoByteFixed, sizeof(int16_t));
-    return sizeof(int16_t);
+    using FixedType = int16_t;
+    FixedType twoByteFixed = (FixedType) glm::clamp(scalar * (1 << radix), (float)std::numeric_limits<FixedType>::min(),
+        (float)std::numeric_limits<FixedType>::max());
+    memcpy(buffer, &twoByteFixed, sizeof(FixedType));
+    return sizeof(FixedType);
 }
 
 int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, float* destinationPointer, int radix) {
