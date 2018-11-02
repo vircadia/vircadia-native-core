@@ -92,7 +92,7 @@ public class LoginMenuActivity extends AppCompatActivity
 
     @Override
     public void onLoginButtonClicked() {
-        loadLoginFragment();
+        loadLoginFragment(false);
     }
 
     @Override
@@ -100,6 +100,10 @@ public class LoginMenuActivity extends AppCompatActivity
         loadMainActivity();
     }
 
+    @Override
+    public void onSteamLoginButtonClicked() {
+        loadLoginFragment(true);
+    }
 
     private void loadSignupFragment() {
         FragmentManager fragmentManager = getFragmentManager();
@@ -113,10 +117,10 @@ public class LoginMenuActivity extends AppCompatActivity
         hideStatusBar();
     }
 
-    private void loadLoginFragment() {
+    private void loadLoginFragment(boolean useOauth) {
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        Fragment fragment = LoginFragment.newInstance();
+        Fragment fragment = LoginFragment.newInstance(useOauth);
         String tag = getString(R.string.tagFragmentLogin);
         fragmentTransaction.replace(R.id.content_frame, fragment, tag);
         fragmentTransaction.addToBackStack(tag);

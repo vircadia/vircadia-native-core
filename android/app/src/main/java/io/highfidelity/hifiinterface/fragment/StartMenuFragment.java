@@ -1,8 +1,8 @@
 package io.highfidelity.hifiinterface.fragment;
 
+import android.app.Fragment;
 import android.content.Context;
 import android.os.Bundle;
-import android.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +11,7 @@ import io.highfidelity.hifiinterface.R;
 
 public class StartMenuFragment extends Fragment {
 
+    private String TAG = "HighFidelity";
     private StartMenuInteractionListener mListener;
 
     public StartMenuFragment() {
@@ -36,6 +37,12 @@ public class StartMenuFragment extends Fragment {
         rootView.findViewById(R.id.loginButton).setOnClickListener(view -> {
             if (mListener != null) {
                 mListener.onLoginButtonClicked();
+            }
+        });
+
+        rootView.findViewById(R.id.steamLoginButton).setOnClickListener(view -> {
+            if (mListener != null) {
+                mListener.onSteamLoginButtonClicked();
             }
         });
 
@@ -81,5 +88,6 @@ public class StartMenuFragment extends Fragment {
         void onSignupButtonClicked();
         void onLoginButtonClicked();
         void onSkipLoginClicked();
+        void onSteamLoginButtonClicked();
     }
 }

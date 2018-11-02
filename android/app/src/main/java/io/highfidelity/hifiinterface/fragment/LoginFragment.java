@@ -1,10 +1,13 @@
 package io.highfidelity.hifiinterface.fragment;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,14 +21,28 @@ import android.widget.TextView;
 
 import org.qtproject.qt5.android.QtNative;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.Random;
+
+import io.highfidelity.hifiinterface.BuildConfig;
 import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.R;
+import io.highfidelity.hifiinterface.WebViewActivity;
 
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationActive;
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationInactive;
 
 public class LoginFragment extends Fragment
                             implements  OnBackPressedListener {
+
+    private static final String ARG_USE_OAUTH = "use_oauth";
+    private static final String TAG = "Interface";
+
+    private final String OAUTH_CLIENT_ID = BuildConfig.OAUTH_CLIENT_ID;
+    private final String OAUTH_REDIRECT_URI = BuildConfig.OAUTH_REDIRECT_URI;
+    private final String OAUTH_AUTHORIZE_BASE_URL = "https://highfidelity.com/oauth/authorize";
+    private static final int OAUTH_AUTORIZE_REQUEST = 1;
 
     private EditText mUsername;
     private EditText mPassword;
@@ -37,8 +54,12 @@ public class LoginFragment extends Fragment
     private ViewGroup mLoggedInFrame;
     private boolean mLoginInProgress;
     private boolean mLoginSuccess;
+    private boolean mUseOauth;
+    private String mOauthState;
 
     public native void login(String username, String password, boolean keepLoggedIn);
+    private native void retrieveAccessToken(String authCode, String clientId, String clientSecret, String redirectUri);
+
     public native void cancelLogin();
 
     private LoginFragment.OnLoginInteractionListener mListener;
@@ -47,9 +68,20 @@ public class LoginFragment extends Fragment
         // Required empty public constructor
     }
 
-    public static LoginFragment newInstance() {
+    public static LoginFragment newInstance(boolean useOauth) {
         LoginFragment fragment = new LoginFragment();
+        Bundle args = new Bundle();
+        args.putBoolean(ARG_USE_OAUTH, useOauth);
+        fragment.setArguments(args);
         return fragment;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            mUseOauth = getArguments().getBoolean(ARG_USE_OAUTH, false);
+        }
     }
 
     @Override
@@ -79,6 +111,11 @@ public class LoginFragment extends Fragment
 
         mKeepMeLoggedInCheckbox.setChecked(HifiUtils.getInstance().isKeepingLoggedIn());
 
+        if (mUseOauth) {
+            openWebForAuthorization();
+        } else {
+            showLoginForm();
+        }
         return rootView;
     }
 
@@ -109,10 +146,31 @@ public class LoginFragment extends Fragment
     @Override
     public void onStop() {
         super.onStop();
-        showLoginForm();
+        if (!mUseOauth) {
+            showLoginForm();
+        }
         // Leave the Qt app paused
         QtNative.setApplicationState(ApplicationInactive);
         hideKeyboard();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == OAUTH_AUTORIZE_REQUEST) {
+            if (resultCode == Activity.RESULT_OK) {
+                String authCode = data.getStringExtra(WebViewActivity.RESULT_OAUTH_CODE);
+                String state = data.getStringExtra(WebViewActivity.RESULT_OAUTH_STATE);
+                if (state != null && state.equals(mOauthState) && mListener != null) {
+                    mOauthState = null;
+                    showActivityIndicator();
+                    mLoginInProgress = true;
+                    retrieveAccessToken(authCode, BuildConfig.OAUTH_CLIENT_ID, BuildConfig.OAUTH_CLIENT_SECRET, BuildConfig.OAUTH_REDIRECT_URI);
+                }
+            } else {
+                onCancelLogin();
+            }
+        }
+
     }
 
     private void onCancelLogin() {
@@ -207,8 +265,12 @@ public class LoginFragment extends Fragment
                 mLoginSuccess = true;
                 showLoggedInMessage();
             } else {
-                showLoginForm();
-                showError(getString(R.string.login_username_or_password_incorrect));
+                if (!mUseOauth) {
+                    showLoginForm();
+                    showError(getString(R.string.login_username_or_password_incorrect));
+                } else {
+                    openWebForAuthorization();
+                }
             }
         });
     }
@@ -228,6 +290,33 @@ public class LoginFragment extends Fragment
             return false;
         }
     }
+
+    private void updateOauthState() {
+        mOauthState = Long.toString(new Random().nextLong());
+    }
+
+    private String buildAuthorizeUrl() {
+        StringBuilder sb = new StringBuilder(OAUTH_AUTHORIZE_BASE_URL);
+        sb.append("?client_id=").append(OAUTH_CLIENT_ID);
+        try {
+            String redirectUri = URLEncoder.encode(OAUTH_REDIRECT_URI, "utf-8");
+            sb.append("&redirect_uri=").append(redirectUri);
+        } catch (UnsupportedEncodingException e) {
+            Log.e(TAG, "Cannot build oauth autorization url", e);
+        }
+        sb.append("&response_type=code&scope=owner");
+        sb.append("&state=").append(mOauthState);
+        return sb.toString();
+    }
+
+    private void openWebForAuthorization() {
+        Intent openUrlIntent = new Intent(getActivity(), WebViewActivity.class);
+        updateOauthState();
+        openUrlIntent.putExtra(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL, buildAuthorizeUrl());
+        openUrlIntent.putExtra(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_CLEAR_COOKIES, true);
+        startActivityForResult(openUrlIntent, OAUTH_AUTORIZE_REQUEST);
+    }
+
 
     public interface OnLoginInteractionListener {
         void onLoginCompleted();

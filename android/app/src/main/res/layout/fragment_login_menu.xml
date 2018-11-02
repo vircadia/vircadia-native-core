@@ -74,6 +74,24 @@ tools:context=".fragment.StartMenuFragment">
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"/>
 
+        <Button
+            android:id="@+id/steamLoginButton"
+            android:layout_width="238dp"
+            android:layout_height="42dp"
+            android:background="@drawable/rounded_button_color4"
+            android:fontFamily="@font/raleway_bold"
+            android:layout_marginTop="10dp"
+            android:text="@string/steam_log_in"
+            android:textAlignment="center"
+            android:textColor="@color/white_opaque"
+            android:textAllCaps="false"
+            android:textSize="18sp"
+            android:drawableLeft="@drawable/ic_steam"
+            android:paddingLeft="38dp"
+            android:paddingRight="38dp"
+            app:layout_constraintTop_toBottomOf="@id/loginButton"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"/>
 
         <TextView
             android:id="@+id/takeMeInWorld"

@@ -53,6 +53,9 @@ android {
         debug {
             buildConfigField "String", "BACKTRACE_URL", "\"" + (System.getenv("CMAKE_BACKTRACE_URL") ? System.getenv("CMAKE_BACKTRACE_URL") : '') + "\""
             buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (System.getenv("CMAKE_BACKTRACE_TOKEN") ? System.getenv("CMAKE_BACKTRACE_TOKEN") : '') + "\""
+            buildConfigField "String", "OAUTH_CLIENT_ID", "\"" + (System.getenv("OAUTH_CLIENT_ID") ? System.getenv("OAUTH_CLIENT_ID") : '') + "\""
+            buildConfigField "String", "OAUTH_CLIENT_SECRET", "\"" + (System.getenv("OAUTH_CLIENT_SECRET") ? System.getenv("OAUTH_CLIENT_SECRET") : '') + "\""
+            buildConfigField "String", "OAUTH_REDIRECT_URI", "\"" + (System.getenv("OAUTH_REDIRECT_URI") ? System.getenv("OAUTH_REDIRECT_URI") : '') + "\""
         }
         release {
             minifyEnabled false
@@ -63,6 +66,9 @@ android {
                     project.hasProperty("HIFI_ANDROID_KEY_PASSWORD")? signingConfigs.release : null
             buildConfigField "String", "BACKTRACE_URL", "\"" + (System.getenv("CMAKE_BACKTRACE_URL") ? System.getenv("CMAKE_BACKTRACE_URL") : '') + "\""
             buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (System.getenv("CMAKE_BACKTRACE_TOKEN") ? System.getenv("CMAKE_BACKTRACE_TOKEN") : '') + "\""
+            buildConfigField "String", "OAUTH_CLIENT_ID", "\"" + (System.getenv("OAUTH_CLIENT_ID") ? System.getenv("OAUTH_CLIENT_ID") : '') + "\""
+            buildConfigField "String", "OAUTH_CLIENT_SECRET", "\"" + (System.getenv("OAUTH_CLIENT_SECRET") ? System.getenv("OAUTH_CLIENT_SECRET") : '') + "\""
+            buildConfigField "String", "OAUTH_REDIRECT_URI", "\"" + (System.getenv("OAUTH_REDIRECT_URI") ? System.getenv("OAUTH_REDIRECT_URI") : '') + "\""
         }
     }
 

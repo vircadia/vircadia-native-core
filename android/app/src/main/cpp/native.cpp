@@ -364,6 +364,52 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_login(JNIEnv *env, job
 }
 
 JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_fragment_LoginFragment_retrieveAccessToken(JNIEnv *env,
+                                                                                  jobject instance,
+                                                                                  jstring authCode_,
+                                                                                  jstring clientId_,
+                                                                                  jstring clientSecret_,
+                                                                                  jstring redirectUri_) {
+    const char *c_authCode = env->GetStringUTFChars(authCode_, 0);
+    const char *c_clientId = env->GetStringUTFChars(clientId_, 0);
+    const char *c_clientSecret = env->GetStringUTFChars(clientSecret_, 0);
+    const char *c_redirectUri = env->GetStringUTFChars(redirectUri_, 0);
+
+    QString authCode = QString(c_authCode);
+    QString clientId = QString(c_clientId);
+    QString clientSecret = QString(c_clientSecret);
+    QString redirectUri = QString(c_redirectUri);
+
+    env->ReleaseStringUTFChars(authCode_, c_authCode);
+    env->ReleaseStringUTFChars(clientId_, c_clientId);
+    env->ReleaseStringUTFChars(clientSecret_, c_clientSecret);
+    env->ReleaseStringUTFChars(redirectUri_, c_redirectUri);
+
+    auto accountManager = DependencyManager::get<AccountManager>();
+
+    __loginCompletedListener = QAndroidJniObject(instance); // TODO: use a different listener?
+
+    QObject::connect(accountManager.data(), &AccountManager::loginComplete, [](const QUrl& authURL) {
+        jboolean jSuccess = (jboolean) true;
+        if (__loginCompletedListener.isValid()) {
+            __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
+        }
+    });
+
+    QObject::connect(accountManager.data(), &AccountManager::loginFailed, []() {
+        jboolean jSuccess = (jboolean) false;
+        if (__loginCompletedListener.isValid()) {
+            __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
+        }
+    });
+
+    QMetaObject::invokeMethod(accountManager.data(), "requestAccessTokenWithAuthCode",
+                              Q_ARG(const QString&, authCode), Q_ARG(const QString&, clientId),
+                              Q_ARG(const QString&, clientSecret), Q_ARG(const QString&, redirectUri));
+
+}
+
+JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_fragment_SignupFragment_login(JNIEnv *env,
                                                                        jobject instance,
                                                                        jstring username_,

@@ -142,6 +142,12 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         webSlidingDrawer = (SlidingDrawer) inflater.inflate(R.layout.web_drawer, mainLayout, false);
         QtLayout qtLayout = (QtLayout) mainLayout.getChildAt(0);
+        if (qtLayout == null) {
+            Log.d("[QTLAYOUT-NULL]" , "Mainlayout children: "  + mainLayout.getChildCount());
+            for (int i=0; i< mainLayout.getChildCount(); i++) {
+                Log.d("[QTLAYOUT-NULL]" , "Child " + i + ": "  + mainLayout.getChildAt(i));
+            }
+        }
         QtLayout.LayoutParams layoutParams = new QtLayout.LayoutParams(webSlidingDrawer.getLayoutParams());
         webSlidingDrawer.setOnDrawerCloseListener(() -> {
             WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
@@ -380,4 +386,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     public void onExpand() {
         keepInterfaceRunning = true;
     }
+
+    @Override
+    public void onOAuthAuthorizeCallback(Uri uri) { }
 }

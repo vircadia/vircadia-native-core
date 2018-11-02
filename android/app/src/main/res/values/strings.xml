@@ -39,6 +39,7 @@
     <!-- tags -->
     <string name="tagFragmentHome">tagFragmentHome</string>
     <string name="tagFragmentLogin">tagFragmentLogin</string>
+    <string name="tagFragmentLoggingIn">tagFragmentLogginIn</string>
     <string name="tagFragmentSignup">tagFragmentSignup</string>
     <string name="tagFragmentPolicy">tagFragmentPolicy</string>
     <string name="tagFragmentPeople">tagFragmentPeople</string>
@@ -52,4 +53,5 @@
     <string name="keep_me_logged_in">Keep Me Logged In</string>
     <string name="take_me_in_world">No thanks, take me in-world!</string>
     <string name="be_anywere">BE ANYWHERE, WITH ANYONE \nRIGHT NOW</string>
+    <string name="steam_log_in">STEAM LOG IN</string>
 </resources>
