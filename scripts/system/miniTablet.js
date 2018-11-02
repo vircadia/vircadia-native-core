@@ -250,11 +250,8 @@
         }
 
 
-        function getUIPositionAndRotation(hand) {
-            return {
-                position: MINI_POSITIONS[hand],
-                rotation: MINI_ROTATIONS[hand]
-            };
+        function getUIPosition(hand) {
+            return MINI_POSITIONS[hand];
         }
 
         function getMiniTabletID() {
@@ -492,7 +489,7 @@
         create();
 
         return {
-            getUIPositionAndRotation: getUIPositionAndRotation,
+            getUIPosition: getUIPosition,
             getMiniTabletID: getMiniTabletID,
             getMiniTabletProperties: getMiniTabletProperties,
             isLaserPointingAt: isLaserPointingAt,
@@ -554,13 +551,22 @@
             MAX_TRIGGER_ON_TIME = 400,
 
             // Visibility.
-            MAX_HAND_CAMERA_ANGLE = 30,
-            MAX_CAMERA_HAND_ANGLE = 30,
+            MAX_MEDIAL_FINGER_CAMERA_ANGLE = 25, // From palm normal along palm towards fingers.
+            MAX_MEDIAL_WRIST_CAMERA_ANGLE = 65, // From palm normal along palm towards wrist.
+            MAX_LATERAL_THUMB_CAMERA_ANGLE = 25, // From palm normal across palm towards of thumb.
+            MAX_LATERAL_PINKY_CAMERA_ANGLE = 25, // From palm normal across palm towards pinky.
             DEGREES_180 = 180,
-            MAX_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MAX_HAND_CAMERA_ANGLE / DEGREES_180),
-            MAX_CAMERA_HAND_ANGLE_COS = Math.cos(Math.PI * MAX_CAMERA_HAND_ANGLE / DEGREES_180),
+            DEGREES_TO_RADIANS = Math.PI / DEGREES_180,
+            MAX_MEDIAL_FINGER_CAMERA_ANGLE_RAD = DEGREES_TO_RADIANS * MAX_MEDIAL_FINGER_CAMERA_ANGLE,
+            MAX_MEDIAL_WRIST_CAMERA_ANGLE_RAD = DEGREES_TO_RADIANS * MAX_MEDIAL_WRIST_CAMERA_ANGLE,
+            MAX_LATERAL_THUMB_CAMERA_ANGLE_RAD = DEGREES_TO_RADIANS * MAX_LATERAL_THUMB_CAMERA_ANGLE,
+            MAX_LATERAL_PINKY_CAMERA_ANGLE_RAD = DEGREES_TO_RADIANS * MAX_LATERAL_PINKY_CAMERA_ANGLE,
+            MAX_CAMERA_MINI_ANGLE = 30,
+            MAX_CAMERA_MINI_ANGLE_COS = Math.cos(MAX_CAMERA_MINI_ANGLE * DEGREES_TO_RADIANS),
             HIDING_DELAY = 1000, // ms
-            lastVisible = [0, 0];
+            lastVisible = [0, 0],
+
+            HALF_PI = Math.PI / 2;
 
 
         function enterMiniDisabled() {
@@ -597,11 +603,13 @@
                 jointIndex,
                 handPosition,
                 handOrientation,
-                uiPositionAndOrientation,
                 miniPosition,
-                miniOrientation,
                 miniToCameraDirection,
-                cameraToHand;
+                medialHandVector,
+                lateralHandVector,
+                medialAngle,
+                lateralAngle,
+                cameraToMini;
 
             // Shouldn't show mini tablet if hand isn't being controlled.
             pose = Controller.getPoseValue(hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
@@ -646,15 +654,24 @@
                     Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
                 handOrientation =
                     Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
-                uiPositionAndOrientation = ui.getUIPositionAndRotation(hand);
+                var uiPosition = ui.getUIPosition(hand);
                 miniPosition = Vec3.sum(handPosition, Vec3.multiply(MyAvatar.sensorToWorldScale,
-                    Vec3.multiplyQbyV(handOrientation, uiPositionAndOrientation.position)));
-                miniOrientation = Quat.multiply(handOrientation, uiPositionAndOrientation.rotation);
+                    Vec3.multiplyQbyV(handOrientation, uiPosition)));
                 miniToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, miniPosition));
-                show = Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MAX_HAND_CAMERA_ANGLE_COS;
-                show = show || (-Vec3.dot(miniToCameraDirection, Quat.getForward(handOrientation)) > MAX_HAND_CAMERA_ANGLE_COS);
-                cameraToHand = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
-                show = show && (cameraToHand > MAX_CAMERA_HAND_ANGLE_COS);
+
+                // Mini tablet aimed toward camera?
+                medialHandVector = Vec3.multiplyQbyV(handOrientation, Vec3.UNIT_NEG_Y);
+                lateralHandVector = Vec3.multiplyQbyV(handOrientation, hand === LEFT_HAND ? Vec3.UNIT_X : Vec3.UNIT_NEG_X);
+                medialAngle = Math.acos(Vec3.dot(medialHandVector, miniToCameraDirection)) - HALF_PI;
+                lateralAngle = Math.acos(Vec3.dot(lateralHandVector, miniToCameraDirection)) - HALF_PI;
+                show = -MAX_MEDIAL_WRIST_CAMERA_ANGLE_RAD <= medialAngle
+                    && medialAngle <= MAX_MEDIAL_FINGER_CAMERA_ANGLE_RAD
+                    && -MAX_LATERAL_PINKY_CAMERA_ANGLE_RAD <= lateralAngle
+                    && lateralAngle <= MAX_LATERAL_THUMB_CAMERA_ANGLE_RAD;
+
+                // Camera looking at mini tablet?
+                cameraToMini = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
+                show = show && (cameraToMini > MAX_CAMERA_MINI_ANGLE_COS);
 
                 // Persist showing for a while after it would otherwise be hidden.
                 if (show) {
@@ -666,7 +683,7 @@
 
             return {
                 show: show,
-                cameraToHand: cameraToHand
+                cameraToMini: cameraToMini
             };
         }
 
@@ -689,7 +706,7 @@
             showRight = shouldShowMini(RIGHT_HAND);
             if (showLeft.show && showRight.show) {
                 // Both hands would be pointing at camera; show the one the camera is gazing at.
-                if (showLeft.cameraToHand > showRight.cameraToHand) {
+                if (showLeft.cameraToMini > showRight.cameraToMini) {
                     setState(MINI_SHOWING, LEFT_HAND);
                 } else {
                     setState(MINI_SHOWING, RIGHT_HAND);
@@ -751,7 +768,7 @@
             showLeft = shouldShowMini(LEFT_HAND);
             showRight = shouldShowMini(RIGHT_HAND);
             if (showLeft.show && showRight.show) {
-                if (showLeft.cameraToHand > showRight.cameraToHand) {
+                if (showLeft.cameraToMini > showRight.cameraToMini) {
                     if (miniHand !== LEFT_HAND) {
                         setState(MINI_HIDING);
                     }
