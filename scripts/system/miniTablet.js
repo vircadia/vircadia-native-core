@@ -563,6 +563,8 @@
             MAX_LATERAL_PINKY_CAMERA_ANGLE_RAD = DEGREES_TO_RADIANS * MAX_LATERAL_PINKY_CAMERA_ANGLE,
             MAX_CAMERA_MINI_ANGLE = 30,
             MAX_CAMERA_MINI_ANGLE_COS = Math.cos(MAX_CAMERA_MINI_ANGLE * DEGREES_TO_RADIANS),
+            SHOWING_DELAY = 1000, // ms
+            lastInvisible = [0, 0],
             HIDING_DELAY = 1000, // ms
             lastVisible = [0, 0],
 
@@ -609,7 +611,8 @@
                 lateralHandVector,
                 medialAngle,
                 lateralAngle,
-                cameraToMini;
+                cameraToMini,
+                now;
 
             // Shouldn't show mini tablet if hand isn't being controlled.
             pose = Controller.getPoseValue(hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
@@ -673,11 +676,19 @@
                 cameraToMini = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
                 show = show && (cameraToMini > MAX_CAMERA_MINI_ANGLE_COS);
 
+                // Delay showing for a while after it would otherwise be shown, unless it was showing on the other hand.
+                now = Date.now();
+                if (show) {
+                    show = now - lastInvisible[hand] >= SHOWING_DELAY || now - lastVisible[otherHand(hand)] <= HIDING_DELAY;
+                } else {
+                    lastInvisible[hand] = now;
+                }
+
                 // Persist showing for a while after it would otherwise be hidden.
                 if (show) {
-                    lastVisible[hand] = Date.now();
+                    lastVisible[hand] = now;
                 } else {
-                    show = Date.now() - lastVisible[hand] <= HIDING_DELAY;
+                    show = now - lastVisible[hand] <= HIDING_DELAY;
                 }
             }
 
