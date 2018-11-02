@@ -10,8 +10,8 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
-import stylesUit 1.0
-import controlsUit 1.0 as HifiControls
+import "styles-uit"
+import "controls-uit" as HifiControls
 
 Item {
     id: root

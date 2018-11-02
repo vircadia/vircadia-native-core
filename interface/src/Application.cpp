@@ -52,6 +52,8 @@
 #include <QTemporaryDir>
 
 #include <gl/QOpenGLContextWrapper.h>
+#include <gl/GLWindow.h>
+#include <gl/GLHelpers.h>
 
 #include <shared/FileUtils.h>
 #include <shared/QtHelpers.h>
@@ -226,6 +228,7 @@
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
+#include "ResourceRequestObserver.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
@@ -947,6 +950,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<WalletScriptingInterface>();
 
     DependencyManager::set<FadeEffect>();
+    DependencyManager::set<ResourceRequestObserver>();
 
     return previousSessionCrashed;
 }
@@ -969,8 +973,10 @@ OffscreenGLCanvas* _qmlShareContext { nullptr };
 // and manually set THAT to be the shared context for the Chromium helper
 #if !defined(DISABLE_QML)
 OffscreenGLCanvas* _chromiumShareContext { nullptr };
-Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 #endif
+
+Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
+Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
@@ -1368,7 +1374,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _glWidget->setMouseTracking(true);
     // Make sure the window is set to the correct size by processing the pending events
     QCoreApplication::processEvents();
-    _glWidget->createContext();
 
     // Create the main thread context, the GPU backend
     initializeGL();
@@ -2725,46 +2730,66 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
-    if (!_glWidget->makeCurrent()) {
-        qCWarning(interfaceapp, "Unable to make window context current");
-    }
+    _glWidget->windowHandle()->setFormat(getDefaultOpenGLSurfaceFormat());
 
+    // When loading QtWebEngineWidgets, it creates a global share context on startup.
+    // We have to account for this possibility by checking here for an existing 
+    // global share context
+    auto globalShareContext = qt_gl_global_share_context();
+    
 #if !defined(DISABLE_QML)
     // Build a shared canvas / context for the Chromium processes
-    {
-        // Disable signed distance field font rendering on ATI/AMD GPUs, due to
-        // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
-        std::string vendor{ (const char*)glGetString(GL_VENDOR) };
-        if ((vendor.find("AMD") != std::string::npos) || (vendor.find("ATI") != std::string::npos)) {
-            qputenv("QTWEBENGINE_CHROMIUM_FLAGS", QByteArray("--disable-distance-field-text"));
-        }
-
+    if (!globalShareContext) {
         // Chromium rendering uses some GL functions that prevent nSight from capturing
         // frames, so we only create the shared context if nsight is NOT active.
         if (!nsightActive()) {
             _chromiumShareContext = new OffscreenGLCanvas();
             _chromiumShareContext->setObjectName("ChromiumShareContext");
-            _chromiumShareContext->create(_glWidget->qglContext());
+            auto format =QSurfaceFormat::defaultFormat();
+#ifdef Q_OS_MAC
+            // On mac, the primary shared OpenGL context must be a 3.2 core context,
+            // or chromium flips out and spews error spam (but renders fine)
+            format.setMajorVersion(3);
+            format.setMinorVersion(2);
+#endif
+            _chromiumShareContext->setFormat(format);
+            _chromiumShareContext->create();
             if (!_chromiumShareContext->makeCurrent()) {
                 qCWarning(interfaceapp, "Unable to make chromium shared context current");
             }
-            qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+            globalShareContext = _chromiumShareContext->getContext();
+            qt_gl_set_global_share_context(globalShareContext);
             _chromiumShareContext->doneCurrent();
-            // Restore the GL widget context
-            if (!_glWidget->makeCurrent()) {
-                qCWarning(interfaceapp, "Unable to make window context current");
-            }
-        } else {
-            qCWarning(interfaceapp) << "nSight detected, disabling chrome rendering";
         }
     }
 #endif
+
+
+    _glWidget->createContext(globalShareContext);
+
+    if (!_glWidget->makeCurrent()) {
+        qCWarning(interfaceapp, "Unable to make window context current");
+    }
+
+#if !defined(DISABLE_QML)
+    // Disable signed distance field font rendering on ATI/AMD GPUs, due to
+    // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
+    std::string vendor{ (const char*)glGetString(GL_VENDOR) };
+    if ((vendor.find("AMD") != std::string::npos) || (vendor.find("ATI") != std::string::npos)) {
+        qputenv("QTWEBENGINE_CHROMIUM_FLAGS", QByteArray("--disable-distance-field-text"));
+    }
+#endif
+
+    if (!globalShareContext) {
+        globalShareContext = _glWidget->qglContext();
+        qt_gl_set_global_share_context(globalShareContext);
+    }
 
     // Build a shared canvas / context for the QML rendering
     {
         _qmlShareContext = new OffscreenGLCanvas();
         _qmlShareContext->setObjectName("QmlShareContext");
-        _qmlShareContext->create(_glWidget->qglContext());
+        _qmlShareContext->create(globalShareContext);
         if (!_qmlShareContext->makeCurrent()) {
             qCWarning(interfaceapp, "Unable to make QML shared context current");
         }
@@ -3129,6 +3154,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+    surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -5022,12 +5048,12 @@ void Application::saveSettings() const {
     PluginManager::getInstance()->saveSettings();
 }
 
-bool Application::importEntities(const QString& urlOrFilename) {
+bool Application::importEntities(const QString& urlOrFilename, const bool isObservable, const qint64 callerId) {
     bool success = false;
     _entityClipboard->withWriteLock([&] {
         _entityClipboard->eraseAllOctreeElements();
 
-        success = _entityClipboard->readFromURL(urlOrFilename);
+        success = _entityClipboard->readFromURL(urlOrFilename, isObservable, callerId);
         if (success) {
             _entityClipboard->reaverageOctreeElements();
         }
@@ -5812,6 +5838,42 @@ void Application::update(float deltaTime) {
             controller::Pose pose = userInputMapper->getPoseState(action);
             myAvatar->setControllerPoseInSensorFrame(action, pose.transform(avatarToSensorMatrix));
         }
+
+        static const std::vector<QString> trackedObjectStringLiterals = {
+            QStringLiteral("_TrackedObject00"), QStringLiteral("_TrackedObject01"), QStringLiteral("_TrackedObject02"), QStringLiteral("_TrackedObject03"),
+            QStringLiteral("_TrackedObject04"), QStringLiteral("_TrackedObject05"), QStringLiteral("_TrackedObject06"), QStringLiteral("_TrackedObject07"),
+            QStringLiteral("_TrackedObject08"), QStringLiteral("_TrackedObject09"), QStringLiteral("_TrackedObject10"), QStringLiteral("_TrackedObject11"),
+            QStringLiteral("_TrackedObject12"), QStringLiteral("_TrackedObject13"), QStringLiteral("_TrackedObject14"), QStringLiteral("_TrackedObject15")
+        };
+
+        // Controlled by the Developer > Avatar > Show Tracked Objects menu.
+        if (_showTrackedObjects) {
+            static const std::vector<controller::Action> trackedObjectActions = {
+                controller::Action::TRACKED_OBJECT_00, controller::Action::TRACKED_OBJECT_01, controller::Action::TRACKED_OBJECT_02, controller::Action::TRACKED_OBJECT_03,
+                controller::Action::TRACKED_OBJECT_04, controller::Action::TRACKED_OBJECT_05, controller::Action::TRACKED_OBJECT_06, controller::Action::TRACKED_OBJECT_07,
+                controller::Action::TRACKED_OBJECT_08, controller::Action::TRACKED_OBJECT_09, controller::Action::TRACKED_OBJECT_10, controller::Action::TRACKED_OBJECT_11,
+                controller::Action::TRACKED_OBJECT_12, controller::Action::TRACKED_OBJECT_13, controller::Action::TRACKED_OBJECT_14, controller::Action::TRACKED_OBJECT_15
+            };
+
+            int i = 0;
+            glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+            for (auto& action : trackedObjectActions) {
+                controller::Pose pose = userInputMapper->getPoseState(action);
+                if (pose.valid) {
+                    glm::vec3 pos = transformPoint(myAvatarMatrix, pose.translation);
+                    glm::quat rot = glmExtractRotation(myAvatarMatrix) * pose.rotation;
+                    DebugDraw::getInstance().addMarker(trackedObjectStringLiterals[i], rot, pos, BLUE);
+                } else {
+                    DebugDraw::getInstance().removeMarker(trackedObjectStringLiterals[i]);
+                }
+                i++;
+            }
+        } else if (_prevShowTrackedObjects) {
+            for (auto& key : trackedObjectStringLiterals) {
+                DebugDraw::getInstance().removeMarker(key);
+            }
+        }
+        _prevShowTrackedObjects = _showTrackedObjects;
     }
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
@@ -5978,7 +6040,9 @@ void Application::update(float deltaTime) {
     {
         PROFILE_RANGE_EX(app, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("overlays");
-        _overlays.update(deltaTime);
+        if (qApp->shouldPaint()) {
+            _overlays.update(deltaTime);
+        }
     }
 
     // Update _viewFrustum with latest camera and view frustum data...
@@ -6063,8 +6127,10 @@ void Application::update(float deltaTime) {
         PROFILE_RANGE_EX(app, "PostUpdateLambdas", 0xffff0000, (uint64_t)0);
         PerformanceTimer perfTimer("postUpdateLambdas");
         std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
-        for (auto& iter : _postUpdateLambdas) {
-            iter.second();
+        if (qApp->shouldPaint()) {
+            for (auto& iter : _postUpdateLambdas) {
+                iter.second();
+            }
         }
         _postUpdateLambdas.clear();
     }
@@ -6811,6 +6877,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
+    scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
@@ -7197,7 +7264,8 @@ void Application::addAssetToWorldFromURL(QString url) {
 
     addAssetToWorldInfo(filename, "Downloading model file " + filename + ".");
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, QUrl(url));
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        nullptr, QUrl(url), true, -1, "Application::addAssetToWorldFromURL");
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
 }
@@ -8304,6 +8372,10 @@ void Application::setShowBulletConstraints(bool value) {
 
 void Application::setShowBulletConstraintLimits(bool value) {
     _physicsEngine->setShowBulletConstraintLimits(value);
+}
+
+void Application::setShowTrackedObjects(bool value) {
+    _showTrackedObjects = value;
 }
 
 void Application::startHMDStandBySession() {

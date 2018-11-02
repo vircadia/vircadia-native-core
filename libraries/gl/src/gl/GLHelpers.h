@@ -35,6 +35,9 @@ int glVersionToInteger(QString glVersion);
 bool isRenderThread();
 
 namespace gl {
+    void globalLock();
+    void globalRelease(bool finish = true);
+    
     void withSavedContext(const std::function<void()>& f);
 
     bool checkGLError(const char* name);

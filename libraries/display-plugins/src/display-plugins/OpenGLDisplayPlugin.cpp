@@ -88,6 +88,7 @@ public:
         // Move the OpenGL context to the present thread
         // Extra code because of the widget 'wrapper' context
         _context = context;
+        _context->doneCurrent();
         _context->moveToThread(this);
     }
 
@@ -179,7 +180,9 @@ public:
             _context->makeCurrent();
             {
                 PROFILE_RANGE(render, "PluginPresent")
+                gl::globalLock();
                 currentPlugin->present();
+                gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
             _context->doneCurrent();
@@ -363,56 +366,35 @@ void OpenGLDisplayPlugin::customizeContext() {
     }
 
     if (!_presentPipeline) {
+        gpu::StatePointer blendState = gpu::StatePointer(new gpu::State());
+        blendState->setDepthTest(gpu::State::DepthTest(false));
+        blendState->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        gpu::StatePointer scissorState = gpu::StatePointer(new gpu::State());
+        scissorState->setDepthTest(gpu::State::DepthTest(false));
+        scissorState->setScissorEnable(true);
+
         {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTexture);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setScissorEnable(true);
-            _simplePipeline = gpu::Pipeline::create(program, state);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
+            _simplePipeline = gpu::Pipeline::create(program, scissorState);
+            _hudPipeline = gpu::Pipeline::create(program, blendState);
         }
 
         {
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::display_plugins::program::SrgbToLinear);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setScissorEnable(true);
-            _presentPipeline = gpu::Pipeline::create(program, state);
+            _presentPipeline = gpu::Pipeline::create(program, scissorState);
         }
 
         {
-            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
-            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTexture);
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _hudPipeline = gpu::Pipeline::create(program, state);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureMirroredX);
+            _mirrorHUDPipeline = gpu::Pipeline::create(program, blendState);
         }
 
         {
-            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
-            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTextureMirroredX);
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _mirrorHUDPipeline = gpu::Pipeline::create(program, state);
-        }
-
-        {
-            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawTransformUnitQuad);
-            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTexture);
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _cursorPipeline = gpu::Pipeline::create(program, state);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTransformedTexture);
+            _cursorPipeline = gpu::Pipeline::create(program, blendState);
         }
     }
     updateCompositeFramebuffer();

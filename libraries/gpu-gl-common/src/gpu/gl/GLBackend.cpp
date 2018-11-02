@@ -708,42 +708,117 @@ void GLBackend::do_glColor4f(const Batch& batch, size_t paramOffset) {
 
 void GLBackend::releaseBuffer(GLuint id, Size size) const {
     Lock lock(_trashMutex);
-    _buffersTrash.push_back({ id, size });
+    _currentFrameTrash.buffersTrash.push_back({ id, size });
 }
 
 void GLBackend::releaseExternalTexture(GLuint id, const Texture::ExternalRecycler& recycler) const {
     Lock lock(_trashMutex);
-    _externalTexturesTrash.push_back({ id, recycler });
+    _currentFrameTrash.externalTexturesTrash.push_back({ id, recycler });
 }
 
 void GLBackend::releaseTexture(GLuint id, Size size) const {
     Lock lock(_trashMutex);
-    _texturesTrash.push_back({ id, size });
+    _currentFrameTrash.texturesTrash.push_back({ id, size });
 }
 
 void GLBackend::releaseFramebuffer(GLuint id) const {
     Lock lock(_trashMutex);
-    _framebuffersTrash.push_back(id);
+    _currentFrameTrash.framebuffersTrash.push_back(id);
 }
 
 void GLBackend::releaseShader(GLuint id) const {
     Lock lock(_trashMutex);
-    _shadersTrash.push_back(id);
+    _currentFrameTrash.shadersTrash.push_back(id);
 }
 
 void GLBackend::releaseProgram(GLuint id) const {
     Lock lock(_trashMutex);
-    _programsTrash.push_back(id);
+    _currentFrameTrash.programsTrash.push_back(id);
 }
 
 void GLBackend::releaseQuery(GLuint id) const {
     Lock lock(_trashMutex);
-    _queriesTrash.push_back(id);
+    _currentFrameTrash.queriesTrash.push_back(id);
 }
 
 void GLBackend::queueLambda(const std::function<void()> lambda) const {
     Lock lock(_trashMutex);
     _lambdaQueue.push_back(lambda);
+}
+
+void GLBackend::FrameTrash::cleanup() {
+    glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+    glDeleteSync(fence);
+
+    {
+        std::vector<GLuint> ids;
+        ids.reserve(buffersTrash.size());
+        for (auto pair : buffersTrash) {
+            ids.push_back(pair.first);
+        }
+        if (!ids.empty()) {
+            glDeleteBuffers((GLsizei)ids.size(), ids.data());
+        }
+    }
+
+    {
+        std::vector<GLuint> ids;
+        ids.reserve(framebuffersTrash.size());
+        for (auto id : framebuffersTrash) {
+            ids.push_back(id);
+        }
+        if (!ids.empty()) {
+            glDeleteFramebuffers((GLsizei)ids.size(), ids.data());
+        }
+    }
+
+    {
+        std::vector<GLuint> ids;
+        ids.reserve(texturesTrash.size());
+        for (auto pair : texturesTrash) {
+            ids.push_back(pair.first);
+        }
+        if (!ids.empty()) {
+            glDeleteTextures((GLsizei)ids.size(), ids.data());
+        }
+    }
+
+    {
+        if (!externalTexturesTrash.empty()) {
+            std::vector<GLsync> fences;
+            fences.resize(externalTexturesTrash.size());
+            for (size_t i = 0; i < externalTexturesTrash.size(); ++i) {
+                fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+            }
+            // External texture fences will be read in another thread/context, so we need a flush
+            glFlush();
+            size_t index = 0;
+            for (auto pair : externalTexturesTrash) {
+                auto fence = fences[index++];
+                pair.second(pair.first, fence);
+            }
+        }
+    }
+    
+    for (auto id : programsTrash) {
+        glDeleteProgram(id);
+    }
+
+    for (auto id : shadersTrash) {
+        glDeleteShader(id);
+    }
+    
+    {
+        std::vector<GLuint> ids;
+        ids.reserve(queriesTrash.size());
+        for (auto id : queriesTrash) {
+            ids.push_back(id);
+        }
+        if (!ids.empty()) {
+            glDeleteQueries((GLsizei)ids.size(), ids.data());
+        }
+    }
+    
 }
 
 void GLBackend::recycle() const {
@@ -759,112 +834,16 @@ void GLBackend::recycle() const {
         }
     }
 
-    {
-        std::vector<GLuint> ids;
-        std::list<std::pair<GLuint, Size>> buffersTrash;
-        {
-            Lock lock(_trashMutex);
-            std::swap(_buffersTrash, buffersTrash);
-        }
-        ids.reserve(buffersTrash.size());
-        for (auto pair : buffersTrash) {
-            ids.push_back(pair.first);
-        }
-        if (!ids.empty()) {
-            glDeleteBuffers((GLsizei)ids.size(), ids.data());
-        }
+    while (!_previousFrameTrashes.empty()) {
+        _previousFrameTrashes.front().cleanup();
+        _previousFrameTrashes.pop_front();
     }
 
+    _previousFrameTrashes.emplace_back();
     {
-        std::vector<GLuint> ids;
-        std::list<GLuint> framebuffersTrash;
-        {
-            Lock lock(_trashMutex);
-            std::swap(_framebuffersTrash, framebuffersTrash);
-        }
-        ids.reserve(framebuffersTrash.size());
-        for (auto id : framebuffersTrash) {
-            ids.push_back(id);
-        }
-        if (!ids.empty()) {
-            glDeleteFramebuffers((GLsizei)ids.size(), ids.data());
-        }
-    }
-
-    {
-        std::vector<GLuint> ids;
-        std::list<std::pair<GLuint, Size>> texturesTrash;
-        {
-            Lock lock(_trashMutex);
-            std::swap(_texturesTrash, texturesTrash);
-        }
-        ids.reserve(texturesTrash.size());
-        for (auto pair : texturesTrash) {
-            ids.push_back(pair.first);
-        }
-        if (!ids.empty()) {
-            glDeleteTextures((GLsizei)ids.size(), ids.data());
-        }
-    }
-
-    {
-        std::list<std::pair<GLuint, Texture::ExternalRecycler>> externalTexturesTrash;
-        {
-            Lock lock(_trashMutex);
-            std::swap(_externalTexturesTrash, externalTexturesTrash);
-        }
-        if (!externalTexturesTrash.empty()) {
-            std::vector<GLsync> fences;  
-            fences.resize(externalTexturesTrash.size());
-            for (size_t i = 0; i < externalTexturesTrash.size(); ++i) {
-                fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-            }
-            // External texture fences will be read in another thread/context, so we need a flush
-            glFlush();
-            size_t index = 0;
-            for (auto pair : externalTexturesTrash) {
-                auto fence = fences[index++];
-                pair.second(pair.first, fence);
-            }
-        }
-    }
-
-    {
-        std::list<GLuint> programsTrash;
-        {
-            Lock lock(_trashMutex);
-            std::swap(_programsTrash, programsTrash);
-        }
-        for (auto id : programsTrash) {
-            glDeleteProgram(id);
-        }
-    }
-
-    {
-        std::list<GLuint> shadersTrash;
-        {
-            Lock lock(_trashMutex);
-            std::swap(_shadersTrash, shadersTrash);
-        }
-        for (auto id : shadersTrash) {
-            glDeleteShader(id);
-        }
-    }
-
-    {
-        std::vector<GLuint> ids;
-        std::list<GLuint> queriesTrash;
-        {
-            Lock lock(_trashMutex);
-            std::swap(_queriesTrash, queriesTrash);
-        }
-        ids.reserve(queriesTrash.size());
-        for (auto id : queriesTrash) {
-            ids.push_back(id);
-        }
-        if (!ids.empty()) {
-            glDeleteQueries((GLsizei)ids.size(), ids.data());
-        }
+        Lock lock(_trashMutex);
+        _previousFrameTrashes.back().swap(_currentFrameTrash);
+        _previousFrameTrashes.back().fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     }
     
     _textureManagement._transferEngine->manageMemory();

@@ -60,12 +60,11 @@ void GLESBackend::transferTransformState(const Batch& batch) const {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    glActiveTexture(GL_TEXTURE0 +  GLESBackend::TRANSFORM_OBJECT_SLOT);
+    glActiveTexture(GL_TEXTURE0 +  slot::texture::ObjectTransforms);
     glBindTexture(GL_TEXTURE_BUFFER, _transform._objectBufferTexture);
     if (!batch._objects.empty()) {
         glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, _transform._objectBuffer);
     }
-
     CHECK_GL_ERROR();
 
     // Make sure the current Camera offset is unknown before render Draw

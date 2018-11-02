@@ -35,6 +35,7 @@
 
 #include "AssignmentClientLogging.h"
 #include "AssignmentFactory.h"
+#include "ResourceRequestObserver.h"
 
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
@@ -49,6 +50,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     DependencyManager::set<tracing::Tracer>();
     DependencyManager::set<StatTracker>();
     DependencyManager::set<AccountManager>();
+    DependencyManager::set<ResourceRequestObserver>();
 
     auto addressManager = DependencyManager::set<AddressManager>();
 

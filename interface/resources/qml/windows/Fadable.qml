@@ -10,7 +10,7 @@
 
 import QtQuick 2.5
 
-import stylesUit 1.0
+import "../styles-uit"
 
 // Enable window visibility transitions
 FocusScope {

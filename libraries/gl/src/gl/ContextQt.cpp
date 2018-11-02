@@ -17,6 +17,8 @@
 #include <QtPlatformHeaders/QWGLNativeContext>
 #endif
 
+#include <QtGui/QOpenGLDebugMessage>
+
 #include "GLHelpers.h"
 
 using namespace gl;
@@ -47,6 +49,32 @@ void Context::moveToThread(QThread* thread) {
     qglContext()->moveToThread(thread);
 }
 
+void Context::debugMessageHandler(const QOpenGLDebugMessage& debugMessage) {
+    auto severity = debugMessage.severity();
+    switch (severity) {
+        case QOpenGLDebugMessage::NotificationSeverity:
+        case QOpenGLDebugMessage::LowSeverity:
+            return;
+        default:
+            break;
+    }
+    qDebug(glLogging) << debugMessage;
+    return;
+}
+
+void Context::setupDebugLogging(QOpenGLContext *context) {
+    QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(context);
+    QObject::connect(logger, &QOpenGLDebugLogger::messageLogged, nullptr, [](const QOpenGLDebugMessage& message){
+        Context::debugMessageHandler(message);
+    });
+    if (logger->initialize()) {
+        logger->enableMessages();
+        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+    } else {
+        qCWarning(glLogging) <<  "OpenGL context does not support debugging";
+    }
+}
+
 #ifndef GL_CUSTOM_CONTEXT
 bool Context::makeCurrent() {
     updateSwapchainMemoryCounter();
@@ -65,21 +93,29 @@ void Context::doneCurrent() {
     }
 }
 
+Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
 
-
-void Context::create() {
+void Context::create(QOpenGLContext* shareContext) {
     _context = new QOpenGLContext();
-    if (PRIMARY) {
-        _context->setShareContext(PRIMARY->qglContext());
-    } else {
-        PRIMARY = this;
+    _context->setFormat(_window->format());
+    if (!shareContext) {
+        shareContext = qt_gl_global_share_context();
     }
-    _context->setFormat(getDefaultOpenGLSurfaceFormat());
-    _context->create();
 
+    _context->setShareContext(shareContext);
+    _context->create();
     _swapchainPixelSize = evalGLFormatSwapchainPixelSize(_context->format());
     updateSwapchainMemoryCounter();
+
+    if (!makeCurrent()) {
+        throw std::runtime_error("Could not make context current");
+    }
+    if (enableDebugLogger()) {
+        setupDebugLogging(_context);
+    }
+    doneCurrent();
+    
 }
 
 #endif

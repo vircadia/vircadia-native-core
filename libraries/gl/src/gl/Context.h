@@ -21,6 +21,7 @@ class QSurface;
 class QWindow;
 class QOpenGLContext;
 class QThread;
+class QOpenGLDebugMessage;
 
 #if defined(Q_OS_WIN) 
 #define GL_CUSTOM_CONTEXT
@@ -30,7 +31,6 @@ namespace gl {
     class Context {
     protected:
         QWindow* _window { nullptr };
-        static Context* PRIMARY;
         static void destroyContext(QOpenGLContext* context);
 #if defined(GL_CUSTOM_CONTEXT)
         uint32_t _version { 0x0401 };
@@ -48,6 +48,9 @@ namespace gl {
 
     public:
         static bool enableDebugLogger();
+        static void debugMessageHandler(const QOpenGLDebugMessage &debugMessage);
+        static void setupDebugLogging(QOpenGLContext* context);
+        
         Context();
         Context(QWindow* window);
         void release();
@@ -59,14 +62,14 @@ namespace gl {
         static void makeCurrent(QOpenGLContext* context, QSurface* surface);
         void swapBuffers();
         void doneCurrent();
-        virtual void create();
+        virtual void create(QOpenGLContext* shareContext = nullptr);
         QOpenGLContext* qglContext();
         void moveToThread(QThread* thread);
 
         static size_t evalSurfaceMemoryUsage(uint32_t width, uint32_t height, uint32_t pixelSize);
         static size_t getSwapchainMemoryUsage();
         static void updateSwapchainMemoryUsage(size_t prevSize, size_t newSize);
-
+        
      private:
         static std::atomic<size_t> _totalSwapchainMemoryUsage;
 
@@ -81,7 +84,7 @@ namespace gl {
         QWindow* _window { nullptr };
     public:
         virtual ~OffscreenContext();
-        void create() override;
+        void create(QOpenGLContext* shareContext = nullptr) override;
     };
 
 }

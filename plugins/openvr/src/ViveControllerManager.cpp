@@ -129,6 +129,28 @@ static glm::mat4 calculateResetMat() {
     return glm::mat4();
 }
 
+static QString outOfRangeDataStrategyToString(ViveControllerManager::OutOfRangeDataStrategy strategy) {
+    switch (strategy) {
+    default:
+    case ViveControllerManager::OutOfRangeDataStrategy::None:
+        return "None";
+    case ViveControllerManager::OutOfRangeDataStrategy::Freeze:
+        return "Freeze";
+    case ViveControllerManager::OutOfRangeDataStrategy::Drop:
+        return "Drop";
+    }
+}
+
+static ViveControllerManager::OutOfRangeDataStrategy stringToOutOfRangeDataStrategy(const QString& string) {
+    if (string == "Drop") {
+        return ViveControllerManager::OutOfRangeDataStrategy::Drop;
+    } else if (string == "Freeze") {
+        return ViveControllerManager::OutOfRangeDataStrategy::Freeze;
+    } else {
+        return ViveControllerManager::OutOfRangeDataStrategy::None;
+    }
+}
+
 bool ViveControllerManager::isDesktopMode() {
     if (_container) {
         return !_container->getActiveDisplayPlugin()->isHmd();
@@ -288,8 +310,10 @@ void ViveControllerManager::loadSettings() {
         if (_inputDevice) {
             const double DEFAULT_ARM_CIRCUMFERENCE = 0.33;
             const double DEFAULT_SHOULDER_WIDTH = 0.48;
+            const QString DEFAULT_OUT_OF_RANGE_STRATEGY = "Drop";
             _inputDevice->_armCircumference = settings.value("armCircumference", QVariant(DEFAULT_ARM_CIRCUMFERENCE)).toDouble();
             _inputDevice->_shoulderWidth = settings.value("shoulderWidth", QVariant(DEFAULT_SHOULDER_WIDTH)).toDouble();
+            _inputDevice->_outOfRangeDataStrategy = stringToOutOfRangeDataStrategy(settings.value("outOfRangeDataStrategy", QVariant(DEFAULT_OUT_OF_RANGE_STRATEGY)).toString());
         }
     }
     settings.endGroup();
@@ -303,6 +327,7 @@ void ViveControllerManager::saveSettings() const {
         if (_inputDevice) {
             settings.setValue(QString("armCircumference"), _inputDevice->_armCircumference);
             settings.setValue(QString("shoulderWidth"), _inputDevice->_shoulderWidth);
+            settings.setValue(QString("outOfRangeDataStrategy"), outOfRangeDataStrategyToString(_inputDevice->_outOfRangeDataStrategy));
         }
     }
     settings.endGroup();
@@ -446,6 +471,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 hmdDesktopTracking = iter.value().toBool();
             } else if (iter.key() == "desktopMode") {
                 hmdDesktopMode = iter.value().toBool();
+            } else if (iter.key() == "outOfRangeDataStrategy") {
+                _outOfRangeDataStrategy = stringToOutOfRangeDataStrategy(iter.value().toString());
             }
             iter++;
         }
@@ -468,6 +495,7 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
     configurationSettings["armCircumference"] = (double)_armCircumference * M_TO_CM;
     configurationSettings["shoulderWidth"] = (double)_shoulderWidth * M_TO_CM;
+    configurationSettings["outOfRangeDataStrategy"] = outOfRangeDataStrategyToString(_outOfRangeDataStrategy);
     return configurationSettings;
 }
 
@@ -484,6 +512,10 @@ void ViveControllerManager::InputDevice::emitCalibrationStatus() {
     emit inputConfiguration->calibrationStatus(status);
 }
 
+static controller::Pose buildPose(const glm::mat4& mat, const glm::vec3& linearVelocity, const glm::vec3& angularVelocity) {
+    return controller::Pose(extractTranslation(mat), glmExtractRotation(mat), linearVelocity, angularVelocity);
+}
+
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
     uint32_t poseIndex = controller::TRACKED_OBJECT_00 + deviceIndex;
     printDeviceTrackingResultChange(deviceIndex);
@@ -492,35 +524,48 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
         _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid &&
         poseIndex <= controller::TRACKED_OBJECT_15) {
 
-        mat4& mat = mat4();
-        vec3 linearVelocity = vec3();
-        vec3 angularVelocity = vec3();
-        // check if the device is tracking out of range, then process the correct pose depending on the result.
-        if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult != vr::TrackingResult_Running_OutOfRange) {
-            mat = _nextSimPoseData.poses[deviceIndex];
-            linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
-            angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
-        } else {
-            mat = _lastSimPoseData.poses[deviceIndex];
-            linearVelocity = _lastSimPoseData.linearVelocities[deviceIndex];
-            angularVelocity = _lastSimPoseData.angularVelocities[deviceIndex];
+        controller::Pose pose;
+        switch (_outOfRangeDataStrategy) {
+        case OutOfRangeDataStrategy::Drop:
+        default:
+            // Drop - Mark all non Running_OK results as invald
+            if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult == vr::TrackingResult_Running_OK) {
+                pose = buildPose(_nextSimPoseData.poses[deviceIndex], _nextSimPoseData.linearVelocities[deviceIndex], _nextSimPoseData.angularVelocities[deviceIndex]);
+            } else {
+                pose.valid = false;
+            }
+            break;
+        case OutOfRangeDataStrategy::None:
+            // None - Ignore eTrackingResult all together
+            pose = buildPose(_nextSimPoseData.poses[deviceIndex], _nextSimPoseData.linearVelocities[deviceIndex], _nextSimPoseData.angularVelocities[deviceIndex]);
+            break;
+        case OutOfRangeDataStrategy::Freeze:
+            // Freeze - Dont invalide non Running_OK poses, instead just return the last good pose.
+            if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult == vr::TrackingResult_Running_OK) {
+                pose = buildPose(_nextSimPoseData.poses[deviceIndex], _nextSimPoseData.linearVelocities[deviceIndex], _nextSimPoseData.angularVelocities[deviceIndex]);
+            } else {
+                pose = buildPose(_lastSimPoseData.poses[deviceIndex], _lastSimPoseData.linearVelocities[deviceIndex], _lastSimPoseData.angularVelocities[deviceIndex]);
 
-            // make sure that we do not overwrite the pose in the _lastSimPose with incorrect data.
-            _nextSimPoseData.poses[deviceIndex] = _lastSimPoseData.poses[deviceIndex];
-            _nextSimPoseData.linearVelocities[deviceIndex] = _lastSimPoseData.linearVelocities[deviceIndex];
-            _nextSimPoseData.angularVelocities[deviceIndex] = _lastSimPoseData.angularVelocities[deviceIndex];
-
+                // make sure that we do not overwrite the pose in the _lastSimPose with incorrect data.
+                _nextSimPoseData.poses[deviceIndex] = _lastSimPoseData.poses[deviceIndex];
+                _nextSimPoseData.linearVelocities[deviceIndex] = _lastSimPoseData.linearVelocities[deviceIndex];
+                _nextSimPoseData.angularVelocities[deviceIndex] = _lastSimPoseData.angularVelocities[deviceIndex];
+            }
+            break;
         }
 
-        controller::Pose pose(extractTranslation(mat), glmExtractRotation(mat), linearVelocity, angularVelocity);
+        if (pose.valid) {
+            // transform into avatar frame
+            glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+            _poseStateMap[poseIndex] = pose.transform(controllerToAvatar);
 
-        // transform into avatar frame
-        glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-        _poseStateMap[poseIndex] = pose.transform(controllerToAvatar);
-
-        // but _validTrackedObjects remain in sensor frame
-        _validTrackedObjects.push_back(std::make_pair(poseIndex, pose));
-        _trackedControllers++;
+            // but _validTrackedObjects remain in sensor frame
+            _validTrackedObjects.push_back(std::make_pair(poseIndex, pose));
+            _trackedControllers++;
+        } else {
+            // insert invalid pose into state map
+            _poseStateMap[poseIndex] = pose;
+        }
     } else {
         controller::Pose invalidPose;
         _poseStateMap[poseIndex] = invalidPose;

@@ -258,7 +258,7 @@ public:
 
     using ItemSetter = std::function<void(const ShapePipeline&, render::Args*, const render::Item&)>;
 
-    ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter = nullptr, ItemSetter itemSetter = nullptr) :
+    ShapePipeline(const gpu::PipelinePointer& pipeline, const LocationsPointer& locations, const BatchSetter& batchSetter = nullptr, const ItemSetter& itemSetter = nullptr) :
         pipeline(pipeline),
         locations(locations),
         _batchSetter(batchSetter),
