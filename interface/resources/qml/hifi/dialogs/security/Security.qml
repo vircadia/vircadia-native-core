@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import "qrc:////qml//styles-uit" as HifiStylesUit
-import "qrc:////qml//controls-uit" as HifiControlsUit
+import stylesUit 1.0 as HifiStylesUit
+import controlsUit 1.0 as as HifiControlsUit
 import "qrc:////qml//controls" as HifiControls
 import "qrc:////qml//hifi//commerce//common" as HifiCommerceCommon
 
