@@ -17,6 +17,8 @@
 #include "AnimationLogging.h"
 
 AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry, const QMap<int, glm::quat> jointOffsets) {
+    
+    qCDebug(animation) << "in the animSkeleton";
     // convert to std::vector of joints
     std::vector<FBXJoint> joints;
     joints.reserve(fbxGeometry.joints.size());
@@ -34,12 +36,17 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry, const QMap<int, glm::
     for (int i = 0; i < (int)fbxGeometry.meshes.size(); i++) {
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
+            
             // cast into a non-const reference, so we can mutate the FBXCluster
             FBXCluster& cluster = const_cast<FBXCluster&>(mesh.clusters.at(j));
+            if ((cluster.jointIndex == nameToJointIndex("Neck")) || (cluster.jointIndex == nameToJointIndex("Spine2"))) {
+                qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex  << " " << jointOffsets[j];
+            }
             // AJT: mutate bind pose! this allows us to oreint the skeleton back into the authored orientaiton before
             // rendering, with no runtime overhead.
             // this works if clusters match joints one for one.
             if (jointOffsets.contains(j)) {
+                qCDebug(animation) << "found a joint offset to add " << j << " " << jointOffsets[j];
                 AnimPose localOffset(jointOffsets[j], glm::vec3());
                 cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
                 cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);

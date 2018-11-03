@@ -2074,4 +2074,13 @@ void Rig::setJointRotationOffsets(const QMap<QString, glm::quat>& offsets) {
         }
         qDebug() << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
     }
+    int neckIndex = indexOfJoint("Neck");
+    int spine2Index = indexOfJoint("Spine2");
+    if (neckIndex != -1) {
+        _jointRotationOffsets.insert(neckIndex, glm::quat(0.7071f, 0.0f, 0.7071f, 0.0f));
+    }
+    if (spine2Index != -1) {
+        _jointRotationOffsets.insert(spine2Index, glm::quat(0.7071f, -0.7071f, 0.0f, 0.0f));
+    }
+    qCDebug(animation) << "set the neck and spine2 offsets";
 }
