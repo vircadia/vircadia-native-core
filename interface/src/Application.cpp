@@ -2729,10 +2729,10 @@ void Application::initializeGL() {
     _glWidget->windowHandle()->setFormat(getDefaultOpenGLSurfaceFormat());
 
     // When loading QtWebEngineWidgets, it creates a global share context on startup.
-    // We have to account for this possibility by checking here for an existing 
+    // We have to account for this possibility by checking here for an existing
     // global share context
     auto globalShareContext = qt_gl_global_share_context();
-    
+
 #if !defined(DISABLE_QML)
     // Build a shared canvas / context for the Chromium processes
     if (!globalShareContext) {
@@ -8554,11 +8554,11 @@ void Application::createLoginDialogOverlay() {
 
     QList<QVariant> leftPointerTriggerProperties;
     QVariantMap ltClick1 {
-        { "action", standard["LTClick"] },
+        { "action", controller::StandardButtonChannel::LT_CLICK },
         { "button", "Focus" }
     };
     QVariantMap ltClick2 {
-        { "action", standard["LTClick"] },
+        { "action", controller::StandardButtonChannel::LT_CLICK },
         { "button", "Primary" }
     };
 
@@ -8580,11 +8580,11 @@ void Application::createLoginDialogOverlay() {
     const unsigned int rightHand = 1;
     QList<QVariant> rightPointerTriggerProperties;
     QVariantMap rtClick1 {
-        { "action", standard["RTClick"] },
+        { "action", controller::StandardButtonChannel::RT_CLICK },
         { "button", "Focus" }
     };
     QVariantMap rtClick2 {
-        { "action", standard["RTClick"] },
+        { "action", controller::StandardButtonChannel::RT_CLICK },
         { "button", "Primary" }
     };
     rightPointerTriggerProperties.append(rtClick1);
@@ -8799,7 +8799,7 @@ QUuid Application::getTabletFrameID() const {
 }
 
 QVector<QUuid> Application::getTabletIDs() const {
-    // Most important overlays first. 
+    // Most important overlays first.
     QVector<QUuid> result;
     auto HMD = DependencyManager::get<HMDScriptingInterface>();
     result << HMD->getCurrentTabletScreenID();
