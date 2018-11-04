@@ -437,6 +437,7 @@ function fromQml(message) {
         }
         break;
     case 'needsLogIn_loginClicked':
+        ui.close();
         openLoginWindow();
         break;
     case 'disableHmdPreview':
