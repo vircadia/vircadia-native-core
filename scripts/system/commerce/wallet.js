@@ -582,7 +582,7 @@ function notificationPollCallbackUpdates(updatesArray) {
         if (!ui.notificationInitialCallbackMade[0]) {
             message = updatesArray.length + " of your purchased items " +
                 (updatesArray.length === 1 ? "has an update " : "have updates ") +
-                "available. Open WALLET to update.";
+                "available. Open ASSETS to update.";
             ui.notificationDisplayBanner(message);
 
             ui.notificationPollCaresAboutSince[0] = true;
@@ -590,7 +590,7 @@ function notificationPollCallbackUpdates(updatesArray) {
             for (var i = 0; i < updatesArray.length; i++) {
                 message = "Update available for \"" +
                     updatesArray[i].base_item_title + "\"." +
-                    "Open WALLET to update.";
+                    "Open ASSETS to update.";
                 ui.notificationDisplayBanner(message);
             }
         }
