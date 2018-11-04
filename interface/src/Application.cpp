@@ -382,7 +382,7 @@ static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
-static const QString AUTO_LOGOUT_SETTING_NAME = "wallet/autoLogout";
+static const QString KEEP_ME_LOGGED_IN_SETTING_NAME = "keepMeLoggedIn";
 
 const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
@@ -2569,8 +2569,8 @@ void Application::cleanupBeforeQuit() {
     }
     DependencyManager::destroy<ScriptEngines>();
 
-    bool autoLogout = Setting::Handle<bool>(AUTO_LOGOUT_SETTING_NAME, false).get();
-    if (autoLogout) {
+    bool keepMeLoggedIn = Setting::Handle<bool>(KEEP_ME_LOGGED_IN_SETTING_NAME, false).get();
+    if (!keepMeLoggedIn) {
         DependencyManager::get<AccountManager>()->removeAccountFromFile();
     }
 
@@ -2946,13 +2946,13 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/PassphraseChange.qml" },
         QUrl{ "hifi/commerce/wallet/PassphraseModal.qml" },
         QUrl{ "hifi/commerce/wallet/PassphraseSelection.qml" },
-        QUrl{ "hifi/commerce/wallet/Security.qml" },
-        QUrl{ "hifi/commerce/wallet/SecurityImageChange.qml" },
-        QUrl{ "hifi/commerce/wallet/SecurityImageModel.qml" },
-        QUrl{ "hifi/commerce/wallet/SecurityImageSelection.qml" },
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/commerce/wallet/WalletSetup.qml" },
+        QUrl{ "hifi/dialogs/security/Security.qml" },
+        QUrl{ "hifi/dialogs/security/SecurityImageChange.qml" },
+        QUrl{ "hifi/dialogs/security/SecurityImageModel.qml" },
+        QUrl{ "hifi/dialogs/security/SecurityImageSelection.qml" },
     }, callback);
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
@@ -7881,9 +7881,6 @@ void Application::loadAvatarBrowser() const {
     auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     // construct the url to the marketplace item
     QString url = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace?category=avatars";
-    if (DependencyManager::get<WalletScriptingInterface>()->getLimitedCommerce()) {
-        url += "&isFree=1";
-    }
 
     QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
     tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);

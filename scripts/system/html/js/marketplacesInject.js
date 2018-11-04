@@ -60,7 +60,7 @@
         );
 
         // Footer.
-        var isInitialHiFiPage = location.href === (marketplaceBaseURL + "/marketplace" + (limitedCommerce ? "?isFree=1" : "?"));
+        var isInitialHiFiPage = location.href === (marketplaceBaseURL + "/marketplace?");
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
@@ -72,7 +72,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            (document.referrer !== "") ? window.history.back() : window.location = (marketplaceBaseURL + "/marketplace?") + (limitedCommerce ? "isFree=1" : "");
+            (document.referrer !== "") ? window.history.back() : window.location = (marketplaceBaseURL + "/marketplace?");
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(JSON.stringify({
@@ -93,7 +93,7 @@
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
         $('#exploreHifiMarketplace').on('click', function () {
-            window.location = marketplaceBaseURL + "/marketplace" + (limitedCommerce ? "?isFree=1" : "?");
+            window.location = marketplaceBaseURL + "/marketplace?";
         });
     }
 
@@ -170,7 +170,7 @@
 
             var span = document.createElement('span');
             span.style = "margin:10px;color:#1b6420;font-size:15px;";
-            span.innerHTML = "to purchase items from the Marketplace.";
+            span.innerHTML = "to get items from the Marketplace.";
 
             var xButton = document.createElement('a');
             xButton.id = "xButton";

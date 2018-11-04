@@ -15,13 +15,13 @@
 #include <QtCore/QObject>
 #include <DependencyManager.h>
 
-#include "scripting/HMDScriptingInterface.h"
 #include <ui/TabletScriptingInterface.h>
 #include <ui/QmlWrapper.h>
 #include <OffscreenUi.h>
 #include "Application.h"
 #include "commerce/Wallet.h"
 #include "ui/overlays/ContextOverlayInterface.h"
+#include <AccountManager.h>
 
 class CheckoutProxy : public QmlWrapper {
     Q_OBJECT
@@ -46,6 +46,8 @@ class WalletScriptingInterface : public QObject, public Dependency {
 
 public:
 
+    WalletScriptingInterface();
+
     /**jsdoc
      * @function WalletScriptingInterface.refreshWalletStatus
      */
@@ -67,8 +69,8 @@ public:
     //     scripts could cause the Wallet to incorrectly report its status.
     void setWalletStatus(const uint& status);
 
-    bool getLimitedCommerce() { return _limitedCommerce; }
-    void setLimitedCommerce(bool isLimited) { _limitedCommerce = isLimited; }
+    bool getLimitedCommerce() { return DependencyManager::get<AccountManager>()->getLimitedCommerce(); }
+    void setLimitedCommerce(bool isLimited) { DependencyManager::get<AccountManager>()->setLimitedCommerce(isLimited); };
 
 signals:
 
@@ -106,7 +108,6 @@ signals:
 
 private:
     uint _walletStatus;
-    bool _limitedCommerce = false;
 };
 
 #endif // hifi_WalletScriptingInterface_h

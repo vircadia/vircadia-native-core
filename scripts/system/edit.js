@@ -193,7 +193,7 @@ var importingSVOTextOverlay = Overlays.addOverlay("text", {
     visible: false
 });
 
-var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace" + (WalletScriptingInterface.limitedCommerce ? "?isFree=1" : "");
+var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 var marketplaceWindow = new OverlayWebWindow({
     title: 'Marketplace',
     source: "about:blank",

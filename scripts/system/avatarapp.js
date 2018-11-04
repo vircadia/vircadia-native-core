@@ -160,7 +160,7 @@ var selectedAvatarEntityID = null;
 var grabbedAvatarEntityChangeNotifier = null;
 
 var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
-var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace" + (WalletScriptingInterface.limitedCommerce ? "?isFree=1" : "");
+var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("html/js/marketplacesInject.js");
 
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
