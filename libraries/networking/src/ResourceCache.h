@@ -82,7 +82,7 @@ private:
 
     mutable Mutex _mutex;
     QList<QWeakPointer<Resource>> _pendingRequests;
-    QList<QSharedPointer<Resource>> _loadingRequests;
+    QList<QWeakPointer<Resource>> _loadingRequests;
     const uint32_t DEFAULT_REQUEST_LIMIT = 10;
     uint32_t _requestLimit { DEFAULT_REQUEST_LIMIT };
 };

@@ -70,10 +70,15 @@ uint32_t ResourceCacheSharedItems::getPendingRequestsCount() const {
 
 QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getLoadingRequests() const {
     QList<QSharedPointer<Resource>> result;
-    {
-        Lock lock(_mutex);
-        result = _loadingRequests;
+    Lock lock(_mutex);
+
+    foreach(QWeakPointer<Resource> resource, _loadingRequests) {
+        auto locked = resource.lock();
+        if (locked) {
+            result.append(locked);
+        }
     }
+
     return result;
 }
 
