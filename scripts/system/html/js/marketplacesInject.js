@@ -170,7 +170,7 @@
 
             var span = document.createElement('span');
             span.style = "margin:10px;color:#1b6420;font-size:15px;";
-            span.innerHTML = "to purchase items from the Marketplace.";
+            span.innerHTML = "to get items from the Marketplace.";
 
             var xButton = document.createElement('a');
             xButton.id = "xButton";
