@@ -57,6 +57,7 @@ void SkeletonModel::setTextures(const QVariantMap& textures) {
 void SkeletonModel::initJointStates() {
     const FBXGeometry& geometry = getFBXGeometry();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
+    _rig.setJointRotationOffsets(FSTReader::getJointRotationOffsets(getGeometry()->getMapping()));
     _rig.initJointStates(geometry, modelOffset);
 
     {
@@ -83,7 +84,7 @@ void SkeletonModel::initJointStates() {
 
     // Skeleton may have already been scaled so unscale it
     _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
-    _rig.setJointRotationOffsets(FSTReader::getJointRotationOffsets(getGeometry()->getMapping()));
+    //_rig.setJointRotationOffsets(FSTReader::getJointRotationOffsets(getGeometry()->getMapping()));
     computeBoundingShape();
 
     Extents meshExtents = getMeshExtents();

@@ -37,17 +37,30 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry, const QMap<int, glm::
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             
+            
             // cast into a non-const reference, so we can mutate the FBXCluster
             FBXCluster& cluster = const_cast<FBXCluster&>(mesh.clusters.at(j));
-            if ((cluster.jointIndex == nameToJointIndex("Neck")) || (cluster.jointIndex == nameToJointIndex("Spine2"))) {
-                qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex  << " " << jointOffsets[j];
+            if (jointOffsets.contains(cluster.jointIndex)) {
+                qCDebug(animation) << "cluster joint equals index " << cluster.jointIndex;
+            }
+
+            if ((cluster.jointIndex == 62) || (cluster.jointIndex == 13)) {
+                qCDebug(animation) << "cluster joint equals index " << cluster.jointIndex;
             }
             // AJT: mutate bind pose! this allows us to oreint the skeleton back into the authored orientaiton before
             // rendering, with no runtime overhead.
             // this works if clusters match joints one for one.
-            if (jointOffsets.contains(j)) {
-                qCDebug(animation) << "found a joint offset to add " << j << " " << jointOffsets[j];
-                AnimPose localOffset(jointOffsets[j], glm::vec3());
+            if (cluster.jointIndex == 62) {
+                qCDebug(animation) << "Neck";
+                qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << jointOffsets[cluster.jointIndex] << " cluster " << cluster.jointIndex;
+                AnimPose localOffset(jointOffsets[cluster.jointIndex], glm::vec3());
+                cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
+                cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
+            }
+            if (cluster.jointIndex == 13) {
+                qCDebug(animation) << "Spine2";
+                qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << jointOffsets[cluster.jointIndex] << " cluster " << cluster.jointIndex;
+                AnimPose localOffset(jointOffsets[cluster.jointIndex], glm::vec3());
                 cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
                 cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
             }
@@ -227,13 +240,24 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, 
         // remember the inverse bind pose already has the offset added into it.  the total effect is offset^-1 * relDefPose * offset.
         // this gives us the correct transform for the joint that has been put in t-pose with an offset rotation.
         //relDefaultPose = relDefaultPose * _avatarTPoseOffsets[i];
+        
+        QString jointName = getJointName(i);
         if (jointOffsets.contains(i)) {
+            //QString parentIndex = getJointName(parentIndex);
             AnimPose localOffset(jointOffsets[i], glm::vec3());
             relDefaultPose = relDefaultPose * localOffset;
             if ((parentIndex >= 0) && jointOffsets.contains(parentIndex)) {
-                AnimPose localParentOffset(jointOffsets[parentIndex], glm::vec3());
-                relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
+               // AnimPose localParentOffset(jointOffsets[parentIndex], glm::vec3());
+               // relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
             }
+        }
+        if ((parentIndex == 13) && jointOffsets.contains(13)) {
+            AnimPose localParentOffset(jointOffsets[parentIndex], glm::vec3());
+            relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
+        }
+        if ((parentIndex == 62) && jointOffsets.contains(62)) {
+            AnimPose localParentOffset(glm::quat(0.7071f, 0.0f, -0.7071f, 0.0f), glm::vec3());
+            relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
         }
 
         _relativeDefaultPoses.push_back(relDefaultPose);
