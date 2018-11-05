@@ -258,9 +258,6 @@ public:
     QVector<glm::vec3> translations;
 };
 
-Q_DECLARE_METATYPE(AnimationFrame)
-Q_DECLARE_METATYPE(QVector<AnimationFrame>)
-
 /// A light.
 class Light {
 public:
@@ -342,9 +339,6 @@ public:
     QList<QString> blendshapeChannelNames;
 };
 
-Q_DECLARE_METATYPE(Model)
-Q_DECLARE_METATYPE(Model::Pointer)
-
 };
 
 class ExtractedMesh {
@@ -355,5 +349,11 @@ public:
     QVector<QPair<int, int> > partMaterialTextures;
     QHash<QString, size_t> texcoordSetMap;
 };
+
+Q_DECLARE_METATYPE(HFMAnimationFrame)
+Q_DECLARE_METATYPE(QVector<HFMAnimationFrame>)
+
+Q_DECLARE_METATYPE(HFMModel)
+Q_DECLARE_METATYPE(HFMModel::Pointer)
 
 #endif // hifi_HFM_h_
