@@ -1,7 +1,14 @@
 {
   "name": "hifiJSDoc",
   "dependencies": {
-    "jsdoc": "^3.5.5"
+    "axios": "^0.18.0",
+    "cheerio": "^1.0.0-rc.2",
+    "dedent-js": "^1.0.1",
+    "htmlclean": "^3.0.8",
+    "jsdoc": "^3.5.5",
+    "pretty": "^2.0.0",
+    "request": "^2.85.0",
+    "rimraf": "^2.6.2"
   },
   "private": true
 }

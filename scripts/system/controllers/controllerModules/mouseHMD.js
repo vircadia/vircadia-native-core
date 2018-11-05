@@ -10,6 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* global Script, HMD, Reticle, Vec3, Controller */
+
 (function() {
     var ControllerDispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
 
@@ -101,12 +103,15 @@
         this.isReady = function(controllerData, deltaTime) {
             var now = Date.now();
             this.triggersPressed(controllerData, now);
-            if ((HMD.active && !this.mouseActivity.expired(now)) && _this.handControllerActivity.expired()) {
-                Reticle.visible = true;
-                return ControllerDispatcherUtils.makeRunningValues(true, [], []);
-            }
             if (HMD.active) {
-                Reticle.visible = false;
+                if (!this.mouseActivity.expired(now) && _this.handControllerActivity.expired()) {
+                    Reticle.visible = true;
+                    return ControllerDispatcherUtils.makeRunningValues(true, [], []);
+                } else {
+                    Reticle.visible = false;
+                }
+            } else if (!Reticle.visible) {
+                Reticle.visible = true;
             }
 
             return ControllerDispatcherUtils.makeRunningValues(false, [], []);
@@ -118,7 +123,7 @@
             if (this.mouseActivity.expired(now) || this.triggersPressed(controllerData, now) || !hmdActive) {
                 if (!hmdActive) {
                     Reticle.visible = true;
-                } else { 
+                } else {
                     Reticle.visible = false;
                 }
 

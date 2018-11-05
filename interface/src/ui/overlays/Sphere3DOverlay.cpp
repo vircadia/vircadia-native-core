@@ -60,8 +60,7 @@ Sphere3DOverlay::Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay) :
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
- * @property {boolean} ignoreRayIntersection=false - If <code>true</code>,
- *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
@@ -78,9 +77,8 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     }
 
     float alpha = getAlpha();
-    xColor color = getColor();
-    const float MAX_COLOR = 255.0f;
-    glm::vec4 sphereColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::u8vec3 color = getColor();
+    glm::vec4 sphereColor(toGlm(color), alpha);
 
     auto batch = args->_batch;
 

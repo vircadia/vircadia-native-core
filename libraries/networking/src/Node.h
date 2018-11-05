@@ -15,6 +15,7 @@
 #include <memory>
 #include <ostream>
 #include <stdint.h>
+#include <vector>
 
 #include <QtCore/QDebug>
 #include <QtCore/QMutex>
@@ -33,6 +34,7 @@
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
 #include "NodePermissions.h"
+#include "HMACAuth.h"
 
 class Node : public NetworkPeer {
     Q_OBJECT
@@ -55,7 +57,8 @@ public:
     void setIsUpstream(bool isUpstream) { _isUpstream = isUpstream; }
 
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
-    void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
+    void setConnectionSecret(const QUuid& connectionSecret);
+    HMACAuth* getAuthenticateHash() const { return _authenticateHash.get(); }
 
     NodeData* getLinkedData() const { return _linkedData.get(); }
     void setLinkedData(std::unique_ptr<NodeData> linkedData) { _linkedData = std::move(linkedData); }
@@ -78,16 +81,18 @@ public:
     bool getCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
     bool getCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
 
-    void parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
+    using NodesIgnoredPair = std::pair<std::vector<QUuid>, bool>;
+
+    NodesIgnoredPair parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
     void addIgnoredNode(const QUuid& otherNodeID);
     void removeIgnoredNode(const QUuid& otherNodeID);
-    bool isIgnoringNodeWithID(const QUuid& nodeID) const { QReadLocker lock { &_ignoredNodeIDSetLock }; return _ignoredNodeIDSet.find(nodeID) != _ignoredNodeIDSet.cend(); }
-    void parseIgnoreRadiusRequestMessage(QSharedPointer<ReceivedMessage> message);
+    bool isIgnoringNodeWithID(const QUuid& nodeID) const;
+
+    using IgnoredNodeIDs = std::vector<QUuid>;
+    const IgnoredNodeIDs& getIgnoredNodeIDs() const { return _ignoredNodeIDs; }
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
-
-    bool isIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled; }
 
 private:
     // privatize copy and assignment operator to disallow Node copying
@@ -97,6 +102,7 @@ private:
     NodeType_t _type;
 
     QUuid _connectionSecret;
+    std::unique_ptr<HMACAuth> _authenticateHash { nullptr };
     std::unique_ptr<NodeData> _linkedData;
     bool _isReplicated { false };
     int _pingMs;
@@ -105,11 +111,10 @@ private:
     MovingPercentile _clockSkewMovingPercentile;
     NodePermissions _permissions;
     bool _isUpstream { false };
-    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
+
+    IgnoredNodeIDs _ignoredNodeIDs;
     mutable QReadWriteLock _ignoredNodeIDSetLock;
     std::vector<QString> _replicatedUsernames { };
-
-    std::atomic_bool _ignoreRadiusEnabled;
 };
 
 Q_DECLARE_METATYPE(Node*)

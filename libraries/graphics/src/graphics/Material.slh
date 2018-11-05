@@ -11,29 +11,53 @@
 <@if not MODEL_MATERIAL_SLH@>
 <@def MODEL_MATERIAL_SLH@>
 
-// The material values (at least the material key) must be precisely bitwise accurate
-// to what is provided by the uniform buffer, or the material key has the wrong bits
-#ifdef GL_ES
-precision highp float;
-#define BITFIELD highp int
-#define PRECISIONQ highp
-#else
-#define BITFIELD int
-#define PRECISIONQ 
-#endif
-struct Material {
-    PRECISIONQ vec4 _emissiveOpacity;
-    PRECISIONQ vec4 _albedoRoughness;
-    PRECISIONQ vec4 _fresnelMetallic;
-    PRECISIONQ vec4 _scatteringSpare2Key;
+<@include graphics/ShaderConstants.h@>
+
+
+const int MAX_TEXCOORDS = 2;
+
+struct TexMapArray { 
+    mat4 _texcoordTransforms0;
+    mat4 _texcoordTransforms1;
+    vec4 _lightmapParams;
 };
 
-uniform materialBuffer {
+<@func declareMaterialTexMapArrayBuffer()@>
+
+<@func evalTexMapArrayTexcoord0(texMapArray, inTexcoord0, outTexcoord0)@>
+{
+    <$outTexcoord0$> = (<$texMapArray$>._texcoordTransforms0 * vec4(<$inTexcoord0$>.st, 0.0, 1.0)).st;
+}
+<@endfunc@>
+
+<@func evalTexMapArrayTexcoord1(texMapArray, inTexcoord1, outTexcoord1)@>
+{
+    <$outTexcoord1$> = (<$texMapArray$>._texcoordTransforms1 * vec4(<$inTexcoord1$>.st, 0.0, 1.0)).st;
+}
+<@endfunc@>
+
+<@endfunc@>
+
+// The material values (at least the material key) must be precisely bitwise accurate
+// to what is provided by the uniform buffer, or the material key has the wrong bits
+
+struct Material {
+    vec4 _emissiveOpacity;
+    vec4 _albedoRoughness;
+    vec4 _fresnelMetallic;
+    vec4 _scatteringSpare2Key;
+};
+
+LAYOUT(binding=GRAPHICS_BUFFER_MATERIAL) uniform materialBuffer {
     Material _mat;
+    TexMapArray _texMapArray;
 };
 
 Material getMaterial() {
     return _mat;
+}
+TexMapArray getTexMapArray() {
+    return _texMapArray;
 }
 
 vec3 getMaterialEmissive(Material m) { return m._emissiveOpacity.rgb; }
@@ -71,7 +95,4 @@ const BITFIELD OCCLUSION_MAP_BIT             = 0x00004000;
 const BITFIELD LIGHTMAP_MAP_BIT              = 0x00008000;
 const BITFIELD SCATTERING_MAP_BIT            = 0x00010000;
 
-#ifdef GL_ES
-precision lowp float;
-#endif
 <@endif@>

@@ -24,8 +24,6 @@
 
 #include "RenderableEntityItem.h"
 
-
-
 class Model;
 class EntityTreeRenderer;
 
@@ -62,13 +60,17 @@ public:
 
     virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     void doInitialModelSimulation();
     void updateModelBounds();
 
-    virtual bool supportsDetailedRayIntersection() const override;
+    virtual bool supportsDetailedIntersection() const override;
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         OctreeElementPointer& element, float& distance,
+                        BoxFace& face, glm::vec3& surfaceNormal,
+                        QVariantMap& extraInfo, bool precisionPicking) const override;
+    virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const override;
 
@@ -77,8 +79,7 @@ public:
 
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
-
-    void setCollisionShape(const btCollisionShape* shape) override;
+    bool computeShapeFailedToLoad();
 
     virtual bool contains(const glm::vec3& point) const override;
     void stopModelOverrideIfNoParent();
@@ -111,26 +112,25 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    bool getMeshes(MeshProxyList& result) override; // deprecated
-    const void* getCollisionMeshKey() const { return _collisionMeshKey; }
-
-signals:
-    void requestCollisionGeometryUpdate();
+    void setAnimationURL(const QString& url) override;
+    bool needsAnimationReset() const;
+    QString getAnimationURLAndReset();
 
 private:
     bool needsUpdateModelBounds() const;
     void autoResizeJointArrays();
     void copyAnimationJointDataToModel();
-
+    bool readyToAnimate() const;
     void getCollisionGeometryResource();
+
     GeometryResource::Pointer _compoundShapeResource;
-    bool _jointMapCompleted { false };
-    bool _originalTexturesRead { false };
     std::vector<int> _jointMap;
     QVariantMap _originalTextures;
+    bool _jointMapCompleted { false };
+    bool _originalTexturesRead { false };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
-    const void* _collisionMeshKey { nullptr };
+    bool _needsAnimationReset { false };
 };
 
 namespace render { namespace entities { 
@@ -149,6 +149,9 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
 
+    // FIXME: model mesh parts should fade individually
+    bool isFading() const override { return false; }
+
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;
     virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
@@ -161,13 +164,14 @@ protected:
     virtual bool needsRenderUpdate() const override;
     virtual void doRender(RenderArgs* args) override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
-    void flagForCollisionGeometryUpdate();
-    void setCollisionMeshKey(const void* key);
+
+    render::hifi::Tag getTagMask() const override;
+
+    void setIsVisibleInSecondaryCamera(bool value) override;
 
 private:
     void animate(const TypedEntityPointer& entity);
-    void mapJoints(const TypedEntityPointer& entity, const QStringList& modelJointNames);
-    bool jointsMapped() const { return _jointMappingURL == _renderAnimationProperties.getURL() && _jointMappingCompleted; }
+    void mapJoints(const TypedEntityPointer& entity, const ModelPointer& model);
 
     // Transparency is handled in ModelMeshPartPayload
     virtual bool isTransparent() const override { return false; }
@@ -176,31 +180,26 @@ private:
     ModelPointer _model;
     GeometryResource::Pointer _compoundShapeResource;
     QString _lastTextures;
-    QVariantMap _currentTextures;
     bool _texturesLoaded { false };
-    AnimationPropertyGroup _renderAnimationProperties;
     int _lastKnownCurrentFrame { -1 };
 #ifdef MODEL_ENTITY_USE_FADE_EFFECT
     bool _hasTransitioned{ false };
 #endif
 
-    bool _needsJointSimulation { false };
-    bool _needsCollisionGeometryUpdate { false };
     const void* _collisionMeshKey { nullptr };
 
     // used on client side
-    bool _jointMappingCompleted{ false };
+    bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
-    QString _jointMappingURL;
     AnimationPointer _animation;
-    QString _lastModelURL;
     QUrl _parsedModelURL;
-    bool _marketplaceEntity { false };
-    bool _shouldHighlight { false };
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };
+
+    bool _didLastVisualGeometryRequestSucceed { true };
+    bool _prevModelLoaded { false };
 
     void processMaterials();
 };

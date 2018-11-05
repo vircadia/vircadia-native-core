@@ -21,19 +21,18 @@ Frame::~Frame() {
         framebuffer.reset();
     }
 
-    assert(bufferUpdates.empty());
-    if (!bufferUpdates.empty()) {
-        qFatal("Buffer sync error... frame destroyed without buffer updates being applied");
-    }
+    bufferUpdates.clear();
 }
 
 void Frame::finish() {
-    for (Batch& batch : batches) {
-        batch.finishFrame(bufferUpdates);
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
+    for (const auto& batch : batches) {
+        batch->finishFrame(bufferUpdates);
     }
 }
 
 void Frame::preRender() {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     for (auto& update : bufferUpdates) {
         update.apply();
     }

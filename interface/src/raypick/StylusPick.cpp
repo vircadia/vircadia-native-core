@@ -65,8 +65,7 @@ bool StylusPickResult::checkOrFilterAgainstMaxDistance(float maxDistance) {
 }
 
 StylusPick::StylusPick(Side side, const PickFilter& filter, float maxDistance, bool enabled) :
-    Pick(filter, maxDistance, enabled),
-    _side(side)
+    Pick(StylusTip(side), filter, maxDistance, enabled)
 {
 }
 
@@ -130,9 +129,9 @@ static StylusTip getControllerWorldLocation(Side side) {
 StylusTip StylusPick::getMathematicalPick() const {
     StylusTip result;
     if (qApp->getPreferAvatarFingerOverStylus()) {
-        result = getFingerWorldLocation(_side);
+        result = getFingerWorldLocation(_mathPick.side);
     } else {
-        result = getControllerWorldLocation(_side);
+        result = getControllerWorldLocation(_mathPick.side);
     }
     return result;
 }
@@ -225,4 +224,16 @@ PickResultPointer StylusPick::getAvatarIntersection(const StylusTip& pick) {
 
 PickResultPointer StylusPick::getHUDIntersection(const StylusTip& pick) {
     return std::make_shared<StylusPickResult>(pick.toVariantMap());
+}
+
+Transform StylusPick::getResultTransform() const {
+    PickResultPointer result = getPrevPickResult();
+    if (!result) {
+        return Transform();
+    }
+
+    auto stylusResult = std::static_pointer_cast<StylusPickResult>(result);
+    Transform transform;
+    transform.setTranslation(stylusResult->intersection);
+    return transform;
 }

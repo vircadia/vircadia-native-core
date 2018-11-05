@@ -80,7 +80,7 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
     auto result = offscreenUi->inputDialog(OffscreenUi::ICON_INFORMATION, "Specify Asset Path",
                                            dropEvent ? dropHelpText : helpText, mapping);
 
-    if (!result.isValid()) {
+    if (!result.isValid() || result.toString() == "") {
         completedCallback.call({ -1 });
         return;
     }
@@ -150,6 +150,10 @@ void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue
     });
 
     request->start();
+}
+
+void AssetMappingsScriptingInterface::sortProxyModel(int column, Qt::SortOrder order) {
+    _proxyModel.sort(column, order);
 }
 
 void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
@@ -287,7 +291,7 @@ void AssetMappingModel::refresh() {
                         item->setData(parts[i], Qt::UserRole + 2);
                         item->setData("atp:" + fullPath, Qt::UserRole + 3);
                         item->setData(fullPath, Qt::UserRole + 4);
-                        
+
                         if (lastItem) {
                             lastItem->appendRow(item);
                         } else {

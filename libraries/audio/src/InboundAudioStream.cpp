@@ -9,13 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "InboundAudioStream.h"
+
 #include <glm/glm.hpp>
 
 #include <NLPacket.h>
 #include <Node.h>
 #include <NodeList.h>
 
-#include "InboundAudioStream.h"
 #include "AudioLogging.h"
 
 const bool InboundAudioStream::DEFAULT_DYNAMIC_JITTER_BUFFER_ENABLED = true;
@@ -120,8 +121,8 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     // parse sequence number and track it
     quint16 sequence;
     message.readPrimitive(&sequence);
-    SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence,
-                                                                                                       message.getSourceID());
+    SequenceNumberStats::ArrivalInfo arrivalInfo =
+        _incomingSequenceNumberStats.sequenceNumberReceived(sequence, message.getSourceID());
     QString codecInPacket = message.readString();
 
     packetReceivedUpdateTimingStats();
@@ -150,6 +151,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
             // fall through to OnTime case
         }
+        // FALLTHRU
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
             if (message.getType() == PacketType::SilentAudioFrame
@@ -169,7 +171,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
                 } else {
                     _mismatchedAudioCodecCount++;
-                    qDebug(audio) << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket;
 
                     if (packetPCM) {
                         // If there are PCM packets in-flight after the codec is changed, use them.
@@ -186,10 +187,11 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                         _mismatchedAudioCodecCount = 0;
 
                         // inform others of the mismatch
-                        auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
+                        auto sendingNode = DependencyManager::get<NodeList>()->nodeWithLocalID(message.getSourceID());
                         if (sendingNode) {
                             emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
-                            qDebug(audio) << "Codec mismatch threshold exceeded, SelectedAudioFormat(" << _selectedCodecName << " ) sent";
+                            qDebug(audio) << "Codec mismatch threshold exceeded, sent selected codec"
+                                << _selectedCodecName << "to" << message.getSenderSockAddr();
                         }
                     }
                 }
@@ -206,7 +208,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     int framesAvailable = _ringBuffer.framesAvailable();
     // if this stream was starved, check if we're still starved.
     if (_isStarved && framesAvailable >= _desiredJitterBufferFrames) {
-        qCInfo(audiostream, "Starve ended");
         _isStarved = false;
     }
     // if the ringbuffer exceeds the desired size by more than the threshold specified,
@@ -376,10 +377,6 @@ void InboundAudioStream::framesAvailableChanged() {
 }
 
 void InboundAudioStream::setToStarved() {
-    if (!_isStarved) {
-        qCInfo(audiostream, "Starved");
-    }
-
     _consecutiveNotMixedCount = 0;
     _starveCount++;
     // if we have more than the desired frames when setToStarved() is called, then we'll immediately

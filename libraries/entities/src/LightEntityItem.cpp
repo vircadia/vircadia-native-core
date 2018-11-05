@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LightEntityItem.h"
 
 #include <QDebug>
 
@@ -19,7 +20,6 @@
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "LightEntityItem.h"
 
 const bool LightEntityItem::DEFAULT_IS_SPOTLIGHT = false;
 const float LightEntityItem::DEFAULT_INTENSITY = 1.0f;
@@ -38,7 +38,6 @@ EntityItemPointer LightEntityItem::factory(const EntityItemID& entityID, const E
 // our non-pure virtual subclass for now...
 LightEntityItem::LightEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Light;
-    _color[RED_INDEX] = _color[GREEN_INDEX] = _color[BLUE_INDEX] = 0;
 }
 
 void LightEntityItem::setUnscaledDimensions(const glm::vec3& value) {
@@ -69,11 +68,11 @@ void LightEntityItem::dimensionsChanged() {
 }
 
 
-EntityItemProperties LightEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties LightEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isSpotlight, getIsSpotlight);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(intensity, getIntensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(exponent, getExponent);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(cutoff, getCutoff);
@@ -176,7 +175,7 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
-    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_INTENSITY, float, setIntensity);
     READ_ENTITY_PROPERTY(PROP_EXPONENT, float, setExponent);
     READ_ENTITY_PROPERTY(PROP_CUTOFF, float, setCutoff);
@@ -186,7 +185,6 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 }
 
 
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags LightEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_IS_SPOTLIGHT;
@@ -215,26 +213,15 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, getFalloffRadius());
 }
 
-const rgbColor& LightEntityItem::getColor() const { 
-    return _color; 
-}
-
-xColor LightEntityItem::getXColor() const {
-    xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color;
-}
-
-void LightEntityItem::setColor(const rgbColor& value) { 
-    withWriteLock([&] {
-        memcpy(_color, value, sizeof(_color));
-        _lightPropertiesChanged = true;
+glm::u8vec3 LightEntityItem::getColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
+        return _color;
     });
 }
 
-void LightEntityItem::setColor(const xColor& value) {
+void LightEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
-        _color[RED_INDEX] = value.red;
-        _color[GREEN_INDEX] = value.green;
-        _color[BLUE_INDEX] = value.blue;
+        _color = value;
         _lightPropertiesChanged = true;
     });
 }
@@ -310,3 +297,14 @@ bool LightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
     return _lightsArePickable;
 }
 
+bool LightEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+                        BoxFace& face, glm::vec3& surfaceNormal,
+                        QVariantMap& extraInfo, bool precisionPicking) const {
+    // TODO: consider if this is really what we want to do. We've made it so that "lights are pickable" is a global state
+    // this is probably reasonable since there's typically only one tree you'd be picking on at a time. Technically we could
+    // be on the clipboard and someone might be trying to use the parabola intersection API there. Anyway... if you ever try to
+    // do parabola intersection testing off of trees other than the main tree of the main entity renderer, then we'll need to
+    // fix this mechanism.
+    return _lightsArePickable;
+}

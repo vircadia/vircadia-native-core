@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ViewFrustum.h"
-
 #include "LightStage.h"
 
 #include <cmath>
+
+#include "ViewFrustum.h"
 
 std::string LightStage::_stageName { "LIGHT_STAGE"};
 const glm::mat4 LightStage::Shadow::_biasMatrix{
@@ -74,8 +74,6 @@ LightStage::Shadow::Cascade::Cascade() :
     _frustum{ std::make_shared<ViewFrustum>() },
     _minDistance{ 0.0f },
     _maxDistance{ 20.0f } {
-    framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
-    map = framebuffer->getDepthStencilBuffer();
 }
 
 const glm::mat4& LightStage::Shadow::Cascade::getView() const {
@@ -127,7 +125,28 @@ LightStage::Shadow::Shadow(graphics::LightPointer light, float maxDistance, unsi
     Schema schema;
     schema.cascadeCount = cascadeCount;
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
+
+    // Create shadow cascade texture array
+    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);  // Depth32 texel format
+    map = gpu::TexturePointer(gpu::Texture::createRenderBufferArray(depthFormat, MAP_SIZE, MAP_SIZE, cascadeCount));
+    gpu::Sampler::Desc samplerDesc;
+    samplerDesc._borderColor = glm::vec4(1.0f);
+    samplerDesc._wrapModeU = gpu::Sampler::WRAP_BORDER;
+    samplerDesc._wrapModeV = gpu::Sampler::WRAP_BORDER;
+    samplerDesc._filter = gpu::Sampler::FILTER_MIN_MAG_LINEAR;
+    samplerDesc._comparisonFunc = gpu::LESS;
+
+    map->setSampler(gpu::Sampler(samplerDesc));
+
     _cascades.resize(cascadeCount);
+
+    for (uint cascadeIndex=0; cascadeIndex < cascadeCount; cascadeIndex++) {
+        auto& cascade = _cascades[cascadeIndex];
+        std::string name = "Shadowmap Cascade ";
+        name += '0' + cascadeIndex;
+        cascade.framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(name));
+        cascade.framebuffer->setDepthBuffer(map, depthFormat, cascadeIndex);
+    }
 
     setMaxDistance(maxDistance);
 }
@@ -353,36 +372,36 @@ LightStage::LightPointer LightStage::removeLight(Index index) {
     return removedLight;
 }
 
-LightStage::LightPointer LightStage::getCurrentKeyLight() const {
-    Index keyLightId{ _defaultLightId };
-    if (!_currentFrame._sunLights.empty()) {
-        keyLightId = _currentFrame._sunLights.front();
+LightStage::LightPointer LightStage::getCurrentKeyLight(const LightStage::Frame& frame) const {
+    Index keyLightId { _defaultLightId };
+    if (!frame._sunLights.empty()) {
+        keyLightId = frame._sunLights.front();
     }
     return _lights.get(keyLightId);
 }
 
-LightStage::LightPointer LightStage::getCurrentAmbientLight() const {
+LightStage::LightPointer LightStage::getCurrentAmbientLight(const LightStage::Frame& frame) const {
     Index keyLightId { _defaultLightId };
-    if (!_currentFrame._ambientLights.empty()) {
-        keyLightId = _currentFrame._ambientLights.front();
+    if (!frame._ambientLights.empty()) {
+        keyLightId = frame._ambientLights.front();
     }
     return _lights.get(keyLightId);
 }
 
-LightStage::ShadowPointer LightStage::getCurrentKeyShadow() const {
+LightStage::ShadowPointer LightStage::getCurrentKeyShadow(const LightStage::Frame& frame) const {
     Index keyLightId { _defaultLightId };
-    if (!_currentFrame._sunLights.empty()) {
-        keyLightId = _currentFrame._sunLights.front();
+    if (!frame._sunLights.empty()) {
+        keyLightId = frame._sunLights.front();
     }
     auto shadow = getShadow(keyLightId);
     assert(shadow == nullptr || shadow->getLight() == getLight(keyLightId));
     return shadow;
 }
 
-LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow() const {
+LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow(const LightStage::Frame& frame) const {
     Index keyLightId { _defaultLightId };
-    if (!_currentFrame._sunLights.empty()) {
-        keyLightId = _currentFrame._sunLights.front();
+    if (!frame._sunLights.empty()) {
+        keyLightId = frame._sunLights.front();
     }
     auto shadow = getShadow(keyLightId);
     auto light = getLight(keyLightId);

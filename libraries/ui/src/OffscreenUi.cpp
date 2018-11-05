@@ -29,6 +29,16 @@
 #include "ui/Logging.h"
 
 #include <PointerManager.h>
+#include "MainWindow.h"
+
+/**jsdoc
+ * @namespace OffscreenFlags
+ * 
+ * @hifi-interface
+ * @hifi-client-entity
+ * @property {boolean} navigationFocused
+ * @property {boolean} navigationFocusDisabled
+ */
 
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {
@@ -58,7 +68,17 @@ public:
     }
     
 signals:
+
+    /**jsdoc
+     * @function OffscreenFlags.navigationFocusedChanged
+     * @returns {Signal}
+     */
     void navigationFocusedChanged();
+
+    /**jsdoc
+     * @function OffscreenFlags.navigationFocusDisabledChanged
+     * @returns {Signal}
+     */
     void navigationFocusDisabledChanged();
 
 private:
@@ -77,10 +97,13 @@ static OffscreenFlags* offscreenFlags { nullptr };
 // so I think it's OK for the time being.
 bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     Q_ASSERT(event->type() == QEvent::ShortcutOverride);
-    QObject* focusObject = getWindow()->focusObject();
-    if (focusObject != getWindow() && focusObject != getRootItem()) {
-        event->accept();
-        return true;
+    auto window = getWindow();
+    if (window) {
+        QObject* focusObject = getWindow()->focusObject();
+        if (focusObject != getWindow() && focusObject != getRootItem()) {
+            event->accept();
+            return true;
+        }
     }
     return false;
 }
@@ -154,6 +177,13 @@ void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(
     }
 }
 
+void OffscreenUi::hideDesktopWindows() {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "hideDesktopWindows");
+    }
+    QMetaObject::invokeMethod(_desktop, "hideDesktopWindows");
+}
+
 void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     if (!item) {
@@ -175,9 +205,12 @@ bool OffscreenUi::isPointOnDesktopWindow(QVariant point) {
 }
 
 void OffscreenUi::hide(const QString& name) {
-    QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
-    if (item) {
-        QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(false);
+    auto rootItem = getRootItem();
+    if (rootItem) {
+        QQuickItem* item = rootItem->findChild<QQuickItem*>(name);
+        if (item) {
+            QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(false);
+        }
     }
 }
 
@@ -620,20 +653,7 @@ public:
     }
 
 private:
-    
-    static QWindow* findMainWindow() {
-        auto windows = qApp->topLevelWindows();
-        QWindow* result = nullptr;
-        for (auto window : windows) {
-            if (window->objectName().contains("MainWindow")) {
-                result = window;
-                break;
-            }
-        }
-        return result;
-    }
-
-    QWindow* const _mainWindow { findMainWindow() };
+    QWindow* const _mainWindow { MainWindow::findMainWindow() };
     QWindow* _hackWindow { nullptr };
 };
 
@@ -655,6 +675,7 @@ void OffscreenUi::createDesktop(const QUrl& url) {
 
         new KeyboardFocusHack();
         connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
+        emit desktopReady();
     });
 }
 

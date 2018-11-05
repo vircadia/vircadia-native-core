@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioFOA.h"
+
 #include <string.h>
 #include <assert.h>
 
-#include "AudioFOA.h"
 #include "AudioFOAData.h"
 
 #if defined(_MSC_VER)

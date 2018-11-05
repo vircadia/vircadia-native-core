@@ -28,7 +28,6 @@
 class OctreeProcessor : public QObject, public QEnableSharedFromThis<OctreeProcessor> {
     Q_OBJECT
 public:
-    OctreeProcessor();
     virtual ~OctreeProcessor();
 
     virtual char getMyNodeType() const = 0;
@@ -57,11 +56,13 @@ public:
     float getAverageUncompressPerPacket() const { return _uncompressPerPacket.getAverage(); }
     float getAverageReadBitstreamPerPacket() const { return _readBitstreamPerPacket.getAverage(); }
 
+    OCTREE_PACKET_SEQUENCE getLastOctreeMessageSequence() const { return _lastOctreeMessageSequence; }
+
 protected:
     virtual OctreePointer createTree() = 0;
 
     OctreePointer _tree;
-    bool _managedTree;
+    bool _managedTree { false };
 
     SimpleMovingAverage _elementsPerPacket;
     SimpleMovingAverage _entitiesPerPacket;
@@ -78,6 +79,7 @@ protected:
     int _packetsInLastWindow = 0;
     int _elementsInLastWindow = 0;
     int _entitiesInLastWindow = 0;
+    std::atomic<OCTREE_PACKET_SEQUENCE> _lastOctreeMessageSequence;
 
 };
 

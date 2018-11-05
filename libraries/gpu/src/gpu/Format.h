@@ -50,47 +50,50 @@ enum Type : uint8_t {
 };
 // Array providing the size in bytes for a given scalar type
 static const int TYPE_SIZE[NUM_TYPES] = {
-    4,
-    4,
-    4,
-    2,
-    2,
-    2,
-    1,
-    1,
+    4, // FLOAT
+    4, // INT32
+    4, // UINT32
+    2, // HALF
+    2, // INT16
+    2, // UINT16
+    1, // INT8
+    1, // UINT8
 
     // normalized values
-    4,
-    4,
-    2,
-    2,
-    1,
-    1,
-    4,
+    4, // NINT32
+    4, // NUINT32
+    2, // NINT16 
+    2, // NUINT16
+    1, // NINT8
+    1, // NUINT8
+    1, // NUINT2
+    1, // NINT2_10_10_10
 
-    1
+    1, // COMPRESSED
 };
+
 // Array answering the question Does this type is integer or not 
 static const bool TYPE_IS_INTEGER[NUM_TYPES] = {
-    false,
-    true,
-    true,
-    false,
-    true,
-    true,
-    true,
-    true,
+    false, // FLOAT
+    true, // INT32
+    true, // UINT32
+    false, // HALF
+    true, // INT16
+    true, // UINT16
+    true, // INT8
+    true, // UINT8
 
     // Normalized values
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
+    false, // NINT32
+    false, // NUINT32
+    false, // NINT16 
+    false, // NUINT16
+    false, // NINT8
+    false, // NUINT8
+    false, // NUINT2
+    false, // NINT2_10_10_10
 
-    false,
+    false, // COMPRESSED
 };
 
 // Dimension of an Element
@@ -194,6 +197,17 @@ enum Semantic : uint8_t {
     COMPRESSED_BC6_RGB,
     COMPRESSED_BC7_SRGBA,
 
+    COMPRESSED_ETC2_RGB,
+    COMPRESSED_ETC2_SRGB,
+    COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA,
+    COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA,
+    COMPRESSED_ETC2_RGBA,
+    COMPRESSED_ETC2_SRGBA,
+    COMPRESSED_EAC_RED,
+    COMPRESSED_EAC_RED_SIGNED,
+    COMPRESSED_EAC_XY,
+    COMPRESSED_EAC_XY_SIGNED,
+
     _LAST_COMPRESSED,
 
     R11G11B10,
@@ -248,6 +262,17 @@ static const int SEMANTIC_SIZE_FACTOR[NUM_SEMANTICS] = {
     16, //COMPRESSED_BC5_XY, 1 byte/pixel * 4x4 pixels = 16 bytes
     16, //COMPRESSED_BC6_RGB, 1 byte/pixel * 4x4 pixels = 16 bytes
     16, //COMPRESSED_BC7_SRGBA, 1 byte/pixel * 4x4 pixels = 16 bytes
+
+    8,  //COMPRESSED_ETC2_RGB,
+    8,  //COMPRESSED_ETC2_SRGB,
+    8,  //COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA,
+    8,  //COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA,
+    16, //COMPRESSED_ETC2_RGBA,
+    16, //COMPRESSED_ETC2_SRGBA,
+    8,  //COMPRESSED_EAC_RED,
+    8,  //COMPRESSED_EAC_RED_SIGNED,
+    16, //COMPRESSED_EAC_XY,
+    16, //COMPRESSED_EAC_XY_SIGNED,
 
     1, //_LAST_COMPRESSED,
 
@@ -316,13 +341,23 @@ public:
     static const Element COLOR_RGBA_2;
     static const Element COLOR_R11G11B10;
     static const Element COLOR_RGB9E5;
-    static const Element COLOR_COMPRESSED_RED;
-    static const Element COLOR_COMPRESSED_SRGB;
-    static const Element COLOR_COMPRESSED_SRGBA_MASK;
-    static const Element COLOR_COMPRESSED_SRGBA;
-    static const Element COLOR_COMPRESSED_XY;
-    static const Element COLOR_COMPRESSED_SRGBA_HIGH;
-    static const Element COLOR_COMPRESSED_HDR_RGB;
+    static const Element COLOR_COMPRESSED_BCX_RED;
+    static const Element COLOR_COMPRESSED_BCX_SRGB;
+    static const Element COLOR_COMPRESSED_BCX_SRGBA_MASK;
+    static const Element COLOR_COMPRESSED_BCX_SRGBA;
+    static const Element COLOR_COMPRESSED_BCX_XY;
+    static const Element COLOR_COMPRESSED_BCX_SRGBA_HIGH;
+    static const Element COLOR_COMPRESSED_BCX_HDR_RGB;
+    static const Element COLOR_COMPRESSED_ETC2_RGB;
+    static const Element COLOR_COMPRESSED_ETC2_SRGB;
+    static const Element COLOR_COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA;
+    static const Element COLOR_COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA;
+    static const Element COLOR_COMPRESSED_ETC2_RGBA;
+    static const Element COLOR_COMPRESSED_ETC2_SRGBA;
+    static const Element COLOR_COMPRESSED_EAC_RED;
+    static const Element COLOR_COMPRESSED_EAC_RED_SIGNED;
+    static const Element COLOR_COMPRESSED_EAC_XY;
+    static const Element COLOR_COMPRESSED_EAC_XY_SIGNED;
     static const Element VEC2NU8_XY;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;
@@ -335,9 +370,9 @@ public:
     static const Element PART_DRAWCALL;
     
  protected:
-    uint8 _semantic;
-    uint8 _dimension : 4;
-    uint8 _type : 4;
+    uint16 _semantic : 7;
+    uint16 _dimension : 4;
+    uint16 _type : 5;
 };
 
   

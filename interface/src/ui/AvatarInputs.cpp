@@ -18,7 +18,7 @@
 
 static AvatarInputs* INSTANCE{ nullptr };
 
-Setting::Handle<bool> showAudioToolsSetting { QStringList { "AvatarInputs", "showAudioTools" }, false };
+Setting::Handle<bool> showAudioToolsSetting { QStringList { "AvatarInputs", "showAudioTools" }, true };
 
 AvatarInputs* AvatarInputs::getInstance() {
     if (!INSTANCE) {

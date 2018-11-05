@@ -12,9 +12,7 @@
 
 using namespace task;
 
-JobContext::JobContext(const QLoggingCategory& category) :
-    profileCategory(category) {
-    assert(&category);
+JobContext::JobContext() {
 }
 
 JobContext::~JobContext() {

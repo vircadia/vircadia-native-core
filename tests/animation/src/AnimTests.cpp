@@ -20,11 +20,11 @@
 #include <AccountManager.h>
 #include <ResourceManager.h>
 #include <StatTracker.h>
-#include <../QTestExtensions.h>
+#include <test-utils/QTestExtensions.h>
 
 QTEST_MAIN(AnimTests)
 
-const float EPSILON = 0.001f;
+const float TEST_EPSILON = 0.001f;
 
 void AnimTests::initTestCase() {
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
@@ -39,6 +39,7 @@ void AnimTests::initTestCase() {
 
 void AnimTests::cleanupTestCase() {
     //DependencyManager::destroy<AnimationCache>();
+    DependencyManager::get<ResourceManager>()->cleanup();
 }
 
 void AnimTests::testClipInternalState() {
@@ -85,12 +86,12 @@ void AnimTests::testClipEvaulate() {
 
     AnimNode::Triggers triggers;
     clip.evaluate(vars, context, framesToSec(10.0f), triggers);
-    QCOMPARE_WITH_ABS_ERROR(clip._frame, 12.0f, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(clip._frame, 12.0f, TEST_EPSILON);
 
     // does it loop?
     triggers.clear();
     clip.evaluate(vars, context, framesToSec(12.0f), triggers);
-    QCOMPARE_WITH_ABS_ERROR(clip._frame, 3.0f, EPSILON);  // Note: frame 3 and not 4, because extra frame between start and end.
+    QCOMPARE_WITH_ABS_ERROR(clip._frame, 3.0f, TEST_EPSILON);  // Note: frame 3 and not 4, because extra frame between start and end.
 
     // did we receive a loop trigger?
     QVERIFY(std::find(triggers.begin(), triggers.end(), "myClipNodeOnLoop") != triggers.end());
@@ -99,7 +100,7 @@ void AnimTests::testClipEvaulate() {
     triggers.clear();
     clip.setLoopFlagVar("FalseVar");
     clip.evaluate(vars, context, framesToSec(20.0f), triggers);
-    QCOMPARE_WITH_ABS_ERROR(clip._frame, 22.0f, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(clip._frame, 22.0f, TEST_EPSILON);
 
     // did we receive a done trigger?
     QVERIFY(std::find(triggers.begin(), triggers.end(), "myClipNodeOnDone") != triggers.end());
@@ -401,7 +402,7 @@ void AnimTests::testAnimPose() {
         glm::vec3(10.0f, 5.0f, -7.5f)
     };
 
-    const float EPSILON = 0.001f;
+    const float TEST_EPSILON = 0.001f;
 
     for (auto& scale : scaleVec) {
         for (auto& rot : rotVec) {
@@ -416,7 +417,7 @@ void AnimTests::testAnimPose() {
                 AnimPose pose(scale, rot, trans);
                 glm::mat4 poseMat = pose;
 
-                QCOMPARE_WITH_ABS_ERROR(rawMat, poseMat, EPSILON);
+                QCOMPARE_WITH_ABS_ERROR(rawMat, poseMat, TEST_EPSILON);
             }
         }
     }
@@ -436,7 +437,7 @@ void AnimTests::testAnimPose() {
                 // now build a new matrix from those parts.
                 glm::mat4 poseMat = pose;
 
-                QCOMPARE_WITH_ABS_ERROR(rawMat, poseMat, EPSILON);
+                QCOMPARE_WITH_ABS_ERROR(rawMat, poseMat, TEST_EPSILON);
             }
         }
     }

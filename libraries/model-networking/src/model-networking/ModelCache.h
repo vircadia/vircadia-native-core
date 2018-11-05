@@ -36,6 +36,7 @@ public:
 
     Geometry() = default;
     Geometry(const Geometry& geometry);
+    virtual ~Geometry() = default;
 
     // Immutable over lifetime
     using GeometryMeshes = std::vector<std::shared_ptr<const graphics::Mesh>>;
@@ -44,9 +45,9 @@ public:
     // Mutable, but must retain structure of vector
     using NetworkMaterials = std::vector<std::shared_ptr<NetworkMaterial>>;
 
-    bool isGeometryLoaded() const { return (bool)_fbxGeometry; }
+    bool isGeometryLoaded() const { return (bool)_hfmGeometry; }
 
-    const FBXGeometry& getFBXGeometry() const { return *_fbxGeometry; }
+    const HFMGeometry& getHFMGeometry() const { return *_hfmGeometry; }
     const GeometryMeshes& getMeshes() const { return *_meshes; }
     const std::shared_ptr<NetworkMaterial> getShapeMaterial(int shapeID) const;
 
@@ -55,12 +56,13 @@ public:
 
     virtual bool areTexturesLoaded() const;
     const QUrl& getAnimGraphOverrideUrl() const { return _animGraphOverrideUrl; }
+    const QVariantHash& getMapping() const { return _mapping; }
 
 protected:
     friend class GeometryMappingResource;
 
     // Shared across all geometries, constant throughout lifetime
-    std::shared_ptr<const FBXGeometry> _fbxGeometry;
+    std::shared_ptr<const HFMGeometry> _hfmGeometry;
     std::shared_ptr<const GeometryMeshes> _meshes;
     std::shared_ptr<const GeometryMeshParts> _meshParts;
 
@@ -68,6 +70,7 @@ protected:
     NetworkMaterials _materials;
 
     QUrl _animGraphOverrideUrl;
+    QVariantHash _mapping;  // parsed contents of FST file.
 
 private:
     mutable bool _areTexturesLoaded { false };
@@ -91,7 +94,7 @@ protected:
 
     // Geometries may not hold onto textures while cached - that is for the texture cache
     // Instead, these methods clear and reset textures from the geometry when caching/loading
-    bool shouldSetTextures() const { return _fbxGeometry && _materials.empty(); }
+    bool shouldSetTextures() const { return _hfmGeometry && _materials.empty(); }
     void setTextures();
     void resetTextures();
 
@@ -137,6 +140,7 @@ class ModelCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
+
     GeometryResource::Pointer getGeometryResource(const QUrl& url,
                                                   const QVariantHash& mapping = QVariantHash(),
                                                   const QUrl& textureBaseUrl = QUrl());
@@ -161,7 +165,7 @@ public:
     using MapChannel = graphics::Material::MapChannel;
 
     NetworkMaterial() : _textures(MapChannel::NUM_MAP_CHANNELS) {}
-    NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl);
+    NetworkMaterial(const HFMMaterial& material, const QUrl& textureBaseUrl);
     NetworkMaterial(const NetworkMaterial& material);
 
     void setAlbedoMap(const QUrl& url, bool useAlphaChannel);
@@ -172,6 +176,9 @@ public:
     void setEmissiveMap(const QUrl& url);
     void setScatteringMap(const QUrl& url);
     void setLightmapMap(const QUrl& url);
+
+    bool isMissingTexture();
+    void checkResetOpacityMap();
 
 protected:
     friend class Geometry;
@@ -194,8 +201,8 @@ protected:
 
 private:
     // Helpers for the ctors
-    QUrl getTextureUrl(const QUrl& baseUrl, const FBXTexture& fbxTexture);
-    graphics::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
+    QUrl getTextureUrl(const QUrl& baseUrl, const HFMTexture& hfmTexture);
+    graphics::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const HFMTexture& hfmTexture,
                                              image::TextureUsage::Type type, MapChannel channel);
     graphics::TextureMapPointer fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel);
 

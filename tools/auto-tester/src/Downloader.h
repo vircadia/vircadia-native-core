@@ -30,7 +30,7 @@
 class Downloader : public QObject {
 Q_OBJECT
 public:
-    explicit Downloader(QUrl imageUrl, QObject *parent = 0);
+    explicit Downloader(QUrl fileURL, QObject *parent = 0);
 
     QByteArray downloadedData() const;
 

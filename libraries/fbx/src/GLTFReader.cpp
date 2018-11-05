@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "GLTFReader.h"
+
 #include <QtCore/QBuffer>
 #include <QtCore/QIODevice>
 #include <QtCore/QEventLoop>
@@ -19,16 +21,18 @@
 #include <QtCore/qpair.h>
 #include <QtCore/qlist.h>
 
+
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 
 #include <qfile.h>
+#include <qfileinfo.h>
 
 #include <shared/NsightHelpers.h>
 #include <NetworkAccessManager.h>
 #include <ResourceManager.h>
+#include <PathUtils.h>
 
-#include "GLTFReader.h"
 #include "FBXReader.h"
 
 
@@ -693,7 +697,7 @@ glm::mat4 GLTFReader::getModelTransform(const GLTFNode& node) {
     return tmat;
 }
 
-bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
+bool GLTFReader::buildGeometry(HFMGeometry& geometry, const QUrl& url) {
 
     //Build dependencies
     QVector<QVector<int>> nodeDependencies(_file.nodes.size());
@@ -746,10 +750,10 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
 
     for (int i = 0; i < materialIDs.size(); i++) {
         QString& matid = materialIDs[i];
-        geometry.materials[matid] = FBXMaterial();
-        FBXMaterial& fbxMaterial = geometry.materials[matid];
-        fbxMaterial._material = std::make_shared<graphics::Material>();
-        setFBXMaterial(fbxMaterial, _file.materials[i]);
+        geometry.materials[matid] = HFMMaterial();
+        HFMMaterial& hfmMaterial = geometry.materials[matid];
+        hfmMaterial._material = std::make_shared<graphics::Material>();
+        setHFMMaterial(hfmMaterial, _file.materials[i]);
     }
 
     
@@ -761,9 +765,9 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
         if (node.defined["mesh"]) {
             qCDebug(modelformat) << "node_transforms" << node.transforms;
             foreach(auto &primitive, _file.meshes[node.mesh].primitives) {
-                geometry.meshes.append(FBXMesh());
-                FBXMesh& mesh = geometry.meshes[geometry.meshes.size() - 1];
-                FBXCluster cluster;
+                geometry.meshes.append(HFMMesh());
+                HFMMesh& mesh = geometry.meshes[geometry.meshes.size() - 1];
+                HFMCluster cluster;
                 cluster.jointIndex = 0;
                 cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
                     0, 1, 0, 0,
@@ -771,7 +775,7 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                     0, 0, 0, 1);
                 mesh.clusters.append(cluster);
 
-                FBXMeshPart part = FBXMeshPart();
+                HFMMeshPart part = HFMMeshPart();
 
                 int indicesAccessorIdx = primitive.indices;
 
@@ -785,12 +789,17 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                 QVector<glm::vec3> raw_vertices;
                 QVector<glm::vec3> raw_normals;
 
-                addArrayOfType(indicesBuffer.blob, 
+                bool success = addArrayOfType(indicesBuffer.blob, 
                     indicesBufferview.byteOffset + indicesAccBoffset, 
-                    indicesBufferview.byteLength, 
+                    indicesAccessor.count, 
                     part.triangleIndices, 
                     indicesAccessor.type, 
                     indicesAccessor.componentType);
+
+                if (!success) {
+                    qWarning(modelformat) << "There was a problem reading glTF INDICES data for model " << _url;
+                    continue;
+                }
 
                 QList<QString> keys = primitive.attributes.values.keys();
 
@@ -804,44 +813,60 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                     int accBoffset = accessor.defined["byteOffset"] ? accessor.byteOffset : 0;
                     if (key == "POSITION") {
                         QVector<float> vertices;
-                        addArrayOfType(buffer.blob, 
+                        success = addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
-                            bufferview.byteLength, vertices, 
+                            accessor.count, vertices, 
                             accessor.type, 
                             accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF POSITION data for model " << _url;
+                            continue;
+                        }
                         for (int n = 0; n < vertices.size(); n = n + 3) {
                             mesh.vertices.push_back(glm::vec3(vertices[n], vertices[n + 1], vertices[n + 2]));
                         }
                     } else if (key == "NORMAL") {
                         QVector<float> normals;
-                        addArrayOfType(buffer.blob, 
+                        success = addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
-                            bufferview.byteLength, 
+                            accessor.count, 
                             normals, 
                             accessor.type, 
                             accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF NORMAL data for model " << _url;
+                            continue;
+                        }
                         for (int n = 0; n < normals.size(); n = n + 3) {
                             mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
                         }
                     } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
-                        addArrayOfType(buffer.blob, 
+                        success = addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
-                            bufferview.byteLength, 
+                            accessor.count, 
                             texcoords, 
                             accessor.type, 
                             accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF TEXCOORD_0 data for model " << _url;
+                            continue;
+                        }
                         for (int n = 0; n < texcoords.size(); n = n + 2) {
                             mesh.texCoords.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
                         }
                     } else if (key == "TEXCOORD_1") {
                         QVector<float> texcoords;
-                        addArrayOfType(buffer.blob, 
+                        success = addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
-                            bufferview.byteLength, 
+                            accessor.count, 
                             texcoords, 
                             accessor.type, 
                             accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF TEXCOORD_1 data for model " << _url;
+                            continue;
+                        }
                         for (int n = 0; n < texcoords.size(); n = n + 2) {
                             mesh.texCoords1.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
                         }
@@ -885,24 +910,33 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
     return true;
 }
 
-FBXGeometry* GLTFReader::readGLTF(QByteArray& model, const QVariantHash& mapping, 
+HFMGeometry* GLTFReader::readGLTF(QByteArray& model, const QVariantHash& mapping, 
                                   const QUrl& url, bool loadLightmaps, float lightmapLevel) {
+    
     _url = url;
+
+    // Normalize url for local files
+    QUrl normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(url);
+    if (normalizeUrl.scheme().isEmpty() || (normalizeUrl.scheme() == "file")) {
+        QString localFileName = PathUtils::expandToLocalDataAbsolutePath(normalizeUrl).toLocalFile();
+        _url = QUrl(QFileInfo(localFileName).absoluteFilePath());
+    }
 
     parseGLTF(model);
     //_file.dump();
-    FBXGeometry* geometryPtr = new FBXGeometry();
-    FBXGeometry& geometry = *geometryPtr;
+    HFMGeometry* geometryPtr = new HFMGeometry();
+    HFMGeometry& geometry = *geometryPtr;
 
     buildGeometry(geometry, url);
     
-    //fbxDebugDump(geometry);
+    //hfmDebugDump(geometry);
     return geometryPtr;
     
 }
 
 bool GLTFReader::readBinary(const QString& url, QByteArray& outdata) {
-    QUrl binaryUrl = _url.resolved(QUrl(url).fileName());
+    QUrl binaryUrl = _url.resolved(url);
+
     qCDebug(modelformat) << "binaryUrl: " << binaryUrl << "  OriginalUrl: " << _url;
     bool success;
     std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
@@ -914,12 +948,13 @@ bool GLTFReader::doesResourceExist(const QString& url) {
     if (_url.isEmpty()) {
         return false;
     }
-    QUrl candidateUrl = _url.resolved(QUrl(url).fileName());
+    QUrl candidateUrl = _url.resolved(url);
     return DependencyManager::get<ResourceManager>()->resourceExists(candidateUrl);
 }
 
 std::tuple<bool, QByteArray> GLTFReader::requestData(QUrl& url) {
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        nullptr, url, true, -1, "GLTFReader::requestData");
 
     if (!request) {
         return std::make_tuple(false, QByteArray());
@@ -962,13 +997,14 @@ QNetworkReply* GLTFReader::request(QUrl& url, bool isTest) {
     return netReply;                // trying to sync later on.
 }
 
-FBXTexture GLTFReader::getFBXTexture(const GLTFTexture& texture) {
-    FBXTexture fbxtex = FBXTexture();
+HFMTexture GLTFReader::getHFMTexture(const GLTFTexture& texture) {
+    HFMTexture fbxtex = HFMTexture();
     fbxtex.texcoordSet = 0;
     
     if (texture.defined["source"]) {
-        QString fname = QUrl(_file.images[texture.source].uri).fileName();
-        QUrl textureUrl = _url.resolved(fname);
+        QString url = _file.images[texture.source].uri;
+        QString fname = QUrl(url).fileName();
+        QUrl textureUrl = _url.resolved(url);
         qCDebug(modelformat) << "fname: " << fname;
         qCDebug(modelformat) << "textureUrl: " << textureUrl;
         qCDebug(modelformat) << "Url: " << _url;
@@ -978,7 +1014,7 @@ FBXTexture GLTFReader::getFBXTexture(const GLTFTexture& texture) {
     return fbxtex;
 }
 
-void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& material) {
+void GLTFReader::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material) {
 
 
     if (material.defined["name"]) {
@@ -993,17 +1029,17 @@ void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& materia
     }
 
     if (material.defined["emissiveTexture"]) {
-        fbxmat.emissiveTexture = getFBXTexture(_file.textures[material.emissiveTexture]);
+        fbxmat.emissiveTexture = getHFMTexture(_file.textures[material.emissiveTexture]);
         fbxmat.useEmissiveMap = true;
     }
     
     if (material.defined["normalTexture"]) {
-        fbxmat.normalTexture = getFBXTexture(_file.textures[material.normalTexture]);
+        fbxmat.normalTexture = getHFMTexture(_file.textures[material.normalTexture]);
         fbxmat.useNormalMap = true;
     }
     
     if (material.defined["occlusionTexture"]) {
-        fbxmat.occlusionTexture = getFBXTexture(_file.textures[material.occlusionTexture]);
+        fbxmat.occlusionTexture = getHFMTexture(_file.textures[material.occlusionTexture]);
         fbxmat.useOcclusionMap = true;
     }
 
@@ -1014,16 +1050,15 @@ void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& materia
             fbxmat.metallic = material.pbrMetallicRoughness.metallicFactor;
         }
         if (material.pbrMetallicRoughness.defined["baseColorTexture"]) {
-            fbxmat.opacityTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
-            fbxmat.albedoTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
+            fbxmat.opacityTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
+            fbxmat.albedoTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
             fbxmat.useAlbedoMap = true;
-            fbxmat.metallicTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
-            fbxmat.useMetallicMap = true;
         }
         if (material.pbrMetallicRoughness.defined["metallicRoughnessTexture"]) {
-            fbxmat.roughnessTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.roughnessTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
             fbxmat.useRoughnessMap = true;
-
+            fbxmat.metallicTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.useMetallicMap = true;
         }
         if (material.pbrMetallicRoughness.defined["roughnessFactor"]) {
             fbxmat._material->setRoughness(material.pbrMetallicRoughness.roughnessFactor);
@@ -1042,7 +1077,7 @@ void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& materia
 }
 
 template<typename T, typename L>
-bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength, 
+bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int count, 
                            QVector<L>& outarray, int accessorType) {
     
     QDataStream blobstream(bin);
@@ -1050,142 +1085,77 @@ bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength
     blobstream.setVersion(QDataStream::Qt_5_9);
     blobstream.setFloatingPointPrecision(QDataStream::FloatingPointPrecision::SinglePrecision);
 
-    int vsize = byteLength / sizeof(T);
-
-    qCDebug(modelformat) << "size1: " << vsize;
+    qCDebug(modelformat) << "size1: " << count;
     int dataskipped = blobstream.skipRawData(byteOffset);
     qCDebug(modelformat) << "dataskipped: " << dataskipped;
 
-
-    while (outarray.size() < vsize) {
-        
-        T value1, value2, value3, value4, 
-          value5, value6, value7, value8, 
-          value9, value10, value11, value12, 
-          value13, value14, value15, value16;
-
-        if (accessorType == GLTFAccessorType::SCALAR) {
-
-            blobstream >> value1;
-
-            outarray.push_back(value1);
-        } else if (accessorType == GLTFAccessorType::VEC2) {
-
-            blobstream >> value1; 
-            blobstream >> value2;
-
-            outarray.push_back(value1);
-            outarray.push_back(value2);
-        } else if (accessorType == GLTFAccessorType::VEC3) {
-
-            blobstream >> value1;
-            blobstream >> value2;
-            blobstream >> value3;
-
-            outarray.push_back(value1);
-            outarray.push_back(value2);
-            outarray.push_back(value3);
-        } else if (accessorType == GLTFAccessorType::VEC4 || accessorType == GLTFAccessorType::MAT2) {
-
-            blobstream >> value1;
-            blobstream >> value2;
-            blobstream >> value3;
-            blobstream >> value4;
-
-            outarray.push_back(value1);
-            outarray.push_back(value2);
-            outarray.push_back(value3);
-            outarray.push_back(value4);
-        } else if (accessorType == GLTFAccessorType::MAT3) {
-
-            blobstream >> value1;
-            blobstream >> value2;
-            blobstream >> value3;
-            blobstream >> value4;
-            blobstream >> value5;
-            blobstream >> value6;
-            blobstream >> value7;
-            blobstream >> value8;
-            blobstream >> value9;
-
-            outarray.push_back(value1);
-            outarray.push_back(value2);
-            outarray.push_back(value3);
-            outarray.push_back(value4);
-            outarray.push_back(value5);
-            outarray.push_back(value6);
-            outarray.push_back(value7);
-            outarray.push_back(value8);
-            outarray.push_back(value9);
-        } else if (accessorType == GLTFAccessorType::MAT4) {
-
-            blobstream >> value1;
-            blobstream >> value2;
-            blobstream >> value3;
-            blobstream >> value4;
-            blobstream >> value5;
-            blobstream >> value6;
-            blobstream >> value7;
-            blobstream >> value8;
-            blobstream >> value9;
-            blobstream >> value10;
-            blobstream >> value11;
-            blobstream >> value12;
-            blobstream >> value13; 
-            blobstream >> value14; 
-            blobstream >> value15;
-            blobstream >> value16;
-
-            outarray.push_back(value1);
-            outarray.push_back(value2);
-            outarray.push_back(value3);
-            outarray.push_back(value4);
-            outarray.push_back(value5);
-            outarray.push_back(value6);
-            outarray.push_back(value7);
-            outarray.push_back(value8);
-            outarray.push_back(value9);
-            outarray.push_back(value10);
-            outarray.push_back(value11);
-            outarray.push_back(value12);
-            outarray.push_back(value13);
-            outarray.push_back(value14);
-            outarray.push_back(value15);
-            outarray.push_back(value16);
-        
+    int bufferCount = 0;
+    switch (accessorType) {
+    case GLTFAccessorType::SCALAR:
+        bufferCount = 1;
+        break;
+    case GLTFAccessorType::VEC2:
+        bufferCount = 2;
+        break;
+    case GLTFAccessorType::VEC3:
+        bufferCount = 3;
+        break;
+    case GLTFAccessorType::VEC4:
+        bufferCount = 4;
+        break;
+    case GLTFAccessorType::MAT2:
+        bufferCount = 4;
+        break;
+    case GLTFAccessorType::MAT3:
+        bufferCount = 9;
+        break;
+    case GLTFAccessorType::MAT4:
+        bufferCount = 16;
+        break;
+    default:
+        qWarning(modelformat) << "Unknown accessorType: " << accessorType;
+        blobstream.unsetDevice();
+        return false;
+    }
+    for (int i = 0; i < count; i++) {
+        for (int j = 0; j < bufferCount; j++) {
+            if (!blobstream.atEnd()) {
+                T value;
+                blobstream >> value;
+                outarray.push_back(value);
+            } else {
+                blobstream.unsetDevice();
+                return false;
+            }
         }
     }
+
     blobstream.unsetDevice();
     return true;
 }
 template<typename T>
-bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int byteLength, 
+bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int count, 
                                 QVector<T>& outarray, int accessorType, int componentType) {
     
     switch (componentType) {
     case GLTFAccessorComponentType::BYTE: {}
     case GLTFAccessorComponentType::UNSIGNED_BYTE: {
-        readArray<uchar>(bin, byteOffset, byteLength, outarray, accessorType);
-        break;
+        return readArray<uchar>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::SHORT: {
-        readArray<short>(bin, byteOffset, byteLength, outarray, accessorType);
-        break;
+        return readArray<short>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::UNSIGNED_INT: {
-        readArray<quint8>(bin, byteOffset, byteLength, outarray, accessorType);
-        break;
+        return readArray<uint>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::UNSIGNED_SHORT: {
-        readArray<ushort>(bin, byteOffset, byteLength, outarray, accessorType);
-        break;
+        return readArray<ushort>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::FLOAT: {
-        readArray<float>(bin, byteOffset, byteLength, outarray, accessorType);
-        break;
+        return readArray<float>(bin, byteOffset, count, outarray, accessorType);
     }
     }
-    return true;
+    return false;
 }
 
 void GLTFReader::retriangulate(const QVector<int>& inIndices, const QVector<glm::vec3>& in_vertices, 
@@ -1211,37 +1181,37 @@ void GLTFReader::retriangulate(const QVector<int>& inIndices, const QVector<glm:
     }
 }
 
-void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
-    qCDebug(modelformat) << "---------------- fbxGeometry ----------------";
-    qCDebug(modelformat) << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
-    qCDebug(modelformat) << "  offset =" << fbxgeo.offset;
+void GLTFReader::hfmDebugDump(const HFMGeometry& hfmgeo) {
+    qCDebug(modelformat) << "---------------- hfmGeometry ----------------";
+    qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmgeo.hasSkeletonJoints;
+    qCDebug(modelformat) << "  offset =" << hfmgeo.offset;
 
-    qCDebug(modelformat) << "  leftEyeJointIndex =" << fbxgeo.leftEyeJointIndex;
-    qCDebug(modelformat) << "  rightEyeJointIndex =" << fbxgeo.rightEyeJointIndex;
-    qCDebug(modelformat) << "  neckJointIndex =" << fbxgeo.neckJointIndex;
-    qCDebug(modelformat) << "  rootJointIndex =" << fbxgeo.rootJointIndex;
-    qCDebug(modelformat) << "  leanJointIndex =" << fbxgeo.leanJointIndex;
-    qCDebug(modelformat) << "  headJointIndex =" << fbxgeo.headJointIndex;
-    qCDebug(modelformat) << "  leftHandJointIndex" << fbxgeo.leftHandJointIndex;
-    qCDebug(modelformat) << "  rightHandJointIndex" << fbxgeo.rightHandJointIndex;
-    qCDebug(modelformat) << "  leftToeJointIndex" << fbxgeo.leftToeJointIndex;
-    qCDebug(modelformat) << "  rightToeJointIndex" << fbxgeo.rightToeJointIndex;
-    qCDebug(modelformat) << "  leftEyeSize = " << fbxgeo.leftEyeSize;
-    qCDebug(modelformat) << "  rightEyeSize = " << fbxgeo.rightEyeSize;
+    qCDebug(modelformat) << "  leftEyeJointIndex =" << hfmgeo.leftEyeJointIndex;
+    qCDebug(modelformat) << "  rightEyeJointIndex =" << hfmgeo.rightEyeJointIndex;
+    qCDebug(modelformat) << "  neckJointIndex =" << hfmgeo.neckJointIndex;
+    qCDebug(modelformat) << "  rootJointIndex =" << hfmgeo.rootJointIndex;
+    qCDebug(modelformat) << "  leanJointIndex =" << hfmgeo.leanJointIndex;
+    qCDebug(modelformat) << "  headJointIndex =" << hfmgeo.headJointIndex;
+    qCDebug(modelformat) << "  leftHandJointIndex" << hfmgeo.leftHandJointIndex;
+    qCDebug(modelformat) << "  rightHandJointIndex" << hfmgeo.rightHandJointIndex;
+    qCDebug(modelformat) << "  leftToeJointIndex" << hfmgeo.leftToeJointIndex;
+    qCDebug(modelformat) << "  rightToeJointIndex" << hfmgeo.rightToeJointIndex;
+    qCDebug(modelformat) << "  leftEyeSize = " << hfmgeo.leftEyeSize;
+    qCDebug(modelformat) << "  rightEyeSize = " << hfmgeo.rightEyeSize;
 
-    qCDebug(modelformat) << "  palmDirection = " << fbxgeo.palmDirection;
+    qCDebug(modelformat) << "  palmDirection = " << hfmgeo.palmDirection;
 
-    qCDebug(modelformat) << "  neckPivot = " << fbxgeo.neckPivot;
+    qCDebug(modelformat) << "  neckPivot = " << hfmgeo.neckPivot;
 
-    qCDebug(modelformat) << "  bindExtents.size() = " << fbxgeo.bindExtents.size();
-    qCDebug(modelformat) << "  meshExtents.size() = " << fbxgeo.meshExtents.size();
+    qCDebug(modelformat) << "  bindExtents.size() = " << hfmgeo.bindExtents.size();
+    qCDebug(modelformat) << "  meshExtents.size() = " << hfmgeo.meshExtents.size();
 
-    qCDebug(modelformat) << "  jointIndices.size() =" << fbxgeo.jointIndices.size();
-    qCDebug(modelformat) << "  joints.count() =" << fbxgeo.joints.count();
+    qCDebug(modelformat) << "  jointIndices.size() =" << hfmgeo.jointIndices.size();
+    qCDebug(modelformat) << "  joints.count() =" << hfmgeo.joints.count();
     qCDebug(modelformat) << "---------------- Meshes ----------------";
-    qCDebug(modelformat) << "  meshes.count() =" << fbxgeo.meshes.count();
-    qCDebug(modelformat) << "  blendshapeChannelNames = " << fbxgeo.blendshapeChannelNames;
-    foreach(FBXMesh mesh, fbxgeo.meshes) {
+    qCDebug(modelformat) << "  meshes.count() =" << hfmgeo.meshes.count();
+    qCDebug(modelformat) << "  blendshapeChannelNames = " << hfmgeo.blendshapeChannelNames;
+    foreach(HFMMesh mesh, hfmgeo.meshes) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "    meshpointer =" << mesh._mesh.get();
         qCDebug(modelformat) << "    meshindex =" << mesh.meshIndex;
@@ -1257,7 +1227,7 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
         qCDebug(modelformat) << "    parts.count() =" << mesh.parts.count();
         qCDebug(modelformat) << "---------------- Meshes (blendshapes)--------";
-        foreach(FBXBlendshape bshape, mesh.blendshapes) {
+        foreach(HFMBlendshape bshape, mesh.blendshapes) {
             qCDebug(modelformat) << "\n";
             qCDebug(modelformat) << "    bshape.indices.count() =" << bshape.indices.count();
             qCDebug(modelformat) << "    bshape.vertices.count() =" << bshape.vertices.count();
@@ -1265,7 +1235,7 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
             qCDebug(modelformat) << "\n";
         }
         qCDebug(modelformat) << "---------------- Meshes (meshparts)--------";
-        foreach(FBXMeshPart meshPart, mesh.parts) {
+        foreach(HFMMeshPart meshPart, mesh.parts) {
             qCDebug(modelformat) << "\n";
             qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
             qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
@@ -1275,7 +1245,7 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
         }
         qCDebug(modelformat) << "---------------- Meshes (clusters)--------";
         qCDebug(modelformat) << "    clusters.count() =" << mesh.clusters.count();
-        foreach(FBXCluster cluster, mesh.clusters) {
+        foreach(HFMCluster cluster, mesh.clusters) {
             qCDebug(modelformat) << "\n";
             qCDebug(modelformat) << "        jointIndex =" << cluster.jointIndex;
             qCDebug(modelformat) << "        inverseBindMatrix =" << cluster.inverseBindMatrix;
@@ -1284,18 +1254,18 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "\n";
     }
     qCDebug(modelformat) << "---------------- AnimationFrames ----------------";
-    foreach(FBXAnimationFrame anim, fbxgeo.animationFrames) {
+    foreach(HFMAnimationFrame anim, hfmgeo.animationFrames) {
         qCDebug(modelformat) << "  anim.translations = " << anim.translations;
         qCDebug(modelformat) << "  anim.rotations = " << anim.rotations;
     }
-    QList<int> mitomona_keys = fbxgeo.meshIndicesToModelNames.keys();
+    QList<int> mitomona_keys = hfmgeo.meshIndicesToModelNames.keys();
     foreach(int key, mitomona_keys) {
-        qCDebug(modelformat) << "    meshIndicesToModelNames key =" << key << "  val =" << fbxgeo.meshIndicesToModelNames[key];
+        qCDebug(modelformat) << "    meshIndicesToModelNames key =" << key << "  val =" << hfmgeo.meshIndicesToModelNames[key];
     }
 
     qCDebug(modelformat) << "---------------- Materials ----------------";
 
-    foreach(FBXMaterial mat, fbxgeo.materials) {
+    foreach(HFMMaterial mat, hfmgeo.materials) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "  mat.materialID =" << mat.materialID;
         qCDebug(modelformat) << "  diffuseColor =" << mat.diffuseColor;
@@ -1344,7 +1314,7 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
 
     qCDebug(modelformat) << "---------------- Joints ----------------";
 
-    foreach(FBXJoint joint, fbxgeo.joints) {
+    foreach(HFMJoint joint, hfmgeo.joints) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "    shapeInfo.avgPoint =" << joint.shapeInfo.avgPoint;
         qCDebug(modelformat) << "    shapeInfo.debugLines =" << joint.shapeInfo.debugLines;

@@ -5,20 +5,25 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/* global MyAvatar, Vec3, Controller, Quat */
+/* global MyAvatar, Vec3, HMD, Controller, Camera, Quat, Settings,
+   getGrabPointSphereOffset:true,
+   setGrabCommunications:true,
+   getGrabCommunications:true,
+   getControllerWorldLocation:true
+ */
 
 var GRAB_COMMUNICATIONS_SETTING = "io.highfidelity.isFarGrabbing";
 setGrabCommunications = function setFarGrabCommunications(on) {
     Settings.setValue(GRAB_COMMUNICATIONS_SETTING, on ? "on" : "");
-}
+};
 getGrabCommunications = function getFarGrabCommunications() {
     return !!Settings.getValue(GRAB_COMMUNICATIONS_SETTING, "");
-}
+};
 
 // this offset needs to match the one in libraries/display-plugins/src/display-plugins/hmd/HmdDisplayPlugin.cpp:378
-var GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 };  // x = upward, y = forward, z = lateral
 
 getGrabPointSphereOffset = function(handController, ignoreSensorToWorldScale) {
+    var GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 };  // x = upward, y = forward, z = lateral
     var offset = GRAB_POINT_SPHERE_OFFSET;
     if (handController === Controller.Standard.LeftHand) {
         offset = {
@@ -38,30 +43,34 @@ getGrabPointSphereOffset = function(handController, ignoreSensorToWorldScale) {
 getControllerWorldLocation = function (handController, doOffset) {
     var orientation;
     var position;
-    var pose = Controller.getPoseValue(handController);
-    var valid = pose.valid;
-    var controllerJointIndex;
-    if (pose.valid) {
-        if (handController === Controller.Standard.RightHand) {
-            controllerJointIndex = MyAvatar.getJointIndex("_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND");
-        } else {
-            controllerJointIndex = MyAvatar.getJointIndex("_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
-        }
-        orientation = Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(controllerJointIndex));
-        position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(controllerJointIndex)));
+    var valid = false;
 
-        // add to the real position so the grab-point is out in front of the hand, a bit
-        if (doOffset) {
-            var offset = getGrabPointSphereOffset(handController);
-            position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, offset));
-        }
+    if (handController >= 0) {
+        var pose = Controller.getPoseValue(handController);
+        valid = pose.valid;
+        var controllerJointIndex;
+        if (pose.valid) {
+            if (handController === Controller.Standard.RightHand) {
+                controllerJointIndex = MyAvatar.getJointIndex("_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND");
+            } else {
+                controllerJointIndex = MyAvatar.getJointIndex("_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
+            }
+            orientation = Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(controllerJointIndex));
+            position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(controllerJointIndex)));
 
-    } else if (!HMD.isHandControllerAvailable()) {
-        // NOTE: keep this offset in sync with scripts/system/controllers/handControllerPointer.js:493
-        var VERTICAL_HEAD_LASER_OFFSET = 0.1 * MyAvatar.sensorToWorldScale;
-        position = Vec3.sum(Camera.position, Vec3.multiplyQbyV(Camera.orientation, {x: 0, y: VERTICAL_HEAD_LASER_OFFSET, z: 0}));
-        orientation = Quat.multiply(Camera.orientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 }));
-        valid = true;
+            // add to the real position so the grab-point is out in front of the hand, a bit
+            if (doOffset) {
+                var offset = getGrabPointSphereOffset(handController);
+                position = Vec3.sum(position, Vec3.multiplyQbyV(orientation, offset));
+            }
+
+        } else if (!HMD.isHandControllerAvailable()) {
+            // NOTE: keep this offset in sync with scripts/system/controllers/handControllerPointer.js:493
+            var VERTICAL_HEAD_LASER_OFFSET = 0.1 * MyAvatar.sensorToWorldScale;
+            position = Vec3.sum(Camera.position, Vec3.multiplyQbyV(Camera.orientation, {x: 0, y: VERTICAL_HEAD_LASER_OFFSET, z: 0}));
+            orientation = Quat.multiply(Camera.orientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 }));
+            valid = true;
+        }
     }
 
     return {position: position,

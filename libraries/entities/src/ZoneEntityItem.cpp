@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ZoneEntityItem.h"
 
 #include <QDebug>
 
@@ -18,7 +19,6 @@
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "ZoneEntityItem.h"
 #include "EntityEditFilters.h"
 
 bool ZoneEntityItem::_zonesArePickable = false;
@@ -42,38 +42,33 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
 
     _shapeType = DEFAULT_SHAPE_TYPE;
     _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
+    _visuallyReady = false;
 }
 
-EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties ZoneEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
-    // Contains a QString property, must be synchronized
+    // Contain QString properties, must be synchronized
     withReadLock([&] {
         _keyLightProperties.getProperties(properties);
-    });
-
-    withReadLock([&] {
         _ambientLightProperties.getProperties(properties);
+        _skyboxProperties.getProperties(properties);
     });
+    _hazeProperties.getProperties(properties);
+    _bloomProperties.getProperties(properties);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
-
-    // Contains a QString property, must be synchronized
-    withReadLock([&] {
-        _skyboxProperties.getProperties(properties);
-    });
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(filterURL, getFilterURL);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
-    _hazeProperties.getProperties(properties);
-
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightMode, getKeyLightMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ambientLightMode, getAmbientLightMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(skyboxMode, getSkyboxMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(bloomMode, getBloomMode);
 
     return properties;
 }
@@ -102,32 +97,27 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     // Contains a QString property, must be synchronized
     withWriteLock([&] {
         _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
-    });
-    withWriteLock([&] {
         _ambientLightPropertiesChanged = _ambientLightProperties.setProperties(properties);
+        _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
     });
+    _hazePropertiesChanged = _hazeProperties.setProperties(properties);
+    _bloomPropertiesChanged = _bloomProperties.setProperties(properties);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
-
-    // Contains a QString property, must be synchronized
-    withWriteLock([&] {
-        _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
-    });
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
-    _hazePropertiesChanged = _hazeProperties.setProperties(properties);
-
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightMode, setKeyLightMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ambientLightMode, setAmbientLightMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(skyboxMode, setSkyboxMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(bloomMode, setBloomMode);
 
     somethingChanged = somethingChanged || _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
-        _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
+        _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged || _bloomPropertiesChanged;
 
     return somethingChanged;
 }
@@ -139,88 +129,94 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    int bytesFromKeylight;
-    withWriteLock([&] {
-        bytesFromKeylight = _keyLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-            propertyFlags, overwriteLocalData, _keyLightPropertiesChanged);
-    });
+    {
+        int bytesFromKeylight;
+        withWriteLock([&] {
+            bytesFromKeylight = _keyLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+                propertyFlags, overwriteLocalData, _keyLightPropertiesChanged);
+        });
+        somethingChanged = somethingChanged || _keyLightPropertiesChanged;
+        bytesRead += bytesFromKeylight;
+        dataAt += bytesFromKeylight;
+    }
 
-    somethingChanged = somethingChanged || _keyLightPropertiesChanged;
-    bytesRead += bytesFromKeylight;
-    dataAt += bytesFromKeylight;
+    {
+        int bytesFromAmbientlight;
+        withWriteLock([&] {
+            bytesFromAmbientlight = _ambientLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+                propertyFlags, overwriteLocalData, _ambientLightPropertiesChanged);
+        });
+        somethingChanged = somethingChanged || _ambientLightPropertiesChanged;
+        bytesRead += bytesFromAmbientlight;
+        dataAt += bytesFromAmbientlight;
+    }
 
-    int bytesFromAmbientlight;
-    withWriteLock([&] {
-        bytesFromAmbientlight = _ambientLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-            propertyFlags, overwriteLocalData, _ambientLightPropertiesChanged);
-    });
+    {
+        int bytesFromSkybox;
+        withWriteLock([&] {
+            bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+                propertyFlags, overwriteLocalData, _skyboxPropertiesChanged);
+        });
+        somethingChanged = somethingChanged || _skyboxPropertiesChanged;
+        bytesRead += bytesFromSkybox;
+        dataAt += bytesFromSkybox;
+    }
 
-    somethingChanged = somethingChanged || _ambientLightPropertiesChanged;
-    bytesRead += bytesFromAmbientlight;
-    dataAt += bytesFromAmbientlight;
+    {
+        int bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData, _hazePropertiesChanged);
+        somethingChanged = somethingChanged || _hazePropertiesChanged;
+        bytesRead += bytesFromHaze;
+        dataAt += bytesFromHaze;
+    }
+
+    {
+        int bytesFromBloom = _bloomProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData, _bloomPropertiesChanged);
+        somethingChanged = somethingChanged || _bloomPropertiesChanged;
+        bytesRead += bytesFromBloom;
+        dataAt += bytesFromBloom;
+    }
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-
-    int bytesFromSkybox;
-    withWriteLock([&] {
-        bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-            propertyFlags, overwriteLocalData, _skyboxPropertiesChanged);
-    });
-    somethingChanged = somethingChanged || _skyboxPropertiesChanged;
-    bytesRead += bytesFromSkybox;
-    dataAt += bytesFromSkybox;
 
     READ_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
     READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
     READ_ENTITY_PROPERTY(PROP_FILTER_URL, QString, setFilterURL);
 
     READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint32_t, setHazeMode);
-
-    int bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-        propertyFlags, overwriteLocalData, _hazePropertiesChanged);
-
-    somethingChanged = somethingChanged || _hazePropertiesChanged;
-    bytesRead += bytesFromHaze;
-    dataAt += bytesFromHaze;
-
     READ_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
     READ_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
     READ_ENTITY_PROPERTY(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
+    READ_ENTITY_PROPERTY(PROP_BLOOM_MODE, uint32_t, setBloomMode);
 
     return bytesRead;
 }
 
-
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     withReadLock([&] {
         requestedProperties += _keyLightProperties.getEntityProperties(params);
-    });
-
-    withReadLock([&] {
         requestedProperties += _ambientLightProperties.getEntityProperties(params);
+        requestedProperties += _skyboxProperties.getEntityProperties(params);
     });
+    requestedProperties += _hazeProperties.getEntityProperties(params);
+    requestedProperties += _bloomProperties.getEntityProperties(params);
 
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
-
-    withReadLock([&] {
-        requestedProperties += _skyboxProperties.getEntityProperties(params);
-    });
 
     requestedProperties += PROP_FLYING_ALLOWED;
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
 
     requestedProperties += PROP_HAZE_MODE;
-    requestedProperties += _hazeProperties.getEntityProperties(params);
-
     requestedProperties += PROP_KEY_LIGHT_MODE;
     requestedProperties += PROP_AMBIENT_LIGHT_MODE;
     requestedProperties += PROP_SKYBOX_MODE;
+    requestedProperties += PROP_BLOOM_MODE;
 
     return requestedProperties;
 }
@@ -237,44 +233,46 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     _keyLightProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
     _ambientLightProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    _hazeProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    _bloomProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
-
-    _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-        propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, getFlyingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, getGhostingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_FILTER_URL, getFilterURL());
 
     APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)getHazeMode());
-    _hazeProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-        propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
     APPEND_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, (uint32_t)getKeyLightMode());
     APPEND_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, (uint32_t)getAmbientLightMode());
     APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, (uint32_t)getSkyboxMode());
+    APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)getBloomMode());
 }
 
 void ZoneEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   ZoneEntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "                  position:" << debugTreeVector(getWorldPosition());
-    qCDebug(entities) << "                dimensions:" << debugTreeVector(getScaledDimensions());
-    qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
-    qCDebug(entities) << "               _hazeMode:" << EntityItemProperties::getComponentModeString(_hazeMode);
-    qCDebug(entities) << "               _keyLightMode:" << EntityItemProperties::getComponentModeString(_keyLightMode);
-    qCDebug(entities) << "               _ambientLightMode:" << EntityItemProperties::getComponentModeString(_ambientLightMode);
-    qCDebug(entities) << "               _skyboxMode:" << EntityItemProperties::getComponentModeString(_skyboxMode);
+    qCDebug(entities) << "            position:" << debugTreeVector(getWorldPosition());
+    qCDebug(entities) << "          dimensions:" << debugTreeVector(getScaledDimensions());
+    qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
+    qCDebug(entities) << "           _hazeMode:" << EntityItemProperties::getComponentModeString(_hazeMode);
+    qCDebug(entities) << "       _keyLightMode:" << EntityItemProperties::getComponentModeString(_keyLightMode);
+    qCDebug(entities) << "   _ambientLightMode:" << EntityItemProperties::getComponentModeString(_ambientLightMode);
+    qCDebug(entities) << "         _skyboxMode:" << EntityItemProperties::getComponentModeString(_skyboxMode);
+    qCDebug(entities) << "          _bloomMode:" << EntityItemProperties::getComponentModeString(_bloomMode);
 
     _keyLightProperties.debugDump();
     _ambientLightProperties.debugDump();
     _skyboxProperties.debugDump();
     _hazeProperties.debugDump();
+    _bloomProperties.debugDump();
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {
@@ -296,10 +294,16 @@ void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
 }
 
 bool ZoneEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         OctreeElementPointer& element, float& distance, 
+                         OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const {
+    return _zonesArePickable;
+}
 
+bool ZoneEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                         const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+                         BoxFace& face, glm::vec3& surfaceNormal,
+                         QVariantMap& extraInfo, bool precisionPicking) const {
     return _zonesArePickable;
 }
 
@@ -340,6 +344,7 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
         _ambientLightPropertiesChanged = false;
         _skyboxPropertiesChanged = false;
         _hazePropertiesChanged = false;
+        _bloomPropertiesChanged = false;
         _stagePropertiesChanged = false;
     });
 }
@@ -353,6 +358,17 @@ void ZoneEntityItem::setHazeMode(const uint32_t value) {
 
 uint32_t ZoneEntityItem::getHazeMode() const {
     return _hazeMode;
+}
+
+void ZoneEntityItem::setBloomMode(const uint32_t value) {
+    if (value < COMPONENT_MODE_ITEM_COUNT && value != _bloomMode) {
+        _bloomMode = value;
+        _bloomPropertiesChanged = true;
+    }
+}
+
+uint32_t ZoneEntityItem::getBloomMode() const {
+    return _bloomMode;
 }
 
 void ZoneEntityItem::setKeyLightMode(const uint32_t value) {

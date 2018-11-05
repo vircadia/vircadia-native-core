@@ -51,11 +51,15 @@ public:
 
     int getOnCount() const override { return _onCount; }
 
-    virtual bool supportsDetailedRayIntersection() const override { return true; }
+    virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                        OctreeElementPointer& element, float& distance,
-                        BoxFace& face, glm::vec3& surfaceNormal,
-                        QVariantMap& extraInfo, bool precisionPicking) const override;
+                                             OctreeElementPointer& element, float& distance,
+                                             BoxFace& face, glm::vec3& surfaceNormal,
+                                             QVariantMap& extraInfo, bool precisionPicking) const override;
+    virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const vec3& accleration,
+                                                  OctreeElementPointer& element, float& parabolicDistance,
+                                                  BoxFace& face, glm::vec3& surfaceNormal,
+                                                  QVariantMap& extraInfo, bool precisionPicking) const override;
 
     virtual void setVoxelData(const QByteArray& voxelData) override;
     virtual void setVoxelVolumeSize(const glm::vec3& voxelVolumeSize) override;
@@ -169,7 +173,7 @@ public:
     }
     
 protected:
-    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1); }
+    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape().withTagBits(getTagMask()); }
     virtual ShapeKey getShapeKey() override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
@@ -183,6 +187,7 @@ private:
 #endif
 
     graphics::MeshPointer _mesh;
+    gpu::BufferPointer _params;
     std::array<NetworkTexturePointer, 3> _xyzTextures;
     glm::vec3 _lastVoxelVolumeSize;
     glm::mat4 _lastVoxelToWorldMatrix;

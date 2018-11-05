@@ -11,14 +11,14 @@
 //
 
 <@include gpu/Inputs.slh@>
-
 <@include gpu/Transform.slh@>
+<@include render-utils/ShaderConstants.h@>
 
 <$declareStandardTransform()$>
 
-out vec4 _position;
-out vec4 _worldPosition;
-out vec3 _normal;
+layout(location=RENDER_UTILS_ATTR_POSITION_MS) out vec4 _position;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _worldPosition;
+layout(location=RENDER_UTILS_ATTR_NORMAL_MS) out vec3 _normal;
 
 void main(void) {
     // standard transform

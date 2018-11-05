@@ -8,11 +8,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* globals VIVE_CONTROLLER_CONFIGURATION_LEFT:true VIVE_CONTROLLER_CONFIGURATION_RIGHT:true */
+/* globals VIVE_CONTROLLER_CONFIGURATION_LEFT:true, VIVE_CONTROLLER_CONFIGURATION_RIGHT:true,
+   MyAvatar, Quat, Script, Vec3, Controller */
 /* eslint camelcase: ["error", { "properties": "never" }] */
 
-var LEFT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND");
-var RIGHT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND");
+// var LEFT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND");
+// var RIGHT_JOINT_INDEX = MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND");
 
 var leftBaseRotation = Quat.multiply(
     Quat.fromPitchYawRollDegrees(0, 0, 45),
@@ -58,10 +59,10 @@ var viveNaturalPosition = {
 };
 
 var BASE_URL = Script.resourcesPath();
-var TIP_TEXTURE_BASE_URL = BASE_URL + "meshes/controller/vive_tips.fbm/";
+// var TIP_TEXTURE_BASE_URL = BASE_URL + "meshes/controller/vive_tips.fbm/";
 
 var viveModelURL = BASE_URL + "meshes/controller/vive_body.fbx";
-var viveTipsModelURL = BASE_URL + "meshes/controller/vive_tips.fbx";
+// var viveTipsModelURL = BASE_URL + "meshes/controller/vive_tips.fbx";
 var viveTriggerModelURL = "meshes/controller/vive_trigger.fbx";
 
 VIVE_CONTROLLER_CONFIGURATION_LEFT = {
@@ -77,6 +78,8 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
             dimensions: viveNaturalDimensions,
 
             parts: {
+                // DISABLED FOR NOW
+                /*
                 tips: {
                     type: "static",
                     modelURL: viveTipsModelURL,
@@ -103,6 +106,7 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                         }
                     }
                 },
+                */
 
                 // The touchpad type draws a dot indicating the current touch/thumb position
                 // and swaps in textures based on the thumb position.
@@ -215,6 +219,8 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
             },
 
             parts: {
+                // DISABLED FOR NOW
+                /*
                 tips: {
                     type: "static",
                     modelURL: viveTipsModelURL,
@@ -242,6 +248,7 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                         }
                     }
                 },
+                */
 
                 // The touchpad type draws a dot indicating the current touch/thumb position
                 // and swaps in textures based on the thumb position.
@@ -334,4 +341,3 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
         }
     ]
 };
-

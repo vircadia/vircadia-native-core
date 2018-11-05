@@ -8,12 +8,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick 2.7
 import Qt.labs.folderlistmodel 2.1
 import Qt.labs.settings 1.0
-import QtQuick.Controls.Styles 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
+import QtQuick.Controls 1.4 as QQC1
+import QtQuick.Controls 2.3
 
 import ".."
 import "../../../controls-uit"
@@ -29,6 +29,8 @@ Rectangle {
     HifiConstants { id: hifi }
 
     color: hifi.colors.baseGray;
+
+    property var filesModel: ListModel { }
 
     Settings {
         category: "FileDialog"
@@ -52,7 +54,7 @@ Rectangle {
     property int iconSize: 40
 
     property bool selectDirectory: false;
-    property bool showHidden: false;
+    property bool showHidden: true;
     // FIXME implement
     property bool multiSelect: false;
     property bool saveDialog: false;
@@ -149,7 +151,7 @@ Rectangle {
 
         ComboBox {
             id: pathSelector
-           anchors {
+            anchors {
                 top: parent.top
                 topMargin: hifi.dimensions.contentMargin.y
                 left: navControls.right
@@ -247,7 +249,9 @@ Rectangle {
                 }
 
                 currentSelectionUrl = helper.pathToUrl(fileTableView.model.get(row).filePath);
-                currentSelectionIsFolder = fileTableView.model.isFolder(row);
+                currentSelectionIsFolder = fileTableView.model !== filesModel ?
+                            fileTableView.model.isFolder(row) :
+                            fileTableModel.isFolder(row);
                 if (root.selectDirectory || !currentSelectionIsFolder) {
                     currentSelection.text = capitalizeDrive(helper.urlToPath(currentSelectionUrl));
                 } else {
@@ -280,11 +284,14 @@ Rectangle {
             showDirsFirst: true
             showDotAndDotDot: false
             showFiles: !root.selectDirectory
+            showHidden: root.showHidden
             Component.onCompleted: {
                 showFiles = !root.selectDirectory
+                showHidden = root.showHidden
             }
 
             onFolderChanged: {
+                d.clearSelection();
                 fileTableModel.update();  // Update once the data from the folder change is available.
             }
 
@@ -325,7 +332,12 @@ Rectangle {
             }
         }
 
-        ListModel {
+        Component {
+            id: filesModelBuilder
+            ListModel { }
+        }
+
+        QtObject {
             id: fileTableModel
 
             // FolderListModel has a couple of problems:
@@ -377,7 +389,11 @@ Rectangle {
                 if (row === -1) {
                     return false;
                 }
-                return get(row).fileIsDir;
+                return filesModel.get(row).fileIsDir;
+            }
+
+            function get(row) {
+                return filesModel.get(row)
             }
 
             function update() {
@@ -395,7 +411,7 @@ Rectangle {
                     rows = 0,
                     i;
 
-                clear();
+                filesModel = filesModelBuilder.createObject(root);
 
                 comparisonFunction = sortOrder === Qt.AscendingOrder
                     ? function(a, b) { return a < b; }
@@ -417,7 +433,7 @@ Rectangle {
                     while (lower < upper) {
                         middle = Math.floor((lower + upper) / 2);
                         var lessThan;
-                        if (comparisonFunction(sortValue, get(middle)[sortField])) {
+                        if (comparisonFunction(sortValue, filesModel.get(middle)[sortField])) {
                             lessThan = true;
                             upper = middle;
                         } else {
@@ -426,7 +442,7 @@ Rectangle {
                         }
                     }
 
-                    insert(lower, {
+                    filesModel.insert(lower, {
                        fileName: fileName,
                        fileModified: (fileIsDir ? new Date(0) : model.getItem(i, "fileModified")),
                        fileSize: model.getItem(i, "fileSize"),
@@ -437,8 +453,6 @@ Rectangle {
 
                     rows++;
                 }
-
-                d.clearSelection();
             }
         }
 
@@ -463,12 +477,12 @@ Rectangle {
             sortIndicatorOrder: Qt.AscendingOrder
             sortIndicatorVisible: true
 
-            model: fileTableModel
+            model: filesModel
 
             function updateSort() {
-                model.sortOrder = sortIndicatorOrder;
-                model.sortColumn = sortIndicatorColumn;
-                model.update();
+                fileTableModel.sortOrder = sortIndicatorOrder;
+                fileTableModel.sortColumn = sortIndicatorColumn;
+                fileTableModel.update();
             }
 
             onSortIndicatorColumnChanged: { updateSort(); }
@@ -520,7 +534,7 @@ Rectangle {
                 }
             }
 
-            TableViewColumn {
+            QQC1.TableViewColumn {
                 id: fileNameColumn
                 role: "fileName"
                 title: "Name"
@@ -528,7 +542,7 @@ Rectangle {
                 movable: false
                 resizable: true
             }
-            TableViewColumn {
+            QQC1.TableViewColumn {
                 id: fileMofifiedColumn
                 role: "fileModified"
                 title: "Date"
@@ -537,7 +551,7 @@ Rectangle {
                 resizable: true
                 visible: !selectDirectory
             }
-            TableViewColumn {
+            QQC1.TableViewColumn {
                 role: "fileSize"
                 title: "Size"
                 width: fileTableView.width - fileNameColumn.width - fileMofifiedColumn.width
@@ -552,11 +566,12 @@ Rectangle {
             }
 
             function navigateToCurrentRow() {
+                var currentModel = fileTableView.model !== filesModel ? fileTableView.model : fileTableModel
                 var row = fileTableView.currentRow
-                var isFolder = model.isFolder(row);
-                var file = model.get(row).filePath;
+                var isFolder = currentModel.isFolder(row);
+                var file = currentModel.get(row).filePath;
                 if (isFolder) {
-                    fileTableView.model.folder = helper.pathToUrl(file);
+                    currentModel.folder = helper.pathToUrl(file);
                 } else {
                     okAction.trigger();
                 }
@@ -571,7 +586,8 @@ Rectangle {
                 var newPrefix = prefix + event.text.toLowerCase();
                 var matchedIndex = -1;
                 for (var i = 0; i < model.count; ++i) {
-                    var name = model.get(i).fileName.toLowerCase();
+                    var name = model !== filesModel ? model.get(i).fileName.toLowerCase() :
+                                                      filesModel.get(i).fileName.toLowerCase();
                     if (0 === name.indexOf(newPrefix)) {
                         matchedIndex = i;
                         break;

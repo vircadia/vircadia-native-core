@@ -10,8 +10,7 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
+import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 
 import "."
@@ -39,26 +38,26 @@ Window {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
+    readonly property real verticalScrollWidth: 10
+    readonly property real verticalScrollShaft: 8
+
     // Scrollable window content.
     // FIXME this should not define any visual content in this type.  The base window
     // type should only consist of logic sized areas, with nothing drawn (although the
     // default value for the frame property does include visual decorations)
     property var pane: Item {
-        property bool isScrolling: scrollView.height < scrollView.contentItem.height
-        property int contentWidth: scrollView.width - (isScrolling ? 10 : 0)
+        property int contentWidth: scrollView.width
         property int scrollHeight: scrollView.height
 
         anchors.fill: parent
-        anchors.rightMargin: isScrolling ? 11 : 0
 
         Rectangle {
             id: contentBackground
             anchors.fill: parent
-            anchors.rightMargin: parent.isScrolling ? 11 : 0
+            //anchors.rightMargin: parent.isScrolling ? verticalScrollWidth + 1 : 0
             color: hifi.colors.baseGray
             visible: !window.hideBackground && modality != Qt.ApplicationModal
         }
-
 
         LinearGradient {
             visible: !window.hideBackground && gradientsSupported && modality != Qt.ApplicationModal
@@ -75,35 +74,28 @@ Window {
             cached: true
         }
 
-        ScrollView {
+        Flickable {
             id: scrollView
-            contentItem: content
-            horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
-            verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+            contentItem.children: [ content ]
+            contentHeight: content.height
+            boundsBehavior: Flickable.StopAtBounds
+            property bool isScrolling: (contentHeight - height) > 10 ? true : false
+
+            clip: true
+
+            anchors.rightMargin: isScrolling ? verticalScrollWidth : 0
             anchors.fill: parent
-            anchors.rightMargin: parent.isScrolling ? 1 : 0
             anchors.bottomMargin: footerPane.height
 
-            style: ScrollViewStyle {
-
-                padding.right: -7  // Move to right away from content.
-
-                handle: Item {
-                    implicitWidth: 8
-                    Rectangle {
-                        radius: 4
-                        color: hifi.colors.white30
-                        anchors {
-                            fill: parent
-                            leftMargin: 2  // Finesse size and position.
-                            topMargin: 1
-                            bottomMargin: 1
-                        }
-                    }
-                }
-
-                scrollBarBackground: Item {
-                    implicitWidth: 10
+            ScrollBar.vertical: ScrollBar {
+                policy: scrollView.isScrolling ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                parent: scrollView.parent
+                anchors.top: scrollView.top
+                anchors.right: scrollView.right
+                anchors.bottom: scrollView.bottom
+                anchors.rightMargin: -verticalScrollWidth //compensate scrollview's right margin
+                background: Item {
+                    implicitWidth: verticalScrollWidth
                     Rectangle {
                         color: hifi.colors.darkGray30
                         radius: 4
@@ -114,13 +106,18 @@ Window {
                         }
                     }
                 }
-
-                incrementControl: Item {
-                    visible: false
-                }
-
-                decrementControl: Item {
-                    visible: false
+                contentItem: Item {
+                    implicitWidth: verticalScrollShaft
+                    Rectangle {
+                        radius: verticalScrollShaft/2
+                        color: hifi.colors.white30
+                        anchors {
+                            fill: parent
+                            leftMargin: 2  // Finesse size and position.
+                            topMargin: 1
+                            bottomMargin: 1
+                        }
+                    }
                 }
             }
         }

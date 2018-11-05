@@ -33,6 +33,282 @@ namespace controller {
         return std::make_shared<ActionEndpoint>(input);
     }
 
+    /**jsdoc
+     * <p>The <code>Controller.Actions</code> object has properties representing predefined actions on the user's avatar and 
+     * Interface. The property values are integer IDs, uniquely identifying each action. <em>Read-only.</em> These can be used 
+     * as end points in the routes of a {@link MappingObject}. The data routed to each action is either a number or a 
+     * {@link Pose}.</p>
+     *
+     * <table>
+     *   <thead>
+     *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td colSpan=4><strong>Avatar Movement</strong></td>
+     *     <tr><td><code>TranslateX</code></td><td>number</td><td>number</td><td>Move the user's avatar in the direction of its 
+     *       x-axis, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>TranslateY</code></td><td>number</td><td>number</td><td>Move the user's avatar in the direction of its 
+     *       y-axis, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>TranslateZ</code></td><td>number</td><td>number</td><td>Move the user's avatar in the direction of its 
+     *       z-axis, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>Pitch</code></td><td>number</td><td>number</td><td>Rotate the user's avatar head and attached camera 
+     *       about its negative x-axis (i.e., positive values pitch down), if the camera isn't in HMD, independent, or mirror 
+     *       modes.</td></tr>
+     *     <tr><td><code>Yaw</code></td><td>number</td><td>number</td><td>Rotate the user's avatar about its y-axis, if the 
+     *       camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>Roll</code></td><td>number</td><td>number</td><td>No action.</td></tr>
+     *     <tr><td><code>StepTranslateX</code></td><td>number</td><td>number</td><td>No action.</td></tr>
+     *     <tr><td><code>StepTranslateY</code></td><td>number</td><td>number</td><td>No action.</td></tr>
+     *     <tr><td><code>StepTranslateZ</code></td><td>number</td><td>number</td><td>No action.</td></tr>
+     *     <tr><td><code>StepPitch</code></td><td>number</td><td>number</td><td>No action.</td></tr>
+     *     <tr><td><code>StepYaw</code></td><td>number</td><td>number</td><td>Rotate the user's avatar about its y-axis in a 
+     *       step increment, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>StepRoll</code></td><td>number</td><td>number</td><td>No action.</td></tr>
+     *
+     *     <tr><td colSpan=4><strong>Avatar Skeleton</strong></td>
+     *     <tr><td><code>Hips</code></td><td>number</td><td>{@link Pose}</td><td>Set the hips pose of the user's avatar.
+     *       </td></tr>
+     *     <tr><td><code>Spine2</code></td><td>number</td><td>{@link Pose}</td><td>Set the spine2 pose of the user's avatar.
+     *       </td></tr>
+     *     <tr><td><code>Head</code></td><td>number</td><td>{@link Pose}</td><td>Set the head pose of the user's avatar.
+     *       </td></tr>
+     *     <tr><td><code>LeftArm</code></td><td>number</td><td>{@link Pose}</td><td>Set the left arm pose of the user's avatar.
+     *       </td></tr>
+     *     <tr><td><code>RightArm</code></td><td>number</td><td>{@link Pose}</td><td>Set the right arm pose of the user's 
+     *       avatar.</td></tr>
+     *     <tr><td><code>LeftHand</code></td><td>number</td><td>{@link Pose}</td><td>Set the left hand pose of the user's
+     *       avatar.</td></tr>
+     *     <tr><td><code>LeftHandThumb1</code></td><td>number</td><td>{@link Pose}</td><td>Set the left thumb 1 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandThumb2</code></td><td>number</td><td>{@link Pose}</td><td>Set the left thumb 2 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandThumb3</code></td><td>number</td><td>{@link Pose}</td><td>Set the left thumb 3 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandThumb4</code></td><td>number</td><td>{@link Pose}</td><td>Set the left thumb 4 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandIndex1</code></td><td>number</td><td>{@link Pose}</td><td>Set the left index 1 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandIndex2</code></td><td>number</td><td>{@link Pose}</td><td>Set the left index 2 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandIndex3</code></td><td>number</td><td>{@link Pose}</td><td>Set the left index 3 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandIndex4</code></td><td>number</td><td>{@link Pose}</td><td>Set the left index 4 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandMiddle1</code></td><td>number</td><td>{@link Pose}</td><td>Set the left middle 1 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandMiddle2</code></td><td>number</td><td>{@link Pose}</td><td>Set the left middle 2 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandMiddle3</code></td><td>number</td><td>{@link Pose}</td><td>Set the left middle 3 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandMiddle4</code></td><td>number</td><td>{@link Pose}</td><td>Set the left middle 4 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandRing1</code></td><td>number</td><td>{@link Pose}</td><td>Set the left ring 1 finger joint pose 
+     *       of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandRing2</code></td><td>number</td><td>{@link Pose}</td><td>Set the left ring 2 finger joint pose 
+     *       of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandRing3</code></td><td>number</td><td>{@link Pose}</td><td>Set the left ring 3 finger joint pose 
+     *       of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandRing4</code></td><td>number</td><td>{@link Pose}</td><td>Set the left ring 4 finger joint pose 
+     *       of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandPinky1</code></td><td>number</td><td>{@link Pose}</td><td>Set the left pinky 1 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandPinky2</code></td><td>number</td><td>{@link Pose}</td><td>Set the left pinky 2 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandPinky3</code></td><td>number</td><td>{@link Pose}</td><td>Set the left pinky 3 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftHandPinky4</code></td><td>number</td><td>{@link Pose}</td><td>Set the left pinky 4 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHand</code></td><td>number</td><td>{@link Pose}</td><td>Set the right hand of the user's avatar.
+     *       </td></tr>
+     *     <tr><td><code>RightHandThumb1</code></td><td>number</td><td>{@link Pose}</td><td>Set the right thumb 1 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandThumb2</code></td><td>number</td><td>{@link Pose}</td><td>Set the right thumb 2 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandThumb3</code></td><td>number</td><td>{@link Pose}</td><td>Set the right thumb 3 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandThumb4</code></td><td>number</td><td>{@link Pose}</td><td>Set the right thumb 4 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandIndex1</code></td><td>number</td><td>{@link Pose}</td><td>Set the right index 1 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandIndex2</code></td><td>number</td><td>{@link Pose}</td><td>Set the right index 2 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandIndex3</code></td><td>number</td><td>{@link Pose}</td><td>Set the right index 3 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandIndex4</code></td><td>number</td><td>{@link Pose}</td><td>Set the right index 4 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandMiddle1</code></td><td>number</td><td>{@link Pose}</td><td>Set the right middle 1 finger 
+     *       joint pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandMiddle2</code></td><td>number</td><td>{@link Pose}</td><td>Set the right middle 2 finger 
+     *       joint pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandMiddle3</code></td><td>number</td><td>{@link Pose}</td><td>Set the right middle 3 finger 
+     *       joint pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandMiddle4</code></td><td>number</td><td>{@link Pose}</td><td>Set the right middle 4 finger 
+     *       joint pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandRing1</code></td><td>number</td><td>{@link Pose}</td><td>Set the right ring 1 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandRing2</code></td><td>number</td><td>{@link Pose}</td><td>Set the right ring 2 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandRing3</code></td><td>number</td><td>{@link Pose}</td><td>Set the right ring 3 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandRing4</code></td><td>number</td><td>{@link Pose}</td><td>Set the right ring 4 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandPinky1</code></td><td>number</td><td>{@link Pose}</td><td>Set the right pinky 1 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandPinky2</code></td><td>number</td><td>{@link Pose}</td><td>Set the right pinky 2 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandPinky3</code></td><td>number</td><td>{@link Pose}</td><td>Set the right pinky 3 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>RightHandPinky4</code></td><td>number</td><td>{@link Pose}</td><td>Set the right pinky 4 finger joint 
+     *       pose of the user's avatar.</td></tr>
+     *     <tr><td><code>LeftFoot</code></td><td>number</td><td>{@link Pose}</td><td>Set the left foot pose of the user's
+     *       avatar.</td></tr>
+     *     <tr><td><code>RightFoot</code></td><td>number</td><td>{@link Pose}</td><td>Set the right foot pose of the user's
+     *       avatar.</td></tr>
+     *
+     *     <tr><td colSpan=4><strong><strong>Application</strong></td>
+     *     <tr><td><code>BoomIn</code></td><td>number</td><td>number</td><td>Zoom camera in from third person toward first 
+     *       person view.</td></tr>
+     *     <tr><td><code>BoomOut</code></td><td>number</td><td>number</td><td>Zoom camera out from first person to third 
+     *       person view.</td></tr>
+     *     <tr><td><code>CycleCamera</code></td><td>number</td><td>number</td><td>Cycle the camera view from first person, to 
+     *       third person, to full screen mirror, then back to first person and repeat.</td></tr>
+     *     <tr><td><code>ContextMenu</code></td><td>number</td><td>number</td><td>Show / hide the tablet.</td></tr>
+     *     <tr><td><code>ToggleMute</code></td><td>number</td><td>number</td><td>Toggle the microphone mute.</td></tr>
+     *     <tr><td><code>ToggleOverlay</code></td><td>number</td><td>number</td><td>Toggle the display of overlays.</td></tr>
+     *     <tr><td><code>Sprint</code></td><td>number</td><td>number</td><td>Set avatar sprint mode.</td></tr>
+     *     <tr><td><code>ReticleClick</code></td><td>number</td><td>number</td><td>Set mouse-pressed.</td></tr>
+     *     <tr><td><code>ReticleX</code></td><td>number</td><td>number</td><td>Move the cursor left/right in the x direction.
+     *       </td></tr>
+     *     <tr><td><code>ReticleY</code></td><td>number</td><td>number</td><td>move the cursor up/down in the y direction.
+     *       </td></tr>
+     *     <tr><td><code>ReticleLeft</code></td><td>number</td><td>number</td><td>Move the cursor left.</td></tr>
+     *     <tr><td><code>ReticleRight</code></td><td>number</td><td>number</td><td>Move the cursor right.</td></tr>
+     *     <tr><td><code>ReticleUp</code></td><td>number</td><td>number</td><td>Move the cursor up.</td></tr>
+     *     <tr><td><code>ReticleDown</code></td><td>number</td><td>number</td><td>Move the cursor down.</td></tr>
+     *     <tr><td><code>UiNavLateral</code></td><td>number</td><td>number</td><td>Generate a keyboard left or right arrow key 
+     *       event.</td></tr>
+     *     <tr><td><code>UiNavVertical</code></td><td>number</td><td>number</td><td>Generate a keyboard up or down arrow key 
+     *       event.</td></tr>
+     *     <tr><td><code>UiNavGroup</code></td><td>number</td><td>number</td><td>Generate a keyboard tab or back-tab key event.
+     *       </td></tr>
+     *     <tr><td><code>UiNavSelect</code></td><td>number</td><td>number</td><td>Generate a keyboard Enter key event.
+     *       </td></tr>
+     *     <tr><td><code>UiNavBack</code></td><td>number</td><td>number</td><td>Generate a keyboard Esc key event.</td></tr>
+     *     <tr><td><code>LeftHandClick</code></td><td>number</td><td>number</td><td><strong>Deprecated: </strong> No action.
+     *       </td></tr>
+     *     <tr><td><code>RightHandClick</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.
+     *       </td></tr>
+     *     <tr><td><code>Shift</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.</td></tr>
+     *     <tr><td><code>PrimaryAction</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.
+     *       </td></tr>
+     *     <tr><td><code>SecondaryAction</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.
+     *       </td></tr>
+     *
+     *     <tr><td colSpan=4><strong>Aliases</strong></td>
+     *     <tr><td><code>Backward</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateZ</code> in the 
+     *       positive direction.</td></tr>
+     *     <tr><td><code>Forward</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateZ</code> in the negative 
+     *       direction.</td></tr>
+     *     <tr><td><code>StrafeRight</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateX</code> in the
+     *       positive direction.</td></tr>
+     *     <tr><td><code>StrafeLeft</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateX</code> in the
+     *       negative direction.</td></tr>
+     *     <tr><td><code>Up</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateY</code> in the positive
+     *       direction.</td></tr>
+     *     <tr><td><code>Down</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateY</code> in the negative 
+     *       direction.</td></tr>
+     *     <tr><td><code>PitchDown</code></td><td>number</td><td>number</td><td>Alias for <code>Pitch</code> in the positive 
+     *       direction.</td></tr>
+     *     <tr><td><code>PitchUp</code></td><td>number</td><td>number</td><td>Alias for <code>Pitch</code> in the negative
+     *       direction.</td></tr>
+     *     <tr><td><code>YawLeft</code></td><td>number</td><td>number</td><td>Alias for <code>Yaw</code> in the positive
+     *       direction.</td></tr>
+     *     <tr><td><code>YawRight</code></td><td>number</td><td>number</td><td>Alias for <code>Yaw</code> in the negative 
+     *       direction.</td></tr>
+     *
+     *     <tr><td colSpan=4><strong>Deprecated Aliases</strong></td>
+     *     <tr><td><code>LEFT_HAND</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated:</strong> Use 
+     *       <code>LeftHand</code> instead.</td></tr>
+     *     <tr><td><code>RIGHT_HAND</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated:</strong> Use 
+     *       <code>RightHand</code> instead.</td></tr>
+     *     <tr><td><code>BOOM_IN</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>BoomIn</code> instead.</td></tr>
+     *     <tr><td><code>BOOM_OUT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>BoomOut</code> instead.</td></tr>
+     *     <tr><td><code>CONTEXT_MENU</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>ContextMenu</code> instead.</td></tr>
+     *     <tr><td><code>TOGGLE_MUTE</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>ToggleMute</code> instead.</td></tr>
+     *     <tr><td><code>SPRINT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>Sprint</code> instead.</td></tr>
+     *     <tr><td><code>LONGITUDINAL_BACKWARD</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>Backward</code> instead.</td></tr>
+     *     <tr><td><code>LONGITUDINAL_FORWARD</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>Forward</code> instead.</td></tr>
+     *     <tr><td><code>LATERAL_LEFT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>StrafeLeft</code> instead.</td></tr>
+     *     <tr><td><code>LATERAL_RIGHT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>StrafeRight</code> instead.</td></tr>
+     *     <tr><td><code>VERTICAL_UP</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>Up</code> instead.</td></tr>
+     *     <tr><td><code>VERTICAL_DOWN</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>Down</code> instead.</td></tr>
+     *     <tr><td><code>PITCH_DOWN</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>PitchDown</code> instead.</td></tr>
+     *     <tr><td><code>PITCH_UP</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>PitchUp</code> instead.</td></tr>
+     *     <tr><td><code>YAW_LEFT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>YawLeft</code> instead.</td></tr>
+     *     <tr><td><code>YAW_RIGHT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>YawRight</code> instead.</td></tr>
+     *     <tr><td><code>LEFT_HAND_CLICK</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>LeftHandClick</code> instead.</td></tr>
+     *     <tr><td><code>RIGHT_HAND_CLICK</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>RightHandClick</code> instead.</td></tr>
+     *     <tr><td><code>SHIFT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>Shift</code> instead.</td></tr>
+     *     <tr><td><code>ACTION1</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>PrimaryAction</code> instead.</td></tr>
+     *     <tr><td><code>ACTION2</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>SecondaryAction</code> instead.</td></tr>
+     *
+     *     <tr><td colSpan=4><strong>Deprecated Trackers</strong></td>
+     *     <tr><td><code>TrackedObject00</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject01</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject02</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject03</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject04</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject05</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject06</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject07</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject08</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject09</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject10</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject11</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject12</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject13</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject14</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject15</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
+     *       action.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {object} Controller.Actions
+     */
     // Device functions
     Input::NamedVector ActionsDevice::getAvailableInputs() const {
         static Input::NamedVector availableInputs {
@@ -128,6 +404,7 @@ namespace controller {
             makeButtonPair(Action::TOGGLE_MUTE, "ToggleMute"),
             makeButtonPair(Action::CYCLE_CAMERA, "CycleCamera"),
             makeButtonPair(Action::TOGGLE_OVERLAY, "ToggleOverlay"),
+            makeButtonPair(Action::SPRINT, "Sprint"),
 
             makeAxisPair(Action::RETICLE_CLICK, "ReticleClick"),
             makeAxisPair(Action::RETICLE_X, "ReticleX"),
@@ -183,6 +460,7 @@ namespace controller {
             makeButtonPair(Action::ACTION2, "ACTION2"),
             makeButtonPair(Action::CONTEXT_MENU, "CONTEXT_MENU"),
             makeButtonPair(Action::TOGGLE_MUTE, "TOGGLE_MUTE"),
+            makeButtonPair(Action::SPRINT, "SPRINT")
         };
         return availableInputs;
     }

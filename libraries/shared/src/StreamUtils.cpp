@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDataStream>
+#include "StreamUtils.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include "StreamUtils.h"
+#include <QDataStream>
 
 
 void StreamUtil::dump(std::ostream& s, const QByteArray& buffer) {
@@ -74,6 +74,11 @@ QDebug& operator<<(QDebug& dbg, const glm::vec2& v) {
 }
 
 QDebug& operator<<(QDebug& dbg, const glm::vec3& v) {
+    dbg.nospace() << '(' << v.x << ", " << v.y << ", " << v.z << ')';
+    return dbg;
+}
+
+QDebug& operator<<(QDebug& dbg, const glm::u8vec3& v) {
     dbg.nospace() << '(' << v.x << ", " << v.y << ", " << v.z << ')';
     return dbg;
 }

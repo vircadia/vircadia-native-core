@@ -66,12 +66,11 @@ public:
     PickResultPointer getOverlayIntersection(const StylusTip& pick) override;
     PickResultPointer getAvatarIntersection(const StylusTip& pick) override;
     PickResultPointer getHUDIntersection(const StylusTip& pick) override;
+    Transform getResultTransform() const override;
 
-    bool isLeftHand() const override { return _side == Side::Left; }
-    bool isRightHand() const override { return _side == Side::Right; }
-
-private:
-    const Side _side;
+    bool isLeftHand() const override { return _mathPick.side == Side::Left; }
+    bool isRightHand() const override { return _mathPick.side == Side::Right; }
+    bool isMouse() const override { return false; }
 };
 
 #endif // hifi_StylusPick_h

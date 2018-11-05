@@ -49,13 +49,21 @@ const float DISPLAYNAME_FADE_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADE_TIME);
 const float DISPLAYNAME_ALPHA = 1.0f;
 const float DISPLAYNAME_BACKGROUND_ALPHA = 0.4f;
 const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
+const float Avatar::MYAVATAR_LOADING_PRIORITY = (float)M_PI; // Entity priority is computed as atan2(maxDim, distance) which is <= PI / 2
+const float Avatar::OTHERAVATAR_LOADING_PRIORITY = MYAVATAR_LOADING_PRIORITY - EPSILON;
+const float Avatar::ATTACHMENT_LOADING_PRIORITY = OTHERAVATAR_LOADING_PRIORITY - EPSILON;
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1).withMetaCullGroup();
+        ItemKey::Builder keyBuilder = ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::hifi::TAG_ALL_VIEWS).withMetaCullGroup();
+        auto avatarPtr = static_pointer_cast<Avatar>(avatar);
+        if (!avatarPtr->getEnableMeshVisible()) {
+            keyBuilder.withInvisible();
+        }
+        return keyBuilder.build();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
-        return static_pointer_cast<Avatar>(avatar)->getBounds();
+        return static_pointer_cast<Avatar>(avatar)->getRenderBounds();
     }
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
@@ -105,6 +113,99 @@ void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
 
+AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
+    float oneFrameDistance = _isActive ? glm::length(avatarPosition - _endPosition) : glm::length(avatarPosition - _lastPosition);
+    if (oneFrameDistance > (config._minTriggerDistance * _scale)) {
+        if (oneFrameDistance < (config._maxTriggerDistance * _scale)) {
+            start(deltaTime, _lastPosition, avatarPosition, config);
+        } else {
+            _lastPosition = avatarPosition;
+            _status = Status::ABORT_TRANSIT;
+        }        
+    }
+    _lastPosition = avatarPosition;
+    _status = updatePosition(deltaTime);
+
+    if (_isActive && oneFrameDistance > (config._abortDistance * _scale) && _status == Status::POST_TRANSIT) {
+        reset();
+        _status = Status::ENDED;
+    }
+    return _status;
+}
+
+void AvatarTransit::reset() {
+    _lastPosition = _endPosition;
+    _currentPosition = _endPosition;
+    _isActive = false;
+}
+void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const AvatarTransit::TransitConfig& config) {
+    _startPosition = startPosition;
+    _endPosition = endPosition;
+
+    _transitLine = endPosition - startPosition;
+    _totalDistance = glm::length(_transitLine);
+    _easeType = config._easeType;
+
+    _preTransitTime = AVATAR_PRE_TRANSIT_FRAME_COUNT / AVATAR_TRANSIT_FRAMES_PER_SECOND;
+    _postTransitTime = AVATAR_POST_TRANSIT_FRAME_COUNT / AVATAR_TRANSIT_FRAMES_PER_SECOND;
+    int transitFrames = (!config._isDistanceBased) ? config._totalFrames : config._framesPerMeter * _totalDistance;
+    _transitTime = (float)transitFrames / AVATAR_TRANSIT_FRAMES_PER_SECOND;
+    _totalTime = _transitTime + _preTransitTime + _postTransitTime;
+    _currentTime = _isActive ? _preTransitTime : 0.0f;
+    _isActive = true;
+}
+
+float AvatarTransit::getEaseValue(AvatarTransit::EaseType type, float value) {
+    switch (type) {
+    case EaseType::NONE:
+        return value;
+        break;
+    case EaseType::EASE_IN:
+        return value * value;
+        break;
+    case EaseType::EASE_OUT:
+        return value * (2.0f - value);
+        break;
+    case EaseType::EASE_IN_OUT:
+        return (value < 0.5f) ? 2.0f * value * value : -1.0f + (4.0f - 2.0f * value) * value;
+        break;
+    }
+    return value;
+}
+
+AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
+    Status status = Status::IDLE;
+    if (_isActive) {
+        float nextTime = _currentTime + deltaTime;
+        if (nextTime < _preTransitTime) {
+            _currentPosition = _startPosition;
+            status = Status::PRE_TRANSIT;
+            if (_currentTime == 0) {
+                status = Status::STARTED;
+            } 
+        } else if (nextTime < _totalTime - _postTransitTime){
+            status = Status::TRANSITING;
+            if (_currentTime <= _preTransitTime) {
+                status = Status::START_TRANSIT;
+            } else {
+                float percentageIntoTransit = (nextTime - _preTransitTime) / _transitTime;
+                _currentPosition = _startPosition + getEaseValue(_easeType, percentageIntoTransit) * _transitLine;
+            }
+        } else {
+            status = Status::POST_TRANSIT;
+            _currentPosition = _endPosition;
+            if (nextTime >= _totalTime) {
+                _isActive = false;
+                status = Status::ENDED;
+            } else if (_currentTime < _totalTime - _postTransitTime) {
+                status = Status::END_TRANSIT;
+            }
+        }
+        _currentTime = nextTime;
+    }
+    return status;
+}
+
 Avatar::Avatar(QThread* thread) :
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
@@ -118,20 +219,11 @@ Avatar::Avatar(QThread* thread) :
     _leftPointerGeometryID = geometryCache->allocateID();
     _rightPointerGeometryID = geometryCache->allocateID();
     _lastRenderUpdateTime = usecTimestampNow();
+
+    indicateLoadingStatus(LoadingStatus::NoModel);
 }
 
 Avatar::~Avatar() {
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    if (entityTree) {
-        entityTree->withWriteLock([&] {
-            AvatarEntityMap avatarEntities = getAvatarEntityData();
-            for (auto entityID : avatarEntities.keys()) {
-                entityTree->deleteEntity(entityID, true, true);
-            }
-        });
-    }
-
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_nameRectGeometryID);
@@ -162,6 +254,11 @@ AABox Avatar::getBounds() const {
         return AABox(getWorldPosition() - glm::vec3(getModelScale()), getModelScale() * 2.0f);
     }
     return _skeletonModel->getRenderableMeshBound();
+}
+
+
+AABox Avatar::getRenderBounds() const {
+    return _renderBound;
 }
 
 void Avatar::animateScaleChanges(float deltaTime) {
@@ -199,6 +296,8 @@ void Avatar::setTargetScale(float targetScale) {
         _targetScale = newValue;
         _scaleChanged = usecTimestampNow();
         _isAnimatingScale = true;
+
+        emit targetScaleChanged(targetScale);
     }
 }
 
@@ -209,13 +308,23 @@ void Avatar::setAvatarEntityDataChanged(bool value) {
 
 void Avatar::updateAvatarEntities() {
     PerformanceTimer perfTimer("attachments");
+
+    // AVATAR ENTITY UPDATE FLOW
     // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
-    // - updateAvatarEntity saves the bytes and sets _avatarEntityDataLocallyEdited
-    // - MyAvatar::update notices _avatarEntityDataLocallyEdited and calls sendIdentityPacket
-    // - sendIdentityPacket sends the entity bytes to the server which relays them to other interfaces
-    // - AvatarHashMap::processAvatarIdentityPacket on other interfaces call avatar->setAvatarEntityData()
-    // - setAvatarEntityData saves the bytes and sets _avatarEntityDataChanged = true
+    // - updateAvatarEntity saves the bytes and flags the trait instance for the entity as updated
+    // - ClientTraitsHandler::sendChangedTraitsToMixer sends the entity bytes to the mixer which relays them to other interfaces
+    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processTraitInstace
+    // - AvatarData::processTraitInstance calls updateAvatarEntity, which sets _avatarEntityDataChanged = true
     // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
+
+    // AVATAR ENTITY DELETE FLOW
+    // - EntityScriptingInterface::deleteEntity calls _myAvatar->clearAvatarEntity() for deleted avatar entities
+    // - clearAvatarEntity removes the avatar entity and flags the trait instance for the entity as deleted
+    // - ClientTraitsHandler::sendChangedTraitsToMixer sends a deletion to the mixer which relays to other interfaces
+    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processDeletedTraitInstace
+    // - AvatarData::processDeletedTraitInstance calls clearAvatarEntity
+    // - AvatarData::clearAvatarEntity sets _avatarEntityDataChanged = true and adds the ID to the detached list
+    // - Avatar::simulate notices _avatarEntityDataChanged and here we are...
 
     if (!_avatarEntityDataChanged) {
         return;
@@ -294,7 +403,6 @@ void Avatar::updateAvatarEntities() {
             // NOTE: if this avatar entity is not attached to us, strip its entity script completely...
             auto attachedScript = properties.getScript();
             if (!isMyAvatar() && !attachedScript.isEmpty()) {
-                qCDebug(avatars_renderer) << "removing entity script from avatar attached entity:" << entityID << "old script:" << attachedScript;
                 QString noScript;
                 properties.setScript(noScript);
             }
@@ -331,30 +439,46 @@ void Avatar::updateAvatarEntities() {
             stateItr.value().success = success;
         }
 
-        AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
-        if (!recentlyDettachedAvatarEntities.empty()) {
+        AvatarEntityIDs recentlyDetachedAvatarEntities = getAndClearRecentlyDetachedIDs();
+        if (!recentlyDetachedAvatarEntities.empty()) {
             // only lock this thread when absolutely necessary
             AvatarEntityMap avatarEntityData;
             _avatarEntitiesLock.withReadLock([&] {
                 avatarEntityData = _avatarEntityData;
             });
-            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+            foreach (auto entityID, recentlyDetachedAvatarEntities) {
                 if (!avatarEntityData.contains(entityID)) {
                     entityTree->deleteEntity(entityID, true, true);
                 }
             }
 
             // remove stale data hashes
-            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+            foreach (auto entityID, recentlyDetachedAvatarEntities) {
                 MapOfAvatarEntityDataHashes::iterator stateItr = _avatarEntityDataHashes.find(entityID);
                 if (stateItr != _avatarEntityDataHashes.end()) {
                     _avatarEntityDataHashes.erase(stateItr);
                 }
             }
         }
+        if (avatarEntities.size() != _avatarEntityForRecording.size()) {
+            createRecordingIDs();
+        }
     });
 
     setAvatarEntityDataChanged(false);
+}
+
+void Avatar::removeAvatarEntitiesFromTree() {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        entityTree->withWriteLock([&] {
+            AvatarEntityMap avatarEntities = getAvatarEntityData();
+            for (auto entityID : avatarEntities.keys()) {
+                entityTree->deleteEntity(entityID, true, true);
+            }
+        });
+    }
 }
 
 void Avatar::relayJointDataToChildren() {
@@ -374,8 +498,8 @@ void Avatar::relayJointDataToChildren() {
                             glm::quat jointRotation;
                             glm::vec3 jointTranslation;
                             if (avatarJointIndex < 0) {
-                                jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
-                                jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                                jointRotation = modelEntity->getLocalJointRotation(jointIndex);
+                                jointTranslation = modelEntity->getLocalJointTranslation(jointIndex);
                                 map.push_back(-1);
                             } else {
                                 int jointIndex = getJointIndex(jointName);
@@ -398,16 +522,20 @@ void Avatar::relayJointDataToChildren() {
                                 jointRotation = getJointRotation(avatarJointIndex);
                                 jointTranslation = getJointTranslation(avatarJointIndex);
                             } else {
-                                jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
-                                jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                                jointRotation = modelEntity->getLocalJointRotation(jointIndex);
+                                jointTranslation = modelEntity->getLocalJointTranslation(jointIndex);
                             }
                             modelEntity->setLocalJointRotation(jointIndex, jointRotation);
                             modelEntity->setLocalJointTranslation(jointIndex, jointTranslation);
                         }
                     }
+
+                    Transform finalTransform;
                     Transform avatarTransform = _skeletonModel->getTransform();
-                    avatarTransform.setScale(_skeletonModel->getScale());
-                    modelEntity->setOverrideTransform(avatarTransform, _skeletonModel->getOffset());
+                    Transform entityTransform = modelEntity->getLocalTransform();
+                    Transform::mult(finalTransform, avatarTransform, entityTransform);
+                    finalTransform.setScale(_skeletonModel->getScale());
+                    modelEntity->setOverrideTransform(finalTransform, _skeletonModel->getOffset());
                     modelEntity->simulateRelayedJoints();
                 }
             }
@@ -419,6 +547,11 @@ void Avatar::relayJointDataToChildren() {
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
 
+    _globalPosition = _transit.isActive() ? _transit.getCurrentPosition() : _serverPosition;
+    if (!hasParent()) {
+        setLocalPosition(_globalPosition);
+    }
+    
     _simulationRate.increment();
     if (inView) {
         _simulationInViewRate.increment();
@@ -429,7 +562,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView) {
             Head* head = getHead();
-            if (_hasNewJointData) {
+            if (_hasNewJointData || _transit.isActive()) {
                 _skeletonModel->getRig().copyJointsFromJointData(_jointData);
                 glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
                 _skeletonModel->getRig().computeExternalPoses(rootTransform);
@@ -541,10 +674,17 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
 
     // angular
     glm::quat orientation = getWorldOrientation();
-    glm::quat delta = glm::inverse(_lastOrientation) * orientation;
-    glm::vec3 angularVelocity = glm::axis(delta) * glm::angle(delta) * invDeltaTime;
-    setWorldAngularVelocity(angularVelocity);
-    _lastOrientation = getWorldOrientation();
+    float changeDot = glm::abs(glm::dot(orientation, _lastOrientation));
+    float CHANGE_DOT_THRESHOLD = 0.9999f;
+    if (changeDot < CHANGE_DOT_THRESHOLD) {
+        float angle = 2.0f * acosf(changeDot);
+        glm::quat delta = glm::inverse(_lastOrientation) * orientation;
+        glm::vec3 angularVelocity = (angle * invDeltaTime) * glm::axis(delta);
+        setWorldAngularVelocity(angularVelocity);
+        _lastOrientation = orientation;
+    } else {
+        setWorldAngularVelocity(glm::vec3(0.0f));
+    }
 }
 
 enum TextRendererType {
@@ -567,18 +707,42 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
+void Avatar::metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                    const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs) {
+    render::Transaction transaction;
+    transaction.updateItem<AvatarData>(renderItemID, [blendshapeNumber, blendshapeOffsets, blendedMeshSizes,
+                                                       subItemIDs](AvatarData& avatar) {
+        auto avatarPtr = dynamic_cast<Avatar*>(&avatar);
+        if (avatarPtr) {
+            avatarPtr->setBlendedVertices(blendshapeNumber, blendshapeOffsets, blendedMeshSizes, subItemIDs);
+        }
+    });
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+}
+
 void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
-    auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
-
+    auto avatarPayloadPointer = std::shared_ptr<render::Payload<AvatarData>>(avatarPayload);
     if (_renderItemID == render::Item::INVALID_ITEM_ID) {
         _renderItemID = scene->allocateID();
     }
+    // INitialize the _render bound as we are creating the avatar render item
+    _renderBound = getBounds();
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
-    _skeletonModel->addToScene(scene, transaction);
+    using namespace std::placeholders;
+    _skeletonModel->addToScene(scene, transaction, std::bind(&Avatar::metaBlendshapeOperator, _renderItemID, _1, _2, _3, _4));
+    _skeletonModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
+    _skeletonModel->setGroupCulled(true);
+    _skeletonModel->setCanCastShadow(true);
+    _skeletonModel->setVisibleInScene(_isMeshVisible, scene);
+
     processMaterials();
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
+        attachmentModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
+        attachmentModel->setGroupCulled(false);
+        attachmentModel->setCanCastShadow(true);
+        attachmentModel->setVisibleInScene(_isMeshVisible, scene);
     }
 
     _mustFadeIn = true;
@@ -637,7 +801,15 @@ void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointe
 
 void Avatar::updateRenderItem(render::Transaction& transaction) {
     if (render::Item::isValidID(_renderItemID)) {
-        transaction.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {});
+        auto renderBound = getBounds();
+        transaction.updateItem<AvatarData>(_renderItemID,
+            [renderBound](AvatarData& avatar) {
+                auto avatarPtr = dynamic_cast<Avatar*>(&avatar);
+                if (avatarPtr) {
+                    avatarPtr->_renderBound = renderBound;
+                }
+            }
+        );
     }
 }
 
@@ -759,6 +931,18 @@ void Avatar::render(RenderArgs* renderArgs) {
     }
 }
 
+
+void Avatar::setEnableMeshVisible(bool isEnabled) {
+    if (_isMeshVisible != isEnabled) {
+        _isMeshVisible = isEnabled;
+        _needMeshVisibleSwitch = true;
+    }
+}
+
+bool Avatar::getEnableMeshVisible() const {
+    return _isMeshVisible;
+}
+
 void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     bool canTryFade{ false };
 
@@ -769,7 +953,14 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     render::Transaction transaction;
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
-        _skeletonModel->addToScene(scene, transaction);
+        using namespace std::placeholders;
+        _skeletonModel->addToScene(scene, transaction, std::bind(&Avatar::metaBlendshapeOperator, _renderItemID, _1, _2, _3, _4));
+
+        _skeletonModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
+        _skeletonModel->setGroupCulled(true);
+        _skeletonModel->setCanCastShadow(true);
+        _skeletonModel->setVisibleInScene(_isMeshVisible, scene);
+
         processMaterials();
         canTryFade = true;
         _isAnimatingScale = true;
@@ -778,7 +969,23 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, transaction);
             attachmentModel->addToScene(scene, transaction);
+
+            attachmentModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
+            attachmentModel->setGroupCulled(false);
+            attachmentModel->setCanCastShadow(true);
+            attachmentModel->setVisibleInScene(_isMeshVisible, scene);
         }
+    }
+
+    if (_needMeshVisibleSwitch) {
+        _skeletonModel->setVisibleInScene(_isMeshVisible, scene);
+        for (auto attachmentModel : _attachmentModels) {
+            if (attachmentModel->isRenderable()) {
+                attachmentModel->setVisibleInScene(_isMeshVisible, scene);
+            }
+        }
+        updateRenderItem(transaction);
+        _needMeshVisibleSwitch = false;
     }
 
     if (_mustFadeIn && canTryFade) {
@@ -799,7 +1006,6 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     return true;
 }
 
-// virtual
 void Avatar::simulateAttachments(float deltaTime) {
     assert(_attachmentModels.size() == _attachmentModelsTexturesLoaded.size());
     PerformanceTimer perfTimer("attachments");
@@ -1105,12 +1311,21 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
         case CAMERA_MATRIX_INDEX: {
             glm::quat rotation;
             if (_skeletonModel && _skeletonModel->isActive()) {
-                int headJointIndex = _skeletonModel->getFBXGeometry().headJointIndex;
+                int headJointIndex = _skeletonModel->getHFMGeometry().headJointIndex;
                 if (headJointIndex >= 0) {
                     _skeletonModel->getAbsoluteJointRotationInRigFrame(headJointIndex, rotation);
                 }
             }
             return Quaternions::Y_180 * rotation * Quaternions::Y_180;
+        }
+        case FARGRAB_RIGHTHAND_INDEX: {
+            return extractRotation(_farGrabRightMatrixCache.get());
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            return extractRotation(_farGrabLeftMatrixCache.get());
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            return extractRotation(_farGrabMouseMatrixCache.get());
         }
         default: {
             glm::quat rotation;
@@ -1145,12 +1360,21 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         case CAMERA_MATRIX_INDEX: {
             glm::vec3 translation;
             if (_skeletonModel && _skeletonModel->isActive()) {
-                int headJointIndex = _skeletonModel->getFBXGeometry().headJointIndex;
+                int headJointIndex = _skeletonModel->getHFMGeometry().headJointIndex;
                 if (headJointIndex >= 0) {
                     _skeletonModel->getAbsoluteJointTranslationInRigFrame(headJointIndex, translation);
                 }
             }
             return Quaternions::Y_180 * translation * Quaternions::Y_180;
+        }
+        case FARGRAB_RIGHTHAND_INDEX: {
+            return extractTranslation(_farGrabRightMatrixCache.get());
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            return extractTranslation(_farGrabLeftMatrixCache.get());
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            return extractTranslation(_farGrabMouseMatrixCache.get());
         }
         default: {
             glm::vec3 translation;
@@ -1192,7 +1416,7 @@ void Avatar::withValidJointIndicesCache(std::function<void()> const& worker) con
             if (!_modelJointsCached) {
                 _modelJointIndicesCache.clear();
                 if (_skeletonModel && _skeletonModel->isActive()) {
-                    _modelJointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
+                    _modelJointIndicesCache = _skeletonModel->getHFMGeometry().jointIndices;
                     _modelJointsCached = true;
                 }
             }
@@ -1270,7 +1494,13 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     if (QThread::currentThread() == thread()) {
+
+        if (!isMyAvatar()) {
+            createOrb();
+        }
+
         _skeletonModel->setURL(_skeletonModelURL);
+        indicateLoadingStatus(LoadingStatus::LoadModel);
     } else {
         QMetaObject::invokeMethod(_skeletonModel.get(), "setURL", Qt::QueuedConnection, Q_ARG(QUrl, _skeletonModelURL));
     }
@@ -1283,11 +1513,12 @@ void Avatar::setModelURLFinished(bool success) {
     _reconstructSoftEntitiesJointMap = true;
 
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
+        indicateLoadingStatus(LoadingStatus::LoadFailure);
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
             _skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
             qCWarning(avatars_renderer) << "Using default after failing to load Avatar model: " << _skeletonModelURL
-                                    << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
+                                        << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
             // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
             // we don't redo this every time we receive an identity packet from the avatar with the bad url.
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
@@ -1297,6 +1528,9 @@ void Avatar::setModelURLFinished(bool success) {
                     << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts()
                     << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
+    }
+    if (success) {
+        indicateLoadingStatus(LoadingStatus::LoadSuccess);
     }
 }
 
@@ -1357,6 +1591,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         if (_attachmentModels[i]->getURL() != attachmentData[i].modelURL) {
             _attachmentModelsTexturesLoaded[i] = false;
         }
+        _attachmentModels[i]->setLoadingPriority(ATTACHMENT_LOADING_PRIORITY);
         _attachmentModels[i]->setURL(attachmentData[i].modelURL);
     }
 }
@@ -1376,9 +1611,6 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, getWorldPosition()) > MOVE_DISTANCE_THRESHOLD;
-    if (_moving) {
-        addPhysicsFlags(Simulation::DIRTY_POSITION);
-    }
     if (_moving || _hasNewJointData) {
         locationChanged();
     }
@@ -1482,21 +1714,32 @@ void Avatar::updateDisplayNameAlpha(bool showDisplayName) {
     }
 }
 
-// virtual
 void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
     float uniformScale = getModelScale();
-    shapeInfo.setCapsuleY(uniformScale * _skeletonModel->getBoundingCapsuleRadius(),
-            0.5f * uniformScale *  _skeletonModel->getBoundingCapsuleHeight());
-    shapeInfo.setOffset(uniformScale * _skeletonModel->getBoundingCapsuleOffset());
+    float radius = glm::max(MIN_AVATAR_RADIUS, uniformScale * _skeletonModel->getBoundingCapsuleRadius());
+    float height = glm::max(MIN_AVATAR_HEIGHT, uniformScale *  _skeletonModel->getBoundingCapsuleHeight());
+    shapeInfo.setCapsuleY(radius, 0.5f * height);
+    glm::vec3 offset = uniformScale * _skeletonModel->getBoundingCapsuleOffset();
+    shapeInfo.setOffset(offset);
 }
 
 void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
+    // FIXME: this doesn't take into account Avatar rotation
     ShapeInfo shapeInfo;
     computeShapeInfo(shapeInfo);
     glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
     start = getWorldPosition() - glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
     end = getWorldPosition() + glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
     radius = halfExtents.x;
+}
+
+glm::vec3 Avatar::getWorldFeetPosition() {
+    ShapeInfo shapeInfo;
+
+    computeShapeInfo(shapeInfo);
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
+    glm::vec3 localFeet(0.0f, shapeInfo.getOffset().y - halfExtents.y - halfExtents.x, 0.0f);
+    return getWorldOrientation() * localFeet + getWorldPosition();
 }
 
 float Avatar::computeMass() {
@@ -1508,21 +1751,6 @@ float Avatar::computeMass() {
     // volumeOfCapsule = (2PI * R^2 * H) + (4PI * R^3 / 3)
     // volumeOfCapsule = 2PI * R^2 * (H + 2R/3)
     return _density * TWO_PI * radius * radius * (glm::length(end - start) + 2.0f * radius / 3.0f);
-}
-
-// virtual
-void Avatar::rebuildCollisionShape() {
-    addPhysicsFlags(Simulation::DIRTY_SHAPE);
-}
-
-void Avatar::setPhysicsCallback(AvatarPhysicsCallback cb) {
-    _physicsCallback = cb;
-}
-
-void Avatar::addPhysicsFlags(uint32_t flags) {
-    if (_physicsCallback) {
-        _physicsCallback(flags);
-    }
 }
 
 // thread-safe
@@ -1769,6 +1997,12 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
     } else {
         return DEFAULT_AVATAR_EYE_HEIGHT;
     }
+}
+
+AvatarTransit::Status Avatar::updateTransit(float deltaTime, const glm::vec3& avatarPosition, float avatarScale, const AvatarTransit::TransitConfig& config) {
+    std::lock_guard<std::mutex> lock(_transitLock);
+    _transit.setScale(avatarScale);
+    return _transit.update(deltaTime, avatarPosition, config);
 }
 
 void Avatar::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {

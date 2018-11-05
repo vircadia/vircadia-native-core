@@ -39,16 +39,13 @@ private slots:
 
 private:
     void loadOBJ();
-    void createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry);
-    void setMaterialNodeProperties(FBXNode& materialNode, QString material, FBXGeometry& geometry);
+    void createFBXNodeTree(FBXNode& rootNode, HFMGeometry& geometry);
+    void setMaterialNodeProperties(FBXNode& materialNode, QString material, HFMGeometry& geometry);
     NodeID nextNodeID() { return _nodeID++; }
 
+
     NodeID _nodeID { 0 };
-    NodeID _geometryID;
-    NodeID _modelID;
     std::vector<NodeID> _materialIDs;
-    NodeID _textureID;
     std::vector<std::pair<NodeID, int>> _mapTextureMaterial;
-    FBXNode _objectNode;
 };
 #endif // hifi_OBJBaker_h

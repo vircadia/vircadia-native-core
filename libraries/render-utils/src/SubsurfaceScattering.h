@@ -149,7 +149,7 @@ class DebugSubsurfaceScatteringConfig : public render::Job::Config {
     Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
     Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
 public:
-    DebugSubsurfaceScatteringConfig() : render::Job::Config(true) {}
+    DebugSubsurfaceScatteringConfig() : render::Job::Config(false) {}
 
     bool showProfile{ false };
     bool showLUT{ false };
@@ -179,6 +179,7 @@ private:
 
     gpu::PipelinePointer _showLUTPipeline;
     gpu::PipelinePointer getShowLUTPipeline();
+    gpu::BufferPointer _debugParams;
     bool _showProfile{ false };
     bool _showLUT{ false };
     bool _showSpecularTable{ false };

@@ -11,6 +11,7 @@
 <@if not MODEL_LIGHT_SLH@>
 <@def MODEL_LIGHT_SLH@>
 
+<@include graphics/ShaderConstants.h@>
 <@include graphics/LightVolume.shared.slh@>
 <@include graphics/LightIrradiance.shared.slh@>
 
@@ -29,19 +30,12 @@ vec3 getLightColor(Light l) { return lightIrradiance_getColor(l.irradiance); }
 float getLightIntensity(Light l) { return lightIrradiance_getIntensity(l.irradiance); }
 vec3 getLightIrradiance(Light l) { return lightIrradiance_getIrradiance(l.irradiance); }
 
-// AMbient lighting needs extra info provided from a different Buffer
+// Ambient lighting needs extra info provided from a different Buffer
 <@include graphics/SphericalHarmonics.shared.slh@>
 // Light Ambient
-#ifndef PRECISIONQ
-#ifdef GL_ES
-#define PRECISIONQ highp
-#else
-#define PRECISIONQ
-#endif
-#endif
 
 struct LightAmbient {
-    PRECISIONQ vec4 _ambient;
+    vec4 _ambient;
     SphericalHarmonics _ambientSphere;
     mat4 transform;
 };
@@ -57,7 +51,7 @@ float getLightAmbientMapNumMips(LightAmbient l) { return l._ambient.y; }
 
 
 <@if N@>
-uniform lightBuffer {
+LAYOUT(binding=GRAPHICS_BUFFER_LIGHT) uniform lightBuffer {
     Light lightArray[<$N$>];
 };
 Light getLight(int index) {
@@ -65,7 +59,7 @@ Light getLight(int index) {
 }
 
 <@else@>
-uniform keyLightBuffer {
+LAYOUT(binding=GRAPHICS_BUFFER_KEY_LIGHT) uniform keyLightBuffer {
     Light light;
 };
 Light getKeyLight() {
@@ -85,7 +79,7 @@ Light getKeyLight() {
 
 <@if N@>
 
-uniform lightAmbientBuffer {
+LAYOUT(binding=GRAPHICS_BUFFER_AMBIENT_LIGHT) uniform lightAmbientBuffer {
     LightAmbient lightAmbientArray[<$N$>];
 };
 
@@ -94,7 +88,7 @@ LightAmbient getLightAmbient(int index) {
 }
 
 <@else@>
-uniform lightAmbientBuffer {
+LAYOUT(binding=GRAPHICS_BUFFER_AMBIENT_LIGHT) uniform lightAmbientBuffer {
     LightAmbient lightAmbient;
 };
 

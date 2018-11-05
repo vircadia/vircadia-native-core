@@ -166,6 +166,17 @@ bool GraphicsScriptingInterface::updateMeshPart(scriptable::ScriptableMeshPointe
 scriptable::ScriptableMeshPointer GraphicsScriptingInterface::newMesh(const QVariantMap& ifsMeshData) {
     // TODO: this is bare-bones way for now to improvise a new mesh from the scripting side
     //  in the future we want to support a formal C++ structure data type here instead
+
+    /**jsdoc
+     * @typedef {object} Graphics.IFSData
+     * @property {string} [name=""] - mesh name (useful for debugging / debug prints).
+     * @property {string} [topology=""]
+     * @property {number[]} indices - vertex indices to use for the mesh faces.
+     * @property {Vec3[]} vertices - vertex positions (model space)
+     * @property {Vec3[]} [normals=[]] - vertex normals (normalized)
+     * @property {Vec3[]} [colors=[]] - vertex colors (normalized)
+     * @property {Vec2[]} [texCoords0=[]] - vertex texture coordinates (normalized)
+     */
     QString meshName = ifsMeshData.value("name").toString();
     QString topologyName = ifsMeshData.value("topology").toString();
     QVector<glm::uint32> indices = buffer_helpers::variantToVector<glm::uint32>(ifsMeshData.value("indices"));
@@ -356,8 +367,8 @@ namespace scriptable {
         obj.setProperty("metallic", material.metallic);
         obj.setProperty("scattering", material.scattering);
         obj.setProperty("unlit", material.unlit);
-        obj.setProperty("emissive", vec3toScriptValue(engine, material.emissive));
-        obj.setProperty("albedo", vec3toScriptValue(engine, material.albedo));
+        obj.setProperty("emissive", vec3ColorToScriptValue(engine, material.emissive));
+        obj.setProperty("albedo", vec3ColorToScriptValue(engine, material.albedo));
         obj.setProperty("emissiveMap", material.emissiveMap);
         obj.setProperty("albedoMap", material.albedoMap);
         obj.setProperty("opacityMap", material.opacityMap);
@@ -434,5 +445,3 @@ void GraphicsScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
 
     Q_UNUSED(metaTypeIds);
 }
-
-#include "GraphicsScriptingInterface.moc"

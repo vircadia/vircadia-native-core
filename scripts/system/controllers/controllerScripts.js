@@ -9,16 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* global Script, Menu */
+
 var CONTOLLER_SCRIPTS = [
     "squeezeHands.js",
     "controllerDisplayManager.js",
     "grab.js",
     "toggleAdvancedMovementForHandControllers.js",
+    "handTouch.js",
     "controllerDispatcher.js",
     "controllerModules/nearParentGrabEntity.js",
     "controllerModules/nearParentGrabOverlay.js",
     "controllerModules/nearActionGrabEntity.js",
-    "controllerModules/farActionGrabEntity.js",
+    "controllerModules/farActionGrabEntityDynOnly.js",
+    "controllerModules/farParentGrabEntity.js",
     "controllerModules/stylusInput.js",
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",
@@ -28,11 +32,13 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/disableOtherModule.js",
     "controllerModules/farTrigger.js",
     "controllerModules/teleport.js",
-    "controllerModules/scaleAvatar.js",
     "controllerModules/hudOverlayPointer.js",
     "controllerModules/mouseHMD.js",
     "controllerModules/scaleEntity.js",
-    "controllerModules/nearGrabHyperLinkEntity.js"
+    "controllerModules/highlightNearbyEntities.js",
+    "controllerModules/nearGrabHyperLinkEntity.js",
+    "controllerModules/mouseHighlightEntities.js",
+    "controllerModules/nearTabletHighlight.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
@@ -40,13 +46,17 @@ var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
 
 function runDefaultsTogether() {
     for (var j in CONTOLLER_SCRIPTS) {
-        Script.include(CONTOLLER_SCRIPTS[j]);
+        if (CONTOLLER_SCRIPTS.hasOwnProperty(j)) {
+            Script.include(CONTOLLER_SCRIPTS[j]);
+        }
     }
 }
 
 function runDefaultsSeparately() {
     for (var i in CONTOLLER_SCRIPTS) {
-        Script.load(CONTOLLER_SCRIPTS[i]);
+        if (CONTOLLER_SCRIPTS.hasOwnProperty(i)) {
+            Script.load(CONTOLLER_SCRIPTS[i]);
+        }
     }
 }
 

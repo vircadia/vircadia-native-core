@@ -11,14 +11,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 <@include DeferredBufferWrite.slh@>
+<@include render-utils/ShaderConstants.h@>
 
-uniform sampler2D Font;
-uniform bool Outline;
-uniform vec4 Color;
+LAYOUT(binding=0) uniform sampler2D Font;
+
+struct TextParams {
+    vec4 color;
+    vec4 outline;
+};
+
+LAYOUT(binding=0) uniform textParamsBuffer {
+    TextParams params;
+};
 
 // the interpolated normal
-in vec3 _normal;
-in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
 
 const float gamma = 2.2;
 const float smoothing = 32.0;
@@ -28,7 +38,7 @@ const float outlineExpansion = 0.2;
 void main() {
     // retrieve signed distance
     float sdf = texture(Font, _texCoord0).g;
-    if (Outline) {
+    if (params.outline.x > 0.0) {
         if (sdf > interiorCutoff) {
             sdf = 1.0 - sdf;
         } else {
@@ -47,9 +57,9 @@ void main() {
     }
 
     packDeferredFragmentTranslucent(
-        normalize(_normal),
-        a * Color.a,
-        Color.rgb,
+        normalize(_normalWS),
+        a * params.color.a,
+        params.color.rgb,
         DEFAULT_FRESNEL,
         DEFAULT_ROUGHNESS);
 }

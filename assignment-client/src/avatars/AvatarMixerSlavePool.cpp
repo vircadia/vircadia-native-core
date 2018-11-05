@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarMixerSlavePool.h"
+
 #include <assert.h>
 #include <algorithm>
-
-#include "AvatarMixerSlavePool.h"
 
 void AvatarMixerSlaveThread::run() {
     while (true) {
@@ -168,7 +168,7 @@ void AvatarMixerSlavePool::resize(int numThreads) {
     if (numThreads > _numThreads) {
         // start new slaves
         for (int i = 0; i < numThreads - _numThreads; ++i) {
-            auto slave = new AvatarMixerSlaveThread(*this);
+            auto slave = new AvatarMixerSlaveThread(*this, _slaveSharedData);
             slave->start();
             _slaves.emplace_back(slave);
         }

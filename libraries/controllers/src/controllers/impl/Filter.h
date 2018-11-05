@@ -35,6 +35,8 @@ namespace controller {
         using Lambda = std::function<float(float)>;
         using Factory = hifi::SimpleFactory<Filter, QString>;
 
+        virtual ~Filter() = default;
+
         virtual float apply(float value) const = 0;
         virtual Pose apply(Pose value) const = 0;
 

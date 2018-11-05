@@ -19,6 +19,8 @@
 
 #include "OculusHelpers.h"
 
+using namespace hifi;
+
 const char* OculusDisplayPlugin::NAME { "Oculus Rift" };
 static ovrPerfHudMode currentDebugMode = ovrPerfHud_Off;
 
@@ -63,7 +65,7 @@ void OculusDisplayPlugin::cycleDebugOutput() {
 
 void OculusDisplayPlugin::customizeContext() {
     Parent::customizeContext();
-    _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OculusOutput", gpu::Element::COLOR_SRGBA_32, _renderTargetSize.x, _renderTargetSize.y));
+    _outputFramebuffer.reset(gpu::Framebuffer::create("OculusOutput", gpu::Element::COLOR_SRGBA_32, _renderTargetSize.x, _renderTargetSize.y));
     ovrTextureSwapChainDesc desc = { };
     desc.Type = ovrTexture_2D;
     desc.ArraySize = 1;
@@ -76,14 +78,14 @@ void OculusDisplayPlugin::customizeContext() {
 
     ovrResult result = ovr_CreateTextureSwapChainGL(_session, &desc, &_textureSwapChain);
     if (!OVR_SUCCESS(result)) {
-        logCritical("Failed to create swap textures");
+        qCritical(oculusLog) << "Failed to create swap textures" << ovr::getError();
         return;
     }
 
     int length = 0;
     result = ovr_GetTextureSwapChainLength(_session, _textureSwapChain, &length);
     if (!OVR_SUCCESS(result) || !length) {
-        logCritical("Unable to count swap chain textures");
+        qCritical(oculusLog) << "Unable to count swap chain textures" << ovr::getError();
         return;
     }
     for (int i = 0; i < length; ++i) {
@@ -164,8 +166,8 @@ void OculusDisplayPlugin::hmdPresent() {
         auto result = ovr_CommitTextureSwapChain(_session, _textureSwapChain);
         Q_ASSERT(OVR_SUCCESS(result));
         _sceneLayer.SensorSampleTime = _currentPresentFrameInfo.sensorSampleTime;
-        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovrPoseFromGlm(_currentPresentFrameInfo.renderPose);
-        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovrPoseFromGlm(_currentPresentFrameInfo.renderPose);
+        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovr::poseFromGlm(_currentPresentFrameInfo.renderPose);
+        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovr::poseFromGlm(_currentPresentFrameInfo.renderPose);
 
         auto submitStart = usecTimestampNow();
         uint64_t nonSubmitInterval = 0;
@@ -192,7 +194,7 @@ void OculusDisplayPlugin::hmdPresent() {
         }
 
         if (!OVR_SUCCESS(result)) {
-            logWarning("Failed to present");
+            qWarning(oculusLog) << "Failed to present" << ovr::getError();
         }
 
         static int compositorDroppedFrames = 0;
@@ -234,9 +236,7 @@ QJsonObject OculusDisplayPlugin::getHardwareStats() const {
 }
 
 bool OculusDisplayPlugin::isHmdMounted() const {
-    ovrSessionStatus status;
-    return (OVR_SUCCESS(ovr_GetSessionStatus(_session, &status)) &&
-        (ovrFalse != status.HmdMounted));
+    return ovr::hmdMounted();
 }
 
 QString OculusDisplayPlugin::getPreferredAudioInDevice() const {

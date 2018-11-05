@@ -1,0 +1,58 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gondelman on 7/18/2018
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+struct ParabolaData {
+    vec3 velocity;
+    float parabolicDistance;
+    vec3 acceleration;
+    float width;
+    vec4 color;
+    int numSections;
+    ivec3 spare;
+};
+
+LAYOUT_STD140(binding=0) uniform parabolaData {
+    ParabolaData _parabolaData;
+};
+
+layout(location=0) out vec4 _color;
+
+void main(void) {
+    _color = _parabolaData.color;
+
+    float t = _parabolaData.parabolicDistance * (float(gl_VertexID / 2) / float(_parabolaData.numSections));
+
+    vec4 pos = vec4(_parabolaData.velocity * t + 0.5 * _parabolaData.acceleration * t * t, 1);
+    const float EPSILON = 0.00001;
+    vec4 normal;
+
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    if (dot(_parabolaData.acceleration, _parabolaData.acceleration) < EPSILON) {
+        // Handle case where acceleration == (0, 0, 0)
+        vec3 eyeUp = vec3(0, 1, 0);
+        vec3 worldUp;
+        <$transformEyeToWorldDir(cam, eyeUp, worldUp)$>
+        normal = vec4(normalize(cross(_parabolaData.velocity, worldUp)), 0);
+    } else {
+        normal = vec4(normalize(cross(_parabolaData.velocity, _parabolaData.acceleration)), 0);
+    }
+    if (gl_VertexID % 2 == 0) {
+        pos += 0.5 * _parabolaData.width * normal;
+    } else {
+        pos -= 0.5 * _parabolaData.width * normal;
+    }
+
+    <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
+}

@@ -19,12 +19,14 @@
 
 namespace particle {
     static const float SCRIPT_MAXIMUM_PI = 3.1416f;  // Round up so that reasonable property values work
-    static const xColor DEFAULT_COLOR = { 255, 255, 255 };
-    static const xColor DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
+    static const float UNINITIALIZED = NAN;
+    static const u8vec3 DEFAULT_COLOR = { 255, 255, 255 };
+    static const vec3 DEFAULT_COLOR_UNINITIALIZED = { UNINITIALIZED, UNINITIALIZED, UNINITIALIZED };
+    static const u8vec3 DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
     static const float DEFAULT_ALPHA = 1.0f;
     static const float DEFAULT_ALPHA_SPREAD = 0.0f;
-    static const float DEFAULT_ALPHA_START = DEFAULT_ALPHA;
-    static const float DEFAULT_ALPHA_FINISH = DEFAULT_ALPHA;
+    static const float DEFAULT_ALPHA_START = UNINITIALIZED;
+    static const float DEFAULT_ALPHA_FINISH = UNINITIALIZED;
     static const float MINIMUM_ALPHA = 0.0f;
     static const float MAXIMUM_ALPHA = 1.0f;
     static const quint32 DEFAULT_MAX_PARTICLES = 1000;
@@ -37,11 +39,11 @@ namespace particle {
     static const float MINIMUM_EMIT_RATE = 0.0f;
     static const float MAXIMUM_EMIT_RATE = 100000.0f;
     static const float DEFAULT_EMIT_SPEED = 5.0f;
-    static const float MINIMUM_EMIT_SPEED = 0.0f;
+    static const float MINIMUM_EMIT_SPEED = -1000.0f;
     static const float MAXIMUM_EMIT_SPEED = 1000.0f;  // Approx mach 3
     static const float DEFAULT_SPEED_SPREAD = 1.0f;
-    static const glm::quat DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_X);  // Vertical
-    static const glm::vec3 DEFAULT_EMIT_DIMENSIONS = Vectors::ZERO;  // Emit from point
+    static const quat DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_X);  // Vertical
+    static const vec3 DEFAULT_EMIT_DIMENSIONS = Vectors::ZERO;  // Emit from point
     static const float MINIMUM_EMIT_DIMENSION = 0.0f;
     static const float MAXIMUM_EMIT_DIMENSION = (float)TREE_SCALE;
     static const float DEFAULT_EMIT_RADIUS_START = 1.0f;  // Emit from surface (when emitDimensions > 0)
@@ -55,20 +57,27 @@ namespace particle {
     static const float MAXIMUM_AZIMUTH = SCRIPT_MAXIMUM_PI;
     static const float DEFAULT_AZIMUTH_START = -PI;  // Emit full circumference (when polarFinish > 0)
     static const float DEFAULT_AZIMUTH_FINISH = PI;  // ""
-    static const glm::vec3 DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
+    static const vec3 DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
     static const float MINIMUM_EMIT_ACCELERATION = -100.0f; // ~ 10g
     static const float MAXIMUM_EMIT_ACCELERATION = 100.0f;
-    static const glm::vec3 DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
+    static const vec3 DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
     static const float MINIMUM_ACCELERATION_SPREAD = 0.0f;
     static const float MAXIMUM_ACCELERATION_SPREAD = 100.0f;
     static const float DEFAULT_PARTICLE_RADIUS = 0.025f;
     static const float MINIMUM_PARTICLE_RADIUS = 0.0f;
     static const float MAXIMUM_PARTICLE_RADIUS = (float)TREE_SCALE;
     static const float DEFAULT_RADIUS_SPREAD = 0.0f;
-    static const float DEFAULT_RADIUS_START = DEFAULT_PARTICLE_RADIUS;
-    static const float DEFAULT_RADIUS_FINISH = DEFAULT_PARTICLE_RADIUS;
+    static const float DEFAULT_RADIUS_START = UNINITIALIZED;
+    static const float DEFAULT_RADIUS_FINISH = UNINITIALIZED;
+    static const float DEFAULT_PARTICLE_SPIN = 0.0f;
+    static const float DEFAULT_SPIN_START = UNINITIALIZED;
+    static const float DEFAULT_SPIN_FINISH = UNINITIALIZED;
+    static const float DEFAULT_SPIN_SPREAD = 0.0f;
+    static const float MINIMUM_PARTICLE_SPIN = -2.0f * SCRIPT_MAXIMUM_PI;
+    static const float MAXIMUM_PARTICLE_SPIN = 2.0f * SCRIPT_MAXIMUM_PI;
     static const QString DEFAULT_TEXTURES = "";
     static const bool DEFAULT_EMITTER_SHOULD_TRAIL = false;
+    static const bool DEFAULT_ROTATE_WITH_ENTITY = false;
 
     template <typename T>
     struct Range {
@@ -145,12 +154,14 @@ namespace particle {
     };
 
     struct Properties {
-        RangeGradient<xColor> color{ DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR_SPREAD };
-        RangeGradient<float> alpha{ DEFAULT_ALPHA, DEFAULT_ALPHA_START, DEFAULT_ALPHA_FINISH, DEFAULT_ALPHA_SPREAD };
-        float radiusStart{ DEFAULT_EMIT_RADIUS_START };
-        RangeGradient<float> radius{ DEFAULT_PARTICLE_RADIUS, DEFAULT_RADIUS_START, DEFAULT_RADIUS_FINISH, DEFAULT_RADIUS_SPREAD };
-        float lifespan{ DEFAULT_LIFESPAN };
-        uint32_t maxParticles{ DEFAULT_MAX_PARTICLES };
+        RangeGradient<vec3> color { DEFAULT_COLOR, DEFAULT_COLOR_UNINITIALIZED, DEFAULT_COLOR_UNINITIALIZED, DEFAULT_COLOR_SPREAD };
+        RangeGradient<float> alpha { DEFAULT_ALPHA, DEFAULT_ALPHA_START, DEFAULT_ALPHA_FINISH, DEFAULT_ALPHA_SPREAD };
+        float radiusStart { DEFAULT_EMIT_RADIUS_START };
+        RangeGradient<float> radius { DEFAULT_PARTICLE_RADIUS, DEFAULT_RADIUS_START, DEFAULT_RADIUS_FINISH, DEFAULT_RADIUS_SPREAD };
+        RangeGradient<float> spin { DEFAULT_PARTICLE_SPIN, DEFAULT_SPIN_START, DEFAULT_SPIN_FINISH, DEFAULT_SPIN_SPREAD };
+        bool rotateWithEntity { DEFAULT_ROTATE_WITH_ENTITY };
+        float lifespan { DEFAULT_LIFESPAN };
+        uint32_t maxParticles { DEFAULT_MAX_PARTICLES };
         EmitProperties emission;
         Range<float> polar { DEFAULT_POLAR_START, DEFAULT_POLAR_FINISH };
         Range<float> azimuth { DEFAULT_AZIMUTH_START, DEFAULT_AZIMUTH_FINISH };
@@ -166,7 +177,10 @@ namespace particle {
         Properties& operator =(const Properties& other) {
             color = other.color;
             alpha = other.alpha;
+            radiusStart = other.radiusStart;
             radius = other.radius;
+            spin = other.spin;
+            rotateWithEntity = other.rotateWithEntity;
             lifespan = other.lifespan;
             maxParticles = other.maxParticles;
             emission = other.emission;
@@ -176,10 +190,10 @@ namespace particle {
             return *this;
         }
 
-        glm::vec4 getColorStart() const { return glm::vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.range.start)), alpha.range.start); }
-        glm::vec4 getColorMiddle() const { return glm::vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.gradient.target)), alpha.gradient.target); }
-        glm::vec4 getColorFinish() const { return glm::vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.range.finish)), alpha.range.finish); }
-        glm::vec4 getColorSpread() const { return glm::vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.gradient.spread)), alpha.gradient.spread); }
+        vec4 getColorStart() const { return vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.range.start)), alpha.range.start); }
+        vec4 getColorMiddle() const { return vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.gradient.target)), alpha.gradient.target); }
+        vec4 getColorFinish() const { return vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.range.finish)), alpha.range.finish); }
+        vec4 getColorSpread() const { return vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.gradient.spread)), alpha.gradient.spread); }
     };
 } // namespace particles
 
@@ -197,7 +211,7 @@ public:
     ParticleEffectEntityItem(const EntityItemID& entityItemID);
 
     // methods for getting/setting all properties of this entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -215,37 +229,26 @@ public:
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
-    const rgbColor& getColor() const { return _particleColorHack; }
-    xColor getXColor() const { return _particleProperties.color.gradient.target; }
-    glm::vec3 getColorRGB() const { return  ColorUtils::sRGBToLinearVec3(toGlm(getXColor())); }
+    void setColor(const glm::u8vec3& value);
+    glm::u8vec3 getColor() const { return _particleProperties.color.gradient.target; }
 
-    void setColor(const rgbColor& value);
-    void setColor(const xColor& value);
+    void setColorStart(const vec3& colorStart);
+    vec3 getColorStart() const { return _particleProperties.color.range.start; }
 
-    bool _isColorStartInitialized = false;
-    void setColorStart(const xColor& colorStart) { _particleProperties.color.range.start = colorStart; _isColorStartInitialized = true; }
-    xColor getColorStart() const { return _isColorStartInitialized ? _particleProperties.color.range.start : getXColor(); }
-    glm::vec3 getColorStartRGB() const { return _isColorStartInitialized ? ColorUtils::sRGBToLinearVec3(toGlm(_particleProperties.color.range.start)) : getColorRGB(); }
+    void setColorFinish(const vec3& colorFinish);
+    vec3 getColorFinish() const { return _particleProperties.color.range.finish; }
 
-    bool _isColorFinishInitialized = false;
-    void setColorFinish(const xColor& colorFinish) { _particleProperties.color.range.finish = colorFinish; _isColorFinishInitialized = true; }
-    xColor getColorFinish() const { return _isColorFinishInitialized ? _particleProperties.color.range.finish : getXColor(); }
-    glm::vec3 getColorFinishRGB() const { return _isColorFinishInitialized ? ColorUtils::sRGBToLinearVec3(toGlm(_particleProperties.color.range.finish)) : getColorRGB(); }
-
-    void setColorSpread(const xColor& colorSpread) { _particleProperties.color.gradient.spread = colorSpread; }
-    xColor getColorSpread() const { return _particleProperties.color.gradient.spread; }
-    glm::vec3 getColorSpreadRGB() const { return ColorUtils::sRGBToLinearVec3(toGlm(_particleProperties.color.gradient.spread)); }
+    void setColorSpread(const glm::u8vec3& colorSpread);
+    glm::u8vec3 getColorSpread() const { return _particleProperties.color.gradient.spread; }
 
     void setAlpha(float alpha);
     float getAlpha() const { return _particleProperties.alpha.gradient.target; }
 
-    bool _isAlphaStartInitialized = false;
     void setAlphaStart(float alphaStart);
-    float getAlphaStart() const { return _isAlphaStartInitialized ? _particleProperties.alpha.range.start : _particleProperties.alpha.gradient.target; }
+    float getAlphaStart() const { return _particleProperties.alpha.range.start; }
 
-    bool _isAlphaFinishInitialized = false;
     void setAlphaFinish(float alphaFinish);
-    float getAlphaFinish() const { return _isAlphaFinishInitialized ? _particleProperties.alpha.range.finish : _particleProperties.alpha.gradient.target; }
+    float getAlphaFinish() const { return _particleProperties.alpha.range.finish; }
 
     void setAlphaSpread(float alphaSpread);
     float getAlphaSpread() const { return _particleProperties.alpha.gradient.spread; }
@@ -303,31 +306,43 @@ public:
     void setParticleRadius(float particleRadius);
     float getParticleRadius() const { return _particleProperties.radius.gradient.target; }
 
-    bool _isRadiusStartInitialized = false;
     void setRadiusStart(float radiusStart);
-    float getRadiusStart() const { return _isRadiusStartInitialized ? _particleProperties.radius.range.start : _particleProperties.radius.gradient.target; }
+    float getRadiusStart() const { return _particleProperties.radius.range.start; }
 
-    bool _isRadiusFinishInitialized = false;
     void setRadiusFinish(float radiusFinish);
-    float getRadiusFinish() const { return _isRadiusFinishInitialized ? _particleProperties.radius.range.finish : _particleProperties.radius.gradient.target; }
+    float getRadiusFinish() const { return _particleProperties.radius.range.finish; }
 
     void setRadiusSpread(float radiusSpread);
     float getRadiusSpread() const { return _particleProperties.radius.gradient.spread; }
 
+    void setParticleSpin(float particleSpin);
+    float getParticleSpin() const { return _particleProperties.spin.gradient.target; }
+
+    void setSpinStart(float spinStart);
+    float getSpinStart() const { return _particleProperties.spin.range.start; }
+
+    void setSpinFinish(float spinFinish);
+    float getSpinFinish() const { return _particleProperties.spin.range.finish; }
+
+    void setSpinSpread(float spinSpread);
+    float getSpinSpread() const { return _particleProperties.spin.gradient.spread; }
+
+    void setRotateWithEntity(bool rotateWithEntity);
+    bool getRotateWithEntity() const { return _particleProperties.rotateWithEntity; }
+
     void computeAndUpdateDimensions();
 
-    QString getTextures() const;
     void setTextures(const QString& textures);
+    QString getTextures() const { return _particleProperties.textures; }
 
     bool getEmitterShouldTrail() const { return _particleProperties.emission.shouldTrail; }
-    void setEmitterShouldTrail(bool emitterShouldTrail) { _particleProperties.emission.shouldTrail = emitterShouldTrail; }
+    void setEmitterShouldTrail(bool emitterShouldTrail);
 
-    virtual bool supportsDetailedRayIntersection() const override { return false; }
+    virtual bool supportsDetailedIntersection() const override { return false; }
 
-    particle::Properties getParticleProperties() const; 
+    particle::Properties getParticleProperties() const;
 
 protected:
-    rgbColor _particleColorHack;
     particle::Properties _particleProperties;
     bool _isEmitting { true };
 

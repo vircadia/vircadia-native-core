@@ -10,38 +10,49 @@
 //
 
 #include "Shader.h"
-#include <math.h>
-#include <QDebug>
 
 #include "Context.h"
 
 using namespace gpu;
 
-std::atomic<uint32_t> Shader::_nextShaderID( 1 );
-Shader::DomainShaderMaps Shader::_domainShaderMaps;
 Shader::ProgramMap Shader::_programMap;
 
 
-Shader::Shader(Type type, const Source& source) :
-    _source(source),
-    _type(type),
-    _ID(_nextShaderID++)
+Shader::Shader(Type type, const Source& source, bool dynamic) :
+    _type(type)
 {
+    auto& thisSource = const_cast<Source&>(_source);
+    thisSource = source;
+    if (!dynamic) {
+        thisSource.id = source.id;
+    }
 }
 
-Shader::Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel):
-    _type(type),
-    _ID(_nextShaderID++)
+Shader::Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel) :
+    _type(type) 
 {
+
+    auto& shaders = const_cast<Shaders&>(_shaders);
     if (geometry) {
-        _shaders.resize(3);
-        _shaders[VERTEX] = vertex;
-        _shaders[GEOMETRY] = geometry;
-        _shaders[PIXEL] = pixel;
+        shaders.resize(3);
+        shaders[VERTEX] = vertex;
+        shaders[GEOMETRY] = geometry;
+        shaders[PIXEL] = pixel;
     } else {
-        _shaders.resize(2);
-        _shaders[VERTEX] = vertex;
-        _shaders[PIXEL] = pixel;
+        shaders.resize(2);
+        shaders[VERTEX] = vertex;
+        shaders[PIXEL] = pixel;
+    }
+
+    auto& reflection = const_cast<Reflection&>(getReflection());
+    for (const auto& subShader : _shaders) {
+        reflection.merge(subShader->getReflection());
+    }
+    if (_shaders[VERTEX]) {
+        reflection.inputs = _shaders[VERTEX]->getReflection().inputs;
+    }
+    if (_shaders[PIXEL]) {
+        reflection.outputs = _shaders[PIXEL]->getReflection().outputs;
     }
 }
 
@@ -49,32 +60,33 @@ Shader::~Shader()
 {
 }
 
-Shader::Pointer Shader::createOrReuseDomainShader(Type type, const Source& source) {
-    auto found = _domainShaderMaps[type].find(source);
-    if (found != _domainShaderMaps[type].end()) {
+static std::unordered_map<uint32_t, std::weak_ptr<Shader>> _shaderCache;
+
+Shader::ID Shader::getID() const {
+    if (isProgram()) {
+        return (_shaders[VERTEX]->getID() << 16) | (_shaders[PIXEL]->getID());
+    } 
+
+    return _source.id;
+}
+
+Shader::Pointer Shader::createOrReuseDomainShader(Type type, uint32_t sourceId) {
+    // Don't attempt to cache non-static shaders
+    auto found = _shaderCache.find(sourceId);
+    if (found != _shaderCache.end()) {
         auto sharedShader = (*found).second.lock();
         if (sharedShader) {
             return sharedShader;
         }
     }
-    auto shader = Pointer(new Shader(type, source));
-    _domainShaderMaps[type].emplace(source, std::weak_ptr<Shader>(shader));
+    auto shader = Pointer(new Shader(type, getShaderSource(sourceId), false));
+    _shaderCache.insert({ sourceId, shader });
     return shader;
 }
 
-Shader::Pointer Shader::createVertex(const Source& source) {
-    return createOrReuseDomainShader(VERTEX, source);
-}
-
-Shader::Pointer Shader::createPixel(const Source& source) {
-    return createOrReuseDomainShader(PIXEL, source);
-}
-
-Shader::Pointer Shader::createGeometry(const Source& source) {
-    return createOrReuseDomainShader(GEOMETRY, source);
-}
 
 ShaderPointer Shader::createOrReuseProgramShader(Type type, const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
+    PROFILE_RANGE(app, "createOrReuseProgramShader");
     ProgramMapKey key(0);
 
     if (vertexShader && vertexShader->getType() == VERTEX) {
@@ -115,32 +127,6 @@ ShaderPointer Shader::createOrReuseProgramShader(Type type, const Pointer& verte
     return program;
 }
 
-
-Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& pixelShader) {
-    return createOrReuseProgramShader(PROGRAM, vertexShader, nullptr, pixelShader);
-}
-
-Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
-    return createOrReuseProgramShader(PROGRAM, vertexShader, geometryShader, pixelShader);
-}
-
-void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& uniformBuffers, const SlotSet& resourceBuffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs) {
-    _uniforms = uniforms;
-    _uniformBuffers = uniformBuffers;
-    _resourceBuffers = resourceBuffers;
-    _textures = textures;
-    _samplers = samplers;
-    _inputs = inputs;
-    _outputs = outputs;
-}
-
-bool Shader::makeProgram(Shader& shader, const Shader::BindingSet& bindings, const CompilationHandler& handler) {
-    if (shader.isProgram()) {
-        return Context::makeProgram(shader, bindings, handler);
-    }
-    return false;
-}
-
 void Shader::setCompilationLogs(const CompilationLogs& logs) const {
     _compilationLogs.clear();
     for (const auto& log : logs) {
@@ -152,3 +138,38 @@ void Shader::incrementCompilationAttempt() const {
     _numCompilationAttempts++;
 }
 
+Shader::Pointer Shader::createVertex(const Source& source) {
+    return Pointer(new Shader(VERTEX, source, true));
+}
+
+Shader::Pointer Shader::createPixel(const Source& source) {
+    return Pointer(new Shader(FRAGMENT, source, true));
+}
+
+Shader::Pointer Shader::createVertex(uint32_t id) {
+    return createOrReuseDomainShader(VERTEX, id);
+}
+
+Shader::Pointer Shader::createPixel(uint32_t id) {
+    return createOrReuseDomainShader(FRAGMENT, id);
+}
+
+
+Shader::Pointer Shader::createProgram(uint32_t programId) {
+    auto vertexShader = createVertex(shader::getVertexId(programId));
+    auto fragmentShader = createPixel(shader::getFragmentId(programId));
+    return createOrReuseProgramShader(PROGRAM, vertexShader, nullptr, fragmentShader);
+}
+
+Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& pixelShader) {
+    return Pointer(new Shader(PROGRAM, vertexShader, nullptr, pixelShader));
+}
+
+// Dynamic program, bypass caching
+Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
+    return Pointer(new Shader(PROGRAM, vertexShader, geometryShader, pixelShader));
+}
+
+const Shader::Source& Shader::getShaderSource(uint32_t id) {
+    return shader::Source::get(id);
+}

@@ -23,10 +23,9 @@ class PolyVoxEntityItem : public EntityItem {
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -43,15 +42,19 @@ class PolyVoxEntityItem : public EntityItem {
                                                  bool& somethingChanged) override;
 
     // never have a ray intersection pick a PolyVoxEntityItem.
-    virtual bool supportsDetailedRayIntersection() const override { return true; }
+    virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                              OctreeElementPointer& element, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal,
                                              QVariantMap& extraInfo, bool precisionPicking) const override { return false; }
+    virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                                                  const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+                                                  BoxFace& face, glm::vec3& surfaceNormal,
+                                                  QVariantMap& extraInfo, bool precisionPicking) const override { return false; }
 
     virtual void debugDump() const override;
 
-    virtual void setVoxelVolumeSize(const vec3& voxelVolumeSize);
+    virtual void setVoxelVolumeSize(const glm::vec3& voxelVolumeSize);
     virtual glm::vec3 getVoxelVolumeSize() const;
 
     virtual void setVoxelData(const QByteArray& voxelData);

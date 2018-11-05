@@ -157,7 +157,7 @@
     })
     
     function cleanup() {
-        Pointers.removePointer(ray);
+        Pointers.removePointer(laser);
         Selection.disableListHighlight(HoveringList)
         Selection.removeListFromMap(HoveringList)
     

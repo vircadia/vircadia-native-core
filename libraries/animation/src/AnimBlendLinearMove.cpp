@@ -26,12 +26,43 @@ AnimBlendLinearMove::~AnimBlendLinearMove() {
 
 }
 
-const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+static float calculateAlpha(const float speed, const std::vector<float>& characteristicSpeeds) {
+
+    assert(characteristicSpeeds.size() > 0);
+    // calculate alpha from linear combination of referenceSpeeds.
+    float alpha = 0.0f;
+    if (speed <= characteristicSpeeds.front()) {
+        alpha = 0.0f;
+    } else if (speed > characteristicSpeeds.back()) {
+        alpha = (float)(characteristicSpeeds.size() - 1);
+    } else {
+        for (size_t i = 0; i < characteristicSpeeds.size() - 1; i++) {
+            if (characteristicSpeeds[i] < speed && speed < characteristicSpeeds[i + 1]) {
+                alpha = (float)i + ((speed - characteristicSpeeds[i]) / (characteristicSpeeds[i + 1] - characteristicSpeeds[i]));
+                break;
+            }
+        }
+    }
+    return alpha;
+}
+
+const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
 
     assert(_children.size() == _characteristicSpeeds.size());
 
-    _alpha = animVars.lookup(_alphaVar, _alpha);
     _desiredSpeed = animVars.lookup(_desiredSpeedVar, _desiredSpeed);
+
+    float speed = 0.0f;
+    if (_alphaVar.contains("Lateral")) {
+        speed = animVars.lookup("moveLateralSpeed", speed);
+    } else if (_alphaVar.contains("Backward")) {
+        speed = animVars.lookup("moveBackwardSpeed", speed);
+    } else {
+        //this is forward movement
+        speed = animVars.lookup("moveForwardSpeed", speed);
+    }
+    _alpha = calculateAlpha(speed, _characteristicSpeeds);
+    float parentDebugAlpha = context.getDebugAlpha(_id);
 
     if (_children.size() == 0) {
         for (auto&& pose : _poses) {
@@ -44,8 +75,8 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
         float prevDeltaTime, nextDeltaTime;
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
+        context.setDebugAlpha(_children[0]->getID(), parentDebugAlpha, _children[0]->getType());
     } else {
-
         auto clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
         auto prevPoseIndex = glm::floor(clampedAlpha);
         auto nextPoseIndex = glm::ceil(clampedAlpha);
@@ -53,7 +84,17 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
         float prevDeltaTime, nextDeltaTime;
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
+
+        if (prevPoseIndex == nextPoseIndex) {
+            context.setDebugAlpha(_children[nextPoseIndex]->getID(), parentDebugAlpha, _children[nextPoseIndex]->getType());
+        } else {
+            context.setDebugAlpha(_children[prevPoseIndex]->getID(), (1.0f - alpha) * parentDebugAlpha, _children[prevPoseIndex]->getType());
+            context.setDebugAlpha(_children[nextPoseIndex]->getID(), alpha * parentDebugAlpha, _children[nextPoseIndex]->getType());
+        }
     }
+
+    processOutputJoints(triggersOut);
+
     return _poses;
 }
 
@@ -62,7 +103,7 @@ const AnimPoseVec& AnimBlendLinearMove::getPosesInternal() const {
     return _poses;
 }
 
-void AnimBlendLinearMove::evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, Triggers& triggersOut, float alpha,
+void AnimBlendLinearMove::evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, AnimVariantMap& triggersOut, float alpha,
                                                    size_t prevPoseIndex, size_t nextPoseIndex,
                                                    float prevDeltaTime, float nextDeltaTime) {
     if (prevPoseIndex == nextPoseIndex) {
@@ -82,7 +123,7 @@ void AnimBlendLinearMove::evaluateAndBlendChildren(const AnimVariantMap& animVar
 }
 
 void AnimBlendLinearMove::setFrameAndPhase(float dt, float alpha, int prevPoseIndex, int nextPoseIndex,
-                                           float* prevDeltaTimeOut, float* nextDeltaTimeOut, Triggers& triggersOut) {
+                                           float* prevDeltaTimeOut, float* nextDeltaTimeOut, AnimVariantMap& triggersOut) {
 
     const float FRAMES_PER_SECOND = 30.0f;
     auto prevClipNode = std::dynamic_pointer_cast<AnimClip>(_children[prevPoseIndex]);
@@ -107,9 +148,13 @@ void AnimBlendLinearMove::setFrameAndPhase(float dt, float alpha, int prevPoseIn
     // integrate phase forward in time.
     _phase += omega * dt;
 
+    if (_phase < 0.0f) {
+        _phase = 0.0f;
+    }
+    
     // detect loop trigger events
     if (_phase >= 1.0f) {
-        triggersOut.push_back(_id + "Loop");
+        triggersOut.setTrigger(_id + "Loop");
         _phase = glm::fract(_phase);
     }
 

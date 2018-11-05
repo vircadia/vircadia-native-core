@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  Haze.frag
+//
 //  Created by Nissim Hadar on 9/5/2107.
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -17,13 +19,9 @@
 <@include LightingModel.slh@>
 <$declareLightBuffer()$>
 
-<@include LightDirectional.slh@>
-<$declareLightingDirectional(_SCRIBE_NULL)$>
-
 <@include Haze.slh@>
 
-uniform sampler2D colorMap;
-uniform sampler2D linearDepthMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_HAZE_LINEAR_DEPTH) uniform sampler2D linearDepthMap;
 
 vec4 unpackPositionFromZeye(vec2 texcoord) {
     float Zeye = -texture(linearDepthMap, texcoord).x;
@@ -38,23 +36,25 @@ vec4 unpackPositionFromZeye(vec2 texcoord) {
     return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
 }
 
-in vec2 varTexCoord0;
-out vec4 outFragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
-    if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) != HAZE_MODE_IS_ACTIVE) {
+    if ((isHazeEnabled() == 0.0) || (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) != HAZE_MODE_IS_ACTIVE) {
         discard;
     }
 
-    vec4 fragColor = texture(colorMap, varTexCoord0);
-    vec4 eyeFragPos = unpackPositionFromZeye(varTexCoord0);
+    vec4 fragPositionES = unpackPositionFromZeye(varTexCoord0);
 
     mat4 viewInverse = getViewInverse();
-    vec4 worldFragPos = viewInverse * eyeFragPos;
-    vec4 worldEyePos = viewInverse[3];
+    vec4 fragPositionWS = viewInverse * fragPositionES;
+    vec4 eyePositionWS = viewInverse[3];
 
     Light light = getKeyLight();
-    vec3 lightDirection = getLightDirection(light);
+    vec3 lightDirectionWS = getLightDirection(light);
 
-    outFragColor = computeHazeColor(fragColor, eyeFragPos.xyz, worldFragPos.xyz, worldEyePos.y, lightDirection);
+    outFragColor = computeHazeColor(fragPositionES.xyz, fragPositionWS.xyz, eyePositionWS.xyz, lightDirectionWS);
+    if (outFragColor.a < 1e-4) {
+        discard;
+    }
 }

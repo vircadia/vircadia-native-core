@@ -9,7 +9,7 @@
 /* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    makeDispatcherModuleParameters, Overlays, makeRunningValues, Vec3, resizeTablet, getTabletWidthFromSettings,
-   NEAR_GRAB_RADIUS
+   NEAR_GRAB_RADIUS, HMD, Uuid
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -37,7 +37,6 @@ Script.include("/~/system/libraries/utils.js");
 
         // XXX does handJointIndex change if the avatar changes?
         this.handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
-        this.controllerJointIndex = getControllerJointIndex(this.hand);
 
         this.getOtherModule = function() {
             return (this.hand === RIGHT_HAND) ? leftNearParentingGrabOverlay : rightNearParentingGrabOverlay;
@@ -164,7 +163,10 @@ Script.include("/~/system/libraries/utils.js");
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(overlayPosition, handPosition);
                 if (distance <= NEAR_GRAB_RADIUS * sensorScaleFactor) {
-                    return overlays[i];
+                    if (overlays[i] !== HMD.miniTabletID || controllerData.secondaryValues[this.hand] === 0) {
+                        // Don't grab mini tablet with grip.
+                        return overlays[i];
+                    }
                 }
             }
             return null;

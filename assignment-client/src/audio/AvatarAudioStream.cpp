@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarAudioStream.h"
+
 #include <udt/PacketHeaders.h>
 
 #include "AudioLogging.h"
-#include "AvatarAudioStream.h"
 
 AvatarAudioStream::AvatarAudioStream(bool isStereo, int numStaticJitterFrames) :
     PositionalAudioStream(PositionalAudioStream::Microphone, isStereo, numStaticJitterFrames) {}
@@ -22,9 +23,9 @@ int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& 
 
     if (type == PacketType::SilentAudioFrame) {
         const char* dataAt = packetAfterSeqNum.constData();
-        quint16 numSilentSamples = *(reinterpret_cast<const quint16*>(dataAt));
-        readBytes += sizeof(quint16);
-        numAudioSamples = (int)numSilentSamples;
+        SilentSamplesBytes numSilentSamples = *(reinterpret_cast<const quint16*>(dataAt));
+        readBytes += sizeof(SilentSamplesBytes);
+        numAudioSamples = (int) numSilentSamples;
 
         // read the positional data
         readBytes += parsePositionalData(packetAfterSeqNum.mid(readBytes));
@@ -33,9 +34,9 @@ int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& 
         _shouldLoopbackForNode = (type == PacketType::MicrophoneAudioWithEcho);
 
         // read the channel flag
-        quint8 channelFlag = packetAfterSeqNum.at(readBytes);
+        ChannelFlag channelFlag = packetAfterSeqNum.at(readBytes);
         bool isStereo = channelFlag == 1;
-        readBytes += sizeof(quint8);
+        readBytes += sizeof(ChannelFlag);
 
         // if isStereo value has changed, restart the ring buffer with new frame size
         if (isStereo != _isStereo) {

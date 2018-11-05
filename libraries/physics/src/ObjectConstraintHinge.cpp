@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ObjectConstraintHinge.h"
+
 #include <LogHandler.h>
 
 #include "QVariantGLM.h"
 
 #include "EntityTree.h"
-#include "ObjectConstraintHinge.h"
 #include "PhysicsLogging.h"
 
 
@@ -94,13 +95,12 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
     if (constraint) {
         return constraint;
     }
-
-    static QString repeatedHingeNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
-        "ObjectConstraintHinge::getConstraint -- no rigidBody.*");
+    
+    static int repeatMessageID = LogHandler::getInstance().newRepeatedMessageID();
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        qCDebug(physics) << "ObjectConstraintHinge::getConstraint -- no rigidBodyA";
+        HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintHinge::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -115,7 +115,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         // This hinge is between two entities... find the other rigid body.
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            qCDebug(physics) << "ObjectConstraintHinge::getConstraint -- no rigidBodyB";
+            HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintHinge::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 
@@ -264,11 +264,11 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintHinge::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        arguments["pivot"] = glmToQMap(_pivotInA);
-        arguments["axis"] = glmToQMap(_axisInA);
+        arguments["pivot"] = vec3ToQMap(_pivotInA);
+        arguments["axis"] = vec3ToQMap(_axisInA);
         arguments["otherEntityID"] = _otherID;
-        arguments["otherPivot"] = glmToQMap(_pivotInB);
-        arguments["otherAxis"] = glmToQMap(_axisInB);
+        arguments["otherPivot"] = vec3ToQMap(_pivotInB);
+        arguments["otherAxis"] = vec3ToQMap(_axisInB);
         arguments["low"] = _low;
         arguments["high"] = _high;
         if (_constraint) {

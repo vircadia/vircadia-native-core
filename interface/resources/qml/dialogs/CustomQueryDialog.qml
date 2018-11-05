@@ -8,9 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5;
-import QtQuick.Controls 1.4;
+import QtQuick 2.7;
 import QtQuick.Dialogs 1.2 as OriginalDialogs;
+import QtQuick.Controls 2.3
 
 import "../controls-uit";
 import "../styles-uit";
@@ -122,12 +122,6 @@ ModalWindow {
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
                 root.height = (targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ?
                                                                             d.maxHeight : targetHeight);
-                if (checkBoxField.visible && comboBoxField.visible) {
-                    checkBoxField.width = extraInputs.width / 2;
-                    comboBoxField.width = extraInputs.width / 2;
-                } else if (!checkBoxField.visible && comboBoxField.visible) {
-                    comboBoxField.width = extraInputs.width;
-                }
             }
         }
 
@@ -198,6 +192,15 @@ ModalWindow {
                 label: root.comboBox.label;
                 focus: Boolean(root.comboBox);
                 visible: Boolean(root.comboBox);
+                Binding on x {
+                    when: comboBoxField.visible
+                    value: !checkBoxField.visible ? buttons.x : acceptButton.x
+                }
+
+                Binding on width {
+                    when: comboBoxField.visible
+                    value: !checkBoxField.visible ? buttons.width : buttons.width - acceptButton.x
+                }
                 anchors {
                     right: parent.right;
                     bottom: parent.bottom;
@@ -251,7 +254,7 @@ ModalWindow {
                 text: root.warning;
                 wrapMode: Text.WordWrap;
                 font.italic: true;
-                maximumLineCount: 2;
+                maximumLineCount: 3;
             }
 
             HiFiGlyphs {
@@ -266,18 +269,22 @@ ModalWindow {
         Action {
             id: cancelAction;
             text: qsTr("Cancel");
-            shortcut: Qt.Key_Escape;
+            shortcut: "Esc";
             onTriggered: {
                 root.result = null;
                 root.canceled();
-                root.destroy();
+                // FIXME we are leaking memory to avoid a crash
+                // root.destroy();
+
+                root.disableFade = true
+                visible = false;
             }
         }
 
         Action {
             id: acceptAction;
             text: qsTr("Add");
-            shortcut: Qt.Key_Return;
+            shortcut: "Return"
             onTriggered: {
                 var result = {};
                 if (textInput) {
@@ -292,7 +299,11 @@ ModalWindow {
                 }
                 root.result = JSON.stringify(result);
                 root.selected(root.result);
-                root.destroy();
+                // FIXME we are leaking memory to avoid a crash
+                // root.destroy();
+
+                root.disableFade = true
+                visible = false;
             }
         }
     }

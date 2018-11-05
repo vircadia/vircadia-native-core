@@ -8,7 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* globals TOUCH_CONTROLLER_CONFIGURATION_LEFT:true TOUCH_CONTROLLER_CONFIGURATION_RIGHT:true */
+/* globals TOUCH_CONTROLLER_CONFIGURATION_LEFT:true, TOUCH_CONTROLLER_CONFIGURATION_RIGHT:true,
+   Quat, Vec3, Script, MyAvatar, Controller */
 /* eslint camelcase: ["error", { "properties": "never" }] */
 
 var leftBaseRotation = Quat.multiply(
@@ -22,9 +23,9 @@ var rightBaseRotation = Quat.multiply(
 
 // keep these in sync with the values from OculusHelpers.cpp
 var CONTROLLER_LENGTH_OFFSET = 0.0762;
-var CONTROLLER_LATERAL_OFFSET = 0.0381;
-var CONTROLLER_VERTICAL_OFFSET = 0.0381;
-var CONTROLLER_FORWARD_OFFSET = 0.1524;
+// var CONTROLLER_LATERAL_OFFSET = 0.0381;
+// var CONTROLLER_VERTICAL_OFFSET = 0.0381;
+// var CONTROLLER_FORWARD_OFFSET = 0.1524;
 
 var leftBasePosition = Vec3.multiplyQbyV(leftBaseRotation, {
     x: -CONTROLLER_LENGTH_OFFSET / 2.0,
@@ -44,7 +45,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
     controllers: [
         {
             modelURL: BASE_URL + "touch_l_body.fbx",
-            jointIndex: MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND"),
+            jointIndex: MyAvatar.getJointIndex("_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"),
             naturalPosition: { x: 0.01648625358939171, y: -0.03551870584487915, z: -0.018527675420045853 },
             dimensions: { x: 0.11053799837827682, y: 0.0995776429772377, z: 0.10139888525009155 },
             rotation: leftBaseRotation,
@@ -209,7 +210,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
     controllers: [
         {
             modelURL: BASE_URL + "touch_r_body.fbx",
-            jointIndex: MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND"),
+            jointIndex: MyAvatar.getJointIndex("_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"),
             naturalPosition: { x: -0.016486231237649918, y: -0.03551865369081497, z: -0.018527653068304062 },
             dimensions: { x: 0.11053784191608429, y: 0.09957750141620636, z: 0.10139875113964081 },
             rotation: rightBaseRotation,

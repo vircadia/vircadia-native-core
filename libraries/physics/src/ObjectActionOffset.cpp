@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "QVariantGLM.h"
-
 #include "ObjectActionOffset.h"
+
+#include "QVariantGLM.h"
 
 #include "PhysicsLogging.h"
 
@@ -157,7 +157,7 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectActionOffset::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        arguments["pointToOffsetFrom"] = glmToQMap(_pointToOffsetFrom);
+        arguments["pointToOffsetFrom"] = vec3ToQMap(_pointToOffsetFrom);
         arguments["linearTimeScale"] = _linearTimeScale;
         arguments["linearDistance"] = _linearDistance;
     });

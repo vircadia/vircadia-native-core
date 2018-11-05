@@ -5,7 +5,7 @@ project(${TARGET_NAME})
 SET (CMAKE_AUTOUIC ON) 
 SET (CMAKE_AUTOMOC ON) 
 
-setup_hifi_project (Core Widgets Network)
+setup_hifi_project (Core Widgets Network Xml)
 link_hifi_libraries ()
 
 # FIX: Qt was built with -reduce-relocations
@@ -18,7 +18,7 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 include_directories (${Qt5Core_INCLUDE_DIRS})
 include_directories (${Qt5Widgets_INCLUDE_DIRS})
 
-set (QT_LIBRARIES Qt5::Core Qt5::Widgets)
+set (QT_LIBRARIES Qt5::Core Qt5::Widgets QT::Gui Qt5::Xml)
 
 if (WIN32)
     # Do not show Console
@@ -48,4 +48,19 @@ if (WIN32)
       POST_BUILD
       COMMAND CMD /C "SET PATH=%PATH%;${QT_DIR}/bin && ${WINDEPLOYQT_COMMAND} ${EXTRA_DEPLOY_OPTIONS} $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>,$<CONFIG:RelWithDebInfo>>:--release> \"$<TARGET_FILE:${TARGET_NAME}>\""
     )
+        
+    # add a custom command to copy the empty Apps/Data High Fidelity folder (i.e. - a valid folder with no entities)
+    add_custom_command(
+        TARGET ${TARGET_NAME}
+        POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/AppDataHighFidelity" "$<TARGET_FILE_DIR:${TARGET_NAME}>/AppDataHighFidelity"
+    )
+        
+    # add a custom command to copy the SSL DLLs
+    add_custom_command(
+        TARGET ${TARGET_NAME}
+        POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy_directory D:/GitHub/vcpkg/installed/x64-windows/bin "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+    )
+
 endif ()

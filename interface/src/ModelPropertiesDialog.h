@@ -30,13 +30,14 @@ class ModelPropertiesDialog : public QDialog {
     
 public:
     ModelPropertiesDialog(FSTReader::ModelType modelType, const QVariantHash& originalMapping,
-                          const QString& basePath, const FBXGeometry& geometry);
+                          const QString& basePath, const HFMGeometry& geometry);
     
     QVariantHash getMapping() const;
     
 private slots:
     void reset();
     void chooseTextureDirectory();
+    void chooseScriptDirectory();
     void updatePivotJoint();
     void createNewFreeJoint(const QString& joint = QString());
     
@@ -49,9 +50,10 @@ private:
     FSTReader::ModelType _modelType;
     QVariantHash _originalMapping;
     QString _basePath;
-    FBXGeometry _geometry;
+    HFMGeometry _geometry;
     QLineEdit* _name = nullptr;
     QPushButton* _textureDirectory = nullptr;
+    QPushButton* _scriptDirectory = nullptr;
     QDoubleSpinBox* _scale = nullptr;
     QDoubleSpinBox* _translationX = nullptr;
     QDoubleSpinBox* _translationY = nullptr;

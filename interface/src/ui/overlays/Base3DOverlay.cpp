@@ -23,7 +23,7 @@ Base3DOverlay::Base3DOverlay() :
     SpatiallyNestable(NestableType::Overlay, QUuid::createUuid()),
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
-    _ignoreRayIntersection(false),
+    _ignorePickIntersection(false),
     _drawInFront(false),
     _drawHUDLayer(false)
 {
@@ -34,7 +34,7 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     SpatiallyNestable(NestableType::Overlay, QUuid::createUuid()),
     _isSolid(base3DOverlay->_isSolid),
     _isDashedLine(base3DOverlay->_isDashedLine),
-    _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection),
+    _ignorePickIntersection(base3DOverlay->_ignorePickIntersection),
     _drawInFront(base3DOverlay->_drawInFront),
     _drawHUDLayer(base3DOverlay->_drawHUDLayer),
     _isGrabbable(base3DOverlay->_isGrabbable),
@@ -183,14 +183,14 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
     if (properties["dashed"].isValid()) {
         setIsDashedLine(properties["dashed"].toBool());
     }
-    if (properties["ignoreRayIntersection"].isValid()) {
-        setIgnoreRayIntersection(properties["ignoreRayIntersection"].toBool());
+    if (properties["ignorePickIntersection"].isValid()) {
+        setIgnorePickIntersection(properties["ignorePickIntersection"].toBool());
+    } else if (properties["ignoreRayIntersection"].isValid()) {
+        setIgnorePickIntersection(properties["ignoreRayIntersection"].toBool());
     }
 
     if (properties["parentID"].isValid()) {
         setParentID(QUuid(properties["parentID"].toString()));
-        bool success;
-        getParentPointer(success); // call this to hook-up the parent's back-pointers to its child overlays
         needRenderItemUpdate = true;
     }
     if (properties["parentJointIndex"].isValid()) {
@@ -224,8 +224,7 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
- * @property {boolean} ignoreRayIntersection=false - If <code>true</code>, 
- *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
@@ -237,7 +236,9 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
  */
 QVariant Base3DOverlay::getProperty(const QString& property) {
     if (property == "name") {
-        return _name;
+        return _nameLock.resultWithReadLock<QString>([&] {
+            return _name;
+        });
     }
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
         return vec3toVariant(getWorldPosition());
@@ -260,8 +261,8 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
     if (property == "isDashedLine" || property == "dashed") {
         return _isDashedLine;
     }
-    if (property == "ignoreRayIntersection") {
-        return _ignoreRayIntersection;
+    if (property == "ignorePickIntersection" || property == "ignoreRayIntersection") {
+        return _ignorePickIntersection;
     }
     if (property == "drawInFront") {
         return _drawInFront;
@@ -280,11 +281,6 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
     }
 
     return Overlay::getProperty(property);
-}
-
-bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
-    return false;
 }
 
 void Base3DOverlay::locationChanged(bool tellPhysics) {
@@ -348,4 +344,38 @@ SpatialParentTree* Base3DOverlay::getParentTree() const {
 void Base3DOverlay::setVisible(bool visible) {
     Parent::setVisible(visible);
     notifyRenderVariableChange();
+}
+
+QString Base3DOverlay::getName() const {
+    return _nameLock.resultWithReadLock<QString>([&] {
+        return QString("Overlay:") + _name;
+    });
+}
+
+void Base3DOverlay::setName(QString name) {
+    _nameLock.withWriteLock([&] {
+        _name = name;
+    });
+}
+
+
+
+render::ItemKey Base3DOverlay::getKey() {
+    auto builder = render::ItemKey::Builder(Overlay::getKey());
+
+    if (getDrawInFront()) {
+        builder.withLayer(render::hifi::LAYER_3D_FRONT);
+    } else if (getDrawHUDLayer()) {
+        builder.withLayer(render::hifi::LAYER_3D_HUD);
+    } else {
+        builder.withoutLayer();
+    }
+
+    builder.withoutViewSpace();
+
+    if (isTransparent()) {
+        builder.withTransparent();
+    }
+
+    return builder.build();
 }

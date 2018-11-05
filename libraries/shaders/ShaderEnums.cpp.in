@@ -1,0 +1,19 @@
+#include "ShaderEnums.h"
+#include <vector>
+
+namespace shader {
+const std::vector<uint32_t>& allPrograms() { 
+    static const std::vector<uint32_t> ALL_PROGRAMS{{
+@SHADER_PROGRAMS_ARRAY@
+    }};
+    return ALL_PROGRAMS;
+}
+
+const std::vector<uint32_t>& allShaders() { 
+    static const std::vector<uint32_t> ALL_SHADERS{{
+@SHADER_SHADERS_ARRAY@
+    }};
+    return ALL_SHADERS;
+}
+
+}

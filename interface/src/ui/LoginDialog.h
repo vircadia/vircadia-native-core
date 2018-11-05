@@ -27,7 +27,10 @@ public:
 
     LoginDialog(QQuickItem* parent = nullptr);
 
+    ~LoginDialog();
+
     static void showWithSelection();
+
 signals:
     void handleLoginCompleted();
     void handleLoginFailed();
@@ -42,14 +45,14 @@ signals:
     void handleSignupFailed(QString errorString);
 
 public slots:
-    void linkCompleted(QNetworkReply& reply);
-    void linkFailed(QNetworkReply& reply);
+    void linkCompleted(QNetworkReply* reply);
+    void linkFailed(QNetworkReply* reply);
 
-    void createCompleted(QNetworkReply& reply);
-    void createFailed(QNetworkReply& reply);
+    void createCompleted(QNetworkReply* reply);
+    void createFailed(QNetworkReply* reply);
     
-    void signupCompleted(QNetworkReply& reply);
-    void signupFailed(QNetworkReply& reply);
+    void signupCompleted(QNetworkReply* reply);
+    void signupFailed(QNetworkReply* reply);
 
 protected slots:
     Q_INVOKABLE bool isSteamRunning() const;
@@ -62,7 +65,6 @@ protected slots:
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 
     Q_INVOKABLE void openUrl(const QString& url) const;
-
 };
 
 #endif // hifi_LoginDialog_h

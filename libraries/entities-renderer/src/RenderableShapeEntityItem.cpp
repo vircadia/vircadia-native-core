@@ -15,9 +15,7 @@
 #include <StencilMaskPass.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
-
-#include "render-utils/simple_vert.h"
-#include "render-utils/simple_frag.h"
+#include <shaders/Shaders.h>
 
 #include "RenderPipelines.h"
 
@@ -32,14 +30,24 @@ using namespace render::entities;
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
 
+static_assert(shader::render_utils::program::simple != 0, "Validate simple program exists");
+static_assert(shader::render_utils::program::simple_transparent != 0, "Validate simple transparent program exists");
 
 ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
-    _procedural._vertexSource = simple_vert::getSource();
-    _procedural._fragmentSource = simple_frag::getSource();
+    _procedural._vertexSource = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple);
+    // FIXME: Setup proper uniform slots and use correct pipelines for forward rendering
+    _procedural._opaqueFragmentSource = gpu::Shader::Source::get(shader::render_utils::fragment::simple);
+    _procedural._transparentFragmentSource = gpu::Shader::Source::get(shader::render_utils::fragment::simple_transparent);
     _procedural._opaqueState->setCullMode(gpu::State::CULL_NONE);
     _procedural._opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
     PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);
     _procedural._opaqueState->setBlendFunction(false,
+        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    _procedural._transparentState->setCullMode(gpu::State::CULL_BACK);
+    _procedural._transparentState->setDepthTest(true, true, gpu::LESS_EQUAL);
+    PrepareStencil::testMask(*_procedural._transparentState);
+    _procedural._transparentState->setBlendFunction(true,
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 }
@@ -84,16 +92,23 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         addMaterial(graphics::MaterialLayer(_material, 0), "0");
 
         _shape = entity->getShape();
-        _position = entity->getWorldPosition();
-        _dimensions = entity->getScaledDimensions();
-        _orientation = entity->getWorldOrientation();
-        _renderTransform = getModelTransform();
+    });
 
-        if (_shape == entity::Sphere) {
-            _renderTransform.postScale(SPHERE_ENTITY_SCALE);
-        }
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
+        withWriteLock([&] {
+            auto entity = getEntity();
+            _position = entity->getWorldPosition();
+            _dimensions = entity->getUnscaledDimensions(); // get unscaled to avoid scaling twice
+            _orientation = entity->getWorldOrientation();
+            updateModelTransformAndBound();
+            _renderTransform = getModelTransform(); // contains parent scale, if this entity scales with its parent
+            if (_shape == entity::Sphere) {
+                _renderTransform.postScale(SPHERE_ENTITY_SCALE);
+            }
 
-        _renderTransform.postScale(_dimensions);
+            _renderTransform.postScale(_dimensions);
+        });;
     });
 }
 
@@ -126,11 +141,13 @@ bool ShapeEntityRenderer::isTransparent() const {
 
 ItemKey ShapeEntityRenderer::getKey() {
     ItemKey::Builder builder;
-    builder.withTypeShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+    builder.withTypeShape().withTypeMeta().withTagBits(getTagMask());
 
     withReadLock([&] {
         if (isTransparent()) {
             builder.withTransparent();
+        } else if (_canCastShadow) {
+            builder.withShadowCaster();
         }
     });
 
@@ -194,7 +211,14 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
 
         return builder.build();
     } else {
-        return Parent::getShapeKey();
+        ShapeKey::Builder builder;
+        if (_procedural.isReady()) {
+            builder.withOwnPipeline();
+        }
+        if (isTransparent()) {
+            builder.withTranslucent();
+        }
+        return builder.build();
     }
 }
 
@@ -216,9 +240,9 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         if (mat) {
             outColor = glm::vec4(mat->getAlbedo(), mat->getOpacity());
             if (_procedural.isReady()) {
-                _procedural.prepare(batch, _position, _dimensions, _orientation);
                 outColor = _procedural.getColor(outColor);
                 outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
+                _procedural.prepare(batch, _position, _dimensions, _orientation, outColor);
                 proceduralRender = true;
             }
         }
@@ -244,8 +268,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
             geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
         }
     } else {
-        RenderPipelines::bindMaterial(mat, batch, args->_enableTexturing);
-        args->_details._materialSwitches++;
+        if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+            RenderPipelines::bindMaterial(mat, batch, args->_enableTexturing);
+            args->_details._materialSwitches++;
+        }
 
         geometryCache->renderShape(batch, geometryShape);
     }

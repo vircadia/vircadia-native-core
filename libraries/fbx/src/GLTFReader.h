@@ -190,7 +190,7 @@ namespace GLTFBufferViewTarget {
 struct GLTFBufferView {
     int buffer; //required
     int byteLength; //required
-    int byteOffset;
+    int byteOffset { 0 };
     int target;
     QMap<QString, bool> defined;
     void dump() {
@@ -470,7 +470,7 @@ namespace GLTFAccessorComponentType {
 }
 struct GLTFAccessor {
     int bufferView;
-    int byteOffset;
+    int byteOffset { 0 };
     int componentType; //required
     int count; //required
     int type; //required
@@ -706,7 +706,7 @@ class GLTFReader : public QObject {
     Q_OBJECT
 public:
     GLTFReader();
-    FBXGeometry* readGLTF(QByteArray& model, const QVariantHash& mapping, 
+    HFMGeometry* readGLTF(QByteArray& model, const QVariantHash& mapping, 
                           const QUrl& url, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 private:
     GLTFFile _file;
@@ -714,7 +714,7 @@ private:
 
     glm::mat4 getModelTransform(const GLTFNode& node);
 
-    bool buildGeometry(FBXGeometry& geometry, const QUrl& url);
+    bool buildGeometry(HFMGeometry& geometry, const QUrl& url);
     bool parseGLTF(const QByteArray& model);
     
     bool getStringVal(const QJsonObject& object, const QString& fieldname, 
@@ -762,11 +762,11 @@ private:
     bool readBinary(const QString& url, QByteArray& outdata);
 
     template<typename T, typename L>
-    bool readArray(const QByteArray& bin, int byteOffset, int byteLength, 
+    bool readArray(const QByteArray& bin, int byteOffset, int count, 
                    QVector<L>& outarray, int accessorType);
     
     template<typename T>
-    bool addArrayOfType(const QByteArray& bin, int byteOffset, int byteLength, 
+    bool addArrayOfType(const QByteArray& bin, int byteOffset, int count, 
                         QVector<T>& outarray, int accessorType, int componentType);
 
     void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices, 
@@ -778,9 +778,9 @@ private:
     bool doesResourceExist(const QString& url);
 
 
-    void setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& material);
-    FBXTexture getFBXTexture(const GLTFTexture& texture);
-    void fbxDebugDump(const FBXGeometry& fbxgeo);
+    void setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material);
+    HFMTexture getHFMTexture(const GLTFTexture& texture);
+    void hfmDebugDump(const HFMGeometry& hfmgeo);
 };
 
 #endif // hifi_GLTFReader_h

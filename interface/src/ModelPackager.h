@@ -12,10 +12,14 @@
 #ifndef hifi_ModelPackager_h
 #define hifi_ModelPackager_h
 
+#include <memory>
+
 #include <QFileInfo>
 #include <QVariantHash>
 
 #include "ui/ModelsBrowser.h"
+
+class HFMGeometry;
 
 class ModelPackager : public QObject {
 public:
@@ -28,7 +32,7 @@ private:
     bool editProperties();
     bool zipModel();
     
-    void populateBasicMapping(QVariantHash& mapping, QString filename, const FBXGeometry& geometry);
+    void populateBasicMapping(QVariantHash& mapping, QString filename, const HFMGeometry& geometry);
     
     void listTextures();
     bool copyTextures(const QString& oldDir, const QDir& newDir);
@@ -37,10 +41,12 @@ private:
     QFileInfo _fbxInfo;
     FSTReader::ModelType _modelType;
     QString _texDir;
+    QString _scriptDir;
 
     QVariantHash _mapping;
-    std::unique_ptr<FBXGeometry> _geometry;
+    std::unique_ptr<HFMGeometry> _geometry;
     QStringList _textures;
+    QStringList _scripts;
 };
 
 

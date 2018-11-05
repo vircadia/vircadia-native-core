@@ -17,10 +17,13 @@
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 #include <gpu/Texture.h>
-#include <gpu/StandardShaderLib.h>
-
+#include <graphics/ShaderConstants.h>
 #include <render/ShapePipeline.h>
 
+#include <render/FilterTask.h>
+
+#include "RenderHifi.h"
+#include "render-utils/ShaderConstants.h"
 #include "StencilMaskPass.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
@@ -29,15 +32,20 @@
 #include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "RenderCommonTask.h"
-#include "LightStage.h"
 
-#include "nop_frag.h"
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
 using namespace render;
-extern void initForwardPipelines(ShapePlumber& plumber,
-    const render::ShapePipeline::BatchSetter& batchSetter,
-    const render::ShapePipeline::ItemSetter& itemSetter);
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
+
+extern void initForwardPipelines(ShapePlumber& plumber);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     auto items = input.get<Input>();
@@ -45,18 +53,18 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
-    initForwardPipelines(*shapePlumber, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
-    initOverlay3DPipelines(*shapePlumber);
+    initForwardPipelines(*shapePlumber);
 
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
     const auto& transparents = items.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-    //    const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
+    //const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
     const auto& metas = items.get0()[RenderFetchCullSortTask::META];
-    //    const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-    //    const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+    const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+
     //const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
-    //    const auto& spatialSelection = items[1];
+    //const auto& spatialSelection = items[1];
 
     fadeEffect->build(task, opaques);
 
@@ -67,20 +75,40 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Filter zones from the general metas bucket
     const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
+    // Fetch the current frame stacks from all the stages
+    const auto currentFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
+    const auto lightFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(0);
+    const auto backgroundFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(1);
+    //const auto hazeFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(2);
+    //const auto bloomFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(3);
+
     // GPU jobs: Start preparing the main framebuffer
     const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
-    task.addJob<PrepareForward>("PrepareForward", lightingModel);
+    task.addJob<PrepareForward>("PrepareForward", lightFrame);
 
     // draw a stencil mask in hidden regions of the framebuffer.
     task.addJob<PrepareStencil>("PrepareStencil", framebuffer);
+
+    // Layered Overlays
+    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, render::hifi::LAYER_3D_FRONT);
+    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, render::hifi::LAYER_3D_FRONT);
+    const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
+    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
+    const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
+
+    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel, nullJitter).asVarying();
+    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel, nullJitter).asVarying();
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false);
 
     // Draw opaques forward
     const auto opaqueInputs = DrawForward::Inputs(opaques, lightingModel).asVarying();
     task.addJob<DrawForward>("DrawOpaques", opaqueInputs, shapePlumber);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
+    const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame).asVarying();
+    task.addJob<DrawBackgroundStage>("DrawBackgroundForward", backgroundInputs);
 
     // Draw transparent objects forward
     const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
@@ -93,8 +121,8 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
 
         task.addJob<DrawBounds>("DrawZones", zones);
-        task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
-
+        const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();
+        task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
     // Lighting Buffer ready for tone mapping
@@ -159,23 +187,23 @@ void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs
         graphics::LightPointer keySunLight;
         auto lightStage = args->_scene->getStage<LightStage>();
         if (lightStage) {
-            keySunLight = lightStage->getCurrentKeyLight();
+            keySunLight = lightStage->getCurrentKeyLight(*inputs);
         }
 
         graphics::LightPointer keyAmbiLight;
         if (lightStage) {
-            keyAmbiLight = lightStage->getCurrentAmbientLight();
+            keyAmbiLight = lightStage->getCurrentAmbientLight(*inputs);
         }
 
         if (keySunLight) {
-            batch.setUniformBuffer(render::ShapePipeline::Slot::KEY_LIGHT, keySunLight->getLightSchemaBuffer());
+            batch.setUniformBuffer(gr::Buffer::KeyLight, keySunLight->getLightSchemaBuffer());
         }
 
         if (keyAmbiLight) {
-            batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER, keyAmbiLight->getAmbientSchemaBuffer());
+            batch.setUniformBuffer(gr::Buffer::AmbientLight, keyAmbiLight->getAmbientSchemaBuffer());
 
             if (keyAmbiLight->getAmbientMap()) {
-                batch.setResourceTexture(render::ShapePipeline::Slot::LIGHT_AMBIENT, keyAmbiLight->getAmbientMap());
+                batch.setResourceTexture(ru::Texture::Skybox, keyAmbiLight->getAmbientMap());
             }
         }
     });
@@ -201,7 +229,7 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
         batch.setModelTransform(Transform());
 
         // Setup lighting model for all items;
-        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // From the lighting model define a global shapeKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;

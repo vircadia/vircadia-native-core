@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainServerNodeData.h"
+
 #include <QtCore/QDataStream>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
@@ -16,8 +18,6 @@
 #include <QtCore/QVariant>
 
 #include <udt/PacketHeaders.h>
-
-#include "DomainServerNodeData.h"
 
 DomainServerNodeData::StringPairHash DomainServerNodeData::_overrideHash;
 

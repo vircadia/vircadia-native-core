@@ -43,7 +43,6 @@ endif()
 list(APPEND GENERATE_QRC_DEPENDS ${RESOURCES_RCC})
 add_custom_target(resources ALL DEPENDS ${GENERATE_QRC_DEPENDS})
 
-
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
 
@@ -134,13 +133,7 @@ if (APPLE)
   # set where in the bundle to put the resources file
   set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
-  set(DISCOVERED_RESOURCES "")
-
-  # use the add_resources_to_os_x_bundle macro to recurse into resources
-  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources")
-
   # append the discovered resources to our list of interface sources
-  list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
   list(APPEND INTERFACE_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME})
 endif()
 
@@ -181,8 +174,9 @@ else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
 
+
 if (BUILD_TOOLS AND NPM_EXECUTABLE)
-  # require JSDoc to be build before interface is deployed (Console Auto-complete)
+  # require JSDoc to be build before interface is deployed
   add_dependencies(resources jsdoc)
 endif()
 
@@ -212,15 +206,15 @@ endif()
 
 # link required hifi libraries
 link_hifi_libraries(
-  shared task octree ktx gpu gl procedural graphics graphics-scripting render
+  shared workload task octree ktx gpu gl procedural graphics graphics-scripting render
   pointers
   recording fbx networking model-networking entities avatars trackers
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
-  workload
   ${PLATFORM_GL_BACKEND}
+  shaders
 )
 
 # include the binary directory of render-utils for shader includes
@@ -232,6 +226,7 @@ target_openssl()
 target_bullet()
 target_opengl()
 add_crashpad()
+target_breakpad()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -314,35 +309,68 @@ if (APPLE)
   )
 
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
+  set(RESOURCES_DEV_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources")
 
-
-  # copy script files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    # copy script files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${CMAKE_SOURCE_DIR}/scripts"
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/scripts"
-  )
-
-  # call the fixup_interface macro to add required bundling commands for installation
-  fixup_interface()
-
-else()
-  # copy the resources files beside the executable
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+      "${CMAKE_SOURCE_DIR}/scripts"
+      "${RESOURCES_DEV_DIR}/scripts"
+    # copy JSDoc files beside the executable
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
+      "${RESOURCES_DEV_DIR}/jsdoc"
+    # copy the resources files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-    "${RESOURCES_RCC}"
-    "$<TARGET_FILE_DIR:interface>"
+      "${RESOURCES_RCC}"
+      "${RESOURCES_DEV_DIR}"
     # FIXME, the edit script code loads HTML from the scripts folder
     # which in turn relies on CSS that refers to the fonts.  In theory
     # we should be able to modify the CSS to reference the QRC path to
     # the ttf files, but doing so generates a CORS policy violation,
     # so we have to retain a copy of the fonts outside of the resources binary
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${PROJECT_SOURCE_DIR}/resources/fonts"
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/fonts"
+      "${PROJECT_SOURCE_DIR}/resources/fonts"
+      "${RESOURCES_DEV_DIR}/fonts"
+    # add redirect json to macOS builds.
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+      "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
+      "${RESOURCES_DEV_DIR}/serverless/redirect.json"
+  )
+
+  # call the fixup_interface macro to add required bundling commands for installation
+  fixup_interface()
+
+else()
+  set(INTERFACE_EXEC_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>")
+  set(RESOURCES_DEV_DIR "${INTERFACE_EXEC_DIR}/resources")
+
+  # copy the resources files beside the executable
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+      "${RESOURCES_RCC}"
+      "${INTERFACE_EXEC_DIR}"
+    # FIXME, the edit script code loads HTML from the scripts folder
+    # which in turn relies on CSS that refers to the fonts.  In theory
+    # we should be able to modify the CSS to reference the QRC path to
+    # the ttf files, but doing so generates a CORS policy violation,
+    # so we have to retain a copy of the fonts outside of the resources binary
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${CMAKE_SOURCE_DIR}/scripts"
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/scripts"
+      "${PROJECT_SOURCE_DIR}/resources/fonts"
+      "${RESOURCES_DEV_DIR}/fonts"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${CMAKE_SOURCE_DIR}/scripts"
+      "${INTERFACE_EXEC_DIR}/scripts"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+      "${PROJECT_SOURCE_DIR}/resources/serverless/tutorial.json"
+      "${RESOURCES_DEV_DIR}/serverless/tutorial.json"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+      "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
+      "${RESOURCES_DEV_DIR}/serverless/redirect.json"
+    # copy JSDoc files beside the executable
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
+      "${INTERFACE_EXEC_DIR}/jsdoc"
   )
 
   # link target to external libraries
@@ -368,7 +396,6 @@ else()
 endif()
 
 if (SCRIPTS_INSTALL_DIR)
-
   # setup install of scripts beside interface executable
   install(
     DIRECTORY "${CMAKE_SOURCE_DIR}/scripts/"
@@ -376,6 +403,19 @@ if (SCRIPTS_INSTALL_DIR)
     COMPONENT ${CLIENT_COMPONENT}
   )
 endif()
+
+if (DOWNLOAD_SERVERLESS_CONTENT)
+  add_dependency_external_projects(serverless-content)
+
+  ExternalProject_Get_Property(serverless-content SOURCE_DIR)
+
+  # for dev builds, copy the serverless content to the resources folder
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${SOURCE_DIR}"
+      "${RESOURCES_DEV_DIR}/serverless"
+  )
+endif ()
 
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  \"${PROJECT_SOURCE_DIR}/resources/qml\"")

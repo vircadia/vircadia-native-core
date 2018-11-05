@@ -9,26 +9,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AnimationObject.h"
+
 #include <QScriptEngine>
 
 #include "AnimationCache.h"
-#include "AnimationObject.h"
 
 QStringList AnimationObject::getJointNames() const {
     return qscriptvalue_cast<AnimationPointer>(thisObject())->getJointNames();
 }
 
-QVector<FBXAnimationFrame> AnimationObject::getFrames() const {
+QVector<HFMAnimationFrame> AnimationObject::getFrames() const {
     return qscriptvalue_cast<AnimationPointer>(thisObject())->getFrames();
 }
 
 QVector<glm::quat> AnimationFrameObject::getRotations() const {
-    return qscriptvalue_cast<FBXAnimationFrame>(thisObject()).rotations;
+    return qscriptvalue_cast<HFMAnimationFrame>(thisObject()).rotations;
 }
 
 void registerAnimationTypes(QScriptEngine* engine) {
-    qScriptRegisterSequenceMetaType<QVector<FBXAnimationFrame> >(engine);
-    engine->setDefaultPrototype(qMetaTypeId<FBXAnimationFrame>(), engine->newQObject(
+    qScriptRegisterSequenceMetaType<QVector<HFMAnimationFrame> >(engine);
+    engine->setDefaultPrototype(qMetaTypeId<HFMAnimationFrame>(), engine->newQObject(
         new AnimationFrameObject(), QScriptEngine::ScriptOwnership));
     engine->setDefaultPrototype(qMetaTypeId<AnimationPointer>(), engine->newQObject(
         new AnimationObject(), QScriptEngine::ScriptOwnership));

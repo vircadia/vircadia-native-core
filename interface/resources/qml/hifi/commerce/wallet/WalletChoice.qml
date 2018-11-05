@@ -206,9 +206,14 @@ Item {
                         "This step cannot be undone.";
                     lightboxPopup.button1color = hifi.buttons.red;
                     lightboxPopup.button1text = "YES, CREATE NEW WALLET";
-                    lightboxPopup.button1method = "root.visible = false;proceed(true);";
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                        proceed(true);
+                    }
                     lightboxPopup.button2text = "CANCEL";
-                    lightboxPopup.button2method = "root.visible = false;"
+                    lightboxPopup.button2method = function() {
+                        lightboxPopup.visible = false;
+                    };
                     lightboxPopup.buttonLayout = "topbottom";
                     lightboxPopup.visible = true;
             }
@@ -241,7 +246,9 @@ Item {
                             "If you'd prefer to create a new wallet (not recommended - you will lose your money and past " +
                             "purchases), click 'Create New Wallet'.";
                         lightboxPopup.button1text = "CLOSE";
-                        lightboxPopup.button1method = "root.visible = false;"
+                        lightboxPopup.button1method = function() {
+                            lightboxPopup.visible = false;
+                        }
                         lightboxPopup.visible = true;
                     } else {
                         lightboxPopup.titleText = "You may have set up more than one wallet";
@@ -251,7 +258,9 @@ Item {
                             "If you would prefer to use another wallet, click 'Locate Other Keys' to show us where " +
                             "you've stored the private keys for that wallet.";
                         lightboxPopup.button1text = "CLOSE";
-                        lightboxPopup.button1method = "root.visible = false;"
+                        lightboxPopup.button1method = function() {
+                            lightboxPopup.visible = false;
+                        }
                         lightboxPopup.visible = true;
                     }
                 }

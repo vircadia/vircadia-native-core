@@ -16,74 +16,148 @@
 #include <QtCore/QRegularExpression>
 #include <QProgressBar>
 
+#include "AWSInterface.h"
 #include "ImageComparer.h"
 #include "ui/MismatchWindow.h"
+#include "TestRailInterface.h"
+
+class Step {
+public:
+	QString text;
+	bool takeSnapshot;
+};
+
+using StepList = std::vector<Step*>;
+
+class ExtractedText {
+public:
+    QString title;
+    StepList stepList;
+};
+
+enum TestRailCreateMode {
+    PYTHON,
+    XML
+};
 
 class Test {
 public: 
-    Test();
+    Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode);
 
-    void startTestsEvaluation();
-    void finishTestsEvaluation(bool interactiveMode, QProgressBar* progressBar);
+    void startTestsEvaluation(const bool isRunningFromCommandLine,
+                              const bool isRunningInAutomaticTestRun, 
+                              const QString& snapshotDirectory = QString(),
+                              const QString& branchFromCommandLine = QString(),
+                              const QString& userFromCommandLine = QString());
+
+    void finishTestsEvaluation();
+
+    void createTests();
+
+    void createTestsOutline();
+
+    bool createFileSetup();
+    bool createAllFilesSetup();
+
+    void createMDFile();
+    void createAllMDFiles();
+    bool createMDFile(const QString& directory);
+
+    void createTestAutoScript();
+    void createAllTestAutoScripts();
+    bool createTestAutoScript(const QString& directory);
+
+    void createTestRailTestCases();
+    void createTestRailRun();
+
+    void updateTestRailRunResult();
 
     void createRecursiveScript();
-    void createRecursiveScriptsRecursively();
-    void createRecursiveScript(QString topLevelDirectory, bool interactiveMode);
+    void createAllRecursiveScripts();
+    void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
 
-    void createTest();
-    void deleteOldSnapshots();
+    int compareImageLists();
 
-    bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
+    QStringList createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory);
 
-    QStringList createListOfAll_imagesInDirectory(QString imageFormat, QString pathToImageDirectory);
+    bool isInSnapshotFilenameFormat(const QString& imageFormat, const QString& filename);
 
-    bool isInSnapshotFilenameFormat(QString imageFormat, QString filename);
+    void includeTest(QTextStream& textStream, const QString& testPathname);
 
-    void importTest(QTextStream& textStream, const QString& testPathname);
+    void appendTestResultsToFile(const QString& testResultsFolderPath, TestResult testResult, QPixmap comparisonImage, bool hasFailed);
 
-    void appendTestResultsToFile(QString testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
+    bool createTestResultsFolderPath(const QString& directory);
+    QString zipAndDeleteTestResultsFolder();
 
-    bool createTestResultsFolderPath(QString directory);
-    void zipAndDeleteTestResultsFolder();
+    static bool isAValidDirectory(const QString& pathname);
+	QString extractPathFromTestsDown(const QString& fullPath);
+    QString getExpectedImageDestinationDirectory(const QString& filename);
+    QString getExpectedImagePartialSourceDirectory(const QString& filename);
 
-    bool isAValidDirectory(QString pathname);
+    ExtractedText getTestScriptLines(QString testFileName);
 
-    QString getExpectedImageDestinationDirectory(QString filename);
-    QString getExpectedImagePartialSourceDirectory(QString filename);
+    void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
-    void copyJPGtoPNG(QString sourceJPGFullFilename, QString destinationPNGFullFilename);
+    void createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit);
 
 private:
+    QProgressBar* _progressBar;
+    QCheckBox* _checkBoxInteractiveMode;
+
+    bool _isRunningFromCommandLine{ false };
+    bool _isRunningInAutomaticTestRun{ false };
+
     const QString TEST_FILENAME { "test.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
-    QMessageBox messageBox;
+    const double THRESHOLD{ 0.935 };
 
-    QDir imageDirectory;
+    QDir _imageDirectory;
 
-    QRegularExpression expectedImageFilenameFormat;
+    MismatchWindow _mismatchWindow;
 
-    MismatchWindow mismatchWindow;
+    ImageComparer _imageComparer;
 
-    ImageComparer imageComparer;
-
-    QString testResultsFolderPath { "" };
-    int index { 1 };
+    QString _testResultsFolderPath;
+    int _failureIndex{ 1 };
+    int _successIndex{ 1 };
 
     // Expected images are in the format ExpectedImage_dddd.jpg (d == decimal digit)
     const int NUM_DIGITS { 5 };
     const QString EXPECTED_IMAGE_PREFIX { "ExpectedImage_" };
 
-    QString pathToTestResultsDirectory;
-    QStringList expectedImagesFilenames;
-    QStringList expectedImagesFullFilenames;
-    QStringList resultImagesFullFilenames;
+    // We have two directories to work with.
+    // The first is the directory containing the test we are working with
+    // The second is the root directory of all tests
+    // The third contains the snapshots taken for test runs that need to be evaluated
+    QString _testDirectory;
+    QString _testsRootDirectory;
+    QString _snapshotDirectory;
+
+    QStringList _expectedImagesFilenames;
+    QStringList _expectedImagesFullFilenames;
+    QStringList _resultImagesFullFilenames;
 
     // Used for accessing GitHub
-    const QString user { "NissimHadar" };
-    const QString branch { "addRecursionToAutotester" };
-	const QString DATETIME_FORMAT { "yyyy-MM-dd_hh-mm-ss" };
+    const QString GIT_HUB_DEFAULT_USER{ "highfidelity" };
+    const QString GIT_HUB_DEFAULT_BRANCH{ "master" };
+    const QString GIT_HUB_REPOSITORY{ "hifi_tests" };
+
+    const QString DATETIME_FORMAT{ "yyyy-MM-dd_hh-mm-ss" };
+
+    // NOTE: these need to match the appropriate var's in autoTester.js
+    //    var advanceKey = "n";
+    //    var pathSeparator = ".";
+    const QString ADVANCE_KEY{ "n" };
+    const QString PATH_SEPARATOR{ "." };
+
+    bool _exitWhenComplete{ false };
+
+    TestRailInterface _testRailInterface;
+    TestRailCreateMode _testRailCreateMode { PYTHON };
+
+    AWSInterface _awsInterface;
 };
 
 #endif // hifi_test_h

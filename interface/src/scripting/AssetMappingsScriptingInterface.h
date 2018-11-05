@@ -82,6 +82,7 @@ public:
     Q_INVOKABLE void getAllMappings(QJSValue callback = QJSValue());
     Q_INVOKABLE void renameMapping(QString oldPath, QString newPath, QJSValue callback = QJSValue());
     Q_INVOKABLE void setBakingEnabled(QStringList paths, bool enabled, QJSValue callback = QJSValue());
+    Q_INVOKABLE void sortProxyModel(int column, Qt::SortOrder order = Qt::AscendingOrder);
 
 protected:
     QSet<AssetRequest*> _pendingRequests;

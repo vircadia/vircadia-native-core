@@ -9,7 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import Qt.labs.settings 1.0
 
 import "../../styles-uit"
@@ -19,6 +18,7 @@ import "../../windows"
 Rectangle {
     id: root
     objectName: "DCConectionTiming"
+    property string title: "Domain Connection Timing"
 
     signal sendToScript(var message);
     property bool isHMD: false
@@ -34,7 +34,7 @@ Rectangle {
     Row {
         id: header
         anchors.top: parent.top
-        anchors.topMargin: hifi.dimensions.tabletMenuHeader
+        anchors.topMargin: hifi.dimensions.contentMargin.y
         anchors.leftMargin: 5
         anchors.rightMargin: 5
         anchors.left: parent.left

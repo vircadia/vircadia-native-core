@@ -11,7 +11,7 @@ if (WIN32)
 elseif (UNIX AND NOT APPLE)
   find_package(Threads REQUIRED)
   if(THREADS_HAVE_PTHREAD_ARG)
-    target_compile_options(PUBLIC oven "-pthread")
+    target_compile_options(oven PUBLIC "-pthread")
   endif()
 elseif (APPLE)
   # Fix up the rpath so macdeployqt works

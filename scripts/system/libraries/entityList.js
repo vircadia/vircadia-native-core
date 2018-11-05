@@ -11,50 +11,129 @@
 /* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
    cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
 
-EntityListTool = function(opts) {
+var PROFILING_ENABLED = false;
+var profileIndent = '';
+const PROFILE_NOOP = function(_name, fn, args) {
+    fn.apply(this, args);
+};
+PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
+    console.log("PROFILE-Script " + profileIndent + "(" + name + ") Begin");
+    var previousIndent = profileIndent;
+    profileIndent += '  ';
+    var before = Date.now();
+    fn.apply(this, args);
+    var delta = Date.now() - before;
+    profileIndent = previousIndent;
+    console.log("PROFILE-Script " + profileIndent + "(" + name + ") End " + delta + "ms");
+};
+
+EntityListTool = function(shouldUseEditTabletApp) {
     var that = {};
+
+    var CreateWindow = Script.require('../modules/createWindow.js');
+
+    var TITLE_OFFSET = 60;
+    var ENTITY_LIST_WIDTH = 495;
+    var MAX_DEFAULT_CREATE_TOOLS_HEIGHT = 778;
+    var entityListWindow = new CreateWindow(
+        Script.resolvePath("EditEntityList.qml"),
+        'Entity List',
+        'com.highfidelity.create.entityListWindow',
+        function () {
+            var windowHeight = Window.innerHeight - TITLE_OFFSET;
+            if (windowHeight > MAX_DEFAULT_CREATE_TOOLS_HEIGHT) {
+                windowHeight = MAX_DEFAULT_CREATE_TOOLS_HEIGHT;
+            }
+            return {
+                size: {
+                    x: ENTITY_LIST_WIDTH,
+                    y: windowHeight
+                },
+                position: {
+                    x: Window.x,
+                    y: Window.y + TITLE_OFFSET
+                }
+            };
+        },
+        false
+    );
 
     var webView = null;
     webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    webView.setVisible = function(value) {};
+    webView.setVisible = function(value){ };
 
     var filterInView = false;
     var searchRadius = 100;
 
     var visible = false;
 
-    webView.setVisible(visible);
-
     that.webView = webView;
 
     that.setVisible = function(newVisible) {
         visible = newVisible;
-        webView.setVisible(visible);
+        webView.setVisible(shouldUseEditTabletApp() && visible);
+        entityListWindow.setVisible(!shouldUseEditTabletApp() && visible);
     };
+
+    that.isVisible = function() {
+        return entityListWindow.isVisible();
+    };
+
+    that.setVisible(false);
+
+    function emitJSONScriptEvent(data) {
+        var dataString;
+        PROFILE("Script-JSON.stringify", function() {
+            dataString = JSON.stringify(data);
+        });
+        PROFILE("Script-emitScriptEvent", function() {
+            webView.emitScriptEvent(dataString);
+            if (entityListWindow.window) {
+                entityListWindow.window.emitScriptEvent(dataString);
+            }
+        });
+    }
 
     that.toggleVisible = function() {
         that.setVisible(!visible);
     };
 
-    selectionManager.addEventListener(function() {
+    selectionManager.addEventListener(function(isSelectionUpdate, caller) {
+        if (caller === that) {
+            // ignore events that we emitted from the entity list itself
+            return;
+        }
         var selectedIDs = [];
 
         for (var i = 0; i < selectionManager.selections.length; i++) {
             selectedIDs.push(selectionManager.selections[i]);
         }
 
-        var data = {
+        emitJSONScriptEvent({
             type: 'selectionUpdate',
-            selectedIDs: selectedIDs,
-        };
-        webView.emitScriptEvent(JSON.stringify(data));
+            selectedIDs: selectedIDs
+        });
     });
 
-    that.clearEntityList = function () {
-        var data = {
+    that.clearEntityList = function() {
+        emitJSONScriptEvent({
             type: 'clearEntityList'
-        };
-        webView.emitScriptEvent(JSON.stringify(data));
+        });
+    };
+
+    that.removeEntities = function (deletedIDs, selectedIDs) {
+        emitJSONScriptEvent({
+            type: 'removeEntities',
+            deletedIDs: deletedIDs,
+            selectedIDs: selectedIDs
+        });
+    };
+
+    that.deleteEntities = function (deletedIDs) {
+        emitJSONScriptEvent({
+            type: "deleted",
+            ids: deletedIDs
+        });
     };
 
     function valueIfDefined(value) {
@@ -62,56 +141,67 @@ EntityListTool = function(opts) {
     }
 
     that.sendUpdate = function() {
-        var entities = [];
+        PROFILE('Script-sendUpdate', function() {
+            var entities = [];
 
-        var ids;
-        if (filterInView) {
-            ids = Entities.findEntitiesInFrustum(Camera.frustum);
-        } else {
-            ids = Entities.findEntities(MyAvatar.position, searchRadius);
-        }
-
-        var cameraPosition = Camera.position;
-        for (var i = 0; i < ids.length; i++) {
-            var id = ids[i];
-            var properties = Entities.getEntityProperties(id);
-
-            if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
-                var url = "";
-                if (properties.type == "Model") {
-                    url = properties.modelURL;
-                } else if (properties.type == "Material") {
-                    url = properties.materialURL;
+            var ids;
+            PROFILE("findEntities", function() {
+                if (filterInView) {
+                    ids = Entities.findEntitiesInFrustum(Camera.frustum);
+                } else {
+                    ids = Entities.findEntities(MyAvatar.position, searchRadius);
                 }
-                entities.push({
-                    id: id,
-                    name: properties.name,
-                    type: properties.type,
-                    url: url,
-                    locked: properties.locked,
-                    visible: properties.visible,
-                    verticesCount: valueIfDefined(properties.renderInfo.verticesCount),
-                    texturesCount: valueIfDefined(properties.renderInfo.texturesCount),
-                    texturesSize: valueIfDefined(properties.renderInfo.texturesSize),
-                    hasTransparent: valueIfDefined(properties.renderInfo.hasTransparent),
-                    isBaked: properties.type == "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
-                    drawCalls: valueIfDefined(properties.renderInfo.drawCalls),
-                    hasScript: properties.script !== ""
-                });
+            });
+
+            var cameraPosition = Camera.position;
+            PROFILE("getMultipleProperties", function () {
+                var multipleProperties = Entities.getMultipleEntityProperties(ids, ['name', 'type', 'locked',
+                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'script']);
+                for (var i = 0; i < multipleProperties.length; i++) {
+                    var properties = multipleProperties[i];
+
+                    if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
+                        var url = "";
+                        if (properties.type === "Model") {
+                            url = properties.modelURL;
+                        } else if (properties.type === "Material") {
+                            url = properties.materialURL;
+                        }
+                        entities.push({
+                            id: ids[i],
+                            name: properties.name,
+                            type: properties.type,
+                            url: url,
+                            locked: properties.locked,
+                            visible: properties.visible,
+                            verticesCount: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.verticesCount) : ""),
+                            texturesCount: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.texturesCount) : ""),
+                            texturesSize: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.texturesSize) : ""),
+                            hasTransparent: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.hasTransparent) : ""),
+                            isBaked: properties.type === "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
+                            drawCalls: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.drawCalls) : ""),
+                            hasScript: properties.script !== ""
+                        });
+                    }
+                }
+            });
+
+            var selectedIDs = [];
+            for (var j = 0; j < selectionManager.selections.length; j++) {
+                selectedIDs.push(selectionManager.selections[j]);
             }
-        }
 
-        var selectedIDs = [];
-        for (var j = 0; j < selectionManager.selections.length; j++) {
-            selectedIDs.push(selectionManager.selections[j].id);
-        }
-
-        var data = {
-            type: "update",
-            entities: entities,
-            selectedIDs: selectedIDs,
-        };
-        webView.emitScriptEvent(JSON.stringify(data));
+            emitJSONScriptEvent({
+                type: "update",
+                entities: entities,
+                selectedIDs: selectedIDs,
+            });
+        });
     };
 
     function onFileSaveChanged(filename) {
@@ -124,42 +214,42 @@ EntityListTool = function(opts) {
         }
     }
 
-    webView.webEventReceived.connect(function(data) {
+    var onWebEventReceived = function(data) {
         try {
             data = JSON.parse(data);
         } catch(e) {
-            print("entityList.js: Error parsing JSON: " + e.name + " data " + data)
+            print("entityList.js: Error parsing JSON: " + e.name + " data " + data);
             return;
         }
 
-        if (data.type == "selectionUpdate") {
+        if (data.type === "selectionUpdate") {
             var ids = data.entityIds;
             var entityIDs = [];
             for (var i = 0; i < ids.length; i++) {
                 entityIDs.push(ids[i]);
             }
-            selectionManager.setSelections(entityIDs);
+            selectionManager.setSelections(entityIDs, that);
             if (data.focus) {
                 cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,
                                     selectionManager.worldDimensions,
                                     Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
             }
-        } else if (data.type == "refresh") {
+        } else if (data.type === "refresh") {
             that.sendUpdate();
-        } else if (data.type == "teleport") {
+        } else if (data.type === "teleport") {
             if (selectionManager.hasSelection()) {
                 MyAvatar.position = selectionManager.worldPosition;
             }
-        } else if (data.type == "export") {
+        } else if (data.type === "export") {
             if (!selectionManager.hasSelection()) {
                 Window.notifyEditError("No entities have been selected.");
             } else {
                 Window.saveFileChanged.connect(onFileSaveChanged);
                 Window.saveAsync("Select Where to Save", "", "*.json");
             }
-        } else if (data.type == "pal") {
-            var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.
+        } else if (data.type === "pal") {
+            var sessionIds = {}; // Collect the sessionsIds of all selected entities, w/o duplicates.
             selectionManager.selections.forEach(function (id) {
                 var lastEditedBy = Entities.getEntityProperties(id, 'lastEditedBy').lastEditedBy;
                 if (lastEditedBy) {
@@ -175,24 +265,35 @@ EntityListTool = function(opts) {
                 // No need to subscribe if we're just sending.
                 Messages.sendMessage('com.highfidelity.pal', JSON.stringify({method: 'select', params: [dedupped, true, false]}), 'local');
             }
-        } else if (data.type == "delete") {
+        } else if (data.type === "delete") {
             deleteSelectedEntities();
-        } else if (data.type == "toggleLocked") {
+        } else if (data.type === "toggleLocked") {
             toggleSelectedEntitiesLocked();
-        } else if (data.type == "toggleVisible") {
+        } else if (data.type === "toggleVisible") {
             toggleSelectedEntitiesVisible();
         } else if (data.type === "filterInView") {
             filterInView = data.filterInView === true;
         } else if (data.type === "radius") {
             searchRadius = data.radius;
+        } else if (data.type === "cut") {
+            SelectionManager.cutSelectedEntities();
+        } else if (data.type === "copy") {
+            SelectionManager.copySelectedEntities();
+        } else if (data.type === "paste") {
+            SelectionManager.pasteEntities();
+        } else if (data.type === "duplicate") {
+            SelectionManager.duplicateSelection();
+            that.sendUpdate();
+        } else if (data.type === "rename") {
+            Entities.editEntity(data.entityID, {name: data.name});
+            // make sure that the name also gets updated in the properties window
+            SelectionManager._update();
         }
-    });
+    };
 
-    // webView.visibleChanged.connect(function () {
-    //     if (webView.visible) {
-    //         that.sendUpdate();
-    //     }
-    // });
+    webView.webEventReceived.connect(onWebEventReceived);
+    entityListWindow.webEventReceived.addListener(onWebEventReceived);
+    that.interactiveWindowHidden = entityListWindow.interactiveWindowHidden;
 
     return that;
 };

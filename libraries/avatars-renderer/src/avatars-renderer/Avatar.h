@@ -23,11 +23,12 @@
 #include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
 
-
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "Rig.h"
 #include <ThreadSafeValueCache.h>
+
+#include "MetaModelPayload.h"
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
@@ -41,7 +42,6 @@ static const float SCALING_RATIO = .05f;
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 
-
 enum ScreenTintLayer {
     SCREEN_TINT_BEFORE_LANDSCAPE = 0,
     SCREEN_TINT_BEFORE_AVATARS,
@@ -52,20 +52,75 @@ enum ScreenTintLayer {
 
 class Texture;
 
-using AvatarPhysicsCallback = std::function<void(uint32_t)>;
+class AvatarTransit {
+public:
+    enum Status {
+        IDLE = 0,
+        STARTED,
+        PRE_TRANSIT,
+        START_TRANSIT,
+        TRANSITING,
+        END_TRANSIT,
+        POST_TRANSIT,
+        ENDED,
+        ABORT_TRANSIT
+    };
 
-class Avatar : public AvatarData, public scriptable::ModelProvider {
+    enum EaseType {
+        NONE = 0,
+        EASE_IN,
+        EASE_OUT,
+        EASE_IN_OUT
+    };
+
+    struct TransitConfig {
+        TransitConfig() {};
+        int _totalFrames { 0 };
+        float _framesPerMeter { 0.0f };
+        bool _isDistanceBased { false };
+        float _minTriggerDistance { 0.0f };
+        float _maxTriggerDistance { 0.0f };
+        float _abortDistance{ 0.0f };
+        EaseType _easeType { EaseType::EASE_OUT };
+    };
+
+    AvatarTransit() {};
+    Status update(float deltaTime, const glm::vec3& avatarPosition, const TransitConfig& config);
+    Status getStatus() { return _status; }
+    bool isActive() { return _isActive; }
+    glm::vec3 getCurrentPosition() { return _currentPosition; }
+    glm::vec3 getEndPosition() { return _endPosition; }
+    void setScale(float scale) { _scale = scale; }
+    void reset();
+
+private:
+    Status updatePosition(float deltaTime);
+    void start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const TransitConfig& config);
+    float getEaseValue(AvatarTransit::EaseType type, float value);
+    bool _isActive { false };
+
+    glm::vec3 _startPosition;
+    glm::vec3 _endPosition;
+    glm::vec3 _currentPosition;
+
+    glm::vec3 _lastPosition;
+
+    glm::vec3 _transitLine;
+    float _totalDistance { 0.0f };
+    float _preTransitTime { 0.0f };
+    float _totalTime { 0.0f };
+    float _transitTime { 0.0f };
+    float _postTransitTime { 0.0f };
+    float _currentTime { 0.0f };
+    EaseType _easeType { EaseType::EASE_OUT };
+    Status _status { Status::IDLE };
+    float _scale { 1.0f };
+};
+
+class Avatar : public AvatarData, public scriptable::ModelProvider, public MetaModelPayload {
     Q_OBJECT
 
-    /**jsdoc
-     * An avatar is representation of yourself or another user. The Avatar API can be used to query or manipulate the avatar of a user.
-     * NOTE: Avatar extends AvatarData, see those namespace for more properties/methods.
-     *
-     * @namespace Avatar
-     * @augments AvatarData
-     *
-     * @property skeletonOffset {Vec3} can be used to apply a translation offset between the avatar's position and the registration point of the 3d model.
-     */
+    // This property has JSDoc in MyAvatar.h.
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
@@ -77,15 +132,15 @@ public:
     static void setShowNamesAboveHeads(bool show);
 
     explicit Avatar(QThread* thread);
-    ~Avatar();
+    virtual ~Avatar();
 
     virtual void instantiableAvatar() = 0;
 
     typedef render::Payload<AvatarData> Payload;
-    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
 
     void init();
     void updateAvatarEntities();
+    void removeAvatarEntitiesFromTree();
     void simulate(float deltaTime, bool inView);
     virtual void simulateAttachments(float deltaTime);
 
@@ -118,6 +173,15 @@ public:
     float getLODDistance() const;
 
     virtual bool isMyAvatar() const override { return false; }
+    virtual void createOrb() { }
+
+    enum class LoadingStatus {
+        NoModel,
+        LoadModel,
+        LoadSuccess,
+        LoadFailure
+    };
+    virtual void indicateLoadingStatus(LoadingStatus loadingStatus) { _loadingStatus = loadingStatus; }
 
     virtual QVector<glm::quat> getJointRotations() const override;
     using AvatarData::getJointRotation;
@@ -128,14 +192,25 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
+    /**jsdoc
+     * @function MyAvatar.getDefaultJointRotation
+     * @param {number} index
+     * @returns {Quat} 
+     */
     Q_INVOKABLE virtual glm::quat getDefaultJointRotation(int index) const;
+
+    /**jsdoc
+     * @function MyAvatar.getDefaultJointTranslation
+     * @param {number} index
+     * @returns {Vec3} 
+     */
     Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
 
     /**jsdoc
      * Provides read only access to the default joint rotations in avatar coordinates.
      * The default pose of the avatar is defined by the position and orientation of all bones
-     * in the avatar's model file.  Typically this is a t-pose.
-     * @function Avatar.getAbsoluteDefaultJointRotationInObjectFrame
+     * in the avatar's model file. Typically this is a T-pose.
+     * @function MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame
      * @param index {number} index number
      * @returns {Quat} The rotation of this joint in avatar coordinates.
      */
@@ -144,8 +219,8 @@ public:
     /**jsdoc
      * Provides read only access to the default joint translations in avatar coordinates.
      * The default pose of the avatar is defined by the position and orientation of all bones
-     * in the avatar's model file.  Typically this is a t-pose.
-     * @function Avatar.getAbsoluteDefaultJointTranslationInObjectFrame
+     * in the avatar's model file. Typically this is a T-pose.
+     * @function MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame
      * @param index {number} index number
      * @returns {Vec3} The position of this joint in avatar coordinates.
      */
@@ -165,24 +240,75 @@ public:
 
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
-    static void renderJointConnectingCone( gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
-                                                float radius1, float radius2, const glm::vec4& color);
+    static void renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
+                                               float radius1, float radius2, const glm::vec4& color);
 
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
+    /**jsdoc
+     * Set the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
+     * with an offset of <code>{ x: 0, y: 0.1, z: 0 }</code>, your avatar will appear to be raised off the ground slightly.
+     * @function MyAvatar.setSkeletonOffset
+     * @param {Vec3} offset - The skeleton offset to set.
+     * @example <caption>Raise your avatar off the ground a little.</caption>
+     * // Raise your avatar off the ground a little.
+     * MyAvatar.setSkeletonOffset({ x: 0, y: 0.1: z: 0 });
+     *
+     * // Restore its offset after 5s.
+     * Script.setTimeout(function () {
+     *     MyAvatar.setSkeletonOffset(Vec3.ZERO);
+     * }, 5000);
+     */
     Q_INVOKABLE void setSkeletonOffset(const glm::vec3& offset);
+
+    /**jsdoc
+     * Get the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
+     * with an offset of <code>{ x: 0, y: 0.1, z: 0 }</code>, your avatar will appear to be raised off the ground slightly.
+     * @function MyAvatar.getSkeletonOffset
+     * @returns {Vec3} The current skeleton offset.
+     * @example <caption>Report your avatar's current skeleton offset.</caption>
+     * print(JSON.stringify(MyAvatar.getSkeletonOffset());
+     */
     Q_INVOKABLE glm::vec3 getSkeletonOffset() { return _skeletonOffset; }
+
     virtual glm::vec3 getSkeletonPosition() const;
 
+    /**jsdoc
+     * Get the position of a joint in the current avatar.
+     * @function MyAvatar.getJointPosition
+     * @param {number} index - The index of the joint.
+     * @returns {Vec3} The position of the joint in world coordinates.
+     */
     Q_INVOKABLE glm::vec3 getJointPosition(int index) const;
+
+    /**jsdoc
+     * Get the position of a joint in the current avatar.
+     * @function MyAvatar.getJointPosition
+     * @param {string} name - The name of the joint.
+     * @returns {Vec3} The position of the joint in world coordinates.
+     * @example <caption>Report the position of your avatar's hips.</caption>
+     * print(JSON.stringify(MyAvatar.getJointPosition("Hips")));
+     */
     Q_INVOKABLE glm::vec3 getJointPosition(const QString& name) const;
+
+    /**jsdoc
+     * Get the position of the current avatar's neck in world coordinates.
+     * @function MyAvatar.getNeckPosition
+     * @returns {Vec3} The position of the neck in world coordinates.
+     * @example <caption>Report the position of your avatar's neck.</caption>
+     * print(JSON.stringify(MyAvatar.getNeckPosition()));
+     */
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
+    /**jsdoc
+     * @function MyAvatar.getAcceleration
+     * @returns {Vec3} 
+     */
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
 
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
-    void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
+    void scaleVectorRelativeToPosition(glm::vec3& positionToScale) const;
 
     void slamPosition(const glm::vec3& position);
     virtual void updateAttitude(const glm::quat& orientation) override;
@@ -192,33 +318,60 @@ public:
     // (otherwise floating point error will cause problems at large positions).
     void applyPositionDelta(const glm::vec3& delta);
 
-    virtual void rebuildCollisionShape();
+    virtual void rebuildCollisionShape() = 0;
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
     void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
     float computeMass();
+    /**jsdoc
+     * Get the position of the current avatar's feet (or rather, bottom of its collision capsule) in world coordinates.
+     * @function MyAvatar.getWorldFeetPosition
+     * @returns {Vec3} The position of the avatar's feet in world coordinates.
+    */
+    Q_INVOKABLE glm::vec3 getWorldFeetPosition();
 
     void setPositionViaScript(const glm::vec3& position) override;
     void setOrientationViaScript(const glm::quat& orientation) override;
 
-    // these call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
+    /**jsdoc
+     * @function MyAvatar.getParentID
+     * @returns {Uuid} 
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
+
+    /**jsdoc
+     * @function MyAvatar.setParentID
+     * @param {Uuid} parentID
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
+
+    /**jsdoc
+     * @function MyAvatar.getParentJointIndex
+     * @returns {number} 
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual quint16 getParentJointIndex() const override { return SpatiallyNestable::getParentJointIndex(); }
+
+    /**jsdoc
+     * @function MyAvatar.setParentJointIndex
+     * @param {number} parentJointIndex
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex) override;
 
     /**jsdoc
-     * Information about a single joint in an Avatar's skeleton hierarchy.
-     * @typedef Avatar.SkeletonJoint
-     * @property {string} name - name of joint
-     * @property {number} index - joint index
-     * @property {number} parentIndex - index of this joint's parent (-1 if no parent)
+     * Returns an array of joints, where each joint is an object containing name, index, and parentIndex fields.
+     * @function MyAvatar.getSkeleton
+     * @returns {MyAvatar.SkeletonJoint[]} A list of information about each joint in this avatar's skeleton.
      */
-
     /**jsdoc
-     * Returns an array of joints, where each joint is an object containing name, index and parentIndex fields.
-     * @function Avatar.getSkeleton
-     * @returns {Avatar.SkeletonJoint[]} returns a list of information about each joint in this avatar's skeleton.
+     * Information about a single joint in an Avatar's skeleton hierarchy.
+     * @typedef {object} MyAvatar.SkeletonJoint
+     * @property {string} name - Joint name.
+     * @property {number} index - Joint index.
+     * @property {number} parentIndex - Index of this joint's parent (-1 if no parent).
      */
     Q_INVOKABLE QList<QVariant> getSkeleton();
 
@@ -235,11 +388,17 @@ public:
     void setTargetScale(float targetScale) override;
     float getTargetScale() const { return _targetScale; }
 
+    /**jsdoc
+     * @function MyAvatar.getSimulationRate
+     * @param {string} [rateName=""]
+     * @returns {number} 
+     */
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
 
     bool hasNewJointData() const { return _hasNewJointData; }
 
     float getBoundingRadius() const;
+    AABox getRenderBounds() const; // THis call is accessible from rendering thread only to report the bounding box of the avatar during the frame.
 
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
@@ -247,15 +406,12 @@ public:
     render::ItemID getRenderItemID() { return _renderItemID; }
     bool isMoving() const { return _moving; }
 
-    void setPhysicsCallback(AvatarPhysicsCallback cb);
-    void addPhysicsFlags(uint32_t flags);
-    bool isInPhysicsSimulation() const { return _physicsCallback != nullptr; }
-
     void fadeIn(render::ScenePointer scene);
     void fadeOut(render::ScenePointer scene, KillAvatarReason reason);
     bool isFading() const { return _isFading; }
     void updateFadingStatus(render::ScenePointer scene);
 
+    // JSDoc is in AvatarData.h.
     Q_INVOKABLE virtual float getEyeHeight() const override;
 
     // returns eye height of avatar in meters, ignoring avatar scale.
@@ -266,32 +422,82 @@ public:
     // not all subclasses of AvatarData have access to this data.
     virtual bool canMeasureEyeHeight() const override { return true; }
 
-
     virtual float getModelScale() const { return _modelScale; }
     virtual void setModelScale(float scale) { _modelScale = scale; }
     virtual glm::vec3 scaleForChildren() const override { return glm::vec3(getModelScale()); }
 
     virtual void setAvatarEntityDataChanged(bool value) override;
 
+    // Show hide the model representation of the avatar
+    virtual void setEnableMeshVisible(bool isEnabled);
+    virtual bool getEnableMeshVisible() const;
+
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
+    std::shared_ptr<AvatarTransit> getTransit() { return std::make_shared<AvatarTransit>(_transit); };
+    AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, float avatarScale, const AvatarTransit::TransitConfig& config);
+
+signals:
+    void targetScaleChanged(float targetScale);
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
     // thread safe, will return last valid palm from cache
+
+    /**jsdoc
+     * Get the position of the left palm in world coordinates.
+     * @function MyAvatar.getLeftPalmPosition
+     * @returns {Vec3} The position of the left palm in world coordinates.
+     * @example <caption>Report the position of your avatar's left palm.</caption>
+     * print(JSON.stringify(MyAvatar.getLeftPalmPosition()));
+     */
     glm::vec3 getLeftPalmPosition() const;
+
+    /**jsdoc
+     * Get the rotation of the left palm in world coordinates.
+     * @function MyAvatar.getLeftPalmRotation
+     * @returns {Quat} The rotation of the left palm in world coordinates.
+     * @example <caption>Report the rotation of your avatar's left palm.</caption>
+     * print(JSON.stringify(MyAvatar.getLeftPalmRotation()));
+     */
     glm::quat getLeftPalmRotation() const;
+    /**jsdoc
+     * Get the position of the right palm in world coordinates.
+     * @function MyAvatar.getRightPalmPosition
+     * @returns {Vec3} The position of the right palm in world coordinates.
+     * @example <caption>Report the position of your avatar's right palm.</caption>
+     * print(JSON.stringify(MyAvatar.getRightPalmPosition()));
+     */
     glm::vec3 getRightPalmPosition() const;
+
+    /**jsdoc
+     * Get the rotation of the right palm in world coordinates.
+     * @function MyAvatar.getRightPalmRotation
+     * @returns {Quat} The rotation of the right palm in world coordinates.
+     * @example <caption>Report the rotation of your avatar's right palm.</caption>
+     * print(JSON.stringify(MyAvatar.getRightPalmRotation()));
+     */
     glm::quat getRightPalmRotation() const;
 
     // hooked up to Model::setURLFinished signal
     void setModelURLFinished(bool success);
 
-    // hooked up to Model::rigReady & rigReset signals
+    /**jsdoc
+     * @function MyAvatar.rigReady
+     * @returns {Signal} 
+     */
+    // Hooked up to Model::rigReady signal
     void rigReady();
+
+    /**jsdoc
+     * @function MyAvatar.rigReset
+     * @returns {Signal} 
+     */
+    // Jooked up to Model::rigReset signal
     void rigReset();
 
 protected:
@@ -331,7 +537,6 @@ protected:
     glm::vec3 _lastAngularVelocity;
     glm::vec3 _angularAcceleration;
     glm::quat _lastOrientation;
-
     glm::vec3 _worldUpDirection { Vectors::UP };
     bool _moving { false }; ///< set when position is changing
 
@@ -370,6 +575,7 @@ protected:
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 
+
 protected:
     class AvatarEntityDataHash {
     public:
@@ -393,11 +599,12 @@ protected:
     bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
 
+    AvatarTransit _transit;
+    std::mutex _transitLock;
+
     static int _jointConesID;
 
     int _voiceSphereID;
-
-    AvatarPhysicsCallback _physicsCallback { nullptr };
 
     float _displayNameTargetAlpha { 1.0f };
     float _displayNameAlpha { 1.0f };
@@ -408,6 +615,19 @@ protected:
     std::mutex _materialsLock;
 
     void processMaterials();
+
+    AABox _renderBound;
+    bool _isMeshVisible{ true };
+    bool _needMeshVisibleSwitch{ true };
+
+    static const float MYAVATAR_LOADING_PRIORITY;
+    static const float OTHERAVATAR_LOADING_PRIORITY;
+    static const float ATTACHMENT_LOADING_PRIORITY;
+
+    LoadingStatus _loadingStatus { LoadingStatus::NoModel };
+
+    static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                       const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
 };
 
 #endif // hifi_Avatar_h

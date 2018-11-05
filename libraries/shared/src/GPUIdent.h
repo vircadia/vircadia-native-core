@@ -16,6 +16,8 @@
 
 #include <cstdint>
 
+#include <QString>
+
 class GPUIdent
 {
 public:

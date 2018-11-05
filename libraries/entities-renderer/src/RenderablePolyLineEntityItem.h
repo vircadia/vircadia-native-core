@@ -52,10 +52,10 @@ protected:
     };
 
     void updateGeometry(const std::vector<Vertex>& vertices);
-    static std::vector<Vertex> updateVertices(const QVector<glm::vec3>& points, 
-                                              const QVector<glm::vec3>& normals, 
+    static std::vector<Vertex> updateVertices(const QVector<glm::vec3>& points,
+                                              const QVector<glm::vec3>& normals,
                                               const QVector<float>& strokeWidths, 
-                                              const QVector<glm::vec3>& strokeColors, 
+                                              const QVector<glm::vec3>& strokeColors,
                                               const bool isUVModeStretch,
                                               const float textureAspectRatio);
 
@@ -65,7 +65,6 @@ protected:
     QVector<glm::vec3> _lastStrokeColors;
     QVector<float> _lastStrokeWidths;
     gpu::BufferPointer _verticesBuffer;
-    gpu::BufferView _uniformBuffer;
     
     uint32_t _numVertices { 0 };
     bool _empty{ true };

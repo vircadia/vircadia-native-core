@@ -19,6 +19,9 @@ To produce an executable installer on Windows, the following are required:
 - [nsProcess Plug-in for Nullsoft](http://nsis.sourceforge.net/NsProcess_plugin) - 1.6
 - [Inetc Plug-in for Nullsoft](http://nsis.sourceforge.net/Inetc_plug-in) - 1.0
 - [NSISpcre Plug-in for Nullsoft](http://nsis.sourceforge.net/NSISpcre_plug-in) - 1.0
+- [nsisSlideshow Plug-in for Nullsoft](http://nsis.sourceforge.net/NsisSlideshow_plug-in) - 1.7
+- [Nsisunz plug-in for Nullsoft](http://nsis.sourceforge.net/Nsisunz_plug-in)
+- [ApplicationID plug-in for Nullsoft](http://nsis.sourceforge.net/ApplicationID_plug-in) - 1.0
 
 Run the `package` target to create an executable installer using the Nullsoft Scriptable Install System.
 

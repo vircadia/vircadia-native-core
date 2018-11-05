@@ -13,18 +13,27 @@
 
 <@include graphics/Material.slh@>
 <@include DeferredBufferWrite.slh@>
+<@include render-utils/ShaderConstants.h@>
+<@include entities-renderer/ShaderConstants.h@>
 
 <@include Fade.slh@>
 
-in vec3 _normal;
-in vec4 _position;
-in vec4 _worldPosition;
-in vec4 _worldFadePosition;
+layout(location=RENDER_UTILS_ATTR_NORMAL_MS) in vec3 _normal;
+layout(location=RENDER_UTILS_ATTR_POSITION_MS) in vec4 _position;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _worldPosition;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _worldFadePosition;
 
-uniform sampler2D xMap;
-uniform sampler2D yMap;
-uniform sampler2D zMap;
-uniform vec3 voxelVolumeSize;
+LAYOUT(binding=ENTITIES_TEXTURE_POLYVOX_XMAP) uniform sampler2D xMap;
+LAYOUT(binding=ENTITIES_TEXTURE_POLYVOX_YMAP) uniform sampler2D yMap;
+LAYOUT(binding=ENTITIES_TEXTURE_POLYVOX_ZMAP) uniform sampler2D zMap;
+
+struct PolyvoxParams {
+    vec4 voxelVolumeSize;
+};
+
+LAYOUT(binding=0) uniform polyvoxParamsBuffer {
+    PolyvoxParams params;
+};
 
 // Declare after all samplers to prevent sampler location mix up with voxel shading (sampler locations are hardcoded in RenderablePolyVoxEntityItem)
 <$declareFadeFragment()$>
@@ -39,9 +48,9 @@ void main(void) {
     vec3 worldNormal = cross(dFdy(_worldPosition.xyz), dFdx(_worldPosition.xyz));
     worldNormal = normalize(worldNormal);
 
-    float inPositionX = (_worldPosition.x - 0.5) / voxelVolumeSize.x;
-    float inPositionY = (_worldPosition.y - 0.5) / voxelVolumeSize.y;
-    float inPositionZ = (_worldPosition.z - 0.5) / voxelVolumeSize.z;
+    float inPositionX = (_worldPosition.x - 0.5) / params.voxelVolumeSize.x;
+    float inPositionY = (_worldPosition.y - 0.5) / params.voxelVolumeSize.y;
+    float inPositionZ = (_worldPosition.z - 0.5) / params.voxelVolumeSize.z;
 
     vec4 xyDiffuse = texture(xMap, vec2(-inPositionX, -inPositionY));
     vec4 xzDiffuse = texture(yMap, vec2(-inPositionX, inPositionZ));

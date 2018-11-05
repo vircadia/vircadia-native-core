@@ -11,18 +11,31 @@
 
 #include "FileTypeProfile.h"
 
-#include "FileTypeRequestInterceptor.h"
+#include <QtQml/QQmlContext>
+
+#include "RequestFilters.h"
 
 #if !defined(Q_OS_ANDROID)
 static const QString QML_WEB_ENGINE_STORAGE_NAME = "qmlWebEngine";
 
-FileTypeProfile::FileTypeProfile(QObject* parent) :
-    QQuickWebEngineProfile(parent)
+FileTypeProfile::FileTypeProfile(QQmlContext* parent) :
+    ContextAwareProfile(parent)
 {
     static const QString WEB_ENGINE_USER_AGENT = "Chrome/48.0 (HighFidelityInterface)";
     setHttpUserAgent(WEB_ENGINE_USER_AGENT);
 
-    auto requestInterceptor = new FileTypeRequestInterceptor(this);
+    auto requestInterceptor = new RequestInterceptor(this);
     setRequestInterceptor(requestInterceptor);
 }
+
+void FileTypeProfile::RequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
+    RequestFilters::interceptHFWebEngineRequest(info, getContext());
+    RequestFilters::interceptFileType(info, getContext());
+}
+
+void FileTypeProfile::registerWithContext(QQmlContext* context) {
+    context->setContextProperty("FileTypeProfile", new FileTypeProfile(context));
+}
+
+
 #endif

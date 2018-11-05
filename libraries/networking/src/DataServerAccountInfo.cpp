@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DataServerAccountInfo.h"
+
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
@@ -20,7 +22,6 @@
 #include <UUID.h>
 
 #include "NetworkLogging.h"
-#include "DataServerAccountInfo.h"
 
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"

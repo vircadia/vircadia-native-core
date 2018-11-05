@@ -139,7 +139,13 @@ QSharedPointer<T> DependencyManager::set(Args&&... args) {
 template <typename T>
 void DependencyManager::destroy() {
     static size_t hashCode = manager().getHashCode<T>();
-    manager().safeGet(hashCode).clear();
+    QSharedPointer<Dependency>& shared = manager().safeGet(hashCode);
+    QWeakPointer<Dependency> weak = shared;
+    shared.clear();
+    // Check that the dependency was actually destroyed.  If it wasn't, it was improperly captured somewhere
+    if (weak.lock()) {
+        qWarning() << "DependencyManager::destroy():" << typeid(T).name() << "was not properly destroyed!";
+    }
 }
 
 template<typename Base, typename Derived>

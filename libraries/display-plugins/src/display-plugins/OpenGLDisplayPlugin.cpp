@@ -30,7 +30,7 @@
 #include <gl/OffscreenGLCanvas.h>
 
 #include <gpu/Texture.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
 #include <gpu/gl/GLShared.h>
 #include <gpu/gl/GLBackend.h>
 #include <GeometryCache.h>
@@ -44,31 +44,6 @@
 #include "CompositorHelper.h"
 #include "Logging.h"
 
-const char* SRGB_TO_LINEAR_FRAG = R"SCRIBE(
-
-uniform sampler2D colorMap;
-
-in vec2 varTexCoord0;
-
-out vec4 outFragColor;
-
-float sRGBFloatToLinear(float value) {
-    const float SRGB_ELBOW = 0.04045;
-
-    return (value <= SRGB_ELBOW) ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4);
-}
-
-vec3 colorToLinearRGB(vec3 srgb) {
-    return vec3(sRGBFloatToLinear(srgb.r), sRGBFloatToLinear(srgb.g), sRGBFloatToLinear(srgb.b));
-}
-
-void main(void) {
-    outFragColor.a = 1.0;
-    outFragColor.rgb = colorToLinearRGB(texture(colorMap, varTexCoord0).rgb);
-}
-
-)SCRIBE";
-
 extern QThread* RENDER_THREAD;
 
 class PresentThread : public QThread, public Dependency {
@@ -81,6 +56,7 @@ public:
         connect(qApp, &QCoreApplication::aboutToQuit, [this] {
             shutdown();
         });
+        setObjectName("Present");
     }
 
     ~PresentThread() {
@@ -112,6 +88,7 @@ public:
         // Move the OpenGL context to the present thread
         // Extra code because of the widget 'wrapper' context
         _context = context;
+        _context->doneCurrent();
         _context->moveToThread(this);
     }
 
@@ -203,7 +180,9 @@ public:
             _context->makeCurrent();
             {
                 PROFILE_RANGE(render, "PluginPresent")
+                gl::globalLock();
                 currentPlugin->present();
+                gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
             _context->doneCurrent();
@@ -336,9 +315,8 @@ void OpenGLDisplayPlugin::deactivate() {
 
     _container->showDisplayPluginsTools(false);
     if (!_container->currentDisplayActions().isEmpty()) {
-        auto menu = _container->getPrimaryMenu();
         foreach(auto itemInfo, _container->currentDisplayActions()) {
-            menu->removeMenuItem(itemInfo.first, itemInfo.second);
+            _container->removeMenuItem(itemInfo.first, itemInfo.second);
         }
         _container->currentDisplayActions().clear();
     }
@@ -388,65 +366,35 @@ void OpenGLDisplayPlugin::customizeContext() {
     }
 
     if (!_presentPipeline) {
+        gpu::StatePointer blendState = gpu::StatePointer(new gpu::State());
+        blendState->setDepthTest(gpu::State::DepthTest(false));
+        blendState->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        gpu::StatePointer scissorState = gpu::StatePointer(new gpu::State());
+        scissorState->setDepthTest(gpu::State::DepthTest(false));
+        scissorState->setScissorEnable(true);
+
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-            auto ps = gpu::StandardShaderLib::getDrawTexturePS();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setScissorEnable(true);
-            _simplePipeline = gpu::Pipeline::create(program, state);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
+            _simplePipeline = gpu::Pipeline::create(program, scissorState);
+            _hudPipeline = gpu::Pipeline::create(program, blendState);
         }
 
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-            auto ps = gpu::Shader::createPixel(std::string(SRGB_TO_LINEAR_FRAG));
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setScissorEnable(true);
-            _presentPipeline = gpu::Pipeline::create(program, state);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::display_plugins::program::SrgbToLinear);
+            _presentPipeline = gpu::Pipeline::create(program, scissorState);
         }
 
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-            auto ps = gpu::StandardShaderLib::getDrawTexturePS();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _hudPipeline = gpu::Pipeline::create(program, state);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureMirroredX);
+            _mirrorHUDPipeline = gpu::Pipeline::create(program, blendState);
         }
 
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-            auto ps = gpu::StandardShaderLib::getDrawTextureMirroredXPS();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _mirrorHUDPipeline = gpu::Pipeline::create(program, state);
-        }
-
-        {
-            auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-            auto ps = gpu::StandardShaderLib::getDrawTexturePS();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _cursorPipeline = gpu::Pipeline::create(program, state);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTransformedTexture);
+            _cursorPipeline = gpu::Pipeline::create(program, blendState);
         }
     }
     updateCompositeFramebuffer();
@@ -587,7 +535,7 @@ void OpenGLDisplayPlugin::updateFrameData() {
 
 std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGLDisplayPlugin::getHUDOperator() {
     return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        if (_hudPipeline) {
+        if (_hudPipeline && hudTexture) {
             batch.enableStereo(false);
             batch.setPipeline(mirror ? _mirrorHUDPipeline : _hudPipeline);
             batch.setResourceTexture(0, hudTexture);
@@ -886,7 +834,7 @@ OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }
 
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
-    auto renderSize = getRecommendedRenderSize();
+    auto renderSize = glm::uvec2(getRecommendedRenderSize());
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     }

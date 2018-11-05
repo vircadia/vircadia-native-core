@@ -9,11 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDebug>
-#include <QtCore/QCoreApplication>
-
 #include "GenericThread.h"
 
+#include <QDebug>
+#include <QtCore/QCoreApplication>
 
 GenericThread::GenericThread() :
     _stopThread(false),

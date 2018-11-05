@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OBJBaker.h"
+
 #include <PathUtils.h>
 #include <NetworkAccessManager.h>
 
-#include "OBJBaker.h"
 #include "OBJReader.h"
 #include "FBXWriter.h"
 
@@ -147,36 +148,12 @@ void OBJBaker::bakeOBJ() {
     auto geometry = reader.readOBJ(objData, QVariantHash(), combineParts, _modelURL);
 
     // Write OBJ Data as FBX tree nodes
-    FBXNode rootNode;
-    createFBXNodeTree(rootNode, *geometry);
-
-    // Serialize the resultant FBX tree
-    auto encodedFBX = FBXWriter::encodeFBX(rootNode);
-
-    // Export as baked FBX
-    auto fileName = _modelURL.fileName();
-    auto baseName = fileName.left(fileName.lastIndexOf('.'));
-    auto bakedFilename = baseName + ".baked.fbx";
-
-    _bakedModelFilePath = _bakedOutputDir + "/" + bakedFilename;
-
-    QFile bakedFile;
-    bakedFile.setFileName(_bakedModelFilePath);
-    if (!bakedFile.open(QIODevice::WriteOnly)) {
-        handleError("Error opening " + _bakedModelFilePath + " for writing");
-        return;
-    }
-
-    bakedFile.write(encodedFBX);
-
-    // Export successful
-    _outputFiles.push_back(_bakedModelFilePath);
-    qCDebug(model_baking) << "Exported" << _modelURL << "to" << _bakedModelFilePath;
+    createFBXNodeTree(_rootNode, *geometry);
 
     checkIfTexturesFinished();
 }
 
-void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
+void OBJBaker::createFBXNodeTree(FBXNode& rootNode, HFMGeometry& geometry) {
     // Generating FBX Header Node
     FBXNode headerNode;
     headerNode.name = FBX_HEADER_EXTENSION;
@@ -203,15 +180,17 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     globalSettingsNode.children = { properties70Node };
 
     // Generating Object node
-    _objectNode.name = OBJECTS_NODE_NAME;
+    FBXNode objectNode;
+    objectNode.name = OBJECTS_NODE_NAME;
 
     // Generating Object node's child - Geometry node 
     FBXNode geometryNode;
     geometryNode.name = GEOMETRY_NODE_NAME;
+    NodeID geometryID;
     {
-        _geometryID = nextNodeID();
+        geometryID = nextNodeID();
         geometryNode.properties = {
-            _geometryID,
+            geometryID,
             GEOMETRY_NODE_NAME,
             MESH
         };
@@ -226,12 +205,13 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     // Generating Object node's child - Model node
     FBXNode modelNode;
     modelNode.name = MODEL_NODE_NAME;
+    NodeID modelID;
     {
-        _modelID = nextNodeID();
-        modelNode.properties = { _modelID, MODEL_NODE_NAME, MESH };
+        modelID = nextNodeID();
+        modelNode.properties = { modelID, MODEL_NODE_NAME, MESH };
     }
 
-    _objectNode.children = { geometryNode, modelNode };
+    objectNode.children = { geometryNode, modelNode };
 
     // Generating Objects node's child - Material node
     auto& meshParts = geometry.meshes[0].parts;
@@ -247,7 +227,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
             setMaterialNodeProperties(materialNode, meshPart.materialID, geometry);
         }
 
-        _objectNode.children.append(materialNode);
+        objectNode.children.append(materialNode);
     }
 
     // Generating Texture Node
@@ -255,15 +235,15 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     auto size = meshParts.size();
     for (int i = 0; i < size; i++) {
         QString material = meshParts[i].materialID;
-        FBXMaterial currentMaterial = geometry.materials[material];
+        HFMMaterial currentMaterial = geometry.materials[material];
         if (!currentMaterial.albedoTexture.filename.isEmpty() || !currentMaterial.specularTexture.filename.isEmpty()) {
-            _textureID = nextNodeID();
-            _mapTextureMaterial.emplace_back(_textureID, i);
+            auto textureID = nextNodeID();
+            _mapTextureMaterial.emplace_back(textureID, i);
 
             FBXNode textureNode;
             {
                 textureNode.name = TEXTURE_NODE_NAME;
-                textureNode.properties = { _textureID };
+                textureNode.properties = { textureID, "texture" + QString::number(textureID) };
             }
 
             // Texture node child - TextureName node
@@ -295,7 +275,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
 
             textureNode.children = { textureNameNode, relativeFilenameNode };
 
-            _objectNode.children.append(textureNode);
+            objectNode.children.append(textureNode);
         }
     }
 
@@ -306,14 +286,14 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     // connect Geometry to Model 
     FBXNode cNode;
     cNode.name = C_NODE_NAME;
-    cNode.properties = { CONNECTIONS_NODE_PROPERTY, _geometryID, _modelID };
+    cNode.properties = { CONNECTIONS_NODE_PROPERTY, geometryID, modelID };
     connectionsNode.children = { cNode };
 
     // connect all materials to model
     for (auto& materialID : _materialIDs) {
         FBXNode cNode;
         cNode.name = C_NODE_NAME;
-        cNode.properties = { CONNECTIONS_NODE_PROPERTY, materialID, _modelID };
+        cNode.properties = { CONNECTIONS_NODE_PROPERTY, materialID, modelID };
         connectionsNode.children.append(cNode);
     }
 
@@ -341,16 +321,16 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     }
 
     // Make all generated nodes children of rootNode
-    rootNode.children = { globalSettingsNode, _objectNode, connectionsNode };
+    rootNode.children = { globalSettingsNode, objectNode, connectionsNode };
 }
 
 // Set properties for material nodes
-void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material, FBXGeometry& geometry) {
+void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material, HFMGeometry& geometry) {
     auto materialID = nextNodeID();
     _materialIDs.push_back(materialID);
     materialNode.properties = { materialID, material, MESH };
 
-    FBXMaterial currentMaterial = geometry.materials[material];
+    HFMMaterial currentMaterial = geometry.materials[material];
 
     // Setting the hierarchy: Material -> Properties70 -> P -> Properties
     FBXNode properties70Node;

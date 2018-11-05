@@ -56,6 +56,19 @@ bool GameplayObjects::removeFromGameplayObjects(const OverlayID& overlayID) {
 SelectionScriptingInterface::SelectionScriptingInterface() {
 }
 
+/**jsdoc
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"avatar"</code></td><td></td></tr>
+ *     <tr><td><code>"entity"</code></td><td></td></tr>
+ *     <tr><td><code>"overlay"</code></td><td></td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Selection.ItemType
+ */
 bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id) {
     if (itemType == "avatar") {
         return addToGameplayObjects(listName, (QUuid)id);
@@ -110,7 +123,7 @@ bool SelectionScriptingInterface::enableListHighlight(const QString& listName, c
     }
 
     if (!(*highlightStyle).isBoundToList()) {
-        setupHandler(listName);
+        enableListToScene(listName);
         (*highlightStyle).setBoundToList(true);
     }
 
@@ -134,6 +147,7 @@ bool SelectionScriptingInterface::disableListHighlight(const QString& listName) 
     auto highlightStyle = _highlightStyleMap.find(listName);
     if (highlightStyle != _highlightStyleMap.end()) {
         if ((*highlightStyle).isBoundToList()) {
+            disableListToScene(listName);
         }
 
         _highlightStyleMap.erase(highlightStyle);
@@ -170,6 +184,18 @@ render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QStr
     } else {
         return (*highlightStyle).getStyle();
     }
+}
+
+bool SelectionScriptingInterface::enableListToScene(const QString& listName) {
+    setupHandler(listName);
+
+    return true;
+}
+
+bool SelectionScriptingInterface::disableListToScene(const QString& listName) {
+    removeHandler(listName);
+
+    return true;
 }
 
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
@@ -242,6 +268,12 @@ void SelectionScriptingInterface::printList(const QString& listName) {
     }
 }
 
+/**jsdoc
+ * @typedef {object} Selection.SelectedItemsList
+ * @property {Uuid[]} avatars - The IDs of the avatars in the selection.
+ * @property {Uuid[]} entities - The IDs of the entities in the selection.
+ * @property {Uuid[]} overlays - The IDs of the overlays in the selection.
+ */
 QVariantMap SelectionScriptingInterface::getSelectedItemsList(const QString& listName) const {
     QReadLocker lock(&_selectionListsLock);
     QVariantMap list;
@@ -301,6 +333,15 @@ void SelectionScriptingInterface::setupHandler(const QString& selectionName) {
     }
 
     (*handler)->initialize(selectionName);
+}
+
+void SelectionScriptingInterface::removeHandler(const QString& selectionName) {
+    QWriteLocker lock(&_selectionHandlersLock);
+    auto handler = _handlerMap.find(selectionName);
+    if (handler != _handlerMap.end()) {
+        delete handler.value();
+        _handlerMap.erase(handler);
+    }
 }
 
 void SelectionScriptingInterface::onSelectedItemsListChanged(const QString& listName) {
@@ -380,7 +421,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     auto colorVariant = properties["outlineUnoccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = u8vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._outlineUnoccluded.color = toGlm(color);
         }
@@ -388,7 +429,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     colorVariant = properties["outlineOccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = u8vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._outlineOccluded.color = toGlm(color);
         }
@@ -396,7 +437,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     colorVariant = properties["fillUnoccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = u8vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._fillUnoccluded.color = toGlm(color);
         }
@@ -404,7 +445,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     colorVariant = properties["fillOccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = u8vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._fillOccluded.color = toGlm(color);
         }
@@ -439,13 +480,28 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     return true;
 }
 
+/**jsdoc
+ * @typedef {object} Selection.HighlightStyle
+ * @property {Color} outlineUnoccludedColor - Color of the specified highlight region.
+ * @property {Color} outlineOccludedColor - ""
+ * @property {Color} fillUnoccludedColor- ""
+ * @property {Color} fillOccludedColor- ""
+ * @property {number} outlineUnoccludedAlpha - Alpha value ranging from <code>0.0</code> (not visible) to <code>1.0</code> 
+ *     (fully opaque) for the specified highlight region.
+ * @property {number} outlineOccludedAlpha - ""
+ * @property {number} fillUnoccludedAlpha - ""
+ * @property {number} fillOccludedAlpha - ""
+ * @property {number} outlineWidth - Width of the outline, in pixels.
+ * @property {boolean} isOutlineSmooth - <code>true</code> to enable outline smooth fall-off.
+ */
 QVariantMap SelectionHighlightStyle::toVariantMap() const {
     QVariantMap properties;
 
-    properties["outlineUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._outlineUnoccluded.color));
-    properties["outlineOccludedColor"] = xColorToVariant(xColorFromGlm(_style._outlineOccluded.color));
-    properties["fillUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillUnoccluded.color));
-    properties["fillOccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillOccluded.color));
+    const float MAX_COLOR = 255.0f;
+    properties["outlineUnoccludedColor"] = u8vec3ColortoVariant(_style._outlineUnoccluded.color * MAX_COLOR);
+    properties["outlineOccludedColor"] = u8vec3ColortoVariant(_style._outlineOccluded.color * MAX_COLOR);
+    properties["fillUnoccludedColor"] = u8vec3ColortoVariant(_style._fillUnoccluded.color * MAX_COLOR);
+    properties["fillOccludedColor"] = u8vec3ColortoVariant(_style._fillOccluded.color * MAX_COLOR);
 
     properties["outlineUnoccludedAlpha"] = _style._outlineUnoccluded.alpha;
     properties["outlineOccludedAlpha"] = _style._outlineOccluded.alpha;

@@ -41,8 +41,8 @@ void WebEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     EntityItem::setUnscaledDimensions(glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH));
 }
 
-EntityItemProperties WebEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties WebEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(sourceUrl, getSourceUrl);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dpi, getDPI);
     return properties;
@@ -83,8 +83,6 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     return bytesRead;
 }
 
-
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags WebEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_SOURCE_URL;
@@ -115,8 +113,44 @@ bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const g
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
-        surfaceNormal = rotation * Vectors::UNIT_Z;
-        face = glm::dot(surfaceNormal, direction) > 0 ? MIN_Z_FACE : MAX_Z_FACE;
+        glm::vec3 forward = rotation * Vectors::FRONT;
+        if (glm::dot(forward, direction) > 0.0f) {
+            face = MAX_Z_FACE;
+            surfaceNormal = -forward;
+        } else {
+            face = MIN_Z_FACE;
+            surfaceNormal = forward;
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool WebEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                     OctreeElementPointer& element, float& parabolicDistance,
+                                                     BoxFace& face, glm::vec3& surfaceNormal,
+                                                     QVariantMap& extraInfo, bool precisionPicking) const {
+    glm::vec3 dimensions = getScaledDimensions();
+    glm::vec2 xyDimensions(dimensions.x, dimensions.y);
+    glm::quat rotation = getWorldOrientation();
+    glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
+
+    glm::quat inverseRot = glm::inverse(rotation);
+    glm::vec3 localOrigin = inverseRot * (origin - position);
+    glm::vec3 localVelocity = inverseRot * velocity;
+    glm::vec3 localAcceleration = inverseRot * acceleration;
+
+    if (findParabolaRectangleIntersection(localOrigin, localVelocity, localAcceleration, xyDimensions, parabolicDistance)) {
+        float localIntersectionVelocityZ = localVelocity.z + localAcceleration.z * parabolicDistance;
+        glm::vec3 forward = rotation * Vectors::FRONT;
+        if (localIntersectionVelocityZ > 0.0f) {
+            face = MIN_Z_FACE;
+            surfaceNormal = forward;
+        } else {
+            face = MAX_Z_FACE;
+            surfaceNormal = -forward;
+        }
         return true;
     } else {
         return false;

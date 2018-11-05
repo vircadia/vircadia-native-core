@@ -9,7 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 
@@ -63,6 +62,7 @@ Windows.ScrollingWindow {
             url: "about:blank"
             anchors.fill: parent
             focus: true
+            profile: HFWebEngineProfile;
 
             property string userScriptUrl: ""
 

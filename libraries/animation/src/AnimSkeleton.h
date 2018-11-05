@@ -23,8 +23,8 @@ public:
     using Pointer = std::shared_ptr<AnimSkeleton>;
     using ConstPointer = std::shared_ptr<const AnimSkeleton>;
 
-    explicit AnimSkeleton(const FBXGeometry& fbxGeometry);
-    explicit AnimSkeleton(const std::vector<FBXJoint>& joints);
+    explicit AnimSkeleton(const HFMGeometry& geometry);
+    explicit AnimSkeleton(const std::vector<HFMJoint>& joints);
     int nameToJointIndex(const QString& jointName) const;
     const QString& getJointName(int jointIndex) const;
     int getNumJoints() const;
@@ -61,10 +61,12 @@ public:
     void dump(bool verbose) const;
     void dump(const AnimPoseVec& poses) const;
 
-protected:
-    void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints);
+    std::vector<int> lookUpJointIndices(const std::vector<QString>& jointNames) const;
 
-    std::vector<FBXJoint> _joints;
+protected:
+    void buildSkeletonFromJoints(const std::vector<HFMJoint>& joints);
+
+    std::vector<HFMJoint> _joints;
     int _jointsSize { 0 };
     AnimPoseVec _relativeDefaultPoses;
     AnimPoseVec _absoluteDefaultPoses;

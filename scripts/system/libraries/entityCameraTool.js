@@ -28,7 +28,9 @@ var FOCUS_MIN_ZOOM = 0.5;
 var ZOOM_SCALING = 0.02;
 
 var MIN_ZOOM_DISTANCE = 0.01;
-var MAX_ZOOM_DISTANCE = 200;
+
+// The maximum usable zoom level is somewhere around 14km, further than that the edit handles will fade-out. (FIXME: MS17493)
+var MAX_ZOOM_DISTANCE = 14000;
 
 var MODE_INACTIVE = 'inactive';
 var MODE_ORBIT = 'orbit';
@@ -77,35 +79,37 @@ CameraManager = function() {
     }
 
     var keyToActionMapping = {
-        "a": "orbitLeft",
-        "d": "orbitRight",
-        "w": "orbitForward",
-        "s": "orbitBackward",
-        "e": "orbitUp",
-        "c": "orbitDown",
-
-        "LEFT": "orbitLeft",
-        "RIGHT": "orbitRight",
-        "UP": "orbitForward",
-        "DOWN": "orbitBackward",
+        65: "orbitLeft",     // "a"
+        68: "orbitRight",    // "d"
+        87: "orbitForward",  // "w"
+        83: "orbitBackward", // "s"
+        69: "orbitUp",       // "e"
+        67: "orbitDown",     // "c"
+        
+        16777234: "orbitLeft",     // "LEFT"
+        16777236: "orbitRight",    // "RIGHT"
+        16777235: "orbitForward",  // "UP"
+        16777237: "orbitBackward", // "DOWN"
     }
 
     var CAPTURED_KEYS = [];
-    for (key in keyToActionMapping) {
+    for (var key in keyToActionMapping) {
         CAPTURED_KEYS.push(key);
     }
 
     function getActionForKeyEvent(event) {
-        var action = keyToActionMapping[event.text];
-        if (action !== undefined) {
-            if (event.isShifted) {
-                if (action == "orbitForward") {
-                    action = "orbitUp";
-                } else if (action == "orbitBackward") {
-                    action = "orbitDown";
+        if (!event.isControl) {
+            var action = keyToActionMapping[event.key];
+            if (action !== undefined) {
+                if (event.isShifted) {
+                    if (action === "orbitForward") {
+                        action = "orbitUp";
+                    } else if (action === "orbitBackward") {
+                        action = "orbitDown";
+                    }
                 }
+                return action;
             }
-            return action;
         }
         return null;
     }
@@ -133,7 +137,7 @@ CameraManager = function() {
     };
 
     that.enable = function() {
-        if (Camera.mode == "independent" || that.enabled || HMD.active) {
+        if (Camera.mode === "independent" || that.enabled || HMD.active) {
             return;
         }
 
@@ -141,6 +145,10 @@ CameraManager = function() {
             Controller.captureKeyEvents({
                 text: CAPTURED_KEYS[i]
             });
+        }
+
+        for (var action in actions) {
+            actions[action] = 0;
         }
 
         that.enabled = true;
@@ -235,7 +243,7 @@ CameraManager = function() {
     }
 
     that.setFocalPoint = function(pos) {
-        that.targetFocalPoint = pos
+        that.targetFocalPoint = pos;
         that.updateCamera();
     }
 
@@ -255,14 +263,6 @@ CameraManager = function() {
         that.updateCamera();
     }
 
-    that.getZoomPercentage = function() {
-        return (that.zoomDistance - MIN_ZOOM_DISTANCE) / MAX_ZOOM_DISTANCE;
-    }
-
-    that.setZoomPercentage = function(pct) {
-        that.targetZoomDistance = pct * (MAX_ZOOM_DISTANCE - MIN_ZOOM_DISTANCE);
-    }
-
     that.pan = function(offset) {
         var up = Quat.getUp(Camera.getOrientation());
         var right = Quat.getRight(Camera.getOrientation());
@@ -276,7 +276,7 @@ CameraManager = function() {
     }
 
     that.mouseMoveEvent = function(event) {
-        if (that.enabled && that.mode != MODE_INACTIVE) {
+        if (that.enabled && that.mode !== MODE_INACTIVE) {
             var x = Reticle.getPosition().x;
             var y = Reticle.getPosition().y;
             if (!hasDragged) {
@@ -284,11 +284,11 @@ CameraManager = function() {
                 that.lastMousePosition.y = y;
                 hasDragged = true;
             }
-            if (that.mode == MODE_ORBIT) {
+            if (that.mode === MODE_ORBIT) {
                 var diffX = x - that.lastMousePosition.x;
                 var diffY = y - that.lastMousePosition.y;
-                that.targetYaw -= MOUSE_SENSITIVITY * (diffX / 5.0)
-                that.targetPitch += MOUSE_SENSITIVITY * (diffY / 10.0)
+                that.targetYaw -= MOUSE_SENSITIVITY * (diffX / 5.0);
+                that.targetPitch += MOUSE_SENSITIVITY * (diffY / 10.0);
 
                 while (that.targetYaw > 180.0) that.targetYaw -= 360;
                 while (that.targetYaw < -180.0) that.targetYaw += 360;
@@ -297,7 +297,7 @@ CameraManager = function() {
                 if (that.targetPitch < -90) that.targetPitch = -90;
 
                 that.updateCamera();
-            } else if (that.mode == MODE_PAN) {
+            } else if (that.mode === MODE_PAN) {
                 var diffX = x - that.lastMousePosition.x;
                 var diffY = y - that.lastMousePosition.y;
 
@@ -316,19 +316,19 @@ CameraManager = function() {
             var newY = y;
             var updatePosition = false;
 
-            if (x <= Window.x) {
-                newX = Window.x + Window.innerWidth;
+            if (x <= 0) {
+                newX = Window.innerWidth;
                 updatePosition = true;
-            } else if (x >= (Window.x + Window.innerWidth)) {
-                newX = Window.x;
+            } else if (x >= Window.innerWidth) {
+                newX = 0;
                 updatePosition = true;
             }
 
-            if (y <= Window.y) {
-                newY = Window.y + Window.innerHeight;
+            if (y <= 0) {
+                newY = Window.innerHeight;
                 updatePosition = true;
-            } else if (y >= (Window.y + Window.innerHeight)) {
-                newY = Window.y;
+            } else if (y >= Window.innerHeight) {
+                newY = 0;
                 updatePosition = true;
             }
 
@@ -410,7 +410,7 @@ CameraManager = function() {
     }
 
     that.updateCamera = function() {
-        if (!that.enabled || Camera.mode != "independent") {
+        if (!that.enabled || Camera.mode !== "independent") {
             cameraTool.update();
             return;
         }
@@ -464,7 +464,7 @@ CameraManager = function() {
 
     // Ease the position and orbit of the camera
     that.update = function(dt) {
-        if (Camera.mode != "independent") {
+        if (Camera.mode !== "independent") {
             that.updateCamera();
             return;
         }

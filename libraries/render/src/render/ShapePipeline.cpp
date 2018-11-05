@@ -9,13 +9,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "DependencyManager.h"
-#include "Logging.h"
 #include "ShapePipeline.h"
 
 #include <PerfStat.h>
+#include <DependencyManager.h>
+#include <gpu/ShaderConstants.h>
+#include <graphics/ShaderConstants.h>
+#include <../render-utils/src/render-utils/ShaderConstants.h>
+
+#include "Logging.h"
+
 
 using namespace render;
+
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
 ShapePipeline::CustomFactoryMap ShapePipeline::_globalCustomFactoryMap;
 
@@ -70,73 +85,39 @@ void ShapePlumber::addPipeline(const Key& key, const gpu::ShaderPointer& program
 
 void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
         BatchSetter batchSetter, ItemSetter itemSetter) {
-
     ShapeKey key{ filter._flags };
-
-
-    // don't call makeProgram on shaders that are already made.
-    if (program->getNumCompilationAttempts() < 1) {
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), Slot::BUFFER::LIGHTING_MODEL));
-        slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));
-        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::BUFFER::MATERIAL));
-        slotBindings.insert(gpu::Shader::Binding(std::string("texMapArrayBuffer"), Slot::BUFFER::TEXMAPARRAY));
-        slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), Slot::MAP::ALBEDO));
-        slotBindings.insert(gpu::Shader::Binding(std::string("roughnessMap"), Slot::MAP::ROUGHNESS));
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Slot::MAP::NORMAL));
-        slotBindings.insert(gpu::Shader::Binding(std::string("metallicMap"), Slot::MAP::METALLIC));
-        slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slot::MAP::EMISSIVE_LIGHTMAP));
-        slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), Slot::MAP::OCCLUSION));
-        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringMap"), Slot::MAP::SCATTERING));
-        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), Slot::BUFFER::KEY_LIGHT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), Slot::BUFFER::LIGHT_AMBIENT_BUFFER));
-        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), Slot::MAP::FADE_MASK));
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), Slot::BUFFER::FADE_PARAMETERS));
-        slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), Slot::BUFFER::HAZE_MODEL));
-
-        if (key.isTranslucent()) {
-            slotBindings.insert(gpu::Shader::Binding(std::string("clusterGridBuffer"), Slot::BUFFER::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT));
-            slotBindings.insert(gpu::Shader::Binding(std::string("clusterContentBuffer"), Slot::BUFFER::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT));
-            slotBindings.insert(gpu::Shader::Binding(std::string("frustumGridBuffer"), Slot::BUFFER::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT));
-        }
-
-        gpu::Shader::makeProgram(*program, slotBindings);
-    }
-
+    const auto& reflection = program->getReflection();
     auto locations = std::make_shared<Locations>();
-
-    locations->albedoTextureUnit = program->getTextures().findLocation("albedoMap");
-    locations->roughnessTextureUnit = program->getTextures().findLocation("roughnessMap");
-    locations->normalTextureUnit = program->getTextures().findLocation("normalMap");
-    locations->metallicTextureUnit = program->getTextures().findLocation("metallicMap");
-    locations->emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
-    locations->occlusionTextureUnit = program->getTextures().findLocation("occlusionMap");
-    locations->lightingModelBufferUnit = program->getUniformBuffers().findLocation("lightingModelBuffer");
-    locations->skinClusterBufferUnit = program->getUniformBuffers().findLocation("skinClusterBuffer");
-    locations->materialBufferUnit = program->getUniformBuffers().findLocation("materialBuffer");
-    locations->texMapArrayBufferUnit = program->getUniformBuffers().findLocation("texMapArrayBuffer");
-    locations->keyLightBufferUnit = program->getUniformBuffers().findLocation("keyLightBuffer");
-    locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
-    locations->lightAmbientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
-    locations->lightAmbientMapUnit = program->getTextures().findLocation("skyboxMap");
-    locations->fadeMaskTextureUnit = program->getTextures().findLocation("fadeMaskMap");
-    locations->fadeParameterBufferUnit = program->getUniformBuffers().findLocation("fadeParametersBuffer");
-    locations->hazeParameterBufferUnit = program->getUniformBuffers().findLocation("hazeParametersBuffer");
+    locations->albedoTextureUnit = reflection.validTexture(graphics::slot::texture::MaterialAlbedo);
+    locations->roughnessTextureUnit = reflection.validTexture(graphics::slot::texture::MaterialRoughness);
+    locations->normalTextureUnit = reflection.validTexture(graphics::slot::texture::MaterialNormal);
+    locations->metallicTextureUnit = reflection.validTexture(graphics::slot::texture::MaterialMetallic);
+    locations->emissiveTextureUnit = reflection.validTexture(graphics::slot::texture::MaterialEmissiveLightmap);
+    locations->occlusionTextureUnit = reflection.validTexture(graphics::slot::texture::MaterialOcclusion);
+    locations->lightingModelBufferUnit = reflection.validUniformBuffer(render_utils::slot::buffer::LightModel);
+    locations->skinClusterBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::Skinning);
+    locations->materialBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::Material);
+    locations->texMapArrayBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::TexMapArray);
+    locations->keyLightBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::KeyLight);
+    locations->lightBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::Light);
+    locations->lightAmbientBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::AmbientLight);
+    locations->lightAmbientMapUnit = reflection.validTexture(graphics::slot::texture::Skybox);
+    locations->fadeMaskTextureUnit = reflection.validTexture(render_utils::slot::texture::FadeMask);
+    locations->fadeParameterBufferUnit = reflection.validUniformBuffer(render_utils::slot::buffer::FadeParameters);
+    locations->fadeObjectParameterBufferUnit = reflection.validUniformBuffer(render_utils::slot::buffer::FadeObjectParameters);
+    locations->hazeParameterBufferUnit = reflection.validUniformBuffer(render_utils::slot::buffer::HazeParams);
     if (key.isTranslucent()) {
-        locations->lightClusterGridBufferUnit = program->getUniformBuffers().findLocation("clusterGridBuffer");
-        locations->lightClusterContentBufferUnit = program->getUniformBuffers().findLocation("clusterContentBuffer");
-        locations->lightClusterFrustumBufferUnit = program->getUniformBuffers().findLocation("frustumGridBuffer");
-    } else {
-        locations->lightClusterGridBufferUnit = -1;
-        locations->lightClusterContentBufferUnit = -1;
-        locations->lightClusterFrustumBufferUnit = -1;
+        locations->lightClusterGridBufferUnit = reflection.validUniformBuffer(render_utils::slot::buffer::LightClusterGrid);
+        locations->lightClusterContentBufferUnit = reflection.validUniformBuffer(render_utils::slot::buffer::LightClusterContent);
+        locations->lightClusterFrustumBufferUnit = reflection.validUniformBuffer(render_utils::slot::buffer::LightClusterFrustumGrid);
     }
 
-    auto gpuPipeline = gpu::Pipeline::create(program, state);
-    auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter, itemSetter);
-    addPipelineHelper(filter, key, 0, shapePipeline);
+    {
+        PROFILE_RANGE(app, "Pipeline::create");
+        auto gpuPipeline = gpu::Pipeline::create(program, state);
+        auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter, itemSetter);
+        addPipelineHelper(filter, key, 0, shapePipeline);
+    }
 }
 
 const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Key& key) const {

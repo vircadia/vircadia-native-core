@@ -32,8 +32,8 @@ bool CauterizedModel::updateGeometry() {
     bool needsFullUpdate = Model::updateGeometry();
     if (_isCauterized && needsFullUpdate) {
         assert(_cauterizeMeshStates.empty());
-        const FBXGeometry& fbxGeometry = getFBXGeometry();
-        foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
+        const HFMGeometry& hfmGeometry = getHFMGeometry();
+        foreach (const HFMMesh& mesh, hfmGeometry.meshes) {
             Model::MeshState state;
             if (_useDualQuaternionSkinning) {
                 state.clusterDualQuaternions.resize(mesh.clusters.size());
@@ -47,7 +47,7 @@ bool CauterizedModel::updateGeometry() {
     return needsFullUpdate;
 }
 
-void CauterizedModel::createVisibleRenderItemSet() {
+void CauterizedModel::createRenderItemSet() {
     if (_isCauterized) {
         assert(isLoaded());
         const auto& meshes = _renderGeometry->getMeshes();
@@ -76,6 +76,7 @@ void CauterizedModel::createVisibleRenderItemSet() {
         // Run through all of the meshes, and place them into their segregated, but unsorted buckets
         int shapeID = 0;
         uint32_t numMeshes = (uint32_t)meshes.size();
+        const HFMGeometry& hfmGeometry = getHFMGeometry();
         for (uint32_t i = 0; i < numMeshes; i++) {
             const auto& mesh = meshes.at(i);
             if (!mesh) {
@@ -85,21 +86,20 @@ void CauterizedModel::createVisibleRenderItemSet() {
             // Create the render payloads
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
+                initializeBlendshapes(hfmGeometry.meshes[i], i);
+
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
-                _modelMeshMaterialNames.push_back(getGeometry()->getShapeMaterial(shapeID)->getName());
+                auto material = getGeometry()->getShapeMaterial(shapeID);
+                _modelMeshMaterialNames.push_back(material ? material->getName() : "");
                 _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
                 shapeID++;
             }
         }
+        _blendshapeOffsetsInitialized = true;
     } else {
-        Model::createVisibleRenderItemSet();
+        Model::createRenderItemSet();
     }
-}
-
-void CauterizedModel::createCollisionRenderItemSet() {
-    // Temporary HACK: use base class method for now
-    Model::createCollisionRenderItemSet();
 }
 
 void CauterizedModel::updateClusterMatrices() {
@@ -109,13 +109,13 @@ void CauterizedModel::updateClusterMatrices() {
         return;
     }
     _needsUpdateClusterMatrices = false;
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMGeometry& geometry = getHFMGeometry();
 
     for (int i = 0; i < (int)_meshStates.size(); i++) {
         Model::MeshState& state = _meshStates[i];
-        const FBXMesh& mesh = geometry.meshes.at(i);
+        const HFMMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
-            const FBXCluster& cluster = mesh.clusters.at(j);
+            const HFMCluster& cluster = mesh.clusters.at(j);
             if (_useDualQuaternionSkinning) {
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
                 Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
@@ -145,10 +145,10 @@ void CauterizedModel::updateClusterMatrices() {
 
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
-            const FBXMesh& mesh = geometry.meshes.at(i);
+            const HFMMesh& mesh = geometry.meshes.at(i);
 
             for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
+                const HFMCluster& cluster = mesh.clusters.at(j);
 
                 if (_useDualQuaternionSkinning) {
                     if (_cauterizeBoneSet.find(cluster.jointIndex) == _cauterizeBoneSet.end()) {
@@ -174,9 +174,10 @@ void CauterizedModel::updateClusterMatrices() {
     }
 
     // post the blender if we're not currently waiting for one to finish
-    if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    auto modelBlender = DependencyManager::get<ModelBlender>();
+    if (_blendshapeOffsetsInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        DependencyManager::get<ModelBlender>()->noteRequiresBlend(getThisPointer());
+        modelBlender->noteRequiresBlend(getThisPointer());
     }
 }
 
@@ -184,12 +185,6 @@ void CauterizedModel::updateRenderItems() {
     if (_isCauterized) {
         if (!_addedToScene) {
             return;
-        }
-
-        glm::vec3 scale = getScale();
-        if (_collisionGeometry) {
-            // _collisionGeometry is already scaled
-            scale = glm::vec3(1.0f);
         }
         _needsUpdateClusterMatrices = true;
         _renderItemsNeedUpdate = false;
@@ -215,10 +210,7 @@ void CauterizedModel::updateRenderItems() {
             modelTransform.setRotation(self->getRotation());
 
             bool isWireframe = self->isWireframe();
-            bool isVisible = self->isVisible();
-            bool canCastShadow = self->canCastShadow();
-            bool isLayeredInFront = self->isLayeredInFront();
-            bool isLayeredInHUD = self->isLayeredInHUD();
+            auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
             bool enableCauterization = self->getEnableCauterization();
 
             render::Transaction transaction;
@@ -233,8 +225,9 @@ void CauterizedModel::updateRenderItems() {
                 bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
-                        isWireframe, isVisible, isLayeredInFront, isLayeredInHUD, canCastShadow, enableCauterization](CauterizedMeshPartPayload& data) {
+                transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
+                        isWireframe, renderItemKeyGlobalFlags, enableCauterization](ModelMeshPartPayload& mmppData) {
+                    CauterizedMeshPartPayload& data = static_cast<CauterizedMeshPartPayload&>(mmppData);
                     if (useDualQuaternionSkinning) {
                         data.updateClusterBuffer(meshState.clusterDualQuaternions,
                                                  cauterizedMeshState.clusterDualQuaternions);
@@ -276,8 +269,7 @@ void CauterizedModel::updateRenderItems() {
                     data.updateTransformForCauterizedMesh(renderTransform);
 
                     data.setEnableCauterization(enableCauterization);
-                    data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, render::ItemKey::TAG_BITS_ALL);
-                    data.setLayer(isLayeredInFront, isLayeredInHUD);
+                    data.updateKey(renderItemKeyGlobalFlags);
                     data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
                 });
             }

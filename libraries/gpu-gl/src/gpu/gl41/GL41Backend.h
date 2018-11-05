@@ -19,11 +19,7 @@
 #define GPU_CORE_41 410
 #define GPU_CORE_43 430
 
-#ifdef Q_OS_MAC
 #define GPU_INPUT_PROFILE GPU_CORE_41
-#else 
-#define GPU_INPUT_PROFILE GPU_CORE_43
-#endif
 
 namespace gpu { namespace gl41 {
 
@@ -35,7 +31,6 @@ class GL41Backend : public GLBackend {
     friend class Context;
 
 public:
-    static const GLint TRANSFORM_OBJECT_SLOT  { 31 };
     static const GLint RESOURCE_TRANSFER_TEX_UNIT { 32 };
     static const GLint RESOURCE_TRANSFER_EXTRA_TEX_UNIT { 33 };
     static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 34 };
@@ -51,6 +46,8 @@ public:
 
     static const std::string GL41_VERSION;
     const std::string& getVersion() const override { return GL41_VERSION; }
+
+    bool supportedTextureFormat(const gpu::Element& format) override;
 
     class GL41Texture : public GLTexture {
         using Parent = GLTexture;
@@ -112,9 +109,9 @@ public:
 
         void allocateStorage(uint16 allocatedMip);
         void syncSampler() const override;
-        void promote() override;
-        void demote() override;
-        void populateTransferQueue() override;
+        size_t promote() override;
+        size_t demote() override;
+        void populateTransferQueue(TransferQueue& pendingTransfers) override;
 
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         Size copyMipsFromTexture();
@@ -133,10 +130,14 @@ public:
     };
 
 protected:
+
+    void draw(GLenum mode, uint32 numVertices, uint32 startVertex) override;
+
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 
     GLuint getBufferID(const Buffer& buffer) override;
+    GLuint getBufferIDUnsynced(const Buffer& buffer) override;
     GLuint getResourceBufferID(const Buffer& buffer);
     GLBuffer* syncGPUObject(const Buffer& buffer) override;
 
@@ -163,16 +164,14 @@ protected:
     void updateTransform(const Batch& batch) override;
 
     // Resource Stage
-    bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) override;
+    bool bindResourceBuffer(uint32_t slot, const BufferPointer& buffer) override;
     void releaseResourceBuffer(uint32_t slot) override;
 
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
 
-    std::string getBackendShaderHeader() const override;
-    void makeProgramBindings(ShaderObject& shaderObject) override;
-    int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
-
+    shader::Dialect getShaderDialect() const override { return shader::Dialect::glsl410; }
+    void postLinkProgram(ShaderObject& programObject, const Shader& program) const override;
 };
 
 } }

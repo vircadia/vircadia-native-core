@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-in vec2 varTexCoord0;
-out vec4 outFragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     vec2 circlePos = 2.0 * ( varTexCoord0.xy * 2.0 - vec2(1.0) );

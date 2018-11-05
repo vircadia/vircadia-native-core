@@ -9,21 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "CommerceLogging.h"
-#include "Ledger.h"
 #include "Wallet.h"
-#include "Application.h"
-#include "ui/ImageProvider.h"
-#include "scripting/HMDScriptingInterface.h"
-
-#include <PathUtils.h>
-#include <OffscreenUi.h>
-#include <AccountManager.h>
-
-#include <QFile>
-#include <QCryptographicHash>
-#include <QQmlContext>
-#include <QBuffer>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -32,13 +18,28 @@
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/ecdsa.h>
-
 // I know, right?  But per https://www.openssl.org/docs/faq.html
 // this avoids OPENSSL_Uplink(00007FF847238000,08): no OPENSSL_Applink
 // at runtime.
 #ifdef Q_OS_WIN
 #include <openssl/applink.c>
 #endif
+
+#include <QFile>
+#include <QCryptographicHash>
+#include <QQmlContext>
+#include <QBuffer>
+
+#include <PathUtils.h>
+#include <OffscreenUi.h>
+#include <AccountManager.h>
+#include <ui/TabletScriptingInterface.h>
+
+#include "Application.h"
+#include "CommerceLogging.h"
+#include "Ledger.h"
+#include "ui/SecurityImageProvider.h"
+#include "scripting/HMDScriptingInterface.h"
 
 static const char* KEY_FILE = "hifikey";
 static const char* INSTRUCTIONS_FILE = "backup_instructions.html";
@@ -126,31 +127,40 @@ EC_KEY* readKeys(const char* filename) {
 bool Wallet::writeBackupInstructions() {
     QString inputFilename(PathUtils::resourcesPath() + "html/commerce/backup_instructions.html");
     QString outputFilename = PathUtils::getAppDataFilePath(INSTRUCTIONS_FILE);
+    QFile inputFile(inputFilename);
     QFile outputFile(outputFilename);
     bool retval = false;
 
-    if (QFile::exists(outputFilename) || getKeyFilePath() == "")
+    if (getKeyFilePath().isEmpty())
     {
         return false;
     }
-    QFile::copy(inputFilename, outputFilename);
 
-    if (QFile::exists(outputFilename) && outputFile.open(QIODevice::ReadWrite)) {
+    if (QFile::exists(inputFilename) && inputFile.open(QIODevice::ReadOnly)) {
+        if (outputFile.open(QIODevice::ReadWrite)) {
+            // Read the data from the original file, then close it
+            QByteArray fileData = inputFile.readAll();
+            inputFile.close();
 
-        QByteArray fileData = outputFile.readAll();
-        QString text(fileData);
+            // Translate the data from the original file into a QString
+            QString text(fileData);
 
-        text.replace(QString("HIFIKEY_PATH_REPLACEME"), keyFilePath());
+            // Replace the necessary string
+            text.replace(QString("HIFIKEY_PATH_REPLACEME"), keyFilePath());
 
-        outputFile.seek(0); // go to the beginning of the file
-        outputFile.write(text.toUtf8()); // write the new text back to the file
+            // Write the new text back to the file
+            outputFile.write(text.toUtf8());
 
-        outputFile.close(); // close the file handle.
+            // Close the output file
+            outputFile.close();  
 
-        retval = true;
-        qCDebug(commerce) << "wrote html file successfully";
+            retval = true;
+            qCDebug(commerce) << "wrote html file successfully";
+        } else {
+            qCDebug(commerce) << "failed to open output html file" << outputFilename;
+        }
     } else {
-        qCDebug(commerce) << "failed to open output html file" << outputFilename;
+        qCDebug(commerce) << "failed to open input html file" << inputFilename;
     }
     return retval;
 }
@@ -178,6 +188,30 @@ bool writeKeys(const char* filename, EC_KEY* keys) {
         qCDebug(commerce) << "failed to open key file" << filename;
     }
     return retval;
+}
+
+bool Wallet::setWallet(const QByteArray& wallet) {
+    QFile file(keyFilePath());
+    if (!file.open(QIODevice::WriteOnly)) {
+        qCCritical(commerce) << "Unable to open wallet for write in" << keyFilePath();
+        return false;
+    }
+    if (file.write(wallet) != wallet.count()) {
+        qCCritical(commerce) << "Unable to write wallet in" << keyFilePath();
+        return false;
+    }
+    file.close();
+    return true;
+}
+QByteArray Wallet::getWallet() {
+    QFile file(keyFilePath());
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCInfo(commerce) << "No existing wallet in" << keyFilePath();
+        return QByteArray();
+    }
+    QByteArray wallet = file.readAll();
+    file.close();
+    return wallet;
 }
 
 QPair<QByteArray*, QByteArray*> generateECKeypair() {
@@ -313,17 +347,18 @@ Wallet::Wallet() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto ledger = DependencyManager::get<Ledger>();
     auto& packetReceiver = nodeList->getPacketReceiver();
+    _passphrase = new QString("");
 
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
     packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
 
-    connect(ledger.data(), &Ledger::accountResult, this, [&](QJsonObject result) {
+    connect(ledger.data(), &Ledger::accountResult, this, [](QJsonObject result) {
         auto wallet = DependencyManager::get<Wallet>();
         auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
         uint status;
         QString keyStatus = result.contains("data") ? result["data"].toObject()["keyStatus"].toString() : "";
 
-        if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
+        if (wallet->getKeyFilePath().isEmpty() || !wallet->getSecurityImage()) {
             if (keyStatus == "preexisting") {
                 status = (uint) WalletStatus::WALLET_STATUS_PREEXISTING;
             } else{
@@ -363,6 +398,10 @@ void Wallet::clear() {
 Wallet::~Wallet() {
     if (_securityImage) {
         delete _securityImage;
+    }
+
+    if (_passphrase) {
+        delete _passphrase;
     }
 }
 
@@ -509,15 +548,23 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
     // FIXME: initialize OpenSSL elsewhere soon
     initialize();
+    qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: checking" << (!_passphrase || !_passphrase->isEmpty());
 
     // this should always be false if we don't have a passphrase
     // cached yet
     if (!_passphrase || _passphrase->isEmpty()) {
-        return false;
+        if (!getKeyFilePath().isEmpty()) { // If file exists, then it is an old school file that has not been lockered. Must get user's passphrase.
+            qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: No passphrase, but there is an existing wallet.";
+            return false;
+        } else {
+            qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: New setup.";
+            setPassphrase("ACCOUNT"); // Going forward, consider this an account-based client.
+        }
     }
     if (_publicKeys.count() > 0) {
         // we _must_ be authenticated if the publicKeys are there
         DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
+        qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: wallet was ready";
         return true;
     }
 
@@ -530,11 +577,15 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
             // be sure to add the public key so we don't do this over and over
             _publicKeys.push_back(publicKey.toBase64());
-            DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
+
+            if (*_passphrase != "ACCOUNT") {
+                changePassphrase("ACCOUNT"); // Rewrites with salt and constant, and will be lockered that way.
+            }
+            qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: wallet now ready";
             return true;
         }
     }
-
+    qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: wallet not ready";
     return false;
 }
 
@@ -545,6 +596,7 @@ bool Wallet::generateKeyPair() {
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateECKeypair();
     if (!keyPair.first) {
+        qCWarning(commerce) << "Empty keypair";
         return false;
     }
 
@@ -562,11 +614,10 @@ bool Wallet::generateKeyPair() {
     // 2. It is maximally private, and we can step back from that later if desired.
     // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
     auto ledger = DependencyManager::get<Ledger>();
-    return ledger->receiveAt(key, key);
+    return ledger->receiveAt(key, key, getWallet());
 }
 
 QStringList Wallet::listPublicKeys() {
-    qCInfo(commerce) << "Enumerating public keys.";
     return _publicKeys;
 }
 
@@ -607,11 +658,27 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
 }
 
 void Wallet::updateImageProvider() {
-    // inform the image provider.  Note it doesn't matter which one you inform, as the
-    // images are statics
-    auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-    auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-    imageProvider->setSecurityImage(_securityImage);
+    SecurityImageProvider* securityImageProvider;
+
+    // inform offscreenUI security image provider
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    if (!offscreenUI) {
+        return;
+    }
+    QQmlEngine* engine = offscreenUI->getSurfaceContext()->engine();
+    securityImageProvider = reinterpret_cast<SecurityImageProvider*>(engine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
+    securityImageProvider->setSecurityImage(_securityImage);
+
+    // inform tablet security image provider
+    TabletProxy* tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+    if (tablet) {
+        OffscreenQmlSurface* tabletSurface = tablet->getTabletSurface();
+        if (tabletSurface) {
+            QQmlEngine* tabletEngine = tabletSurface->getSurfaceContext()->engine();
+            securityImageProvider = reinterpret_cast<SecurityImageProvider*>(tabletEngine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
+            securityImageProvider->setSecurityImage(_securityImage);
+        }
+    }
 }
 
 void Wallet::chooseSecurityImage(const QString& filename) {
@@ -620,7 +687,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
         delete _securityImage;
     }
     QString path = PathUtils::resourcesPath();
-    path.append("/qml/hifi/commerce/wallet/");
+    path.append("/qml/hifi/dialogs/security/");
     path.append(filename);
 
     // now create a new security image pixmap
@@ -637,11 +704,13 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     // there _is_ a keyfile, we need to update it (similar to changing the
     // passphrase, we need to do so into a temp file and move it).
     if (!QFile(keyFilePath()).exists()) {
+        qCDebug(commerce) << "initial security pic set for empty wallet";
         emit securityImageResult(true);
         return;
     }
 
     bool success = writeWallet();
+    qCDebug(commerce) << "updated security pic" << success;
     emit securityImageResult(success);
 }
 
@@ -651,6 +720,7 @@ bool Wallet::getSecurityImage() {
 
     // if already decrypted, don't do it again
     if (_securityImage) {
+        updateImageProvider();
         emit securityImageResult(true);
         return true;
     }
@@ -685,6 +755,11 @@ QString Wallet::getKeyFilePath() {
 
 bool Wallet::writeWallet(const QString& newPassphrase) {
     EC_KEY* keys = readKeys(keyFilePath().toStdString().c_str());
+    auto ledger = DependencyManager::get<Ledger>();
+    // Remove any existing locker, because it will be out of date.
+    if (!_publicKeys.isEmpty() && !ledger->receiveAt(_publicKeys.first(), _publicKeys.first(), QByteArray())) {
+        return false;  // FIXME: receiveAt could fail asynchronously.
+    }
     if (keys) {
         // we read successfully, so now write to a new temp file
         QString tempFileName = QString("%1.%2").arg(keyFilePath(), QString("temp"));
@@ -692,6 +767,7 @@ bool Wallet::writeWallet(const QString& newPassphrase) {
         if (!newPassphrase.isEmpty()) {
             setPassphrase(newPassphrase);
         }
+
         if (writeKeys(tempFileName.toStdString().c_str(), keys)) {
             if (writeSecurityImage(_securityImage, tempFileName)) {
                 // ok, now move the temp file to the correct spot
@@ -699,6 +775,11 @@ bool Wallet::writeWallet(const QString& newPassphrase) {
                 QFile(tempFileName).rename(QString(keyFilePath()));
                 qCDebug(commerce) << "wallet written successfully";
                 emit keyFilePathIfExistsResult(getKeyFilePath());
+                if (!walletIsAuthenticatedWithPassphrase() || !ledger->receiveAt()) {
+                    // FIXME: Should we fail the whole operation?
+                    // Tricky, because we'll need the the key and file from the TEMP location...
+                    qCWarning(commerce) << "Failed to update locker";
+                }
                 return true;
             } else {
                 qCDebug(commerce) << "couldn't write security image to temp wallet";

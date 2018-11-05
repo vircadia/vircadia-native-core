@@ -370,7 +370,36 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                 case gpu::COMPRESSED_BC7_SRGBA:
                     result = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
                     break;
-
+                case gpu::COMPRESSED_ETC2_RGB:
+                    result = GL_COMPRESSED_RGB8_ETC2;
+                    break;
+                case gpu::COMPRESSED_ETC2_SRGB:
+                    result = GL_COMPRESSED_SRGB8_ETC2;
+                    break;
+                case gpu::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA:
+                    result = GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+                    break;
+                case gpu::COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA:
+                    result = GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+                    break;
+                case gpu::COMPRESSED_ETC2_RGBA:
+                    result = GL_COMPRESSED_RGBA8_ETC2_EAC;
+                    break;
+                case gpu::COMPRESSED_ETC2_SRGBA:
+                    result = GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC;
+                    break;
+                case gpu::COMPRESSED_EAC_RED:
+                    result = GL_COMPRESSED_R11_EAC;
+                    break;
+                case gpu::COMPRESSED_EAC_RED_SIGNED:
+                    result = GL_COMPRESSED_SIGNED_R11_EAC;
+                    break;
+                case gpu::COMPRESSED_EAC_XY:
+                    result = GL_COMPRESSED_RG11_EAC;
+                    break;
+                case gpu::COMPRESSED_EAC_XY_SIGNED:
+                    result = GL_COMPRESSED_SIGNED_RG11_EAC;
+                    break;
                 default:
                     qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
@@ -530,6 +559,36 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 break;
             case gpu::COMPRESSED_BC7_SRGBA:
                 texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
+                break;
+            case gpu::COMPRESSED_ETC2_RGB:
+                texel.internalFormat = GL_COMPRESSED_RGB8_ETC2;
+                break;
+            case gpu::COMPRESSED_ETC2_SRGB:
+                texel.internalFormat = GL_COMPRESSED_SRGB8_ETC2;
+                break;
+            case gpu::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA:
+                texel.internalFormat = GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+                break;
+            case gpu::COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA:
+                texel.internalFormat = GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+                break;
+            case gpu::COMPRESSED_ETC2_RGBA:
+                texel.internalFormat = GL_COMPRESSED_RGBA8_ETC2_EAC;
+                break;
+            case gpu::COMPRESSED_ETC2_SRGBA:
+                texel.internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC;
+                break;
+            case gpu::COMPRESSED_EAC_RED:
+                texel.internalFormat = GL_COMPRESSED_R11_EAC;
+                break;
+            case gpu::COMPRESSED_EAC_RED_SIGNED:
+                texel.internalFormat = GL_COMPRESSED_SIGNED_R11_EAC;
+                break;
+            case gpu::COMPRESSED_EAC_XY:
+                texel.internalFormat = GL_COMPRESSED_RG11_EAC;
+                break;
+            case gpu::COMPRESSED_EAC_XY_SIGNED:
+                texel.internalFormat = GL_COMPRESSED_SIGNED_RG11_EAC;
                 break;
             default:
                 qCWarning(gpugllogging) << "Unknown combination of texel format";
@@ -895,7 +954,36 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::COMPRESSED_BC7_SRGBA:
                 texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
                 break;
-
+            case gpu::COMPRESSED_ETC2_RGB:
+                texel.internalFormat = GL_COMPRESSED_RGB8_ETC2;
+                break;
+            case gpu::COMPRESSED_ETC2_SRGB:
+                texel.internalFormat = GL_COMPRESSED_SRGB8_ETC2;
+                break;
+            case gpu::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA:
+                texel.internalFormat = GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+                break;
+            case gpu::COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA:
+                texel.internalFormat = GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+                break;
+            case gpu::COMPRESSED_ETC2_RGBA:
+                texel.internalFormat = GL_COMPRESSED_RGBA8_ETC2_EAC;
+                break;
+            case gpu::COMPRESSED_ETC2_SRGBA:
+                texel.internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC;
+                break;
+            case gpu::COMPRESSED_EAC_RED:
+                texel.internalFormat = GL_COMPRESSED_R11_EAC;
+                break;
+            case gpu::COMPRESSED_EAC_RED_SIGNED:
+                texel.internalFormat = GL_COMPRESSED_SIGNED_R11_EAC;
+                break;
+            case gpu::COMPRESSED_EAC_XY:
+                texel.internalFormat = GL_COMPRESSED_RG11_EAC;
+                break;
+            case gpu::COMPRESSED_EAC_XY_SIGNED:
+                texel.internalFormat = GL_COMPRESSED_SIGNED_RG11_EAC;
+                break;
             default:
                 qCWarning(gpugllogging) << "Unknown combination of texel format";
             }

@@ -471,6 +471,7 @@ private:
     QHash<int, GridBuffer> _registeredGridBuffers;
 
     static gpu::ShaderPointer _simpleShader;
+    static gpu::ShaderPointer _transparentShader;
     static gpu::ShaderPointer _unlitShader;
     static gpu::ShaderPointer _simpleFadeShader;
     static gpu::ShaderPointer _unlitFadeShader;
@@ -478,8 +479,6 @@ private:
     static render::ShapePipelinePointer _simpleTransparentPipeline;
     static render::ShapePipelinePointer _simpleOpaqueFadePipeline;
     static render::ShapePipelinePointer _simpleTransparentFadePipeline;
-    static render::ShapePipelinePointer _simpleOpaqueOverlayPipeline;
-    static render::ShapePipelinePointer _simpleTransparentOverlayPipeline;
     static render::ShapePipelinePointer _simpleWirePipeline;
     gpu::PipelinePointer _glowLinePipeline;
 

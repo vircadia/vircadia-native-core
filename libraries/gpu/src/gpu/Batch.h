@@ -24,14 +24,11 @@
 #include "Stream.h"
 #include "Texture.h"
 #include "Transform.h"
+#include "ShaderConstants.h"
 
 class QDebug;
 #define BATCH_PREALLOCATE_MIN 128
 namespace gpu {
-
-enum ReservedSlot {
-    TRANSFORM_CAMERA_SLOT = 15,
-};
 
 // The named batch data provides a mechanism for accumulating data into buffers over the course 
 // of many independent calls.  For instance, two objects in the scene might both want to render 
@@ -51,6 +48,7 @@ public:
         using Index = uint16_t;
 
         DrawCallInfo(Index idx) : index(idx) {}
+        DrawCallInfo(Index idx, Index user) : index(idx), unused(user) {}
 
         Index index { 0 };
         uint16_t unused { 0 }; // Reserved space for later
@@ -92,9 +90,13 @@ public:
     void captureNamedDrawCallInfo(std::string name);
 
     Batch(const char* name = nullptr);
-    Batch(const Batch& batch);
+    // Disallow copy construction and assignement of batches
+    Batch(const Batch& batch) = delete;
+    Batch& operator=(const Batch& batch) = delete;
     ~Batch();
 
+    void setName(const char* name);
+    const char* getName() const { return _name; }
     void clear();
 
     // Batches may need to override the context level stereo settings
@@ -110,6 +112,14 @@ public:
     void enableSkybox(bool enable = true);
     bool isSkyboxEnabled() const;
 
+    // Drawcall Uniform value
+    // One 16bit word uniform value is available during the drawcall
+    // its value must be set before each drawcall
+    void setDrawcallUniform(uint16 uniform);
+    // It is reset to the reset value between each drawcalls
+    // The reset value is 0 by default and can be changed as a batch state with this call
+    void setDrawcallUniformReset(uint16 resetUniform);
+
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
     void drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex = 0);
@@ -119,7 +129,7 @@ public:
     void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
 
     void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
-    BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
+    const BufferPointer& getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
 
     // Input Stage
     // InputFormat
@@ -167,6 +177,10 @@ public:
     void resetViewTransform() { setViewTransform(Transform(), false); }
     void setViewTransform(const Transform& view, bool camera = true);
     void setProjectionTransform(const Mat4& proj);
+    void setProjectionJitter(float jx = 0.0f, float jy = 0.0f);
+    // Very simple 1 level stack management of jitter.
+    void pushProjectionJitter(float jx = 0.0f, float jy = 0.0f);
+    void popProjectionJitter();
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
     void setDepthRangeTransform(float nearDepth, float farDepth);
@@ -187,6 +201,7 @@ public:
 
     void setResourceTexture(uint32 slot, const TexturePointer& texture);
     void setResourceTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
+    void setResourceTextureTable(const TextureTablePointer& table, uint32 slot = 0);
     void setResourceFramebufferSwapChainTexture(uint32 slot, const FramebufferSwapChainPointer& framebuffer, unsigned int swpaChainIndex, unsigned int renderBufferSlot = 0U); // not a command, just a shortcut from a TextureView
 
     // Ouput Stage
@@ -211,6 +226,8 @@ public:
 
     // Generate the mips for a texture
     void generateTextureMips(const TexturePointer& texture);
+    // Generate the mips for a texture using the current pipeline
+    void generateTextureMipsWithPipeline(const TexturePointer& destTexture, int numMips = -1);
 
     // Query Section
     void beginQuery(const QueryPointer& query);
@@ -292,6 +309,7 @@ public:
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
+        COMMAND_setProjectionJitter,
         COMMAND_setViewportTransform,
         COMMAND_setDepthRangeTransform,
 
@@ -302,6 +320,7 @@ public:
         COMMAND_setUniformBuffer,
         COMMAND_setResourceBuffer,
         COMMAND_setResourceTexture,
+        COMMAND_setResourceTextureTable,
         COMMAND_setResourceFramebufferSwapChainTexture,
 
         COMMAND_setFramebuffer,
@@ -309,6 +328,7 @@ public:
         COMMAND_clearFramebuffer,
         COMMAND_blit,
         COMMAND_generateTextureMips,
+        COMMAND_generateTextureMipsWithPipeline,
 
         COMMAND_advance,
 
@@ -409,10 +429,8 @@ public:
                 return offset;
             }
 
-            Data get(uint32 offset) const {
-                if (offset >= _items.size()) {
-                    return Data();
-                }
+            const Data& get(uint32 offset) const {
+                assert((offset < _items.size()));
                 return (_items.data() + offset)->_data;
             }
 
@@ -424,6 +442,7 @@ public:
 
     typedef Cache<BufferPointer>::Vector BufferCaches;
     typedef Cache<TexturePointer>::Vector TextureCaches;
+    typedef Cache<TextureTablePointer>::Vector TextureTableCaches;
     typedef Cache<Stream::FormatPointer>::Vector StreamFormatCaches;
     typedef Cache<Transform>::Vector TransformCaches;
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
@@ -479,6 +498,7 @@ public:
 
     BufferCaches _buffers;
     TextureCaches _textures;
+    TextureTableCaches _textureTables;
     StreamFormatCaches _streamFormats;
     TransformCaches _transforms;
     PipelineCaches _pipelines;
@@ -491,14 +511,15 @@ public:
 
     NamedBatchDataMap _namedData;
 
+    uint16_t _drawcallUniform{ 0 };
+    uint16_t _drawcallUniformReset{ 0 };
+
+    glm::vec2 _projectionJitter{ 0.0f, 0.0f };
     bool _enableStereo{ true };
     bool _enableSkybox { false };
 
 protected:
-
-#ifdef DEBUG
-    std::string _name;
-#endif
+    const char* _name;
 
     friend class Context;
     friend class Frame;

@@ -44,8 +44,7 @@ void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPro
 const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
 
 /**jsdoc
- * The result of a {@link PickRay} search using {@link Overlays.findRayIntersection|findRayIntersection} or 
- * {@link Overlays.findRayIntersectionVector|findRayIntersectionVector}.
+ * The result of a {@link PickRay} search using {@link Overlays.findRayIntersection|findRayIntersection}.
  * @typedef {object} Overlays.RayToOverlayIntersectionResult
  * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected with a 3D overlay, otherwise
  *     <code>false</code>.
@@ -53,29 +52,42 @@ const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
  * @property {number} distance - The distance from the {@link PickRay} origin to the intersection point.
  * @property {Vec3} surfaceNormal - The normal of the overlay surface at the intersection point.
  * @property {Vec3} intersection - The position of the intersection point.
- * @property {Object} extraInfo Additional intersection details, if available.
+ * @property {object} extraInfo Additional intersection details, if available.
  */
 class RayToOverlayIntersectionResult {
 public:
     bool intersects { false };
     OverlayID overlayID { UNKNOWN_OVERLAY_ID };
-    float distance { 0 };
-    BoxFace face;
+    float distance { 0.0f };
+    BoxFace face { UNKNOWN_FACE };
+    glm::vec3 surfaceNormal;
+    glm::vec3 intersection;
+    QVariantMap extraInfo;
+};
+Q_DECLARE_METATYPE(RayToOverlayIntersectionResult);
+QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value);
+void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value);
+
+class ParabolaToOverlayIntersectionResult {
+public:
+    bool intersects { false };
+    OverlayID overlayID { UNKNOWN_OVERLAY_ID };
+    float distance { 0.0f };
+    float parabolicDistance { 0.0f };
+    BoxFace face { UNKNOWN_FACE };
     glm::vec3 surfaceNormal;
     glm::vec3 intersection;
     QVariantMap extraInfo;
 };
 
-
-Q_DECLARE_METATYPE(RayToOverlayIntersectionResult);
-
-QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value);
-void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value);
-
 /**jsdoc
  * The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to
  * yourself and that aren't persisted to the domain. They are used for UI.
  * @namespace Overlays
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Overlays.OverlayType|web3d} overlay that has keyboard focus.
  *     If no overlay has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
@@ -102,6 +114,11 @@ public:
     OverlayID addOverlay(const Overlay::Pointer& overlay);
 
     RayToOverlayIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
+        const QVector<OverlayID>& overlaysToInclude,
+        const QVector<OverlayID>& overlaysToDiscard,
+        bool visibleOnly = false, bool collidableOnly = false);
+
+    ParabolaToOverlayIntersectionResult findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
         const QVector<OverlayID>& overlaysToInclude,
         const QVector<OverlayID>& overlaysToDiscard,
         bool visibleOnly = false, bool collidableOnly = false);
@@ -236,6 +253,50 @@ public slots:
     QString getOverlayType(OverlayID overlayId);
 
     /**jsdoc
+     * Get the overlay script object. In particular, this is useful for accessing the event bridge for a <code>web3d</code> 
+     * overlay.
+     * @function Overlays.getOverlayObject
+     * @param {Uuid} overlayID - The ID of the overlay to get the script object of.
+     * @returns {object} The script object for the overlay if found.
+     * @example <caption>Receive "hello" messages from a <code>web3d</code> overlay.</caption>
+     * // HTML file: name "web3d.html".
+     * <!DOCTYPE html>
+     * <html>
+     * <head>
+     *     <title>HELLO</title>
+     * </head>
+     * <body>
+     *     <h1>HELLO</h1></h1>
+     *     <script>
+     *         setInterval(function () {
+     *             EventBridge.emitWebEvent("hello");
+     *         }, 2000);
+     *     </script>
+     * </body>
+     * </html>
+     *
+     * // Script file.
+     * var web3dOverlay = Overlays.addOverlay("web3d", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.5, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     url: Script.resolvePath("web3d.html"),
+     *     alpha: 1.0
+     * });
+     *
+     * function onWebEventReceived(event) {
+     *     print("onWebEventReceived() : " + JSON.stringify(event));
+     * }
+     *
+     * overlayObject = Overlays.getOverlayObject(web3dOverlay);
+     * overlayObject.webEventReceived.connect(onWebEventReceived);
+     *
+     * Script.scriptEnding.connect(function () {
+     *     Overlays.deleteOverlay(web3dOverlay);
+     * });
+     */
+    QObject* getOverlayObject(OverlayID id);
+
+    /**jsdoc
      * Get the ID of the 2D overlay at a particular point on the screen or HUD.
      * @function Overlays.getOverlayAtPoint
      * @param {Vec2} point - The point to check for an overlay.
@@ -321,7 +382,11 @@ public slots:
     OverlayPropertyResult getOverlaysProperties(const QVariant& overlaysProperties);
 
     /**jsdoc
-     * Find the closest 3D overlay intersected by a {@link PickRay}.
+     *  Find the closest 3D overlay intersected by a {@link PickRay}. Overlays with their <code>drawInFront</code> property set  
+     * to <code>true</code> have priority over overlays that don't, except that tablet overlays have priority over any  
+     * <code>drawInFront</code> overlays behind them. I.e., if a <code>drawInFront</code> overlay is behind one that isn't  
+     * <code>drawInFront</code>, the <code>drawInFront</code> overlay is returned, but if a tablet overlay is in front of a  
+     * <code>drawInFront</code> overlay, the tablet overlay is returned.
      * @function Overlays.findRayIntersection
      * @param {PickRay} pickRay - The PickRay to use for finding overlays.
      * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
@@ -434,7 +499,7 @@ public slots:
 
     /**jsdoc
      * Check if there is an overlay of a given ID.
-     * @function Overlays.isAddedOverly
+     * @function Overlays.isAddedOverlay
      * @param {Uuid} overlayID - The ID to check.
      * @returns {boolean} <code>true</code> if an overlay with the given ID exists, <code>false</code> otherwise.
      */
@@ -680,14 +745,13 @@ private:
     unsigned int _stackOrder { 1 };
 
     bool _enabled = true;
+    std::atomic<bool> _shuttingDown{ false };
 
     PointerEvent calculateOverlayPointerEvent(OverlayID overlayID, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);
 
     OverlayID _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
     OverlayID _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
-
-    RayToOverlayIntersectionResult findRayIntersectionForMouseEvent(PickRay ray);
 
 private slots:
     void mousePressPointerEvent(const OverlayID& overlayID, const PointerEvent& event);

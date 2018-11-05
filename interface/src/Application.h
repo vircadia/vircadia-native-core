@@ -23,7 +23,6 @@
 #include <QtGui/QImage>
 
 #include <QtWidgets/QApplication>
-#include <QtWidgets/QUndoStack>
 
 #include <ThreadHelpers.h>
 #include <AbstractScriptingServicesInterface.h>
@@ -47,12 +46,12 @@
 #include <AbstractUriHandler.h>
 #include <shared/RateCounter.h>
 #include <ThreadSafeValueCache.h>
+#include <shared/ConicalViewFrustum.h>
 #include <shared/FileLogger.h>
 
 #include <RunningMarker.h>
 
 #include "avatar/MyAvatar.h"
-#include "BandwidthRecorder.h"
 #include "FancyCamera.h"
 #include "ConnectionMonitor.h"
 #include "CursorManager.h"
@@ -69,7 +68,8 @@
 #include "ui/OctreeStatsDialog.h"
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
-#include "UndoStackScriptingInterface.h"
+
+#include "workload/GameWorkload.h"
 
 #include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
@@ -78,7 +78,6 @@
 
 #include "Sound.h"
 
-class OffscreenGLCanvas;
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
@@ -110,7 +109,8 @@ class Application : public QApplication,
                     public AbstractViewStateInterface,
                     public AbstractScriptingServicesInterface,
                     public AbstractUriHandler,
-                    public PluginContainer {
+                    public PluginContainer
+{
     Q_OBJECT
 
     // TODO? Get rid of those
@@ -136,7 +136,8 @@ public:
     Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runningMarkerExisted);
     ~Application();
 
-    void postLambdaEvent(std::function<void()> f) override;
+    void postLambdaEvent(const std::function<void()>& f) override;
+    void sendLambdaEvent(const std::function<void()>& f) override;
 
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
@@ -145,7 +146,11 @@ public:
     Q_INVOKABLE QString getUserAgent();
 
     void initializeGL();
+    void initializeDisplayPlugins();
+    void initializeRenderEngine();
     void initializeUi();
+
+    void updateSecondaryCameraViewFrustum();
 
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void paintGL();
@@ -176,9 +181,13 @@ public:
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
+
+    bool isMissingSequenceNumbers() { return _isMissingSequenceNumbers; }
+
+    const ConicalViewFrustums& getConicalViews() const override { return _conicalViews; }
+
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
-    QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() const { return _window; }
     EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
@@ -196,6 +205,7 @@ public:
 
     size_t getRenderFrameCount() const { return _renderFrameCount; }
     float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    float getNumCollisionObjects() const;
     float getTargetRenderFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
@@ -212,6 +222,7 @@ public:
     void setHmdTabletBecomesToolbarSetting(bool value);
     bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
     void setPreferStylusOverLaser(bool value);
+
     // FIXME: Remove setting completely or make available through JavaScript API?
     //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
     bool getPreferAvatarFingerOverStylus() { return false; }
@@ -219,6 +230,8 @@ public:
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
+
+     Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
@@ -239,8 +252,9 @@ public:
 
     qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
 
-    bool isAboutToQuit() const override { return _aboutToQuit; }
+    bool isAboutToQuit() const { return _aboutToQuit; }
     bool isPhysicsEnabled() const { return _physicsEnabled; }
+    PhysicsEnginePointer getPhysicsEngine() { return _physicsEngine; }
 
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
     // rendering of several elements depend on that
@@ -263,20 +277,27 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
-    virtual void pushPostUpdateLambda(void* key, std::function<void()> func) override;
+    const GameWorkload& getGameWorkload() const { return _gameWorkload; }
+
+    virtual void pushPostUpdateLambda(void* key, const std::function<void()>& func) override;
 
     void updateMyAvatarLookAtPosition();
 
     float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
-    void takeSecondaryCameraSnapshot(const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const bool& notify, const QString& filename = QString());
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition,
+                                        const bool& cubemapOutputFormat,
+                                        const bool& notify,
+                                        const QString& filename = QString());
 
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
     QUuid getTabletFrameID() const; // may be an entity or an overlay
+    QVector<QUuid> getTabletIDs() const; // In order of most important IDs first.
 
     void setAvatarOverrideUrl(const QUrl& url, bool save);
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
@@ -285,8 +306,23 @@ public:
     void saveNextPhysicsStats(QString filename);
 
     bool isServerlessMode() const;
+    bool isInterstitialMode() const { return _interstitialMode; }
 
     void replaceDomainContent(const QString& url);
+
+    void loadAvatarScripts(const QVector<QString>& urls);
+    void unloadAvatarScripts();
+
+    Q_INVOKABLE void copyToClipboard(const QString& text);
+
+    int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
+    void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
+
+#if defined(Q_OS_ANDROID)
+    void beforeEnterBackground();
+    void enterBackground();
+    void enterForeground();
+#endif
 
 signals:
     void svoImportRequested(const QString& url);
@@ -298,13 +334,18 @@ signals:
 
     void uploadRequest(QString path);
 
+    void interstitialModeChanged(bool isInInterstitialMode);
+
+    void loginDialogPoppedUp();
+
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
-    bool importEntities(const QString& url);
+    bool importEntities(const QString& url, const bool isObservable = true, const qint64 callerId = -1);
     void updateThreadPoolCount() const;
     void updateSystemTabletMode();
+    void goToErrorDomainURL(QUrl errorDomainURL);
 
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
@@ -393,16 +434,18 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
     void setIsServerlessMode(bool serverlessDomain);
-    void loadServerlessDomain(QUrl domainURL);
+    void loadServerlessDomain(QUrl domainURL, bool errorDomain = false);
+    void setIsInterstitialMode(bool interstitialMode);
 
-    Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
+    void updateVerboseLogging();
+
+    void changeViewAsNeeded(float boomLength);
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
     void clearDomainOctreeDetails();
-    void clearDomainAvatars();
     void onAboutToQuit();
     void onPresent(quint32 frameCount);
 
@@ -437,6 +480,7 @@ private slots:
     static void packetSent(quint64 length);
     static void addingEntityWithCertificate(const QString& certificateID, const QString& placeName);
     void updateDisplayMode();
+    void setDisplayPlugin(DisplayPluginPointer newPlugin);
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
 
     void addAssetToWorldCheckModelSize();
@@ -448,8 +492,15 @@ private slots:
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
 
+    void setShowBulletWireframe(bool value);
+    void setShowBulletAABBs(bool value);
+    void setShowBulletContactPoints(bool value);
+    void setShowBulletConstraints(bool value);
+    void setShowBulletConstraintLimits(bool value);
+
+    void setShowTrackedObjects(bool value);
+
 private:
-    static void initDisplay();
     void init();
     bool handleKeyEventForFocusedEntityOrOverlay(QEvent* event);
     bool handleFileOpenEvent(QFileOpenEvent* event);
@@ -465,9 +516,9 @@ private:
     void updateDialogs(float deltaTime) const;
 
     void queryOctree(NodeType_t serverType, PacketType packetType);
+    void queryAvatars();
 
     int sendNackPackets();
-    void sendAvatarViewFrustum();
 
     std::shared_ptr<MyAvatar> getMyAvatar() const;
 
@@ -482,7 +533,7 @@ private:
     bool importFromZIP(const QString& filePath);
     bool importImage(const QString& urlString);
 
-    bool nearbyEntitiesAreReadyForPhysics();
+    bool gpuTextureMemSizeStable();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
     void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);
 
@@ -514,18 +565,16 @@ private:
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
 
+    bool _aboutToQuit { false };
+
     bool _previousSessionCrashed;
 
-    OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     QMetaObject::Connection _displayPluginPresentConnection;
     mutable std::mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
-
-    QUndoStack _undoStack;
-    UndoStackScriptingInterface _undoStackScriptingInterface;
 
     uint32_t _renderFrameCount { 0 };
 
@@ -540,6 +589,8 @@ private:
     QElapsedTimer _lastTimeUpdated;
     QElapsedTimer _lastTimeRendered;
 
+    int _minimumGPUTextureMemSizeStabilityCount { 30 };
+
     ShapeManager _shapeManager;
     PhysicalEntitySimulationPointer _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
@@ -548,9 +599,14 @@ private:
 
     mutable QMutex _viewMutex { QMutex::Recursive };
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
-    quint64 _lastQueriedTime;
+
+    ConicalViewFrustums _conicalViews;
+    ConicalViewFrustums _lastQueriedViews; // last views used to query servers
+
+    using SteadyClock = std::chrono::steady_clock;
+    using TimePoint = SteadyClock::time_point;
+    TimePoint _queryExpiry;
 
     OctreeQuery _octreeQuery { true }; // NodeData derived class for querying octee cells from octree servers
 
@@ -575,12 +631,13 @@ private:
     Setting::Handle<QString> _preferredCursor;
 
     float _scaleMirror;
-    float _rotateMirror;
+    float _mirrorYawOffset;
     float _raiseMirror;
 
-    QSet<int> _keysPressed;
+    QHash<int, QKeyEvent> _keysPressed;
 
     bool _enableProcessOctreeThread;
+    bool _interstitialMode { false };
 
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;
@@ -600,8 +657,6 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
-    bool _aboutToQuit;
-
     bool _notifiedPacketVersionMismatchThisDomain;
 
     ConditionalGuard _settingsGuard;
@@ -618,8 +673,10 @@ private:
     quint64 _lastFaceTrackerUpdate;
 
     render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
-    render::EnginePointer _renderEngine{ new render::Engine() };
+    render::EnginePointer _renderEngine{ new render::RenderEngine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
+
+    GameWorkload _gameWorkload;
 
     mutable QMutex _renderArgsMutex{ QMutex::Recursive };
     struct AppRenderArgs {
@@ -638,6 +695,7 @@ private:
 
     using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
     void editRenderArgs(RenderArgsEditor editor);
+    void updateRenderArgs(float deltaTime);
 
 
     Overlays _overlays;
@@ -661,6 +719,8 @@ private:
 
     bool _fakedMouseEvent { false };
 
+    bool _isMissingSequenceNumbers { false };
+
     void checkChangeCursor();
     mutable QMutex _changeCursorLock { QMutex::Recursive };
     Qt::CursorShape _desiredCursor{ Qt::BlankCursor };
@@ -671,8 +731,10 @@ private:
 
     std::atomic<uint32_t> _fullSceneReceivedCounter { 0 }; // how many times have we received a full-scene octree stats packet
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
-    uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
-    uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
+
+    qint64 _gpuTextureMemSizeStabilityCount { 0 };
+    qint64 _gpuTextureMemSizeAtLastCheck { 0 };
+
     quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };
@@ -717,5 +779,10 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
+
+    bool quitWhenFinished { false };
+
+    bool _showTrackedObjects { false };
+    bool _prevShowTrackedObjects { false };
 };
 #endif // hifi_Application_h

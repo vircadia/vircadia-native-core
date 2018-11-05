@@ -9,21 +9,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityServer.h"
+
 #include <QtCore/QEventLoop>
 #include <QTimer>
+#include <QJsonArray>
+#include <QJsonDocument>
+
 #include <EntityTree.h>
 #include <SimpleEntitySimulation.h>
 #include <ResourceCache.h>
 #include <ScriptCache.h>
 #include <EntityEditFilters.h>
 #include <NetworkingConstants.h>
-#include <QJsonArray>
-#include <QJsonDocument>
 #include <AddressManager.h>
 
+#include "../AssignmentDynamicFactory.h"
 #include "AssignmentParentFinder.h"
 #include "EntityNodeData.h"
-#include "EntityServer.h"
 #include "EntityServerConsts.h"
 #include "EntityTreeSendThread.h"
 
@@ -40,8 +43,12 @@ EntityServer::EntityServer(ReceivedMessage& message) :
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<ScriptCache>();
 
+    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
+    DependencyManager::set<AssignmentDynamicFactory>();
+
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::EntityAdd,
+        PacketType::EntityClone,
         PacketType::EntityEdit,
         PacketType::EntityErase,
         PacketType::EntityPhysics,
@@ -67,6 +74,8 @@ EntityServer::~EntityServer() {
 
 void EntityServer::aboutToFinish() {
     DependencyManager::get<ResourceManager>()->cleanup();
+
+    DependencyManager::destroy<AssignmentDynamicFactory>();
 
     OctreeServer::aboutToFinish();
 }
@@ -363,7 +372,9 @@ void EntityServer::nodeAdded(SharedNodePointer node) {
 
 void EntityServer::nodeKilled(SharedNodePointer node) {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-    tree->deleteDescendantsOfAvatar(node->getUUID());
+    tree->withWriteLock([&] {
+        tree->deleteDescendantsOfAvatar(node->getUUID());
+    });
     tree->forgetAvatarID(node->getUUID());
     OctreeServer::nodeKilled(node);
 }
@@ -378,10 +389,15 @@ void EntityServer::trackSend(const QUuid& dataID, quint64 dataLastEdited, const 
 }
 
 void EntityServer::trackViewerGone(const QUuid& sessionID) {
-    QWriteLocker locker(&_viewerSendingStatsLock);
-    _viewerSendingStats.remove(sessionID);
+    {
+        QWriteLocker locker(&_viewerSendingStatsLock);
+        _viewerSendingStats.remove(sessionID);
+    }
+
     if (_entitySimulation) {
-        _entitySimulation->clearOwnership(sessionID);
+        _tree->withReadLock([&] {
+            _entitySimulation->clearOwnership(sessionID);
+        });
     }
 }
 
@@ -451,8 +467,6 @@ void EntityServer::domainSettingsRequestFailed() {
 void EntityServer::startDynamicDomainVerification() {
     qCDebug(entities) << "Starting Dynamic Domain Verification...";
 
-    QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainID().remove(QRegExp("\\{|\\}"));
-
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     QHash<QString, EntityItemID> localMap(tree->getEntityCertificateIDMap());
 
@@ -460,17 +474,20 @@ void EntityServer::startDynamicDomainVerification() {
     qCDebug(entities) << localMap.size() << "entities in _entityCertificateIDMap";
     while (i.hasNext()) {
         i.next();
+        const auto& certificateID = i.key();
+        const auto& entityID = i.value();
 
-        EntityItemPointer entity = tree->findEntityByEntityItemID(i.value());
+        EntityItemPointer entity = tree->findEntityByEntityItemID(entityID);
 
         if (entity) {
             if (!entity->getProperties().verifyStaticCertificateProperties()) {
-                qCDebug(entities) << "During Dynamic Domain Verification, a certified entity with ID" << i.value() << "failed"
+                qCDebug(entities) << "During Dynamic Domain Verification, a certified entity with ID" << entityID << "failed"
                     << "static certificate verification.";
                 // Delete the entity if it doesn't pass static certificate verification
-                tree->deleteEntity(i.value(), true);
+                tree->withWriteLock([&] {
+                    tree->deleteEntity(entityID, true);
+                });
             } else {
-
                 QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
                 QNetworkRequest networkRequest;
                 networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
@@ -478,35 +495,48 @@ void EntityServer::startDynamicDomainVerification() {
                 QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
                 requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
                 QJsonObject request;
-                request["certificate_id"] = i.key();
+                request["certificate_id"] = certificateID;
                 networkRequest.setUrl(requestURL);
 
-                QNetworkReply* networkReply = NULL;
-                networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+                QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
 
-                connect(networkReply, &QNetworkReply::finished, [=]() {
+                connect(networkReply, &QNetworkReply::finished, this, [this, entityID, networkReply] {
+                    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+
                     QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
                     jsonObject = jsonObject["data"].toObject();
 
                     if (networkReply->error() == QNetworkReply::NoError) {
+                        QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainID().remove(QRegExp("\\{|\\}"));
                         if (jsonObject["domain_id"].toString() != thisDomainID) {
-                            qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
-                                << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << i.value();
-                            tree->deleteEntity(i.value(), true);
+                            EntityItemPointer entity = tree->findEntityByEntityItemID(entityID);
+                            if (!entity) {
+                                qCDebug(entities) << "Entity undergoing dynamic domain verification is no longer available:" << entityID;
+                                networkReply->deleteLater();
+                                return;
+                            }
+                            if (entity->getAge() > (_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS/MSECS_PER_SECOND)) {
+                                qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
+                                                << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << entityID;
+                                tree->withWriteLock([&] {
+                                    tree->deleteEntity(entityID, true);
+                                });
+                            } else {
+                                qCDebug(entities) << "Entity failed dynamic domain verification, but was created too recently to necessitate deletion:" << entityID;
+                            }
                         } else {
-                            qCDebug(entities) << "Entity passed dynamic domain verification:" << i.value();
+                            qCDebug(entities) << "Entity passed dynamic domain verification:" << entityID;
                         }
                     } else {
-                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << i.value()
+                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; NOT deleting entity" << entityID
                             << "More info:" << jsonObject;
-                        tree->deleteEntity(i.value(), true);
                     }
 
                     networkReply->deleteLater();
                 });
             }
         } else {
-            qCWarning(entities) << "During DDV, an entity with ID" << i.value() << "was NOT found in the Entity Tree!";
+            qCWarning(entities) << "During DDV, an entity with ID" << entityID << "was NOT found in the Entity Tree!";
         }
     }
 

@@ -226,7 +226,7 @@ Process.prototype = extend(Process.prototype, {
                 }
             });
         } else {
-            var signal = force ? 'SIGKILL' : null;
+            var signal = force ? 'SIGKILL' : 'SIGTERM';
             this.child.kill(signal);
         }
 
@@ -258,6 +258,26 @@ Process.prototype = extend(Process.prototype, {
             stderr: this.logStderr == 'ignore' ? null : this.logStderr
         };
         return logs;
+    },
+    isRunning: function (done) {
+        var _command = this.command;
+        if (os.type == 'Windows_NT') {
+            childProcess.exec('tasklist /FO CSV', function (err, stdout, stderr) {
+                var running = false;
+                stdout.split("\n").forEach(function (line) {
+                    var exeData = line.split(",");
+                    var executable = exeData[0].replace(/\"/g, "").toLowerCase();
+                    if (executable == _command) {
+                        running = true;
+                    }
+                });
+                done(running);
+            });
+        } else if (os.type == 'Darwin') {
+            childProcess.exec('ps cax | grep ' + _command, function (err, stdout, stderr) {
+                done(stdout.length > 0);
+            });
+        }
     },
 
     // Events

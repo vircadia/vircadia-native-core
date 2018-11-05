@@ -1,4 +1,4 @@
-//
+ //
 //  Bookmarks.h
 //  interface/src
 //
@@ -31,6 +31,8 @@ public:
     QString addressForBookmark(const QString& name) const;
 
 protected:
+    void deleteBookmark(const QString& bookmarkName);
+
     void addBookmarkToFile(const QString& bookmarkName, const QVariant& bookmark);
     virtual void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) = 0;
     void enableMenuItems(bool enabled);
@@ -38,9 +40,10 @@ protected:
     void insert(const QString& name, const QVariant& address);  // Overwrites any existing entry with same name.
     void sortActions(Menu* menubar, MenuWrapper* menu);
     int getMenuItemLocation(QList<QAction*> actions, const QString& name) const;
-    
+    void removeBookmarkFromMenu(Menu* menubar, const QString& name);
     bool contains(const QString& name) const;
-    
+    void remove(const QString& name);
+
     QVariantMap _bookmarks;  // { name: url, ... }
     QPointer<MenuWrapper> _bookmarksMenu;
     QPointer<QAction> _deleteBookmarksAction;
@@ -48,15 +51,18 @@ protected:
     bool _isMenuSorted;
 
 protected slots:
+    /**jsdoc
+     * @function AvatarBookmarks.deleteBookmark
+     */
+    /**jsdoc
+     * @function LocationBookmarks.deleteBookmark
+     */
     void deleteBookmark();
 
 private:
-    void remove(const QString& name);
     static bool sortOrder(QAction* a, QAction* b);
 
     void persistToFile();
-
-    void removeBookmarkFromMenu(Menu* menubar, const QString& name);
 };
 
 #endif // hifi_Bookmarks_h

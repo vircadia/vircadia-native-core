@@ -15,12 +15,13 @@
 #include <QtCore/QDir>
 #include <QMessageBox>
 #include <QScriptValue>
-
+#include <QtGui/QDesktopServices>
 #include <shared/QtHelpers.h>
 #include <SettingHandle.h>
 
 #include <display-plugins/CompositorHelper.h>
-
+#include <AddressManager.h>
+#include "AndroidHelper.h"
 #include "Application.h"
 #include "DomainHandler.h"
 #include "MainWindow.h"
@@ -38,6 +39,7 @@ WindowScriptingInterface::WindowScriptingInterface() {
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &WindowScriptingInterface::disconnectedFromDomain);
 
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
+    connect(&domainHandler, &DomainHandler::redirectErrorStateChanged, this, &WindowScriptingInterface::redirectErrorStateChanged);
 
     connect(qApp, &Application::svoImportRequested, [this](const QString& urlString) {
         static const QMetaMethod svoImportRequestedSignal =
@@ -51,7 +53,10 @@ WindowScriptingInterface::WindowScriptingInterface() {
         }
     });
 
-    connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &WindowScriptingInterface::geometryChanged);
+    connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &WindowScriptingInterface::onWindowGeometryChanged);
+    connect(qApp, &Application::interstitialModeChanged, [this] (bool interstitialMode) {
+        emit interstitialModeChanged(interstitialMode);
+    });
 }
 
 WindowScriptingInterface::~WindowScriptingInterface() {
@@ -78,7 +83,7 @@ void WindowScriptingInterface::setFocus() {
     });
 }
 
-void WindowScriptingInterface::raiseMainWindow() {
+void WindowScriptingInterface::raise() {
     // It's forbidden to call raise() from another thread.
     qApp->postLambdaEvent([] {
         qApp->raise();
@@ -127,6 +132,30 @@ void WindowScriptingInterface::disconnectedFromDomain() {
     emit domainChanged(QUrl());
 }
 
+void WindowScriptingInterface::openUrl(const QUrl& url) {
+    if (!url.isEmpty()) {
+        if (url.scheme() == URL_SCHEME_HIFI) {
+            DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+        } else {
+#if defined(Q_OS_ANDROID)
+            QMap<QString, QString> args;
+            args["url"] = url.toString();
+            AndroidHelper::instance().requestActivity("WebView", true, args);
+#else
+            // address manager did not handle - ask QDesktopServices to handle
+            QDesktopServices::openUrl(url);
+#endif
+        }
+    }
+}
+
+void WindowScriptingInterface::openAndroidActivity(const QString& activityName, const bool backToScene) {
+#if defined(Q_OS_ANDROID)
+    AndroidHelper::instance().requestActivity(activityName, backToScene);
+#endif
+}
+
+
 QString fixupPathForMac(const QString& directory) {
     // On OS X `directory` does not work as expected unless a file is included in the path, so we append a bogus
     // filename if the directory is valid.
@@ -154,6 +183,14 @@ QString WindowScriptingInterface::getPreviousBrowseAssetLocation() const {
 
 void WindowScriptingInterface::setPreviousBrowseAssetLocation(const QString& location) {
     Setting::Handle<QVariant>(LAST_BROWSE_ASSETS_LOCATION_SETTING).set(location);
+}
+
+bool WindowScriptingInterface::getInterstitialModeEnabled() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+}
+
+void WindowScriptingInterface::setInterstitialModeEnabled(bool enableInterstitialMode) {
+    DependencyManager::get<NodeList>()->getDomainHandler().setInterstitialModeEnabled(enableInterstitialMode);
 }
 
 bool  WindowScriptingInterface::isPointOnDesktopWindow(QVariant point) {
@@ -385,12 +422,27 @@ glm::vec2 WindowScriptingInterface::getDeviceSize() const {
     return qApp->getDeviceSize();
 }
 
+int WindowScriptingInterface::getLastDomainConnectionError() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getLastDomainConnectionError();
+}
+
 int WindowScriptingInterface::getX() {
-    return qApp->getWindow()->x();
+    return qApp->getWindow()->geometry().x();
 }
 
 int WindowScriptingInterface::getY() {
-    return qApp->getWindow()->y();
+    auto menu = qApp->getPrimaryMenu();
+    int menuHeight = menu ? menu->geometry().height() : 0;
+    return qApp->getWindow()->geometry().y() + menuHeight;
+}
+
+void WindowScriptingInterface::onWindowGeometryChanged(const QRect& windowGeometry) {
+    auto geometry = windowGeometry;
+    auto menu = qApp->getPrimaryMenu();
+    if (menu) {
+        geometry.setY(geometry.y() + menu->geometry().height());
+    }
+    emit geometryChanged(geometry);
 }
 
 void WindowScriptingInterface::copyToClipboard(const QString& text) {
@@ -412,8 +464,12 @@ void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, f
     qApp->takeSnapshot(notify, includeAnimated, aspectRatio, filename);
 }
 
-void WindowScriptingInterface::takeSecondaryCameraSnapshot(const QString& filename) {
-    qApp->takeSecondaryCameraSnapshot(filename);
+void WindowScriptingInterface::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
+    qApp->takeSecondaryCameraSnapshot(notify, filename);
+}
+
+void WindowScriptingInterface::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const bool& notify, const QString& filename) {
+    qApp->takeSecondaryCamera360Snapshot(cameraPosition, cubemapOutputFormat, notify, filename);
 }
 
 void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& href) {
@@ -484,7 +540,7 @@ int WindowScriptingInterface::openMessageBox(QString title, QString text, int bu
  *     <tr> <td><strong>RestoreDefaults</strong></td> <td><code>0x8000000</code></td> <td>"Restore Defaults"</td> </tr>
  *   </tbody>
  * </table>
- * @typedef Window.MessageBoxButton
+ * @typedef {number} Window.MessageBoxButton
  */
 int WindowScriptingInterface::createMessageBox(QString title, QString text, int buttons, int defaultButton) {
     auto messageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, title, text,
@@ -544,4 +600,9 @@ void WindowScriptingInterface::onMessageBoxSelected(int button) {
         messageBox->deleteLater();
         _messageBoxes.remove(id);
     }
+}
+
+
+float WindowScriptingInterface::domainLoadingProgress() {
+    return qApp->getOctreePacketProcessor().domainLoadingProgress();
 }

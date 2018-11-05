@@ -13,23 +13,32 @@
 //
 
 /* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
-   MyAvatar, Menu, AvatarInputs, Vec3 */
+   MyAvatar, Menu, AvatarInputs, Vec3, cleanUpOldMaterialEntities */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletRezzed = false;
     var activeHand = null;
     var DEFAULT_WIDTH = 0.4375;
-    var DEFAULT_TABLET_SCALE = 70;
+    var DEFAULT_DESKTOP_TABLET_SCALE = 75;
+    var DEFAULT_HMD_TABLET_SCALE = 60;
     var preMakeTime = Date.now();
     var validCheckTime = Date.now();
     var debugTablet = false;
-    var tabletScalePercentage = 70.0;
-    UIWebTablet = null;
+    var tabletScalePercentage = DEFAULT_HMD_TABLET_SCALE;
+    var UIWebTablet = null;
     var MSECS_PER_SEC = 1000.0;
     var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
     var gTablet = null;
 
     Script.include("../libraries/WebTablet.js");
+
+    function cleanupMaterialEntities() {
+        if (Window.isPhysicsEnabled()) {
+            cleanUpOldMaterialEntities();
+            return;
+        }
+        Script.setTimeout(cleanupMaterialEntities, 100);
+    }
 
     function checkTablet() {
         if (gTablet === null) {
@@ -58,14 +67,14 @@
     }
 
     function getTabletScalePercentageFromSettings() {
-        checkTablet()
+        checkTablet();
         var toolbarMode = gTablet.toolbarMode;
-        var tabletScalePercentage = DEFAULT_TABLET_SCALE;
+        var tabletScalePercentage = DEFAULT_HMD_TABLET_SCALE;
         if (!toolbarMode) {
             if (HMD.active) {
-                tabletScalePercentage = Settings.getValue("hmdTabletScale") || DEFAULT_TABLET_SCALE;
+                tabletScalePercentage = Settings.getValue("hmdTabletScale") || DEFAULT_HMD_TABLET_SCALE;
             } else {
-                tabletScalePercentage = Settings.getValue("desktopTabletScale") || DEFAULT_TABLET_SCALE;
+                tabletScalePercentage = Settings.getValue("desktopTabletScale") || DEFAULT_DESKTOP_TABLET_SCALE;
             }
         }
         return tabletScalePercentage;
@@ -103,8 +112,8 @@
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;
-        HMD.homeButtonHighlightID = UIWebTablet.homeButtonHighlightID;
         HMD.tabletScreenID = UIWebTablet.webOverlayID;
+        HMD.homeButtonHighlightID = UIWebTablet.homeButtonHighlightID;
         HMD.displayModeChanged.connect(onHmdChanged);
         MyAvatar.sensorToWorldScaleChanged.connect(onSensorToWorldScaleChanged);
 
@@ -298,7 +307,7 @@
         }
         wantsMenu = clicked;
     });
-    
+
     clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
     if (clicked) {
         //activeHudPoint2dGamePad();
@@ -328,4 +337,5 @@
         HMD.homeButtonHighlightID = null;
         HMD.tabletScreenID = null;
     });
+    Script.setTimeout(cleanupMaterialEntities, 100);
 }()); // END LOCAL_SCOPE

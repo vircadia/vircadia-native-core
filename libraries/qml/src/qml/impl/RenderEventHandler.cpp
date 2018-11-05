@@ -8,8 +8,11 @@
 
 #include "RenderEventHandler.h"
 
+#ifndef DISABLE_QML
+
 #include <gl/Config.h>
 #include <gl/QOpenGLContextWrapper.h>
+#include <gl/GLHelpers.h>
 
 #include <QtQuick/QQuickWindow>
 
@@ -49,8 +52,8 @@ RenderEventHandler::RenderEventHandler(SharedObject* shared, QThread* targetThre
         qFatal("Unable to create new offscreen GL context");
     }
 
-    moveToThread(targetThread);
     _canvas.moveToThreadWithContext(targetThread);
+    moveToThread(targetThread);
 }
 
 void RenderEventHandler::onInitalize() {
@@ -112,6 +115,7 @@ void RenderEventHandler::onRender() {
 
     PROFILE_RANGE(render_qml_gl, __FUNCTION__);
 
+    gl::globalLock();
     if (!_shared->preRender()) {
         return;
     }
@@ -137,11 +141,12 @@ void RenderEventHandler::onRender() {
         glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
         auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        // Fence will be used in another thread / context, so a flush is required
         glFlush();
         _shared->updateTextureAndFence({ texture, fence });
-        // Fence will be used in another thread / context, so a flush is required
         _shared->_quickWindow->resetOpenGLState();
     }
+    gl::globalRelease();
 }
 
 void RenderEventHandler::onQuit() {
@@ -160,11 +165,10 @@ void RenderEventHandler::onQuit() {
     }
 
     _shared->shutdownRendering(_canvas, _currentSize);
-    // Release the reference to the shared object.  This will allow it to 
-    // be destroyed (should happen on it's own thread).
-    _shared->deleteLater();
-
-    deleteLater();
-
+    _canvas.doneCurrent();
+    _canvas.moveToThreadWithContext(qApp->thread());
+    moveToThread(qApp->thread());
     QThread::currentThread()->quit();
 }
+
+#endif

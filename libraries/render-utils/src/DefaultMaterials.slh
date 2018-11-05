@@ -1,0 +1,23 @@
+<!
+//  DefaultMaterials.slh
+//  libraries/render-utils/src
+//
+//  Created by Sam Gondelman on 3/22/18
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not DEFAULT_MATERIAL_SLH@>
+<@def DEFAULT_MATERIAL_SLH@>
+
+const float DEFAULT_ROUGHNESS = 0.9;
+const float DEFAULT_SHININESS = 10.0;
+const float DEFAULT_METALLIC = 0.0;
+const vec3 DEFAULT_SPECULAR = vec3(0.1);
+const vec3 DEFAULT_EMISSIVE = vec3(0.0);
+const float DEFAULT_OCCLUSION = 1.0;
+const float DEFAULT_SCATTERING = 0.0;
+const vec3 DEFAULT_FRESNEL = DEFAULT_EMISSIVE;
+
+<@endif@>

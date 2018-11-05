@@ -23,13 +23,13 @@ class QScriptEngine;
 class AnimationObject : public QObject, protected QScriptable {
     Q_OBJECT
     Q_PROPERTY(QStringList jointNames READ getJointNames)
-    Q_PROPERTY(QVector<FBXAnimationFrame> frames READ getFrames)
+    Q_PROPERTY(QVector<HFMAnimationFrame> frames READ getFrames)
 
 public:
     
     Q_INVOKABLE QStringList getJointNames() const;
     
-    Q_INVOKABLE QVector<FBXAnimationFrame> getFrames() const;
+    Q_INVOKABLE QVector<HFMAnimationFrame> getFrames() const;
 };
 
 /// Scriptable wrapper for animation frames.

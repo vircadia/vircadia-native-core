@@ -13,7 +13,7 @@
 
 var radarModeInterface = {};
 
-var logEnabled = true;
+var logEnabled = false;
 function printd(str) {
     if (logEnabled) {
         print("[radar.js] " + str);
@@ -21,7 +21,8 @@ function printd(str) {
 }
 
 var radar = false;
-var radarHeight = 10; // camera position meters above the avatar
+var RADAR_HEIGHT_INIT_DELTA = 10;
+var radarHeight = MyAvatar.position.y + RADAR_HEIGHT_INIT_DELTA; // camera position (absolute y)
 var tablet;
 
 var RADAR_CAMERA_OFFSET = -1; // 1 meter below the avatar
@@ -45,12 +46,12 @@ var uniqueColor;
 
 function moveTo(position) {
     if (radar) {
-        MyAvatar.position = position;
-        Camera.position = Vec3.sum(MyAvatar.position, {
-            x : 0,
+        MyAvatar.goToLocation(position, false);
+        Camera.position = {
+            x : position.x,
             y : radarHeight,
-            z : 0
-        });
+            z : position.z
+        };
     }
 }
 
@@ -89,55 +90,6 @@ function keyPressEvent(event) {
     }
 }
 
-function actionOnObjectFromEvent(event) {
-    var rayIntersection = findRayIntersection(Camera.computePickRay(event.x,
-            event.y));
-    if (rayIntersection && rayIntersection.intersects
-            && rayIntersection.overlayID) {
-        printd("found overlayID touched " + rayIntersection.overlayID);
-        if (entitiesByOverlayID[rayIntersection.overlayID]) {
-            var entity = Entities.getEntityProperties(
-                    entitiesByOverlayID[rayIntersection.overlayID],
-                    [ "sourceUrl" ]);
-            App.openUrl(entity.sourceUrl);
-            return true;
-        }
-    }
-    if (rayIntersection && rayIntersection.intersects
-            && rayIntersection.entityID && rayIntersection.properties) {
-        printd("found " + rayIntersection.entityID + " of type "
-                + rayIntersection.properties.type);
-        if (rayIntersection.properties.type == "Web") {
-            printd("found web element to "
-                    + rayIntersection.properties.sourceUrl);
-            App.openUrl(rayIntersection.properties.sourceUrl);
-            return true;
-        }
-    }
-    return false;
-}
-
-function mousePress(event) {
-    if (!isTouchValid(coords)) {
-        currentTouchIsValid = false;
-        return;
-    } else {
-        currentTouchIsValid = true;
-    }
-    mousePressOrTouchEnd(event);
-}
-
-function mousePressOrTouchEnd(event) {
-    if (!currentTouchIsValid) {
-        return;
-    }
-    if (radar) {
-        if (actionOnObjectFromEvent(event)) {
-            return;
-        }
-    }
-}
-
 function toggleRadarMode() {
     if (radar) {
         endRadar();
@@ -154,9 +106,6 @@ function fakeDoubleTap(event) {
     teleporter.dragTeleportUpdate(event);
     teleporter.dragTeleportRelease(event);
 }
-
-var currentTouchIsValid = false; // Currently used to know if touch hasn't
-                                    // started on a UI overlay
 
 var DOUBLE_TAP_TIME = 300;
 var fakeDoubleTapStart = Date.now();
@@ -238,18 +187,9 @@ function touchEnd(event) {
         return;
     }
 
-    // if touch is invalid, cancel
-    if (!currentTouchIsValid) {
-        printd("touchEnd fail because !currentTouchIsValid");
-        return;
-    }
-
     if (analyzeDoubleTap(event))
         return; // double tap detected, finish
 
-    if (radar) {
-        mousePressOrTouchEnd(event);
-    }
 }
 
 /**
@@ -349,20 +289,6 @@ function computePointAtPlaneY(x, y, py) {
  * 
  ******************************************************************************/
 
-function isTouchValid(coords) {
-    // TODO: Extend to the detection of touches on new menu bars
-    var radarModeTouchValid = radarModeInterface.isTouchValid(coords);
-
-    // getItemAtPoint does not exist anymore, look for another way to know if we
-    // are touching buttons
-    // is it still needed?
-    return /* !tablet.getItemAtPoint(coords) && */radarModeTouchValid;
-}
-
-/*******************************************************************************
- * 
- ******************************************************************************/
-
 var touchStartingCoordinates = null;
 
 var KEEP_PRESSED_FOR_TELEPORT_MODE_TIME = 750;
@@ -373,16 +299,8 @@ function touchBegin(event) {
         x : event.x,
         y : event.y
     };
-    if (!isTouchValid(coords)) {
-        printd("analyze touch - RADAR_TOUCH - INVALID");
-        currentTouchIsValid = false;
-        touchStartingCoordinates = null;
-    } else {
-        printd("analyze touch - RADAR_TOUCH - ok");
-        currentTouchIsValid = true;
-        touchStartingCoordinates = coords;
-        touchBeginTime = Date.now();
-    }
+    touchStartingCoordinates = coords;
+    touchBeginTime = Date.now();
 }
 
 var startedDraggingCamera = false; // first time
@@ -426,12 +344,13 @@ function pinchUpdate(event) {
             radarHeight -= pinchIncrement;
         }
     }
-    var deltaHeight = avatarY + radarHeight - Camera.position.y;
-    Camera.position = Vec3.sum(Camera.position, {
-        x : 0,
-        y : deltaHeight,
-        z : 0
-    });
+
+    Camera.position = { 
+        x : Camera.position.x, 
+        y : radarHeight, 
+        z : Camera.position.z 
+    };
+
     if (!draggingCamera) {
         startedDraggingCamera = true;
         draggingCamera = true;
@@ -441,7 +360,8 @@ function pinchUpdate(event) {
 }
 
 function isInsideSquare(coords0, coords1, halfside) {
-    return Math.abs(coords0.x - coords1.x) <= halfside
+    return coords0 != undefined && coords1 != undefined &&
+            Math.abs(coords0.x - coords1.x) <= halfside
             && Math.abs(coords0.y - coords1.y) <= halfside;
 }
 
@@ -452,7 +372,7 @@ function dragScrollUpdate(event) {
     // drag management
     var pickRay = Camera.computePickRay(event.x, event.y);
     var dragAt = Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction,
-            radarHeight));
+            radarHeight - MyAvatar.position.y));
 
     if (lastDragAt === undefined || lastDragAt === null) {
         lastDragAt = dragAt;
@@ -694,6 +614,7 @@ function Teleporter() {
             return;
         }
 
+
         Camera.position = Vec3.sum(Camera.position, {
             x : xDelta,
             y : 0,
@@ -762,7 +683,7 @@ function Teleporter() {
     return {
         dragTeleportBegin : function(event) {
             printd("[newTeleport] TELEPORT began");
-            var overlayDimensions = entityIconModelDimensions();
+            var overlayDimensions = teleportIconModelDimensions(MyAvatar.position.y);
             // var destination = computeDestination(event, MyAvatar.position,
             // Camera.position, radarHeight);
             // Dimension teleport and cancel overlays (not show them yet)
@@ -848,9 +769,6 @@ function oneFingerTouchUpdate(event) {
 }
 
 function touchUpdate(event) {
-    if (!currentTouchIsValid) {
-        return; // avoid moving and zooming when tap is over UI entities
-    }
     if (event.isPinching || event.isPinchOpening) {
         pinchUpdate(event);
     } else {
@@ -886,7 +804,7 @@ var avatarIconDimensionsVal = {
 };
 function avatarIconPlaneDimensions() {
     // given the current height, give a size
-    var xy = -0.003531 * radarHeight + 0.1;
+    var xy = -0.003531 * (radarHeight - MyAvatar.position.y) + 0.1;
     avatarIconDimensionsVal.x = Math.abs(xy);
     avatarIconDimensionsVal.y = Math.abs(xy);
     // reuse object
@@ -1164,172 +1082,20 @@ function renderAllOthersAvatarIcons() {
     }
 }
 
-function entityAdded(entityID) {
-    printd("Entity added " + entityID);
-    var props = Entities.getEntityProperties(entityID, [ "type" ]);
-    printd("Entity added " + entityID + " PROPS " + JSON.stringify(props));
-    if (props && props.type == "Web") {
-        printd("Entity Web added " + entityID);
-        saveEntityData(entityID, true);
-    }
-}
-
-function entityRemoved(entityID) {
-    printd("Entity removed " + entityID);
-    var props = Entities.getEntityProperties(entityID, [ "type" ]);
-    if (props && props.type == "Web") {
-        print("Entity Web removed " + entityID);
-        removeEntityData(entityID);
-    }
-}
-
-/*******************************************************************************
- * Entities (to remark) cache structure for showing entities markers
- ******************************************************************************/
-
-var entitiesData = {}; // by entityID
-var entitiesByOverlayID = {}; // by overlayID
-var entitiesIcons = []; // a parallel list of icons (overlays) to easily run
-                        // through
-
-var ICON_ENTITY_WEB_MODEL_URL = Script.resolvePath("../assets/images/web.svg");
-var ICON_ENTITY_IMG_MODEL_URL = Script
-        .resolvePath("../assets/models/teleport-cancel.fbx"); // FIXME - use
-                                                                // correct
-                                                                // model&texture
 var ICON_ENTITY_DEFAULT_DIMENSIONS = {
     x : 0.10,
     y : 0.00001,
     z : 0.10
 };
 
-var entityIconModelDimensionsVal = {
-    x : 0,
-    y : 0.00001,
-    z : 0
-};
-function entityIconModelDimensions() {
-    // given the current height, give a size
-    var xz = -0.002831 * radarHeight + 0.1;
-    entityIconModelDimensionsVal.x = xz;
-    entityIconModelDimensionsVal.z = xz;
+
+function teleportIconModelDimensions(y) {
+    var teleportModelDimensions = ICON_ENTITY_DEFAULT_DIMENSIONS;
+    var xz = -0.002831 * (radarHeight - y) + 0.1;
+    teleportModelDimensions.x = xz;
+    teleportModelDimensions.z = xz;
     // reuse object
-    return entityIconModelDimensionsVal;
-}
-/*
- * entityIconPlaneDimensions: similar to entityIconModelDimensions but using xy
- * plane
- */
-function entityIconPlaneDimensions() {
-    var dim = entityIconModelDimensions();
-    var z = dim.z;
-    dim.z = dim.y;
-    dim.y = z;
-    return dim;
-}
-
-function currentOverlayForEntity(QUuid) {
-    if (entitiesData[QUuid] != undefined) {
-        return entitiesData[QUuid].icon;
-    } else {
-        return null;
-    }
-}
-
-function saveEntityData(QUuid, planar) {
-    if (QUuid == null)
-        return;
-    var entity = Entities.getEntityProperties(QUuid, [ "position" ]);
-    printd("entity added save entity " + QUuid);
-    if (entitiesData[QUuid] != undefined) {
-        entitiesData[QUuid].position = entity.position;
-    } else {
-        var entityIcon = Overlays.addOverlay("image3d", {
-            subImage : {
-                x : 0,
-                y : 0,
-                width : 150,
-                height : 150
-            },
-            url : ICON_ENTITY_WEB_MODEL_URL,
-            dimensions : ICON_ENTITY_DEFAULT_DIMENSIONS,
-            visible : false,
-            ignoreRayIntersection : false,
-            orientation : Quat.fromPitchYawRollDegrees(-90, 0, 0)
-        });
-
-        entitiesIcons.push(entityIcon);
-        entitiesData[QUuid] = {
-            position : entity.position,
-            icon : entityIcon
-        };
-        entitiesByOverlayID[entityIcon] = QUuid;
-    }
-}
-
-function removeEntityData(QUuid) {
-    if (QUuid == null)
-        return;
-
-    var itsOverlay = currentOverlayForEntity(QUuid);
-    if (itsOverlay != null) {
-        Overlays.deleteOverlay(itsOverlay);
-        delete entitiesByOverlayID[itsOverlay];
-    }
-    var idx = entitiesIcons.indexOf(itsOverlay);
-    entitiesIcons.splice(idx, 1);
-
-    delete entitiesData[QUuid];
-}
-
-/*******************************************************************************
- * Entities to remark Icon/Markers rendering
- ******************************************************************************/
-
-function hideAllEntitiesIcons() {
-    var len = entitiesIcons.length;
-    for (var i = 0; i < len; i++) {
-        Overlays.editOverlay(entitiesIcons[i], {
-            visible : false
-        });
-    }
-}
-
-function renderAllEntitiesIcons() {
-    var entityPos;
-    var entityProps;
-    var iconDimensions = entityIconModelDimensions();
-    var planeDimensions = entityIconPlaneDimensions(); // plane overlays uses
-                                                        // xy instead of xz
-    for ( var QUuid in entitiesData) {
-        if (entitiesData.hasOwnProperty(QUuid)) {
-            entityProps = Entities.getEntityProperties(QUuid, [ "position",
-                    "visible" ]);
-            if (entityProps != null) {
-                entityPos = entityProps.position;
-                if (entitiesData[QUuid].icon != undefined && entityPos) {
-                    var iconPos = findLineToHeightIntersectionCoords(
-                            entityPos.x,
-                            entityPos.y
-                                    + RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE,
-                            entityPos.z, Camera.position.x, Camera.position.y,
-                            Camera.position.z, Camera.position.y
-                                    - RADAR_CAMERA_DISTANCE_TO_ICONS);
-                    if (!iconPos) {
-                        printd("entity icon pos bad for " + QUuid);
-                        continue;
-                    }
-                    var dimensions = entitiesData[QUuid].planar ? planeDimensions
-                            : iconDimensions;
-                    Overlays.editOverlay(entitiesData[QUuid].icon, {
-                        visible : entityProps.visible,
-                        dimensions : dimensions,
-                        position : iconPos
-                    });
-                }
-            }
-        }
-    }
+    return teleportModelDimensions;
 }
 
 /*******************************************************************************
@@ -1341,11 +1107,8 @@ function startRadar() {
     saveAllOthersAvatarsData();
     Camera.mode = "independent";
 
-    Camera.position = Vec3.sum(MyAvatar.position, {
-        x : 0,
-        y : radarHeight,
-        z : 0
-    });
+    initCameraOverMyAvatar();
+
     Camera.orientation = Quat.fromPitchYawRollDegrees(-90, 0, 0);
     radar = true;
 
@@ -1356,13 +1119,12 @@ function startRadar() {
 
 function endRadar() {
     printd("-- endRadar");
-    Camera.mode = "first person";
+    Camera.mode = "third person";
     radar = false;
 
     Controller.setVPadEnabled(true);
 
     disconnectRadarModeEvents();
-    hideAllEntitiesIcons();
     hideAllAvatarIcons();
 }
 
@@ -1396,12 +1158,10 @@ function updateRadar() {
     // Update avatar icons
     if (startedDraggingCamera) {
         hideAllAvatarIcons();
-        hideAllEntitiesIcons();
         startedDraggingCamera = false;
     } else if (!draggingCamera) {
         renderMyAvatarIcon();
         renderAllOthersAvatarIcons();
-        renderAllEntitiesIcons();
     }
 }
 
@@ -1409,48 +1169,41 @@ function valueIfDefined(value) {
     return value !== undefined ? value : "";
 }
 
-function entitiesAnalysis() {
-    var ids = Entities.findEntitiesInFrustum(Camera.frustum);
-    var entities = [];
-    for (var i = 0; i < ids.length; i++) {
-        var id = ids[i];
-        var properties = Entities.getEntityProperties(id);
-        entities.push({
-            id : id,
-            name : properties.name,
-            type : properties.type,
-            url : properties.type == "Model" ? properties.modelURL : "",
-            sourceUrl : properties.sourceUrl,
-            locked : properties.locked,
-            visible : properties.visible,
-            drawCalls : valueIfDefined(properties.renderInfo.drawCalls),
-            hasScript : properties.script !== ""
-        });
-    }
-}
-
 function connectRadarModeEvents() {
     Script.update.connect(updateRadar); // 60Hz loop
     Controller.keyPressEvent.connect(keyPressEvent);
-    Controller.mousePressEvent.connect(mousePress); // single click/touch
     Controller.touchUpdateEvent.connect(touchUpdate);
+    Window.domainChanged.connect(domainChanged);
     MyAvatar.positionGoneTo.connect(positionGoneTo);
 }
 
-function positionGoneTo() {
-    Camera.position = Vec3.sum(MyAvatar.position, {
-        x : 0,
+function initCameraOverMyAvatar() {
+   radarHeight = MyAvatar.position.y + RADAR_HEIGHT_INIT_DELTA;
+   Camera.position = {
+        x : MyAvatar.position.x,
         y : radarHeight,
-        z : 0
-    });
+        z : MyAvatar.position.z
+    };
+}
+
+function domainChanged() {
+    initCameraOverMyAvatar();
+}
+
+function positionGoneTo() {
+    Camera.position = {
+            x : MyAvatar.position.x,
+            y : radarHeight,
+            z : MyAvatar.position.z
+        };
 }
 
 function disconnectRadarModeEvents() {
     Script.update.disconnect(updateRadar);
     Controller.keyPressEvent.disconnect(keyPressEvent);
-    Controller.mousePressEvent.disconnect(mousePress);
     Controller.touchUpdateEvent.disconnect(touchUpdate);
     MyAvatar.positionGoneTo.disconnect(positionGoneTo);
+    Window.domainChanged.disconnect(domainChanged);
 }
 
 function init() {
@@ -1461,7 +1214,4 @@ function init() {
 
     AvatarList.avatarAddedEvent.connect(avatarAdded);
     AvatarList.avatarRemovedEvent.connect(avatarRemoved);
-
-    Entities.addingEntity.connect(entityAdded);
-    Entities.deletingEntity.connect(entityRemoved);
 }

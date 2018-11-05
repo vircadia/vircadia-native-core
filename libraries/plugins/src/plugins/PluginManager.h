@@ -9,12 +9,20 @@
 
 #include <QObject>
 
+#include <DependencyManager.h>
+
 #include "Forward.h"
 
-class PluginManager : public QObject {
+
+class PluginManager;
+using PluginManagerPointer = QSharedPointer<PluginManager>;
+
+class PluginManager : public QObject, public Dependency {
+    SINGLETON_DEPENDENCY
+    Q_OBJECT
+
 public:
-    static PluginManager* getInstance();
-    PluginManager();
+    static PluginManagerPointer getInstance();
 
     const DisplayPluginList& getDisplayPlugins();
     const InputPluginList& getInputPlugins();
@@ -37,8 +45,14 @@ public:
     void setInputPluginProvider(const InputPluginProvider& provider);
     void setCodecPluginProvider(const CodecPluginProvider& provider);
     void setInputPluginSettingsPersister(const InputPluginSettingsPersister& persister);
+    QStringList getRunningInputDeviceNames() const;
+
+signals:
+    void inputDeviceRunningChanged(const QString& pluginName, bool isRunning, const QStringList& runningDevices);
     
 private:
+    PluginManager() = default;
+
     DisplayPluginProvider _displayPluginProvider { []()->DisplayPluginList { return {}; } };
     InputPluginProvider _inputPluginProvider { []()->InputPluginList { return {}; } };
     CodecPluginProvider _codecPluginProvider { []()->CodecPluginList { return {}; } };

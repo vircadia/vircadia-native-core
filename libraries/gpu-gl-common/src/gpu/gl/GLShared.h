@@ -19,7 +19,11 @@ Q_DECLARE_LOGGING_CATEGORY(gpugllogging)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu_gl)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu_gl_detail)
 
+#if defined(__clang__)
+#define BUFFER_OFFSET(bytes) (reinterpret_cast<GLvoid*>(bytes))
+#else
 #define BUFFER_OFFSET(bytes) ((GLubyte*) nullptr + (bytes))
+#endif
 
 namespace gpu { namespace gl { 
 
@@ -137,6 +141,8 @@ class GLQuery;
 class GLState;
 class GLShader;
 class GLTexture;
+class GLTextureTransferEngine;
+using GLTextureTransferEnginePointer = std::shared_ptr<GLTextureTransferEngine>;
 struct ShaderObject;
 
 } } // namespace gpu::gl 

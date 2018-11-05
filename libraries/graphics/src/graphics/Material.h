@@ -20,6 +20,7 @@
 #include <ColorUtils.h>
 
 #include <gpu/Resource.h>
+#include <gpu/TextureTable.h>
 
 class Transform;
 
@@ -267,6 +268,9 @@ public:
 
     typedef glm::vec3 Color;
 
+    // Texture Map Array Schema
+    static const int NUM_TEXCOORD_TRANSFORMS{ 2 };
+
     typedef MaterialKey::MapChannel MapChannel;
     typedef std::map<MapChannel, TextureMapPointer> TextureMaps;
     typedef std::bitset<MaterialKey::NUM_MAP_CHANNELS> MapFlags;
@@ -316,11 +320,19 @@ public:
 
         float _scattering{ 0.0f }; // Scattering info
 
-        glm::vec2 _spare{ 0.0f };
+#if defined(__clang__)
+        __attribute__((unused))
+#endif
+        glm::vec2 _spare{ 0.0f }; // Padding
 
         uint32_t _key{ 0 }; // a copy of the materialKey
 
         // for alignment beauty, Material size == Mat4x4
+
+        // Texture Coord Transform Array
+        glm::mat4 _texcoordTransforms[NUM_TEXCOORD_TRANSFORMS];
+
+        glm::vec4 _lightmapParams{ 0.0, 1.0, 0.0, 0.0 };
 
         Schema() {}
     };
@@ -339,17 +351,6 @@ public:
     // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }
 
-    // Texture Map Array Schema
-    static const int NUM_TEXCOORD_TRANSFORMS{ 2 };
-    class TexMapArraySchema {
-    public:
-        glm::mat4 _texcoordTransforms[NUM_TEXCOORD_TRANSFORMS];
-        glm::vec4 _lightmapParams{ 0.0, 1.0, 0.0, 0.0 };
-        TexMapArraySchema() {}
-    };
-
-    const UniformBufferView& getTexMapArrayBuffer() const { return _texMapArrayBuffer; }
-
     int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
     bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
@@ -361,13 +362,15 @@ public:
     const std::string& getModel() const { return _model; }
     void setModel(const std::string& model) { _model = model; }
 
+    const gpu::TextureTablePointer& getTextureTable() const { return _textureTable; }
+
 protected:
     std::string _name { "" };
 
 private:
     mutable MaterialKey _key;
     mutable UniformBufferView _schemaBuffer;
-    mutable UniformBufferView _texMapArrayBuffer;
+    mutable gpu::TextureTablePointer _textureTable{ std::make_shared<gpu::TextureTable>() };
 
     TextureMaps _textureMaps;
 

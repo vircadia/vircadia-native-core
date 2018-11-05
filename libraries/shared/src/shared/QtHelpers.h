@@ -48,6 +48,6 @@ bool blockingInvokeMethod(
 } }
 
 #define BLOCKING_INVOKE_METHOD(obj, member, ...) \
-    hifi::qt::blockingInvokeMethod(__FUNCTION__, obj, member, ##__VA_ARGS__)
+    ::hifi::qt::blockingInvokeMethod(__FUNCTION__, obj, member, ##__VA_ARGS__)
 
 #endif

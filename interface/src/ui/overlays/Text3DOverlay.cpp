@@ -20,7 +20,8 @@
 #include <AbstractViewStateInterface.h>
 
 const int FIXED_FONT_POINT_SIZE = 40;
-const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 80.0f; // this is a ratio determined through experimentation
+const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 92.0f; // Determined through experimentation to fit font to line 
+                                                                    // height.
 const float LINE_SCALE_RATIO = 1.2f;
 
 QString const Text3DOverlay::TYPE = "text3d";
@@ -63,32 +64,23 @@ void Text3DOverlay::setText(const QString& text) {
     _text = text;
 }
 
-xColor Text3DOverlay::getBackgroundColor() {
+glm::u8vec3 Text3DOverlay::getBackgroundColor() {
     if (_colorPulse == 0.0f) {
         return _backgroundColor;
     }
 
     float pulseLevel = updatePulse();
-    xColor result = _backgroundColor;
+    glm::u8vec3 result = _backgroundColor;
     if (_colorPulse < 0.0f) {
-        result.red *= (1.0f - pulseLevel);
-        result.green *= (1.0f - pulseLevel);
-        result.blue *= (1.0f - pulseLevel);
+        result.x *= (1.0f - pulseLevel);
+        result.y *= (1.0f - pulseLevel);
+        result.z *= (1.0f - pulseLevel);
     } else {
-        result.red *= pulseLevel;
-        result.green *= pulseLevel;
-        result.blue *= pulseLevel;
+        result.x *= pulseLevel;
+        result.y *= pulseLevel;
+        result.z *= pulseLevel;
     }
     return result;
-}
-
-void Text3DOverlay::update(float deltatime) {
-    if (usecTimestampNow() > _transformExpiry) {
-        Transform transform = getTransform();
-        applyTransformTo(transform);
-        setTransform(transform);
-    }
-    Parent::update(deltatime);
 }
 
 void Text3DOverlay::render(RenderArgs* args) {
@@ -102,10 +94,8 @@ void Text3DOverlay::render(RenderArgs* args) {
     auto transform = getRenderTransform();
     batch.setModelTransform(transform);
 
-    const float MAX_COLOR = 255.0f;
-    xColor backgroundColor = getBackgroundColor();
-    glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR,
-                        backgroundColor.blue / MAX_COLOR, getBackgroundAlpha());
+    glm::u8vec3 backgroundColor = getBackgroundColor();
+    glm::vec4 quadColor(toGlm(backgroundColor), getBackgroundAlpha());
 
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
@@ -122,7 +112,6 @@ void Text3DOverlay::render(RenderArgs* args) {
 
     float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight;
 
-    glm::vec2 clipMinimum(0.0f, 0.0f);
     glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor,
                              (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
 
@@ -131,8 +120,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     transform.setScale(scaleFactor);
     batch.setModelTransform(transform);
 
-    glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR,
-                            _color.blue / MAX_COLOR, getTextAlpha() };
+    glm::vec4 textColor = { toGlm(_color), getTextAlpha() };
 
     // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline for a gpu performance increase.
     _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), true);
@@ -173,7 +161,7 @@ void Text3DOverlay::setProperties(const QVariantMap& properties) {
     bool valid;
     auto backgroundColor = properties["backgroundColor"];
     if (backgroundColor.isValid()) {
-        auto color = xColorFromVariant(backgroundColor, valid);
+        auto color = u8vec3FromVariant(backgroundColor, valid);
         if (valid) {
             _backgroundColor = color;
         }
@@ -237,8 +225,7 @@ void Text3DOverlay::setProperties(const QVariantMap& properties) {
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
- * @property {boolean} ignoreRayIntersection=false - If <code>true</code>,
- *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
@@ -270,7 +257,7 @@ QVariant Text3DOverlay::getProperty(const QString& property) {
         return _textAlpha;
     }
     if (property == "backgroundColor") {
-        return xColorToVariant(_backgroundColor);
+        return u8vec3ColortoVariant(_backgroundColor);
     }
     if (property == "backgroundAlpha") {
         return Billboard3DOverlay::getProperty("alpha");
@@ -306,12 +293,3 @@ QSizeF Text3DOverlay::textSize(const QString& text) const {
 
     return QSizeF(extents.x, extents.y) * pointToWorldScale;
 }
-
-bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance,
-                                            BoxFace &face, glm::vec3& surfaceNormal) {
-    Transform transform = getTransform();
-    applyTransformTo(transform, true);
-    setTransform(transform);
-    return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
-}
-

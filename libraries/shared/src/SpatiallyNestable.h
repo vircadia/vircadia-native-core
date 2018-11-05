@@ -19,7 +19,6 @@
 #include "SpatialParentFinder.h"
 #include "shared/ReadWriteLockable.h"
 
-
 class SpatiallyNestable;
 using SpatiallyNestableWeakPointer = std::weak_ptr<SpatiallyNestable>;
 using SpatiallyNestableWeakConstPointer = std::weak_ptr<const SpatiallyNestable>;
@@ -112,6 +111,7 @@ public:
     virtual glm::vec3 getParentAngularVelocity(bool& success) const;
 
     virtual AACube getMaximumAACube(bool& success) const;
+    virtual AACube calculateInitialQueryAACube(bool& success);
 
     virtual void setQueryAACube(const AACube& queryAACube);
     virtual bool queryAACubeNeedsUpdate() const;
@@ -212,12 +212,12 @@ public:
     virtual void parentDeleted() { } // called on children of a deleted parent
 
 protected:
-    const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     mutable SpatiallyNestableWeakPointer _parent;
 
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const;
+    virtual void recalculateChildCauterization() const { }
 
     mutable ReadWriteLockable _childrenLock;
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
@@ -231,6 +231,8 @@ protected:
     quint64 _rotationChanged { 0 };
 
 private:
+    SpatiallyNestable() = delete;
+    const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex { INVALID_JOINT_INDEX }; // which joint of the parent is this relative to?
 

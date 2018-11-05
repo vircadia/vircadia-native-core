@@ -12,6 +12,8 @@
 #ifndef hifi_AvatarMixerSlave_h
 #define hifi_AvatarMixerSlave_h
 
+#include <NodeList.h>
+
 class AvatarMixerClientData;
 
 class AvatarMixerSlaveStats {
@@ -76,11 +78,16 @@ public:
         jobElapsedTime += rhs.jobElapsedTime;
         return *this;
     }
+};
 
+struct SlaveSharedData {
+    QStringList skeletonURLWhitelist;
+    QUrl skeletonReplacementURL;
 };
 
 class AvatarMixerSlave {
 public:
+    AvatarMixerSlave(SlaveSharedData* sharedData) : _sharedData(sharedData) {};
     using ConstIter = NodeList::const_iterator;
 
     void configure(ConstIter begin, ConstIter end);
@@ -94,8 +101,12 @@ public:
     void harvestStats(AvatarMixerSlaveStats& stats);
 
 private:
-    int sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
+    int sendIdentityPacket(NLPacketList& packet, const AvatarMixerClientData* nodeData, const Node& destinationNode);
     int sendReplicatedIdentityPacket(const Node& agentNode, const AvatarMixerClientData* nodeData, const Node& destinationNode);
+
+    qint64 addChangedTraitsToBulkPacket(AvatarMixerClientData* listeningNodeData,
+                                        const AvatarMixerClientData* sendingNodeData,
+                                        NLPacketList& traitsPacketList);
 
     void broadcastAvatarDataToAgent(const SharedNodePointer& node);
     void broadcastAvatarDataToDownstreamMixer(const SharedNodePointer& node);
@@ -109,6 +120,7 @@ private:
     float _throttlingRatio { 0.0f };
 
     AvatarMixerSlaveStats _stats;
+    SlaveSharedData* _sharedData;
 };
 
 #endif // hifi_AvatarMixerSlave_h

@@ -1,5 +1,5 @@
 //
-//  DefaultFrame.qml
+//  Decoration.qml
 //
 //  Created by Bradley Austin Davis on 12 Jan 2016
 //  Copyright 2016 High Fidelity, Inc.

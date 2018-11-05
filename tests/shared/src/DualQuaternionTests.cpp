@@ -8,17 +8,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <iostream>
-
 #include "DualQuaternionTests.h"
+
+#include <iostream>
 
 #include <DualQuaternion.h>
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
 #include <StreamUtils.h>
 
-#include <../GLMTestUtils.h>
-#include <../QTestExtensions.h>
+#include <test-utils/GLMTestUtils.h>
+#include <test-utils/QTestExtensions.h>
 
 QTEST_MAIN(DualQuaternionTests)
 

@@ -1,10 +1,16 @@
 set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if (NOT "${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+  message( FATAL_ERROR "Only 64 bit builds supported." )
+endif()
+
+if (USE_CCACHE OR "$ENV{USE_CCACHE}")
+  configure_ccache()
+endif()
 
 if (WIN32)
-  if (NOT "${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
-    message( FATAL_ERROR "Only 64 bit builds supported." )
-  endif()
-
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
 
   if (NOT WINDOW_SDK_PATH)
@@ -52,25 +58,27 @@ endif()
 
 if (ANDROID)
     # assume that the toolchain selected for android has C++11 support
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+elseif(APPLE)
+  set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++14")
+  set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --stdlib=libc++")
+  if (CMAKE_GENERATOR STREQUAL "Xcode")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    set(CMAKE_XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS[variant=Release] "YES")
+    set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT[variant=Release] "dwarf-with-dsym")
+    set(CMAKE_XCODE_ATTRIBUTE_DEPLOYMENT_POSTPROCESSING[variant=Release] "YES")
+  endif()
 elseif ((NOT MSVC12) AND (NOT MSVC14))
     include(CheckCXXCompilerFlag)
-    CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-    CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-    if (COMPILER_SUPPORTS_CXX11)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    elseif(COMPILER_SUPPORTS_CXX0X)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+    if (COMPILER_SUPPORTS_CXX14)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
     else()
         message(FATAL_ERROR  "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
     endif()
 endif ()
 
-if (APPLE)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --stdlib=libc++")
-endif ()
 
 if (NOT ANDROID_LIB_DIR)
   set(ANDROID_LIB_DIR $ENV{ANDROID_LIB_DIR})
@@ -84,7 +92,7 @@ if (APPLE)
   set(OSX_SDK "${OSX_VERSION}" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
 
   # set our OS X deployment target
-  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.9)
 
   # find the SDK path for the desired SDK
   find_path(

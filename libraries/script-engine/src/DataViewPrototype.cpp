@@ -8,13 +8,14 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+#include "DataViewPrototype.h"
+
 #include <QDebug>
 
 #include <glm/glm.hpp>
 
 #include "DataViewClass.h"
-
-#include "DataViewPrototype.h"
 
 Q_DECLARE_METATYPE(QByteArray*)
 

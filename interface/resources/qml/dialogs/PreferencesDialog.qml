@@ -9,7 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 
 import "../controls-uit" as HifiControls
 import "../styles-uit"
@@ -103,13 +102,13 @@ ScrollingWindow {
 
         HifiControls.Button {
             text: "Save changes"
-            color: hifi.buttons.blue
+            color: 1//hifi.buttons.blue
             onClicked: root.saveAll()
         }
 
         HifiControls.Button {
             text: "Cancel"
-            color: hifi.buttons.white
+            color: 2//hifi.buttons.white
             onClicked: root.restoreAll()
         }
     }

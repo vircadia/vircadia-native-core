@@ -53,7 +53,6 @@ public:
             Cascade();
 
             gpu::FramebufferPointer framebuffer;
-            gpu::TexturePointer map;
 
             const std::shared_ptr<ViewFrustum>& getFrustum() const { return _frustum; }
 
@@ -92,6 +91,8 @@ public:
         void setMaxDistance(float value);
 
         const graphics::LightPointer& getLight() const { return _light; }
+
+        gpu::TexturePointer map;
 
     protected:
 
@@ -150,11 +151,6 @@ public:
         return LightAndShadow(light, shadow);
     }
 
-    LightPointer getCurrentKeyLight() const;
-    LightPointer getCurrentAmbientLight() const;
-    ShadowPointer getCurrentKeyShadow() const;
-    LightAndShadow getCurrentKeyLightAndShadow() const;
-
     LightStage();
 
     gpu::BufferPointer getLightArrayBuffer() const { return _lightArrayBuffer; }
@@ -184,6 +180,7 @@ public:
         LightStage::LightIndices _sunLights;
         LightStage::LightIndices _ambientLights;
     };
+    using FramePointer = std::shared_ptr<Frame>;
     
     Frame _currentFrame;
     
@@ -191,6 +188,11 @@ public:
     Index getPointOffLight() { return _pointOffLightId; }
     Index getSpotOffLight() { return _spotOffLightId; }
     Index getSunOffLight() { return _sunOffLightId; }
+
+    LightPointer getCurrentKeyLight(const LightStage::Frame& frame) const;
+    LightPointer getCurrentAmbientLight(const LightStage::Frame& frame) const;
+    ShadowPointer getCurrentKeyShadow(const LightStage::Frame& frame) const;
+    LightAndShadow getCurrentKeyLightAndShadow(const LightStage::Frame& frame) const;
 
 protected:
 

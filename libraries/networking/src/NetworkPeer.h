@@ -18,7 +18,9 @@
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
 
+#include "BandwidthRecorder.h"
 #include "HifiSockAddr.h"
+#include "UUID.h"
 
 const QString ICE_SERVER_HOSTNAME = "localhost";
 const quint16 ICE_SERVER_DEFAULT_PORT = 7337;
@@ -38,6 +40,12 @@ public:
 
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
+
+    using LocalID = NetworkLocalID;
+    static const LocalID NULL_LOCAL_ID = 0;
+
+    LocalID getLocalID() const { return _localID; }
+    void setLocalID(LocalID localID) { _localID = localID; }
 
     void softReset();
     void reset();
@@ -99,11 +107,14 @@ protected:
     void setActiveSocket(HifiSockAddr* discoveredSocket);
 
     QUuid _uuid;
+    LocalID _localID { 0 };
 
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
     HifiSockAddr _symmetricSocket;
     HifiSockAddr* _activeSocket;
+
+    mutable BandwidthRecorder _bandwidthRecorder;
 
     quint64 _wakeTimestamp;
     std::atomic_ullong _lastHeardMicrostamp;

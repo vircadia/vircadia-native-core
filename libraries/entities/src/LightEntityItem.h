@@ -35,7 +35,7 @@ public:
     virtual bool setSubClassProperties(const EntityItemProperties& properties) override;
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
@@ -52,17 +52,11 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    const rgbColor& getColor() const;
-    xColor getXColor() const;
-
-    void setColor(const rgbColor& value);
-    void setColor(const xColor& value);
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
 
     bool getIsSpotlight() const;
     void setIsSpotlight(bool value);
-
-    void setIgnoredColor(const rgbColor& value) { }
-    void setIgnoredAttenuation(float value) { }
 
     float getIntensity() const;
     void setIntensity(float value);
@@ -84,15 +78,19 @@ public:
     bool lightPropertiesChanged() const { return _lightPropertiesChanged; }
     void resetLightPropertiesChanged();
 
-    virtual bool supportsDetailedRayIntersection() const override { return true; }
+    virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                             OctreeElementPointer& element, float& distance,
+                            BoxFace& face, glm::vec3& surfaceNormal,
+                            QVariantMap& extraInfo, bool precisionPicking) const override;
+    virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                            const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
                             BoxFace& face, glm::vec3& surfaceNormal,
                             QVariantMap& extraInfo, bool precisionPicking) const override;
 
 private:
     // properties of a light
-    rgbColor _color;
+    glm::u8vec3 _color;
     bool _isSpotlight { DEFAULT_IS_SPOTLIGHT };
     float _intensity { DEFAULT_INTENSITY };
     float _falloffRadius { DEFAULT_FALLOFF_RADIUS };

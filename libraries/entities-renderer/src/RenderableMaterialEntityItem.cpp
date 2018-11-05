@@ -18,10 +18,13 @@ bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
     if (entity->getMaterial() != _drawMaterial) {
         return true;
     }
-    if (entity->getParentID() != _parentID || entity->getClientOnly() != _clientOnly || entity->getOwningAvatarID() != _owningAvatarID) {
+    if (entity->getParentID() != _parentID) {
         return true;
     }
     if (entity->getMaterialMappingPos() != _materialMappingPos || entity->getMaterialMappingScale() != _materialMappingScale || entity->getMaterialMappingRot() != _materialMappingRot) {
+        return true;
+    }
+    if (!_texturesLoaded) {
         return true;
     }
     return false;
@@ -29,10 +32,11 @@ bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
 
 void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     withWriteLock([&] {
-        _drawMaterial = entity->getMaterial();
+        if (_drawMaterial != entity->getMaterial()) {
+            _texturesLoaded = false;
+            _drawMaterial = entity->getMaterial();
+        }
         _parentID = entity->getParentID();
-        _clientOnly = entity->getClientOnly();
-        _owningAvatarID = entity->getOwningAvatarID();
         _materialMappingPos = entity->getMaterialMappingPos();
         _materialMappingScale = entity->getMaterialMappingScale();
         _materialMappingRot = entity->getMaterialMappingRot();
@@ -40,12 +44,18 @@ void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
         const float MATERIAL_ENTITY_SCALE = 0.5f;
         _renderTransform.postScale(MATERIAL_ENTITY_SCALE);
         _renderTransform.postScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
+
+        bool newTexturesLoaded = _drawMaterial ? !_drawMaterial->isMissingTexture() : false;
+        if (!_texturesLoaded && newTexturesLoaded) {
+            _drawMaterial->checkResetOpacityMap();
+        }
+        _texturesLoaded = newTexturesLoaded;
     });
 }
 
 ItemKey MaterialEntityRenderer::getKey() {
     ItemKey::Builder builder;
-    builder.withTypeShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+    builder.withTypeShape().withTagBits(getTagMask());
 
     if (!_visible) {
         builder.withInvisible();
@@ -102,7 +112,7 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     graphics::MaterialPointer drawMaterial;
     Transform textureTransform;
     withReadLock([&] {
-        parentID = _clientOnly ? _owningAvatarID : _parentID;
+        parentID = _parentID;
         renderTransform = _renderTransform;
         drawMaterial = _drawMaterial;
         textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0));
@@ -114,11 +124,14 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     }
 
     batch.setModelTransform(renderTransform);
-    drawMaterial->setTextureTransforms(textureTransform);
 
-    // bind the material
-    RenderPipelines::bindMaterial(drawMaterial, batch, args->_enableTexturing);
-    args->_details._materialSwitches++;
+    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+        drawMaterial->setTextureTransforms(textureTransform);
+
+        // bind the material
+        RenderPipelines::bindMaterial(drawMaterial, batch, args->_enableTexturing);
+        args->_details._materialSwitches++;
+    }
 
     // Draw!
     DependencyManager::get<GeometryCache>()->renderSphere(batch);

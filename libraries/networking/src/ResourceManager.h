@@ -28,12 +28,18 @@ class ResourceManager: public QObject, public Dependency {
 
 public:
     ResourceManager(bool atpSupportEnabled = true);
+    ~ResourceManager();
 
     void setUrlPrefixOverride(const QString& prefix, const QString& replacement);
     QString normalizeURL(const QString& urlString);
     QUrl normalizeURL(const QUrl& url);
 
-    ResourceRequest* createResourceRequest(QObject* parent, const QUrl& url);
+    ResourceRequest* createResourceRequest(
+        QObject* parent,
+        const QUrl& url,
+        const bool isObservable = true,
+        const qint64 callerId = -1,
+        const QString& extra = "");
 
     void init();
     void cleanup();

@@ -39,18 +39,20 @@ void QmlOverlay::buildQmlElement(const QUrl& url) {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->load(url, [=](QQmlContext* context, QObject* object) {
-        QQuickItem* rawPtr = dynamic_cast<QQuickItem*>(object);
-        // Create a shared ptr with a custom deleter lambda, that calls deleteLater
-        _qmlElement = std::shared_ptr<QQuickItem>(rawPtr, [](QQuickItem* ptr) {
-            if (ptr) {
-                ptr->deleteLater();
-            }
-        });
+        _qmlElement = dynamic_cast<QQuickItem*>(object);
+        connect(_qmlElement, &QObject::destroyed, this, &QmlOverlay::qmlElementDestroyed);
     });
 }
 
+void QmlOverlay::qmlElementDestroyed() {
+    _qmlElement = nullptr;
+}
+
 QmlOverlay::~QmlOverlay() {
-    _qmlElement.reset();
+    if (_qmlElement) {
+        _qmlElement->deleteLater();
+    }
+    _qmlElement = nullptr;
 }
 
 // QmlOverlay replaces Overlay's properties with those defined in the QML file used but keeps Overlay2D's properties.
@@ -62,15 +64,13 @@ void QmlOverlay::setProperties(const QVariantMap& properties) {
 
     Overlay2D::setProperties(properties);
     auto bounds = _bounds;
-    std::weak_ptr<QQuickItem> weakQmlElement = _qmlElement;
     // check to see if qmlElement still exists
-    auto qmlElement = weakQmlElement.lock();
-    if (qmlElement) {
-        qmlElement->setX(bounds.left());
-        qmlElement->setY(bounds.top());
-        qmlElement->setWidth(bounds.width());
-        qmlElement->setHeight(bounds.height());
-        QMetaObject::invokeMethod(qmlElement.get(), "updatePropertiesFromScript", Qt::DirectConnection, Q_ARG(QVariant, properties));
+    if (_qmlElement) {
+        _qmlElement->setX(bounds.left());
+        _qmlElement->setY(bounds.top());
+        _qmlElement->setWidth(bounds.width());
+        _qmlElement->setHeight(bounds.height());
+        QMetaObject::invokeMethod(_qmlElement, "updatePropertiesFromScript", Qt::DirectConnection, Q_ARG(QVariant, properties));
     }
 }
 

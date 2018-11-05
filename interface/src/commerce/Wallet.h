@@ -73,12 +73,13 @@ private slots:
     void handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
 private:
+    friend class Ledger;
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };
     QByteArray _salt;
     QByteArray _iv;
     QByteArray _ckey;
-    QString* _passphrase { new QString("") };
+    QString* _passphrase { nullptr };
     bool _isOverridingServer { false };
 
     bool writeWallet(const QString& newPassphrase = QString(""));
@@ -86,6 +87,9 @@ private:
     bool writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath);
     bool readSecurityImage(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
     bool writeBackupInstructions();
+
+    bool setWallet(const QByteArray& wallet);
+    QByteArray getWallet();
 
     void account();
 };

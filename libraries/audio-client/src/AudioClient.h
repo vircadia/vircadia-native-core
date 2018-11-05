@@ -64,6 +64,13 @@
 #pragma warning( pop )
 #endif
 
+#if defined (Q_OS_ANDROID)
+#define VOICE_RECOGNITION "voicerecognition"
+#define VOICE_COMMUNICATION "voicecommunication"
+
+#define SETTING_AEC_KEY "Android/aec"
+#endif
+
 class QAudioInput;
 class QAudioOutput;
 class QIODevice;
@@ -162,16 +169,20 @@ public:
 
     bool startRecording(const QString& filename);
     void stopRecording();
+    void setAudioPaused(bool pause);
 
 
 #ifdef Q_OS_WIN
     static QString getWinDeviceName(wchar_t* guid);
 #endif
 
+#if defined(Q_OS_ANDROID)
+    bool isHeadsetPluggedIn() { return _isHeadsetPluggedIn; }
+#endif
+
 public slots:
     void start();
     void stop();
-    void cleanupBeforeQuit();
 
     void handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message);
     void handleAudioDataPacket(QSharedPointer<ReceivedMessage> message);
@@ -189,13 +200,13 @@ public slots:
     void reset();
     void audioMixerKilled();
 
-    void toggleMute();
+    void setMuted(bool muted, bool emitSignal = true);
     bool isMuted() { return _muted; }
 
     virtual bool setIsStereoInput(bool stereo) override;
     virtual bool isStereoInput() override { return _isStereoInput; }
 
-    void setNoiseReduction(bool isNoiseGateEnabled);
+    void setNoiseReduction(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
 
     bool getLocalEcho() { return _shouldEchoLocally; }
@@ -217,8 +228,11 @@ public slots:
     bool switchAudioDevice(QAudio::Mode mode, const QAudioDeviceInfo& deviceInfo = QAudioDeviceInfo());
     bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
 
+    // Qt opensles plugin is not able to detect when the headset is plugged in
+    void setHeadsetPluggedIn(bool pluggedIn);
+
     float getInputVolume() const { return (_audioInput) ? (float)_audioInput->volume() : 0.0f; }
-    void setInputVolume(float volume);
+    void setInputVolume(float volume, bool emitSignal = true);
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
 
@@ -229,8 +243,8 @@ public slots:
 
 signals:
     void inputVolumeChanged(float volume);
-    void muteToggled();
-    void noiseReductionChanged();
+    void muteToggled(bool muted);
+    void noiseReductionChanged(bool noiseReductionEnabled);
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void inputLoudnessChanged(float loudness);
@@ -278,6 +292,7 @@ private:
 #ifdef Q_OS_ANDROID
     QTimer _checkInputTimer;
     long _inputReadsSinceLastCheck = 0l;
+    bool _isHeadsetPluggedIn;
 #endif
 
     class Gate {
@@ -417,6 +432,7 @@ private:
     QVector<AudioInjectorPointer> _activeLocalAudioInjectors;
 
     bool _isPlayingBackRecording { false };
+    bool _audioPaused { false };
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
@@ -431,7 +447,9 @@ private:
     bool _shouldRestartInputSetup { true }; // Should we restart the input device because of an unintended stop?
 #endif
     
+    Mutex _checkDevicesMutex;
     QTimer* _checkDevicesTimer { nullptr };
+    Mutex _checkPeakValuesMutex;
     QTimer* _checkPeakValuesTimer { nullptr };
 
     bool _isRecording { false };

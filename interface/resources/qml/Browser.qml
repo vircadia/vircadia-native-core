@@ -1,5 +1,4 @@
 import QtQuick 2.5
-import QtQuick.Controls 1.2
 import QtWebChannel 1.0
 import QtWebEngine 1.5
 
@@ -27,6 +26,7 @@ ScrollingWindow {
     y: 100
 
     Component.onCompleted: {
+        focus = true
         shown = true
         addressBar.text = webview.url
     }

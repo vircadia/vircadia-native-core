@@ -36,6 +36,7 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
 static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     glm::mat4 worldToSensorMat = glm::inverse(myAvatar->getSensorToWorldMatrix());
 
+
     // check for pinned hips.
     auto hipsIndex = myAvatar->getJointIndex("Hips");
     if (myAvatar->isJointPinned(hipsIndex)) {
@@ -45,7 +46,14 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         return result;
     }
 
-    glm::mat4 hipsMat = myAvatar->deriveBodyFromHMDSensor();
+    glm::mat4 hipsMat;
+    if (myAvatar->getCenterOfGravityModelEnabled() && !isFlying && !(myAvatar->getIsInWalkingState()) && !(myAvatar->getIsInSittingState()) && myAvatar->getHMDLeanRecenterEnabled()) {
+        // then we use center of gravity model
+        hipsMat = myAvatar->deriveBodyUsingCgModel();
+    } else {
+        // otherwise use the default of putting the hips under the head
+        hipsMat = myAvatar->deriveBodyFromHMDSensor();
+    }
     glm::vec3 hipsPos = extractTranslation(hipsMat);
     glm::quat hipsRot = glmExtractRotation(hipsMat);
 
@@ -53,14 +61,17 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     glm::mat4 avatarToSensorMat = worldToSensorMat * avatarToWorldMat;
 
     // dampen hips rotation, by mixing it with the avatar orientation in sensor space
-    const float MIX_RATIO = 0.5f;
-    hipsRot = safeLerp(glmExtractRotation(avatarToSensorMat), hipsRot, MIX_RATIO);
+    // turning this off for center of gravity model because it is already mixed in there
+    if (!(myAvatar->getCenterOfGravityModelEnabled())) {
+        const float MIX_RATIO = 0.5f;
+        hipsRot = safeLerp(glmExtractRotation(avatarToSensorMat), hipsRot, MIX_RATIO);
+    }
 
     if (isFlying) {
         // rotate the hips back to match the flying animation.
 
         const float TILT_ANGLE = 0.523f;
-        const glm::quat tiltRot = glm::angleAxis(TILT_ANGLE, transformVectorFast(avatarToSensorMat, -Vectors::UNIT_X));
+        const glm::quat tiltRot = glm::angleAxis(TILT_ANGLE, glm::normalize(transformVectorFast(avatarToSensorMat, -Vectors::UNIT_X)));
 
         glm::vec3 headPos;
         int headIndex = myAvatar->getJointIndex("Head");
@@ -73,12 +84,13 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         hipsPos = headPos + tiltRot * (hipsPos - headPos);
     }
 
+    // AJT: TODO can we remove this?
     return AnimPose(hipsRot * Quaternions::Y_180, hipsPos);
 }
 
 // Called within Model::simulate call, below.
 void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMGeometry& geometry = getHFMGeometry();
 
     Head* head = _owningAvatar->getHead();
 
@@ -97,6 +109,11 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     Rig::ControllerParameters params;
 
     AnimPose avatarToRigPose(glm::vec3(1.0f), Quaternions::Y_180, glm::vec3(0.0f));
+
+    glm::mat4 rigToAvatarMatrix = Matrices::Y_180;
+    glm::mat4 avatarToWorldMatrix = createMatFromQuatAndPos(myAvatar->getWorldOrientation(), myAvatar->getWorldPosition());
+    glm::mat4 sensorToWorldMatrix = myAvatar->getSensorToWorldMatrix();
+    params.rigToSensorMatrix = glm::inverse(sensorToWorldMatrix) * avatarToWorldMatrix * rigToAvatarMatrix;
 
     // input action is the highest priority source for head orientation.
     auto avatarHeadPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HEAD);
@@ -170,37 +187,80 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         }
     }
 
+    bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS);
+    if (isFlying != _prevIsFlying) {
+        const float FLY_TO_IDLE_HIPS_TRANSITION_TIME = 0.5f;
+        _flyIdleTimer = FLY_TO_IDLE_HIPS_TRANSITION_TIME;
+    } else {
+        _flyIdleTimer -= deltaTime;
+    }
+    _prevIsFlying = isFlying;
+
     // if hips are not under direct control, estimate the hips position.
     if (avatarHeadPose.isValid() && !(params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] & (uint8_t)Rig::ControllerFlags::Enabled)) {
         bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS);
 
-        if (!_prevHipsValid) {
-            AnimPose hips = computeHipsInSensorFrame(myAvatar, isFlying);
-            _prevHips = hips;
+        // timescale in seconds
+        const float TRANS_HORIZ_TIMESCALE = 0.15f;
+        const float TRANS_VERT_TIMESCALE = 0.01f; // We want the vertical component of the hips to follow quickly to prevent spine squash/stretch.
+        const float ROT_TIMESCALE = 0.15f;
+        const float FLY_IDLE_TRANSITION_TIMESCALE = 0.25f;
+
+        if (_flyIdleTimer < 0.0f) {
+            _smoothHipsHelper.setHorizontalTranslationTimescale(TRANS_HORIZ_TIMESCALE);
+            _smoothHipsHelper.setVerticalTranslationTimescale(TRANS_VERT_TIMESCALE);
+            _smoothHipsHelper.setRotationTimescale(ROT_TIMESCALE);
+        } else {
+            _smoothHipsHelper.setHorizontalTranslationTimescale(FLY_IDLE_TRANSITION_TIMESCALE);
+            _smoothHipsHelper.setVerticalTranslationTimescale(FLY_IDLE_TRANSITION_TIMESCALE);
+            _smoothHipsHelper.setRotationTimescale(FLY_IDLE_TRANSITION_TIMESCALE);
         }
 
-        AnimPose hips = computeHipsInSensorFrame(myAvatar, isFlying);
-
-        // smootly lerp hips, in sensorframe, with different coeff for horiz and vertical translation.
-        const float ROT_ALPHA = 0.9f;
-        const float TRANS_HORIZ_ALPHA = 0.9f;
-        const float TRANS_VERT_ALPHA = 0.1f;
-        float hipsY = hips.trans().y;
-        hips.trans() = lerp(hips.trans(), _prevHips.trans(), TRANS_HORIZ_ALPHA);
-        hips.trans().y = lerp(hipsY, _prevHips.trans().y, TRANS_VERT_ALPHA);
-        hips.rot() = safeLerp(hips.rot(), _prevHips.rot(), ROT_ALPHA);
-
-        _prevHips = hips;
-        _prevHipsValid = true;
+        AnimPose sensorHips = computeHipsInSensorFrame(myAvatar, isFlying);
+        if (!_prevIsEstimatingHips) {
+            _smoothHipsHelper.teleport(sensorHips);
+        }
+        sensorHips = _smoothHipsHelper.update(sensorHips, deltaTime);
 
         glm::mat4 invRigMat = glm::inverse(myAvatar->getTransform().getMatrix() * Matrices::Y_180);
         AnimPose sensorToRigPose(invRigMat * myAvatar->getSensorToWorldMatrix());
 
-        params.primaryControllerPoses[Rig::PrimaryControllerType_Hips] = sensorToRigPose * hips;
+        params.primaryControllerPoses[Rig::PrimaryControllerType_Hips] = sensorToRigPose * sensorHips;
         params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
 
+        // set spine2 if we have hand controllers
+        if (myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid() &&
+            myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() &&
+            !(params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] & (uint8_t)Rig::ControllerFlags::Enabled)) {
+
+            AnimPose currentSpine2Pose;
+            AnimPose currentHeadPose;
+            AnimPose currentHipsPose;
+            bool spine2Exists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Spine2"), currentSpine2Pose);
+            bool headExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Head"), currentHeadPose);
+            bool hipsExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Hips"), currentHipsPose);
+            if (spine2Exists && headExists && hipsExists) {
+
+                AnimPose rigSpaceYaw(myAvatar->getSpine2RotationRigSpace());
+                glm::vec3 u, v, w;
+                glm::vec3 fwd = rigSpaceYaw.rot() * glm::vec3(0.0f, 0.0f, 1.0f);
+                glm::vec3 up = currentHeadPose.trans() - currentHipsPose.trans();
+                if (glm::length(up) > 0.0f) {
+                    up = glm::normalize(up);
+                } else {
+                    up = glm::vec3(0.0f, 1.0f, 0.0f);
+                }
+                generateBasisVectors(up, fwd, u, v, w);
+                AnimPose newSpinePose(glm::mat4(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f)));
+                currentSpine2Pose.rot() = newSpinePose.rot();
+                params.primaryControllerPoses[Rig::PrimaryControllerType_Spine2] = currentSpine2Pose;
+                params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
+            }
+        }
+
+        _prevIsEstimatingHips = true;
     } else {
-        _prevHipsValid = false;
+        _prevIsEstimatingHips = false;
     }
 
     params.isTalking = head->getTimeWithoutTalking() <= 1.5f;
@@ -230,7 +290,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     auto velocity = myAvatar->getLocalVelocity() / myAvatar->getSensorToWorldScale();
     auto position = myAvatar->getLocalPosition();
     auto orientation = myAvatar->getLocalOrientation();
-    _rig.computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
+    _rig.computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState, myAvatar->getSensorToWorldScale());
 
     // evaluate AnimGraph animation and update jointStates.
     Model::updateRig(deltaTime, parentTransform);

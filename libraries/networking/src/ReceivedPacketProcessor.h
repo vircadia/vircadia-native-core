@@ -14,7 +14,11 @@
 
 #include <QWaitCondition>
 
+#include "NodeList.h"
+
 #include "GenericThread.h"
+
+class ReceivedMessage;
 
 /// Generalized threaded processor for handling received inbound packets.
 class ReceivedPacketProcessor : public GenericThread {

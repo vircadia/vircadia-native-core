@@ -8,120 +8,358 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 #
 
-function(AUTOSCRIBE_SHADER SHADER_FILE)
-  # Grab include files
-  foreach(includeFile  ${ARGN})
-    list(APPEND SHADER_INCLUDE_FILES ${includeFile})
-  endforeach()
+# FIXME use the built tools 
 
-  foreach(SHADER_INCLUDE ${SHADER_INCLUDE_FILES})
-    get_filename_component(INCLUDE_DIR ${SHADER_INCLUDE} PATH)
-    list(APPEND SHADER_INCLUDES_PATHS ${INCLUDE_DIR})
-  endforeach()
+macro(AUTOSCRIBE_APPEND_QRC)
+    string(CONCAT SHADER_QRC "${SHADER_QRC}" "<file alias=\"${ARGV0}\">${ARGV1}</file>\n")
+endmacro()
 
-  #Extract the unique include shader paths
-  set(INCLUDES ${HIFI_LIBRARIES_SHADER_INCLUDE_FILES})
-  #message(${TARGET_NAME} Hifi for includes ${INCLUDES})
-  foreach(EXTRA_SHADER_INCLUDE ${INCLUDES})
-    list(APPEND SHADER_INCLUDES_PATHS ${EXTRA_SHADER_INCLUDE})
-  endforeach()
+set(VULKAN_DIR $ENV{VULKAN_SDK})
+set(GLSLANG_EXEC  "${VULKAN_DIR}/Bin/glslangValidator.exe")
+set(SPIRV_CROSS_EXEC  "${VULKAN_DIR}/Bin/spirv-cross.exe")
+set(SPIRV_OPT_EXEC  "${VULKAN_DIR}/Bin/spirv-opt.exe")
+set(GLSLC_EXEC  "${VULKAN_DIR}/Bin/glslc.exe")
+set(SCRIBE_EXEC "D:/scribe.exe")
 
-  list(REMOVE_DUPLICATES SHADER_INCLUDES_PATHS)
-  #message(ready for includes ${SHADER_INCLUDES_PATHS})
+macro(AUTOSCRIBE_PLATFORM_SHADER)
+    set(AUTOSCRIBE_PLATFORM_PATH "${ARGV0}")
+    string(REGEX MATCH "([0-9]+(es)?)(/stereo)?" PLATFORM_PATH_REGEX ${AUTOSCRIBE_PLATFORM_PATH})
+    set(AUTOSCRIBE_DIALECT "${CMAKE_MATCH_1}")
+    if (CMAKE_MATCH_3)
+        set(AUTOSCRIBE_VARIANT "stereo")
+    else()
+        set(AUTOSCRIBE_VARIANT "mono")
+    endif()
+    string(REGEX REPLACE "/" "\\\\" SOURCE_GROUP_PATH ${AUTOSCRIBE_PLATFORM_PATH})
+    set(SOURCE_GROUP_PATH "${SHADER_LIB}\\${SOURCE_GROUP_PATH}")
+    set(AUTOSCRIBE_DIALECT_HEADER "${AUTOSCRIBE_HEADER_DIR}/${AUTOSCRIBE_DIALECT}/header.glsl")
+    set(AUTOSCRIBE_VARIANT_HEADER "${AUTOSCRIBE_HEADER_DIR}/${AUTOSCRIBE_VARIANT}.glsl")
 
-  # make the scribe include arguments
-  set(SCRIBE_INCLUDES)
-  foreach(INCLUDE_PATH ${SHADER_INCLUDES_PATHS})
-    set(SCRIBE_INCLUDES ${SCRIBE_INCLUDES} -I ${INCLUDE_PATH}/)
-  endforeach()
+    set(AUTOSCRIBE_OUTPUT_FILE "${SHADERS_DIR}/${SHADER_LIB}/${AUTOSCRIBE_PLATFORM_PATH}/${SHADER_NAME}.${SHADER_TYPE}")
+    AUTOSCRIBE_APPEND_QRC("${SHADER_COUNT}/${AUTOSCRIBE_PLATFORM_PATH}/scribe" "${AUTOSCRIBE_OUTPUT_FILE}")
+    source_group(${SOURCE_GROUP_PATH} FILES ${AUTOSCRIBE_OUTPUT_FILE})
+    set_property(SOURCE ${AUTOSCRIBE_OUTPUT_FILE} PROPERTY SKIP_AUTOMOC ON)
+    list(APPEND SCRIBED_SHADERS ${AUTOSCRIBE_OUTPUT_FILE})
 
-  # Define the final name of the generated shader file
-  get_filename_component(SHADER_TARGET ${SHADER_FILE} NAME_WE)
-  get_filename_component(SHADER_EXT ${SHADER_FILE} EXT)
-  if(SHADER_EXT STREQUAL .slv)
-    set(SHADER_TYPE vert)
-  elseif(${SHADER_EXT} STREQUAL .slf)
-    set(SHADER_TYPE frag)
-  elseif(${SHADER_EXT} STREQUAL .slg)
-    set(SHADER_TYPE geom)
-  endif()
-  set(SHADER_TARGET ${SHADER_TARGET}_${SHADER_TYPE})
+    set(AUTOSCRIBE_SPIRV_FILE "${AUTOSCRIBE_OUTPUT_FILE}.spv")
+    # don't add unoptimized spirv to the QRC
+    #AUTOSCRIBE_APPEND_QRC("${SHADER_COUNT}/${AUTOSCRIBE_PLATFORM_PATH}/spirv_unopt" "${AUTOSCRIBE_SPIRV_FILE}")
+    source_group(${SOURCE_GROUP_PATH} FILES ${AUTOSCRIBE_SPIRV_FILE})
+    set_property(SOURCE ${AUTOSCRIBE_SPIRV_FILE} PROPERTY SKIP_AUTOMOC ON)
+    list(APPEND SPIRV_SHADERS ${AUTOSCRIBE_SPIRV_FILE})
 
-  set(SHADER_TARGET "${SHADERS_DIR}/${SHADER_TARGET}")
-  set(SHADER_TARGET_HEADER ${SHADER_TARGET}.h)
-  set(SHADER_TARGET_SOURCE ${SHADER_TARGET}.cpp)
-  set(SCRIBE_COMMAND scribe)
+    set(AUTOSCRIBE_SPIRV_OPT_FILE "${AUTOSCRIBE_OUTPUT_FILE}.opt.spv")
+    AUTOSCRIBE_APPEND_QRC("${SHADER_COUNT}/${AUTOSCRIBE_PLATFORM_PATH}/spirv" "${AUTOSCRIBE_SPIRV_OPT_FILE}")
+    source_group(${SOURCE_GROUP_PATH} FILES ${AUTOSCRIBE_SPIRV_OPT_FILE})
+    set_property(SOURCE ${AUTOSCRIBE_SPIRV_OPT_FILE} PROPERTY SKIP_AUTOMOC ON)
+    list(APPEND SPIRV_SHADERS ${AUTOSCRIBE_SPIRV_OPT_FILE})
 
-  # Target dependant Custom rule on the SHADER_FILE
-  if (APPLE)
-    set(GLPROFILE MAC_GL)
-  elseif (ANDROID)
-    set(GLPROFILE LINUX_GL)
-    set(SCRIBE_COMMAND ${NATIVE_SCRIBE})
-  elseif (UNIX)
-    set(GLPROFILE LINUX_GL)
-  else ()
-    set(GLPROFILE PC_GL)
-  endif()
-  set(SCRIBE_ARGS -c++ -T ${SHADER_TYPE} -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
-  add_custom_command(
-    OUTPUT ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} 
-    COMMAND ${SCRIBE_COMMAND} ${SCRIBE_ARGS} 
-    DEPENDS ${SCRIBE_COMMAND} ${SHADER_INCLUDE_FILES} ${SHADER_FILE}
-  )
+    set(AUTOSCRIBE_SPIRV_GLSL_FILE "${AUTOSCRIBE_OUTPUT_FILE}.glsl")
+    AUTOSCRIBE_APPEND_QRC("${SHADER_COUNT}/${AUTOSCRIBE_PLATFORM_PATH}/glsl" "${AUTOSCRIBE_SPIRV_GLSL_FILE}")
+    source_group(${SOURCE_GROUP_PATH} FILES ${AUTOSCRIBE_SPIRV_GLSL_FILE})
+    set_property(SOURCE ${AUTOSCRIBE_SPIRV_GLSL_FILE} PROPERTY SKIP_AUTOMOC ON)
+    list(APPEND SPIRV_SHADERS ${AUTOSCRIBE_SPIRV_GLSL_FILE})
 
-  #output the generated file name
-  set(AUTOSCRIBE_SHADER_RETURN ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} PARENT_SCOPE)
+    set(AUTOSCRIBE_SPIRV_JSON_FILE "${AUTOSCRIBE_OUTPUT_FILE}.json")
+    AUTOSCRIBE_APPEND_QRC("${SHADER_COUNT}/${AUTOSCRIBE_PLATFORM_PATH}/json" "${AUTOSCRIBE_SPIRV_JSON_FILE}")
+    source_group(${SOURCE_GROUP_PATH} FILES ${AUTOSCRIBE_SPIRV_JSON_FILE})
+    set_property(SOURCE ${AUTOSCRIBE_SPIRV_JSON_FILE} PROPERTY SKIP_AUTOMOC ON)
+    list(APPEND REFLECTED_SHADERS ${AUTOSCRIBE_SPIRV_JSON_FILE})
 
-  file(GLOB INCLUDE_FILES ${SHADER_TARGET_HEADER})
+    unset(SHADER_GEN_LINE)
+    list(APPEND SHADER_GEN_LINE ${AUTOSCRIBE_DIALECT})
+    list(APPEND SHADER_GEN_LINE ${AUTOSCRIBE_VARIANT})
+    file(RELATIVE_PATH TEMP_PATH ${CMAKE_SOURCE_DIR} ${SHADER_FILE})
+    list(APPEND SHADER_GEN_LINE ${TEMP_PATH})
+    file(RELATIVE_PATH TEMP_PATH ${CMAKE_SOURCE_DIR} ${AUTOSCRIBE_OUTPUT_FILE})
+    list(APPEND SHADER_GEN_LINE ${TEMP_PATH})
+    list(APPEND SHADER_GEN_LINE ${AUTOSCRIBE_SHADER_SEEN_LIBS})
+    string(CONCAT AUTOSCRIBE_SHADERGEN_COMMANDS "${AUTOSCRIBE_SHADERGEN_COMMANDS}" "${SHADER_GEN_LINE}\n")
 
-endfunction()
+    # # FIXME need better mechanism for determining the include files
+    # add_custom_command(
+    #     OUTPUT ${AUTOSCRIBE_OUTPUT_FILE}
+    #     COMMAND ${SCRIBE_COMMAND} ${SHADER_FILE} ${SCRIBE_ARGS} -o ${AUTOSCRIBE_OUTPUT_FILE} -h ${AUTOSCRIBE_DIALECT_HEADER} -h ${AUTOSCRIBE_VARIANT_HEADER}
+    #     DEPENDS ${SCRIBE_COMMAND} ${SHADER_FILE} ${AUTOSCRIBE_DIALECT_HEADER} ${AUTOSCRIBE_VARIANT_HEADER})
 
+    # # Generate the spirv file
+    # add_custom_command(
+    #     OUTPUT ${AUTOSCRIBE_SPIRV_FILE}
+    #     COMMAND ${GLSLANG_EXEC} -V110 -o ${AUTOSCRIBE_SPIRV_FILE} ${AUTOSCRIBE_OUTPUT_FILE}
+    #     DEPENDS ${AUTOSCRIBE_OUTPUT_FILE} ${GLSLANG_EXEC})
+
+    # # Generate the optimized spirv file
+    # add_custom_command(
+    #     OUTPUT ${AUTOSCRIBE_SPIRV_OPT_FILE}
+    #     COMMAND ${SPIRV_OPT_EXEC} -O ${AUTOSCRIBE_SPIRV_FILE} -o ${AUTOSCRIBE_SPIRV_OPT_FILE} 
+    #     DEPENDS ${AUTOSCRIBE_SPIRV_FILE} ${SPIRV_OPT_EXEC})
+
+    # # Generate the optimized GLSL file
+    # add_custom_command(
+    #     OUTPUT ${AUTOSCRIBE_SPIRV_GLSL_FILE}
+    #     COMMAND ${SPIRV_CROSS_EXEC} ${SPIRV_CROSS_ARGS} ${AUTOSCRIBE_SPIRV_OPT_FILE} --output ${AUTOSCRIBE_SPIRV_GLSL_FILE} 
+    #     DEPENDS ${AUTOSCRIBE_SPIRV_OPT_FILE} ${SPIRV_CROSS_EXEC})
+
+    # # Generate the optimized spirv file
+    # add_custom_command(
+    #     OUTPUT ${AUTOSCRIBE_SPIRV_JSON_FILE}
+    #     COMMAND ${SPIRV_CROSS_EXEC} --reflect json ${AUTOSCRIBE_SPIRV_OPT_FILE} --output ${AUTOSCRIBE_SPIRV_JSON_FILE} 
+    #     DEPENDS ${AUTOSCRIBE_SPIRV_OPT_FILE} ${SPIRV_CROSS_EXEC})
+endmacro()
+
+macro(AUTOSCRIBE_SHADER)
+    #
+    # Set the include paths
+    #
+    # FIXME base the include paths off of output from the scribe tool,
+    # instead of treating every previously seen shader as a possible header
+    unset(SHADER_INCLUDE_FILES)
+    foreach(includeFile  ${ARGN})
+        list(APPEND SHADER_INCLUDE_FILES ${includeFile})
+    endforeach()
+    foreach(SHADER_INCLUDE ${SHADER_INCLUDE_FILES})
+        get_filename_component(INCLUDE_DIR ${SHADER_INCLUDE} PATH)
+        list(APPEND SHADER_INCLUDES_PATHS ${INCLUDE_DIR})
+    endforeach()
+    set(INCLUDES ${HIFI_LIBRARIES_SHADER_INCLUDE_FILES})
+    foreach(EXTRA_SHADER_INCLUDE ${INCLUDES})
+        list(APPEND SHADER_INCLUDES_PATHS ${EXTRA_SHADER_INCLUDE})
+    endforeach()
+    list(REMOVE_DUPLICATES SHADER_INCLUDES_PATHS)
+    unset(SCRIBE_INCLUDES)
+    foreach(INCLUDE_PATH ${SHADER_INCLUDES_PATHS})
+        set(SCRIBE_INCLUDES ${SCRIBE_INCLUDES} -I ${INCLUDE_PATH}/)
+    endforeach()
+
+    #
+    # Figure out the various output names
+    #
+    # Define the final name of the generated shader file
+    get_filename_component(SHADER_NAME ${SHADER_FILE} NAME_WE)
+    get_filename_component(SHADER_EXT ${SHADER_FILE} EXT)
+    if(SHADER_EXT STREQUAL .slv)
+        set(SHADER_TYPE vert)
+    elseif(${SHADER_EXT} STREQUAL .slf)
+        set(SHADER_TYPE frag)
+    elseif(${SHADER_EXT} STREQUAL .slg)
+        set(SHADER_TYPE geom)
+    endif()
+
+    set(SCRIBE_ARGS -D GLPROFILE ${GLPROFILE} -T ${SHADER_TYPE} ${SCRIBE_INCLUDES} )
+
+    # SHADER_SCRIBED -> the output of scribe
+    set(SHADER_SCRIBED "${SHADERS_DIR}/${SHADER_LIB}/${SHADER_NAME}.${SHADER_TYPE}")
+
+    # SHADER_NAME_FILE -> a file containing the shader name and extension (useful for debugging and for 
+    # determining the type of shader from the filename)
+    set(SHADER_NAME_FILE "${SHADER_SCRIBED}.name")
+    file(TO_CMAKE_PATH "${SHADER_SCRIBED}" SHADER_SCRIBED)
+    file(WRITE "${SHADER_SCRIBED}.name" "${SHADER_NAME}.${SHADER_TYPE}")
+    AUTOSCRIBE_APPEND_QRC("${SHADER_COUNT}/name" "${SHADER_NAME_FILE}")
+
+    if (USE_GLES)
+        set(SPIRV_CROSS_ARGS --version 310es)
+        AUTOSCRIBE_PLATFORM_SHADER("310es")
+        AUTOSCRIBE_PLATFORM_SHADER("310es/stereo")
+    else()
+        set(SPIRV_CROSS_ARGS --version 410 --no-420pack-extension)
+        AUTOSCRIBE_PLATFORM_SHADER("410")
+        AUTOSCRIBE_PLATFORM_SHADER("410/stereo")
+        if (NOT APPLE)
+            set(SPIRV_CROSS_ARGS --version 450)
+            AUTOSCRIBE_PLATFORM_SHADER("450")
+            AUTOSCRIBE_PLATFORM_SHADER("450/stereo")
+        endif()
+    endif()
+
+    string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "${SHADER_NAME} = ${SHADER_COUNT},\n")
+    string(CONCAT SHADER_SHADERS_ARRAY  "${SHADER_SHADERS_ARRAY}" "${SHADER_COUNT},\n")
+    MATH(EXPR SHADER_COUNT "${SHADER_COUNT}+1")
+endmacro()
 
 macro(AUTOSCRIBE_SHADER_LIB)
-  set(HIFI_LIBRARIES_SHADER_INCLUDE_FILES "")
-  file(RELATIVE_PATH RELATIVE_LIBRARY_DIR_PATH ${CMAKE_CURRENT_SOURCE_DIR} "${HIFI_LIBRARY_DIR}")
-  foreach(HIFI_LIBRARY ${ARGN})
-    #if (NOT TARGET ${HIFI_LIBRARY})
-    #  file(GLOB_RECURSE HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}/src/)
-    #endif ()
+    if (NOT ("${TARGET_NAME}" STREQUAL "shaders"))
+        message(FATAL_ERROR "AUTOSCRIBE_SHADER_LIB can only be used by the shaders library")
+    endif()
 
-    #file(GLOB_RECURSE HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src/*.slh)
-    list(APPEND HIFI_LIBRARIES_SHADER_INCLUDE_FILES ${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src)
-  endforeach()
-  #message("${TARGET_NAME} ${HIFI_LIBRARIES_SHADER_INCLUDE_FILES}")
+    file(MAKE_DIRECTORY "${SHADERS_DIR}/${SHADER_LIB}")
 
-  file(GLOB_RECURSE SHADER_INCLUDE_FILES src/*.slh)
-  file(GLOB_RECURSE SHADER_SOURCE_FILES src/*.slv src/*.slf src/*.slg)
+    list(APPEND HIFI_LIBRARIES_SHADER_INCLUDE_FILES "${CMAKE_SOURCE_DIR}/libraries/${SHADER_LIB}/src") 
+    string(REGEX REPLACE "[-]" "_" SHADER_NAMESPACE ${SHADER_LIB})
+    string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "namespace ${SHADER_NAMESPACE} {\n")
+    set(SRC_FOLDER "${CMAKE_SOURCE_DIR}/libraries/${ARGN}/src")
 
-  #make the shader folder
-  set(SHADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders/${TARGET_NAME}")
-  file(MAKE_DIRECTORY ${SHADERS_DIR})
+    # Process the scribe headers
+    file(GLOB_RECURSE SHADER_INCLUDE_FILES ${SRC_FOLDER}/*.slh)
+    if(SHADER_INCLUDE_FILES)
+        source_group("${SHADER_LIB}/Headers" FILES ${SHADER_INCLUDE_FILES})
+        list(APPEND ALL_SHADER_HEADERS ${SHADER_INCLUDE_FILES})
+        list(APPEND ALL_SCRIBE_SHADERS ${SHADER_INCLUDE_FILES})
+    endif()
 
-  #message("${TARGET_NAME} ${SHADER_INCLUDE_FILES}")
-  set(AUTOSCRIBE_SHADER_SRC "")
-  foreach(SHADER_FILE ${SHADER_SOURCE_FILES})
-    AUTOSCRIBE_SHADER(${SHADER_FILE} ${SHADER_INCLUDE_FILES})
-    file(TO_CMAKE_PATH "${AUTOSCRIBE_SHADER_RETURN}" AUTOSCRIBE_GENERATED_FILE)
-    set_property(SOURCE ${AUTOSCRIBE_GENERATED_FILE} PROPERTY SKIP_AUTOMOC ON)
-    list(APPEND AUTOSCRIBE_SHADER_SRC ${AUTOSCRIBE_GENERATED_FILE})
-  endforeach()
-  #message(${TARGET_NAME} ${AUTOSCRIBE_SHADER_SRC})
+    file(GLOB_RECURSE SHADER_VERTEX_FILES ${SRC_FOLDER}/*.slv)
+    if (SHADER_VERTEX_FILES)
+        source_group("${SHADER_LIB}/Vertex" FILES ${SHADER_VERTEX_FILES})
+        list(APPEND ALL_SCRIBE_SHADERS ${SHADER_VERTEX_FILES})
+        string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "namespace vertex { enum {\n")
+        foreach(SHADER_FILE ${SHADER_VERTEX_FILES}) 
+            AUTOSCRIBE_SHADER(${ALL_SHADER_HEADERS})
+        endforeach()
+        string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "}; } // vertex \n")
+    endif()
 
-  if (WIN32)
-    source_group("Shaders" FILES ${SHADER_INCLUDE_FILES})
-    source_group("Shaders" FILES ${SHADER_SOURCE_FILES})
-    source_group("Shaders\\generated" FILES ${AUTOSCRIBE_SHADER_SRC})
-  endif()
+    file(GLOB_RECURSE SHADER_FRAGMENT_FILES ${SRC_FOLDER}/*.slf)
+    if (SHADER_FRAGMENT_FILES)
+        source_group("${SHADER_LIB}/Fragment" FILES ${SHADER_FRAGMENT_FILES})
+        list(APPEND ALL_SCRIBE_SHADERS ${SHADER_FRAGMENT_FILES})
+        string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "namespace fragment { enum {\n")
+        foreach(SHADER_FILE ${SHADER_FRAGMENT_FILES}) 
+            AUTOSCRIBE_SHADER(${ALL_SHADER_HEADERS})
+        endforeach()
+        string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "}; } // fragment \n")
+    endif()
+    
+    # FIXME add support for geometry, compute and tesselation shaders
+    #file(GLOB_RECURSE SHADER_GEOMETRY_FILES ${SRC_FOLDER}/*.slg)
+    #file(GLOB_RECURSE SHADER_COMPUTE_FILES ${SRC_FOLDER}/*.slc)
 
-  list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${SHADER_INCLUDE_FILES})
-  list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${SHADER_SOURCE_FILES})
-  list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${AUTOSCRIBE_SHADER_SRC})
+    # the programs
+    file(GLOB_RECURSE SHADER_PROGRAM_FILES ${SRC_FOLDER}/*.slp)
+    if (SHADER_PROGRAM_FILES)
+        source_group("${SHADER_LIB}/Program" FILES ${SHADER_PROGRAM_FILES})
+        list(APPEND ALL_SCRIBE_SHADERS ${SHADER_PROGRAM_FILES})
+        string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "namespace program { enum {\n")
+        foreach(PROGRAM_FILE ${SHADER_PROGRAM_FILES})
+            get_filename_component(PROGRAM_NAME ${PROGRAM_FILE} NAME_WE)
+            set(AUTOSCRIBE_PROGRAM_FRAGMENT ${PROGRAM_NAME})
+            file(READ ${PROGRAM_FILE} PROGRAM_CONFIG)
+            set(AUTOSCRIBE_PROGRAM_VERTEX ${PROGRAM_NAME})
+            set(AUTOSCRIBE_PROGRAM_FRAGMENT ${PROGRAM_NAME})
 
-  # Link library shaders, if they exist
-  include_directories("${SHADERS_DIR}")
+            if (NOT("${PROGRAM_CONFIG}" STREQUAL ""))
+                string(REGEX MATCH ".*VERTEX +([_\\:A-Z0-9a-z]+)" MVERT ${PROGRAM_CONFIG})
+                if (CMAKE_MATCH_1)
+                    set(AUTOSCRIBE_PROGRAM_VERTEX ${CMAKE_MATCH_1})
+                endif()
+                string(REGEX MATCH ".*FRAGMENT +([_:A-Z0-9a-z]+)" MFRAG ${PROGRAM_CONFIG})
+                if (CMAKE_MATCH_1)
+                    set(AUTOSCRIBE_PROGRAM_FRAGMENT ${CMAKE_MATCH_1})
+                endif()
+            endif()
 
-  # Add search directory to find gpu/Shader.h
-  include_directories("${HIFI_LIBRARY_DIR}/gpu/src")
+            if (NOT (${AUTOSCRIBE_PROGRAM_VERTEX} MATCHES ".*::.*"))
+                set(AUTOSCRIBE_PROGRAM_VERTEX "vertex::${AUTOSCRIBE_PROGRAM_VERTEX}")
+            endif()
+            if (NOT (${AUTOSCRIBE_PROGRAM_FRAGMENT} MATCHES ".*::.*"))
+                set(AUTOSCRIBE_PROGRAM_FRAGMENT "fragment::${AUTOSCRIBE_PROGRAM_FRAGMENT}")
+            endif()
 
+            set(PROGRAM_ENTRY "${PROGRAM_NAME} = (${AUTOSCRIBE_PROGRAM_VERTEX} << 16) |  ${AUTOSCRIBE_PROGRAM_FRAGMENT},\n")
+            string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "${PROGRAM_ENTRY}")
+            string(CONCAT SHADER_PROGRAMS_ARRAY "${SHADER_PROGRAMS_ARRAY} ${SHADER_NAMESPACE}::program::${PROGRAM_NAME},\n")
+        endforeach()
+        string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "}; } // program \n")
+    endif()
+
+    # Finish the shader enums 
+    string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "} // namespace ${SHADER_NAMESPACE}\n")
 endmacro()
+
+macro(AUTOSCRIBE_SHADER_LIBS)
+    message(STATUS "Shader processing start")
+    set(AUTOSCRIBE_HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+    # Start the shader IDs
+    set(SHADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
+    file(MAKE_DIRECTORY ${SHADERS_DIR})
+    set(SHADER_ENUMS "")
+    set(SHADER_COUNT 1)
+
+    #
+    # Scribe generation & program defintiion
+    # 
+    foreach(SHADER_LIB ${ARGN})
+        list(APPEND AUTOSCRIBE_SHADER_SEEN_LIBS ${SHADER_LIB})
+        AUTOSCRIBE_SHADER_LIB(${SHADER_LIB})
+    endforeach()
+
+    # Generate the library files
+    configure_file(
+        ShaderEnums.cpp.in 
+        ${CMAKE_CURRENT_BINARY_DIR}/ShaderEnums.cpp)
+    configure_file(
+        ShaderEnums.h.in 
+        ${CMAKE_CURRENT_BINARY_DIR}/ShaderEnums.h)
+
+    configure_file(shaders.qrc.in ${CMAKE_CURRENT_BINARY_DIR}/shaders.qrc)
+    list(APPEND QT_RESOURCES_FILE ${CMAKE_CURRENT_BINARY_DIR}/shaders.qrc)
+
+    list(APPEND AUTOSCRIBE_SHADER_HEADERS ${AUTOSCRIBE_HEADER_DIR}/mono.glsl ${AUTOSCRIBE_HEADER_DIR}/stereo.glsl)
+    list(APPEND AUTOSCRIBE_SHADER_HEADERS ${AUTOSCRIBE_HEADER_DIR}/450/header.glsl ${AUTOSCRIBE_HEADER_DIR}/410/header.glsl ${AUTOSCRIBE_HEADER_DIR}/310es/header.glsl)
+    source_group("Shader Headers" FILES ${AUTOSCRIBE_HEADER_DIR}/mono.glsl ${AUTOSCRIBE_HEADER_DIR}/stereo.glsl)
+    source_group("Shader Headers\\450" FILES ${AUTOSCRIBE_HEADER_DIR}/450/header.glsl)
+    source_group("Shader Headers\\410" FILES ${AUTOSCRIBE_HEADER_DIR}/410/header.glsl)
+    source_group("Shader Headers\\310es" FILES ${AUTOSCRIBE_HEADER_DIR}/310es/header.glsl)
+
+    list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${AUTOSCRIBE_SHADER_HEADERS})
+    list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${CMAKE_CURRENT_BINARY_DIR}/ShaderEnums.h ${CMAKE_CURRENT_BINARY_DIR}/ShaderEnums.cpp)
+    
+    # Write the shadergen command list
+    set(AUTOSCRIBE_SHADERGEN_COMMANDS_FILE ${CMAKE_CURRENT_BINARY_DIR}/shadergen.txt)
+    file(WRITE ${AUTOSCRIBE_SHADERGEN_COMMANDS_FILE} "${AUTOSCRIBE_SHADERGEN_COMMANDS}")
+
+    # grab the SPIRV binaries we require
+    # note we don't use the normal ADD_DEPENDENCY_EXTERNAL_PROJECTS macro because only a custom command 
+    # depends on these, not any of our build artifacts, so there's no valid target for the add_dependencies
+    # call in ADD_DEPENDENCY_EXTERNAL_PROJECTS to use
+    add_subdirectory(${EXTERNAL_PROJECT_DIR}/spirv_binaries ${EXTERNALS_BINARY_DIR}/spirv_binaries)
+
+    target_python()
+
+    # A custom python script which will generate 
+    if (ANDROID)
+        add_custom_command(
+            OUTPUT ${SCRIBED_SHADERS} ${SPIRV_SHADERS} ${REFLECTED_SHADERS}
+            COMMENT "Generating/updating shaders"
+            COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_SOURCE_DIR}/tools/shadergen.py 
+                --commands ${AUTOSCRIBE_SHADERGEN_COMMANDS_FILE} 
+                --spirv-binaries ${SPIRV_BINARIES_DIR} 
+                --scribe ${NATIVE_SCRIBE}
+                --build-dir ${CMAKE_CURRENT_BINARY_DIR}
+                --source-dir ${CMAKE_SOURCE_DIR}
+            DEPENDS ${AUTOSCRIBE_SHADER_HEADERS} spirv_binaries ${CMAKE_SOURCE_DIR}/tools/shadergen.py ${ALL_SCRIBE_SHADERS})
+    else() 
+        add_custom_command(
+            OUTPUT ${SCRIBED_SHADERS} ${SPIRV_SHADERS} ${REFLECTED_SHADERS}
+            COMMENT "Generating/updating shaders"
+            COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_SOURCE_DIR}/tools/shadergen.py 
+                --commands ${AUTOSCRIBE_SHADERGEN_COMMANDS_FILE} 
+                --spirv-binaries ${SPIRV_BINARIES_DIR} 
+                --scribe $<TARGET_FILE:scribe>
+                --build-dir ${CMAKE_CURRENT_BINARY_DIR}
+                --source-dir ${CMAKE_SOURCE_DIR}
+            DEPENDS ${AUTOSCRIBE_SHADER_HEADERS} scribe spirv_binaries ${CMAKE_SOURCE_DIR}/tools/shadergen.py ${ALL_SCRIBE_SHADERS})
+    endif()
+
+    add_custom_target(shadergen DEPENDS ${SCRIBED_SHADERS} ${SPIRV_SHADERS} ${REFLECTED_SHADERS})
+    set_target_properties(shadergen PROPERTIES FOLDER "Shaders")
+
+    # Custom targets required to force generation of the shaders via scribe
+    add_custom_target(scribe_shaders SOURCES ${ALL_SCRIBE_SHADERS} ${AUTOSCRIBE_SHADER_HEADERS})
+    set_target_properties(scribe_shaders PROPERTIES FOLDER "Shaders")
+
+    add_custom_target(scribed_shaders SOURCES ${SCRIBED_SHADERS})
+    set_target_properties(scribed_shaders PROPERTIES FOLDER "Shaders")
+    add_dependencies(scribed_shaders shadergen)
+
+    add_custom_target(spirv_shaders SOURCES ${SPIRV_SHADERS})
+    set_target_properties(spirv_shaders PROPERTIES FOLDER "Shaders")
+    add_dependencies(spirv_shaders shadergen)
+
+    add_custom_target(reflected_shaders SOURCES ${REFLECTED_SHADERS})
+    set_target_properties(reflected_shaders PROPERTIES FOLDER "Shaders")
+    add_dependencies(reflected_shaders shadergen)
+
+    message(STATUS "Shader processing end")
+endmacro()
+
+

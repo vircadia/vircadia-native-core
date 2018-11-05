@@ -9,16 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "HazePropertyGroup.h"
+
 #include <OctreePacketData.h>
 
-#include "HazePropertyGroup.h"
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
 void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_COLOR, Haze, haze, HazeColor, hazeColor);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_GLARE_COLOR, Haze, haze, HazeGlareColor, hazeGlareColor);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_HAZE_COLOR, Haze, haze, HazeColor, hazeColor, u8vec3Color);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_HAZE_GLARE_COLOR, Haze, haze, HazeGlareColor, hazeGlareColor, u8vec3Color);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_ENABLE_GLARE, Haze, haze, HazeEnableGlare, hazeEnableGlare);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_GLARE_ANGLE, Haze, haze, HazeGlareAngle, hazeGlareAngle);
 
@@ -35,8 +36,8 @@ void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProp
 
 void HazePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeRange, float, setHazeRange);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeColor, xColor, setHazeColor);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeGlareColor, xColor, setHazeGlareColor);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeColor, u8vec3Color, setHazeColor);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeGlareColor, u8vec3Color, setHazeGlareColor);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeEnableGlare, bool, setHazeEnableGlare);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeGlareAngle, float, setHazeGlareAngle);
 
@@ -166,8 +167,8 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     bool somethingChanged = false;
 
     READ_ENTITY_PROPERTY(PROP_HAZE_RANGE, float, setHazeRange);
-    READ_ENTITY_PROPERTY(PROP_HAZE_COLOR, xColor, setHazeColor);
-    READ_ENTITY_PROPERTY(PROP_HAZE_GLARE_COLOR, xColor, setHazeGlareColor);
+    READ_ENTITY_PROPERTY(PROP_HAZE_COLOR, u8vec3Color, setHazeColor);
+    READ_ENTITY_PROPERTY(PROP_HAZE_GLARE_COLOR, u8vec3Color, setHazeGlareColor);
     READ_ENTITY_PROPERTY(PROP_HAZE_ENABLE_GLARE, bool, setHazeEnableGlare);
     READ_ENTITY_PROPERTY(PROP_HAZE_GLARE_ANGLE, float, setHazeGlareAngle);
 
@@ -342,8 +343,8 @@ int HazePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* dat
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_HAZE_RANGE, float, setHazeRange);
-    READ_ENTITY_PROPERTY(PROP_HAZE_COLOR, xColor, setHazeColor);
-    READ_ENTITY_PROPERTY(PROP_HAZE_GLARE_COLOR, xColor, setHazeGlareColor);
+    READ_ENTITY_PROPERTY(PROP_HAZE_COLOR, u8vec3Color, setHazeColor);
+    READ_ENTITY_PROPERTY(PROP_HAZE_GLARE_COLOR, u8vec3Color, setHazeGlareColor);
     READ_ENTITY_PROPERTY(PROP_HAZE_ENABLE_GLARE, bool, setHazeEnableGlare);
     READ_ENTITY_PROPERTY(PROP_HAZE_GLARE_ANGLE, float, setHazeGlareAngle);
 

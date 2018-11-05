@@ -27,7 +27,7 @@ using BakeVersion = int;
 static const BakeVersion INITIAL_BAKE_VERSION = 0;
 static const BakeVersion NEEDS_BAKING_BAKE_VERSION = -1;
 
-enum BakedAssetType : int {
+enum class BakedAssetType : int {
     Model = 0,
     Texture,
     Script,
@@ -36,10 +36,11 @@ enum BakedAssetType : int {
     Undefined
 };
 
-// ATTENTION! If you change the current version for an asset type, you will also
-// need to update the function currentBakeVersionForAssetType() inside of AssetServer.cpp.
+// ATTENTION! Do not remove baking versions, and do not reorder them. If you add
+// a new value, it will immediately become the "current" version.
 enum class ModelBakeVersion : BakeVersion {
     Initial = INITIAL_BAKE_VERSION,
+    MetaTextureJson,
 
     COUNT
 };
@@ -47,6 +48,7 @@ enum class ModelBakeVersion : BakeVersion {
 // ATTENTION! See above.
 enum class TextureBakeVersion : BakeVersion {
     Initial = INITIAL_BAKE_VERSION,
+    MetaTextureJson,
 
     COUNT
 };
@@ -63,7 +65,7 @@ struct AssetMeta {
     AssetMeta() {
     }
 
-    BakeVersion bakeVersion;
+    BakeVersion bakeVersion { INITIAL_BAKE_VERSION };
     bool failedLastBake { false };
     QString lastBakeErrors;
 };
@@ -164,11 +166,6 @@ private:
     bool _isQueueingRequests { true };
     using RequestQueue = QVector<QPair<QSharedPointer<ReceivedMessage>, SharedNodePointer>>;
     RequestQueue _queuedRequests;
-
-    bool _wasColorTextureCompressionEnabled { false };
-    bool _wasGrayscaleTextureCompressionEnabled { false  };
-    bool _wasNormalTextureCompressionEnabled { false };
-    bool _wasCubeTextureCompressionEnabled { false };
 
     uint64_t _filesizeLimit;
 };

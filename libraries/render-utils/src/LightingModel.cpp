@@ -12,7 +12,7 @@
 
 LightingModel::LightingModel() {
     Parameters parameters;
-    _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
+    _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters, sizeof(Parameters)));
 }
 
 void LightingModel::setUnlit(bool enable) {
@@ -48,6 +48,14 @@ void LightingModel::setBackground(bool enable) {
 }
 bool LightingModel::isBackgroundEnabled() const {
     return (bool)_parametersBuffer.get<Parameters>().enableBackground;
+}
+void LightingModel::setHaze(bool enable) {
+    if (enable != isHazeEnabled()) {
+        _parametersBuffer.edit<Parameters>().enableHaze = (float)enable;
+    }
+}
+bool LightingModel::isHazeEnabled() const {
+    return (bool)_parametersBuffer.get<Parameters>().enableHaze;
 }
 void LightingModel::setObscurance(bool enable) {
     if (enable != isObscuranceEnabled()) {
@@ -151,6 +159,34 @@ void LightingModel::setWireframe(bool enable) {
 bool LightingModel::isWireframeEnabled() const {
     return (bool)_parametersBuffer.get<Parameters>().enableWireframe;
 }
+
+void LightingModel::setBloom(bool enable) {
+    if (enable != isBloomEnabled()) {
+        _parametersBuffer.edit<Parameters>().enableBloom = (float)enable;
+    }
+}
+bool LightingModel::isBloomEnabled() const {
+    return (bool)_parametersBuffer.get<Parameters>().enableBloom;
+}
+
+void LightingModel::setSkinning(bool enable) {
+    if (enable != isSkinningEnabled()) {
+        _parametersBuffer.edit<Parameters>().enableSkinning = (float)enable;
+    }
+}
+bool LightingModel::isSkinningEnabled() const {
+    return (bool)_parametersBuffer.get<Parameters>().enableSkinning;
+}
+
+void LightingModel::setBlendshape(bool enable) {
+    if (enable != isBlendshapeEnabled()) {
+        _parametersBuffer.edit<Parameters>().enableBlendshape = (float)enable;
+    }
+}
+bool LightingModel::isBlendshapeEnabled() const {
+    return (bool)_parametersBuffer.get<Parameters>().enableBlendshape;
+}
+
 MakeLightingModel::MakeLightingModel() {
     _lightingModel = std::make_shared<LightingModel>();
 }
@@ -160,6 +196,8 @@ void MakeLightingModel::configure(const Config& config) {
     _lightingModel->setEmissive(config.enableEmissive);
     _lightingModel->setLightmap(config.enableLightmap);
     _lightingModel->setBackground(config.enableBackground);
+    _lightingModel->setHaze(config.enableHaze);
+    _lightingModel->setBloom(config.enableBloom);
 
     _lightingModel->setObscurance(config.enableObscurance);
 
@@ -177,6 +215,9 @@ void MakeLightingModel::configure(const Config& config) {
 
     _lightingModel->setShowLightContour(config.showLightContour);
     _lightingModel->setWireframe(config.enableWireframe);
+
+    _lightingModel->setSkinning(config.enableSkinning);
+    _lightingModel->setBlendshape(config.enableBlendshape);
 }
 
 void MakeLightingModel::run(const render::RenderContextPointer& renderContext, LightingModelPointer& lightingModel) {
@@ -185,4 +226,6 @@ void MakeLightingModel::run(const render::RenderContextPointer& renderContext, L
 
     // make sure the enableTexturing flag of the render ARgs is in sync
     renderContext->args->_enableTexturing = _lightingModel->isMaterialTexturingEnabled();
+    renderContext->args->_enableBlendshape = _lightingModel->isBlendshapeEnabled();
+    renderContext->args->_enableSkinning = _lightingModel->isSkinningEnabled();
 }

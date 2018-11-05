@@ -35,6 +35,12 @@ glm::vec3 HMDScriptingInterface::calculateRayUICollisionPoint(const glm::vec3& p
     return result;
 }
 
+glm::vec3 HMDScriptingInterface::calculateParabolaUICollisionPoint(const glm::vec3& position, const glm::vec3& velocity, const glm::vec3& acceleration, float& parabolicDistance) const {
+    glm::vec3 result;
+    qApp->getApplicationCompositor().calculateParabolaUICollisionPoint(position, velocity, acceleration, result, parabolicDistance);
+    return result;
+}
+
 glm::vec2 HMDScriptingInterface::overlayFromWorldPoint(const glm::vec3& position) const {
     return qApp->getApplicationCompositor().overlayFromSphereSurface(position);
 }
@@ -194,4 +200,13 @@ bool HMDScriptingInterface::isKeyboardVisible() {
 
 void HMDScriptingInterface::centerUI() {
     QMetaObject::invokeMethod(qApp, "centerUI", Qt::QueuedConnection);
+}
+
+QVariant HMDScriptingInterface::getPlayAreaRect() {
+    auto rect = qApp->getActiveDisplayPlugin()->getPlayAreaRect();
+    return qRectFToVariant(rect);
+}
+
+QVector<glm::vec3> HMDScriptingInterface::getSensorPositions() {
+    return qApp->getActiveDisplayPlugin()->getSensorPositions();
 }

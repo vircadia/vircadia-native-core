@@ -2,7 +2,7 @@ function ready() {
     console.log("Ready");
 
     const electron = require('electron');
-    const remote = require('remote');
+    const remote = electron.remote;
     window.$ = require('./vendor/jquery/jquery-2.1.4.min.js');
 
     $(".state").hide();

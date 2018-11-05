@@ -11,8 +11,6 @@
 #ifndef hifi_Overlay_h
 #define hifi_Overlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include <SharedUtil.h> // for xColor
 #include <render/Scene.h>
 
 class OverlayID : public QUuid {
@@ -40,6 +38,7 @@ public:
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
 
+    virtual render::ItemKey getKey();
     virtual AABox getBounds() const = 0;
     virtual bool supportsGetProperty() const { return true; }
 
@@ -58,7 +57,7 @@ public:
     virtual bool isTransparent() { return getAlphaPulse() != 0.0f || getAlpha() != 1.0f; };
     virtual bool getIsVisibleInSecondaryCamera() const { return false; }
 
-    xColor getColor();
+    glm::u8vec3 getColor();
     float getAlpha();
 
     float getPulseMax() const { return _pulseMax; }
@@ -72,7 +71,7 @@ public:
     // setters
     virtual void setVisible(bool visible) { _visible = visible; }
     void setDrawHUDLayer(bool drawHUDLayer);
-    void setColor(const xColor& color) { _color = color; }
+    void setColor(const glm::u8vec3& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
 
     void setPulseMax(float value) { _pulseMax = value; }
@@ -114,12 +113,12 @@ protected:
     float _alphaPulse; // ratio of the pulse to the alpha
     float _colorPulse; // ratio of the pulse to the color
 
-    xColor _color;
+    glm::u8vec3 _color;
     bool _visible; // should the overlay be drawn at all
 
     unsigned int _stackOrder { 0 };
 
-    static const xColor DEFAULT_OVERLAY_COLOR;
+    static const glm::u8vec3 DEFAULT_OVERLAY_COLOR;
     static const float DEFAULT_ALPHA;
 
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
@@ -132,7 +131,6 @@ private:
 namespace render {
    template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay);
    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
-   template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
    template <> uint32_t metaFetchMetaSubItems(const Overlay::Pointer& overlay, ItemIDs& subItems);

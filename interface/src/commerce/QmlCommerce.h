@@ -24,6 +24,7 @@ class QmlCommerce : public QObject {
 
 public:
     QmlCommerce();
+    void openSystemApp(const QString& appPath);
 
 signals:
     void walletStatusResult(uint walletStatus);
@@ -48,13 +49,13 @@ signals:
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
-    void transferHfcToNodeResult(QJsonObject result);
-    void transferHfcToUsernameResult(QJsonObject result);
+    void transferAssetToNodeResult(QJsonObject result);
+    void transferAssetToUsernameResult(QJsonObject result);
 
     void contentSetChanged(const QString& contentSetHref);
 
-    void appInstalled(const QString& appHref);
-    void appUninstalled(const QString& appHref);
+    void appInstalled(const QString& appID);
+    void appUninstalled(const QString& appID);
 
 protected:
     Q_INVOKABLE void getWalletStatus();
@@ -73,21 +74,21 @@ protected:
 
     Q_INVOKABLE void buy(const QString& assetId, int cost, const bool controlledFailure = false);
     Q_INVOKABLE void balance();
-    Q_INVOKABLE void inventory();
-    Q_INVOKABLE void history(const int& pageNumber);
+    Q_INVOKABLE void inventory(const QString& editionFilter = QString(), const QString& typeFilter = QString(), const QString& titleFilter = QString(), const int& page = 1, const int& perPage = 20);
+    Q_INVOKABLE void history(const int& pageNumber, const int& itemsPerPage = 100);
     Q_INVOKABLE void generateKeyPair();
     Q_INVOKABLE void account();
 
     Q_INVOKABLE void certificateInfo(const QString& certificateId);
     Q_INVOKABLE void alreadyOwned(const QString& marketplaceId);
 
-    Q_INVOKABLE void transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage);
-    Q_INVOKABLE void transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage);
+    Q_INVOKABLE void transferAssetToNode(const QString& nodeID, const QString& certificateID, const int& amount, const QString& optionalMessage);
+    Q_INVOKABLE void transferAssetToUsername(const QString& username, const QString& certificateID, const int& amount, const QString& optionalMessage);
 
-    Q_INVOKABLE void replaceContentSet(const QString& itemHref);
+    Q_INVOKABLE void replaceContentSet(const QString& itemHref, const QString& certificateID);
 
-    Q_INVOKABLE QString getInstalledApps();
-    Q_INVOKABLE bool installApp(const QString& appHref);
+    Q_INVOKABLE QString getInstalledApps(const QString& justInstalledAppID = "");
+    Q_INVOKABLE bool installApp(const QString& appHref, const bool& alsoOpenImmediately = false);
     Q_INVOKABLE bool uninstallApp(const QString& appHref);
     Q_INVOKABLE bool openApp(const QString& appHref);
 

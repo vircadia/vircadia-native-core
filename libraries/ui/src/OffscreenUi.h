@@ -60,6 +60,7 @@ public:
     void createDesktop(const QUrl& url);
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void hide(const QString& name);
+    void hideDesktopWindows();
     bool isVisible(const QString& name);
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     bool shouldSwallowShortcut(QEvent* event);
@@ -242,6 +243,8 @@ signals:
 //    void fileDialogResponse(QString response);
 //    void assetDialogResponse(QString response);
 //    void inputDialogResponse(QVariant response);
+    void desktopReady();
+
 public slots:
     void removeModalDialog(QObject* modal);
 

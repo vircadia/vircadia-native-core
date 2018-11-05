@@ -32,7 +32,7 @@
     var WAITING_INTERVAL = 100; // ms
     var CONNECTING_INTERVAL = 100; // ms
     var MAKING_CONNECTION_TIMEOUT = 800; // ms
-    var CONNECTING_TIME = 1600; // ms
+    var CONNECTING_TIME = 100; // ms One interval.
     var PARTICLE_RADIUS = 0.15; // m
     var PARTICLE_ANGLE_INCREMENT = 360 / 45; // 1hz
     var HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/4beat_sweep.wav";
@@ -88,8 +88,8 @@
         "polarFinish": 1,
         "radiusFinish": 0.3,
         "radiusStart": 0.04,
-        "speedSpread": 0.01,
-        "radiusSpread": 0.9,
+        "speedSpread": 0.00,
+        "radiusSpread": 0.0,
         "textures": "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle.png",
         "color": {"red": 200, "green": 170, "blue": 255},
         "colorFinish": {"red": 0, "green": 134, "blue": 255},
@@ -228,6 +228,7 @@
             animationData.rightHandPosition.y += verticalOffset;
         }
         animationData.rightHandRotation = Quat.fromPitchYawRollDegrees(90, 0, 90);
+        animationData.rightHandType = 0; // RotationAndPosition, see IKTargets.h
     }
     function shakeHandsAnimation() {
         return animationData;

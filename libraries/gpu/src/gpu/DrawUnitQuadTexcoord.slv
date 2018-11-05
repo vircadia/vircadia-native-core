@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  DrawUnitQuadTexcoord.vert
+//
 //  Draw the unit quad [-1,-1 -> 1,1] amd pass along the unit texcoords [0, 0 -> 1, 1]. Not transform used.
 //  Simply draw a Triangle_strip of 2 triangles, no input buffers or index buffer needed
 //
@@ -11,7 +13,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-out vec2 varTexCoord0;
+layout(location=0) out vec2 varTexCoord0;
 
 void main(void) {
     const float depth = 1.0;

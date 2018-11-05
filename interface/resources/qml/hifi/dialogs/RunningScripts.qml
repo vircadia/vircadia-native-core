@@ -25,6 +25,7 @@ ScrollingWindow {
     resizable: true
     destroyOnHidden: false
     implicitWidth: 424
+    opacity: parent.opacity
     implicitHeight: isHMD ? 695 : 728
     minSize: Qt.vector2d(424, 300)
 
@@ -78,7 +79,7 @@ ScrollingWindow {
         interval: 1000
         repeat: true
         running: false
-        onTriggered: developerMenuEnabled = MenuInterface.isMenuEnabled("Developer Menus");
+        onTriggered: developerMenuEnabled = MenuInterface.isOptionChecked("Developer Menu");
     }
     
     Component {
@@ -97,7 +98,7 @@ ScrollingWindow {
     Component.onCompleted: {
         isHMD = HMD.active;
         updateRunningScripts();
-        developerMenuEnabled = MenuInterface.isMenuEnabled("Developer Menus");
+        developerMenuEnabled = MenuInterface.isOptionChecked("Developer Menu");
         checkMenu.restart();
     }
 

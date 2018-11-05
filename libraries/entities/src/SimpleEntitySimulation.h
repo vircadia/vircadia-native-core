@@ -23,22 +23,26 @@ using SimpleEntitySimulationPointer = std::shared_ptr<SimpleEntitySimulation>;
 class SimpleEntitySimulation : public EntitySimulation {
 public:
     SimpleEntitySimulation() : EntitySimulation() { }
-    virtual ~SimpleEntitySimulation() { clearEntitiesInternal(); }
+    ~SimpleEntitySimulation() { clearEntitiesInternal(); }
 
     void clearOwnership(const QUuid& ownerID);
 
 protected:
-    virtual void updateEntitiesInternal(const quint64& now) override;
-    virtual void addEntityInternal(EntityItemPointer entity) override;
-    virtual void removeEntityInternal(EntityItemPointer entity) override;
-    virtual void changeEntityInternal(EntityItemPointer entity) override;
-    virtual void clearEntitiesInternal() override;
+    void updateEntitiesInternal(uint64_t now) override;
+    void addEntityInternal(EntityItemPointer entity) override;
+    void removeEntityInternal(EntityItemPointer entity) override;
+    void changeEntityInternal(EntityItemPointer entity) override;
+    void clearEntitiesInternal() override;
 
-    virtual void sortEntitiesThatMoved() override;
+    void sortEntitiesThatMoved() override;
+
+    void expireStaleOwnerships(uint64_t now);
+    void stopOwnerlessEntities(uint64_t now);
 
     SetOfEntities _entitiesWithSimulationOwner;
     SetOfEntities _entitiesThatNeedSimulationOwner;
-    quint64 _nextOwnerlessExpiry { 0 };
+    uint64_t _nextOwnerlessExpiry { 0 };
+    uint64_t _nextStaleOwnershipExpiry { (uint64_t)(-1) };
 };
 
 #endif // hifi_SimpleEntitySimulation_h

@@ -8,9 +8,8 @@
 /* jslint bitwise: true */
 
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
-   Messages, makeDispatcherModuleParameters, HMD, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
-   getEnabledModuleByName, PICK_MAX_DISTANCE, isInEditMode, Picks, makeLaserParams
+   Messages, makeDispatcherModuleParameters, HMD, getEnabledModuleByName, TRIGGER_ON_VALUE, isInEditMode, Picks,
+   makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -18,13 +17,18 @@ Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/utils.js");
 
 (function () {
+    var MARGIN = 25;
     function InEditMode(hand) {
         this.hand = hand;
         this.triggerClicked = false;
         this.selectedTarget = null;
+        this.reticleMinX = MARGIN;
+        this.reticleMaxX = null;
+        this.reticleMinY = MARGIN;
+        this.reticleMaxY = null;
 
         this.parameters = makeDispatcherModuleParameters(
-            160,
+            165, // Lower priority than webSurfaceLaserInput and hudOverlayPointer.
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
             100,
@@ -44,29 +48,66 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.pointingAtTablet = function(objectID) {
-            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
-                || (HMD.homeButtonID && objectID === HMD.homeButtonID);
+            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID) ||
+                (HMD.homeButtonID && objectID === HMD.homeButtonID);
+        };
+
+        this.calculateNewReticlePosition = function(intersection) {
+            var dims = Controller.getViewportDimensions();
+            this.reticleMaxX = dims.x - MARGIN;
+            this.reticleMaxY = dims.y - MARGIN;
+            var point2d = HMD.overlayFromWorldPoint(intersection);
+            point2d.x = Math.max(this.reticleMinX, Math.min(point2d.x, this.reticleMaxX));
+            point2d.y = Math.max(this.reticleMinY, Math.min(point2d.y, this.reticleMaxY));
+            return point2d;
         };
 
         this.sendPickData = function(controllerData) {
             if (controllerData.triggerClicks[this.hand]) {
+                var hand = this.hand === RIGHT_HAND ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
                 if (!this.triggerClicked) {
                     this.selectedTarget = controllerData.rayPicks[this.hand];
-                }
-                if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
-                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "selectEntity",
-                        entityID: this.selectedTarget.objectID
-                    }));
-                } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
-                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "selectOverlay",
-                        overlayID: this.selectedTarget.objectID
-                    }));
+                    if (!this.selectedTarget.intersects) {
+                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            method: "clearSelection",
+                            hand: hand
+                        }));
+                    } else {
+                        if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
+                            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                                method: "selectEntity",
+                                entityID: this.selectedTarget.objectID,
+                                hand: hand
+                            }));
+                        } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
+                            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                                method: "selectOverlay",
+                                overlayID: this.selectedTarget.objectID,
+                                hand: hand
+                            }));
+                        }
+                    }
                 }
 
                 this.triggerClicked = true;
             }
+
+            this.sendPointingAtData(controllerData);
+        };
+
+        this.sendPointingAtData = function(controllerData) {
+            var rayPick = controllerData.rayPicks[this.hand];
+            var hudRayPick = controllerData.hudRayPicks[this.hand];
+            var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
+            var desktopWindow = Window.isPointOnDesktopWindow(point2d);
+            var tablet = this.pointingAtTablet(rayPick.objectID);
+            var rightHand = this.hand === RIGHT_HAND;
+            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                method: "pointingAt",
+                desktopWindow: desktopWindow,
+                tablet: tablet,
+                rightHand: rightHand
+            }));
         };
 
         this.exitModule = function() {
@@ -78,6 +119,7 @@ Script.include("/~/system/libraries/utils.js");
                 if (controllerData.triggerValues[this.hand] < TRIGGER_ON_VALUE) {
                     this.triggerClicked = false;
                 }
+                Messages.sendLocalMessage('Hifi-unhighlight-all', '');
                 return makeRunningValues(true, [], []);
             }
             this.triggerClicked = false;
@@ -85,29 +127,43 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.run = function(controllerData) {
-            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightTabletStylusInput" : "LeftTabletStylusInput");
+            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightTabletStylusInput" : "LeftTabletStylusInput");
             if (tabletStylusInput) {
                 var tabletReady = tabletStylusInput.isReady(controllerData);
-
                 if (tabletReady.active) {
                     return this.exitModule();
                 }
             }
 
-            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
-            if (overlayLaser) {
-                var overlayLaserReady = overlayLaser.isReady(controllerData);
+            var webLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
+            if (webLaser) {
+                var webLaserReady = webLaser.isReady(controllerData);
                 var target = controllerData.rayPicks[this.hand].objectID;
-                if (overlayLaserReady.active && this.pointingAtTablet(target)) {
+                this.sendPointingAtData(controllerData);
+                if (webLaserReady.active && this.pointingAtTablet(target)) {
                     return this.exitModule();
                 }
             }
 
-            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
-            if (nearOverlay) {
-                var nearOverlayReady = nearOverlay.isReady(controllerData);
+            if (!controllerData.triggerClicks[this.hand]) { // Don't grab if trigger pressed when laser starts intersecting.
+                var hudLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                    ? "RightHudOverlayPointer" : "LeftHudOverlayPointer");
+                if (hudLaser) {
+                    var hudLaserReady = hudLaser.isReady(controllerData);
+                    if (hudLaserReady.active) {
+                        return this.exitModule();
+                    }
+                }
+            }
 
-                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
+            // Tablet highlight and grabbing.
+            var tabletHighlight = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            if (tabletHighlight) {
+                var tabletHighlightReady = tabletHighlight.isReady(controllerData);
+                if (tabletHighlightReady.active) {
                     return this.exitModule();
                 }
             }

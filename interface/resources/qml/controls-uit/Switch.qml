@@ -8,9 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4 as Original
-import QtQuick.Controls.Styles 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.2 as Original
 
 import "../styles-uit"
 
@@ -33,44 +32,49 @@ Item {
 
     Original.Switch {
         id: originalSwitch;
-        activeFocusOnPress: true;
+        focusPolicy: Qt.ClickFocus
         anchors.top: rootSwitch.top;
         anchors.left: rootSwitch.left;
         anchors.leftMargin: rootSwitch.width/2 - rootSwitch.switchWidth/2;
         onCheckedChanged: rootSwitch.onCheckedChanged();
         onClicked: rootSwitch.clicked();
+        hoverEnabled: true
 
-        style: SwitchStyle {
+        topPadding: 3;
+        leftPadding: 3;
+        rightPadding: 3;
+        bottomPadding: 3;
 
-            padding {
-                top: 3;
-                left: 3;
-                right: 3;
-                bottom: 3;
+        onHoveredChanged: {
+            if (hovered) {
+                switchHandle.color = hifi.colors.blueHighlight;
+            } else {
+                switchHandle.color = hifi.colors.lightGray;
+            }
+        }
+
+        background: Rectangle {
+            color: "#252525";
+            implicitWidth: rootSwitch.switchWidth;
+            implicitHeight: rootSwitch.height;
+            radius: rootSwitch.switchRadius;
+        }
+
+        indicator: Rectangle {
+            id: switchHandle;
+            implicitWidth: rootSwitch.height - originalSwitch.topPadding - originalSwitch.bottomPadding;
+            implicitHeight: implicitWidth;
+            radius: implicitWidth/2;
+            border.color: hifi.colors.lightGrayText;
+            color: hifi.colors.lightGray;
+            //x: originalSwitch.leftPadding
+            x: Math.max(0, Math.min(parent.width - width, originalSwitch.visualPosition * parent.width - (width / 2)))
+            y: parent.height / 2 - height / 2
+            Behavior on x {
+                enabled: !originalSwitch.down
+                SmoothedAnimation { velocity: 200 }
             }
 
-            groove: Rectangle {
-                color: "#252525";
-                implicitWidth: rootSwitch.switchWidth;
-                implicitHeight: rootSwitch.height;
-                radius: rootSwitch.switchRadius;
-            }
-
-            handle: Rectangle {
-                id: switchHandle;
-                implicitWidth: rootSwitch.height - padding.top - padding.bottom;
-                implicitHeight: implicitWidth;
-                radius: implicitWidth/2;
-                border.color: hifi.colors.lightGrayText;
-                color: hifi.colors.lightGray;
-        
-                MouseArea {
-                    anchors.fill: parent;
-                    hoverEnabled: true;
-                    onEntered: parent.color = hifi.colors.blueHighlight;
-                    onExited: parent.color = hifi.colors.lightGray;
-                }
-            }
         }
     }
 

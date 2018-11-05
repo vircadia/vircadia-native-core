@@ -11,35 +11,27 @@
 #include "SubsurfaceScattering.h"
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
+#include <render/ShapePipeline.h>
+#include <graphics/ShaderConstants.h>
+
+#include "render-utils/ShaderConstants.h"
 
 #include "FramebufferCache.h"
 
 #include "DeferredLightingEffect.h"
 
-#include "subsurfaceScattering_makeProfile_frag.h"
-#include "subsurfaceScattering_makeLUT_frag.h"
-#include "subsurfaceScattering_makeSpecularBeckmann_frag.h"
 
-#include "subsurfaceScattering_drawScattering_frag.h"
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
 
-enum ScatteringShaderBufferSlots {
-    ScatteringTask_FrameTransformSlot = 0,
-    ScatteringTask_ParamSlot,
-    ScatteringTask_LightSlot,
-};
-enum ScatteringShaderMapSlots {
-    ScatteringTask_ScatteringTableSlot = 0,
-    ScatteringTask_CurvatureMapSlot,
-    ScatteringTask_DiffusedCurvatureMapSlot,
-    ScatteringTask_NormalMapSlot,
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
-    ScatteringTask_AlbedoMapSlot,
-    ScatteringTask_LinearMapSlot,
-    
-    ScatteringTask_IBLMapSlot,
-
-};
 
 SubsurfaceScatteringResource::SubsurfaceScatteringResource() {
     Parameters parameters;
@@ -307,12 +299,7 @@ void diffuseProfileGPU(gpu::TexturePointer& profileMap, RenderArgs* args) {
 
     gpu::PipelinePointer makePipeline;
     {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = subsurfaceScattering_makeProfile_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_makeProfile);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -341,29 +328,18 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
     int width = lut->getWidth();
     int height = lut->getHeight();
 
-    gpu::PipelinePointer makePipeline;
-    {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = subsurfaceScattering_makeLUT_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+    gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_makeLUT);
 
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringProfile"), 0));
-        gpu::Shader::makeProgram(*program, slotBindings);
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
-        makePipeline = gpu::Pipeline::create(program, state);
-    }
-
+    gpu::PipelinePointer makePipeline = gpu::Pipeline::create(program, state);
+    
     auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("diffuseScatter"));
     makeFramebuffer->setRenderBuffer(0, lut);
 
     gpu::doInBatch("SubsurfaceScattering::diffuseScatterGPU", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
-
         batch.setViewportTransform(glm::ivec4(0, 0, width, height));
-
         batch.setFramebuffer(makeFramebuffer);
         batch.setPipeline(makePipeline);
         batch.setResourceTexture(0, profileMap);
@@ -381,12 +357,7 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
 
     gpu::PipelinePointer makePipeline;
     {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = subsurfaceScattering_makeSpecularBeckmann_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_makeSpecularBeckmann);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -450,33 +421,17 @@ void DebugSubsurfaceScattering::configure(const Config& config) {
     _showSpecularTable = config.showSpecularTable;
     _showCursorPixel = config.showCursorPixel;
     _debugCursorTexcoord = config.debugCursorTexcoord;
+    if (!_debugParams) {
+        _debugParams = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
+    }
+    _debugParams->setSubData(0, _debugCursorTexcoord);
 }
 
 
 
 gpu::PipelinePointer DebugSubsurfaceScattering::getScatteringPipeline() {
     if (!_scatteringPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = subsurfaceScattering_drawScattering_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ScatteringTask_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringParamsBuffer"), ScatteringTask_ParamSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), ScatteringTask_LightSlot));
-
-        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), ScatteringTask_ScatteringTableSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), ScatteringTask_CurvatureMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("diffusedCurvatureMap"), ScatteringTask_DiffusedCurvatureMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), ScatteringTask_NormalMapSlot));
-
-        slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), ScatteringTask_AlbedoMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), ScatteringTask_LinearMapSlot));
-
-        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), ScatteringTask_IBLMapSlot));
-
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_drawScattering);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         _scatteringPipeline = gpu::Pipeline::create(program, state);
@@ -485,20 +440,12 @@ gpu::PipelinePointer DebugSubsurfaceScattering::getScatteringPipeline() {
     return _scatteringPipeline;
 }
 
-
 gpu::PipelinePointer _showLUTPipeline;
-gpu::PipelinePointer getShowLUTPipeline();
+
 gpu::PipelinePointer DebugSubsurfaceScattering::getShowLUTPipeline() {
     if (!_showLUTPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawUnitQuatTextureOpaque);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
         _showLUTPipeline = gpu::Pipeline::create(program, state);
     }
 
@@ -536,6 +483,10 @@ void DebugSubsurfaceScattering::run(const render::RenderContextPointer& renderCo
     assert(lightStage);
    // const auto light = DependencyManager::get<DeferredLightingEffect>()->getLightStage()->getLight(0);
     const auto light = lightStage->getLight(0);
+    if (!_debugParams) {
+        _debugParams = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
+        _debugParams->setSubData(0, _debugCursorTexcoord);
+    }
     
     gpu::doInBatch("DebugSubsurfaceScattering::run", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -567,20 +518,18 @@ void DebugSubsurfaceScattering::run(const render::RenderContextPointer& renderCo
                 model.setScale(glm::vec3(viewportSize / (float)args->_viewport.z, viewportSize / (float)args->_viewport.w, 1.0));
                 batch.setModelTransform(model);
 
-                batch.setUniformBuffer(ScatteringTask_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
-                batch.setUniformBuffer(ScatteringTask_ParamSlot, scatteringResource->getParametersBuffer());
+                batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+                batch.setUniformBuffer(ru::Buffer::SsscParams, scatteringResource->getParametersBuffer());
                 if (light) {
-                    batch.setUniformBuffer(ScatteringTask_LightSlot, light->getLightSchemaBuffer());
+                    batch.setUniformBuffer(gr::Buffer::Light, light->getLightSchemaBuffer());
                 }
-                batch.setResourceTexture(ScatteringTask_ScatteringTableSlot, scatteringTable);
-                batch.setResourceTexture(ScatteringTask_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));
-                batch.setResourceTexture(ScatteringTask_DiffusedCurvatureMapSlot, diffusedFramebuffer->getRenderBuffer(0));
-                batch.setResourceTexture(ScatteringTask_NormalMapSlot, deferredFramebuffer->getDeferredNormalTexture());
-                batch.setResourceTexture(ScatteringTask_AlbedoMapSlot, deferredFramebuffer->getDeferredColorTexture());
-                batch.setResourceTexture(ScatteringTask_LinearMapSlot, linearDepthTexture);
-
-
-                batch._glUniform2f(debugScatteringPipeline->getProgram()->getUniforms().findLocation("uniformCursorTexcoord"), _debugCursorTexcoord.x, _debugCursorTexcoord.y);
+                batch.setResourceTexture(ru::Texture::SsscLut, scatteringTable);
+                batch.setResourceTexture(ru::Texture::DeferredCurvature, curvatureFramebuffer->getRenderBuffer(0));
+                batch.setResourceTexture(ru::Texture::DeferredDiffusedCurvature, diffusedFramebuffer->getRenderBuffer(0));
+                batch.setResourceTexture(ru::Texture::DeferredNormal, deferredFramebuffer->getDeferredNormalTexture());
+                batch.setResourceTexture(ru::Texture::DeferredColor, deferredFramebuffer->getDeferredColorTexture());
+               	batch.setResourceTexture(ru::Texture::DeferredDepth, linearDepthTexture);
+                batch.setUniformBuffer(1, _debugParams);
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
         }

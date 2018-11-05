@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AddressManager.h"
+
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QDebug>
@@ -22,20 +24,14 @@
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <UUID.h>
-#include <PathUtils.h>
 
-#include "AddressManager.h"
 #include "NodeList.h"
 #include "NetworkLogging.h"
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-#if USE_STABLE_GLOBAL_SERVICES
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome/hello";
-#else
-const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome/hello";
-#endif
-
+const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
+const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
@@ -43,6 +39,10 @@ Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETT
 
 bool AddressManager::isConnected() {
     return DependencyManager::get<NodeList>()->getDomainHandler().isConnected();
+}
+
+QString AddressManager::getProtocol() const {
+    return _domainURL.scheme();
 }
 
 QUrl AddressManager::currentAddress(bool domainOnly) const {
@@ -82,6 +82,17 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
     }
 }
 
+QUrl AddressManager::currentPublicAddress(bool domainOnly) const {
+    // return an address that can be used by others to visit this client's current location.  If
+    // in a serverless domain (which can't be visited) return an empty URL.
+    QUrl shareableAddress = currentShareableAddress(domainOnly);
+    if (shareableAddress.scheme() != URL_SCHEME_HIFI) {
+        return QUrl(); // file: urls aren't public
+    }
+    return shareableAddress;
+}
+
+
 QUrl AddressManager::currentFacingShareableAddress() const {
     auto hifiURL = currentShareableAddress();
     if (hifiURL.scheme() == URL_SCHEME_HIFI) {
@@ -91,11 +102,23 @@ QUrl AddressManager::currentFacingShareableAddress() const {
     return hifiURL;
 }
 
+QUrl AddressManager::currentFacingPublicAddress() const {
+    // return an address that can be used by others to visit this client's current location.  If
+    // in a serverless domain (which can't be visited) return an empty URL.
+    QUrl shareableAddress = currentFacingShareableAddress();
+    if (shareableAddress.scheme() != URL_SCHEME_HIFI) {
+        return QUrl(); // file: urls aren't public
+    }
+    return shareableAddress;
+}
+
+QUrl AddressManager::lastAddress() const {
+    return _lastVisitedURL;
+}
+
 void AddressManager::loadSettings(const QString& lookupString) {
 #if defined(USE_GLES) && defined(Q_OS_WIN)
     handleUrl(QUrl("hifi://127.0.0.0"), LookupTrigger::StartupFromSettings);
-#elif defined(Q_OS_ANDROID)
-    handleUrl(QUrl("hifi://pikachu/167.11,0.745735,181.529/0,0.887027,0,-0.461717"), LookupTrigger::StartupFromSettings);
 #else
     if (lookupString.isEmpty()) {
         handleUrl(currentAddressHandle.get(), LookupTrigger::StartupFromSettings);
@@ -138,7 +161,17 @@ void AddressManager::storeCurrentAddress() {
         // be loaded over http(s)
         // url.scheme() == URL_SCHEME_HTTP ||
         // url.scheme() == URL_SCHEME_HTTPS ||
-        currentAddressHandle.set(url);
+        bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
+        if (isConnected()) {
+            if (isInErrorState) {
+                // save the last address visited before the problem url.
+                currentAddressHandle.set(lastAddress());
+            } else {
+                currentAddressHandle.set(url);
+            }
+        } else {
+            qCWarning(networking) << "Ignoring attempt to save current address because not connected to domain:" << url;
+        }
     } else {
         qCWarning(networking) << "Ignoring attempt to save current address with an invalid url:" << url;
     }
@@ -192,9 +225,8 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
     static JSONCallbackParameters callbackParams;
 
     if (!hasSetupParameters) {
-        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.callbackReceiver = this;
         callbackParams.jsonCallbackMethod = "handleAPIResponse";
-        callbackParams.errorCallbackReceiver = this;
         callbackParams.errorCallbackMethod = "handleAPIError";
     }
 
@@ -225,9 +257,12 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
             UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_USER, lookupUrl.toString());
 
+            // save the last visited domain URL.
+            _lastVisitedURL = lookupUrl;
+
             // in case we're failing to connect to where we thought this user was
             // store their username as previous lookup so we can refresh their location via API
-            _previousLookup = lookupUrl;
+            _previousAPILookup = lookupUrl;
         } else {
             // we're assuming this is either a network address or global place name
             // check if it is a network address first
@@ -237,8 +272,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
                 UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_NETWORK_ADDRESS, lookupUrl.toString());
 
+                // save the last visited domain URL.
+                _lastVisitedURL = lookupUrl;
+
                 // a network address lookup clears the previous lookup since we don't expect to re-attempt it
-                _previousLookup.clear();
+                _previousAPILookup.clear();
 
                 // If the host changed then we have already saved to history
                 if (hostChanged) {
@@ -256,8 +294,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
             } else if (handleDomainID(lookupUrl.host())){
                 UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_DOMAIN_ID, lookupUrl.toString());
 
+                // save the last visited domain URL.
+                _lastVisitedURL = lookupUrl;
+
                 // store this domain ID as the previous lookup in case we're failing to connect and want to refresh API info
-                _previousLookup = lookupUrl;
+                _previousAPILookup = lookupUrl;
 
                 // no place name - this is probably a domain ID
                 // try to look up the domain ID on the metaverse API
@@ -265,8 +306,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
             } else {
                 UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_PLACE, lookupUrl.toString());
 
+                // save the last visited domain URL.
+                _lastVisitedURL = lookupUrl;
+
                 // store this place name as the previous lookup in case we fail to connect and want to refresh API info
-                _previousLookup = lookupUrl;
+                _previousAPILookup = lookupUrl;
 
                 // wasn't an address - lookup the place name
                 // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
@@ -280,7 +324,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         qCDebug(networking) << "Going to relative path" << lookupUrl.path();
 
         // a path lookup clears the previous lookup since we don't expect to re-attempt it
-        _previousLookup.clear();
+        _previousAPILookup.clear();
 
         // if this is a relative path then handle it as a relative viewpoint
         handlePath(lookupUrl.path(), trigger, true);
@@ -292,23 +336,38 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         // be loaded over http(s)
         // lookupUrl.scheme() == URL_SCHEME_HTTP ||
         // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
-        _previousLookup.clear();
-        QUrl domainURL = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
-        setDomainInfo(domainURL, trigger);
+        // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd 
+        // need to store the previous domain tried in _lastVisitedURL. For now , do not store it.
+
+        _previousAPILookup.clear();
+        _shareablePlaceName.clear();
+        setDomainInfo(lookupUrl, trigger);
         emit lookupResultsFinished();
-        handlePath(DOMAIN_SPAWNING_POINT, LookupTrigger::Internal, false);
+
+        QString path = DOMAIN_SPAWNING_POINT;
+        QUrlQuery queryArgs(lookupUrl);
+        const QString LOCATION_QUERY_KEY = "location";
+        if (queryArgs.hasQueryItem(LOCATION_QUERY_KEY)) {
+            path = queryArgs.queryItemValue(LOCATION_QUERY_KEY);
+        } else {
+            path = DEFAULT_NAMED_PATH;
+        }
+
+        handlePath(path, LookupTrigger::Internal, false);
         return true;
     }
 
     return false;
 }
 
+static const QString LOCALHOST = "localhost";
+
 bool isPossiblePlaceName(QString possiblePlaceName) {
     bool result { false };
     int length = possiblePlaceName.length();
     static const int MINIMUM_PLACENAME_LENGTH = 1;
     static const int MAXIMUM_PLACENAME_LENGTH = 64;
-    if (possiblePlaceName.toLower() != "localhost" &&
+    if (possiblePlaceName.toLower() != LOCALHOST &&
         length >= MINIMUM_PLACENAME_LENGTH && length <= MAXIMUM_PLACENAME_LENGTH) {
         const QRegExp PLACE_NAME_REGEX = QRegExp("^[0-9A-Za-z](([0-9A-Za-z]|-(?!-))*[^\\W_]$|$)");
         result = PLACE_NAME_REGEX.indexIn(possiblePlaceName) == 0;
@@ -328,7 +387,7 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
             sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
 
             lookupURL = QUrl(sanitizedString);
-            if (lookupURL.scheme().isEmpty()) {
+            if (lookupURL.scheme().isEmpty() || lookupURL.scheme().toLower() == LOCALHOST) {
                 lookupURL = QUrl("hifi://" + sanitizedString);
             }
         } else {
@@ -342,12 +401,12 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
 const QString DATA_OBJECT_DOMAIN_KEY = "domain";
 
 
-void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
-    QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+void AddressManager::handleAPIResponse(QNetworkReply* requestReply) {
+    QJsonObject responseObject = QJsonDocument::fromJson(requestReply->readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
 
     // Lookup succeeded, don't keep re-trying it (especially on server restarts)
-    _previousLookup.clear();
+    _previousAPILookup.clear();
 
     if (!dataObject.isEmpty()) {
         goToAddressFromObject(dataObject.toVariantMap(), requestReply);
@@ -361,7 +420,7 @@ void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
 const char OVERRIDE_PATH_KEY[] = "override_path";
 const char LOOKUP_TRIGGER_KEY[] = "lookup_trigger";
 
-void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const QNetworkReply& reply) {
+void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const QNetworkReply* reply) {
 
     const QString DATA_OBJECT_PLACE_KEY = "place";
     const QString DATA_OBJECT_USER_LOCATION_KEY = "location";
@@ -413,7 +472,9 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     QUrl domainURL;
                     domainURL.setScheme(URL_SCHEME_HIFI);
                     domainURL.setHost(domainHostname);
-                    domainURL.setPort(domainPort);
+                    if (domainPort > 0) {
+                        domainURL.setPort(domainPort);
+                    }
                     emit possibleDomainChangeRequired(domainURL, domainID);
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
@@ -424,7 +485,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
                 }
 
-                LookupTrigger trigger = (LookupTrigger) reply.property(LOOKUP_TRIGGER_KEY).toInt();
+                LookupTrigger trigger = (LookupTrigger) reply->property(LOOKUP_TRIGGER_KEY).toInt();
 
 
                 // set our current root place id to the ID that came back
@@ -458,7 +519,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 }
 
                 // check if we had a path to override the path returned
-                QString overridePath = reply.property(OVERRIDE_PATH_KEY).toString();
+                QString overridePath = reply->property(OVERRIDE_PATH_KEY).toString();
 
                 if (!overridePath.isEmpty() && overridePath != "/") {
                     // make sure we don't re-handle an overriden path if this was a refresh of info from API
@@ -506,12 +567,12 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
     }
 }
 
-void AddressManager::handleAPIError(QNetworkReply& errorReply) {
-    qCDebug(networking) << "AddressManager API error -" << errorReply.error() << "-" << errorReply.errorString();
+void AddressManager::handleAPIError(QNetworkReply* errorReply) {
+    qCDebug(networking) << "AddressManager API error -" << errorReply->error() << "-" << errorReply->errorString();
 
-    if (errorReply.error() == QNetworkReply::ContentNotFoundError) {
+    if (errorReply->error() == QNetworkReply::ContentNotFoundError) {
         // if this is a lookup that has no result, don't keep re-trying it
-        _previousLookup.clear();
+        _previousAPILookup.clear();
 
         emit lookupResultIsNotFound();
     }
@@ -575,7 +636,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
     if (ipAddressRegex.indexIn(lookupString) != -1) {
         QString domainIPString = ipAddressRegex.cap(1);
 
-        quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        quint16 domainPort = 0;
         if (!ipAddressRegex.cap(2).isEmpty()) {
             domainPort = (quint16) ipAddressRegex.cap(2).toInt();
         }
@@ -584,7 +645,9 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
         QUrl domainURL;
         domainURL.setScheme(URL_SCHEME_HIFI);
         domainURL.setHost(domainIPString);
-        domainURL.setPort(domainPort);
+        if (domainPort > 0) {
+            domainURL.setPort(domainPort);
+        }
         hostChanged = setDomainInfo(domainURL, trigger);
 
         return true;
@@ -595,7 +658,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
     if (hostnameRegex.indexIn(lookupString) != -1) {
         QString domainHostname = hostnameRegex.cap(1);
 
-        quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        quint16 domainPort = 0;
 
         if (!hostnameRegex.cap(2).isEmpty()) {
             domainPort = (quint16)hostnameRegex.cap(2).toInt();
@@ -605,7 +668,9 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
         QUrl domainURL;
         domainURL.setScheme(URL_SCHEME_HIFI);
         domainURL.setHost(domainHostname);
-        domainURL.setPort(domainPort);
+        if (domainPort > 0) {
+            domainURL.setPort(domainPort);
+        }
         hostChanged = setDomainInfo(domainURL, trigger);
 
         return true;
@@ -669,7 +734,6 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
         // We use _newHostLookupPath to determine if the client has already stored its last address
         // before moving to a new host thanks to the information in the same lookup URL.
 
-
         if (definitelyPathOnly || (!pathString.isEmpty() && pathString != _newHostLookupPath)
             || trigger == Back || trigger == Forward) {
             addCurrentAddressToHistory(trigger);
@@ -730,19 +794,21 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 }
 
 bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
-    if (host != _domainURL.host() || port != _domainURL.port()) {
+    bool hostHasChanged = QString::compare(host, _domainURL.host(), Qt::CaseInsensitive);
+    if (hostHasChanged || port != _domainURL.port()) {
         addCurrentAddressToHistory(trigger);
 
-        bool emitHostChanged = host != _domainURL.host();
         _domainURL = QUrl();
         _domainURL.setScheme(URL_SCHEME_HIFI);
         _domainURL.setHost(host);
-        _domainURL.setPort(port);
+        if (port > 0) {
+            _domainURL.setPort(port);
+        }
 
         // any host change should clear the shareable place name
         _shareablePlaceName.clear();
 
-        if (emitHostChanged) {
+        if (hostHasChanged) {
             emit hostChanged(host);
         }
 
@@ -752,20 +818,14 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
     return false;
 }
 
-QString AddressManager::getHost() const {
-    if (isPossiblePlaceName(_domainURL.host())) {
-        return QString();
-    }
-
-    return _domainURL.host();
-}
-
 bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger) {
     const QString hostname = domainURL.host();
     quint16 port = domainURL.port();
     bool emitHostChanged { false };
+    // Check if domain handler is in error state. always emit host changed if true.
+    bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
 
-    if (domainURL != _domainURL) {
+    if (domainURL != _domainURL || isInErrorState) {
         addCurrentAddressToHistory(trigger);
         emitHostChanged = true;
     }
@@ -807,10 +867,14 @@ void AddressManager::goToUser(const QString& username, bool shouldMatchOrientati
                                               QByteArray(), nullptr, requestParams);
 }
 
+bool AddressManager::canGoBack() const {
+    return (_backStack.size() > 0);
+}
+
 void AddressManager::refreshPreviousLookup() {
     // if we have a non-empty previous lookup, fire it again now (but don't re-store it in the history)
-    if (!_previousLookup.isEmpty()) {
-        handleUrl(_previousLookup, LookupTrigger::AttemptedRefresh);
+    if (!_previousAPILookup.isEmpty()) {
+        handleUrl(_previousAPILookup, LookupTrigger::AttemptedRefresh);
     } else {
         handleUrl(currentAddress(), LookupTrigger::AttemptedRefresh);
     }
@@ -818,17 +882,16 @@ void AddressManager::refreshPreviousLookup() {
 
 void AddressManager::copyAddress() {
     if (QThread::currentThread() != qApp->thread()) {
-        QMetaObject::invokeMethod(this, "copyAddress");
+        QMetaObject::invokeMethod(qApp, "copyToClipboard", Q_ARG(QString, currentShareableAddress().toString()));
         return;
     }
-
     // assume that the address is being copied because the user wants a shareable address
     QGuiApplication::clipboard()->setText(currentShareableAddress().toString());
 }
 
 void AddressManager::copyPath() {
     if (QThread::currentThread() != qApp->thread()) {
-        QMetaObject::invokeMethod(this, "copyPath");
+        QMetaObject::invokeMethod(qApp, "copyToClipboard", Q_ARG(QString, currentPath()));
         return;
     }
 
@@ -839,14 +902,14 @@ QString AddressManager::getDomainID() const {
     return DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
 }
 
-void AddressManager::handleShareableNameAPIResponse(QNetworkReply& requestReply) {
+void AddressManager::handleShareableNameAPIResponse(QNetworkReply* requestReply) {
     // make sure that this response is for the domain we're currently connected to
     auto domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
 
-    if (requestReply.url().toString().contains(uuidStringWithoutCurlyBraces(domainID))) {
+    if (requestReply->url().toString().contains(uuidStringWithoutCurlyBraces(domainID))) {
         // check for a name or default name in the API response
 
-        QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+        QJsonObject responseObject = QJsonDocument::fromJson(requestReply->readAll()).object();
         QJsonObject domainObject = responseObject["domain"].toObject();
 
         const QString DOMAIN_NAME_KEY = "name";
@@ -882,7 +945,7 @@ void AddressManager::lookupShareableNameForDomainID(const QUuid& domainID) {
 
         // no error callback handling
         // in the case of an error we simply assume there is no default place name
-        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.callbackReceiver = this;
         callbackParams.jsonCallbackMethod = "handleShareableNameAPIResponse";
 
         DependencyManager::get<AccountManager>()->sendRequest(GET_DOMAIN_ID.arg(uuidStringWithoutCurlyBraces(domainID)),

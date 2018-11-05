@@ -13,6 +13,11 @@
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
 
+#include "LightStage.h"
+#include "BackgroundStage.h"
+#include "HazeStage.h"
+#include "BloomStage.h"
+
 class BeginGPURangeTimer {
 public:
     using JobModel = render::Job::ModelO<BeginGPURangeTimer, gpu::RangeTimerPointer>;
@@ -60,8 +65,7 @@ protected:
 
 class DrawOverlay3D {
 public:
-    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
-
+    using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, glm::vec2>;
     using Config = DrawOverlay3DConfig;
     using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;
 
@@ -73,7 +77,7 @@ public:
 protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
-    bool _opaquePass{ true };
+    bool _opaquePass { true };
 };
 
 class CompositeHUD {
@@ -107,10 +111,22 @@ public:
         FRUSTUM_COUNT
     };
 
-    using Output = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
-    using JobModel = render::Job::ModelO<ExtractFrustums, Output>;
+    using Inputs = LightStage::FramePointer;
+    using Outputs = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
+    using JobModel = render::Job::ModelIO<ExtractFrustums, Inputs, Outputs>;
 
-    void run(const render::RenderContextPointer& renderContext, Output& output);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
+};
+
+
+class FetchCurrentFrames {
+public:
+    using Outputs = render::VaryingSet4<LightStage::FramePointer, BackgroundStage::FramePointer, HazeStage::FramePointer, BloomStage::FramePointer>;
+    using JobModel = render::Job::ModelO<FetchCurrentFrames, Outputs>;
+
+    FetchCurrentFrames() {}
+
+    void run(const render::RenderContextPointer& renderContext, Outputs& outputs);
 };
 
 #endif // hifi_RenderDeferredTask_h

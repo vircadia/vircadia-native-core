@@ -15,8 +15,9 @@
 #include "MovingPercentile.h"
 
 #include <limits>
-#include <qqueue.h>
-#include <../QTestExtensions.h>
+#include <QtCore/QQueue>
+#include <test-utils/GLMTestUtils.h>
+#include <test-utils/QTestExtensions.h>
 
 QTEST_MAIN(MovingPercentileTests)
 

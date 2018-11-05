@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioClient.h"
+
 #include <cstring>
 #include <math.h>
 #include <sys/stat.h>
@@ -50,7 +52,9 @@
 #include "AudioLogging.h"
 #include "AudioHelpers.h"
 
-#include "AudioClient.h"
+#if defined(Q_OS_ANDROID)
+#include <QtAndroidExtras/QAndroidJniObject>
+#endif
 
 const int AudioClient::MIN_BUFFER_FRAMES = 1;
 
@@ -60,7 +64,7 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
 #if defined(Q_OS_ANDROID)
 static const int CHECK_INPUT_READS_MSECS = 2000;
-static const int MIN_READS_TO_CONSIDER_INPUT_ALIVE = 100;
+static const int MIN_READS_TO_CONSIDER_INPUT_ALIVE = 10;
 #endif
 
 static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
@@ -96,6 +100,13 @@ QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
 
 // now called from a background thread, to keep blocking operations off the audio thread
 void AudioClient::checkDevices() {
+    // Make sure we're not shutting down
+    Lock timerMutex(_checkDevicesMutex);
+    // If we HAVE shut down after we were queued, but prior to execution, early exit
+    if (nullptr == _checkDevicesTimer) {
+        return;
+    }
+
     auto inputDevices = getAvailableDevices(QAudio::AudioInput);
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput);
 
@@ -205,6 +216,7 @@ AudioClient::AudioClient() :
     _positionGetter(DEFAULT_POSITION_GETTER),
 #if defined(Q_OS_ANDROID)
     _checkInputTimer(this),
+    _isHeadsetPluggedIn(false),
 #endif
     _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
     // avoid putting a lock in the device callback
@@ -232,18 +244,25 @@ AudioClient::AudioClient() :
     // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
     getAvailableDevices(QAudio::AudioInput);
     getAvailableDevices(QAudio::AudioOutput);
-    
+
     // start a thread to detect any device changes
     _checkDevicesTimer = new QTimer(this);
-    connect(_checkDevicesTimer, &QTimer::timeout, [this] {
-        QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkDevices(); });
-    });
     const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
+    connect(_checkDevicesTimer, &QTimer::timeout, this, [=] {
+        QtConcurrent::run(QThreadPool::globalInstance(), [=] {
+            checkDevices();
+            // On some systems (Ubuntu) checking all the audio devices can take more than 2 seconds.  To
+            // avoid consuming all of the thread pool, don't start the check interval until the previous
+            // check has completed.
+            QMetaObject::invokeMethod(_checkDevicesTimer, "start", Q_ARG(int, DEVICE_CHECK_INTERVAL_MSECS));
+        });
+    });
+    _checkDevicesTimer->setSingleShot(true);
     _checkDevicesTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
 
     // start a thread to detect peak value changes
     _checkPeakValuesTimer = new QTimer(this);
-    connect(_checkPeakValuesTimer, &QTimer::timeout, [this] {
+    connect(_checkPeakValuesTimer, &QTimer::timeout, this, [this] {
         QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkPeakValues(); });
     });
     const unsigned long PEAK_VALUES_CHECK_INTERVAL_MSECS = 50;
@@ -269,31 +288,11 @@ AudioClient::~AudioClient() {
 }
 
 void AudioClient::customDeleter() {
-    deleteLater();
-}
-
-void AudioClient::cleanupBeforeQuit() {
-    // FIXME: this should be put in customDeleter, but there is still a reference to this when it is called,
-    //        so this must be explicitly, synchronously stopped
-    static ConditionalGuard guard;
-    if (QThread::currentThread() != thread()) {
-        // This will likely be called from the main thread, but we don't want to do blocking queued calls
-        // from the main thread, so we use a normal auto-connection invoke, and then use a conditional to wait
-        // for completion
-        // The effect is the same, yes, but we actually want to avoid the use of Qt::BlockingQueuedConnection
-        // in the code
-        QMetaObject::invokeMethod(this, "cleanupBeforeQuit");
-        guard.wait();
-        return;
-    }
-
 #if defined(Q_OS_ANDROID)
     _shouldRestartInputSetup = false;
 #endif
     stop();
-    _checkDevicesTimer->stop();
-    _checkPeakValuesTimer->stop();
-    guard.trigger();
+    deleteLater();
 }
 
 void AudioClient::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
@@ -315,6 +314,16 @@ void AudioClient::audioMixerKilled() {
     _outgoingAvatarAudioSequenceNumber = 0;
     _stats.reset();
     emit disconnected();
+}
+
+void AudioClient::setAudioPaused(bool pause) {
+    if (_audioPaused != pause) {
+        _audioPaused = pause;
+
+        if (!_audioPaused) {
+            negotiateAudioFormat();
+        }
+    }
 }
 
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
@@ -461,7 +470,21 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     return getNamedAudioDeviceForMode(mode, deviceName);
 #endif
 
-
+#if defined (Q_OS_ANDROID)
+    if (mode == QAudio::AudioInput) {
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, false);
+        bool aecEnabled = enableAEC.get();
+        auto audioClient = DependencyManager::get<AudioClient>();
+        bool headsetOn = audioClient? audioClient->isHeadsetPluggedIn() : false;
+        auto inputDevices = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
+        for (auto inputDevice : inputDevices) {
+            if (((headsetOn || !aecEnabled) && inputDevice.deviceName() == VOICE_RECOGNITION) ||
+                    ((!headsetOn && aecEnabled) && inputDevice.deviceName() == VOICE_COMMUNICATION)) {
+                return inputDevice;
+            }
+        }
+    }
+#endif
     // fallback for failed lookup is the default device
     return (mode == QAudio::AudioInput) ? QAudioDeviceInfo::defaultInputDevice() : QAudioDeviceInfo::defaultOutputDevice();
 }
@@ -635,27 +658,39 @@ void AudioClient::start() {
         qCDebug(audioclient) << "The closest format available is" << outputDeviceInfo.nearestFormat(_desiredOutputFormat);
     }
 #if defined(Q_OS_ANDROID)
-    connect(&_checkInputTimer, &QTimer::timeout, [this] {
-        checkInputTimeout();
-    });
+    connect(&_checkInputTimer, &QTimer::timeout, this, &AudioClient::checkInputTimeout);
     _checkInputTimer.start(CHECK_INPUT_READS_MSECS);
 #endif
 }
 
 void AudioClient::stop() {
-
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchInputToAudioDevice() to shut down";
     switchInputToAudioDevice(QAudioDeviceInfo(), true);
 
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchOutputToAudioDevice() to shut down";
     switchOutputToAudioDevice(QAudioDeviceInfo(), true);
+
+    // Stop triggering the checks
+    QObject::disconnect(_checkPeakValuesTimer, &QTimer::timeout, nullptr, nullptr);
+    QObject::disconnect(_checkDevicesTimer, &QTimer::timeout, nullptr, nullptr);
+
+    // Destruction of the pointers will occur when the parent object (this) is destroyed)
+    {
+        Lock lock(_checkDevicesMutex);
+        _checkDevicesTimer = nullptr;
+    }
+    {
+        Lock lock(_checkPeakValuesMutex);
+        _checkPeakValuesTimer = nullptr;
+    }
+
 #if defined(Q_OS_ANDROID)
     _checkInputTimer.stop();
+    disconnect(&_checkInputTimer, &QTimer::timeout, 0, 0);
 #endif
 }
 
 void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
-
     char bitset;
     message->readPrimitive(&bitset);
 
@@ -668,11 +703,10 @@ void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessag
         _receivedAudioStream.setReverb(reverbTime, wetLevel);
     } else {
         _receivedAudioStream.clearReverb();
-   }
+    }
 }
 
 void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message) {
-
     if (message->getType() == PacketType::SilentAudioFrame) {
         _silentInbound.increment();
     } else {
@@ -757,7 +791,7 @@ void AudioClient::Gate::flush() {
 
 void AudioClient::handleNoisyMutePacket(QSharedPointer<ReceivedMessage> message) {
     if (!_muted) {
-        toggleMute();
+        setMuted(true);
 
         // have the audio scripting interface emit a signal to say we were muted by the mixer
         emit mutedByMixer();
@@ -1030,80 +1064,82 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
-    if (_muted) {
-        _lastInputLoudness = 0.0f;
-        _timeSinceLastClip = 0.0f;
-    } else {
-        int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
-        int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
-        int numFrames = numSamples / (_isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
-
-        if (_isNoiseGateEnabled) {
-            // The audio gate includes DC removal
-            _audioGate->render(samples, samples, numFrames);
-        } else {
-            _audioGate->removeDC(samples, samples, numFrames);
-        }
-
-        int32_t loudness = 0;
-        assert(numSamples < 65536); // int32_t loudness cannot overflow
-        bool didClip = false;
-        for (int i = 0; i < numSamples; ++i) {
-            const int32_t CLIPPING_THRESHOLD = (int32_t)(AudioConstants::MAX_SAMPLE_VALUE * 0.9f);
-            int32_t sample = std::abs((int32_t)samples[i]);
-            loudness += sample;
-            didClip |= (sample > CLIPPING_THRESHOLD);
-        }
-        _lastInputLoudness = (float)loudness / numSamples;
-
-        if (didClip) {
+    if (!_audioPaused) {
+        if (_muted) {
+            _lastInputLoudness = 0.0f;
             _timeSinceLastClip = 0.0f;
-        } else if (_timeSinceLastClip >= 0.0f) {
-            _timeSinceLastClip += (float)numSamples / (float)AudioConstants::SAMPLE_RATE;
+        } else {
+            int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
+            int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
+            int numFrames = numSamples / (_isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
+
+            if (_isNoiseGateEnabled) {
+                // The audio gate includes DC removal
+                _audioGate->render(samples, samples, numFrames);
+            } else {
+                _audioGate->removeDC(samples, samples, numFrames);
+            }
+
+            int32_t loudness = 0;
+            assert(numSamples < 65536); // int32_t loudness cannot overflow
+            bool didClip = false;
+            for (int i = 0; i < numSamples; ++i) {
+                const int32_t CLIPPING_THRESHOLD = (int32_t)(AudioConstants::MAX_SAMPLE_VALUE * 0.9f);
+                int32_t sample = std::abs((int32_t)samples[i]);
+                loudness += sample;
+                didClip |= (sample > CLIPPING_THRESHOLD);
+            }
+            _lastInputLoudness = (float)loudness / numSamples;
+
+            if (didClip) {
+                _timeSinceLastClip = 0.0f;
+            } else if (_timeSinceLastClip >= 0.0f) {
+                _timeSinceLastClip += (float)numSamples / (float)AudioConstants::SAMPLE_RATE;
+            }
+
+            emit inputReceived(audioBuffer);
         }
 
-        emit inputReceived(audioBuffer);
+        emit inputLoudnessChanged(_lastInputLoudness);
+
+        // state machine to detect gate opening and closing
+        bool audioGateOpen = (_lastInputLoudness != 0.0f);
+        bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
+        bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
+        _audioGateOpen = audioGateOpen;
+
+        if (openedInLastBlock) {
+            emit noiseGateOpened();
+        } else if (closedInLastBlock) {
+            emit noiseGateClosed();
+        }
+
+        // the codec must be flushed to silence before sending silent packets,
+        // so delay the transition to silent packets by one packet after becoming silent.
+        auto packetType = _shouldEchoToServer ? PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
+        if (!audioGateOpen && !closedInLastBlock) {
+            packetType = PacketType::SilentAudioFrame;
+            _silentOutbound.increment();
+        } else {
+            _audioOutbound.increment();
+        }
+
+        Transform audioTransform;
+        audioTransform.setTranslation(_positionGetter());
+        audioTransform.setRotation(_orientationGetter());
+
+        QByteArray encodedBuffer;
+        if (_encoder) {
+            _encoder->encode(audioBuffer, encodedBuffer);
+        } else {
+            encodedBuffer = audioBuffer;
+        }
+
+        emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, _isStereoInput,
+                        audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
+                        packetType, _selectedCodecName);
+        _stats.sentPacket();
     }
-
-    emit inputLoudnessChanged(_lastInputLoudness);
-
-    // state machine to detect gate opening and closing
-    bool audioGateOpen = (_lastInputLoudness != 0.0f);
-    bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
-    bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
-    _audioGateOpen = audioGateOpen;
-
-    if (openedInLastBlock) {
-        emit noiseGateOpened();
-    } else if (closedInLastBlock) {
-        emit noiseGateClosed();
-    }
-
-    // the codec must be flushed to silence before sending silent packets,
-    // so delay the transition to silent packets by one packet after becoming silent.
-    auto packetType = _shouldEchoToServer ? PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
-    if (!audioGateOpen && !closedInLastBlock) {
-        packetType = PacketType::SilentAudioFrame;
-        _silentOutbound.increment();
-    } else {
-        _audioOutbound.increment();
-    }
-
-    Transform audioTransform;
-    audioTransform.setTranslation(_positionGetter());
-    audioTransform.setRotation(_orientationGetter());
-
-    QByteArray encodedBuffer;
-    if (_encoder) {
-        _encoder->encode(audioBuffer, encodedBuffer);
-    } else {
-        encodedBuffer = audioBuffer;
-    }
-
-    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, _isStereoInput,
-            audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
-            packetType, _selectedCodecName);
-    _stats.sentPacket();
 }
 
 void AudioClient::handleMicAudioInput() {
@@ -1384,15 +1420,21 @@ void AudioClient::sendMuteEnvironmentPacket() {
     }
 }
 
-void AudioClient::toggleMute() {
-    _muted = !_muted;
-    emit muteToggled();
+void AudioClient::setMuted(bool muted, bool emitSignal) {
+    if (_muted != muted) {
+        _muted = muted;
+        if (emitSignal) {
+            emit muteToggled(_muted);
+        }
+    }
 }
 
-void AudioClient::setNoiseReduction(bool enable) {
+void AudioClient::setNoiseReduction(bool enable, bool emitSignal) {
     if (_isNoiseGateEnabled != enable) {
         _isNoiseGateEnabled = enable;
-        emit noiseReductionChanged();
+        if (emitSignal) {
+            emit noiseReductionChanged(_isNoiseGateEnabled);
+        }
     }
 }
 
@@ -1420,6 +1462,8 @@ bool AudioClient::setIsStereoInput(bool isStereoInput) {
 
         // restart the input device
         switchInputToAudioDevice(_inputDeviceInfo);
+
+        emit isStereoInputChanged(_isStereoInput);
     }
 
     return stereoInputChanged;
@@ -1457,6 +1501,8 @@ void AudioClient::outputFormatChanged() {
 }
 
 bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest) {
+    Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
+
     qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << inputDeviceInfo.deviceName() << "]";
     bool supportedFormat = false;
 
@@ -1548,9 +1594,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
 #if defined(Q_OS_ANDROID)
                 if (_audioInput) {
                     _shouldRestartInputSetup = true;
-                    connect(_audioInput, &QAudioInput::stateChanged, [this](QAudio::State state) {
-                        audioInputStateChanged(state);
-                    });
+                    connect(_audioInput, &QAudioInput::stateChanged, this, &AudioClient::audioInputStateChanged);
                 }
 #endif
                 _inputDevice = _audioInput->start();
@@ -1626,6 +1670,29 @@ void AudioClient::checkInputTimeout() {
 #endif
 }
 
+void AudioClient::setHeadsetPluggedIn(bool pluggedIn) {
+#if defined(Q_OS_ANDROID)
+    if (pluggedIn == !_isHeadsetPluggedIn && !_inputDeviceInfo.isNull()) {
+        QAndroidJniObject brand =  QAndroidJniObject::getStaticObjectField<jstring>("android/os/Build", "BRAND");
+        // some samsung phones needs more time to shutdown the previous input device
+        if (brand.toString().contains("samsung", Qt::CaseInsensitive)) {
+            switchInputToAudioDevice(QAudioDeviceInfo(), true);
+            QThread::msleep(200);
+        }
+
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, false);
+        bool aecEnabled = enableAEC.get();
+
+        if ((pluggedIn || !aecEnabled) && _inputDeviceInfo.deviceName() != VOICE_RECOGNITION) {
+            switchAudioDevice(QAudio::AudioInput, VOICE_RECOGNITION);
+        } else if (!pluggedIn && aecEnabled && _inputDeviceInfo.deviceName() != VOICE_COMMUNICATION) {
+            switchAudioDevice(QAudio::AudioInput, VOICE_COMMUNICATION);
+        }
+    }
+    _isHeadsetPluggedIn = pluggedIn;
+#endif
+}
+
 void AudioClient::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
     if (recentUnfulfilled > 0) {
@@ -1657,6 +1724,8 @@ void AudioClient::outputNotify() {
 }
 
 bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest) {
+    Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
+
     qCDebug(audioclient) << "AudioClient::switchOutputToAudioDevice() outputDeviceInfo: [" << outputDeviceInfo.deviceName() << "]";
     bool supportedFormat = false;
 
@@ -1752,7 +1821,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
                     _outputScratchBuffer = new int16_t[_outputPeriod];
 
                     // size local output mix buffer based on resampled network frame size
-                    int networkPeriod = _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
+                    int networkPeriod = _localToOutputResampler ?  _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO) : AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
                     _localOutputMixBuffer = new float[networkPeriod];
 
                     // local period should be at least twice the output period,
@@ -1826,7 +1895,9 @@ const float AudioClient::CALLBACK_ACCELERATOR_RATIO = IsWindows8OrGreater() ? 1.
 const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 
-#ifdef Q_OS_LINUX
+#ifdef Q_OS_ANDROID
+const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 0.5f;
+#elif defined(Q_OS_LINUX)
 const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 
@@ -2015,12 +2086,14 @@ void AudioClient::setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 sca
 
 
 void AudioClient::startThread() {
-    moveToNewNamedThread(this, "Audio Thread", [this] { start(); });
+    moveToNewNamedThread(this, "Audio Thread", [this] { start(); }, QThread::TimeCriticalPriority);
 }
 
-void AudioClient::setInputVolume(float volume) {
+void AudioClient::setInputVolume(float volume, bool emitSignal) {
     if (_audioInput && volume != (float)_audioInput->volume()) {
         _audioInput->setVolume(volume);
-        emit inputVolumeChanged(_audioInput->volume());
+        if (emitSignal) {
+            emit inputVolumeChanged(_audioInput->volume());
+        }
     }
 }

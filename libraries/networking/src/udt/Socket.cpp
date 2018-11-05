@@ -33,17 +33,10 @@ using namespace udt;
 
 Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
-    _synTimer(new QTimer(this)),
     _readyReadBackupTimer(new QTimer(this)),
     _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
-
-    // make sure our synchronization method is called every SYN interval
-    connect(_synTimer, &QTimer::timeout, this, &Socket::rateControlSync);
-
-    // start our timer for the synchronization time interval
-    _synTimer->start(_synInterval);
 
     // make sure we hear about errors and state changes from the underlying socket
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
@@ -229,23 +222,19 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 
     if (bytesWritten < 0) {
         // when saturating a link this isn't an uncommon message - suppress it so it doesn't bomb the debug
-        static const QString WRITE_ERROR_REGEX = "Socket::writeDatagram QAbstractSocket::NetworkError - Unable to send a message";
-        static QString repeatedMessage
-            = LogHandler::getInstance().addRepeatedMessageRegex(WRITE_ERROR_REGEX);
-
-        qCDebug(networking) << "Socket::writeDatagram" << _udpSocket.error() << "-" << qPrintable(_udpSocket.errorString());
+        HIFI_FCDEBUG(networking(), "Socket::writeDatagram" << _udpSocket.error());
     }
 
     return bytesWritten;
 }
 
-Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
+Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreate) {
     auto it = _connectionsHash.find(sockAddr);
 
     if (it == _connectionsHash.end()) {
         // we did not have a matching connection, time to see if we should make one
 
-        if (_connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
+        if (filterCreate && _connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
             // the connection creation filter did not allow us to create a new connection
 #ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Socket::findOrCreateConnection refusing to create connection for" << sockAddr
@@ -326,9 +315,18 @@ void Socket::checkForReadyReadBackup() {
 }
 
 void Socket::readPendingDatagrams() {
+    using namespace std::chrono;
+    static const auto MAX_PROCESS_TIME { 100ms };
+    const auto abortTime = system_clock::now() + MAX_PROCESS_TIME;
     int packetSizeWithHeader = -1;
 
-    while (_udpSocket.hasPendingDatagrams() && (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+    while (_udpSocket.hasPendingDatagrams() &&
+           (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+        if (system_clock::now() > abortTime) {
+            // We've been running for too long, stop processing packets for now
+            // Once we've processed the event queue, we'll come back to packet processing
+            break;
+        }
 
         // we're reading a packet so re-start the readyRead backup timer
         _readyReadBackupTimer->start();
@@ -378,7 +376,7 @@ void Socket::readPendingDatagrams() {
             controlPacket->setReceiveTime(receiveTime);
 
             // move this control packet to the matching connection, if there is one
-            auto connection = findOrCreateConnection(senderSockAddr);
+            auto connection = findOrCreateConnection(senderSockAddr, true);
 
             if (connection) {
                 connection->processControl(move(controlPacket));
@@ -396,7 +394,7 @@ void Socket::readPendingDatagrams() {
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
-                    auto connection = findOrCreateConnection(senderSockAddr);
+                    auto connection = findOrCreateConnection(senderSockAddr, true);
 
                     if (!connection || !connection->processReceivedSequenceNumber(packet->getSequenceNumber(),
                                                                                   packet->getDataSize(),
@@ -411,7 +409,7 @@ void Socket::readPendingDatagrams() {
                 }
 
                 if (packet->isPartOfMessage()) {
-                    auto connection = findOrCreateConnection(senderSockAddr);
+                    auto connection = findOrCreateConnection(senderSockAddr, true);
                     if (connection) {
                         connection->queueReceivedMessagePacket(std::move(packet));
                     }
@@ -431,49 +429,9 @@ void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* r
     }
 }
 
-void Socket::rateControlSync() {
-
-    // enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
-
-    // the way we do this is a little funny looking - we need to avoid the case where we call sync and
-    // (because of our Qt direct connection to the Connection's signal that it has been deactivated)
-    // an iterator on _connectionsHash would be invalidated by our own call to cleanupConnection
-
-    // collect the sockets for all connections in a vector
-
-    std::vector<HifiSockAddr> sockAddrVector;
-    sockAddrVector.reserve(_connectionsHash.size());
-
-    for (auto& connection : _connectionsHash) {
-        sockAddrVector.emplace_back(connection.first);
-    }
-
-    // enumerate that vector of HifiSockAddr objects
-    for (auto& sockAddr : sockAddrVector) {
-        // pull out the respective connection via a quick find on the unordered_map
-        auto it = _connectionsHash.find(sockAddr);
-
-        if (it != _connectionsHash.end()) {
-            // if the connection is erased while calling sync since we are re-using the iterator that was invalidated
-            // we're good to go
-            auto& connection = _connectionsHash[sockAddr];
-            connection->sync();
-        }
-    }
-
-    if (_synTimer->interval() != _synInterval) {
-        // if the _synTimer interval doesn't match the current _synInterval (changes when the CC factory is changed)
-        // then restart it now with the right interval
-        _synTimer->start(_synInterval);
-    }
-}
-
 void Socket::setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory) {
     // swap the current unique_ptr for the new factory
     _ccFactory.swap(ccFactory);
-
-    // update the _synInterval to the value from the factory
-    _synInterval = _ccFactory->synInterval();
 }
 
 
@@ -517,11 +475,7 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    static const QString SOCKET_REGEX = "udt::Socket error - ";
-    static QString repeatedMessage
-        = LogHandler::getInstance().addRepeatedMessageRegex(SOCKET_REGEX);
-
-    qCDebug(networking) << "udt::Socket error - " << socketError << _udpSocket.errorString();
+    HIFI_FCDEBUG(networking(), "udt::Socket error - " << socketError);
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {

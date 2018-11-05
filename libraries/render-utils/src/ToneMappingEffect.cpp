@@ -12,31 +12,21 @@
 #include "ToneMappingEffect.h"
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
 
+#include "render-utils/ShaderConstants.h"
 #include "StencilMaskPass.h"
 #include "FramebufferCache.h"
 
-#include "toneMapping_frag.h"
-
-const int ToneMappingEffect_ParamsSlot = 0;
-const int ToneMappingEffect_LightingMapSlot = 0;
 
 ToneMappingEffect::ToneMappingEffect() {
     Parameters parameters;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
 }
 
-void ToneMappingEffect::init() {
-    auto blitPS = toneMapping_frag::getShader();
+void ToneMappingEffect::init(RenderArgs* args) {
+    auto blitProgram = gpu::Shader::createProgram(shader::render_utils::program::toneMapping);
 
-    auto blitVS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-    auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(blitVS, blitPS));
-
-    gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("toneMappingParamsBuffer"), ToneMappingEffect_ParamsSlot));
-    slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), ToneMappingEffect_LightingMapSlot));
-    gpu::Shader::makeProgram(*blitProgram, slotBindings);
     auto blitState = std::make_shared<gpu::State>();
     blitState->setColorWriteMask(true, true, true, true);
     _blitLightBuffer = gpu::PipelinePointer(gpu::Pipeline::create(blitProgram, blitState));
@@ -59,7 +49,7 @@ void ToneMappingEffect::setToneCurve(ToneCurve curve) {
 
 void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& lightingBuffer, const gpu::FramebufferPointer& requestedDestinationFramebuffer) {
     if (!_blitLightBuffer) {
-        init();
+        init(args);
     }
 
     auto destinationFramebuffer = requestedDestinationFramebuffer;
@@ -81,8 +71,8 @@ void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& ligh
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
         batch.setPipeline(_blitLightBuffer);
 
-        batch.setUniformBuffer(ToneMappingEffect_ParamsSlot, _parametersBuffer);
-        batch.setResourceTexture(ToneMappingEffect_LightingMapSlot, lightingBuffer);
+        batch.setUniformBuffer(render_utils::slot::buffer::ToneMappingParams, _parametersBuffer);
+        batch.setResourceTexture(render_utils::slot::texture::ToneMappingColor, lightingBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 }

@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  drawCellBounds.slv
+//  drawCellBounds.vert
 //  Vertex shader
 //
 //  Created by Sam Gateau on 1/25/2016
@@ -20,10 +20,8 @@
 <$declareColorWheel()$>
 <@include SceneOctree.slh@>
 
-uniform ivec4 inCellLocation;
-
-out vec4 varColor;
-
+layout(location=0) in ivec4 inCellLocation;
+layout(location=0) out vec4 varColor;
 
 void main(void) {
     const vec4 UNIT_BOX[8] = vec4[8](
@@ -63,5 +61,5 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    varColor = vec4(colorWheel(fract(float(inCellLocation.w) / 5.0)), 0.8 + 0.2 * cellIsEmpty);
+    varColor = vec4(colorWheel(fract(float(inCellLocation.w) / 5.0)), 0.8 + 0.2 * float(cellIsEmpty));
 }

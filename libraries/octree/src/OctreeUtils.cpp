@@ -16,6 +16,7 @@
 #include <glm/glm.hpp>
 
 #include <AABox.h>
+#include <AACube.h>
 
 float calculateRenderAccuracy(const glm::vec3& position,
         const AABox& bounds,
@@ -63,10 +64,14 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeSc
     return voxelSizeScale / powf(2.0f, renderLevel);
 }
 
-float getPerspectiveAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust) {
+float getPerspectiveAccuracyAngleTan(float octreeSizeScale, int boundaryLevelAdjust) {
     const float maxScale = (float)TREE_SCALE;
     float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
-    return atan(maxScale / visibleDistanceAtMaxScale);
+    return (maxScale / visibleDistanceAtMaxScale);
+}
+
+float getPerspectiveAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust) {
+    return atan(getPerspectiveAccuracyAngleTan(octreeSizeScale, boundaryLevelAdjust));
 }
 
 float getOrthographicAccuracySize(float octreeSizeScale, int boundaryLevelAdjust) {

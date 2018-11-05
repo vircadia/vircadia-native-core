@@ -2,6 +2,9 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  DrawTexcoordRectTransformUnitQuad.vert
+
+//
 //  Draw and transform the unit quad [-1,-1 -> 1,1]
 //  Transform the normalized texcoords [0, 1] to be in the range [texcoordRect.xy, texcoordRect.xy + texcoordRect.zw]
 //  Simply draw a Triangle_strip of 2 triangles, no input buffers or index buffer needed
@@ -14,12 +17,19 @@
 //
 
 <@include gpu/Transform.slh@>
+<@include gpu/ShaderConstants.h@>
 
 <$declareStandardTransform()$>
 
-uniform vec4 texcoordRect;
+struct TexCoordRectParams {
+    vec4 texcoordRect;
+};
 
-out vec2 varTexCoord0;
+LAYOUT(binding=0) uniform texcoordRectBuffer {
+    TexCoordRectParams params;
+};
+
+layout(location=0) out vec2 varTexCoord0;
 
 void main(void) {
     const vec4 UNIT_QUAD[4] = vec4[4](
@@ -35,5 +45,5 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    varTexCoord0 = ((pos.xy + 1.0) * 0.5) * texcoordRect.zw + texcoordRect.xy;
+    varTexCoord0 = ((pos.xy + 1.0) * 0.5) * params.texcoordRect.zw + params.texcoordRect.xy;
 }

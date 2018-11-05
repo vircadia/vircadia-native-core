@@ -7,6 +7,11 @@ else()
   cmake_minimum_required(VERSION 3.2)
 endif()
 
+# squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
+if ((${CMAKE_MAJOR_VERSION} EQUAL 3 AND ${CMAKE_MINOR_VERSION} GREATER 11) OR ${CMAKE_MAJOR_VERSION} GREATER 3)
+   cmake_policy(SET CMP0074 NEW)
+endif()
+
 project(hifi)
 
 include("cmake/init.cmake")
@@ -15,6 +20,7 @@ include("cmake/compiler.cmake")
 
 if (BUILD_SCRIBE_ONLY)
   add_subdirectory(tools/scribe)
+  add_subdirectory(tools/shader_reflect)
   return()
 endif()
 
@@ -39,6 +45,7 @@ set(BUILD_TOOLS_OPTION ON)
 set(BUILD_INSTALLER_OPTION ON)
 set(GLES_OPTION OFF)
 set(DISABLE_QML_OPTION OFF)
+set(DOWNLOAD_SERVERLESS_CONTENT_OPTION OFF)
 
 if (ANDROID OR UWP)
   set(BUILD_SERVER_OPTION OFF)
@@ -59,12 +66,13 @@ if (ANDROID)
   set(GLES_OPTION ON)
   set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
 else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+  set(PLATFORM_QT_COMPONENTS WebEngine)
 endif ()
 
 if (USE_GLES AND (NOT ANDROID))
   set(DISABLE_QML_OPTION ON)
 endif()
+
 
 option(BUILD_CLIENT "Build client components" ${BUILD_CLIENT_OPTION})
 option(BUILD_SERVER "Build server components" ${BUILD_SERVER_OPTION})
@@ -74,6 +82,11 @@ option(BUILD_INSTALLER "Build installer" ${BUILD_INSTALLER_OPTION})
 option(USE_GLES "Use OpenGL ES" ${GLES_OPTION})
 option(DISABLE_QML "Disable QML" ${DISABLE_QML_OPTION})
 option(DISABLE_KTX_CACHE "Disable KTX Cache" OFF)
+option(
+  DOWNLOAD_SERVERLESS_CONTENT
+  "Download and setup default serverless content beside Interface"
+  ${DOWNLOAD_SERVERLESS_CONTENT_OPTION}
+)
 
 set(PLATFORM_QT_GL OpenGL)
 
@@ -88,12 +101,13 @@ foreach(PLATFORM_QT_COMPONENT ${PLATFORM_QT_COMPONENTS})
   list(APPEND PLATFORM_QT_LIBRARIES "Qt5::${PLATFORM_QT_COMPONENT}")
 endforeach()
 
-MESSAGE(STATUS "Build server:    " ${BUILD_SERVER})
-MESSAGE(STATUS "Build client:    " ${BUILD_CLIENT})
-MESSAGE(STATUS "Build tests:     " ${BUILD_TESTS})
-MESSAGE(STATUS "Build tools:     " ${BUILD_TOOLS})
-MESSAGE(STATUS "Build installer: " ${BUILD_INSTALLER})
-MESSAGE(STATUS "GL ES:           " ${USE_GLES})
+MESSAGE(STATUS "Build server:          " ${BUILD_SERVER})
+MESSAGE(STATUS "Build client:          " ${BUILD_CLIENT})
+MESSAGE(STATUS "Build tests:           " ${BUILD_TESTS})
+MESSAGE(STATUS "Build tools:           " ${BUILD_TOOLS})
+MESSAGE(STATUS "Build installer:       " ${BUILD_INSTALLER})
+MESSAGE(STATUS "GL ES:                 " ${USE_GLES})
+MESSAGE(STATUS "DL serverless content: " ${DOWNLOAD_SERVERLESS_CONTENT})
 
 if (DISABLE_QML)
   MESSAGE(STATUS "QML disabled!")
@@ -154,7 +168,6 @@ if (BUILD_SERVER)
   set_target_properties(domain-server PROPERTIES FOLDER "Apps")
   add_subdirectory(ice-server)
   set_target_properties(ice-server PROPERTIES FOLDER "Apps")
-  add_subdirectory(server-console)
 endif()
 
 if (BUILD_CLIENT)
@@ -166,13 +179,19 @@ endif()
 
 if (BUILD_CLIENT OR BUILD_SERVER)
   add_subdirectory(plugins)
+  add_subdirectory(server-console)
 endif()
 
 # BUILD_TOOLS option will be handled inside the tools's CMakeLists.txt because 'scribe' tool is required for build anyway
 add_subdirectory(tools)
 
 if (BUILD_TESTS)
+  # Turn on testing so that add_test works
+  # MUST be in the root cmake file for ctest to work 
+  include(CTest)
+  enable_testing()
   add_subdirectory(tests)
+  add_subdirectory(tests-manual)
 endif()
 
 if (BUILD_INSTALLER)

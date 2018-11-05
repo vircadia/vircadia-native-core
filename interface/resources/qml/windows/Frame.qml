@@ -43,7 +43,7 @@ Item {
 
     Text {
         id: debugZ
-        visible: DebugQML
+        visible: (typeof DebugQML !== 'undefined') ? DebugQML : false
         color: "red"
         text: (window ? "Z: " + window.z : "") + " " + qmlFile
         y: window ? window.height + 4 : 0

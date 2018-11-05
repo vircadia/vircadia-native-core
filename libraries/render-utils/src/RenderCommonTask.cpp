@@ -9,12 +9,25 @@
 #include "RenderCommonTask.h"
 
 #include <gpu/Context.h>
+#include <graphics/ShaderConstants.h>
 
+#include "render-utils/ShaderConstants.h"
 #include "DeferredLightingEffect.h"
 #include "RenderUtilsLogging.h"
 
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
+
+
 using namespace render;
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
+extern void initForwardPipelines(ShapePlumber& plumber);
 
 void BeginGPURangeTimer::run(const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
     timer = _gpuTimer;
@@ -35,7 +48,7 @@ void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, co
 DrawOverlay3D::DrawOverlay3D(bool opaque) :
     _shapePlumber(std::make_shared<ShapePlumber>()),
     _opaquePass(opaque) {
-    initOverlay3DPipelines(*_shapePlumber);
+    initForwardPipelines(*_shapePlumber);
 }
 
 void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -46,23 +59,24 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
 
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
+    const auto jitter = inputs.get2();
     
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();
 
+    RenderArgs* args = renderContext->args;
+
+    // Clear the framebuffer without stereo
+    // Needs to be distinct from the other batch because using the clear call 
+    // while stereo is enabled triggers a warning
+    if (_opaquePass) {
+        gpu::doInBatch("DrawOverlay3D::run::clear", args->_context, [&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, false);
+        });
+    }
+
     if (!inItems.empty()) {
-        RenderArgs* args = renderContext->args;
-
-        // Clear the framebuffer without stereo
-        // Needs to be distinct from the other batch because using the clear call 
-        // while stereo is enabled triggers a warning
-        if (_opaquePass) {
-            gpu::doInBatch("DrawOverlay3D::run::clear", args->_context, [&](gpu::Batch& batch){
-                batch.enableStereo(false);
-                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, false);
-            });
-        }
-
         // Render the items
         gpu::doInBatch("DrawOverlay3D::main", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
@@ -75,10 +89,11 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             args->getViewFrustum().evalViewTransform(viewMat);
 
             batch.setProjectionTransform(projMat);
+            batch.setProjectionJitter(jitter.x, jitter.y);
             batch.setViewTransform(viewMat);
 
             // Setup lighting model for all items;
-            batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+            batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
             renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
             args->_batch = nullptr;
@@ -182,11 +197,13 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     });
 }
 
-void ExtractFrustums::run(const render::RenderContextPointer& renderContext, Output& output) {
+void ExtractFrustums::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
     RenderArgs* args = renderContext->args;
+
+    const auto& lightFrame = inputs;
 
     // Return view frustum
     auto& viewFrustum = output[VIEW_FRUSTUM].edit<ViewFrustumPointer>();
@@ -201,7 +218,7 @@ void ExtractFrustums::run(const render::RenderContextPointer& renderContext, Out
     for (auto i = 0; i < SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
         auto& shadowFrustum = output[SHADOW_CASCADE0_FRUSTUM+i].edit<ViewFrustumPointer>();
         if (lightStage) {
-            auto globalShadow = lightStage->getCurrentKeyShadow();
+            auto globalShadow = lightStage->getCurrentKeyShadow(*lightFrame);
 
             if (globalShadow && i<(int)globalShadow->getCascadeCount()) {
                 auto& cascade = globalShadow->getCascade(i);
@@ -213,4 +230,22 @@ void ExtractFrustums::run(const render::RenderContextPointer& renderContext, Out
             shadowFrustum.reset();
         }
     }
+}
+
+void FetchCurrentFrames::run(const render::RenderContextPointer& renderContext, Outputs& outputs) {
+    auto lightStage = renderContext->_scene->getStage<LightStage>();
+    assert(lightStage);
+    outputs.edit0() = std::make_shared<LightStage::Frame>(lightStage->_currentFrame);
+
+    auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
+    assert(backgroundStage);
+    outputs.edit1() = std::make_shared<BackgroundStage::Frame>(backgroundStage->_currentFrame);
+
+    auto hazeStage = renderContext->_scene->getStage<HazeStage>();
+    assert(hazeStage);
+    outputs.edit2() = std::make_shared<HazeStage::Frame>(hazeStage->_currentFrame);
+
+    auto bloomStage = renderContext->_scene->getStage<BloomStage>();
+    assert(bloomStage);
+    outputs.edit3() = std::make_shared<BloomStage::Frame>(bloomStage->_currentFrame);
 }

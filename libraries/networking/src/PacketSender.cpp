@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PacketSender.h"
+
 #include <algorithm>
 #include <math.h>
 #include <stdint.h>
 
 #include "NodeList.h"
-#include "PacketSender.h"
 #include "SharedUtil.h"
 
 const quint64 PacketSender::USECS_PER_SECOND = 1000 * 1000;
@@ -266,8 +267,6 @@ bool PacketSender::nonThreadedProcess() {
             // Keep average packets and time for "second half" of check interval
             _lastPPSCheck += (elapsedSinceLastCheck / 2);
             _packetsOverCheckInterval = (_packetsOverCheckInterval / 2);
-
-            elapsedSinceLastCheck = now - _lastPPSCheck;
         }
     }
 
@@ -295,11 +294,9 @@ bool PacketSender::nonThreadedProcess() {
             DependencyManager::get<NodeList>()->sendPacketList(std::move(packetPair.second.second), *packetPair.first);
         }
 
-
         packetsSentThisCall += packetCount;
         _packetsOverCheckInterval += packetCount;
         _totalPacketsSent += packetCount;
-
 
         _totalBytesSent += packetSize;
         emit packetSent(packetSize); // FIXME should include number of packets?

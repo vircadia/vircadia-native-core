@@ -18,7 +18,7 @@
 var headset; // The preferred headset. Default to the first one found in the following list.
 var displayMenuName = "Display";
 var desktopMenuItemName = "Desktop";
-['OpenVR (Vive)', 'Oculus Rift'].forEach(function (name) {
+['HTC Vive', 'Oculus Rift', 'WindowMS'].forEach(function (name) {
     if (!headset && Menu.menuItemExists(displayMenuName, name)) {
         headset = name;
     }

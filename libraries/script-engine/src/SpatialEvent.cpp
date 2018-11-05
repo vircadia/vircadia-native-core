@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <RegisteredMetaTypes.h>
-
 #include "SpatialEvent.h"
+
+#include <RegisteredMetaTypes.h>
 
 SpatialEvent::SpatialEvent() :
     locTranslation(0.0f),
@@ -33,9 +33,9 @@ SpatialEvent::SpatialEvent(const SpatialEvent& event) {
 QScriptValue SpatialEvent::toScriptValue(QScriptEngine* engine, const SpatialEvent& event) {
     QScriptValue obj = engine->newObject();
     
-    obj.setProperty("locTranslation", vec3toScriptValue(engine, event.locTranslation) );
+    obj.setProperty("locTranslation", vec3ToScriptValue(engine, event.locTranslation) );
     obj.setProperty("locRotation", quatToScriptValue(engine, event.locRotation) );
-    obj.setProperty("absTranslation", vec3toScriptValue(engine, event.absTranslation) );
+    obj.setProperty("absTranslation", vec3ToScriptValue(engine, event.absTranslation) );
     obj.setProperty("absRotation", quatToScriptValue(engine, event.absRotation) );
     
     return obj;

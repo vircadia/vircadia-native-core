@@ -1,0 +1,35 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  drawWorkloadView.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 6/29/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@include DeferredBufferWrite.slh@>
+<@include gpu/Paint.slh@>
+
+layout(location=0) in vec4 varColor;
+layout(location=1) in vec3 varTexcoord;
+layout(location=2) in vec3 varEyePos;
+
+void main(void) {
+    if (varColor.w > 0.0) {
+        float r = sqrt(dot(varTexcoord.xyz,varTexcoord.xyz));
+        float d = varColor.w / abs(varEyePos.z);
+        float a = paintStripe(r * d, 0.0, 1.0 / d, 0.005 / d);
+        if (a <= 0.1 || r > 1.1) {
+            discard;
+        }
+    }
+
+    packDeferredFragmentUnlit(
+        vec3(0.0, 1.0, 0.0), 
+        1.0,
+        varColor.rgb);
+}

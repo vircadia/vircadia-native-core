@@ -18,6 +18,7 @@
 
 class Billboard3DOverlay : public Planar3DOverlay, public PanelAttachable, public Billboardable {
     Q_OBJECT
+    using Parent = Planar3DOverlay;
 
 public:
     Billboard3DOverlay() {}
@@ -25,6 +26,8 @@ public:
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
+
+    void update(float duration) override;
 
 protected:
     virtual bool applyTransformTo(Transform& transform, bool force = false) override;

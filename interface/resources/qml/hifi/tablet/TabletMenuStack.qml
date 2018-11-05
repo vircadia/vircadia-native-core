@@ -1,5 +1,5 @@
 //
-//  MessageDialog.qml
+//  TabletMenuStack.qml
 //
 //  Created by Dante Ruiz  on 13 Feb 2017
 //  Copyright 2016 High Fidelity, Inc.
@@ -16,6 +16,8 @@ import "."
 Item {
     id: root
     anchors.fill: parent
+    width: parent.width
+    height: parent.height
     objectName: "tabletMenuHandlerItem"
 
     StackView {
@@ -64,7 +66,7 @@ Item {
 
         function popSource() {
             console.log("trying to pop page");
-            d.pop();
+            closeLastMenu();
         }
 
         function toModel(items, newMenu) {

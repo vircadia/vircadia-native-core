@@ -115,6 +115,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     batch.resetViewTransform();
     batch.setResourceTexture(0, _uiTexture);
     geometryCache->renderUnitQuad(batch, glm::vec4(1), _qmlGeometryId);
+    batch.setResourceTexture(0, nullptr);
 }
 
 void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
@@ -179,7 +180,7 @@ static const auto DEPTH_FORMAT = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPT
 void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(app, __FUNCTION__);
 
-    auto uiSize = qApp->getUiSize();
+    auto uiSize = glm::uvec2(qApp->getUiSize());
     if (!_overlayFramebuffer || uiSize != _overlayFramebuffer->getSize()) {
         _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ApplicationOverlay"));
     }

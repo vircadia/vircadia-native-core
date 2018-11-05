@@ -24,8 +24,9 @@ var OVERLAY_HEIGHT = 1080;
 var OVERLAY_DATA = {
     width: OVERLAY_WIDTH,
     height: OVERLAY_HEIGHT,
-    imageURL: "http://hifi-content.s3.amazonaws.com/alan/production/images/images/Overlay-Viz-blank.png",
-    color: {red: 255, green: 255, blue: 255},
+    imageURL: Script.resolvePath("assets/images/Overlay-Viz-blank.png"),
+    emissive: true,
+    drawInFront: true,
     alpha: 1
 };
 var AVATAR_MOVE_FOR_ACTIVE_DISTANCE = 0.8; // meters -- no longer away if avatar moves this far while away
@@ -37,7 +38,7 @@ var OVERLAY_DATA_HMD = {
     localRotation: {x: 0, y: 0, z: 0, w: 1},
     width: OVERLAY_WIDTH,
     height: OVERLAY_HEIGHT,
-    url: "http://hifi-content.s3.amazonaws.com/alan/production/images/images/Overlay-Viz-blank.png",
+    url: Script.resolvePath("assets/images/Overlay-Viz-blank.png"),
     color: {red: 255, green: 255, blue: 255},
     alpha: 1,
     scale: 2 * MyAvatar.sensorToWorldScale,
@@ -176,6 +177,10 @@ function goActive() {
 
     UserActivityLogger.toggledAway(false);
     MyAvatar.isAway = false;
+
+    if (!Window.hasFocus()) {
+        Window.setFocus();
+    }
 }
 
 MyAvatar.wentAway.connect(setAwayProperties);

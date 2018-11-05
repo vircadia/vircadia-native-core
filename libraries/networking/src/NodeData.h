@@ -16,6 +16,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 
+#include "NetworkPeer.h"
 #include "NLPacket.h"
 #include "ReceivedMessage.h"
 
@@ -24,17 +25,19 @@ class Node;
 class NodeData : public QObject {
     Q_OBJECT
 public:
-    NodeData(const QUuid& nodeID = QUuid());
-    virtual ~NodeData() = 0;
+    NodeData(const QUuid& nodeID = QUuid(), NetworkPeer::LocalID localID = NetworkPeer::NULL_LOCAL_ID);
+    virtual ~NodeData() = default;
     virtual int parseData(ReceivedMessage& message) { return 0; }
 
     const QUuid& getNodeID() const { return _nodeID; }
+    NetworkPeer::LocalID getNodeLocalID() const { return _nodeLocalID; }
     
     QMutex& getMutex() { return _mutex; }
 
 private:
     QMutex _mutex;
     QUuid _nodeID;
+    NetworkPeer::LocalID _nodeLocalID;
 };
 
 #endif // hifi_NodeData_h

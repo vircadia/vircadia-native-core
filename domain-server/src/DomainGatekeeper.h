@@ -15,6 +15,7 @@
 #define hifi_DomainGatekeeper_h
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
@@ -38,8 +39,10 @@ public:
     void addPendingAssignedNode(const QUuid& nodeUUID, const QUuid& assignmentUUID,
                                 const QUuid& walletUUID, const QString& nodeVersion);
     QUuid assignmentUUIDForPendingAssignment(const QUuid& tempUUID);
-    
-    void removeICEPeer(const QUuid& peerUUID) { _icePeers.remove(peerUUID); }
+
+    void cleanupICEPeerForNode(const QUuid& nodeID);
+
+    Node::LocalID findOrCreateLocalID(const QUuid& uuid);
 
     static void sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr);
 public slots:
@@ -48,14 +51,14 @@ public slots:
     void processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message);
     void processICEPeerInformationPacket(QSharedPointer<ReceivedMessage> message);
 
-    void publicKeyJSONCallback(QNetworkReply& requestReply);
-    void publicKeyJSONErrorCallback(QNetworkReply& requestReply);
+    void publicKeyJSONCallback(QNetworkReply* requestReply);
+    void publicKeyJSONErrorCallback(QNetworkReply* requestReply);
 
-    void getIsGroupMemberJSONCallback(QNetworkReply& requestReply);
-    void getIsGroupMemberErrorCallback(QNetworkReply& requestReply);
+    void getIsGroupMemberJSONCallback(QNetworkReply* requestReply);
+    void getIsGroupMemberErrorCallback(QNetworkReply* requestReply);
 
-    void getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply);
-    void getDomainOwnerFriendsListErrorCallback(QNetworkReply& requestReply);
+    void getDomainOwnerFriendsListJSONCallback(QNetworkReply* requestReply);
+    void getDomainOwnerFriendsListErrorCallback(QNetworkReply* requestReply);
 
     void refreshGroupsCache();
 
@@ -74,8 +77,7 @@ private:
     SharedNodePointer processAgentConnectRequest(const NodeConnectionData& nodeConnection,
                                                  const QString& username,
                                                  const QByteArray& usernameSignature);
-    SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection,
-                                                        QUuid nodeID = QUuid());
+    SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection);
     
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
                              const HifiSockAddr& senderSockAddr);
@@ -98,6 +100,10 @@ private:
     std::unordered_map<QUuid, PendingAssignedNodeData> _pendingAssignedNodes;
     
     QHash<QUuid, SharedNetworkPeer> _icePeers;
+
+    using ConnectingNodeID = QUuid;
+    using ICEPeerID = QUuid;
+    QHash<ConnectingNodeID, ICEPeerID> _nodeToICEPeerIDs;
     
     QHash<QString, QUuid> _connectionTokenHash;
 
@@ -120,6 +126,16 @@ private:
     void getGroupMemberships(const QString& username);
     // void getIsGroupMember(const QString& username, const QUuid groupID);
     void getDomainOwnerFriendsList();
+
+    // Local ID management.
+    void initLocalIDManagement();
+    using UUIDToLocalID = std::unordered_map<QUuid, Node::LocalID> ;
+    using LocalIDs = std::unordered_set<Node::LocalID>;
+    LocalIDs _localIDs;
+    UUIDToLocalID _uuidToLocalID;
+
+    Node::LocalID _currentLocalID;
+    Node::LocalID _idIncrement;
 };
 
 

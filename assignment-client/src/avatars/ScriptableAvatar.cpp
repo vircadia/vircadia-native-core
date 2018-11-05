@@ -1,6 +1,6 @@
 //
 //  ScriptableAvatar.cpp
-//
+//  assignment-client/src/avatars
 //
 //  Created by Clement on 7/22/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -9,15 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptableAvatar.h"
+
 #include <QDebug>
 #include <QThread>
 #include <glm/gtx/transform.hpp>
 
 #include <shared/QtHelpers.h>
-#include <GLMHelpers.h>
 #include <AnimUtil.h>
-#include "ScriptableAvatar.h"
+#include <ClientTraitsHandler.h>
+#include <GLMHelpers.h>
 
+ScriptableAvatar::ScriptableAvatar() {
+    _clientTraitsHandler = std::unique_ptr<ClientTraitsHandler>(new ClientTraitsHandler(this));
+}
 
 QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
     _globalPosition = getWorldPosition();
@@ -60,13 +65,14 @@ AnimationDetails ScriptableAvatar::getAnimationDetails() {
 void ScriptableAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _bind.reset();
     _animSkeleton.reset();
+
     AvatarData::setSkeletonModelURL(skeletonModelURL);
 }
 
-static AnimPose composeAnimPose(const FBXJoint& fbxJoint, const glm::quat rotation, const glm::vec3 translation) {
+static AnimPose composeAnimPose(const HFMJoint& joint, const glm::quat rotation, const glm::vec3 translation) {
     glm::mat4 translationMat = glm::translate(translation);
-    glm::mat4 rotationMat = glm::mat4_cast(fbxJoint.preRotation * rotation * fbxJoint.postRotation);
-    glm::mat4 finalMat = translationMat * fbxJoint.preTransform * rotationMat * fbxJoint.postTransform;
+    glm::mat4 rotationMat = glm::mat4_cast(joint.preRotation * rotation * joint.postRotation);
+    glm::mat4 finalMat = translationMat * joint.preTransform * rotationMat * joint.postTransform;
     return AnimPose(finalMat);
 }
 
@@ -87,7 +93,7 @@ void ScriptableAvatar::update(float deltatime) {
             }
             _animationDetails.currentFrame = currentFrame;
 
-            const QVector<FBXJoint>& modelJoints = _bind->getGeometry().joints;
+            const QVector<HFMJoint>& modelJoints = _bind->getGeometry().joints;
             QStringList animationJointNames = _animation->getJointNames();
 
             const int nJoints = modelJoints.size();
@@ -96,8 +102,8 @@ void ScriptableAvatar::update(float deltatime) {
             }
 
             const int frameCount = _animation->getFrames().size();
-            const FBXAnimationFrame& floorFrame = _animation->getFrames().at((int)glm::floor(currentFrame) % frameCount);
-            const FBXAnimationFrame& ceilFrame = _animation->getFrames().at((int)glm::ceil(currentFrame) % frameCount);
+            const HFMAnimationFrame& floorFrame = _animation->getFrames().at((int)glm::floor(currentFrame) % frameCount);
+            const HFMAnimationFrame& ceilFrame = _animation->getFrames().at((int)glm::ceil(currentFrame) % frameCount);
             const float frameFraction = glm::fract(currentFrame);
             std::vector<AnimPose> poses = _animSkeleton->getRelativeDefaultPoses();
 
@@ -136,4 +142,18 @@ void ScriptableAvatar::update(float deltatime) {
             _animation.clear();
         }
     }
+
+    _clientTraitsHandler->sendChangedTraitsToMixer();
+}
+
+void ScriptableAvatar::setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement) {
+    _headData->setHasProceduralBlinkFaceMovement(hasProceduralBlinkFaceMovement);
+}
+
+void ScriptableAvatar::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement) {
+    _headData->setHasProceduralEyeFaceMovement(hasProceduralEyeFaceMovement);
+}
+
+void ScriptableAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) {
+    _headData->setHasAudioEnabledFaceMovement(hasAudioEnabledFaceMovement);
 }

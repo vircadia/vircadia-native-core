@@ -113,7 +113,7 @@ public:
     explicit AnimStateMachine(const QString& id);
     virtual ~AnimStateMachine() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
 
     void setCurrentStateVar(QString& currentStateVar) { _currentStateVar = currentStateVar; }
 
@@ -133,13 +133,14 @@ protected:
 
     // interpolation state
     bool _duringInterp = false;
-    InterpType _interpType { InterpType::SnapshotBoth };
+    InterpType _interpType { InterpType::SnapshotPrev };
     float _alphaVel = 0.0f;
     float _alpha = 0.0f;
     AnimPoseVec _prevPoses;
     AnimPoseVec _nextPoses;
 
     State::Pointer _currentState;
+    State::Pointer _previousState;
     std::vector<State::Pointer> _states;
 
     QString _currentStateVar;
