@@ -28,8 +28,8 @@ const glm::quat identity = glm::quat();
 const glm::quat quaterTurnAroundZ = glm::angleAxis(0.5f * PI, zAxis);
 
 
-void makeTestFBXJoints(FBXGeometry& geometry) {
-    FBXJoint joint;
+void makeTestFBXJoints(HFMGeometry& geometry) {
+    HFMJoint joint;
     joint.isFree = false;
     joint.freeLineage.clear();
     joint.parentIndex = -1;
@@ -79,7 +79,7 @@ void makeTestFBXJoints(FBXGeometry& geometry) {
 
     // compute each joint's transform
     for (int i = 1; i < (int)geometry.joints.size(); ++i) {
-        FBXJoint& j = geometry.joints[i];
+        HFMJoint& j = geometry.joints[i];
         int parentIndex = j.parentIndex;
         // World = ParentWorld * T * (Roff * Rp) * Rpre * R * Rpost * (Rp-1 * Soff * Sp * S * Sp-1)
         j.transform = geometry.joints[parentIndex].transform *
@@ -96,7 +96,7 @@ void AnimInverseKinematicsTests::testSingleChain() {
 
     AnimContext context(false, false, false, glm::mat4(), glm::mat4());
 
-    FBXGeometry geometry;
+    HFMGeometry geometry;
     makeTestFBXJoints(geometry);
 
     // create a skeleton and doll

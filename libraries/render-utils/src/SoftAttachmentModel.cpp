@@ -41,14 +41,14 @@ void SoftAttachmentModel::updateClusterMatrices() {
 
     _needsUpdateClusterMatrices = false;
 
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMGeometry& geometry = getHFMGeometry();
 
     for (int i = 0; i < (int) _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
-        const FBXMesh& mesh = geometry.meshes.at(i);
+        const HFMMesh& mesh = geometry.meshes.at(i);
 
         for (int j = 0; j < mesh.clusters.size(); j++) {
-            const FBXCluster& cluster = mesh.clusters.at(j);
+            const HFMCluster& cluster = mesh.clusters.at(j);
 
             // TODO: cache these look-ups as an optimization
             int jointIndexOverride = getJointIndexOverride(cluster.jointIndex);

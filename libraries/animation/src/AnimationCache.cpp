@@ -69,7 +69,7 @@ void AnimationReader::run() {
 
         if (urlValid) {
             // Parse the FBX directly from the QNetworkReply
-            FBXGeometry::Pointer fbxgeo;
+            HFMGeometry::Pointer fbxgeo;
             if (_url.path().toLower().endsWith(".fbx")) {
                 fbxgeo.reset(readFBX(_data, QVariantHash(), _url.path()));
             } else {
@@ -100,40 +100,40 @@ QStringList Animation::getJointNames() const {
     }
     QStringList names;
     if (_geometry) {
-        foreach (const FBXJoint& joint, _geometry->joints) {
+        foreach (const HFMJoint& joint, _geometry->joints) {
             names.append(joint.name);
         }
     }
     return names;
 }
 
-QVector<FBXAnimationFrame> Animation::getFrames() const {
+QVector<HFMAnimationFrame> Animation::getFrames() const {
     if (QThread::currentThread() != thread()) {
-        QVector<FBXAnimationFrame> result;
+        QVector<HFMAnimationFrame> result;
         BLOCKING_INVOKE_METHOD(const_cast<Animation*>(this), "getFrames",
-            Q_RETURN_ARG(QVector<FBXAnimationFrame>, result));
+            Q_RETURN_ARG(QVector<HFMAnimationFrame>, result));
         return result;
     }
     if (_geometry) {
         return _geometry->animationFrames;
     } else {
-        return QVector<FBXAnimationFrame>();
+        return QVector<HFMAnimationFrame>();
     }
 }
 
-const QVector<FBXAnimationFrame>& Animation::getFramesReference() const {
+const QVector<HFMAnimationFrame>& Animation::getFramesReference() const {
     return _geometry->animationFrames;
 }
 
 void Animation::downloadFinished(const QByteArray& data) {
     // parse the animation/fbx file on a background thread.
     AnimationReader* animationReader = new AnimationReader(_url, data);
-    connect(animationReader, SIGNAL(onSuccess(FBXGeometry::Pointer)), SLOT(animationParseSuccess(FBXGeometry::Pointer)));
+    connect(animationReader, SIGNAL(onSuccess(HFMGeometry::Pointer)), SLOT(animationParseSuccess(HFMGeometry::Pointer)));
     connect(animationReader, SIGNAL(onError(int, QString)), SLOT(animationParseError(int, QString)));
     QThreadPool::globalInstance()->start(animationReader);
 }
 
-void Animation::animationParseSuccess(FBXGeometry::Pointer geometry) {
+void Animation::animationParseSuccess(HFMGeometry::Pointer geometry) {
 
     qCDebug(animation) << "Animation parse success" << _url.toDisplayString();
 

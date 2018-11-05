@@ -29,6 +29,7 @@ Rectangle {
     id: root;
 
     property string activeView: "initialize";
+    property string initialActiveViewAfterStatus5: "walletInventory";
     property bool keyboardRaised: false;
     property bool isPassword: false;
 
@@ -66,7 +67,7 @@ Rectangle {
                 }
             } else if (walletStatus === 5) {
                 if (root.activeView !== "walletSetup") {
-                    root.activeView = "walletInventory";
+                    root.activeView = root.initialActiveViewAfterStatus5;
                     Commerce.getAvailableUpdates();
                     Commerce.getSecurityImage();
                 }
@@ -688,15 +689,12 @@ Rectangle {
         function resetTabButtonColors() {
             walletHomeButtonContainer.color = hifi.colors.black;
             sendMoneyButtonContainer.color = hifi.colors.black;
-            securityButtonContainer.color = hifi.colors.black;
             helpButtonContainer.color = hifi.colors.black;
             exchangeMoneyButtonContainer.color = hifi.colors.black;
             if (root.activeView === "walletHome") {
                 walletHomeButtonContainer.color = hifi.colors.blueAccent;
             } else if (root.activeView === "sendMoney") {
                 sendMoneyButtonContainer.color = hifi.colors.blueAccent;
-            } else if (root.activeView === "security") {
-                securityButtonContainer.color = hifi.colors.blueAccent;
             } else if (root.activeView === "help") {
                 helpButtonContainer.color = hifi.colors.blueAccent;
             } else if (root.activeView == "walletInventory") {
@@ -766,10 +764,12 @@ Rectangle {
             break;
             case 'updateConnections':
                 sendMoney.updateConnections(message.connections);
+                walletInventory.fromScript(message);
             break;
             case 'selectRecipient':
             case 'updateSelectedRecipientUsername':
                 sendMoney.fromScript(message);
+                walletInventory.fromScript(message);
             break;
             case 'http.response':
                 http.handleHttpResponse(message);
@@ -785,14 +785,18 @@ Rectangle {
             break;
             case 'updatePurchases':
             case 'purchases_showMyItems':
-            case 'updateConnections':
-            case 'selectRecipient':
-            case 'updateSelectedRecipientUsername':
             case 'updateWearables':
                 walletInventory.fromScript(message);
             break;
             case 'updateRecentActivityMessageLight':
                 walletHomeButtonContainer.messagesWaiting = message.messagesWaiting;
+            break;
+            case 'checkout_openRecentActivity':
+                if (root.activeView === "initialize") {
+                    root.initialActiveViewAfterStatus5 = "walletHome";
+                } else {
+                    root.activeView = "walletHome";
+                }
             break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));

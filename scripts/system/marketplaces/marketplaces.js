@@ -527,7 +527,13 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
             Window.location = "hifi://BankOfHighFidelity";
         }
         break;
-    case 'checkout_openWallet':
+    case 'checkout_openRecentActivity':
+        ui.open(MARKETPLACE_WALLET_QML_PATH);
+        wireQmlEventBridge(true);
+        ui.tablet.sendToQml({
+            method: 'checkout_openRecentActivity'
+        });
+        break;
     case 'checkout_setUpClicked':
         openWallet();
         break;
@@ -590,9 +596,6 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     case 'updateItemClicked':
         openMarketplace(message.upgradeUrl + "?edition=" + message.itemEdition);
         break;
-    case 'giftAsset':
-
-        break;
     case 'passphrasePopup_cancelClicked':
     case 'needsLogIn_cancelClicked':
         // Should/must NOT check for wallet setup.
@@ -634,6 +637,20 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         break;
     case 'http.request':
         // Handled elsewhere, don't log.
+        break;
+    // All of these are handled by wallet.js
+    case 'purchases_updateWearables':
+    case 'enable_ChooseRecipientNearbyMode':
+    case 'disable_ChooseRecipientNearbyMode':
+    case 'sendAsset_sendPublicly':
+    case 'refreshConnections':
+    case 'transactionHistory_goToBank':
+    case 'purchases_walletNotSetUp':
+    case 'purchases_openGoTo':
+    case 'purchases_itemInfoClicked':
+    case 'purchases_itemCertificateClicked':
+        case 'clearShouldShowDotHistory':
+        case 'giftAsset':
         break;
     default:
         print('Unrecognized message from Checkout.qml: ' + JSON.stringify(message));
@@ -705,6 +722,8 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
             referrerURL: referrerURL,
             filterText: filterText
         });
+        referrerURL = "";
+        filterText = "";
     }
 
     ui.isOpen = (onMarketplaceScreen || onCommerceScreen) && !onWalletScreen;
