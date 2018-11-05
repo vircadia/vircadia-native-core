@@ -882,7 +882,7 @@ Rectangle {
             // Explanitory text
             RalewayRegular {
                 id: noItemsYet;
-                text: "<b>You haven't submitted anything to the Marketplace yet!</b><br><br>Submit an item to the Marketplace to add it to My Items.";
+                text: "<b>You haven't submitted anything to the Marketplace yet!</b><br><br>Submit an item to the Marketplace to add it to My Submissions.";
                 // Text size
                 size: 22;
                 // Anchors

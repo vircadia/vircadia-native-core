@@ -533,7 +533,7 @@ Rectangle {
                 id: exchangeMoneyMessagesWaitingLight;
                 visible: parent.messagesWaiting;
                 anchors.right: exchangeMoneyTabIcon.left;
-                anchors.rightMargin: 10;
+                anchors.rightMargin: 9;
                 anchors.top: exchangeMoneyTabIcon.top;
                 anchors.topMargin: 4;
                 height: 10;
