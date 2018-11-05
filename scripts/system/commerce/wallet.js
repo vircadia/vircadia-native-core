@@ -18,7 +18,7 @@ Script.include("/~/system/libraries/accountUtils.js");
 Script.include("/~/system/libraries/connectionUtils.js");
 var AppUi = Script.require('appUi');
 
-    var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";;
+var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 
 // BEGIN AVATAR SELECTOR LOGIC
 var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6 };
@@ -607,13 +607,13 @@ function notificationPollCallbackHistory(historyArray) {
         if (notificationCount > 0) {
             var message;
             if (!ui.notificationInitialCallbackMade[1]) {
-                message = "You have " + notificationCount + " unread wallet " +
-                    "transaction" + (notificationCount === 1 ? "" : "s") + ". Open WALLET to see all activity.";
+                message = "You have " + notificationCount + " unread recent " +
+                    "transaction" + (notificationCount === 1 ? "" : "s") + ". Open ASSETS to see all activity.";
                 ui.notificationDisplayBanner(message);
             } else {
                 for (var i = 0; i < notificationCount; i++) {
                     message = '"' + (historyArray[i].message) + '" ' +
-                        "Open WALLET to see all activity.";
+                        "Open ASSETS to see all activity.";
                     ui.notificationDisplayBanner(message);
                 }
             }

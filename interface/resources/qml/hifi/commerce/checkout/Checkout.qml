@@ -240,11 +240,6 @@ Rectangle {
                     lightboxPopup.button1method = function() {
                         lightboxPopup.visible = false;
                     }
-                    lightboxPopup.button2text = "GO TO WALLET";
-                    lightboxPopup.button2method = function() {
-                        lightboxPopup.visible = false;
-                        sendToScript({method: 'checkout_openWallet'});
-                    };
                     lightboxPopup.visible = true;
                 } else {
                     sendToScript(msg);
@@ -903,7 +898,7 @@ Rectangle {
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignVCenter;
             onLinkActivated: {
-                sendToScript({method: 'checkout_openWallet'});
+                sendToScript({method: 'checkout_openRecentActivity'});
             }
         }
 
