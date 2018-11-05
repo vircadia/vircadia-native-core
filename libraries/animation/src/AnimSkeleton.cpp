@@ -28,11 +28,11 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry, const QMap<int, glm::
         //_avatarTPoseOffsets.push_back(AnimPose(glm::quat(), glm::vec3()));
     }
   
-   
+    buildSkeletonFromJoints(joints, jointOffsets);
     // add offsets for spine2 and the neck
     // _avatarTPoseOffsets[nameToJointIndex("Spine2")] = AnimPose(glm::quat(-0.707107f, 0.0f, 0.0f, 0.707107f), glm::vec3());
     // _avatarTPoseOffsets[nameToJointIndex("Neck")] = AnimPose(glm::quat(0.0f, 0.707107f, 0.0f, 0.707107f), glm::vec3());
-
+    /*
     for (int i = 0; i < (int)fbxGeometry.meshes.size(); i++) {
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
@@ -50,6 +50,13 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry, const QMap<int, glm::
             // AJT: mutate bind pose! this allows us to oreint the skeleton back into the authored orientaiton before
             // rendering, with no runtime overhead.
             // this works if clusters match joints one for one.
+            if (cluster.jointIndex == 63) {
+                qCDebug(animation) << "Head";
+                qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << jointOffsets[cluster.jointIndex] << " cluster " << cluster.jointIndex;
+                //AnimPose localOffset(glm::quat(.7071f, 0.0f, .7071f, 0.0f), glm::vec3());
+                //cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
+                //cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
+            }
             if (cluster.jointIndex == 62) {
                 qCDebug(animation) << "Neck";
                 qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << jointOffsets[cluster.jointIndex] << " cluster " << cluster.jointIndex;
@@ -67,7 +74,8 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry, const QMap<int, glm::
 
         }
     }
-    buildSkeletonFromJoints(joints, jointOffsets);
+    */
+    
 }	
 
 AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
@@ -240,7 +248,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, 
         // remember the inverse bind pose already has the offset added into it.  the total effect is offset^-1 * relDefPose * offset.
         // this gives us the correct transform for the joint that has been put in t-pose with an offset rotation.
         //relDefaultPose = relDefaultPose * _avatarTPoseOffsets[i];
-        
+        /*
         QString jointName = getJointName(i);
         if (jointOffsets.contains(i)) {
             //QString parentIndex = getJointName(parentIndex);
@@ -252,13 +260,23 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, 
             }
         }
         if ((parentIndex == 13) && jointOffsets.contains(13)) {
+            if (i == 62) {
+                qCDebug(animation) << "the neck translation is " << relDefaultPose.trans();
+            }
             AnimPose localParentOffset(jointOffsets[parentIndex], glm::vec3());
-            relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
+            //relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
+            if (i == 62) {
+                qCDebug(animation) << "the neck translation redo is " << relDefaultPose.trans();
+            }
         }
         if ((parentIndex == 62) && jointOffsets.contains(62)) {
-            AnimPose localParentOffset(glm::quat(0.7071f, 0.0f, -0.7071f, 0.0f), glm::vec3());
-            relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
+            qCDebug(animation) << "the head translation is " << relDefaultPose.trans();
+            //AnimPose localOffset(glm::quat(0.7071f, 0.0f, 0.7071f, 0.0f), glm::vec3());
+            //relDefaultPose = relDefaultPose * localOffset;
+            //AnimPose localParentOffset(glm::quat(0.7071f, 0.0f, -0.7071f, 0.0f), glm::vec3());
+            //relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
         }
+        */
 
         _relativeDefaultPoses.push_back(relDefaultPose);
 
