@@ -54,7 +54,7 @@ void SkeletonModel::setTextures(const QVariantMap& textures) {
 }
 
 void SkeletonModel::initJointStates() {
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMGeometry& geometry = getHFMGeometry();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
     _rig.initJointStates(geometry, modelOffset);
 
@@ -96,7 +96,7 @@ void SkeletonModel::initJointStates() {
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     assert(!_owningAvatar->isMyAvatar());
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMGeometry& geometry = getHFMGeometry();
 
     Head* head = _owningAvatar->getHead();
 
@@ -259,22 +259,22 @@ bool SkeletonModel::getRightShoulderPosition(glm::vec3& position) const {
 }
 
 bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {
-    return isActive() && getJointPositionInWorldFrame(getFBXGeometry().headJointIndex, headPosition);
+    return isActive() && getJointPositionInWorldFrame(getHFMGeometry().headJointIndex, headPosition);
 }
 
 bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
-    return isActive() && getJointPositionInWorldFrame(getFBXGeometry().neckJointIndex, neckPosition);
+    return isActive() && getJointPositionInWorldFrame(getHFMGeometry().neckJointIndex, neckPosition);
 }
 
 bool SkeletonModel::getLocalNeckPosition(glm::vec3& neckPosition) const {
-    return isActive() && getJointPosition(getFBXGeometry().neckJointIndex, neckPosition);
+    return isActive() && getJointPosition(getHFMGeometry().neckJointIndex, neckPosition);
 }
 
 bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
     if (!isActive()) {
         return false;
     }
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMGeometry& geometry = getHFMGeometry();
 
     if (getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
         getJointPosition(geometry.rightEyeJointIndex, secondEyePosition)) {
@@ -330,7 +330,7 @@ void SkeletonModel::computeBoundingShape() {
         return;
     }
 
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMGeometry& geometry = getHFMGeometry();
     if (geometry.joints.isEmpty() || geometry.rootJointIndex == -1) {
         // rootJointIndex == -1 if the avatar model has no skeleton
         return;
@@ -369,7 +369,7 @@ void SkeletonModel::renderBoundingCollisionShapes(RenderArgs* args, gpu::Batch& 
 }
 
 bool SkeletonModel::hasSkeleton() {
-    return isActive() ? getFBXGeometry().rootJointIndex != -1 : false;
+    return isActive() ? getHFMGeometry().rootJointIndex != -1 : false;
 }
 
 void SkeletonModel::onInvalidate() {

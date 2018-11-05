@@ -101,7 +101,7 @@ void AnimClip::copyFromNetworkAnim() {
 
     // build a mapping from animation joint indices to skeleton joint indices.
     // by matching joints with the same name.
-    const FBXGeometry& geom = _networkAnim->getGeometry();
+    const HFMGeometry& geom = _networkAnim->getGeometry();
     AnimSkeleton animSkeleton(geom);
     const auto animJointCount = animSkeleton.getNumJoints();
     const auto skeletonJointCount = _skeleton->getNumJoints();
@@ -120,7 +120,7 @@ void AnimClip::copyFromNetworkAnim() {
 
     for (int frame = 0; frame < frameCount; frame++) {
 
-        const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
+        const HFMAnimationFrame& hfmAnimFrame = geom.animationFrames[frame];
 
         // init all joints in animation to default pose
         // this will give us a resonable result for bones in the model skeleton but not in the animation.
@@ -132,8 +132,8 @@ void AnimClip::copyFromNetworkAnim() {
         for (int animJoint = 0; animJoint < animJointCount; animJoint++) {
             int skeletonJoint = jointMap[animJoint];
 
-            const glm::vec3& fbxAnimTrans = fbxAnimFrame.translations[animJoint];
-            const glm::quat& fbxAnimRot = fbxAnimFrame.rotations[animJoint];
+            const glm::vec3& hfmAnimTrans = hfmAnimFrame.translations[animJoint];
+            const glm::quat& hfmAnimRot = hfmAnimFrame.rotations[animJoint];
 
             // skip joints that are in the animation but not in the skeleton.
             if (skeletonJoint >= 0 && skeletonJoint < skeletonJointCount) {
@@ -146,19 +146,19 @@ void AnimClip::copyFromNetworkAnim() {
                 preRot.scale() = glm::vec3(1.0f);
                 postRot.scale() = glm::vec3(1.0f);
 
-                AnimPose rot(glm::vec3(1.0f), fbxAnimRot, glm::vec3());
+                AnimPose rot(glm::vec3(1.0f), hfmAnimRot, glm::vec3());
 
                 // adjust translation offsets, so large translation animatons on the reference skeleton
                 // will be adjusted when played on a skeleton with short limbs.
-                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint];
+                const glm::vec3& hfmZeroTrans = geom.animationFrames[0].translations[animJoint];
                 const AnimPose& relDefaultPose = _skeleton->getRelativeDefaultPose(skeletonJoint);
                 float boneLengthScale = 1.0f;
                 const float EPSILON = 0.0001f;
-                if (fabsf(glm::length(fbxZeroTrans)) > EPSILON) {
-                    boneLengthScale = glm::length(relDefaultPose.trans()) / glm::length(fbxZeroTrans);
+                if (fabsf(glm::length(hfmZeroTrans)) > EPSILON) {
+                    boneLengthScale = glm::length(relDefaultPose.trans()) / glm::length(hfmZeroTrans);
                 }
 
-                AnimPose trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans() + boneLengthScale * (fbxAnimTrans - fbxZeroTrans));
+                AnimPose trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans() + boneLengthScale * (hfmAnimTrans - hfmZeroTrans));
 
                 _anim[frame][skeletonJoint] = trans * preRot * rot * postRot;
             }
