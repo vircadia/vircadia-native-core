@@ -86,7 +86,7 @@ Item {
             loginButtonAtSignIn.text = "Log In";
             loginButtonAtSignIn.color = hifi.buttons.black;
             emailField.placeholderText = "Username or Email";
-            var savedUsername = Settings.getValue("wallet/savedUsername", "");
+            var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
             emailField.text = savedUsername === "Unknown user" ? "" : savedUsername;
             emailField.anchors.top = loginContainer.top;
             emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.height : 0.24 * root.height;
@@ -209,7 +209,6 @@ Item {
                 width: banner.width
                 height: signInBody.textFieldHeight
                 font.family: signInBody.fontFamily
-                text: Settings.getValue("wallet/savedUsername", "");
                 anchors {
                     top: parent.top
                     left: parent.left
@@ -311,8 +310,8 @@ Item {
             }
             HifiControlsUit.CheckBox {
                 id: autoLogoutCheckbox
-                checked: !Settings.getValue("wallet/autoLogout", false);
-                text: qsTr("Keep Me Logged In")
+                checked: Settings.getValue("keepMeLoggedIn", false);
+                text: qsTr("Keep Me Logged In");
                 boxSize: 18;
                 labelFontFamily: signInBody.fontFamily
                 labelFontSize: 18;
@@ -323,15 +322,17 @@ Item {
                     right: passwordField.right;
                 }
                 onCheckedChanged: {
-                    Settings.setValue("wallet/autoLogout", !checked);
+                    Settings.setValue("keepMeLoggedIn", checked);
                     if (checked) {
-                        Settings.setValue("wallet/savedUsername", Account.username);
+                        Settings.setValue("keepMeLoggedIn/savedUsername", Account.username);
+                        var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
+                        usernameField.text = savedUsername === "Unknown user" ? "" : savedUsername;
                     } else {
-                        Settings.setValue("wallet/savedUsername", "");
+                        Settings.setValue("keepMeLoggedIn/savedUsername", "");
                     }
                 }
                 Component.onDestruction: {
-                    Settings.setValue("wallet/autoLogout", !checked);
+                    Settings.setValue("keepMeLoggedIn", checked);
                 }
             }
             Item {
@@ -431,6 +432,11 @@ Item {
             case Qt.Key_Enter:
             case Qt.Key_Return:
                 event.accepted = true;
+                if (loginDialog.isLogIn) {
+                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                } else {
+                    Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                }
                 signInBody.login();
                 break;
         }

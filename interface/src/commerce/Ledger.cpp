@@ -219,7 +219,11 @@ QString transactionString(const QJsonObject& valueObject) {
         if (!message.isEmpty()) {
             result += QString("<br>with memo: <i>\"%1\"</i>").arg(message);
         }
-    } else if (sentMoney <= 0 && receivedMoney <= 0 && (sentCerts > 0 || receivedCerts > 0) && !KNOWN_USERS.contains(valueObject["sender_name"].toString())) {
+    } else if (sentMoney <= 0 && receivedMoney <= 0 && 
+               (sentCerts > 0 || receivedCerts > 0) && 
+               !KNOWN_USERS.contains(valueObject["sender_name"].toString()) &&
+               !KNOWN_USERS.contains(valueObject["recipient_name"].toString())
+        ) {
         // this is a non-HFC asset transfer.
         if (sentCerts > 0) {
             QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());

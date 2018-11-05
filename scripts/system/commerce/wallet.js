@@ -376,9 +376,9 @@ function deleteSendMoneyParticleEffect() {
 }
 
 function onUsernameChanged() {
-    if (Account.username !== Settings.getValue("wallet/savedUsername")) {
-        Settings.setValue("wallet/autoLogout", false);
-        Settings.setValue("wallet/savedUsername", "");
+    if (Account.username !== Settings.getValue("keepMeLoggedIn/savedUsername")) {
+        Settings.setValue("keepMeLoggedIn", false);
+        Settings.setValue("keepMeLoggedIn/savedUsername", "");
     }
 }
 

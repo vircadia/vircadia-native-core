@@ -157,6 +157,11 @@ Item {
                     }
                 }
             }
+
+            Keys.onReturnPressed: {
+                Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                linkAccountBody.login();
+            }
         }
         Item {
             id: bottomContainer
