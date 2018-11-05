@@ -21,6 +21,7 @@
 
 #include <AddressManager.h>
 #include "AndroidHelper.h"
+#include "../../../../../libraries/audio-client/src/AudioClient.h"
 #include <udt/PacketHeaders.h>
 #include <SettingHandle.h>
 
@@ -210,11 +211,15 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnDest
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGotoUrl(JNIEnv* env, jobject obj, jstring url) {
     QAndroidJniObject jniUrl("java/lang/String", "(Ljava/lang/String;)V", url);
     DependencyManager::get<AddressManager>()->loadSettings(jniUrl.toString());
+    auto audioClient = DependencyManager::get<AudioClient>();
+    audioClient->setMuted(true, true);
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGoToUser(JNIEnv* env, jobject obj, jstring username) {
     QAndroidJniObject jniUsername("java/lang/String", "(Ljava/lang/String;)V", username);
     DependencyManager::get<AddressManager>()->goToUser(jniUsername.toString(), false);
+    auto audioClient = DependencyManager::get<AudioClient>();
+    audioClient->setMuted(true, true);
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnPause(JNIEnv* env, jobject obj) {
