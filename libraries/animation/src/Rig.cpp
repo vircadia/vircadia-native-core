@@ -260,7 +260,7 @@ void Rig::destroyAnimGraph() {
     _rightEyeJointChildren.clear();
 }
 
-void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset) {
+void Rig::initJointStates(const HFMGeometry& geometry, const glm::mat4& modelOffset) {
     _geometryOffset = AnimPose(geometry.offset);
     _invGeometryOffset = _geometryOffset.inverse();
     _geometryToRigTransform = modelOffset * geometry.offset;
@@ -307,7 +307,7 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
     _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.rightEyeJointIndex);
 }
 
-void Rig::reset(const FBXGeometry& geometry) {
+void Rig::reset(const HFMGeometry& geometry) {
     _geometryOffset = AnimPose(geometry.offset);
     _invGeometryOffset = _geometryOffset.inverse();
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
@@ -1253,7 +1253,7 @@ const glm::vec3 DOP14_NORMALS[DOP14_COUNT] = {
 // returns true if the given point lies inside of the k-dop, specified by shapeInfo & shapePose.
 // if the given point does lie within the k-dop, it also returns the amount of displacement necessary to push that point outward
 // such that it lies on the surface of the kdop.
-static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose, const FBXJointShapeInfo& shapeInfo, glm::vec3& displacementOut) {
+static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose, const HFMJointShapeInfo& shapeInfo, glm::vec3& displacementOut) {
 
     // transform point into local space of jointShape.
     glm::vec3 localPoint = shapePose.inverse().xformPoint(point);
@@ -1299,8 +1299,8 @@ static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& sh
     }
 }
 
-glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
-                                    const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) const {
+glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const HFMJointShapeInfo& hipsShapeInfo, const HFMJointShapeInfo& spineShapeInfo,
+                                    const HFMJointShapeInfo& spine1ShapeInfo, const HFMJointShapeInfo& spine2ShapeInfo) const {
     glm::vec3 position = handPosition;
     glm::vec3 displacement;
     int hipsJoint = indexOfJoint("Hips");
@@ -1349,8 +1349,8 @@ glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const FBXJoin
 void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
                       bool leftArmEnabled, bool rightArmEnabled, bool headEnabled, float dt,
                       const AnimPose& leftHandPose, const AnimPose& rightHandPose,
-                      const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
-                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo,
+                      const HFMJointShapeInfo& hipsShapeInfo, const HFMJointShapeInfo& spineShapeInfo,
+                      const HFMJointShapeInfo& spine1ShapeInfo, const HFMJointShapeInfo& spine2ShapeInfo,
                       const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
 
     const bool ENABLE_POLE_VECTORS = true;
@@ -2008,7 +2008,7 @@ void Rig::computeExternalPoses(const glm::mat4& modelOffsetMat) {
 }
 
 void Rig::computeAvatarBoundingCapsule(
-        const FBXGeometry& geometry,
+        const HFMGeometry& geometry,
         float& radiusOut,
         float& heightOut,
         glm::vec3& localOffsetOut) const {
@@ -2041,7 +2041,7 @@ void Rig::computeAvatarBoundingCapsule(
     // from the head to the hips when computing the rest of the bounding capsule.
     int index = indexOfJoint("Head");
     while (index != -1) {
-        const FBXJointShapeInfo& shapeInfo = geometry.joints.at(index).shapeInfo;
+        const HFMJointShapeInfo& shapeInfo = geometry.joints.at(index).shapeInfo;
         AnimPose pose = _animSkeleton->getAbsoluteDefaultPose(index);
         if (shapeInfo.points.size() > 0) {
             for (auto& point : shapeInfo.points) {

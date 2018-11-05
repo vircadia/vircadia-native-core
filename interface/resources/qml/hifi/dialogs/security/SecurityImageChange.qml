@@ -1,11 +1,11 @@
 //
 //  SecurityImageChange.qml
-//  qml/hifi/commerce/wallet
+//  qml\hifi\dialogs\security
 //
-//  SecurityImageChange
+//  Security
 //
-//  Created by Zach Fox on 2017-08-18
-//  Copyright 2017 High Fidelity, Inc.
+//  Created by Zach Fox on 2018-10-31
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,16 +13,17 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
-import "../../../controls" as HifiControls
+import "qrc:////qml//styles-uit" as HifiStylesUit
+import "qrc:////qml//controls-uit" as HifiControlsUit
+import "qrc:////qml//controls" as HifiControls
 
 // references XXX from root context
 
-Item {
-    HifiConstants { id: hifi; }
+Rectangle {
+    HifiStylesUit.HifiConstants { id: hifi; }
 
     id: root;
+    color: hifi.colors.baseGray;
     property bool justSubmitted: false;
 
     Connections {
@@ -33,7 +34,7 @@ Item {
             securityImageChangePageSecurityImage.source = "image://security/securityImage";
             if (exists) { // Success submitting new security image
                 if (root.justSubmitted) {
-                    sendSignalToWallet({method: "walletSecurity_changeSecurityImageSuccess"});
+                    sendSignalToParent({method: "walletSecurity_changeSecurityImageSuccess"});
                     root.justSubmitted = false;
                 }
             } else if (root.justSubmitted) {
@@ -72,7 +73,7 @@ Item {
             anchors.bottom: parent.bottom;
             height: 22;
             // Lock icon
-            HiFiGlyphs {
+            HifiStylesUit.HiFiGlyphs {
                 id: lockIcon;
                 text: hifi.glyphs.lock;
                 anchors.bottom: parent.bottom;
@@ -83,8 +84,8 @@ Item {
                 verticalAlignment: Text.AlignBottom;
                 color: hifi.colors.white;
             }
-            // "Security image" text below pic
-            RalewayRegular {
+            // "Security image" text below image
+            HifiStylesUit.RalewayRegular {
                 id: securityImageText;
                 text: "SECURITY PIC";
                 // Text size
@@ -116,9 +117,9 @@ Item {
         anchors.bottom: parent.bottom;
 
         // "Change Security Image" text
-        RalewaySemiBold {
+        HifiStylesUit.RalewaySemiBold {
             id: securityImageTitle;
-            text: "Change Security Pic:";
+            text: "Change Security Image:";
             // Text size
             size: 18;
             anchors.top: parent.top;
@@ -139,12 +140,6 @@ Item {
             anchors.right: parent.right;
             anchors.rightMargin: 16;
             height: 300;
-        
-            Connections {
-                onSendSignalToWallet: {
-                    sendSignalToWallet(msg);
-                }
-            }
         }
 
         // Navigation Bar
@@ -169,7 +164,7 @@ Item {
                 width: 150;
                 text: "Cancel"
                 onClicked: {
-                    sendSignalToWallet({method: "walletSecurity_changeSecurityImageCancelled"});
+                    sendSignalToParent({method: "walletSecurity_changeSecurityImageCancelled"});
                 }
             }
 
@@ -197,7 +192,7 @@ Item {
     // SECURITY IMAGE SELECTION END
     //
 
-    signal sendSignalToWallet(var msg);
+    signal sendSignalToParent(var msg);
 
     function initModel() {
         securityImageSelection.initModel();
