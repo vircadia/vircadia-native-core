@@ -488,10 +488,10 @@ QNetworkReply* request(QUrl& url, bool isTest) {
 }
 
 
-bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMGeometry& geometry,
+bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& hfmModel,
                               float& scaleGuess, bool combineParts) {
     FaceGroup faces;
-    HFMMesh& mesh = geometry.meshes[0];
+    HFMMesh& mesh = hfmModel.meshes[0];
     mesh.parts.append(HFMMeshPart());
     HFMMeshPart& meshPart = mesh.parts.last();
     bool sawG = false;
@@ -652,41 +652,41 @@ done:
 }
 
 
-HFMGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url) {
+HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mapping, bool combineParts, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
-    QBuffer buffer { &model };
+    QBuffer buffer { &data };
     buffer.open(QIODevice::ReadOnly);
 
-    auto geometryPtr { std::make_shared<HFMGeometry>() };
-    HFMGeometry& geometry { *geometryPtr };
+    auto hfmModelPtr { std::make_shared<HFMModel>() };
+    HFMModel& hfmModel { *hfmModelPtr };
     OBJTokenizer tokenizer { &buffer };
     float scaleGuess = 1.0f;
 
     bool needsMaterialLibrary = false;
 
     _url = url;
-    geometry.meshExtents.reset();
-    geometry.meshes.append(HFMMesh());
+    hfmModel.meshExtents.reset();
+    hfmModel.meshes.append(HFMMesh());
 
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
-        // add a new meshPart to the geometry's single mesh.
-        while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess, combineParts)) {}
+        // add a new meshPart to the model's single mesh.
+        while (parseOBJGroup(tokenizer, mapping, hfmModel, scaleGuess, combineParts)) {}
 
-        HFMMesh& mesh = geometry.meshes[0];
+        HFMMesh& mesh = hfmModel.meshes[0];
         mesh.meshIndex = 0;
 
-        geometry.joints.resize(1);
-        geometry.joints[0].isFree = false;
-        geometry.joints[0].parentIndex = -1;
-        geometry.joints[0].distanceToParent = 0;
-        geometry.joints[0].translation = glm::vec3(0, 0, 0);
-        geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
-        geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
-        geometry.joints[0].name = "OBJ";
-        geometry.joints[0].isSkeletonJoint = true;
+        hfmModel.joints.resize(1);
+        hfmModel.joints[0].isFree = false;
+        hfmModel.joints[0].parentIndex = -1;
+        hfmModel.joints[0].distanceToParent = 0;
+        hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
+        hfmModel.joints[0].rotationMin = glm::vec3(0, 0, 0);
+        hfmModel.joints[0].rotationMax = glm::vec3(0, 0, 0);
+        hfmModel.joints[0].name = "OBJ";
+        hfmModel.joints[0].isSkeletonJoint = true;
 
-        geometry.jointIndices["x"] = 1;
+        hfmModel.jointIndices["x"] = 1;
 
         HFMCluster cluster;
         cluster.jointIndex = 0;
@@ -818,13 +818,13 @@ HFMGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         mesh.meshExtents.reset();
         foreach(const glm::vec3& vertex, mesh.vertices) {
             mesh.meshExtents.addPoint(vertex);
-            geometry.meshExtents.addPoint(vertex);
+            hfmModel.meshExtents.addPoint(vertex);
         }
 
         // Build the single mesh.
         FBXReader::buildModelMesh(mesh, url.toString());
 
-        // hfmDebugDump(geometry);
+        // hfmDebugDump(hfmModel);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
@@ -885,12 +885,12 @@ HFMGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         if (!objMaterial.used) {
             continue;
         }
-        geometry.materials[materialID] = HFMMaterial(objMaterial.diffuseColor,
+        hfmModel.materials[materialID] = HFMMaterial(objMaterial.diffuseColor,
                                                      objMaterial.specularColor,
                                                      objMaterial.emissiveColor,
                                                      objMaterial.shininess,
                                                      objMaterial.opacity);
-        HFMMaterial& hfmMaterial = geometry.materials[materialID];
+        HFMMaterial& hfmMaterial = hfmModel.materials[materialID];
         hfmMaterial.materialID = materialID;
         hfmMaterial._material = std::make_shared<graphics::Material>();
         graphics::MaterialPointer modelMaterial = hfmMaterial._material;
@@ -988,15 +988,15 @@ HFMGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         modelMaterial->setOpacity(hfmMaterial.opacity);
     }
 
-    return geometryPtr;
+    return hfmModelPtr;
 }
 
-void hfmDebugDump(const HFMGeometry& hfmgeo) {
-    qCDebug(modelformat) << "---------------- hfmGeometry ----------------";
-    qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmgeo.hasSkeletonJoints;
-    qCDebug(modelformat) << "  offset =" << hfmgeo.offset;
-    qCDebug(modelformat) << "  meshes.count() =" << hfmgeo.meshes.count();
-    foreach (HFMMesh mesh, hfmgeo.meshes) {
+void hfmDebugDump(const HFMModel& hfmModel) {
+    qCDebug(modelformat) << "---------------- hfmModel ----------------";
+    qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
+    qCDebug(modelformat) << "  offset =" << hfmModel.offset;
+    qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.count();
+    foreach (HFMMesh mesh, hfmModel.meshes) {
         qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
         qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
         qCDebug(modelformat) << "    normals.count() =" << mesh.normals.count();
@@ -1037,10 +1037,10 @@ void hfmDebugDump(const HFMGeometry& hfmgeo) {
         }
     }
 
-    qCDebug(modelformat) << "  jointIndices =" << hfmgeo.jointIndices;
-    qCDebug(modelformat) << "  joints.count() =" << hfmgeo.joints.count();
+    qCDebug(modelformat) << "  jointIndices =" << hfmModel.jointIndices;
+    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.count();
 
-    foreach (HFMJoint joint, hfmgeo.joints) {
+    foreach (HFMJoint joint, hfmModel.joints) {
         qCDebug(modelformat) << "    isFree =" << joint.isFree;
         qCDebug(modelformat) << "    freeLineage" << joint.freeLineage;
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;

@@ -231,7 +231,7 @@ public:
     bool needTangentSpace() const;
 };
 
-/// A single mesh (with optional blendshapes) extracted from an FBX document.
+/// A single mesh (with optional blendshapes).
 class HFMMesh {
 public:
 
@@ -277,7 +277,7 @@ public:
  * @property {Quat[]} rotations
  * @property {Vec3[]} translations
  */
-/// A single animation frame extracted from an FBX document.
+/// A single animation frame.
 class HFMAnimationFrame {
 public:
     QVector<glm::quat> rotations;
@@ -305,10 +305,10 @@ public:
 Q_DECLARE_METATYPE(HFMAnimationFrame)
 Q_DECLARE_METATYPE(QVector<HFMAnimationFrame>)
 
-/// A set of meshes extracted from an FBX document.
-class HFMGeometry {
+/// The runtime model format.
+class HFMModel {
 public:
-    using Pointer = std::shared_ptr<HFMGeometry>;
+    using Pointer = std::shared_ptr<HFMModel>;
 
     QString originalURL;
     QString author;
@@ -368,7 +368,7 @@ public:
     QList<QString> blendshapeChannelNames;
 };
 
-Q_DECLARE_METATYPE(HFMGeometry)
-Q_DECLARE_METATYPE(HFMGeometry::Pointer)
+Q_DECLARE_METATYPE(HFMModel)
+Q_DECLARE_METATYPE(HFMModel::Pointer)
 
 #endif // hifi_FBX_h_
