@@ -14,7 +14,6 @@
 
 #include <QBuffer>
 #include <QVariantHash>
-#include <GLMHelpers.h>
 
 static const QString NAME_FIELD = "name";
 static const QString TYPE_FIELD = "type";
