@@ -213,7 +213,7 @@ Item {
             anchors.topMargin: -buttonAndUsernameContainer.anchors.bottomMargin;
             anchors.right: buttonAndUsernameContainer.right;
             height: childrenRect.height;
-            width: 100;
+            width: 150;
 
             Rectangle {
                 id: myItemsButton;
@@ -225,7 +225,7 @@ Item {
 
                 RalewaySemiBold {
                     anchors.fill: parent;
-                    text: "My Items"
+                    text: "My Submissions"
                     color: hifi.colors.baseGray;
                     horizontalAlignment: Text.AlignHCenter;
                     verticalAlignment: Text.AlignVCenter;
