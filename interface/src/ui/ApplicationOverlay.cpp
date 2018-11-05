@@ -115,6 +115,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     batch.resetViewTransform();
     batch.setResourceTexture(0, _uiTexture);
     geometryCache->renderUnitQuad(batch, glm::vec4(1), _qmlGeometryId);
+    batch.setResourceTexture(0, nullptr);
 }
 
 void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {

@@ -247,15 +247,12 @@ process.on('uncaughtException', function(err) {
     log.error(err.stack);
 });
 
-var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) {
-    // Someone tried to run a second instance, focus the window (if there is one)
-    return true;
-});
+const gotTheLock = app.requestSingleInstanceLock()
 
-if (shouldQuit) {
-    log.warn("Another instance of the Sandbox is already running - this instance will quit.");
-    app.exit(0);
-    return;
+if (!gotTheLock) {
+  log.warn("Another instance of the Sandbox is already running - this instance will quit.");
+  app.exit(0);
+  return;
 }
 
 // Check command line arguments to see how to find binaries
@@ -876,10 +873,6 @@ function onContentLoaded() {
                     });
                     hasShownUpdateNotification = true;
                 }
-            });
-            notifier.on('click', function(notifierObject, options) {
-                log.debug("Got click", options.url);
-                shell.openExternal(options.url);
             });
         }
 

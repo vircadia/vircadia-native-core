@@ -734,11 +734,17 @@ QString getMarketplaceID(const QString& urlString) {
     return QString();
 }
 
-bool Octree::readFromURL(const QString& urlString) {
+bool Octree::readFromURL(
+    const QString& urlString,
+    const bool isObservable,
+    const qint64 callerId
+) {
     QString trimmedUrl = urlString.trimmed();
     QString marketplaceID = getMarketplaceID(trimmedUrl);
-    auto request =
-        std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, trimmedUrl));
+    qDebug() << "!!!!! going to createResourceRequest " << callerId;
+    auto request = std::unique_ptr<ResourceRequest>(
+        DependencyManager::get<ResourceManager>()->createResourceRequest(
+            this, trimmedUrl, isObservable, callerId, "Octree::readFromURL"));
 
     if (!request) {
         return false;
@@ -768,7 +774,11 @@ bool Octree::readFromURL(const QString& urlString) {
 }
 
 
-bool Octree::readFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID) {
+bool Octree::readFromStream(
+    uint64_t streamLength,
+    QDataStream& inputStream,
+    const QString& marketplaceID
+) {
     // decide if this is binary SVO or JSON-formatted SVO
     QIODevice *device = inputStream.device();
     char firstChar;
@@ -809,7 +819,11 @@ QJsonDocument addMarketplaceIDToDocumentEntities(QJsonDocument& doc, const QStri
 
 const int READ_JSON_BUFFER_SIZE = 2048;
 
-bool Octree::readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID /*=""*/) {
+bool Octree::readJSONFromStream(
+    uint64_t streamLength,
+    QDataStream& inputStream,
+    const QString& marketplaceID /*=""*/
+) {
     // if the data is gzipped we may not have a useful bytesAvailable() result, so just keep reading until
     // we get an eof.  Leave streamLength parameter for consistency.
 

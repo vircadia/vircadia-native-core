@@ -88,7 +88,7 @@ protected:
     Q_INVOKABLE void replaceContentSet(const QString& itemHref, const QString& certificateID);
 
     Q_INVOKABLE QString getInstalledApps(const QString& justInstalledAppID = "");
-    Q_INVOKABLE bool installApp(const QString& appHref);
+    Q_INVOKABLE bool installApp(const QString& appHref, const bool& alsoOpenImmediately = false);
     Q_INVOKABLE bool uninstallApp(const QString& appHref);
     Q_INVOKABLE bool openApp(const QString& appHref);
 

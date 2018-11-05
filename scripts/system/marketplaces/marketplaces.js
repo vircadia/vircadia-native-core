@@ -49,6 +49,42 @@ var NO_BUTTON = 0; // QMessageBox::NoButton
 
 var NO_PERMISSIONS_ERROR_MESSAGE = "Cannot download model because you can't write to \nthe domain's Asset Server.";
 
+
+var resourceRequestEvents = [];
+function signalResourceRequestEvent(data) {
+    // Once we can tie resource request events to specific resources,
+    // we will have to update the "0" in here.
+    var resourceData = "from: " + data.extra + ": " + data.url.toString().replace("__NONE__,", "");
+
+    if (resourceObjectsInTest[0].resourceDataArray.indexOf(resourceData) === -1) {
+        resourceObjectsInTest[0].resourceDataArray.push(resourceData);
+
+        resourceObjectsInTest[0].resourceAccessEventText += "[" + data.date.toISOString() + "] " +
+            resourceData + "\n";
+
+        ui.tablet.sendToQml({
+            method: "resourceRequestEvent",
+            data: data,
+            resourceAccessEventText: resourceObjectsInTest[0].resourceAccessEventText
+        });
+    }
+}
+
+function onResourceRequestEvent(data) {
+    // Once we can tie resource request events to specific resources,
+    // we will have to update the "0" in here.
+    if (resourceObjectsInTest[0] && resourceObjectsInTest[0].currentlyRecordingResources) {
+        var resourceRequestEvent = {
+            "date": new Date(),
+            "url": data.url,
+            "callerId": data.callerId,
+            "extra": data.extra
+        };
+        resourceRequestEvents.push(resourceRequestEvent);
+        signalResourceRequestEvent(resourceRequestEvent);
+    }
+}
+
 function onMessageBoxClosed(id, button) {
     if (id === messageBox && button === CANCEL_BUTTON) {
         isDownloadBeingCancelled = true;
@@ -522,13 +558,18 @@ function getPositionToCreateEntity(extra) {
     return position;
 }
 
-function rezEntity(itemHref, itemType) {
+function defaultFor(arg, val) {
+    return typeof arg !== 'undefined' ? arg : val;
+}
+
+function rezEntity(itemHref, itemType, marketplaceItemTesterId) {
     var isWearable = itemType === "wearable";
-    var success = Clipboard.importEntities(itemHref);
+    var success = Clipboard.importEntities(itemHref, true, marketplaceItemTesterId);
     var wearableLocalPosition = null;
     var wearableLocalRotation = null;
     var wearableLocalDimensions = null;
     var wearableDimensions = null;
+    marketplaceItemTesterId = defaultFor(marketplaceItemTesterId, -1);
 
     if (itemType === "contentSet") {
         console.log("Item is a content set; codepath shouldn't go here.");
@@ -816,7 +857,8 @@ var resourceObjectsInTest = [];
 function signalNewResourceObjectInTest(resourceObject) {
     ui.tablet.sendToQml({
         method: "newResourceObjectInTest",
-        resourceObject: resourceObject });
+        resourceObject: resourceObject
+    });
 }
 
 var onQmlMessageReceived = function onQmlMessageReceived(message) {
@@ -877,11 +919,15 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     case 'checkout_rezClicked':
     case 'purchases_rezClicked':
     case 'tester_rezClicked':
-        rezEntity(message.itemHref, message.itemType);
+        rezEntity(message.itemHref, message.itemType, message.itemId);
         break;
     case 'tester_newResourceObject':
         var resourceObject = message.resourceObject;
-        resourceObjectsInTest[resourceObject.id] = resourceObject;
+        resourceObjectsInTest = []; // REMOVE THIS once we support specific referrers
+        resourceObject.currentlyRecordingResources = false;
+        resourceObject.resourceAccessEventText = "";
+        resourceObjectsInTest[resourceObject.resourceObjectId] = resourceObject;
+        resourceObjectsInTest[resourceObject.resourceObjectId].resourceDataArray = [];
         signalNewResourceObjectInTest(resourceObject);
         break;
     case 'tester_updateResourceObjectAssetType':
@@ -889,6 +935,13 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         break;
     case 'tester_deleteResourceObject':
         delete resourceObjectsInTest[message.objectId];
+        break;
+    case 'tester_updateResourceRecordingStatus':
+        resourceObjectsInTest[message.objectId].currentlyRecordingResources = message.status;
+        if (message.status) {
+            resourceObjectsInTest[message.objectId].resourceDataArray = [];
+            resourceObjectsInTest[message.objectId].resourceAccessEventText = "";
+        }
         break;
     case 'header_marketplaceImageClicked':
     case 'purchases_backClicked':
@@ -1029,16 +1082,22 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
 };
 
 function pushResourceObjectsInTest() {
-    var maxObjectId = -1;
-    for (var objectId in resourceObjectsInTest) {
-        signalNewResourceObjectInTest(resourceObjectsInTest[objectId]);
-        maxObjectId = (maxObjectId < objectId) ? parseInt(objectId) : maxObjectId;
+    var maxResourceObjectId = -1;
+    var length = resourceObjectsInTest.length;
+    for (var i = 0; i < length; i++) {
+        if (i in resourceObjectsInTest) {
+            signalNewResourceObjectInTest(resourceObjectsInTest[i]);
+            var resourceObjectId = resourceObjectsInTest[i].resourceObjectId;
+            maxResourceObjectId = (maxResourceObjectId < resourceObjectId) ? parseInt(resourceObjectId) : maxResourceObjectId;
+        }
     }
     // N.B. Thinking about removing the following sendToQml? Be sure
     // that the marketplace item tester QML has heard from us, at least
     // so that it can indicate to the user that all of the resoruce
     // objects in test have been transmitted to it.
-    ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: maxObjectId + 1 });
+    //ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: maxResourceObjectId + 1 });
+    // Since, for now, we only support 1 object in test, always send id: 0
+    ui.tablet.sendToQml({ method: "nextObjectIdInTest", id: 0 });
 }
 
 // Function Name: onTabletScreenChanged()
@@ -1193,6 +1252,7 @@ function startup() {
     ui.tablet.webEventReceived.connect(onWebEventReceived);
     Wallet.walletStatusChanged.connect(sendCommerceSettings);
     Window.messageBoxClosed.connect(onMessageBoxClosed);
+    ResourceRequestObserver.resourceRequestEvent.connect(onResourceRequestEvent);
 
     Wallet.refreshWalletStatus();
 }
@@ -1226,6 +1286,7 @@ function shutdown() {
     GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
     Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
     ContextOverlay.contextOverlayClicked.disconnect(openInspectionCertificateQML);
+    ResourceRequestObserver.resourceRequestEvent.disconnect(onResourceRequestEvent);
 
     off();
 }

@@ -84,9 +84,7 @@ private:
     Q_INVOKABLE void setPresentationMode(int presentationMode);
     Q_INVOKABLE int getPresentationMode() const;
 
-#ifdef Q_OS_WIN
     Q_INVOKABLE void parentNativeWindowToMainWindow();
-#endif
 
 public slots:
 
