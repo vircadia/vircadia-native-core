@@ -200,6 +200,16 @@ Item {
                             event.accepted = true;
                             passwordField.focus = true;
                             break;
+                        case Qt.Key_Enter:
+                        case Qt.Key_Return:
+                            event.accepted = true;
+                            if (loginDialog.isLogIn) {
+                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                            } else {
+                                Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                            }
+                            signInBody.login();
+                            break;
                     }
                 }
             }
@@ -232,6 +242,16 @@ Item {
                         case Qt.Key_Backtab:
                             event.accepted = true;
                             usernameField.focus = true;
+                            break;
+                        case Qt.Key_Enter:
+                        case Qt.Key_Return:
+                            event.accepted = true;
+                            if (loginDialog.isLogIn) {
+                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                            } else {
+                                Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                            }
+                            signInBody.login();
                             break;
                     }
                 }
@@ -305,6 +325,16 @@ Item {
                             event.accepted = true;
                             emailField.focus = true;
                             break;
+                    case Qt.Key_Enter:
+                    case Qt.Key_Return:
+                        event.accepted = true;
+                        if (loginDialog.isLogIn) {
+                            Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                        } else {
+                            Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                        }
+                        signInBody.login();
+                        break;
                     }
                 }
             }

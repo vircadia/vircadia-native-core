@@ -1287,7 +1287,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
     });
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
-    connect(this, &Application::activeDisplayPluginChanged, this, &Application::checkReadyToCreateLoginDialogOverlay);
 
     // Save avatar location immediately after a teleport.
     connect(myAvatar.get(), &MyAvatar::positionGoneTo,
