@@ -2062,16 +2062,3 @@ void Rig::computeAvatarBoundingCapsule(
     glm::vec3 capsuleCenter = transformPoint(_geometryToRigTransform, (0.5f * (totalExtents.maximum + totalExtents.minimum)));
     localOffsetOut = capsuleCenter - hipsPosition;
 }
-
-void Rig::setJointRotationOffsets(const QMap<QString, glm::quat>& offsets) {
-    _jointRotationOffsets.clear();
-    for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
-        QString jointName = itr.key();
-        glm::quat rotationOffset = itr.value();
-        int jointIndex = indexOfJoint(jointName);
-        if (jointIndex != -1) {
-            _jointRotationOffsets.insert(jointIndex, rotationOffset);
-        }
-        qDebug() << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
-    }
-}

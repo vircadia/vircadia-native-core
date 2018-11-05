@@ -83,7 +83,6 @@ void SkeletonModel::initJointStates() {
 
     // Skeleton may have already been scaled so unscale it
     _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
-    _rig.setJointRotationOffsets(FSTReader::getJointRotationOffsets(getGeometry()->getMapping()));
     computeBoundingShape();
 
     Extents meshExtents = getMeshExtents();

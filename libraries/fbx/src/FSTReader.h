@@ -30,7 +30,6 @@ static const QString JOINT_FIELD = "joint";
 static const QString FREE_JOINT_FIELD = "freeJoint";
 static const QString BLENDSHAPE_FIELD = "bs";
 static const QString SCRIPT_FIELD = "script";
-static const QString JOINT_ROTATION_OFFSET_FIELD = "jointRotationOffset";
 
 class FSTReader {
 public:
@@ -53,7 +52,6 @@ public:
     static ModelType predictModelType(const QVariantHash& mapping);
 
     static QVector<QString> getScripts(const QUrl& fstUrl, const QVariantHash& mapping = QVariantHash());
-    static QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping);
 
     static QString getNameFromType(ModelType modelType);
     static FSTReader::ModelType getTypeFromName(const QString& name);

@@ -615,6 +615,31 @@ QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
     return filepath.mid(filepath.lastIndexOf('/') + 1);
 }
 
+QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
+    QMap<QString, glm::quat> jointRotationOffsets;
+    static const QString JOINT_ROTATION_OFFSET_FIELD = "jointRotationOffset";
+    if (!mapping.isEmpty() && mapping.contains(JOINT_ROTATION_OFFSET_FIELD) && mapping[JOINT_ROTATION_OFFSET_FIELD].type() == QVariant::Hash) {
+        auto offsets = mapping[JOINT_ROTATION_OFFSET_FIELD].toHash();
+        for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
+            QString jointName = itr.key();
+            QString line = itr.value().toString();
+            auto eulerAngles = line.split(',');
+            if (eulerAngles.size() == 3) {
+                float eulerX = eulerAngles[0].mid(1).toFloat();
+                float eulerY = eulerAngles[1].toFloat();
+                float eulerZ = eulerAngles[2].mid(0, eulerAngles[2].size() - 1).toFloat();
+                if (!isNaN(eulerX) && !isNaN(eulerY) && !isNaN(eulerZ)) {
+                    glm::quat rotationOffset = (glm::angleAxis(eulerX * RADIANS_PER_DEGREE, Vectors::UNIT_X) *
+                        glm::angleAxis(eulerY * RADIANS_PER_DEGREE, Vectors::UNIT_Y) *
+                        glm::angleAxis(eulerZ * RADIANS_PER_DEGREE, Vectors::UNIT_Z));
+                    jointRotationOffsets.insert(jointName, rotationOffset);
+                }
+            }
+        }
+    }
+    return jointRotationOffsets;
+}
+
 FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
     const FBXNode& node = _rootNode;
     QMap<QString, ExtractedMesh> meshes;
@@ -1991,6 +2016,19 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
     }
+
+    auto offsets = getJointRotationOffsets(mapping);
+    geometry.jointRotationOffsets.clear();
+    for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
+        QString jointName = itr.key();
+        glm::quat rotationOffset = itr.value();
+        int jointIndex = geometry.getJointIndex(jointName);
+        if (jointIndex != -1) {
+            geometry.jointRotationOffsets.insert(jointIndex, rotationOffset);
+        }
+        qCDebug(modelformat) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
+    }
+
     return geometryPtr;
 }
 

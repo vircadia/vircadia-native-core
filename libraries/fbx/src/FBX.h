@@ -366,6 +366,8 @@ public:
     QString getModelNameOfMesh(int meshIndex) const;
 
     QList<QString> blendshapeChannelNames;
+
+    QMap<int, glm::quat> jointRotationOffsets;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)
