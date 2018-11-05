@@ -289,7 +289,7 @@ void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) 
         bumpAndPruneContacts(object);
         btRigidBody* body = object->getRigidBody();
         if (body) {
-            if (_activeStaticBodies.size() > 0) {
+            if (body->isStaticObject() && _activeStaticBodies.size() > 0) {
                 std::set<btRigidBody*>::iterator itr = _activeStaticBodies.find(body);
                 if (itr != _activeStaticBodies.end()) {
                     _activeStaticBodies.erase(itr);
