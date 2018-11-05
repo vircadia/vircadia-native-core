@@ -706,7 +706,7 @@ class GLTFReader : public QObject {
     Q_OBJECT
 public:
     GLTFReader();
-    HFMModel* readGLTF(QByteArray& model, const QVariantHash& mapping, 
+    HFMModel* readGLTF(QByteArray& data, const QVariantHash& mapping, 
                           const QUrl& url, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 private:
     GLTFFile _file;
@@ -714,7 +714,7 @@ private:
 
     glm::mat4 getModelTransform(const GLTFNode& node);
 
-    bool buildGeometry(HFMModel& model, const QUrl& url);
+    bool buildGeometry(HFMModel& hfmModel, const QUrl& url);
     bool parseGLTF(const QByteArray& data);
     
     bool getStringVal(const QJsonObject& object, const QString& fieldname, 

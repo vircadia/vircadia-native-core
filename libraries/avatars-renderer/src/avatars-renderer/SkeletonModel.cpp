@@ -330,15 +330,15 @@ void SkeletonModel::computeBoundingShape() {
         return;
     }
 
-    const HFMModel& model = getHFMModel();
-    if (model.joints.isEmpty() || model.rootJointIndex == -1) {
+    const HFMModel& hfmModel = getHFMModel();
+    if (hfmModel.joints.isEmpty() || hfmModel.rootJointIndex == -1) {
         // rootJointIndex == -1 if the avatar model has no skeleton
         return;
     }
 
     float radius, height;
     glm::vec3 offset;
-    _rig.computeAvatarBoundingCapsule(model, radius, height, offset);
+    _rig.computeAvatarBoundingCapsule(hfmModel, radius, height, offset);
     float invScale = 1.0f / _owningAvatar->getModelScale();
     _boundingCapsuleRadius = invScale * radius;
     _boundingCapsuleHeight = invScale * height;

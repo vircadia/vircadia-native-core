@@ -32,7 +32,7 @@ private:
     bool editProperties();
     bool zipModel();
     
-    void populateBasicMapping(QVariantHash& mapping, QString filename, const HFMModel& model);
+    void populateBasicMapping(QVariantHash& mapping, QString filename, const HFMModel& hfmModel);
     
     void listTextures();
     bool copyTextures(const QString& oldDir, const QDir& newDir);
@@ -44,7 +44,7 @@ private:
     QString _scriptDir;
 
     QVariantHash _mapping;
-    std::unique_ptr<HFMModel> _model;
+    std::unique_ptr<HFMModel> _hfmModel;
     QStringList _textures;
     QStringList _scripts;
 };

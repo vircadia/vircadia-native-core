@@ -30,7 +30,7 @@ class ModelPropertiesDialog : public QDialog {
     
 public:
     ModelPropertiesDialog(FSTReader::ModelType modelType, const QVariantHash& originalMapping,
-                          const QString& basePath, const HFMModel& model);
+                          const QString& basePath, const HFMModel& hfmModel);
     
     QVariantHash getMapping() const;
     
@@ -50,7 +50,7 @@ private:
     FSTReader::ModelType _modelType;
     QVariantHash _originalMapping;
     QString _basePath;
-    HFMModel _model;
+    HFMModel _hfmModel;
     QLineEdit* _name = nullptr;
     QPushButton* _textureDirectory = nullptr;
     QPushButton* _scriptDirectory = nullptr;

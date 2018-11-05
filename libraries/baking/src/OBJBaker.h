@@ -39,8 +39,8 @@ private slots:
 
 private:
     void loadOBJ();
-    void createFBXNodeTree(FBXNode& rootNode, HFMModel& model);
-    void setMaterialNodeProperties(FBXNode& materialNode, QString material, HFMModel& model);
+    void createFBXNodeTree(FBXNode& rootNode, HFMModel& hfmModel);
+    void setMaterialNodeProperties(FBXNode& materialNode, QString material, HFMModel& hfmModel);
     NodeID nextNodeID() { return _nodeID++; }
 
 

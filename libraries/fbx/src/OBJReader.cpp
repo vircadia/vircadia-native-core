@@ -488,10 +488,10 @@ QNetworkReply* request(QUrl& url, bool isTest) {
 }
 
 
-bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& model,
+bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& hfmModel,
                               float& scaleGuess, bool combineParts) {
     FaceGroup faces;
-    HFMMesh& mesh = model.meshes[0];
+    HFMMesh& mesh = hfmModel.meshes[0];
     mesh.parts.append(HFMMeshPart());
     HFMMeshPart& meshPart = mesh.parts.last();
     bool sawG = false;
@@ -657,36 +657,36 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
     QBuffer buffer { &data };
     buffer.open(QIODevice::ReadOnly);
 
-    auto modelPtr { std::make_shared<HFMModel>() };
-    HFMModel& model { *modelPtr };
+    auto hfmModelPtr { std::make_shared<HFMModel>() };
+    HFMModel& hfmModel { *hfmModelPtr };
     OBJTokenizer tokenizer { &buffer };
     float scaleGuess = 1.0f;
 
     bool needsMaterialLibrary = false;
 
     _url = url;
-    model.meshExtents.reset();
-    model.meshes.append(HFMMesh());
+    hfmModel.meshExtents.reset();
+    hfmModel.meshes.append(HFMMesh());
 
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
         // add a new meshPart to the model's single mesh.
-        while (parseOBJGroup(tokenizer, mapping, model, scaleGuess, combineParts)) {}
+        while (parseOBJGroup(tokenizer, mapping, hfmModel, scaleGuess, combineParts)) {}
 
-        HFMMesh& mesh = model.meshes[0];
+        HFMMesh& mesh = hfmModel.meshes[0];
         mesh.meshIndex = 0;
 
-        model.joints.resize(1);
-        model.joints[0].isFree = false;
-        model.joints[0].parentIndex = -1;
-        model.joints[0].distanceToParent = 0;
-        model.joints[0].translation = glm::vec3(0, 0, 0);
-        model.joints[0].rotationMin = glm::vec3(0, 0, 0);
-        model.joints[0].rotationMax = glm::vec3(0, 0, 0);
-        model.joints[0].name = "OBJ";
-        model.joints[0].isSkeletonJoint = true;
+        hfmModel.joints.resize(1);
+        hfmModel.joints[0].isFree = false;
+        hfmModel.joints[0].parentIndex = -1;
+        hfmModel.joints[0].distanceToParent = 0;
+        hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
+        hfmModel.joints[0].rotationMin = glm::vec3(0, 0, 0);
+        hfmModel.joints[0].rotationMax = glm::vec3(0, 0, 0);
+        hfmModel.joints[0].name = "OBJ";
+        hfmModel.joints[0].isSkeletonJoint = true;
 
-        model.jointIndices["x"] = 1;
+        hfmModel.jointIndices["x"] = 1;
 
         HFMCluster cluster;
         cluster.jointIndex = 0;
@@ -818,13 +818,13 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
         mesh.meshExtents.reset();
         foreach(const glm::vec3& vertex, mesh.vertices) {
             mesh.meshExtents.addPoint(vertex);
-            model.meshExtents.addPoint(vertex);
+            hfmModel.meshExtents.addPoint(vertex);
         }
 
         // Build the single mesh.
         FBXReader::buildModelMesh(mesh, url.toString());
 
-        // hfmDebugDump(model);
+        // hfmDebugDump(hfmModel);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
@@ -885,12 +885,12 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
         if (!objMaterial.used) {
             continue;
         }
-        model.materials[materialID] = HFMMaterial(objMaterial.diffuseColor,
+        hfmModel.materials[materialID] = HFMMaterial(objMaterial.diffuseColor,
                                                      objMaterial.specularColor,
                                                      objMaterial.emissiveColor,
                                                      objMaterial.shininess,
                                                      objMaterial.opacity);
-        HFMMaterial& hfmMaterial = model.materials[materialID];
+        HFMMaterial& hfmMaterial = hfmModel.materials[materialID];
         hfmMaterial.materialID = materialID;
         hfmMaterial._material = std::make_shared<graphics::Material>();
         graphics::MaterialPointer modelMaterial = hfmMaterial._material;
@@ -988,7 +988,7 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
         modelMaterial->setOpacity(hfmMaterial.opacity);
     }
 
-    return modelPtr;
+    return hfmModelPtr;
 }
 
 void hfmDebugDump(const HFMModel& hfmModel) {

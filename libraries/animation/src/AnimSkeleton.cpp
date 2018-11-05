@@ -16,11 +16,11 @@
 
 #include "AnimationLogging.h"
 
-AnimSkeleton::AnimSkeleton(const HFMModel& model) {
+AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     // convert to std::vector of joints
     std::vector<HFMJoint> joints;
-    joints.reserve(model.joints.size());
-    for (auto& joint : model.joints) {
+    joints.reserve(hfmModel.joints.size());
+    for (auto& joint : hfmModel.joints) {
         joints.push_back(joint);
     }
     buildSkeletonFromJoints(joints);

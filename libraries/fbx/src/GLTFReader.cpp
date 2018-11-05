@@ -697,7 +697,7 @@ glm::mat4 GLTFReader::getModelTransform(const GLTFNode& node) {
     return tmat;
 }
 
-bool GLTFReader::buildGeometry(HFMModel& model, const QUrl& url) {
+bool GLTFReader::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
 
     //Build dependencies
     QVector<QVector<int>> nodeDependencies(_file.nodes.size());
@@ -727,17 +727,17 @@ bool GLTFReader::buildGeometry(HFMModel& model, const QUrl& url) {
     }
     
     //Build default joints
-    model.joints.resize(1);
-    model.joints[0].isFree = false;
-    model.joints[0].parentIndex = -1;
-    model.joints[0].distanceToParent = 0;
-    model.joints[0].translation = glm::vec3(0, 0, 0);
-    model.joints[0].rotationMin = glm::vec3(0, 0, 0);
-    model.joints[0].rotationMax = glm::vec3(0, 0, 0);
-    model.joints[0].name = "OBJ";
-    model.joints[0].isSkeletonJoint = true;
+    hfmModel.joints.resize(1);
+    hfmModel.joints[0].isFree = false;
+    hfmModel.joints[0].parentIndex = -1;
+    hfmModel.joints[0].distanceToParent = 0;
+    hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
+    hfmModel.joints[0].rotationMin = glm::vec3(0, 0, 0);
+    hfmModel.joints[0].rotationMax = glm::vec3(0, 0, 0);
+    hfmModel.joints[0].name = "OBJ";
+    hfmModel.joints[0].isSkeletonJoint = true;
 
-    model.jointIndices["x"] = 1;
+    hfmModel.jointIndices["x"] = 1;
 
     //Build materials
     QVector<QString> materialIDs;
@@ -750,8 +750,8 @@ bool GLTFReader::buildGeometry(HFMModel& model, const QUrl& url) {
 
     for (int i = 0; i < materialIDs.size(); i++) {
         QString& matid = materialIDs[i];
-        model.materials[matid] = HFMMaterial();
-        HFMMaterial& hfmMaterial = model.materials[matid];
+        hfmModel.materials[matid] = HFMMaterial();
+        HFMMaterial& hfmMaterial = hfmModel.materials[matid];
         hfmMaterial._material = std::make_shared<graphics::Material>();
         setHFMMaterial(hfmMaterial, _file.materials[i]);
     }
@@ -765,8 +765,8 @@ bool GLTFReader::buildGeometry(HFMModel& model, const QUrl& url) {
         if (node.defined["mesh"]) {
             qCDebug(modelformat) << "node_transforms" << node.transforms;
             foreach(auto &primitive, _file.meshes[node.mesh].primitives) {
-                model.meshes.append(HFMMesh());
-                HFMMesh& mesh = model.meshes[model.meshes.size() - 1];
+                hfmModel.meshes.append(HFMMesh());
+                HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
                 HFMCluster cluster;
                 cluster.jointIndex = 0;
                 cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
@@ -886,7 +886,7 @@ bool GLTFReader::buildGeometry(HFMModel& model, const QUrl& url) {
                 mesh.meshExtents.reset();
                 foreach(const glm::vec3& vertex, mesh.vertices) {
                     mesh.meshExtents.addPoint(vertex);
-                    model.meshExtents.addPoint(vertex);
+                    hfmModel.meshExtents.addPoint(vertex);
                 }
                 
                 // since mesh.modelTransform seems to not have any effect I apply the transformation the model 
@@ -898,7 +898,7 @@ bool GLTFReader::buildGeometry(HFMModel& model, const QUrl& url) {
                     }
                 }
 
-                mesh.meshIndex = model.meshes.size();
+                mesh.meshIndex = hfmModel.meshes.size();
                 FBXReader::buildModelMesh(mesh, url.toString());
             }
             
@@ -924,13 +924,13 @@ HFMModel* GLTFReader::readGLTF(QByteArray& data, const QVariantHash& mapping,
 
     parseGLTF(data);
     //_file.dump();
-    HFMModel* modelPtr = new HFMModel();
-    HFMModel& model = *modelPtr;
+    HFMModel* hfmModelPtr = new HFMModel();
+    HFMModel& hfmModel = *hfmModelPtr;
 
-    buildGeometry(model, url);
+    buildGeometry(hfmModel, url);
     
     //hfmDebugDump(data);
-    return modelPtr;
+    return hfmModelPtr;
     
 }
 

@@ -53,7 +53,7 @@ private:
     void rewriteAndBakeSceneModels();
     void rewriteAndBakeSceneTextures();
 
-    HFMModel* _model;
+    HFMModel* _hfmModel;
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;
 

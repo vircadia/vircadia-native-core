@@ -93,7 +93,7 @@ private:
     QUrl _url;
 
     QHash<QByteArray, bool> librariesSeen;
-    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& model,
+    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& hfmModel,
                        float& scaleGuess, bool combineParts);
     void parseMaterialLibrary(QIODevice* device);
     void parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions);

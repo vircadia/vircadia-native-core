@@ -31,7 +31,7 @@ namespace vhacd {
 
         void fattenMesh(const HFMMesh& mesh, const glm::mat4& modelOffset, HFMMesh& result) const;
 
-        bool computeVHACD(HFMModel& model,
+        bool computeVHACD(HFMModel& hfmModel,
                           VHACD::IVHACD::Parameters params,
                           HFMModel& result,
                           float minimumMeshSize, float maximumMeshSize);

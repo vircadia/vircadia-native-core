@@ -22,8 +22,8 @@
 bool HFMModelLessThan(const HFMMesh& e1, const HFMMesh& e2) {
     return e1.meshIndex < e2.meshIndex;
 }
-void reSortHFMModelMeshes(HFMModel& model) {
-    qSort(model.meshes.begin(), model.meshes.end(), HFMModelLessThan);
+void reSortHFMModelMeshes(HFMModel& hfmModel) {
+    qSort(hfmModel.meshes.begin(), hfmModel.meshes.end(), HFMModelLessThan);
 }
 
 
@@ -41,17 +41,17 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, HFMModel& result) {
     }
     try {
         QByteArray fbxContents = fbx.readAll();
-        HFMModel::Pointer model;
+        HFMModel::Pointer hfmModel;
         if (filename.toLower().endsWith(".obj")) {
             bool combineParts = false;
-            model = OBJReader().readOBJ(fbxContents, QVariantHash(), combineParts);
+            hfmModel = OBJReader().readOBJ(fbxContents, QVariantHash(), combineParts);
         } else if (filename.toLower().endsWith(".fbx")) {
-            model.reset(readFBX(fbxContents, QVariantHash(), filename));
+            hfmModel.reset(readFBX(fbxContents, QVariantHash(), filename));
         } else {
             qWarning() << "file has unknown extension" << filename;
             return false;
         }
-        result = *model;
+        result = *hfmModel;
 
         reSortHFMModelMeshes(result);
     } catch (const QString& error) {
@@ -288,17 +288,17 @@ float computeDt(uint64_t start) {
     return (float)(usecTimestampNow() - start) / (float)USECS_PER_SECOND;
 }
 
-bool vhacd::VHACDUtil::computeVHACD(HFMModel& model,
+bool vhacd::VHACDUtil::computeVHACD(HFMModel& hfmModel,
                                     VHACD::IVHACD::Parameters params,
                                     HFMModel& result,
                                     float minimumMeshSize, float maximumMeshSize) {
     if (_verbose) {
-        qDebug() << "meshes =" << model.meshes.size();
+        qDebug() << "meshes =" << hfmModel.meshes.size();
     }
 
     // count the mesh-parts
     int numParts = 0;
-    foreach (const HFMMesh& mesh, model.meshes) {
+    foreach (const HFMMesh& mesh, hfmModel.meshes) {
         numParts += mesh.parts.size();
     }
     if (_verbose) {
@@ -316,7 +316,7 @@ bool vhacd::VHACDUtil::computeVHACD(HFMModel& model,
 
     int meshIndex = 0;
     int validPartsFound = 0;
-    foreach (const HFMMesh& mesh, model.meshes) {
+    foreach (const HFMMesh& mesh, hfmModel.meshes) {
 
         // find duplicate points
         int numDupes = 0;
@@ -337,7 +337,7 @@ bool vhacd::VHACDUtil::computeVHACD(HFMModel& model,
 
         // each mesh has its own transform to move it to model-space
         std::vector<glm::vec3> vertices;
-        glm::mat4 totalTransform = model.offset * mesh.modelTransform;
+        glm::mat4 totalTransform = hfmModel.offset * mesh.modelTransform;
         foreach (glm::vec3 vertex, mesh.vertices) {
             vertices.push_back(glm::vec3(totalTransform * glm::vec4(vertex, 1.0f)));
         }
