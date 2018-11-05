@@ -103,8 +103,8 @@ Rectangle {
                     showInMarketplaceButton.visible = false;
                     // "Edition" text previously set above in this function
                     // "Owner" text previously set above in this function
-                    // "Date Acquired" text previously set above in this function
-                    // "Original Price" text previously set above in this function
+                    // "Acquisition Date" text previously set above in this function
+                    // "Acquisition Price" text previously set above in this function
                     if (result.data.invalid_reason) {
                         errorText.text = result.data.invalid_reason;
                     }
@@ -118,8 +118,8 @@ Rectangle {
                     showInMarketplaceButton.visible = true;
                     // "Edition" text previously set above in this function
                     // "Owner" text previously set above in this function
-                    // "Date Acquired" text previously set above in this function
-                    // "Original Price" text previously set above in this function
+                    // "Acquisition Date" text previously set above in this function
+                    // "Acquisition Price" text previously set above in this function
                     errorText.text = "The status of this item is still pending confirmation. If the purchase is not confirmed, " +
                     "this entity will be cleaned up by the domain.";
                 }
@@ -146,8 +146,8 @@ Rectangle {
             // "Item Name" text will be set in "onCertificateInfoResult()"
             // "Edition" text will be set in "onCertificateInfoResult()"
             // "Owner" text will be set in "onCertificateInfoResult()"
-            // "Date Acquired" text will be set in "onCertificateInfoResult()"
-            // "Original Price" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Date" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Price" text will be set in "onCertificateInfoResult()"
             errorText.text = "";
         } else if (root.certificateStatus === 2) { // CERTIFICATE_STATUS_VERIFICATION_TIMEOUT
             root.useGoldCert = false;
@@ -176,8 +176,8 @@ Rectangle {
             // "Item Name" text will be set in "onCertificateInfoResult()"
             // "Edition" text will be set in "onCertificateInfoResult()"
             // "Owner" text will be set in "onCertificateInfoResult()"
-            // "Date Acquired" text will be set in "onCertificateInfoResult()"
-            // "Original Price" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Date" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Price" text will be set in "onCertificateInfoResult()"
             errorText.text = "The information associated with this item has been modified and it no longer matches the original certified item.";
         } else if (root.certificateStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
             root.useGoldCert = false;
@@ -191,8 +191,8 @@ Rectangle {
             // "Item Name" text will be set in "onCertificateInfoResult()"
             root.itemEdition = "Uncertified Copy"
             // "Owner" text will be set in "onCertificateInfoResult()"
-            // "Date Acquired" text will be set in "onCertificateInfoResult()"
-            // "Original Price" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Date" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Price" text will be set in "onCertificateInfoResult()"
             // "Error Text" text will be set in "onCertificateInfoResult()"
         } else {
             console.log("Unknown certificate status received from ledger signal!");
@@ -487,7 +487,7 @@ Rectangle {
 
         RalewayRegular {
             id: dateAcquiredHeader;
-            text: "DATE ACQUIRED";
+            text: "ACQUISITION DATE";
             // Text size
             size: 16;
             // Anchors
@@ -517,7 +517,7 @@ Rectangle {
 
         RalewayRegular {
             id: priceHeader;
-            text: "ORIGINAL PRICE";
+            text: "ACQUISITION PRICE";
             // Text size
             size: 16;
             // Anchors
