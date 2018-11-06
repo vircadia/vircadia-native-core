@@ -1,5 +1,5 @@
 //
-//  FBXReader.cpp
+//  FBXSerializer.cpp
 //  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 9/18/13.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "FBXReader.h"
+#include "FBXSerializer.h"
 
 #include <iostream>
 #include <QBuffer>
@@ -36,7 +36,7 @@
 #include <hfm/ModelFormatLogging.h>
 
 // TOOL: Uncomment the following line to enable the filtering of all the unkwnon fields of a node so we can break point easily while loading a model with problems...
-//#define DEBUG_FBXREADER
+//#define DEBUG_FBXSERIALIZER
 
 using namespace std;
 
@@ -254,13 +254,13 @@ HFMBlendshape extractBlendshape(const FBXNode& object) {
     HFMBlendshape blendshape;
     foreach (const FBXNode& data, object.children) {
         if (data.name == "Indexes") {
-            blendshape.indices = FBXReader::getIntVector(data);
+            blendshape.indices = FBXSerializer::getIntVector(data);
 
         } else if (data.name == "Vertices") {
-            blendshape.vertices = FBXReader::createVec3Vector(FBXReader::getDoubleVector(data));
+            blendshape.vertices = FBXSerializer::createVec3Vector(FBXSerializer::getDoubleVector(data));
 
         } else if (data.name == "Normals") {
-            blendshape.normals = FBXReader::createVec3Vector(FBXReader::getDoubleVector(data));
+            blendshape.normals = FBXSerializer::createVec3Vector(FBXSerializer::getDoubleVector(data));
         }
     }
     return blendshape;
@@ -384,7 +384,7 @@ HFMLight extractLight(const FBXNode& object) {
                     if (propname == "Intensity") {
                         light.intensity = 0.01f * property.properties.at(valIndex).value<float>();
                     } else if (propname == "Color") {
-                        light.color = FBXReader::getVec3(property.properties, valIndex);
+                        light.color = FBXSerializer::getVec3(property.properties, valIndex);
                     }
                 }
             }
@@ -392,7 +392,7 @@ HFMLight extractLight(const FBXNode& object) {
                    || subobject.name == "TypeFlags") {
         }
     }
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
 
     QString type = object.properties.at(0).toString();
     type = object.properties.at(1).toString();
@@ -417,7 +417,7 @@ QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
     return filepath.mid(filepath.lastIndexOf('/') + 1);
 }
 
-HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString& url) {
+HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QString& url) {
     const FBXNode& node = _rootNode;
     QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
@@ -488,7 +488,7 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
         }
     }
     QMultiHash<QString, WeightedIndex> blendshapeChannelIndices;
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
     int unknown = 0;
 #endif
     HFMModel* hfmModelPtr = new HFMModel;
@@ -736,7 +736,7 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
                                 extractBlendshape(subobject) };
                             blendshapes.append(blendshape);
                         }
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
                         else if (subobject.name == "TypeFlags") {
                             QString attributetype = subobject.properties.at(0).toString();
                             if (!attributetype.empty()) {
@@ -862,7 +862,7 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
                                                 tex.scaling.z = 1.0f;
                                             }
                                         }
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
                                         else {
                                             QString propName = v;
                                             unknown++;
@@ -871,7 +871,7 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
                                     }
                                 }
                         }
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
                         else {
                             if (subobject.name == "Type") {
                             } else if (subobject.name == "Version") {
@@ -1044,7 +1044,7 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
                                 }
                             }
                         }
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
                         else {
                             QString propname = subobject.name.data();
                             int unknown = 0;
@@ -1061,7 +1061,7 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
 
 
                 } else if (object.name == "NodeAttribute") {
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
                     std::vector<QString> properties;
                     foreach(const QVariant& v, object.properties) {
                         properties.push_back(v.toString());
@@ -1124,7 +1124,7 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
                     animationCurves.insert(getID(object.properties), curve);
 
                 }
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
                  else {
                     QString objectname = object.name.data();
                     if ( objectname == "Pose"
@@ -1215,7 +1215,7 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
                 }
             }
         }
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
         else {
             QString objectname = child.name.data();
             if ( objectname == "Pose"
@@ -1803,12 +1803,12 @@ HFMModel* readFBX(const QByteArray& data, const QVariantHash& mapping, const QSt
 }
 
 HFMModel* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
-    FBXReader reader;
-    reader._rootNode = FBXReader::parseFBX(device);
-    reader._loadLightmaps = loadLightmaps;
-    reader._lightmapLevel = lightmapLevel;
+    FBXSerializer serializer;
+    serializer._rootNode = FBXSerializer::parseFBX(device);
+    serializer._loadLightmaps = loadLightmaps;
+    serializer._lightmapLevel = lightmapLevel;
 
     qCDebug(modelformat) << "Reading FBX: " << url;
 
-    return reader.extractHFMModel(mapping, url);
+    return serializer.extractHFMModel(mapping, url);
 }

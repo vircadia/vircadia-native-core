@@ -12,7 +12,7 @@
 
 #include <QtCore/QFile>
 
-#include <FBXReader.h>
+#include <FBXSerializer.h>
 
 struct MyVertex {
     vec3 position;

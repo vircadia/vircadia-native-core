@@ -1,5 +1,5 @@
 //
-//  FBXReader.h
+//  FBXSerializer.h
 //  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 9/18/13.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_FBXReader_h
-#define hifi_FBXReader_h
+#ifndef hifi_FBXSerializer_h
+#define hifi_FBXSerializer_h
 
 #include <QtGlobal>
 #include <QMetaType>
@@ -102,7 +102,7 @@ public:
 
 class ExtractedMesh;
 
-class FBXReader {
+class FBXSerializer {
 public:
     HFMModel* _hfmModel;
 
@@ -166,4 +166,4 @@ public:
     static QVector<double> getDoubleVector(const FBXNode& node);
 };
 
-#endif // hifi_FBXReader_h
+#endif // hifi_FBXSerializer_h

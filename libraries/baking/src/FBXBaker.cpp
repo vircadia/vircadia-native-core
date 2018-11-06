@@ -27,7 +27,7 @@
 
 #include <PathUtils.h>
 
-#include <FBXReader.h>
+#include <FBXSerializer.h>
 #include <FBXWriter.h>
 
 #include "ModelBakingLoggingCategory.h"
@@ -187,10 +187,10 @@ void FBXBaker::importScene() {
         return;
     }
 
-    FBXReader reader;
+    FBXSerializer serializer;
 
     qCDebug(model_baking) << "Parsing" << _modelURL;
-    _rootNode = reader._rootNode = reader.parseFBX(&fbxFile);
+    _rootNode = serializer._rootNode = serializer.parseFBX(&fbxFile);
 
 #ifdef HIFI_DUMP_FBX
     {
@@ -206,8 +206,8 @@ void FBXBaker::importScene() {
     }
 #endif
 
-    _hfmModel = reader.extractHFMModel({}, _modelURL.toString());
-    _textureContentMap = reader._textureContent;
+    _hfmModel = serializer.extractHFMModel({}, _modelURL.toString());
+    _textureContentMap = serializer._textureContent;
 }
 
 void FBXBaker::rewriteAndBakeSceneModels() {
@@ -232,7 +232,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                 if (objectChild.name == "Geometry") {
 
                     // TODO Pull this out of _hfmModel instead so we don't have to reprocess it
-                    auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex, false);
+                    auto extractedMesh = FBXSerializer::extractMesh(objectChild, meshIndex, false);
                     
                     // Callback to get MaterialID
                     GetMaterialIDCallback materialIDcallback = [&extractedMesh](int partIndex) {

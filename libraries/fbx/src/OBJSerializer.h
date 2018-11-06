@@ -1,6 +1,6 @@
 
 #include <QtNetwork/QNetworkReply>
-#include "FBXReader.h"
+#include "FBXSerializer.h"
 
 class OBJTokenizer {
 public:
@@ -75,7 +75,7 @@ public:
     OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.0f), illuminationModel(-1) {}
 };
 
-class OBJReader: public QObject { // QObject so we can make network requests.
+class OBJSerializer: public QObject { // QObject so we can make network requests.
     Q_OBJECT
 public:
     typedef QVector<OBJFace> FaceGroup;

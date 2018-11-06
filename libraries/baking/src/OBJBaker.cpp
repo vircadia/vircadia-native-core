@@ -14,7 +14,7 @@
 #include <PathUtils.h>
 #include <NetworkAccessManager.h>
 
-#include "OBJReader.h"
+#include "OBJSerializer.h"
 #include "FBXWriter.h"
 
 const double UNIT_SCALE_FACTOR = 100.0;
@@ -143,9 +143,9 @@ void OBJBaker::bakeOBJ() {
 
     QByteArray objData = objFile.readAll();
 
-    bool combineParts = true; // set true so that OBJReader reads material info from material library
-    OBJReader reader;
-    auto geometry = reader.readOBJ(objData, QVariantHash(), combineParts, _modelURL);
+    bool combineParts = true; // set true so that OBJSerializer reads material info from material library
+    OBJSerializer serializer;
+    auto geometry = serializer.readOBJ(objData, QVariantHash(), combineParts, _modelURL);
 
     // Write OBJ Data as FBX tree nodes
     createFBXNodeTree(_rootNode, *geometry);
@@ -219,7 +219,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, HFMModel& hfmModel) {
         FBXNode materialNode;
         materialNode.name = MATERIAL_NODE_NAME;
         if (hfmModel.materials.size() == 1) {
-            // case when no material information is provided, OBJReader considers it as a single default material
+            // case when no material information is provided, OBJSerializer considers it as a single default material
             for (auto& materialID : hfmModel.materials.keys()) {
                 setMaterialNodeProperties(materialNode, materialID, hfmModel);
             }

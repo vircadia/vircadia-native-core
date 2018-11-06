@@ -18,8 +18,8 @@
 #include <vector>
 #include <chrono> //c++11 feature
 #include <QFile>
-#include <FBXReader.h>
-#include <OBJReader.h>
+#include <FBXSerializer.h>
+#include <OBJSerializer.h>
 #include <VHACD.h>
 
 namespace vhacd {

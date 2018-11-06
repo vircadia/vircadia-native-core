@@ -17,7 +17,7 @@
 #include <NumericalConstants.h>
 
 
-// FBXReader jumbles the order of the meshes by reading them back out of a hashtable.  This will put
+// FBXSerializer jumbles the order of the meshes by reading them back out of a hashtable.  This will put
 // them back in the order in which they appeared in the file.
 bool HFMModelLessThan(const HFMMesh& e1, const HFMMesh& e2) {
     return e1.meshIndex < e2.meshIndex;
@@ -44,7 +44,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, HFMModel& result) {
         HFMModel::Pointer hfmModel;
         if (filename.toLower().endsWith(".obj")) {
             bool combineParts = false;
-            hfmModel = OBJReader().readOBJ(fbxContents, QVariantHash(), combineParts);
+            hfmModel = OBJSerializer().readOBJ(fbxContents, QVariantHash(), combineParts);
         } else if (filename.toLower().endsWith(".fbx")) {
             hfmModel.reset(readFBX(fbxContents, QVariantHash(), filename));
         } else {

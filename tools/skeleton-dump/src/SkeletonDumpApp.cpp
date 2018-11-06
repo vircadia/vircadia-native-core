@@ -12,7 +12,7 @@
 #include "SkeletonDumpApp.h"
 #include <QCommandLineParser>
 #include <QFile>
-#include <FBXReader.h>
+#include <FBXSerializer.h>
 #include <AnimSkeleton.h>
 
 SkeletonDumpApp::SkeletonDumpApp(int argc, char* argv[]) : QCoreApplication(argc, argv) {

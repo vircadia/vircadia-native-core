@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <FBXReader.h>
+#include <FBXSerializer.h>
 #include "AnimPose.h"
 
 class AnimSkeleton {

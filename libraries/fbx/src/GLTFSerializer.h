@@ -1,5 +1,5 @@
 //
-//  GLTFReader.h
+//  GLTFSerializer.h
 //  libraries/fbx/src
 //
 //  Created by Luis Cuenca on 8/30/17.
@@ -9,13 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_GLTFReader_h
-#define hifi_GLTFReader_h
+#ifndef hifi_GLTFSerializer_h
+#define hifi_GLTFSerializer_h
 
 #include <memory.h>
 #include <QtNetwork/QNetworkReply>
 #include <hfm/ModelFormatLogging.h>
-#include "FBXReader.h"
+#include "FBXSerializer.h"
 
 
 struct GLTFAsset {
@@ -702,10 +702,10 @@ struct GLTFFile {
     }
 };
 
-class GLTFReader : public QObject {
+class GLTFSerializer : public QObject {
     Q_OBJECT
 public:
-    GLTFReader();
+    GLTFSerializer();
     HFMModel* readGLTF(QByteArray& data, const QVariantHash& mapping, 
                           const QUrl& url, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 private:
@@ -783,4 +783,4 @@ private:
     void hfmDebugDump(const HFMModel& hfmModel);
 };
 
-#endif // hifi_GLTFReader_h
+#endif // hifi_GLTFSerializer_h
