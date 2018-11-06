@@ -1724,22 +1724,23 @@ void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
 }
 
 void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
-    // FIXME: this doesn't take into account Avatar rotation
     ShapeInfo shapeInfo;
     computeShapeInfo(shapeInfo);
-    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
-    start = getWorldPosition() - glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
-    end = getWorldPosition() + glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = cylinderHalfHeight + radius
     radius = halfExtents.x;
+    glm::vec3 halfCylinderAxis(0.0f, halfExtents.y - radius, 0.0f);
+    Transform transform = getTransform();
+    start = transform.getTranslation() + transform.getRotation() * (shapeInfo.getOffset() - halfCylinderAxis);
+    end = transform.getTranslation() + transform.getRotation() * (shapeInfo.getOffset() + halfCylinderAxis);
 }
 
 glm::vec3 Avatar::getWorldFeetPosition() {
     ShapeInfo shapeInfo;
-
     computeShapeInfo(shapeInfo);
-    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
-    glm::vec3 localFeet(0.0f, shapeInfo.getOffset().y - halfExtents.y - halfExtents.x, 0.0f);
-    return getWorldOrientation() * localFeet + getWorldPosition();
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = cylinderHalfHeight + radius
+    glm::vec3 localFeet(0.0f, shapeInfo.getOffset().y - halfExtents.y, 0.0f);
+    Transform transform = getTransform();
+    return transform.getTranslation() + transform.getRotation() * localFeet;
 }
 
 float Avatar::computeMass() {
