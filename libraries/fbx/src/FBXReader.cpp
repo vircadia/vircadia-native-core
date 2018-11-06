@@ -623,15 +623,14 @@ QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
         for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
             QString jointName = itr.key();
             QString line = itr.value().toString();
-            auto eulerAngles = line.split(',');
-            if (eulerAngles.size() == 3) {
-                float eulerX = eulerAngles[0].mid(1).toFloat();
-                float eulerY = eulerAngles[1].toFloat();
-                float eulerZ = eulerAngles[2].mid(0, eulerAngles[2].size() - 1).toFloat();
-                if (!isNaN(eulerX) && !isNaN(eulerY) && !isNaN(eulerZ)) {
-                    glm::quat rotationOffset = (glm::angleAxis(eulerX * RADIANS_PER_DEGREE, Vectors::UNIT_X) *
-                        glm::angleAxis(eulerY * RADIANS_PER_DEGREE, Vectors::UNIT_Y) *
-                        glm::angleAxis(eulerZ * RADIANS_PER_DEGREE, Vectors::UNIT_Z));
+            auto quatCoords = line.split(',');
+            if (quatCoords.size() == 4) {
+                float quatX = quatCoords[0].mid(1).toFloat();
+                float quatY = quatCoords[1].toFloat();
+                float quatZ = quatCoords[2].toFloat();
+                float quatW = quatCoords[3].mid(0, quatCoords[3].size() - 1).toFloat();
+                if (!isNaN(quatX) && !isNaN(quatY) && !isNaN(quatZ) && !isNaN(quatW)) {
+                    glm::quat rotationOffset = glm::quat(quatW, quatX, quatY, quatZ);
                     jointRotationOffsets.insert(jointName, rotationOffset);
                 }
             }
@@ -2026,7 +2025,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         if (jointIndex != -1) {
             geometry.jointRotationOffsets.insert(jointIndex, rotationOffset);
         }
-        qCDebug(modelformat) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
+        qDebug() << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
     }
 
     return geometryPtr;
