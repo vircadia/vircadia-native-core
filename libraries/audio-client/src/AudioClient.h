@@ -395,7 +395,7 @@ private:
     void configureReverb();
     void updateReverbOptions();
 
-    void handleLocalEchoAndReverb(QByteArray& inputByteArray, const int& sampleRate, const int& channelCount);
+    void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);
@@ -453,12 +453,6 @@ private:
     QTimer* _checkPeakValuesTimer { nullptr };
 
     bool _isRecording { false };
-
-    Mutex _TTSMutex;
-    bool _isProcessingTTS { false };
-    QByteArray _TTSAudioBuffer;
-    int _TTSChunkSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * 50;
-    QTimer _TTSTimer;
 };
 
 
