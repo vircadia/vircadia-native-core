@@ -29,7 +29,6 @@ Item {
         if (visible) {
             Commerce.balance();
             transactionHistoryModel.getFirstPage();
-            Commerce.getAvailableUpdates();
         } else {
             refreshTimer.stop();
         }
