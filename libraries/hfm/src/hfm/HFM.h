@@ -25,35 +25,9 @@
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
 
-// High Fidelity Model namespace
-namespace hfm {
-    class Blendshape;
-    struct JointShapeInfo;
-    class Joint;
-    class Cluster;
-    class Texture;
-    class MeshPart;
-    class Material;
-    class Mesh;
-    class AnimationFrame;
-    class Light;
-    class Model;
-};
-
-typedef hfm::Blendshape HFMBlendshape;
-typedef hfm::JointShapeInfo HFMJointShapeInfo;
-typedef hfm::Joint HFMJoint;
-typedef hfm::Cluster HFMCluster;
-typedef hfm::Texture HFMTexture;
-typedef hfm::MeshPart HFMMeshPart;
-typedef hfm::Material HFMMaterial;
-typedef hfm::Mesh HFMMesh;
-typedef hfm::AnimationFrame HFMAnimationFrame;
-typedef hfm::Light HFMLight;
-typedef hfm::Model HFMModel;
-
 const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;
 
+// High Fidelity Model namespace
 namespace hfm {
 
 /// A single blendshape.
@@ -349,6 +323,18 @@ public:
     QVector<QPair<int, int> > partMaterialTextures;
     QHash<QString, size_t> texcoordSetMap;
 };
+
+typedef hfm::Blendshape HFMBlendshape;
+typedef hfm::JointShapeInfo HFMJointShapeInfo;
+typedef hfm::Joint HFMJoint;
+typedef hfm::Cluster HFMCluster;
+typedef hfm::Texture HFMTexture;
+typedef hfm::MeshPart HFMMeshPart;
+typedef hfm::Material HFMMaterial;
+typedef hfm::Mesh HFMMesh;
+typedef hfm::AnimationFrame HFMAnimationFrame;
+typedef hfm::Light HFMLight;
+typedef hfm::Model HFMModel;
 
 Q_DECLARE_METATYPE(HFMAnimationFrame)
 Q_DECLARE_METATYPE(QVector<HFMAnimationFrame>)

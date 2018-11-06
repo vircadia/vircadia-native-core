@@ -17,9 +17,11 @@
 #include <QFileInfo>
 #include <QVariantHash>
 
-#include <hfm/HFM.h>
-
 #include "ui/ModelsBrowser.h"
+
+namespace hfm {
+    class Model;
+};
 
 class ModelPackager : public QObject {
 public:
@@ -32,7 +34,7 @@ private:
     bool editProperties();
     bool zipModel();
     
-    void populateBasicMapping(QVariantHash& mapping, QString filename, const HFMModel& hfmModel);
+    void populateBasicMapping(QVariantHash& mapping, QString filename, const hfm::Model& hfmModel);
     
     void listTextures();
     bool copyTextures(const QString& oldDir, const QDir& newDir);
@@ -44,7 +46,7 @@ private:
     QString _scriptDir;
 
     QVariantHash _mapping;
-    std::unique_ptr<HFMModel> _hfmModel;
+    std::unique_ptr<hfm::Model> _hfmModel;
     QStringList _textures;
     QStringList _scripts;
 };
