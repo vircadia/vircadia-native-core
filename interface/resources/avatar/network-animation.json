@@ -53,8 +53,8 @@
                         },
                         {
                             "id": "preTransitAnim",
-                            "interpTarget": 6,
-                            "interpDuration": 6,
+                            "interpTarget": 4,
+                            "interpDuration": 4,
                             "transitions": [
                                 { "var": "idleAnim", "state": "idleAnim" },
                                 { "var": "transitAnim", "state": "transitAnim" }
@@ -62,8 +62,8 @@
                         },
                         {
                             "id": "transitAnim",
-                            "interpTarget": 6,
-                            "interpDuration": 6,
+                            "interpTarget": 2,
+                            "interpDuration": 2,
                             "transitions": [
                                 { "var": "preTransitAnim", "state": "preTransitAnim" },
                                 { "var": "postTransitAnim", "state": "postTransitAnim" }
@@ -71,8 +71,8 @@
                         },
                         {
                             "id": "postTransitAnim",
-                            "interpTarget": 6,
-                            "interpDuration": 6,
+                            "interpTarget": 4,
+                            "interpDuration": 4,
                             "transitions": [
                                 { "var": "transitAnim", "state": "transitAnim" },
                                 { "var": "idleAnim", "state": "idleAnim" }
@@ -97,7 +97,7 @@
                         "id": "preTransitAnim",
                         "type": "clip",
                         "data": {
-                            "url": "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx",
+                            "url": "qrc:///avatar/animations/teleport.fbx",
                             "startFrame": 0.0,
                             "endFrame": 10.0,
                             "timeScale": 1.0,
@@ -109,11 +109,11 @@
                         "id": "transitAnim",
                         "type": "clip",
                         "data": {
-                            "url": "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx",
+                            "url": "qrc:///avatar/animations/teleport.fbx",
                             "startFrame": 11.0,
-                            "endFrame": 11.0,
+                            "endFrame": 18.0,
                             "timeScale": 1.0,
-                            "loopFlag": true
+                            "loopFlag": false
                         },
                         "children": []
                     },
@@ -121,9 +121,9 @@
                         "id": "postTransitAnim",
                         "type": "clip",
                         "data": {
-                            "url": "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx",
-                            "startFrame": 22.0,
-                            "endFrame": 49.0,
+                            "url": "qrc:///avatar/animations/teleport.fbx",
+                            "startFrame": 19.0,
+                            "endFrame": 44.0,
                             "timeScale": 1.0,
                             "loopFlag": false
                         },
