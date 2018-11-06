@@ -1749,28 +1749,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
     _defaultScriptsLocation = getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str());
 
-    //{
-    //    auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-    //    // this will force the model the look at the correct directory (weird order of operations issue)
-    //    scriptEngines->reloadLocalFiles();
-
-    //    // do this as late as possible so that all required subsystems are initialized
-    //    // If we've overridden the default scripts location, just load default scripts
-    //    // otherwise, load 'em all
-
-    //    // we just want to see if --scripts was set, we've already parsed it and done
-    //    // the change in PathUtils.  Rather than pass that in the constructor, lets just
-    //    // look (this could be debated)
-    //    QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
-    //    QDir defaultScriptsLocation(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
-    //    if (!defaultScriptsLocation.exists()) {
-    //        scriptEngines->loadDefaultScripts();
-    //        scriptEngines->defaultScriptsLocationOverridden(true);
-    //    } else {
-    //        scriptEngines->loadScripts();
-    //    }
-    //}
-
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -2250,29 +2228,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snapshot/snap.wav"));
-
-    //QVariant testProperty = property(hifi::properties::TEST);
-    //qDebug() << testProperty;
-    //if (testProperty.isValid()) {
-    //    const auto testScript = property(hifi::properties::TEST).toUrl();
-
-    //    // Set last parameter to exit interface when the test script finishes, if so requested
-    //    DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
-
-    //    // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
-    //    if (arguments().contains("--url")) {
-    //        auto reply = SandboxUtils::getStatus();
-    //        connect(reply, &QNetworkReply::finished, this, [this, reply] {
-    //            handleSandboxStatus(reply);
-    //        });
-    //    }
-    //} else {
-    //    PROFILE_RANGE(render, "GetSandboxStatus");
-    //    auto reply = SandboxUtils::getStatus();
-    //    connect(reply, &QNetworkReply::finished, this, [this, reply] {
-    //        handleSandboxStatus(reply);
-    //    });
-    //}
 
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
     static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
@@ -5245,6 +5200,8 @@ void Application::resumeAfterLoginDialogActionTaken() {
     auto myAvatar = qApp->getMyAvatar();
     myAvatar->setEnableMeshVisible(true);
 
+    const auto& nodeList = DependencyManager::get<NodeList>();
+    nodeList->getDomainHandler().setInterstitialModeEnabled(_interstitialModeEnabled);
     {
         auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
         // this will force the model the look at the correct directory (weird order of operations issue)
@@ -5270,12 +5227,27 @@ void Application::resumeAfterLoginDialogActionTaken() {
     if (!accountManager->isLoggedIn()) {
         addressManager->goToEntry();
     } else {
-        addressManager->loadSettings();
+        QVariant testProperty = property(hifi::properties::TEST);
+        qDebug() << testProperty;
+        if (testProperty.isValid()) {
+            const auto testScript = property(hifi::properties::TEST).toUrl();
+
+            // Set last parameter to exit interface when the test script finishes, if so requested
+            DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
+
+            // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
+            if (arguments().contains("--url")) {
+                auto reply = SandboxUtils::getStatus();
+                connect(reply, &QNetworkReply::finished, this, [this, reply] {
+                    handleSandboxStatus(reply);
+                });
+            }
+        } else {
+            addressManager->loadSettings();
+        }
     }
 
-    const auto& nodeList = DependencyManager::get<NodeList>();
-    // disconnect domain handler.
-    nodeList->getDomainHandler().setInterstitialModeEnabled(_interstitialModeEnabled);
+    // restart domain handler.
     nodeList->getDomainHandler().resetting();
 
     auto menu = Menu::getInstance();
