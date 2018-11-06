@@ -1006,7 +1006,8 @@
                 return;
         }
 
-        if (message.grabbedEntity !== HMD.tabletID && message.grabbedEntity !== ui.getMiniTabletID()) {
+        if (miniState.getState() === miniState.MINI_DISABLED
+                || message.grabbedEntity !== HMD.tabletID && message.grabbedEntity !== ui.getMiniTabletID()) {
             return;
         }
 
