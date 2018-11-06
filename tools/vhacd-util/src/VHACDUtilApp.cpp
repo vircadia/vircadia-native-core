@@ -36,7 +36,7 @@ QString formatFloat(double n) {
 }
 
 
-bool VHACDUtilApp::writeOBJ(QString outFileName, HFMGeometry& geometry, bool outputCentimeters, int whichMeshPart) {
+bool VHACDUtilApp::writeOBJ(QString outFileName, HFMModel& hfmModel, bool outputCentimeters, int whichMeshPart) {
     QFile file(outFileName);
     if (!file.open(QIODevice::WriteOnly)) {
         qWarning() << "unable to write to" << outFileName;
@@ -56,7 +56,7 @@ bool VHACDUtilApp::writeOBJ(QString outFileName, HFMGeometry& geometry, bool out
 
     int vertexIndexOffset = 0;
 
-    foreach (const HFMMesh& mesh, geometry.meshes) {
+    foreach (const HFMMesh& mesh, hfmModel.meshes) {
         bool verticesHaveBeenOutput = false;
         foreach (const HFMMeshPart &meshPart, mesh.parts) {
             if (whichMeshPart >= 0 && nth != (unsigned int) whichMeshPart) {
@@ -297,7 +297,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     }
 
     // load the mesh
-    HFMGeometry fbx;
+    HFMModel fbx;
     auto begin = std::chrono::high_resolution_clock::now();
     if (!vUtil.loadFBX(inputFilename, fbx)){
         _returnCode = VHACD_RETURN_CODE_FAILURE_TO_READ;
@@ -358,7 +358,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         }
         begin = std::chrono::high_resolution_clock::now();
 
-        HFMGeometry result;
+        HFMModel result;
         bool success = vUtil.computeVHACD(fbx, params, result, minimumMeshSize, maximumMeshSize);
 
         end = std::chrono::high_resolution_clock::now();
@@ -398,7 +398,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     }
 
     if (fattenFaces) {
-        HFMGeometry newFbx;
+        HFMModel newFbx;
         HFMMesh result;
 
         // count the mesh-parts

@@ -131,7 +131,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
         // should never fall in here when collision model not fully loaded
         // TODO: assert that all geometries exist and are loaded
         //assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
-        const HFMGeometry& collisionGeometry = resource->getHFMGeometry();
+        const HFMModel& collisionModel = resource->getHFMModel();
 
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
@@ -139,7 +139,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
 
         // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
         // to find one actual "mesh" (with one or more meshParts in it), but we loop over the meshes, just in case.
-        foreach (const HFMMesh& mesh, collisionGeometry.meshes) {
+        foreach (const HFMMesh& mesh, collisionModel.meshes) {
             // each meshPart is a convex hull
             foreach (const HFMMeshPart &meshPart, mesh.parts) {
                 pointCollection.push_back(QVector<glm::vec3>());
@@ -206,7 +206,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        glm::vec3 scaleToFit = dimensions / resource->getHFMGeometry().getUnscaledMeshExtents().size();
+        glm::vec3 scaleToFit = dimensions / resource->getHFMModel().getUnscaledMeshExtents().size();
         // multiply each point by scale
         for (int32_t i = 0; i < pointCollection.size(); i++) {
             for (int32_t j = 0; j < pointCollection[i].size(); j++) {
@@ -216,11 +216,11 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
         }
         shapeInfo.setParams(type, dimensions, resource->getURL().toString());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        const HFMGeometry& hfmGeometry = resource->getHFMGeometry();
-        int numHFMMeshes = hfmGeometry.meshes.size();
+        const HFMModel& hfmModel = resource->getHFMModel();
+        int numHFMMeshes = hfmModel.meshes.size();
         int totalNumVertices = 0;
         for (int i = 0; i < numHFMMeshes; i++) {
-            const HFMMesh& mesh = hfmGeometry.meshes.at(i);
+            const HFMMesh& mesh = hfmModel.meshes.at(i);
             totalNumVertices += mesh.vertices.size();
         }
         const int32_t MAX_VERTICES_PER_STATIC_MESH = 1e6;
@@ -230,7 +230,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
             return;
         }
 
-        auto& meshes = resource->getHFMGeometry().meshes;
+        auto& meshes = resource->getHFMModel().meshes;
         int32_t numMeshes = (int32_t)(meshes.size());
 
         const int MAX_ALLOWED_MESH_COUNT = 1000;
