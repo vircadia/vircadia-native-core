@@ -583,7 +583,7 @@ function notificationPollCallbackUpdates(updatesArray) {
         if (!ui.notificationInitialCallbackMade[0]) {
             message = updatesArray.length + " of your purchased items " +
                 (updatesArray.length === 1 ? "has an update " : "have updates ") +
-                "available. Open ASSETS to update.";
+                "available. Open INVENTORY to update.";
             ui.notificationDisplayBanner(message);
 
             ui.notificationPollCaresAboutSince[0] = true;
@@ -591,7 +591,7 @@ function notificationPollCallbackUpdates(updatesArray) {
             for (var i = 0; i < updatesArray.length; i++) {
                 message = "Update available for \"" +
                     updatesArray[i].base_item_title + "\"." +
-                    "Open ASSETS to update.";
+                    "Open INVENTORY to update.";
                 ui.notificationDisplayBanner(message);
             }
         }
@@ -608,12 +608,12 @@ function notificationPollCallbackHistory(historyArray) {
             var message;
             if (!ui.notificationInitialCallbackMade[1]) {
                 message = "You have " + notificationCount + " unread recent " +
-                    "transaction" + (notificationCount === 1 ? "" : "s") + ". Open ASSETS to see all activity.";
+                    "transaction" + (notificationCount === 1 ? "" : "s") + ". Open INVENTORY to see all activity.";
                 ui.notificationDisplayBanner(message);
             } else {
                 for (var i = 0; i < notificationCount; i++) {
                     message = '"' + (historyArray[i].message) + '" ' +
-                        "Open ASSETS to see all activity.";
+                        "Open INVENTORY to see all activity.";
                     ui.notificationDisplayBanner(message);
                 }
             }
@@ -661,7 +661,7 @@ function uninstallMarketplaceItemTester() {
     }
 }
 
-var BUTTON_NAME = "ASSETS";
+var BUTTON_NAME = "INVENTORY";
 var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
 var NOTIFICATION_POLL_TIMEOUT = 300000;
 var ui;
@@ -684,7 +684,6 @@ function startup() {
 
     ui = new AppUi({
         buttonName: BUTTON_NAME,
-        buttonPrefix: "wallet-",
         sortOrder: 10,
         home: WALLET_QML_SOURCE,
         onOpened: walletOpened,
