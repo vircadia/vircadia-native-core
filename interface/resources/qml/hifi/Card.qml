@@ -133,7 +133,7 @@ Item {
         }
         onStatusChanged: {
             if (status == Image.Error) {
-                console.log("source: " + source + ": failed to load " + hifiUrl);
+                console.log("source: " + source + ": failed to load");
                 source = defaultThumbnail;
             }
         }

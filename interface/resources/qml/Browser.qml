@@ -114,7 +114,6 @@ ScrollingWindow {
                     sourceSize: Qt.size(width, height);
                     verticalAlignment: Image.AlignVCenter;
                     horizontalAlignment: Image.AlignHCenter
-                    onSourceChanged: console.log("Icon url: " + source)
                 }
             }
 
@@ -247,10 +246,6 @@ ScrollingWindow {
                     addressBar.text = loadRequest.url
                 }
                 root.loadingChanged(loadRequest.status);
-            }
-
-            onIconChanged: {
-                console.log("New icon: " + icon)
             }
 
             onWindowCloseRequested: {

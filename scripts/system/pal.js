@@ -326,7 +326,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         ui.messagesWaiting(shouldShowDot);
         break;
     default:
-        print('Unrecognized message from Pal.qml:', JSON.stringify(message));
+        print('Unrecognized message from Pal.qml');
     }
 }
 
@@ -347,7 +347,7 @@ function requestJSON(url, callback) { // callback(data) if successfull. Logs oth
         uri: url
     }, function (error, response) {
         if (error || (response.status !== 'success')) {
-            print("Error: unable to get", url,  error || response.status);
+            print("Error: unable to get request",  error || response.status);
             return;
         }
         callback(response.data);

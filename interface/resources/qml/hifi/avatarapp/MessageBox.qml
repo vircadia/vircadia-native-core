@@ -17,9 +17,6 @@ Rectangle {
     property alias dialogButtons: buttons
 
     property string imageSource: null
-    onImageSourceChanged: {
-        console.debug('imageSource = ', imageSource)
-    }
 
     property string button1color: hifi.buttons.noneBorderlessGray;
     property string button1text: ''

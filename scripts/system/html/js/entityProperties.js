@@ -1318,15 +1318,6 @@ var selectedEntityProperties;
 var lastEntityID = null;
 var createAppTooltip = new CreateAppTooltip();
 
-function debugPrint(message) {
-    EventBridge.emitWebEvent(
-        JSON.stringify({
-            type: "print",
-            message: message
-        })
-    );
-}
-
 
 /**
  * GENERAL PROPERTY/GROUP FUNCTIONS

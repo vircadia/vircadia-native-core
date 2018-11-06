@@ -250,7 +250,7 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
     function fromScript(message) {
         switch (message.method) {
             default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('Help.qml: Unrecognized message from wallet.js');
         }
     }
     signal sendSignalToWallet(var msg);

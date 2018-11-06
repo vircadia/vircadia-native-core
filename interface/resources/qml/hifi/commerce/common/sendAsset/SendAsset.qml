@@ -1867,7 +1867,7 @@ Item {
                 sendAssetStep.selectedRecipientUserName = message.userName;
             break;
             default:
-                console.log('SendAsset: Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('SendAsset: Unrecognized message from wallet.js');
         }
     }
     signal sendSignalToParent(var msg);

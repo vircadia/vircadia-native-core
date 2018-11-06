@@ -20,7 +20,7 @@ Item {
     // Public function for initiating an http request.
     // REQUIRES parent to be root to have sendToScript!
     function request(options, callback) {
-        console.debug('HttpRequest', JSON.stringify(options));
+        console.debug('HttpRequest');
         httpCalls[httpCounter] = callback;
         var message = {method: 'http.request', params: options, id: httpCounter++, jsonrpc: "2.0"};
         parent.sendToScript(message);
@@ -33,7 +33,7 @@ Item {
             return;
         }
         delete httpCalls[message.id];
-        console.debug('HttpRequest response', JSON.stringify(message));
+        console.debug('HttpRequest response');
         callback(message.error, message.response);
     }
 }

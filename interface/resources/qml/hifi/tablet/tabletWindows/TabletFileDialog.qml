@@ -68,8 +68,6 @@ Rectangle {
     signal canceled();
 
     Component.onCompleted: {
-        console.log("Helper " + helper + " drives " + drives);
-
         fileDialogItem.keyboardEnabled = HMD.active;
 
         // HACK: The following lines force the model to initialize properly such that the go-up button
@@ -762,7 +760,6 @@ Rectangle {
                     }
                 }
 
-                console.log("Selecting " + selection)
                 selectedFile(selection);
                 //root.destroy();
             }

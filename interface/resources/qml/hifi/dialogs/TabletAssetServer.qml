@@ -81,16 +81,16 @@ Rectangle {
     }
 
     function doDeleteFile(paths) {
-        console.log("Deleting " + paths);
+        console.log("Deleting paths");
 
         Assets.deleteMappings(paths, function(err) {
             if (err) {
-                console.log("Asset browser - error deleting paths: ", paths, err);
+                console.log("Asset browser - error deleting paths: ", err);
 
-                box = errorMessageBox("There was an error deleting:\n" + paths + "\n" + err);
+                box = errorMessageBox("There was an error deleting:\n" + err);
                 box.selected.connect(reload);
             } else {
-                console.log("Asset browser - finished deleting paths: ", paths);
+                console.log("Asset browser - finished deleting paths");
                 reload();
             }
         });
@@ -113,15 +113,10 @@ Rectangle {
             box.selected.connect(reload);
         }
 
-        console.log("Asset browser - renaming " + oldPath + " to " + newPath);
-
         Assets.renameMapping(oldPath, newPath, function(err) {
             if (err) {
-                console.log("Asset browser - error renaming: ", oldPath, "=>", newPath, " - error ", err);
                 box = errorMessageBox("There was an error renaming:\n" + oldPath + " to " + newPath + "\n" + err);
                 box.selected.connect(reload);
-            } else {
-                console.log("Asset browser - finished rename: ", oldPath, "=>", newPath);
             }
 
             reload();
@@ -280,7 +275,7 @@ Rectangle {
                             gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
                         }
 
-                        print("Asset browser - adding asset " + url + " (" + name + ") to world.");
+                        print("Asset browser - adding asset " + name + " to world.");
 
                         // Entities.addEntity doesn't work from QML, so we use this.
                         Entities.addModelEntity(name, url, "", shapeType, dynamic, collisionless, grabbable, addPosition, gravity);
@@ -426,7 +421,7 @@ Rectangle {
                     uploadProgressLabel.text = "In progress...";
                 },
                 function(err, path) {
-                    print(err, path);
+                    print(err);
                     if (err === "") {
                         uploadProgressLabel.text = "Upload Complete";
                         timer.interval = 1000;
@@ -437,7 +432,6 @@ Rectangle {
                             uploadOpen = false;
                         });
                         timer.start();
-                        console.log("Asset Browser - finished uploading: ", fileUrl);
                         reload();
                     } else {
                         uploadSpinner.visible = false;
@@ -445,7 +439,7 @@ Rectangle {
                         uploadOpen = false;
 
                         if (err !== -1) {
-                            console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
+                            console.log("Asset Browser - error uploading:", err);
                             var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + err);
                             box.selected.connect(reload);
                         }

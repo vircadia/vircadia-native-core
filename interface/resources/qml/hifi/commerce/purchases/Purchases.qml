@@ -1009,7 +1009,7 @@ Rectangle {
         try { // Not all calls to onFileOpenChanged() connect an event.
             Window.browseChanged.disconnect(onFileOpenChanged);
         } catch (e) {
-            console.log('Purchases.qml ignoring', e);
+            console.log('Purchases.qml ignoring');
         }
         if (filename) {
             Commerce.installApp(filename);
@@ -1070,7 +1070,7 @@ Rectangle {
                 http.handleHttpResponse(message);
             break;
             default:
-                console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
+                console.log('Purchases.qml: Unrecognized message from marketplaces.js');
         }
     }
     signal sendToScript(var message);

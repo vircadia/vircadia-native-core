@@ -72,7 +72,6 @@ Preference {
                 });
 
                 browser.selectedFile.connect(function(fileUrl){
-                    console.log(fileUrl);
                     dataTextField.text = fileDialogHelper.urlToPath(fileUrl);
                 });
                 

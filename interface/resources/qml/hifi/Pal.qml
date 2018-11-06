@@ -1287,7 +1287,7 @@ Rectangle {
             connectionsOnlineDot.visible = message.shouldShowDot;
             break;
         default:
-            console.log('Unrecognized message:', JSON.stringify(message));
+            console.log('Pal.qml: Unrecognized message');
         }
     }
     function sortModel() {

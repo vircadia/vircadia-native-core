@@ -799,7 +799,7 @@ Rectangle {
                 }
             break;
             default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('Wallet.qml: Unrecognized message from wallet.js');
         }
     }
     signal sendToScript(var message);
