@@ -34,13 +34,13 @@
 class QIODevice;
 class FBXNode;
 
-/// Reads FBX geometry from the supplied model and mapping data.
+/// Reads HFMModel from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-HFMGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+HFMModel* readFBX(const QByteArray& data, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
-/// Reads FBX geometry from the supplied model and mapping data.
+/// Reads HFMModel from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-HFMGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+HFMModel* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 class TextureParam {
 public:
@@ -103,12 +103,12 @@ class ExtractedMesh;
 
 class FBXReader {
 public:
-    HFMGeometry* _hfmGeometry;
+    HFMModel* _hfmModel;
 
     FBXNode _rootNode;
     static FBXNode parseFBX(QIODevice* device);
 
-    HFMGeometry* extractHFMGeometry(const QVariantHash& mapping, const QString& url);
+    HFMModel* extractHFMModel(const QVariantHash& mapping, const QString& url);
 
     static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate = true);
     QHash<QString, ExtractedMesh> meshes;

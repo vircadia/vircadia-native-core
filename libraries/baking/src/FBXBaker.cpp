@@ -206,7 +206,7 @@ void FBXBaker::importScene() {
     }
 #endif
 
-    _geometry = reader.extractHFMGeometry({}, _modelURL.toString());
+    _hfmModel = reader.extractHFMModel({}, _modelURL.toString());
     _textureContentMap = reader._textureContent;
 }
 
@@ -231,7 +231,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
             for (FBXNode& objectChild : rootChild.children) {
                 if (objectChild.name == "Geometry") {
 
-                    // TODO Pull this out of _geometry instead so we don't have to reprocess it
+                    // TODO Pull this out of _hfmModel instead so we don't have to reprocess it
                     auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex, false);
                     
                     // Callback to get MaterialID
@@ -293,7 +293,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
     QHash<QString, image::TextureUsage::Type> textureTypes;
 
     // enumerate the materials in the extracted geometry so we can determine the texture type for each texture ID
-    for (const auto& material : _geometry->materials) {
+    for (const auto& material : _hfmModel->materials) {
         if (material.normalTexture.isBumpmap) {
             textureTypes[material.normalTexture.id] = BUMP_TEXTURE;
         } else {

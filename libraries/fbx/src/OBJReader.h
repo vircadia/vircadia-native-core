@@ -87,13 +87,13 @@ public:
     QString currentMaterialName;
     QHash<QString, OBJMaterial> materials;
 
-    HFMGeometry::Pointer readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url = QUrl());
+    HFMModel::Pointer readOBJ(QByteArray& data, const QVariantHash& mapping, bool combineParts, const QUrl& url = QUrl());
 
 private:
     QUrl _url;
 
     QHash<QByteArray, bool> librariesSeen;
-    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMGeometry& geometry,
+    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& hfmModel,
                        float& scaleGuess, bool combineParts);
     void parseMaterialLibrary(QIODevice* device);
     void parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions);
@@ -104,4 +104,4 @@ private:
 
 // What are these utilities doing here? One is used by fbx loading code in VHACD Utils, and the other a general debugging utility.
 void setMeshPartDefaults(HFMMeshPart& meshPart, QString materialID);
-void hfmDebugDump(const HFMGeometry& hfmgeo);
+void hfmDebugDump(const HFMModel& hfmModel);

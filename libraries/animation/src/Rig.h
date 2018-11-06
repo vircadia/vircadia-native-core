@@ -122,8 +122,8 @@ public:
     void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreRoleAnimation(const QString& role);
 
-    void initJointStates(const HFMGeometry& geometry, const glm::mat4& modelOffset);
-    void reset(const HFMGeometry& geometry);
+    void initJointStates(const HFMModel& hfmModel, const glm::mat4& modelOffset);
+    void reset(const HFMModel& hfmModel);
     bool jointStatesEmpty();
     int getJointStateCount() const;
     int indexOfJoint(const QString& jointName) const;
@@ -210,7 +210,7 @@ public:
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
     void computeExternalPoses(const glm::mat4& modelOffsetMat);
 
-    void computeAvatarBoundingCapsule(const HFMGeometry& geometry, float& radiusOut, float& heightOut, glm::vec3& offsetOut) const;
+    void computeAvatarBoundingCapsule(const HFMModel& hfmModel, float& radiusOut, float& heightOut, glm::vec3& offsetOut) const;
 
     void setEnableInverseKinematics(bool enable);
     void setEnableAnimations(bool enable);

@@ -128,7 +128,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
 
 void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
     if (success && _geometryResource) {
-        _hfmGeometry = _geometryResource->_hfmGeometry;
+        _hfmModel = _geometryResource->_hfmModel;
         _meshParts = _geometryResource->_meshParts;
         _meshes = _geometryResource->_meshes;
         _materials = _geometryResource->_materials;
@@ -193,38 +193,38 @@ void GeometryReader::run() {
                 _url.path().toLower().endsWith(".obj.gz") ||
                 _url.path().toLower().endsWith(".gltf"))) {
 
-            HFMGeometry::Pointer hfmGeometry;
+            HFMModel::Pointer hfmModel;
 
             if (_url.path().toLower().endsWith(".fbx")) {
-                hfmGeometry.reset(readFBX(_data, _mapping, _url.path()));
-                if (hfmGeometry->meshes.size() == 0 && hfmGeometry->joints.size() == 0) {
+                hfmModel.reset(readFBX(_data, _mapping, _url.path()));
+                if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported FBX version");
                 }
             } else if (_url.path().toLower().endsWith(".obj")) {
-                hfmGeometry = OBJReader().readOBJ(_data, _mapping, _combineParts, _url);
+                hfmModel = OBJReader().readOBJ(_data, _mapping, _combineParts, _url);
             } else if (_url.path().toLower().endsWith(".obj.gz")) {
                 QByteArray uncompressedData;
                 if (gunzip(_data, uncompressedData)){
-                    hfmGeometry = OBJReader().readOBJ(uncompressedData, _mapping, _combineParts, _url);
+                    hfmModel = OBJReader().readOBJ(uncompressedData, _mapping, _combineParts, _url);
                 } else {
                     throw QString("failed to decompress .obj.gz");
                 }
 
             } else if (_url.path().toLower().endsWith(".gltf")) {
                 std::shared_ptr<GLTFReader> glreader = std::make_shared<GLTFReader>();
-                hfmGeometry.reset(glreader->readGLTF(_data, _mapping, _url));
-                if (hfmGeometry->meshes.size() == 0 && hfmGeometry->joints.size() == 0) {
+                hfmModel.reset(glreader->readGLTF(_data, _mapping, _url));
+                if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported GLTF version");
                 }
             } else {
                 throw QString("unsupported format");
             }
 
-            // Add scripts to hfmGeometry
+            // Add scripts to hfmModel
             if (!_mapping.value(SCRIPT_FIELD).isNull()) {
                 QVariantList scripts = _mapping.values(SCRIPT_FIELD);
                 for (auto &script : scripts) {
-                    hfmGeometry->scripts.push_back(script.toString());
+                    hfmModel->scripts.push_back(script.toString());
                 }
             }
 
@@ -234,7 +234,7 @@ void GeometryReader::run() {
                 qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
             } else {
                 QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                    Q_ARG(HFMGeometry::Pointer, hfmGeometry));
+                    Q_ARG(HFMModel::Pointer, hfmModel));
             }
         } else {
             throw QString("url is invalid");
@@ -262,7 +262,7 @@ public:
     virtual void downloadFinished(const QByteArray& data) override;
 
 protected:
-    Q_INVOKABLE void setGeometryDefinition(HFMGeometry::Pointer hfmGeometry);
+    Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel);
 
 private:
     QVariantHash _mapping;
@@ -277,13 +277,13 @@ void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
     QThreadPool::globalInstance()->start(new GeometryReader(_self, _effectiveBaseURL, _mapping, data, _combineParts));
 }
 
-void GeometryDefinitionResource::setGeometryDefinition(HFMGeometry::Pointer hfmGeometry) {
-    // Assume ownership of the geometry pointer
-    _hfmGeometry = hfmGeometry;
+void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel) {
+    // Assume ownership of the HFMModel pointer
+    _hfmModel = hfmModel;
 
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;
-    for (const HFMMaterial& material : _hfmGeometry->materials) {
+    for (const HFMMaterial& material : _hfmModel->materials) {
         materialIDAtlas[material.materialID] = _materials.size();
         _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
     }
@@ -291,7 +291,7 @@ void GeometryDefinitionResource::setGeometryDefinition(HFMGeometry::Pointer hfmG
     std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
     std::shared_ptr<GeometryMeshParts> parts = std::make_shared<GeometryMeshParts>();
     int meshID = 0;
-    for (const HFMMesh& mesh : _hfmGeometry->meshes) {
+    for (const HFMMesh& mesh : _hfmModel->meshes) {
         // Copy mesh pointers
         meshes->emplace_back(mesh._mesh);
         int partID = 0;
@@ -371,7 +371,7 @@ const QVariantMap Geometry::getTextures() const {
 
 // FIXME: The materials should only be copied when modified, but the Model currently caches the original
 Geometry::Geometry(const Geometry& geometry) {
-    _hfmGeometry = geometry._hfmGeometry;
+    _hfmModel = geometry._hfmModel;
     _meshes = geometry._meshes;
     _meshParts = geometry._meshParts;
 
@@ -444,8 +444,8 @@ void GeometryResource::deleter() {
 }
 
 void GeometryResource::setTextures() {
-    if (_hfmGeometry) {
-        for (const HFMMaterial& material : _hfmGeometry->materials) {
+    if (_hfmModel) {
+        for (const HFMMaterial& material : _hfmModel->materials) {
             _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
         }
     }
