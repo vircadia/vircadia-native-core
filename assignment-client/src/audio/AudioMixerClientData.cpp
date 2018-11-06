@@ -305,14 +305,14 @@ void AudioMixerClientData::parseSoloRequest(QSharedPointer<ReceivedMessage> mess
     message->readPrimitive(&addToSolo);
 
     while (message->getBytesLeftToRead()) {
-        // parse out the UUID being solod from the packet
-        QUuid solodUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+        // parse out the UUID being soloed from the packet
+        QUuid soloedUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
         if (addToSolo) {
-            _solodNodes.push_back(solodUUID);
+            _soloedNodes.push_back(soloedUUID);
         } else {
-            auto it = std::find(std::begin(_solodNodes), std::end(_solodNodes), solodUUID);
-            _solodNodes.erase(it);
+            auto it = std::find(std::begin(_soloedNodes), std::end(_soloedNodes), soloedUUID);
+            _soloedNodes.erase(it);
         }
     }
 }

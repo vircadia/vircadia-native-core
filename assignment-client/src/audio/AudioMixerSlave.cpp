@@ -272,8 +272,8 @@ bool shouldBeSkipped(MixableStream& stream, const Node& listener,
         return true;
     }
 
-    if (!listenerData.getSolodNodes().empty()) {
-        return !contains(listenerData.getSolodNodes(), stream.nodeStreamID.nodeID);
+    if (!listenerData.getSoloedNodes().empty()) {
+        return !contains(listenerData.getSoloedNodes(), stream.nodeStreamID.nodeID);
     }
 
     bool shouldCheckIgnoreBox = (listenerAudioStream.isIgnoreBoxEnabled() ||
@@ -314,7 +314,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     memset(_mixSamples, 0, sizeof(_mixSamples));
 
     bool isThrottling = _numToRetain != -1;
-    bool isSoloing = !listenerData->getSolodNodes().empty();
+    bool isSoloing = !listenerData->getSoloedNodes().empty();
 
     auto& streams = listenerData->getStreams();
 

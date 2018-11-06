@@ -152,7 +152,7 @@ public:
     const Node::IgnoredNodeIDs& getIgnoringNodeIDs() const { return _ignoringNodeIDs; }
 
 
-    const std::vector<QUuid>& getSolodNodes() const { return _solodNodes; }
+    const std::vector<QUuid>& getSoloedNodes() const { return _soloedNodes; }
 
     bool getHasReceivedFirstMix() const { return _hasReceivedFirstMix; }
     void setHasReceivedFirstMix(bool hasReceivedFirstMix) { _hasReceivedFirstMix = hasReceivedFirstMix; }
@@ -213,7 +213,7 @@ private:
 
     std::atomic_bool _isIgnoreRadiusEnabled { false };
 
-    std::vector<QUuid> _solodNodes;
+    std::vector<QUuid> _soloedNodes;
 
     bool _hasReceivedFirstMix { false };
 };
