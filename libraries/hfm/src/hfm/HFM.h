@@ -66,7 +66,7 @@ public:
 };
 
 struct JointShapeInfo {
-    // same units and frame as HFMJoint.translation
+    // same units and frame as Joint.translation
     glm::vec3 avgPoint;
     std::vector<float> dots;
     std::vector<glm::vec3> points;
@@ -285,7 +285,7 @@ public:
     QString author;
     QString applicationName; ///< the name of the application that generated the model
 
-    QVector<HFMJoint> joints;
+    QVector<Joint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     bool hasSkeletonJoints;
 
