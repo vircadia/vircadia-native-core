@@ -61,7 +61,7 @@ private:
 };
 #endif
 
-const std::chrono::milliseconds INJECTOR_INTERVAL_MS = std::chrono::milliseconds(100);
+const int INJECTOR_INTERVAL_MS = 100;
 void TTSScriptingInterface::updateLastSoundAudioInjector() {
     if (_lastSoundAudioInjector) {
         AudioInjectorOptions options;
