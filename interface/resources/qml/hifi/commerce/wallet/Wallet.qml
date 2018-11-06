@@ -41,7 +41,7 @@ Rectangle {
     }
 
     Component.onDestruction: {
-        keyboard.raised = false;
+        KeyboardScriptingInterface.raised = false;
     }
 
     Connections {

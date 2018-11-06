@@ -44,6 +44,7 @@
 #include "raypick/PickScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
+#include "scripting/SelectionScriptingInterface.h"
 #include "DependencyManager.h"
 
 #include "raypick/StylusPointer.h"
@@ -53,12 +54,12 @@
 static const int LEFT_HAND_CONTROLLER_INDEX = 0;
 static const int RIGHT_HAND_CONTROLLER_INDEX = 1;
 
-static const float MALLET_LENGTH = 0.4f;
-static const float MALLET_TOUCH_Y_OFFSET = 0.105f;
-static const float MALLET_Y_OFFSET = 0.35f;
+static const float MALLET_LENGTH = 0.2f;
+static const float MALLET_TOUCH_Y_OFFSET = 0.052f;
+static const float MALLET_Y_OFFSET = 0.180f;
 
 static const glm::quat MALLET_ROTATION_OFFSET{0.70710678f, 0.0f, -0.70710678f, 0.0f};
-static const glm::vec3 MALLET_MODEL_DIMENSIONS{0.05f, MALLET_LENGTH, 0.05f};
+static const glm::vec3 MALLET_MODEL_DIMENSIONS{0.03f, MALLET_LENGTH, 0.03f};
 static const glm::vec3 MALLET_POSITION_OFFSET{0.0f, -MALLET_Y_OFFSET / 2.0f, 0.0f};
 static const glm::vec3 MALLET_TIP_OFFSET{0.0f, MALLET_LENGTH - MALLET_TOUCH_Y_OFFSET, 0.0f};
 
@@ -87,6 +88,28 @@ static const QString LAYER_STRING = "layer";
 static const QString BACKSPACE_STRING = "backspace";
 static const QString SPACE_STRING = "space";
 static const QString ENTER_STRING = "enter";
+
+static const QString KEY_HOVER_HIGHLIGHT = "keyHoverHiglight";
+static const QString KEY_PRESSED_HIGHLIGHT = "keyPressesHighlight";
+static const QVariantMap KEY_HOVERING_STYLE {
+    { "isOutlineSmooth", true },
+    { "outlineWidth", 3 },
+    { "outlineUnoccludedColor", QVariantMap {{"red", 13}, {"green", 152}, {"blue", 186}}},
+    { "outlineUnoccludedAlpha", 1.0 },
+    { "outlineOccludedAlpha", 0.0 },
+    { "fillUnoccludedAlpha", 0.0 },
+    { "fillOccludedAlpha", 0.0 }
+};
+
+static const QVariantMap KEY_PRESSING_STYLE {
+    { "isOutlineSmooth", true },
+    { "outlineWidth", 3 },
+    { "fillUnoccludedColor", QVariantMap {{"red", 50}, {"green", 50}, {"blue", 50}}},
+    { "outlineUnoccludedAlpha", 0.0 },
+    { "outlineOccludedAlpha", 0.0 },
+    { "fillUnoccludedAlpha", 0.6 },
+    { "fillOccludedAlpha", 0.0 }
+};
 
 std::pair<glm::vec3, glm::quat> calculateKeyboardPositionAndOrientation() {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
@@ -201,8 +224,18 @@ Keyboard::Keyboard() {
     connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, this, &Keyboard::handleTriggerBegin, Qt::QueuedConnection);
     connect(pointerManager.data(), &PointerManager::triggerContinueOverlay, this, &Keyboard::handleTriggerContinue, Qt::QueuedConnection);
     connect(pointerManager.data(), &PointerManager::triggerEndOverlay, this, &Keyboard::handleTriggerEnd, Qt::QueuedConnection);
+    connect(pointerManager.data(), &PointerManager::hoverBeginOverlay, this, &Keyboard::handleHoverBegin, Qt::QueuedConnection);
+    connect(pointerManager.data(), &PointerManager::hoverEndOverlay, this, &Keyboard::handleHoverEnd, Qt::QueuedConnection);
     connect(myAvatar.get(), &MyAvatar::sensorToWorldScaleChanged, this, &Keyboard::scaleKeyboard, Qt::QueuedConnection);
     connect(windowScriptingInterface.data(), &WindowScriptingInterface::domainChanged, [&]() { setRaised(false); });
+}
+
+void Keyboard::registerKeyboardHighlighting() {
+    auto selection = DependencyManager::get<SelectionScriptingInterface>();
+    selection->enableListHighlight(KEY_HOVER_HIGHLIGHT, KEY_HOVERING_STYLE);
+    selection->enableListToScene(KEY_HOVER_HIGHLIGHT);
+    selection->enableListHighlight(KEY_PRESSED_HIGHLIGHT, KEY_PRESSING_STYLE);
+    selection->enableListToScene(KEY_PRESSED_HIGHLIGHT);
 }
 
 
@@ -450,7 +483,7 @@ void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent
         AudioInjectorOptions audioOptions;
         audioOptions.localOnly = true;
         audioOptions.position = keyWorldPosition;
-        audioOptions.volume = 0.4f;
+        audioOptions.volume = 0.1f;
 
         AudioInjector::playSound(_keySound->getByteArray(), audioOptions);
 
@@ -504,6 +537,8 @@ void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent
         QCoreApplication::postEvent(QCoreApplication::instance(), releaseEvent);
 
         key.startTimer(KEY_PRESS_TIMEOUT_MS);
+        auto selection = DependencyManager::get<SelectionScriptingInterface>();
+        selection->addToSelectedItemsList(KEY_PRESSED_HIGHLIGHT, "overlay", overlayID);
     }
 }
 
@@ -536,6 +571,9 @@ void Keyboard::handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& 
     if (key.timerFinished()) {
         key.startTimer(KEY_PRESS_TIMEOUT_MS);
     }
+
+    auto selection = DependencyManager::get<SelectionScriptingInterface>();
+    selection->removeFromSelectedItemsList(KEY_PRESSED_HIGHLIGHT, "overlay", overlayID);
 }
 
 void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEvent& event) {
@@ -565,9 +603,8 @@ void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEv
         if (base3DOverlay) {
             auto pointerManager = DependencyManager::get<PointerManager>();
             auto pickResult = pointerManager->getPrevPickResult(pointerID);
-            auto pickResultVariant = pickResult->toVariantMap();
-
-            float distance = pickResultVariant["distance"].toFloat();
+            auto stylusPickResult = std::dynamic_pointer_cast<StylusPickResult>(pickResult);
+            float distance = stylusPickResult->distance;
 
             static const float PENATRATION_THRESHOLD = 0.025f;
             if (distance < PENATRATION_THRESHOLD) {
@@ -581,6 +618,50 @@ void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEv
             }
         }
     }
+}
+
+void Keyboard::handleHoverBegin(const OverlayID& overlayID, const PointerEvent& event) {
+    if (_keyboardLayers.empty() || !isLayerSwitchTimerFinished()) {
+        return;
+    }
+
+    auto pointerID = event.getID();
+
+    if (pointerID != _leftHandStylus && pointerID != _rightHandStylus) {
+        return;
+    }
+
+    auto& keyboardLayer = _keyboardLayers[_layerIndex];
+    auto search = keyboardLayer.find(overlayID);
+
+    if (search == keyboardLayer.end()) {
+        return;
+    }
+
+    auto selection = DependencyManager::get<SelectionScriptingInterface>();
+    selection->addToSelectedItemsList(KEY_HOVER_HIGHLIGHT, "overlay", overlayID);
+}
+
+void Keyboard::handleHoverEnd(const OverlayID& overlayID, const PointerEvent& event) {
+      if (_keyboardLayers.empty() || !isLayerSwitchTimerFinished()) {
+        return;
+    }
+
+    auto pointerID = event.getID();
+
+    if (pointerID != _leftHandStylus && pointerID != _rightHandStylus) {
+        return;
+    }
+
+    auto& keyboardLayer = _keyboardLayers[_layerIndex];
+    auto search = keyboardLayer.find(overlayID);
+
+    if (search == keyboardLayer.end()) {
+        return;
+    }
+
+    auto selection = DependencyManager::get<SelectionScriptingInterface>();
+    selection->removeFromSelectedItemsList(KEY_HOVER_HIGHLIGHT, "overlay", overlayID);
 }
 
 void Keyboard::disableStylus() {

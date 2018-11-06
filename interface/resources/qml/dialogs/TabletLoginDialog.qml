@@ -95,6 +95,18 @@ TabletModalWindow {
         }
     }
 
+    Timer {
+        id: keyboardTimer
+        repeat: false
+        interval: 200
+
+        onTriggered: {
+            if (MenuInterface.isOptionChecked("Use 3D Keyboard")) {
+                KeyboardScriptingInterface.raised = true;
+            }
+        }
+    }
+
     TabletModalFrame {
         id: mfRoot
 
@@ -129,6 +141,10 @@ TabletModalWindow {
 
     Component.onDestruction: {
         loginKeyboard.raised = false;
+    }
+
+    Component.onCompleted: {
+        keyboardTimer.start();
     }
 
     Keyboard {

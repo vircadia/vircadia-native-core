@@ -90,6 +90,7 @@ class Keyboard : public Dependency, public QObject, public ReadWriteLockable {
 public:
     Keyboard();
     void createKeyboard();
+    void registerKeyboardHighlighting();
     bool isRaised() const;
     void setRaised(bool raised);
 
@@ -103,6 +104,8 @@ public slots:
     void handleTriggerBegin(const OverlayID& overlayID, const PointerEvent& event);
     void handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& event);
     void handleTriggerContinue(const OverlayID& overlayID, const PointerEvent& event);
+    void handleHoverBegin(const OverlayID& overlayID, const PointerEvent& event);
+    void handleHoverEnd(const OverlayID& overlayID, const PointerEvent& event);
     void scaleKeyboard(float sensorToWorldScale);
 
 private:
