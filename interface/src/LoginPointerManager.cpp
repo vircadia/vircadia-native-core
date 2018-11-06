@@ -44,12 +44,14 @@ static const QVariantMap COLORS_GRAB_DISTANCE_HOLD = {{"red", 238},
 
 
 LoginPointerManager::~LoginPointerManager() {
-    auto pointers = DependencyManager::get<PointerManager>();
+    auto pointers = DependencyManager::get<PointerManager>().data();
     if (pointers) {
         if (leftLoginPointerID() != PointerEvent::INVALID_POINTER_ID) {
+            pointers->disablePointer(leftLoginPointerID());
             pointers->removePointer(leftLoginPointerID());
         }
         if (rightLoginPointerID() != PointerEvent::INVALID_POINTER_ID) {
+            pointers->disablePointer(rightLoginPointerID());
             pointers->removePointer(rightLoginPointerID());
         }
     }
@@ -153,12 +155,10 @@ void LoginPointerManager::init() {
 
     QList<QVariant> leftPointerTriggerProperties;
     QVariantMap ltClick1 {
-        //{ "action", controller::StandardButtonChannel::LT_CLICK },
         { "action", controller->getStandard()["LTClick"] },
         { "button", "Focus" }
     };
     QVariantMap ltClick2 {
-        //{ "action", controller::StandardButtonChannel::LT_CLICK },
         { "action", controller->getStandard()["LTClick"] },
         { "button", "Primary" }
     };
@@ -168,7 +168,6 @@ void LoginPointerManager::init() {
     const unsigned int leftHand = 0;
     QVariantMap leftPointerProperties {
         { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
-        // { "filter", PickFilter::PICK_OVERLAYS },
         { "filter", PickScriptingInterface::PICK_OVERLAYS() },
         { "triggers", leftPointerTriggerProperties },
         { "posOffset", vec3toVariant(grabPointSphereOffsetLeft) },
@@ -186,12 +185,10 @@ void LoginPointerManager::init() {
     QList<QVariant> rightPointerTriggerProperties;
 
     QVariantMap rtClick1 {
-        //{ "action", controller::StandardButtonChannel::RT_CLICK },
         { "action", controller->getStandard()["RTClick"] },
         { "button", "Focus" }
     };
     QVariantMap rtClick2 {
-        //{ "action", controller::StandardButtonChannel::RT_CLICK },
         { "action", controller->getStandard()["RTClick"] },
         { "button", "Primary" }
     };
@@ -199,7 +196,6 @@ void LoginPointerManager::init() {
     rightPointerTriggerProperties.append(rtClick2);
     QVariantMap rightPointerProperties{
         { "joint", "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" },
-        // { "filter", PickFilter::PICK_OVERLAYS },
         { "filter", PickScriptingInterface::PICK_OVERLAYS() },
         { "triggers", rightPointerTriggerProperties },
         { "posOffset", vec3toVariant(grabPointSphereOffsetRight) },
@@ -220,16 +216,8 @@ void LoginPointerManager::init() {
 void LoginPointerManager::update() {
     auto pointers = DependencyManager::get<PointerScriptingInterface>();
     if (pointers) {
-        QString mode = "";
-        // if (this.visible) {
-            // if (this.locked) {
-                // mode = "hold";
-            // if (triggerClicks[this.hand]) {
-        mode = "full";
-            // } else if (triggerValues[this.hand] > TRIGGER_ON_VALUE || this.allwaysOn) {
-                // mode = "half";
-            // }
-        // }
+        QString mode = "full";
+
         if (leftLoginPointerID() > PointerEvent::INVALID_POINTER_ID) {
             pointers->setRenderState(leftLoginPointerID(), mode);
         }
