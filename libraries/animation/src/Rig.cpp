@@ -148,7 +148,7 @@ void Rig::restoreAnimation() {
 
 void Rig::overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
 
-    NetworkAnimState::ClipNodeEnum clipNodeEnum;
+    NetworkAnimState::ClipNodeEnum clipNodeEnum = NetworkAnimState::None;
     if (_networkAnimState.clipNodeEnum == NetworkAnimState::None || _networkAnimState.clipNodeEnum == NetworkAnimState::B) {
         clipNodeEnum = NetworkAnimState::A;
     } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::A) {
@@ -1181,9 +1181,11 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         AnimVariantMap networkTriggersOut;
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         if (_networkNode) {
+            // Manually blending networkPoseSet with internalPoseSet.
             float alpha = 1.0f;
-            std::shared_ptr<AnimClip> clip;
-            const float TOTAL_BLEND_TIME = 0.2f;
+            const float FRAMES_PER_SECOND = 30.0f;
+            const float TOTAL_BLEND_FRAMES = 6.0f;
+            const float TOTAL_BLEND_TIME = TOTAL_BLEND_FRAMES / FRAMES_PER_SECOND;
             _sendNetworkNode = _computeNetworkAnimation || _networkAnimState.blendTime < TOTAL_BLEND_TIME;
             if (_sendNetworkNode) {
                 _networkPoseSet._relativePoses = _networkNode->evaluate(_networkVars, context, deltaTime, networkTriggersOut);
