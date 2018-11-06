@@ -407,6 +407,47 @@ public:
     Q_INVOKABLE void restoreAnimation();
 
     /**jsdoc
+    * Similarly to {@link MyAvatar.overrideAnimation}, this function will override the default avatar animations,
+    * but only affecting the data the gets sent to other clients over the network. In the client, the avatar will move according
+    * to the default animations but other clients will render your avatar movements according to the new animation.
+    * To continue sending the default animations, use {@link MyAvatar.restoreNetworkAnimation}.<br />
+    * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target
+    * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different,
+    * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see
+    * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.</p>
+    * @function MyAvatar.overrideNetworkAnimation
+    * @param url {string} The URL to the animation file. Animation files need to be .FBX format, but only need to contain the
+    * avatar skeleton and animation data.
+    * @param fps {number} The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
+    * @param loop {boolean} Set to true if the animation should loop.
+    * @param firstFrame {number} The frame the animation should start at.
+    * @param lastFrame {number} The frame the animation should end at.
+    * @example <caption> Make your avatar clap only on other clients for three seconds. </caption>
+    * // Clap your hands for 3 seconds then restore animation back to the avatar.
+    * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+    * MyAvatar.overrideNetworkAnimation(ANIM_URL, 30, true, 0, 53);
+    * Script.setTimeout(function () {
+    *     MyAvatar.restoreNetworkAnimation();
+    * }, 3000);
+    */
+    Q_INVOKABLE void overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+
+    /**jsdoc
+    * Similarly to {@link MyAvatar.restoreAnimation} restoreNetworkAnimation() will restore any network animation 
+    * that was previously overriten using the function {@link MyAvatar.overrideNetworkAnimation}
+    * If you aren't currently playing an override network animation, this function will have no effect.
+    * @function MyAvatar.restoreNetworkAnimation
+    * @example <caption> Make your avatar clap only on other clients for three seconds. </caption>
+    * // Clap your hands for 3 seconds then restore animation back to the avatar.
+    * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+    * MyAvatar.overrideNetworkAnimation(ANIM_URL, 30, true, 0, 53);
+    * Script.setTimeout(function () {
+    *     MyAvatar.restoreNetworkAnimation();
+    * }, 3000);
+    */
+    Q_INVOKABLE void restoreNetworkAnimation();
+
+    /**jsdoc
      * Each avatar has an avatar-animation.json file that defines which animations are used and how they are blended together with procedural data
      * (such as look at vectors, hand sensors etc.). Each animation specified in the avatar-animation.json file is known as an animation role.
      * Animation roles map to easily understandable actions that the avatar can perform, such as "idleStand", "idleTalk", or "walkFwd."

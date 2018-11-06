@@ -127,16 +127,16 @@ void AvatarManager::setSpace(workload::SpacePointer& space ) {
 void AvatarManager::handleTransitAnimations(AvatarTransit::Status status) {
     switch (status) {
         case AvatarTransit::Status::STARTED:
-            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("preTransitAnim");
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("preTransitAnim");
             break;
         case AvatarTransit::Status::START_TRANSIT:
-            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("transitAnim");
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("transitAnim");
             break;
         case AvatarTransit::Status::END_TRANSIT:
-            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("postTransitAnim");
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("postTransitAnim");
             break;
         case AvatarTransit::Status::ENDED:
-            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("idleAnim");
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("idleAnim");
             break;
         case AvatarTransit::Status::PRE_TRANSIT:
             break;
