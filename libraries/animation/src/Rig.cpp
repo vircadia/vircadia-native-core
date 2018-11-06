@@ -1191,8 +1191,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
                 _networkPoseSet._relativePoses = _networkNode->evaluate(_networkVars, context, deltaTime, networkTriggersOut);
                 _networkAnimState.blendTime += deltaTime;
                 alpha = _computeNetworkAnimation ? (_networkAnimState.blendTime / TOTAL_BLEND_TIME) : (1.0f - (_networkAnimState.blendTime / TOTAL_BLEND_TIME));
-                alpha = alpha > 1.0f ? 1.0f : alpha;
-                alpha = alpha < 0.0f ? 0.0f : alpha;
+                alpha = glm::clamp(alpha, 0.0f, 1.0f);
                 for (size_t i = 0; i < _networkPoseSet._relativePoses.size(); i++) {
                     _networkPoseSet._relativePoses[i].blend(_internalPoseSet._relativePoses[i], alpha);
                 }
