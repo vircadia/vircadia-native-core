@@ -17,7 +17,7 @@
 #include <QFileInfo>
 #include <QVariantHash>
 
-#include <HFM.h>
+#include <hfm/HFM.h>
 
 #include "ui/ModelsBrowser.h"
 

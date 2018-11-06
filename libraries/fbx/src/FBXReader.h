@@ -27,7 +27,7 @@
 #include <Transform.h>
 
 #include "FBX.h"
-#include <HFM.h>
+#include <hfm/HFM.h>
 
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
