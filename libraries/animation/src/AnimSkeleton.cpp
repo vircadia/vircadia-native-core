@@ -252,30 +252,11 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, 
             //QString parentIndex = getJointName(parentIndex);
             AnimPose localOffset(jointOffsets[i], glm::vec3());
             relDefaultPose = relDefaultPose * localOffset;
-            if ((parentIndex >= 0) && jointOffsets.contains(parentIndex)) {
-               // AnimPose localParentOffset(jointOffsets[parentIndex], glm::vec3());
-               // relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
-            }
         }
-        if ((parentIndex == 13) && jointOffsets.contains(13)) {
-            if (i == 62) {
-                qCDebug(animation) << "the neck translation is " << relDefaultPose.trans();
-            }
+        if ((parentIndex >= 0) && jointOffsets.contains(parentIndex)) {
             AnimPose localParentOffset(jointOffsets[parentIndex], glm::vec3());
             relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
-            if (i == 62) {
-                qCDebug(animation) << "the neck translation redo is " << relDefaultPose.trans();
-            }
         }
-        if ((parentIndex == 62) && jointOffsets.contains(62)) {
-            
-            //AnimPose localOffset(glm::quat(0.7071f, 0.0f, 0.7071f, 0.0f), glm::vec3());
-            //relDefaultPose = relDefaultPose * localOffset;
-            AnimPose localParentOffset(glm::quat(0.7071f, 0.0f, -0.7071f, 0.0f), glm::vec3());
-            relDefaultPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(relDefaultPose.rot(), glm::vec3());
-            qCDebug(animation) << "the head translation is " << relDefaultPose.trans();
-        }
-        
 
         _relativeDefaultPoses.push_back(relDefaultPose);
 

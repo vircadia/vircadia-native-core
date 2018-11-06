@@ -2077,7 +2077,8 @@ void Rig::setJointRotationOffsets(const QMap<QString, glm::quat>& offsets) {
     int neckId = 62;
     int spine2Id = 13;
     if (true){ //neckIndex != -1) {
-        _jointRotationOffsets.insert(neckId, glm::quat(0.7071f, 0.0f, -0.7071f, 0.0f));
+        _jointRotationOffsets.insert(neckId, glm::quat(0.0f, 0.7071f, 0.7071f, 0.0f) * glm::quat(0.5f, 0.5f, 0.5f, -0.5f) );  //glm::quat(0.7071f, 0.0f, -0.7071f, 0.0f)
+        qCDebug(animation) << "multiplied quats are " << glm::quat(0.0f, 0.7071f, 0.7071f, 0.0f) * glm::quat(0.5f, 0.5f, 0.5f, -0.5f);
     }
     if (true){ //spine2Index != -1) {
         _jointRotationOffsets.insert(spine2Id, glm::quat(0.5f, 0.5f, 0.5f, -0.5f));
