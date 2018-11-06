@@ -4803,13 +4803,7 @@ void Application::idle() {
             _idleLoopStdev.reset();
         }
     }
-
-    // This is done here so it won't be during a resize/move event
-    if (_setGeometryRequested) {
-        _setGeometryRequested = false;
-        _window->setGeometry(requestedGeometry);
-    }
-
+    
     _overlayConductor.update(secondsSinceLastUpdate);
 
     _gameLoopCounter.increment();
@@ -8582,12 +8576,6 @@ void Application::copyToClipboard(const QString& text) {
 
     // assume that the address is being copied because the user wants a shareable address
     QApplication::clipboard()->setText(text);
-}
-
-void Application::setGeometry(int x, int y, int width, int height) {
-    // Note that calling setGeometry inside resizeEvent() or moveEvent() can cause infinite recursion
-    requestedGeometry = QRect(x, y, width, height);
-    _setGeometryRequested = true;
 }
 
 #if defined(Q_OS_ANDROID)
