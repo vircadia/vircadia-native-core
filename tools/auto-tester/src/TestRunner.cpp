@@ -129,11 +129,11 @@ void TestRunner::setWorkingFolder() {
     script.close();
     script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
 
-    // The Mac shell command returns immediately.  This little script waits for a process to complete
-    script.setFileName(_workingFolder + "/waitForCompletion.sh");
+    // This script waits for a process to start
+    script.setFileName(_workingFolder + "/waitForStart.sh");
     if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not open 'install_app.sh'");
+                              "Could not open 'waitForStart.sh'");
         exit(-1);
     }
     
@@ -145,7 +145,55 @@ void TestRunner::setWorkingFolder() {
     script.write("done\n");
     script.close();
     script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
-    #endif
+
+    // The Mac shell command returns immediately.  This little script waits for a process to complete
+    script.setFileName(_workingFolder + "/waitForCompletion.sh");
+    if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open 'waitForCompletion.sh'");
+        exit(-1);
+    }
+    
+    script.write("#!/bin/sh\n\n");
+    script.write("PROCESS=\"$1\"\n");
+    script.write("while (pgrep $PROCESS)\n");
+    script.write("do\n");
+    script.write("\tsleep 2\n");
+    script.write("done\n");
+    script.close();
+    script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+    
+    // Create an AppleScript to resize Interface.  This is needed so that snapshots taken
+    // with the primary camera will be the correct size.
+    // This will be run from a normal shell script
+    script.setFileName(_workingFolder + "/setInterfaceSizeAndPosition.scpt");
+    if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open 'setInterfaceSizeAndPosition.scpt'");
+        exit(-1);
+    }
+    
+    script.write("set width to 960\n");
+    script.write("set height to 540\n");
+    script.write("set x to 100\n");
+    script.write("set y to 100\n\n");
+    script.write("tell application \"System Events\" to tell application process \"interface\" to tell window 1 to set {size, position} to {{width, height}, {x, y}})\n");
+
+    script.close();
+    script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+
+    script.setFileName(_workingFolder + "/setInterfaceSizeAndPosition.sh");
+    if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open 'setInterfaceSizeAndPosition.sh'");
+        exit(-1);
+    }
+    
+    script.write("#!/bin/sh\n\n");
+    script.write((_workingFolder + "/osascript " + _workingFolder + "/setInterfaceSizeAndPosition.scpt\n").toStdString().c_str());
+    script.close();
+    script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+#endif
 }
 
 void TestRunner::run() {
@@ -419,11 +467,17 @@ void TestRunner::runInterfaceWithTestScript() {
     commandLine = exeFile + " --url " + url + " --no-updater" + " --testScript " + testScript +
                           " quitWhenFinished --testResultsLocation " + _snapshotFolder;
 #elif defined Q_OS_MAC
+    // On The Mac, we need to resize Interface.  The Interface window opens a few seconds after the process has started,
+    // so we wait another 10 seconds
+    // The shell closes if we don't wait for completion, hence the final line
     commandLine = "open \"" +_installationFolder + "/interface.app\" --args" +
         " --url " + url +
         " --no-updater" +
         " --testScript " + testScript + " quitWhenFinished" +
         " --testResultsLocation " + _snapshotFolder +
+        "; " + _workingFolder +"/waitForStart.sh interface" +
+        "; " + "sleep 10" +
+        "; " + _workingFolder +"/setInterfaceSizeAndPosition.sh" +
         "; " + _workingFolder +"/waitForCompletion.sh interface";
 #endif
     
