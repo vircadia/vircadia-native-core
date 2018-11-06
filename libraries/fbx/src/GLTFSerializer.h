@@ -15,6 +15,7 @@
 #include <memory.h>
 #include <QtNetwork/QNetworkReply>
 #include <hfm/ModelFormatLogging.h>
+#include <hfm/HFMSerializer.h>
 #include "FBXSerializer.h"
 
 
@@ -702,12 +703,12 @@ struct GLTFFile {
     }
 };
 
-class GLTFSerializer : public QObject {
+class GLTFSerializer : public QObject, public HFMSerializer {
     Q_OBJECT
 public:
     GLTFSerializer();
-    HFMModel* readGLTF(QByteArray& data, const QVariantHash& mapping, 
-                          const QUrl& url, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+    HFMModel* read(const QByteArray& data, const QVariantHash& mapping,
+                          const QUrl& url = QUrl(), bool combineParts = false) override;
 private:
     GLTFFile _file;
     QUrl _url;

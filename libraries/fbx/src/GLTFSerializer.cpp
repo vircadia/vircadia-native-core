@@ -910,8 +910,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     return true;
 }
 
-HFMModel* GLTFSerializer::readGLTF(QByteArray& data, const QVariantHash& mapping,
-                                  const QUrl& url, bool loadLightmaps, float lightmapLevel) {
+HFMModel* GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping,
+                                  const QUrl& url, bool combineParts) {
     
     _url = url;
 

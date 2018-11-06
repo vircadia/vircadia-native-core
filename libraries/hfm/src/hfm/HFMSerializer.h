@@ -26,4 +26,6 @@ class Serializer {
 
 };
 
+using HFMSerializer = hfm::Serializer;
+
 #endif // hifi_HFMSerializer_h

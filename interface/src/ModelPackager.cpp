@@ -109,7 +109,7 @@ bool ModelPackager::loadModel() {
         qCDebug(interfaceapp) << "Reading FBX file : " << _fbxInfo.filePath();
         QByteArray fbxContents = fbx.readAll();
 
-        _hfmModel.reset(readFBX(fbxContents, QVariantHash(), _fbxInfo.filePath()));
+        _hfmModel.reset(FBXSerializer().read(fbxContents, QVariantHash(), _fbxInfo.filePath()));
 
         // make sure we have some basic mappings
         populateBasicMapping(_mapping, _fbxInfo.filePath(), *_hfmModel);

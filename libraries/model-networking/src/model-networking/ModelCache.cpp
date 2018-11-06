@@ -196,23 +196,22 @@ void GeometryReader::run() {
             HFMModel::Pointer hfmModel;
 
             if (_url.path().toLower().endsWith(".fbx")) {
-                hfmModel.reset(readFBX(_data, _mapping, _url.path()));
+                hfmModel.reset(FBXSerializer().read(_data, _mapping, _url.path()));
                 if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported FBX version");
                 }
             } else if (_url.path().toLower().endsWith(".obj")) {
-                hfmModel = OBJSerializer().readOBJ(_data, _mapping, _combineParts, _url);
+                hfmModel.reset(OBJSerializer().read(_data, _mapping, _url, _combineParts));
             } else if (_url.path().toLower().endsWith(".obj.gz")) {
                 QByteArray uncompressedData;
                 if (gunzip(_data, uncompressedData)){
-                    hfmModel = OBJSerializer().readOBJ(uncompressedData, _mapping, _combineParts, _url);
+                    hfmModel.reset(OBJSerializer().read(uncompressedData, _mapping, _url, _combineParts));
                 } else {
                     throw QString("failed to decompress .obj.gz");
                 }
 
             } else if (_url.path().toLower().endsWith(".gltf")) {
-                std::shared_ptr<GLTFSerializer> glreader = std::make_shared<GLTFSerializer>();
-                hfmModel.reset(glreader->readGLTF(_data, _mapping, _url));
+                hfmModel.reset(GLTFSerializer().read(_data, _mapping, _url));
                 if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported GLTF version");
                 }

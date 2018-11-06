@@ -27,17 +27,13 @@
 #include <Transform.h>
 
 #include "FBX.h"
-#include <hfm/HFM.h>
+#include <hfm/HFMSerializer.h>
 
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
 
 class QIODevice;
 class FBXNode;
-
-/// Reads HFMModel from the supplied model and mapping data.
-/// \exception QString if an error occurs in parsing
-HFMModel* readFBX(const QByteArray& data, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads HFMModel from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
@@ -102,9 +98,13 @@ public:
 
 class ExtractedMesh;
 
-class FBXSerializer {
+class FBXSerializer : public HFMSerializer {
 public:
     HFMModel* _hfmModel;
+    /// Reads HFMModel from the supplied model and mapping data.
+    /// \exception QString if an error occurs in parsing
+    HFMModel* read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl(), bool combineParts = false) override;
+    HFMModel* read(QIODevice* device, const QVariantHash& mapping, const QUrl& url = QUrl(), bool combineParts = false);
 
     FBXNode _rootNode;
     static FBXNode parseFBX(QIODevice* device);
@@ -147,9 +147,9 @@ public:
 
     void consolidateHFMMaterials(const QVariantHash& mapping);
 
-    bool _loadLightmaps = true;
-    float _lightmapOffset = 0.0f;
-    float _lightmapLevel;
+    bool _loadLightmaps { true };
+    float _lightmapOffset { 0.0f };
+    float _lightmapLevel { 1.0f };
 
     QMultiMap<QString, QString> _connectionParentMap;
     QMultiMap<QString, QString> _connectionChildMap;

@@ -1796,19 +1796,20 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     return hfmModelPtr;
 }
 
-HFMModel* readFBX(const QByteArray& data, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+HFMModel* FBXSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url, bool combineParts) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);
-    return readFBX(&buffer, mapping, url, loadLightmaps, lightmapLevel);
+    return read(&buffer, mapping, url, combineParts);
 }
 
-HFMModel* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
-    FBXSerializer serializer;
-    serializer._rootNode = FBXSerializer::parseFBX(device);
-    serializer._loadLightmaps = loadLightmaps;
-    serializer._lightmapLevel = lightmapLevel;
+HFMModel* FBXSerializer::read(QIODevice* device, const QVariantHash& mapping, const QUrl& url, bool combineParts) {
+    _rootNode = parseFBX(device);
 
     qCDebug(modelformat) << "Reading FBX: " << url;
 
-    return serializer.extractHFMModel(mapping, url);
+    return extractHFMModel(mapping, url.toString());
+}
+
+HFMModel* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+    return FBXSerializer().extractHFMModel(mapping, url);
 }

@@ -652,12 +652,12 @@ done:
 }
 
 
-HFMModel::Pointer OBJSerializer::readOBJ(QByteArray& data, const QVariantHash& mapping, bool combineParts, const QUrl& url) {
+HFMModel* OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url, bool combineParts) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
-    QBuffer buffer { &data };
+    QBuffer buffer { const_cast<QByteArray*>(&data) };
     buffer.open(QIODevice::ReadOnly);
 
-    auto hfmModelPtr { std::make_shared<HFMModel>() };
+    auto hfmModelPtr = new HFMModel();
     HFMModel& hfmModel { *hfmModelPtr };
     OBJTokenizer tokenizer { &buffer };
     float scaleGuess = 1.0f;

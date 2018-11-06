@@ -1,5 +1,6 @@
 
 #include <QtNetwork/QNetworkReply>
+#include <hfm/HFMSerializer.h>
 #include "FBXSerializer.h"
 
 class OBJTokenizer {
@@ -75,7 +76,7 @@ public:
     OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.0f), illuminationModel(-1) {}
 };
 
-class OBJSerializer: public QObject { // QObject so we can make network requests.
+class OBJSerializer: public QObject, public HFMSerializer { // QObject so we can make network requests.
     Q_OBJECT
 public:
     typedef QVector<OBJFace> FaceGroup;
@@ -86,8 +87,8 @@ public:
     QVector<FaceGroup> faceGroups;
     QString currentMaterialName;
     QHash<QString, OBJMaterial> materials;
-
-    HFMModel::Pointer readOBJ(QByteArray& data, const QVariantHash& mapping, bool combineParts, const QUrl& url = QUrl());
+    
+    HFMModel* read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl(), bool combineParts = false) override;
 
 private:
     QUrl _url;

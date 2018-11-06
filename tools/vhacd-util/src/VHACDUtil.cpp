@@ -44,9 +44,9 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, HFMModel& result) {
         HFMModel::Pointer hfmModel;
         if (filename.toLower().endsWith(".obj")) {
             bool combineParts = false;
-            hfmModel = OBJSerializer().readOBJ(fbxContents, QVariantHash(), combineParts);
+            hfmModel.reset(OBJSerializer().read(fbxContents, QVariantHash(), filename, combineParts));
         } else if (filename.toLower().endsWith(".fbx")) {
-            hfmModel.reset(readFBX(fbxContents, QVariantHash(), filename));
+            hfmModel.reset(FBXSerializer().read(fbxContents, QVariantHash(), filename));
         } else {
             qWarning() << "file has unknown extension" << filename;
             return false;

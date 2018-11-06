@@ -187,10 +187,10 @@ void FBXBaker::importScene() {
         return;
     }
 
-    FBXSerializer serializer;
+    FBXSerializer fbxSerializer;
 
     qCDebug(model_baking) << "Parsing" << _modelURL;
-    _rootNode = serializer._rootNode = serializer.parseFBX(&fbxFile);
+    _rootNode = fbxSerializer._rootNode = fbxSerializer.parseFBX(&fbxFile);
 
 #ifdef HIFI_DUMP_FBX
     {
@@ -206,8 +206,8 @@ void FBXBaker::importScene() {
     }
 #endif
 
-    _hfmModel = serializer.extractHFMModel({}, _modelURL.toString());
-    _textureContentMap = serializer._textureContent;
+    _hfmModel = fbxSerializer.extractHFMModel({}, _modelURL.toString());
+    _textureContentMap = fbxSerializer._textureContent;
 }
 
 void FBXBaker::rewriteAndBakeSceneModels() {
