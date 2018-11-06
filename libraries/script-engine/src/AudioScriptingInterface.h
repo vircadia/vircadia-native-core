@@ -32,24 +32,42 @@ public:
     virtual ~AudioScriptingInterface() = default;
     void setLocalAudioInterface(AbstractAudioInterface* audioInterface);
 
-protected:
-    AudioScriptingInterface() = default;
-
     bool isSoloing() const {
         return _localAudioInterface->getAudioSolo().isSoloing();
     }
+
     QVector<QUuid> getSoloList() const {
         return _localAudioInterface->getAudioSolo().getUUIDs();
     }
+
+    /**jsdoc
+     * Add nodes to the audio solo list
+     * @function Audio.addToSoloList
+     * @param {QVector<QUuid>} uuidList - List of node UUIDs to add to the solo list.
+     */
     Q_INVOKABLE void addToSoloList(QVector<QUuid> uuidList) {
         _localAudioInterface->getAudioSolo().addUUIDs(uuidList);
     }
+
+    /**jsdoc
+     * Remove nodes from the audio solo list
+     * @function Audio.removeFromSoloList
+     * @param {QVector<QUuid>} uuidList - List of node UUIDs to remove from the solo list.
+     */
     Q_INVOKABLE void removeFromSoloList(QVector<QUuid> uuidList) {
         _localAudioInterface->getAudioSolo().removeUUIDs(uuidList);
     }
+
+    /**jsdoc
+     * Reset the list of soloed nodes.
+     * @function Audio.resetSoloList
+     */
     Q_INVOKABLE void resetSoloList() {
         _localAudioInterface->getAudioSolo().reset();
     }
+
+protected:
+    AudioScriptingInterface() = default;
 
     // these methods are protected to stop C++ callers from calling, but invokable from script
 
