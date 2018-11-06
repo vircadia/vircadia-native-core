@@ -179,7 +179,6 @@ public slots:
     void setRedirectErrorState(QUrl errorUrl, QString reasonMessage = "", int reason = -1, const QString& extraInfo = "");
 
     bool isInErrorState() { return _isInErrorState; }
-    bool isInLoginScreenState() { return _isInLoginScreenState; }
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
@@ -228,7 +227,6 @@ private:
     NetworkPeer _icePeer;
     bool _isConnected { false };
     bool _isInErrorState { false };
-    bool _isInLoginScreenState { false };
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;

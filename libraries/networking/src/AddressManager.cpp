@@ -162,10 +162,6 @@ void AddressManager::storeCurrentAddress() {
         // url.scheme() == URL_SCHEME_HTTP ||
         // url.scheme() == URL_SCHEME_HTTPS ||
         bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
-        bool isInLoginScreenState = DependencyManager::get<NodeList>()->getDomainHandler().isInLoginScreenState();
-        if (isInLoginScreenState) {
-            qCWarning(networking) << "Ignoring attempt to save current address because in login screen domain:" << url;
-        }
         if (isConnected()) {
             if (isInErrorState) {
                 // save the last address visited before the problem url.
@@ -829,9 +825,8 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     // Check if domain handler is in error state. always emit host changed if true.
     bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
     // Check if domain handler is in login screen state. always emit host changed if true.
-    bool isInLoginScreenState = DependencyManager::get<NodeList>()->getDomainHandler().isInLoginScreenState();
 
-    if (domainURL != _domainURL || isInErrorState || isInLoginScreenState) {
+    if (domainURL != _domainURL || isInErrorState) {
         addCurrentAddressToHistory(trigger);
         emitHostChanged = true;
     }

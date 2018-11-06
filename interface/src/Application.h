@@ -56,6 +56,7 @@
 #include "ConnectionMonitor.h"
 #include "CursorManager.h"
 #include "gpu/Context.h"
+#include "LoginPointerManager.h"
 #include "Menu.h"
 #include "octree/OctreePacketProcessor.h"
 #include "render/Engine.h"
@@ -688,8 +689,7 @@ private:
 
     bool _loginDialogPoppedUp = false;
     OverlayID _loginDialogOverlayID;
-    unsigned int _leftLoginPointerID { PointerEvent::INVALID_POINTER_ID };
-    unsigned int _rightLoginPointerID { PointerEvent::INVALID_POINTER_ID };
+    LoginPointerManager _loginPointerManager;
 
     quint64 _lastFaceTrackerUpdate;
 

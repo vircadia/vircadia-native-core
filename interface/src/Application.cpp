@@ -5889,6 +5889,9 @@ void Application::update(float deltaTime) {
         if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
             keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData);
         }
+        if (!_loginDialogOverlayID.isNull()) {
+            _loginPointerManager.update();
+        }
 
         // Transfer the user inputs to the driveKeys
         // FIXME can we drop drive keys and just have the avatar read the action states directly?
@@ -8517,13 +8520,7 @@ void Application::checkReadyToCreateLoginDialogOverlay() {
     if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible() && qApp->getLoginDialogPoppedUp() && _loginDialogOverlayID.isNull()) {
         createLoginDialogOverlay();
     } else if (qApp->getLoginDialogPoppedUp() && !qApp->isHMDMode()) {
-        auto pointer = DependencyManager::get<PointerScriptingInterface>().data();
-        if (_leftLoginPointerID > 0) {
-            pointer->disablePointer(_leftLoginPointerID);
-        }
-        if (_rightLoginPointerID > 0) {
-            pointer->disablePointer(_rightLoginPointerID);
-        }
+        _loginPointerManager.~LoginPointerManager();
     }
 }
 
@@ -8545,61 +8542,62 @@ void Application::createLoginDialogOverlay() {
         { "dpi", overlayDpi },
         { "visible", true }
     };
-    auto pointer = DependencyManager::get<PointerScriptingInterface>().data();
-    auto standard = _controllerScriptingInterface->getStandard();
+    _loginPointerManager.init();
+    //auto pointer = DependencyManager::get<PointerScriptingInterface>().data();
+    //auto standard = _controllerScriptingInterface->getStandard();
 
-    glm::vec3 grabPointSphereOffsetLeft { 0.04, 0.13, 0.039 };  // x = upward, y = forward, z = lateral
-    glm::vec3 grabPointSphereOffsetRight { -0.04, 0.13, 0.039 };  // x = upward, y = forward, z = lateral
+    //glm::vec3 grabPointSphereOffsetLeft { 0.04, 0.13, 0.039 };  // x = upward, y = forward, z = lateral
+    //glm::vec3 grabPointSphereOffsetRight { -0.04, 0.13, 0.039 };  // x = upward, y = forward, z = lateral
 
-    QList<QVariant> leftPointerTriggerProperties;
-    QVariantMap ltClick1 {
-        { "action", controller::StandardButtonChannel::LT_CLICK },
-        { "button", "Focus" }
-    };
-    QVariantMap ltClick2 {
-        { "action", controller::StandardButtonChannel::LT_CLICK },
-        { "button", "Primary" }
-    };
+    //QList<QVariant> leftPointerTriggerProperties;
+    //QVariantMap ltClick1 {
+    //    { "action", controller::StandardButtonChannel::LT_CLICK },
+    //    { "button", "Focus" }
+    //};
+    //QVariantMap ltClick2 {
+    //    { "action", controller::StandardButtonChannel::LT_CLICK },
+    //    { "button", "Primary" }
+    //};
 
-    leftPointerTriggerProperties.append(ltClick1);
-    leftPointerTriggerProperties.append(ltClick2);
-    const unsigned int leftHand = 0;
-    QVariantMap leftPointerProperties {
-        { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
-        { "filter", PickFilter::PICK_OVERLAYS },
-        { "triggers", leftPointerTriggerProperties },
-        { "posOffset", vec3toVariant(grabPointSphereOffsetLeft) },
-        { "hover", true },
-        { "distanceScaleEnd", true },
-        { "hand", leftHand }
-    };
-    _leftLoginPointerID = pointer->createPointer(PickQuery::PickType::Ray, leftPointerProperties);
-    pointer->setRenderState(_leftLoginPointerID, "");
-    pointer->enablePointer(_leftLoginPointerID);
-    const unsigned int rightHand = 1;
-    QList<QVariant> rightPointerTriggerProperties;
-    QVariantMap rtClick1 {
-        { "action", controller::StandardButtonChannel::RT_CLICK },
-        { "button", "Focus" }
-    };
-    QVariantMap rtClick2 {
-        { "action", controller::StandardButtonChannel::RT_CLICK },
-        { "button", "Primary" }
-    };
-    rightPointerTriggerProperties.append(rtClick1);
-    rightPointerTriggerProperties.append(rtClick2);
-    QVariantMap rightPointerProperties{
-        { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
-        { "filter", PickFilter::PICK_OVERLAYS },
-        { "triggers", rightPointerTriggerProperties },
-        { "posOffset", vec3toVariant(grabPointSphereOffsetRight) },
-        { "hover", true },
-        { "distanceScaleEnd", true },
-        { "hand", rightHand }
-    };
-    _rightLoginPointerID = pointer->createPointer(PickQuery::PickType::Ray, rightPointerProperties);
-    pointer->setRenderState(_rightLoginPointerID, "");
-    pointer->enablePointer(_rightLoginPointerID);
+    //leftPointerTriggerProperties.append(ltClick1);
+    //leftPointerTriggerProperties.append(ltClick2);
+    //const unsigned int leftHand = 0;
+    //QVariantMap leftPointerProperties {
+    //    { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
+    //    { "filter", PickFilter::PICK_OVERLAYS },
+    //    { "triggers", leftPointerTriggerProperties },
+    //    { "posOffset", vec3toVariant(grabPointSphereOffsetLeft) },
+    //    { "hover", true },
+    //    { "distanceScaleEnd", true },
+    //    { "hand", leftHand }
+    //};
+    //_leftLoginPointerID = pointer->createPointer(PickQuery::PickType::Ray, leftPointerProperties);
+    //pointer->setRenderState(_leftLoginPointerID, "");
+    //pointer->enablePointer(_leftLoginPointerID);
+    //const unsigned int rightHand = 1;
+    //QList<QVariant> rightPointerTriggerProperties;
+    //QVariantMap rtClick1 {
+    //    { "action", controller::StandardButtonChannel::RT_CLICK },
+    //    { "button", "Focus" }
+    //};
+    //QVariantMap rtClick2 {
+    //    { "action", controller::StandardButtonChannel::RT_CLICK },
+    //    { "button", "Primary" }
+    //};
+    //rightPointerTriggerProperties.append(rtClick1);
+    //rightPointerTriggerProperties.append(rtClick2);
+    //QVariantMap rightPointerProperties{
+    //    { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
+    //    { "filter", PickFilter::PICK_OVERLAYS },
+    //    { "triggers", rightPointerTriggerProperties },
+    //    { "posOffset", vec3toVariant(grabPointSphereOffsetRight) },
+    //    { "hover", true },
+    //    { "distanceScaleEnd", true },
+    //    { "hand", rightHand }
+    //};
+    //_rightLoginPointerID = pointer->createPointer(PickQuery::PickType::Ray, rightPointerProperties);
+    //pointer->setRenderState(_rightLoginPointerID, "");
+    //pointer->enablePointer(_rightLoginPointerID);
 
     _loginDialogOverlayID = overlays.addOverlay("web3d", overlayProperties);
 }
@@ -8612,12 +8610,6 @@ void Application::onDismissedLoginDialog() {
         // deleting overlay.
         qDebug() << "Deleting overlay";
         getOverlays().deleteOverlay(_loginDialogOverlayID);
-    }
-    if (_leftLoginPointerID > 0) {
-        pointer->disablePointer(_leftLoginPointerID);
-    }
-    if (_rightLoginPointerID > 0) {
-        pointer->disablePointer(_rightLoginPointerID);
     }
     resumeAfterLoginDialogActionTaken();
 }
