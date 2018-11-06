@@ -5231,13 +5231,9 @@ void Application::pauseUntilLoginDetermined() {
     nodeList->getDomainHandler().disconnect();
     auto menu = Menu::getInstance();
     menu->getMenu("Edit")->setVisible(false);
-    menu->getMenu("Edit")->setEnabled(false);
     menu->getMenu("View")->setVisible(false);
-    menu->getMenu("View")->setEnabled(false);
     menu->getMenu("Navigate")->setVisible(false);
-    menu->getMenu("Navigate")->setEnabled(false);
     menu->getMenu("Settings")->setVisible(false);
-    menu->getMenu("Settings")->setEnabled(false);
 }
 
 void Application::resumeAfterLoginDialogActionTaken() {
@@ -5273,6 +5269,8 @@ void Application::resumeAfterLoginDialogActionTaken() {
     auto addressManager = DependencyManager::get<AddressManager>();
     if (!accountManager->isLoggedIn()) {
         addressManager->goToEntry();
+    } else {
+        addressManager->loadSettings();
     }
 
     const auto& nodeList = DependencyManager::get<NodeList>();
@@ -5282,13 +5280,9 @@ void Application::resumeAfterLoginDialogActionTaken() {
 
     auto menu = Menu::getInstance();
     menu->getMenu("Edit")->setVisible(true);
-    menu->getMenu("Edit")->setEnabled(true);
     menu->getMenu("View")->setVisible(true);
-    menu->getMenu("View")->setEnabled(true);
     menu->getMenu("Navigate")->setVisible(true);
-    menu->getMenu("Navigate")->setEnabled(true);
     menu->getMenu("Settings")->setVisible(true);
-    menu->getMenu("Settings")->setEnabled(true);
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {

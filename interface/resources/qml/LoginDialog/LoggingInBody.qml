@@ -59,6 +59,7 @@ Item {
         running: false;
         repeat: false;
         onTriggered: {
+            loginDialog.dismissLoginDialog();
             root.tryDestroy();
         }
     }
@@ -102,7 +103,6 @@ Item {
             loggingInText.text = "You are now logged in!";
         }
         successTimer.start();
-        loginDialog.dismissLoginDialog();
     }
 
     Item {
