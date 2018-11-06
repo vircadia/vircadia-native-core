@@ -272,6 +272,10 @@ bool shouldBeSkipped(MixableStream& stream, const Node& listener,
         return true;
     }
 
+    if (!listenerData.getSolodNodes().empty()) {
+        return !contains(listenerData.getSolodNodes(), stream.nodeStreamID.nodeID);
+    }
+
     bool shouldCheckIgnoreBox = (listenerAudioStream.isIgnoreBoxEnabled() ||
                                  stream.positionalStream->isIgnoreBoxEnabled());
     if (shouldCheckIgnoreBox &&

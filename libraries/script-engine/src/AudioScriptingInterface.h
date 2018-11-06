@@ -25,13 +25,31 @@ class AudioScriptingInterface : public QObject, public Dependency {
 
     // JSDoc for property is in Audio.h.
     Q_PROPERTY(bool isStereoInput READ isStereoInput WRITE setStereoInput NOTIFY isStereoInputChanged)
+    Q_PROPERTY(bool isSoloing READ isSoloing)
+    Q_PROPERTY(QVector<QUuid> soloList READ getSoloList)
 
 public:
-    virtual ~AudioScriptingInterface() {}
+    virtual ~AudioScriptingInterface() = default;
     void setLocalAudioInterface(AbstractAudioInterface* audioInterface);
 
 protected:
-    AudioScriptingInterface() {}
+    AudioScriptingInterface() = default;
+
+    bool isSoloing() const {
+        return _localAudioInterface->getAudioSolo().isSoloing();
+    }
+    QVector<QUuid> getSoloList() const {
+        return _localAudioInterface->getAudioSolo().getUUIDs();
+    }
+    Q_INVOKABLE void addToSoloList(QVector<QUuid> uuidList) {
+        _localAudioInterface->getAudioSolo().addUUIDs(uuidList);
+    }
+    Q_INVOKABLE void removeFromSoloList(QVector<QUuid> uuidList) {
+        _localAudioInterface->getAudioSolo().removeUUIDs(uuidList);
+    }
+    Q_INVOKABLE void resetSoloList() {
+        _localAudioInterface->getAudioSolo().reset();
+    }
 
     // these methods are protected to stop C++ callers from calling, but invokable from script
 

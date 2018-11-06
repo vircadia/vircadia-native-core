@@ -98,6 +98,9 @@ int AudioMixerClientData::processPackets(ConcurrentAddedStreams& addedStreams) {
             case PacketType::RadiusIgnoreRequest:
                 parseRadiusIgnoreRequest(packet, node);
                 break;
+            case PacketType::AudioSoloRequest:
+                parseSoloRequest(packet, node);
+                break;
             default:
                 Q_UNREACHABLE();
         }
@@ -291,6 +294,25 @@ void AudioMixerClientData::parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessa
             avatarAudioStream->enableIgnoreBox();
         } else {
             avatarAudioStream->disableIgnoreBox();
+        }
+    }
+}
+
+
+void AudioMixerClientData::parseSoloRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
+
+    bool addToSolo;
+    message->readPrimitive(&addToSolo);
+
+    while (message->getBytesLeftToRead()) {
+        // parse out the UUID being solod from the packet
+        QUuid solodUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        if (addToSolo) {
+            _solodNodes.push_back(solodUUID);
+        } else {
+            auto it = std::find(std::begin(_solodNodes), std::end(_solodNodes), solodUUID);
+            _solodNodes.erase(it);
         }
     }
 }
