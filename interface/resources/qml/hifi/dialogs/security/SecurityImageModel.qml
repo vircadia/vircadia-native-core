@@ -1,11 +1,11 @@
 //
 //  SecurityImageModel.qml
-//  qml/hifi/commerce
+//  qml\hifi\dialogs\security
 //
-//  SecurityImageModel
+//  Security
 //
-//  Created by Zach Fox on 2017-08-17
-//  Copyright 2017 High Fidelity, Inc.
+//  Created by Zach Fox on 2018-10-31
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

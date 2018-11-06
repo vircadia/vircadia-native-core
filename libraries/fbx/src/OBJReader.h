@@ -42,7 +42,7 @@ public:
     bool add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex,
              const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& vertexColors);
     // Return a set of one or more OBJFaces from this one, in which each is just a triangle.
-    // Even though FBXMeshPart can handle quads, it would be messy to try to keep track of mixed-size faces, so we treat everything as triangles.
+    // Even though HFMMeshPart can handle quads, it would be messy to try to keep track of mixed-size faces, so we treat everything as triangles.
     QVector<OBJFace> triangulate();
 private:
     void addFrom(const OBJFace* face, int index);
@@ -54,7 +54,7 @@ public:
 }
 ;
 // Materials and references to material names can come in any order, and different mesh parts can refer to the same material.
-// Therefore it would get pretty hacky to try to use FBXMeshPart to store these as we traverse the files.
+// Therefore it would get pretty hacky to try to use HFMMeshPart to store these as we traverse the files.
 class OBJMaterial {
 public:
     float shininess;
@@ -87,13 +87,13 @@ public:
     QString currentMaterialName;
     QHash<QString, OBJMaterial> materials;
 
-    FBXGeometry::Pointer readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url = QUrl());
+    HFMModel::Pointer readOBJ(QByteArray& data, const QVariantHash& mapping, bool combineParts, const QUrl& url = QUrl());
 
 private:
     QUrl _url;
 
     QHash<QByteArray, bool> librariesSeen;
-    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry,
+    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& hfmModel,
                        float& scaleGuess, bool combineParts);
     void parseMaterialLibrary(QIODevice* device);
     void parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions);
@@ -103,5 +103,5 @@ private:
 };
 
 // What are these utilities doing here? One is used by fbx loading code in VHACD Utils, and the other a general debugging utility.
-void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID);
-void fbxDebugDump(const FBXGeometry& fbxgeo);
+void setMeshPartDefaults(HFMMeshPart& meshPart, QString materialID);
+void hfmDebugDump(const HFMModel& hfmModel);

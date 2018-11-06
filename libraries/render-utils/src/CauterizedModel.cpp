@@ -32,8 +32,8 @@ bool CauterizedModel::updateGeometry() {
     bool needsFullUpdate = Model::updateGeometry();
     if (_isCauterized && needsFullUpdate) {
         assert(_cauterizeMeshStates.empty());
-        const FBXGeometry& fbxGeometry = getFBXGeometry();
-        foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
+        const HFMModel& hfmModel = getHFMModel();
+        foreach (const HFMMesh& mesh, hfmModel.meshes) {
             Model::MeshState state;
             if (_useDualQuaternionSkinning) {
                 state.clusterDualQuaternions.resize(mesh.clusters.size());
@@ -76,7 +76,7 @@ void CauterizedModel::createRenderItemSet() {
         // Run through all of the meshes, and place them into their segregated, but unsorted buckets
         int shapeID = 0;
         uint32_t numMeshes = (uint32_t)meshes.size();
-        const FBXGeometry& fbxGeometry = getFBXGeometry();
+        const HFMModel& hfmModel = getHFMModel();
         for (uint32_t i = 0; i < numMeshes; i++) {
             const auto& mesh = meshes.at(i);
             if (!mesh) {
@@ -86,7 +86,7 @@ void CauterizedModel::createRenderItemSet() {
             // Create the render payloads
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                initializeBlendshapes(fbxGeometry.meshes[i], i);
+                initializeBlendshapes(hfmModel.meshes[i], i);
 
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
@@ -109,13 +109,13 @@ void CauterizedModel::updateClusterMatrices() {
         return;
     }
     _needsUpdateClusterMatrices = false;
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMModel& hfmModel = getHFMModel();
 
     for (int i = 0; i < (int)_meshStates.size(); i++) {
         Model::MeshState& state = _meshStates[i];
-        const FBXMesh& mesh = geometry.meshes.at(i);
+        const HFMMesh& mesh = hfmModel.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
-            const FBXCluster& cluster = mesh.clusters.at(j);
+            const HFMCluster& cluster = mesh.clusters.at(j);
             if (_useDualQuaternionSkinning) {
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
                 Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
@@ -133,7 +133,7 @@ void CauterizedModel::updateClusterMatrices() {
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
     if (!_cauterizeBoneSet.empty()) {
 
-        AnimPose cauterizePose = _rig.getJointPose(geometry.neckJointIndex);
+        AnimPose cauterizePose = _rig.getJointPose(hfmModel.neckJointIndex);
         cauterizePose.scale() = glm::vec3(0.0001f, 0.0001f, 0.0001f);
 
         static const glm::mat4 zeroScale(
@@ -141,14 +141,14 @@ void CauterizedModel::updateClusterMatrices() {
             glm::vec4(0.0f, 0.0001f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0001f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-        auto cauterizeMatrix = _rig.getJointTransform(geometry.neckJointIndex) * zeroScale;
+        auto cauterizeMatrix = _rig.getJointTransform(hfmModel.neckJointIndex) * zeroScale;
 
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
-            const FBXMesh& mesh = geometry.meshes.at(i);
+            const HFMMesh& mesh = hfmModel.meshes.at(i);
 
             for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
+                const HFMCluster& cluster = mesh.clusters.at(j);
 
                 if (_useDualQuaternionSkinning) {
                     if (_cauterizeBoneSet.find(cluster.jointIndex) == _cauterizeBoneSet.end()) {
@@ -175,7 +175,7 @@ void CauterizedModel::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (_blendshapeOffsetsInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (_blendshapeOffsetsInitialized && modelBlender->shouldComputeBlendshapes() && hfmModel.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }

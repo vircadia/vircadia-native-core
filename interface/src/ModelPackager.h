@@ -19,7 +19,7 @@
 
 #include "ui/ModelsBrowser.h"
 
-class FBXGeometry;
+class HFMModel;
 
 class ModelPackager : public QObject {
 public:
@@ -32,7 +32,7 @@ private:
     bool editProperties();
     bool zipModel();
     
-    void populateBasicMapping(QVariantHash& mapping, QString filename, const FBXGeometry& geometry);
+    void populateBasicMapping(QVariantHash& mapping, QString filename, const HFMModel& hfmModel);
     
     void listTextures();
     bool copyTextures(const QString& oldDir, const QDir& newDir);
@@ -44,7 +44,7 @@ private:
     QString _scriptDir;
 
     QVariantHash _mapping;
-    std::unique_ptr<FBXGeometry> _geometry;
+    std::unique_ptr<HFMModel> _hfmModel;
     QStringList _textures;
     QStringList _scripts;
 };

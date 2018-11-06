@@ -382,7 +382,7 @@ static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
-static const QString AUTO_LOGOUT_SETTING_NAME = "wallet/autoLogout";
+static const QString KEEP_ME_LOGGED_IN_SETTING_NAME = "keepMeLoggedIn";
 
 const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
@@ -1148,7 +1148,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the OCULUS_STORE property so the oculus plugin can know if we ran from the Oculus Store
     static const QString OCULUS_STORE_ARG = "--oculus-store";
-    setProperty(hifi::properties::OCULUS_STORE, arguments().indexOf(OCULUS_STORE_ARG) != -1);
+    bool isStore = arguments().indexOf(OCULUS_STORE_ARG) != -1;
+    setProperty(hifi::properties::OCULUS_STORE, isStore);
+    DependencyManager::get<WalletScriptingInterface>()->setLimitedCommerce(isStore);  // Or we could make it a separate arg, or if either arg is set, etc. And should this instead by a hifi::properties?
 
     updateHeartbeat();
 
@@ -2567,8 +2569,8 @@ void Application::cleanupBeforeQuit() {
     }
     DependencyManager::destroy<ScriptEngines>();
 
-    bool autoLogout = Setting::Handle<bool>(AUTO_LOGOUT_SETTING_NAME, false).get();
-    if (autoLogout) {
+    bool keepMeLoggedIn = Setting::Handle<bool>(KEEP_ME_LOGGED_IN_SETTING_NAME, false).get();
+    if (!keepMeLoggedIn) {
         DependencyManager::get<AccountManager>()->removeAccountFromFile();
     }
 
@@ -2944,13 +2946,13 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/PassphraseChange.qml" },
         QUrl{ "hifi/commerce/wallet/PassphraseModal.qml" },
         QUrl{ "hifi/commerce/wallet/PassphraseSelection.qml" },
-        QUrl{ "hifi/commerce/wallet/Security.qml" },
-        QUrl{ "hifi/commerce/wallet/SecurityImageChange.qml" },
-        QUrl{ "hifi/commerce/wallet/SecurityImageModel.qml" },
-        QUrl{ "hifi/commerce/wallet/SecurityImageSelection.qml" },
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/commerce/wallet/WalletSetup.qml" },
+        QUrl{ "hifi/dialogs/security/Security.qml" },
+        QUrl{ "hifi/dialogs/security/SecurityImageChange.qml" },
+        QUrl{ "hifi/dialogs/security/SecurityImageModel.qml" },
+        QUrl{ "hifi/dialogs/security/SecurityImageSelection.qml" },
     }, callback);
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
@@ -3152,7 +3154,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
     surfaceContext->setContextProperty("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
-    surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
+    surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
     surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
@@ -6873,7 +6875,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
     scriptEngine->registerGlobalObject("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
-    scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
     scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
@@ -7878,6 +7880,7 @@ void Application::loadAvatarBrowser() const {
     auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     // construct the url to the marketplace item
     QString url = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace?category=avatars";
+
     QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
     tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
