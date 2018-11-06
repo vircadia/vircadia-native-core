@@ -212,6 +212,9 @@ Item {
                             break;
                     }
                 }
+                onFocusChanged: {
+                    root.text = "";
+                }
             }
 
             HifiControlsUit.TextField {
@@ -255,6 +258,9 @@ Item {
                             break;
                     }
                 }
+                onFocusChanged: {
+                    root.text = "";
+                }
             }
             HifiControlsUit.TextField {
                 id: passwordField
@@ -272,6 +278,7 @@ Item {
                 }
 
                 onFocusChanged: {
+                    root.text = "";
                     root.isPassword = true;
                 }
 
@@ -442,13 +449,9 @@ Item {
     }
 
     Component.onCompleted: {
-        //dont rise local keyboard
-        keyboardEnabled = !root.isTablet && HMD.active;
         //but rise Tablet's one instead for Tablet interface
-        if (root.isTablet) {
-            root.keyboardEnabled = HMD.active;
-            root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
-        }
+        root.keyboardEnabled = HMD.active;
+        root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         d.resize();
         init(loginDialog.isLogIn);
     }

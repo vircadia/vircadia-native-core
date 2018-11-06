@@ -246,6 +246,11 @@ Item {
     }
 
     Component.onCompleted: {
+        //but rise Tablet's one instead for Tablet interface
+        if (root.isTablet || root.isOverlay) {
+            root.keyboardEnabled = HMD.active;
+            root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
+        }
         d.resize();
     }
 }

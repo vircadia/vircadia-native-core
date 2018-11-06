@@ -13,7 +13,6 @@ import QtQuick 2.4
 
 import "qrc:////qml//controls-uit" as HifiControlsUit
 import "qrc:////qml//styles-uit" as HifiStylesUit
-import "windows" as Windows
 
 import "LoginDialog"
 
@@ -26,11 +25,16 @@ FocusScope {
     anchors.fill: parent
 
     readonly property bool isTablet: false
+    readonly property bool isOverlay: false
 
     property string iconText: ""
     property int iconSize: 50
-
+    property bool keyboardEnabled: false
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+    property bool isPassword: false
     property string title: ""
+    property string text: ""
     property int titleWidth: 0
 
     function tryDestroy() {

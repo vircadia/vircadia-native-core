@@ -378,7 +378,7 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 Setting::Handle<int> maxOctreePacketsPerSecond{"maxOctreePPS", DEFAULT_MAX_OCTREE_PPS};
 
 Setting::Handle<bool> loginDialogPoppedUp{"loginDialogPoppedUp", false};
-static const QUrl OVERLAY_LOGIN_DIALOG_URL(PathUtils::qmlUrl("LoginDialog.qml"));
+static const QUrl OVERLAY_LOGIN_DIALOG_URL(PathUtils::qmlUrl("OverlayLoginDialog.qml"));
 
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
@@ -5231,9 +5231,13 @@ void Application::pauseUntilLoginDetermined() {
     nodeList->getDomainHandler().disconnect();
     auto menu = Menu::getInstance();
     menu->getMenu("Edit")->setVisible(false);
+    menu->getMenu("Edit")->setEnabled(false);
     menu->getMenu("View")->setVisible(false);
+    menu->getMenu("View")->setEnabled(false);
     menu->getMenu("Navigate")->setVisible(false);
+    menu->getMenu("Navigate")->setEnabled(false);
     menu->getMenu("Settings")->setVisible(false);
+    menu->getMenu("Settings")->setEnabled(false);
 }
 
 void Application::resumeAfterLoginDialogActionTaken() {
@@ -5278,9 +5282,13 @@ void Application::resumeAfterLoginDialogActionTaken() {
 
     auto menu = Menu::getInstance();
     menu->getMenu("Edit")->setVisible(true);
+    menu->getMenu("Edit")->setEnabled(true);
     menu->getMenu("View")->setVisible(true);
+    menu->getMenu("View")->setEnabled(true);
     menu->getMenu("Navigate")->setVisible(true);
+    menu->getMenu("Navigate")->setEnabled(true);
     menu->getMenu("Settings")->setVisible(true);
+    menu->getMenu("Settings")->setEnabled(true);
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -7351,7 +7359,7 @@ void Application::showScriptLogs() {
 }
 
 void Application::showAssetServerWidget(QString filePath) {
-    if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets() || getLoginDialogPoppedUp()) {
         return;
     }
     static const QUrl url { "hifi/AssetServer.qml" };
@@ -7990,6 +7998,9 @@ void Application::loadDomainConnectionDialog() {
 }
 
 void Application::toggleLogDialog() {
+    if (getLoginDialogPoppedUp()) {
+        return;
+    }
     if (! _logDialog) {
         _logDialog = new LogDialog(nullptr, getLogger());
     }
@@ -8519,8 +8530,12 @@ void Application::setShowBulletConstraintLimits(bool value) {
 void Application::checkReadyToCreateLoginDialogOverlay() {
     if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible() && qApp->getLoginDialogPoppedUp() && _loginDialogOverlayID.isNull()) {
         createLoginDialogOverlay();
-    } else if (qApp->getLoginDialogPoppedUp() && !qApp->isHMDMode()) {
-        _loginPointerManager.~LoginPointerManager();
+    } else if (qApp->getLoginDialogPoppedUp()) {
+        if (!qApp->isHMDMode()) {
+            _loginPointerManager.tearDown();
+        } else if (qApp->isHMDMode() && !_loginPointerManager.isSetUp()) {
+            _loginPointerManager.setUp();
+        }
     }
 }
 
@@ -8529,9 +8544,9 @@ void Application::createLoginDialogOverlay() {
     auto myAvatar = avatarManager->getMyAvatar();
     Overlays& overlays = qApp->getOverlays();
     // DEFAULT_DPI / tablet scale percentage
-    float overlayDpi = 31.0f / (60 / 100.0f);
+    float overlayDpi = 31.0f / (75.0f / 100.0f);
     QVariantMap overlayProperties {
-        { "name", "pleasework" },
+        { "name", "LoginDialogOverlay" },
         { "url", OVERLAY_LOGIN_DIALOG_URL },
         { "position", vec3toVariant(myAvatar->getHeadPosition() - glm::vec3(0.0f, -0.1f, 1.0f)) },
         { "orientation", quatToVariant(myAvatar->getWorldOrientation()) },
@@ -8539,77 +8554,22 @@ void Application::createLoginDialogOverlay() {
         { "grabbable", false },
         { "ignorePickIntersection", false },
         { "alpha", 1.0 },
+        { "dimensions", vec2ToVariant(glm::vec2(0.5f, 0.5f)) },
         { "dpi", overlayDpi },
         { "visible", true }
     };
-    _loginPointerManager.init();
-    //auto pointer = DependencyManager::get<PointerScriptingInterface>().data();
-    //auto standard = _controllerScriptingInterface->getStandard();
-
-    //glm::vec3 grabPointSphereOffsetLeft { 0.04, 0.13, 0.039 };  // x = upward, y = forward, z = lateral
-    //glm::vec3 grabPointSphereOffsetRight { -0.04, 0.13, 0.039 };  // x = upward, y = forward, z = lateral
-
-    //QList<QVariant> leftPointerTriggerProperties;
-    //QVariantMap ltClick1 {
-    //    { "action", controller::StandardButtonChannel::LT_CLICK },
-    //    { "button", "Focus" }
-    //};
-    //QVariantMap ltClick2 {
-    //    { "action", controller::StandardButtonChannel::LT_CLICK },
-    //    { "button", "Primary" }
-    //};
-
-    //leftPointerTriggerProperties.append(ltClick1);
-    //leftPointerTriggerProperties.append(ltClick2);
-    //const unsigned int leftHand = 0;
-    //QVariantMap leftPointerProperties {
-    //    { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
-    //    { "filter", PickFilter::PICK_OVERLAYS },
-    //    { "triggers", leftPointerTriggerProperties },
-    //    { "posOffset", vec3toVariant(grabPointSphereOffsetLeft) },
-    //    { "hover", true },
-    //    { "distanceScaleEnd", true },
-    //    { "hand", leftHand }
-    //};
-    //_leftLoginPointerID = pointer->createPointer(PickQuery::PickType::Ray, leftPointerProperties);
-    //pointer->setRenderState(_leftLoginPointerID, "");
-    //pointer->enablePointer(_leftLoginPointerID);
-    //const unsigned int rightHand = 1;
-    //QList<QVariant> rightPointerTriggerProperties;
-    //QVariantMap rtClick1 {
-    //    { "action", controller::StandardButtonChannel::RT_CLICK },
-    //    { "button", "Focus" }
-    //};
-    //QVariantMap rtClick2 {
-    //    { "action", controller::StandardButtonChannel::RT_CLICK },
-    //    { "button", "Primary" }
-    //};
-    //rightPointerTriggerProperties.append(rtClick1);
-    //rightPointerTriggerProperties.append(rtClick2);
-    //QVariantMap rightPointerProperties{
-    //    { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
-    //    { "filter", PickFilter::PICK_OVERLAYS },
-    //    { "triggers", rightPointerTriggerProperties },
-    //    { "posOffset", vec3toVariant(grabPointSphereOffsetRight) },
-    //    { "hover", true },
-    //    { "distanceScaleEnd", true },
-    //    { "hand", rightHand }
-    //};
-    //_rightLoginPointerID = pointer->createPointer(PickQuery::PickType::Ray, rightPointerProperties);
-    //pointer->setRenderState(_rightLoginPointerID, "");
-    //pointer->enablePointer(_rightLoginPointerID);
-
-    _loginDialogOverlayID = overlays.addOverlay("web3d", overlayProperties);
+     _loginDialogOverlayID = overlays.addOverlay("web3d", overlayProperties);
+    _loginPointerManager.setUp();
 }
 
 void Application::onDismissedLoginDialog() {
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
-    auto pointer = DependencyManager::get<PointerScriptingInterface>().data();
     if (!_loginDialogOverlayID.isNull()) {
         // deleting overlay.
         qDebug() << "Deleting overlay";
         getOverlays().deleteOverlay(_loginDialogOverlayID);
+        _loginPointerManager.tearDown();
     }
     resumeAfterLoginDialogActionTaken();
 }

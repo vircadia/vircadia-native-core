@@ -36,6 +36,8 @@ FocusScope {
     property bool isPassword: false
 
     readonly property bool isTablet: true
+    readonly property bool isOverlay: false
+    property alias text: loginKeyboard.mirroredText
 
     property int titleWidth: 0
     property string iconText: hifi.glyphs.avatar
@@ -75,6 +77,18 @@ FocusScope {
         Loader {
             id: bodyLoader
             anchors.fill: parent
+        }
+    }
+
+    HifiControlsUit.Keyboard {
+        id: loginKeyboard
+        raised: root.keyboardEnabled && root.keyboardRaised
+        numeric: root.punctuationMode
+        password: root.isPassword
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
         }
     }
 

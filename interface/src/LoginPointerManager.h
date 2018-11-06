@@ -11,6 +11,7 @@
 #ifndef hifi_LoginPointerManager_h
 #define hifi_LoginPointerManager_h
 #include <QtCore/QList>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QVariant>
 
 #include <PointerEvent.h>
@@ -20,19 +21,14 @@
 class LoginPointerManager : protected ReadWriteLockable {
 public:
     LoginPointerManager() {}
-    ~LoginPointerManager();
+    ~LoginPointerManager() {}
 
-    void init();
+    void setUp();
+    void tearDown();
 
     void update();
 
-    const unsigned int leftLoginPointerID() const {
-        return resultWithReadLock<unsigned int>([&] { return _leftLoginPointerID; });
-    }
-
-    const unsigned int rightLoginPointerID() const {
-        return resultWithReadLock<unsigned int>([&] { return _rightLoginPointerID; });
-    }
+    bool isSetUp() const { return (_leftLoginPointerID > PointerEvent::INVALID_POINTER_ID) && (_rightLoginPointerID > PointerEvent::INVALID_POINTER_ID); }
 
 private:
     QList<QVariant> _renderStates {};
@@ -40,4 +36,5 @@ private:
     unsigned int _leftLoginPointerID { PointerEvent::INVALID_POINTER_ID };
     unsigned int _rightLoginPointerID { PointerEvent::INVALID_POINTER_ID };
 };
+
 #endif // hifi_LoginPointerManager_h

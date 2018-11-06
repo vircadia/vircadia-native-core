@@ -110,57 +110,44 @@ Item {
                     horizontalAlignment: Image.AlignHCenter
                 }
             }
-            Item {
-                id: splashContainer
-                width: parent.width
-                anchors.fill: parent
-
-                visible: true
-
-                Text {
-                    id: flavorText
-                    text: qsTr("BE ANYWHERE, WITH ANYONE RIGHT NOW")
-                    width: 0.48 * parent.width
-                    anchors.centerIn: parent
-                    anchors {
-                        top: banner.bottom
-                        topMargin: 0.1 * parent.height
-                    }
-                    wrapMode: Text.WordWrap
-                    lineHeight: 0.5
-                    color: "white"
-                    font.family: linkAccountBody.fontFamily
-                    font.pixelSize: !root.isTablet ? 2 * linkAccountBody.fontSize : linkAccountBody.fontSize
-                    font.bold: linkAccountBody.fontBold
-                    lineHeightMode: Text.ProportionalHeight
-                    horizontalAlignment: Text.AlignHCenter
+            Text {
+                id: flavorText
+                text: qsTr("BE ANYWHERE, WITH ANYONE RIGHT NOW")
+                width: 0.48 * parent.width
+                anchors.centerIn: parent
+                anchors {
+                    top: bannerContainer.bottom
+                    topMargin: 0.1 * parent.height
                 }
-
-                HifiControlsUit.Button {
-                    id: signUpButton
-                    text: qsTr("Sign Up")
-                    width: d.minWidthButton
-                    height: d.minHeightButton
-                    color: hifi.buttons.blue
-                    fontFamily: linkAccountBody.fontFamily
-                    fontSize: linkAccountBody.fontSize
-                    fontBold: linkAccountBody.fontBold
-                    anchors {
-                        bottom: parent.bottom
-                        bottomMargin: 0.1 * parent.height
-                        left: parent.left
-                        leftMargin: (parent.width - d.minWidthButton) / 2
-                    }
-                    onClicked: {
-                        linkAccountBody.withSteam = false;
-                        toggleSignIn(false);
-                    }
-                }
+                wrapMode: Text.WordWrap
+                lineHeight: 0.5
+                color: "white"
+                font.family: linkAccountBody.fontFamily
+                font.pixelSize: !root.isTablet ? 2 * linkAccountBody.fontSize : linkAccountBody.fontSize
+                font.bold: linkAccountBody.fontBold
+                lineHeightMode: Text.ProportionalHeight
+                horizontalAlignment: Text.AlignHCenter
             }
 
-            Keys.onReturnPressed: {
-                Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
-                linkAccountBody.login();
+            HifiControlsUit.Button {
+                id: signUpButton
+                text: qsTr("Sign Up")
+                width: d.minWidthButton
+                height: d.minHeightButton
+                color: hifi.buttons.blue
+                fontFamily: linkAccountBody.fontFamily
+                fontSize: linkAccountBody.fontSize
+                fontBold: linkAccountBody.fontBold
+                anchors {
+                    bottom: parent.bottom
+                    bottomMargin: 0.1 * parent.height
+                    left: parent.left
+                    leftMargin: (parent.width - d.minWidthButton) / 2
+                }
+                onClicked: {
+                    linkAccountBody.withSteam = false;
+                    toggleSignIn(false);
+                }
             }
         }
         Item {
@@ -279,13 +266,6 @@ Item {
     }
 
     Component.onCompleted: {
-        //dont rise local keyboard
-        keyboardEnabled = !root.isTablet && HMD.active;
-        //but rise Tablet's one instead for Tablet interface
-        if (root.isTablet) {
-            root.keyboardEnabled = HMD.active;
-            root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
-        }
         d.resize();
     }
     Component.onDestruction: {

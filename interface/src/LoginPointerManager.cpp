@@ -43,21 +43,21 @@ static const QVariantMap COLORS_GRAB_DISTANCE_HOLD = {{"red", 238},
 
 
 
-LoginPointerManager::~LoginPointerManager() {
+void LoginPointerManager::tearDown() {
     auto pointers = DependencyManager::get<PointerManager>().data();
     if (pointers) {
-        if (leftLoginPointerID() != PointerEvent::INVALID_POINTER_ID) {
-            pointers->disablePointer(leftLoginPointerID());
-            pointers->removePointer(leftLoginPointerID());
+        if (_leftLoginPointerID > PointerEvent::INVALID_POINTER_ID) {
+            pointers->removePointer(_leftLoginPointerID);
+            _leftLoginPointerID = PointerEvent::INVALID_POINTER_ID;
         }
-        if (rightLoginPointerID() != PointerEvent::INVALID_POINTER_ID) {
-            pointers->disablePointer(rightLoginPointerID());
-            pointers->removePointer(rightLoginPointerID());
+        if (_rightLoginPointerID > PointerEvent::INVALID_POINTER_ID) {
+            pointers->removePointer(_rightLoginPointerID);
+            _rightLoginPointerID = PointerEvent::INVALID_POINTER_ID;
         }
     }
 }
 
-void LoginPointerManager::init() {
+void LoginPointerManager::setUp() {
     QVariantMap fullPathRenderState {
         {"type", "line3d"},
         {"color", COLORS_GRAB_SEARCHING_FULL_SQUEEZE},
@@ -163,8 +163,7 @@ void LoginPointerManager::init() {
         { "button", "Primary" }
     };
 
-    leftPointerTriggerProperties.append(ltClick1);
-    leftPointerTriggerProperties.append(ltClick2);
+    leftPointerTriggerProperties = QList<QVariant>({ltClick1, ltClick2});
     const unsigned int leftHand = 0;
     QVariantMap leftPointerProperties {
         { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
@@ -178,9 +177,9 @@ void LoginPointerManager::init() {
     };
     leftPointerProperties["renderStates"] = _renderStates;
     leftPointerProperties["defaultRenderStates"] = _defaultRenderStates;
-    withWriteLock([&] { _leftLoginPointerID = pointers->createPointer(PickQuery::PickType::Ray, leftPointerProperties); });
-    pointers->setRenderState(leftLoginPointerID(), "");
-    pointers->enablePointer(leftLoginPointerID());
+    _leftLoginPointerID = pointers->createPointer(PickQuery::PickType::Ray, leftPointerProperties);
+    pointers->setRenderState(_leftLoginPointerID, "");
+    pointers->enablePointer(_leftLoginPointerID);
     const unsigned int rightHand = 1;
     QList<QVariant> rightPointerTriggerProperties;
 
@@ -192,8 +191,7 @@ void LoginPointerManager::init() {
         { "action", controller->getStandard()["RTClick"] },
         { "button", "Primary" }
     };
-    rightPointerTriggerProperties.append(rtClick1);
-    rightPointerTriggerProperties.append(rtClick2);
+    rightPointerTriggerProperties = QList<QVariant>({rtClick1, rtClick2});
     QVariantMap rightPointerProperties{
         { "joint", "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" },
         { "filter", PickScriptingInterface::PICK_OVERLAYS() },
@@ -206,11 +204,9 @@ void LoginPointerManager::init() {
     };
     rightPointerProperties["renderStates"] = _renderStates;
     rightPointerProperties["defaultRenderStates"] = _defaultRenderStates;
-    withWriteLock([&] { _rightLoginPointerID = pointers->createPointer(PickQuery::PickType::Ray, rightPointerProperties); });
-    pointers->setRenderState(rightLoginPointerID(), "");
-    pointers->enablePointer(rightLoginPointerID());
-
-
+    _rightLoginPointerID = pointers->createPointer(PickQuery::PickType::Ray, rightPointerProperties);
+    pointers->setRenderState(_rightLoginPointerID, "");
+    pointers->enablePointer(_rightLoginPointerID);
 }
 
 void LoginPointerManager::update() {
@@ -218,11 +214,11 @@ void LoginPointerManager::update() {
     if (pointers) {
         QString mode = "full";
 
-        if (leftLoginPointerID() > PointerEvent::INVALID_POINTER_ID) {
-            pointers->setRenderState(leftLoginPointerID(), mode);
+        if (_leftLoginPointerID > PointerEvent::INVALID_POINTER_ID) {
+            pointers->setRenderState(_leftLoginPointerID, mode);
         }
-        if (rightLoginPointerID() > PointerEvent::INVALID_POINTER_ID) {
-            pointers->setRenderState(rightLoginPointerID(), mode);
+        if (_rightLoginPointerID > PointerEvent::INVALID_POINTER_ID) {
+            pointers->setRenderState(_rightLoginPointerID, mode);
         }
     }
 }
