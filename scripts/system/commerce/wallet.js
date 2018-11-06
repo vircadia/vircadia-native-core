@@ -608,12 +608,12 @@ function notificationPollCallbackHistory(historyArray) {
             var message;
             if (!ui.notificationInitialCallbackMade[1]) {
                 message = "You have " + notificationCount + " unread recent " +
-                    "transaction" + (notificationCount === 1 ? "" : "s") + ". Open ASSETS to see all activity.";
+                    "transaction" + (notificationCount === 1 ? "" : "s") + ". Open INVENTORY to see all activity.";
                 ui.notificationDisplayBanner(message);
             } else {
                 for (var i = 0; i < notificationCount; i++) {
                     message = '"' + (historyArray[i].message) + '" ' +
-                        "Open ASSETS to see all activity.";
+                        "Open INVENTORY to see all activity.";
                     ui.notificationDisplayBanner(message);
                 }
             }
