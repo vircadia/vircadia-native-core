@@ -14,7 +14,7 @@
 
 #include <memory.h>
 #include <QtNetwork/QNetworkReply>
-#include "ModelFormatLogging.h"
+#include <hfm/ModelFormatLogging.h>
 #include "FBXReader.h"
 
 

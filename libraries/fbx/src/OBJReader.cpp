@@ -28,7 +28,7 @@
 #include <ResourceManager.h>
 
 #include "FBXReader.h"
-#include "ModelFormatLogging.h"
+#include <hfm/ModelFormatLogging.h>
 #include <shared/PlatformHacks.h>
 
 QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as units", 1.0f / 100.0f},

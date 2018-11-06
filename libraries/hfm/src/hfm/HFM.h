@@ -352,7 +352,6 @@ public:
 
 Q_DECLARE_METATYPE(HFMAnimationFrame)
 Q_DECLARE_METATYPE(QVector<HFMAnimationFrame>)
-
 Q_DECLARE_METATYPE(HFMModel)
 Q_DECLARE_METATYPE(HFMModel::Pointer)
 

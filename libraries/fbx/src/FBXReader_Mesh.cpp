@@ -31,7 +31,7 @@
 #include <QFileInfo>
 #include <QHash>
 #include <LogHandler.h>
-#include "ModelFormatLogging.h"
+#include <hfm/ModelFormatLogging.h>
 
 #include "FBXReader.h"
 

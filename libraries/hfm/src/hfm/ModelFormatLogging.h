@@ -1,6 +1,6 @@
 //
 //  ModelFormatLogging.h
-//  libraries/fbx/src
+//  libraries/hfm/src
 //
 //  Created by Seth Alves on 4/6/15.
 //  Copyright 2014 High Fidelity, Inc.
