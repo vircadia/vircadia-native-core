@@ -93,7 +93,7 @@ Item {
         // Text below helper text
         RalewayRegular {
             id: loginDetailText;
-            text: "To buy/sell items on the <b>Marketplace</b>, or to use your <b>Wallet</b>, you must first log in to High Fidelity.";
+            text: "To get items on the <b>Marketplace</b>, or to use your <b>Assets</b>, you must first log in to High Fidelity.";
             // Text size
             size: 18;
             // Anchors

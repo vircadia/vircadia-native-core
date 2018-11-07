@@ -87,7 +87,7 @@ Rectangle {
         }
         RalewayRegular {
             id: introText2;
-            text: "My Purchases";
+            text: "Inventory";
             // Text size
             size: 22;
             // Anchors
@@ -116,7 +116,7 @@ Rectangle {
 
         RalewayRegular {
             id: step1text;
-            text: "The <b>'REZ IT'</b> button makes your purchase appear in front of you.";
+            text: "The <b>'REZ IT'</b> button makes your item appear in front of you.";
             // Text size
             size: 20;
             // Anchors

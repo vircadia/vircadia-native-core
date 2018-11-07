@@ -155,8 +155,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     });
     connect(_skeletonModel.get(), &Model::rigReady, this, [this]() {
         if (_shouldLoadScripts) {
-            auto geometry = getSkeletonModel()->getHFMGeometry();
-            qApp->loadAvatarScripts(geometry.scripts);
+            auto hfmModel = getSkeletonModel()->getHFMModel();
+            qApp->loadAvatarScripts(hfmModel.scripts);
             _shouldLoadScripts = false;
         }
                 // Load and convert old attachments to avatar entities
@@ -2429,10 +2429,10 @@ void MyAvatar::attachmentDataToEntityProperties(const AttachmentData& data, Enti
 void MyAvatar::initHeadBones() {
     int neckJointIndex = -1;
     if (_skeletonModel->isLoaded()) {
-        neckJointIndex = _skeletonModel->getHFMGeometry().neckJointIndex;
+        neckJointIndex = _skeletonModel->getHFMModel().neckJointIndex;
     }
     if (neckJointIndex == -1) {
-        neckJointIndex = (_skeletonModel->getHFMGeometry().headJointIndex - 1);
+        neckJointIndex = (_skeletonModel->getHFMModel().headJointIndex - 1);
         if (neckJointIndex < 0) {
             // return if the head is not even there. can't cauterize!!
             return;
@@ -2592,11 +2592,11 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
         if (_skeletonModel && _skeletonModel->isLoaded()) {
             const Rig& rig = _skeletonModel->getRig();
-            const HFMGeometry& geometry = _skeletonModel->getHFMGeometry();
+            const HFMModel& hfmModel = _skeletonModel->getHFMModel();
             for (int i = 0; i < rig.getJointStateCount(); i++) {
                 AnimPose jointPose;
                 rig.getAbsoluteJointPoseInRigFrame(i, jointPose);
-                const HFMJointShapeInfo& shapeInfo = geometry.joints[i].shapeInfo;
+                const HFMJointShapeInfo& shapeInfo = hfmModel.joints[i].shapeInfo;
                 const AnimPose pose = rigToWorldPose * jointPose;
                 for (size_t j = 0; j < shapeInfo.debugLines.size() / 2; j++) {
                     glm::vec3 pointA = pose.xformPoint(shapeInfo.debugLines[2 * j]);
@@ -4012,7 +4012,7 @@ float MyAvatar::getSitStandStateChange() const {
 }
 
 QVector<QString> MyAvatar::getScriptUrls() {
-    QVector<QString> scripts = _skeletonModel->isLoaded() ? _skeletonModel->getHFMGeometry().scripts : QVector<QString>();
+    QVector<QString> scripts = _skeletonModel->isLoaded() ? _skeletonModel->getHFMModel().scripts : QVector<QString>();
     return scripts;
 }
 

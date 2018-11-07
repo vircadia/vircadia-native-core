@@ -40,9 +40,9 @@
 
 using namespace std;
 
-int HFMGeometryPointerMetaTypeId = qRegisterMetaType<HFMGeometry::Pointer>();
+int HFMModelPointerMetaTypeId = qRegisterMetaType<HFMModel::Pointer>();
 
-QStringList HFMGeometry::getJointNames() const {
+QStringList HFMModel::getJointNames() const {
     QStringList names;
     foreach (const HFMJoint& joint, joints) {
         names.append(joint.name);
@@ -50,7 +50,7 @@ QStringList HFMGeometry::getJointNames() const {
     return names;
 }
 
-bool HFMGeometry::hasBlendedMeshes() const {
+bool HFMModel::hasBlendedMeshes() const {
     if (!meshes.isEmpty()) {
         foreach (const HFMMesh& mesh, meshes) {
             if (!mesh.blendshapes.isEmpty()) {
@@ -61,7 +61,7 @@ bool HFMGeometry::hasBlendedMeshes() const {
     return false;
 }
 
-Extents HFMGeometry::getUnscaledMeshExtents() const {
+Extents HFMModel::getUnscaledMeshExtents() const {
     const Extents& extents = meshExtents;
 
     // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
@@ -74,7 +74,7 @@ Extents HFMGeometry::getUnscaledMeshExtents() const {
 }
 
 // TODO: Move to graphics::Mesh when Sam's ready
-bool HFMGeometry::convexHullContains(const glm::vec3& point) const {
+bool HFMModel::convexHullContains(const glm::vec3& point) const {
     if (!getUnscaledMeshExtents().containsPoint(point)) {
         return false;
     }
@@ -124,16 +124,16 @@ bool HFMGeometry::convexHullContains(const glm::vec3& point) const {
     return false;
 }
 
-QString HFMGeometry::getModelNameOfMesh(int meshIndex) const {
+QString HFMModel::getModelNameOfMesh(int meshIndex) const {
     if (meshIndicesToModelNames.contains(meshIndex)) {
         return meshIndicesToModelNames.value(meshIndex);
     }
     return QString();
 }
 
-int hfmGeometryMetaTypeId = qRegisterMetaType<HFMGeometry>();
+int hfmModelMetaTypeId = qRegisterMetaType<HFMModel>();
 int hfmAnimationFrameMetaTypeId = qRegisterMetaType<HFMAnimationFrame>();
-int hfmAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<HFMAnimationFrame> >();
+int hfmAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<HFMAnimationFrame>>();
 
 
 glm::vec3 parseVec3(const QString& string) {
@@ -264,17 +264,17 @@ public:
 };
 
 glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParentMap,
-        const QHash<QString, FBXModel>& models, QString nodeID, bool mixamoHack, const QString& url) {
+        const QHash<QString, FBXModel>& fbxModels, QString nodeID, bool mixamoHack, const QString& url) {
     glm::mat4 globalTransform;
     QVector<QString> visitedNodes; // Used to prevent following a cycle
     while (!nodeID.isNull()) {
         visitedNodes.append(nodeID); // Append each node we visit
 
-        const FBXModel& model = models.value(nodeID);
-        globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
-            model.rotation * model.postRotation) * model.postTransform * globalTransform;
-        if (model.hasGeometricOffset) {
-            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(model.geometricScaling, model.geometricRotation, model.geometricTranslation);
+        const FBXModel& fbxModel = fbxModels.value(nodeID);
+        globalTransform = glm::translate(fbxModel.translation) * fbxModel.preTransform * glm::mat4_cast(fbxModel.preRotation *
+            fbxModel.rotation * fbxModel.postRotation) * fbxModel.postTransform * globalTransform;
+        if (fbxModel.hasGeometricOffset) {
+            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(fbxModel.geometricScaling, fbxModel.geometricRotation, fbxModel.geometricTranslation);
             globalTransform = globalTransform * geometricOffset;
         }
 
@@ -290,7 +290,7 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
                 continue;
             }
 
-            if (models.contains(parentID)) {
+            if (fbxModels.contains(parentID)) {
                 nodeID = parentID;
                 break;
             }
@@ -329,7 +329,7 @@ public:
 };
 
 void appendModelIDs(const QString& parentID, const QMultiMap<QString, QString>& connectionChildMap,
-        QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs, bool isRootNode = false) {
+        QHash<QString, FBXModel>& fbxModels, QSet<QString>& remainingModels, QVector<QString>& modelIDs, bool isRootNode = false) {
     if (remainingModels.contains(parentID)) {
         modelIDs.append(parentID);
         remainingModels.remove(parentID);
@@ -337,10 +337,10 @@ void appendModelIDs(const QString& parentID, const QMultiMap<QString, QString>& 
     int parentIndex = isRootNode ? -1 : modelIDs.size() - 1;
     foreach (const QString& childID, connectionChildMap.values(parentID)) {
         if (remainingModels.contains(childID)) {
-            FBXModel& model = models[childID];
-            if (model.parentIndex == -1) {
-                model.parentIndex = parentIndex;
-                appendModelIDs(childID, connectionChildMap, models, remainingModels, modelIDs);
+            FBXModel& fbxModel = fbxModels[childID];
+            if (fbxModel.parentIndex == -1) {
+                fbxModel.parentIndex = parentIndex;
+                appendModelIDs(childID, connectionChildMap, fbxModels, remainingModels, modelIDs);
             }
         }
     }
@@ -403,7 +403,7 @@ static void createTangents(const HFMMesh& mesh, bool generateFromTexCoords,
                 setTangents(mesh, accessor, part.triangleIndices.at(i + 2), part.triangleIndices.at(i), vertices, normals, tangents);
             }
             if ((part.triangleIndices.size() % 3) != 0) {
-                qCDebug(modelformat) << "Error in extractHFMGeometry part.triangleIndices.size() is not divisible by three ";
+                qCDebug(modelformat) << "Error in extractHFMModel part.triangleIndices.size() is not divisible by three ";
             }
         }
     }
@@ -503,7 +503,7 @@ void addBlendshapes(const ExtractedBlendshape& extracted, const QList<WeightedIn
 }
 
 QString getTopModelID(const QMultiMap<QString, QString>& connectionParentMap,
-        const QHash<QString, FBXModel>& models, const QString& modelID, const QString& url) {
+        const QHash<QString, FBXModel>& fbxModels, const QString& modelID, const QString& url) {
     QString topID = modelID;
     QVector<QString> visitedNodes; // Used to prevent following a cycle
     forever {
@@ -515,7 +515,7 @@ QString getTopModelID(const QMultiMap<QString, QString>& connectionParentMap,
                 continue;
             }
 
-            if (models.contains(parentID)) {
+            if (fbxModels.contains(parentID)) {
                 topID = parentID;
                 goto outerContinue;
             }
@@ -615,7 +615,7 @@ QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
     return filepath.mid(filepath.lastIndexOf('/') + 1);
 }
 
-HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QString& url) {
+HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString& url) {
     const FBXNode& node = _rootNode;
     QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
@@ -624,7 +624,7 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
 
     QVector<ExtractedBlendshape> blendshapes;
 
-    QHash<QString, FBXModel> models;
+    QHash<QString, FBXModel> fbxModels;
     QHash<QString, Cluster> clusters; 
     QHash<QString, AnimationCurve> animationCurves;
 
@@ -689,10 +689,10 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
 #if defined(DEBUG_FBXREADER)
     int unknown = 0;
 #endif
-    HFMGeometry* geometryPtr = new HFMGeometry;
-    HFMGeometry& geometry = *geometryPtr;
+    HFMModel* hfmModelPtr = new HFMModel;
+    HFMModel& hfmModel = *hfmModelPtr;
 
-    geometry.originalURL = url;
+    hfmModel.originalURL = url;
 
     float unitScaleFactor = 1.0f;
     glm::vec3 ambientColor;
@@ -708,7 +708,7 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
                         if (subobject.name == "MetaData") {
                             foreach (const FBXNode& subsubobject, subobject.children) {
                                 if (subsubobject.name == "Author") {
-                                    geometry.author = subsubobject.properties.at(0).toString();
+                                    hfmModel.author = subsubobject.properties.at(0).toString();
                                 }
                             }
                         } else if (subobject.name == "Properties70") {
@@ -716,7 +716,7 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
                                 static const QVariant APPLICATION_NAME = QVariant(QByteArray("Original|ApplicationName"));
                                 if (subsubobject.name == "P" && subsubobject.properties.size() >= 5 &&
                                         subsubobject.properties.at(0) == APPLICATION_NAME) {
-                                    geometry.applicationName = subsubobject.properties.at(4).toString();
+                                    hfmModel.applicationName = subsubobject.properties.at(4).toString();
                                 }
                             }
                         }
@@ -814,7 +814,7 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
                     glm::vec3 geometricRotation;
 
                     glm::vec3 rotationMin, rotationMax;
-                    FBXModel model = { name, -1, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(), glm::quat(),
+                    FBXModel fbxModel = { name, -1, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(), glm::quat(),
                                        glm::mat4(), glm::vec3(), glm::vec3(),
                                        false, glm::vec3(), glm::quat(), glm::vec3(1.0f) };
                     ExtractedMesh* mesh = NULL;
@@ -963,27 +963,27 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
                     }
 
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
-                    model.translation = translation;
+                    fbxModel.translation = translation;
 
-                    model.preTransform = glm::translate(rotationOffset) * glm::translate(rotationPivot);
-                    model.preRotation = glm::quat(glm::radians(preRotation));
-                    model.rotation = glm::quat(glm::radians(rotation));
-                    model.postRotation = glm::inverse(glm::quat(glm::radians(postRotation)));
-                    model.postTransform = glm::translate(-rotationPivot) * glm::translate(scaleOffset) *
+                    fbxModel.preTransform = glm::translate(rotationOffset) * glm::translate(rotationPivot);
+                    fbxModel.preRotation = glm::quat(glm::radians(preRotation));
+                    fbxModel.rotation = glm::quat(glm::radians(rotation));
+                    fbxModel.postRotation = glm::inverse(glm::quat(glm::radians(postRotation)));
+                    fbxModel.postTransform = glm::translate(-rotationPivot) * glm::translate(scaleOffset) *
                         glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot);
                     // NOTE: angles from the FBX file are in degrees
                     // so we convert them to radians for the FBXModel class
-                    model.rotationMin = glm::radians(glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
+                    fbxModel.rotationMin = glm::radians(glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
                         rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f));
-                    model.rotationMax = glm::radians(glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
+                    fbxModel.rotationMax = glm::radians(glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
                         rotationMaxY ? rotationMax.y : 180.0f, rotationMaxZ ? rotationMax.z : 180.0f));
 
-                    model.hasGeometricOffset = hasGeometricOffset;
-                    model.geometricTranslation = geometricTranslation;
-                    model.geometricRotation = glm::quat(glm::radians(geometricRotation));
-                    model.geometricScaling = geometricScaling;
+                    fbxModel.hasGeometricOffset = hasGeometricOffset;
+                    fbxModel.geometricTranslation = geometricTranslation;
+                    fbxModel.geometricRotation = glm::quat(glm::radians(geometricRotation));
+                    fbxModel.geometricScaling = geometricScaling;
 
-                    models.insert(getID(object.properties), model);
+                    fbxModels.insert(getID(object.properties), fbxModel);
                 } else if (object.name == "Texture") {
                     TextureParam tex;
                     foreach (const FBXNode& subobject, object.children) {
@@ -1307,7 +1307,7 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
                             name = name.mid(name.lastIndexOf('.') + 1);
                         }
                         QString id = getID(object.properties);
-                        geometry.blendshapeChannelNames << name;
+                        hfmModel.blendshapeChannelNames << name;
                         foreach (const WeightedIndex& index, blendshapeIndices.values(name)) {
                             blendshapeChannelIndices.insert(id, index);
                         }
@@ -1454,26 +1454,26 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
     float offsetScale = mapping.value("scale", 1.0f).toFloat() * unitScaleFactor * METERS_PER_CENTIMETER;
     glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
             mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));
-    geometry.offset = glm::translate(glm::vec3(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
+    hfmModel.offset = glm::translate(glm::vec3(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
         mapping.value("tz").toFloat())) * glm::mat4_cast(offsetRotation) *
             glm::scale(glm::vec3(offsetScale, offsetScale, offsetScale));
 
     // get the list of models in depth-first traversal order
     QVector<QString> modelIDs;
-    QSet<QString> remainingModels;
-    for (QHash<QString, FBXModel>::const_iterator model = models.constBegin(); model != models.constEnd(); model++) {
+    QSet<QString> remainingFBXModels;
+    for (QHash<QString, FBXModel>::const_iterator fbxModel = fbxModels.constBegin(); fbxModel != fbxModels.constEnd(); fbxModel++) {
         // models with clusters must be parented to the cluster top
         // Unless the model is a root node.
-        bool isARootNode = !modelIDs.contains(_connectionParentMap.value(model.key()));
+        bool isARootNode = !modelIDs.contains(_connectionParentMap.value(fbxModel.key()));
         if (!isARootNode) {  
-            foreach(const QString& deformerID, _connectionChildMap.values(model.key())) {
+            foreach(const QString& deformerID, _connectionChildMap.values(fbxModel.key())) {
                 foreach(const QString& clusterID, _connectionChildMap.values(deformerID)) {
                     if (!clusters.contains(clusterID)) {
                         continue;
                     }
-                    QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID), url);
-                    _connectionChildMap.remove(_connectionParentMap.take(model.key()), model.key());
-                    _connectionParentMap.insert(model.key(), topID);
+                    QString topID = getTopModelID(_connectionParentMap, fbxModels, _connectionChildMap.value(clusterID), url);
+                    _connectionChildMap.remove(_connectionParentMap.take(fbxModel.key()), fbxModel.key());
+                    _connectionParentMap.insert(fbxModel.key(), topID);
                     goto outerBreak;
                 }
             }
@@ -1481,21 +1481,21 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
         }
 
         // make sure the parent is in the child map
-        QString parent = _connectionParentMap.value(model.key());
-        if (!_connectionChildMap.contains(parent, model.key())) {
-            _connectionChildMap.insert(parent, model.key());
+        QString parent = _connectionParentMap.value(fbxModel.key());
+        if (!_connectionChildMap.contains(parent, fbxModel.key())) {
+            _connectionChildMap.insert(parent, fbxModel.key());
         }
-        remainingModels.insert(model.key());
+        remainingFBXModels.insert(fbxModel.key());
     }
-    while (!remainingModels.isEmpty()) {
-        QString first = *remainingModels.constBegin();
-        foreach (const QString& id, remainingModels) {
+    while (!remainingFBXModels.isEmpty()) {
+        QString first = *remainingFBXModels.constBegin();
+        foreach (const QString& id, remainingFBXModels) {
             if (id < first) {
                 first = id;
             }
         }
-        QString topID = getTopModelID(_connectionParentMap, models, first, url);
-        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs, true);
+        QString topID = getTopModelID(_connectionParentMap, fbxModels, first, url);
+        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, fbxModels, remainingFBXModels, modelIDs, true);
     }
 
     // figure the number of animation frames from the curves
@@ -1507,53 +1507,53 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
         HFMAnimationFrame frame;
         frame.rotations.resize(modelIDs.size());
         frame.translations.resize(modelIDs.size());
-        geometry.animationFrames.append(frame);
+        hfmModel.animationFrames.append(frame);
     }
 
     // convert the models to joints
     QVariantList freeJoints = mapping.values("freeJoint");
-    geometry.hasSkeletonJoints = false;
+    hfmModel.hasSkeletonJoints = false;
     foreach (const QString& modelID, modelIDs) {
-        const FBXModel& model = models[modelID];
+        const FBXModel& fbxModel = fbxModels[modelID];
         HFMJoint joint;
-        joint.isFree = freeJoints.contains(model.name);
-        joint.parentIndex = model.parentIndex;
+        joint.isFree = freeJoints.contains(fbxModel.name);
+        joint.parentIndex = fbxModel.parentIndex;
 
         // get the indices of all ancestors starting with the first free one (if any)
-        int jointIndex = geometry.joints.size();
+        int jointIndex = hfmModel.joints.size();
         joint.freeLineage.append(jointIndex);
         int lastFreeIndex = joint.isFree ? 0 : -1;
-        for (int index = joint.parentIndex; index != -1; index = geometry.joints.at(index).parentIndex) {
-            if (geometry.joints.at(index).isFree) {
+        for (int index = joint.parentIndex; index != -1; index = hfmModel.joints.at(index).parentIndex) {
+            if (hfmModel.joints.at(index).isFree) {
                 lastFreeIndex = joint.freeLineage.size();
             }
             joint.freeLineage.append(index);
         }
         joint.freeLineage.remove(lastFreeIndex + 1, joint.freeLineage.size() - lastFreeIndex - 1);
-        joint.translation = model.translation; // these are usually in centimeters
-        joint.preTransform = model.preTransform;
-        joint.preRotation = model.preRotation;
-        joint.rotation = model.rotation;
-        joint.postRotation = model.postRotation;
-        joint.postTransform = model.postTransform;
-        joint.rotationMin = model.rotationMin;
-        joint.rotationMax = model.rotationMax;
+        joint.translation = fbxModel.translation; // these are usually in centimeters
+        joint.preTransform = fbxModel.preTransform;
+        joint.preRotation = fbxModel.preRotation;
+        joint.rotation = fbxModel.rotation;
+        joint.postRotation = fbxModel.postRotation;
+        joint.postTransform = fbxModel.postTransform;
+        joint.rotationMin = fbxModel.rotationMin;
+        joint.rotationMax = fbxModel.rotationMax;
 
-        joint.hasGeometricOffset = model.hasGeometricOffset;
-        joint.geometricTranslation = model.geometricTranslation;
-        joint.geometricRotation = model.geometricRotation;
-        joint.geometricScaling = model.geometricScaling;
+        joint.hasGeometricOffset = fbxModel.hasGeometricOffset;
+        joint.geometricTranslation = fbxModel.geometricTranslation;
+        joint.geometricRotation = fbxModel.geometricRotation;
+        joint.geometricScaling = fbxModel.geometricScaling;
 
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
 
         if (joint.parentIndex == -1) {
-            joint.transform = geometry.offset * glm::translate(joint.translation) * joint.preTransform *
+            joint.transform = hfmModel.offset * glm::translate(joint.translation) * joint.preTransform *
                 glm::mat4_cast(combinedRotation) * joint.postTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation);
             joint.distanceToParent = 0.0f;
 
         } else {
-            const HFMJoint& parentJoint = geometry.joints.at(joint.parentIndex);
+            const HFMJoint& parentJoint = hfmModel.joints.at(joint.parentIndex);
             joint.transform = parentJoint.transform * glm::translate(joint.translation) *
                 joint.preTransform * glm::mat4_cast(combinedRotation) * joint.postTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation) * parentJoint.inverseDefaultRotation;
@@ -1561,20 +1561,20 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
                 extractTranslation(joint.transform));
         }
         joint.inverseBindRotation = joint.inverseDefaultRotation;
-        joint.name = model.name;
+        joint.name = fbxModel.name;
 
         foreach (const QString& childID, _connectionChildMap.values(modelID)) {
             QString type = typeFlags.value(childID);
             if (!type.isEmpty()) {
-                geometry.hasSkeletonJoints |= (joint.isSkeletonJoint = type.toLower().contains("Skeleton"));
+                hfmModel.hasSkeletonJoints |= (joint.isSkeletonJoint = type.toLower().contains("Skeleton"));
                 break;
             }
         }
 
         joint.bindTransformFoundInCluster = false;
 
-        geometry.joints.append(joint);
-        geometry.jointIndices.insert(model.name, geometry.joints.size());
+        hfmModel.joints.append(joint);
+        hfmModel.jointIndices.insert(fbxModel.name, hfmModel.joints.size());
 
         QString rotationID = localRotations.value(modelID);
         AnimationCurve xRotCurve = animationCurves.value(xComponents.value(rotationID));
@@ -1590,11 +1590,11 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
         glm::vec3 defaultPosValues = joint.translation;
 
         for (int i = 0; i < frameCount; i++) {
-            geometry.animationFrames[i].rotations[jointIndex] = glm::quat(glm::radians(glm::vec3(
+            hfmModel.animationFrames[i].rotations[jointIndex] = glm::quat(glm::radians(glm::vec3(
                 xRotCurve.values.isEmpty() ? defaultRotValues.x : xRotCurve.values.at(i % xRotCurve.values.size()),
                 yRotCurve.values.isEmpty() ? defaultRotValues.y : yRotCurve.values.at(i % yRotCurve.values.size()),
                 zRotCurve.values.isEmpty() ? defaultRotValues.z : zRotCurve.values.at(i % zRotCurve.values.size()))));
-            geometry.animationFrames[i].translations[jointIndex] = glm::vec3(
+            hfmModel.animationFrames[i].translations[jointIndex] = glm::vec3(
                 xPosCurve.values.isEmpty() ? defaultPosValues.x : xPosCurve.values.at(i % xPosCurve.values.size()),
                 yPosCurve.values.isEmpty() ? defaultPosValues.y : yPosCurve.values.at(i % yPosCurve.values.size()),
                 zPosCurve.values.isEmpty() ? defaultPosValues.z : zPosCurve.values.at(i % zPosCurve.values.size()));
@@ -1603,32 +1603,32 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
 
     // NOTE: shapeVertices are in joint-frame
     std::vector<ShapeVertices> shapeVertices;
-    shapeVertices.resize(std::max(1, geometry.joints.size()) );
+    shapeVertices.resize(std::max(1, hfmModel.joints.size()) );
 
     // find our special joints
-    geometry.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);
-    geometry.rightEyeJointIndex = modelIDs.indexOf(jointEyeRightID);
-    geometry.neckJointIndex = modelIDs.indexOf(jointNeckID);
-    geometry.rootJointIndex = modelIDs.indexOf(jointRootID);
-    geometry.leanJointIndex = modelIDs.indexOf(jointLeanID);
-    geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
-    geometry.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
-    geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
-    geometry.leftToeJointIndex = modelIDs.indexOf(jointLeftToeID);
-    geometry.rightToeJointIndex = modelIDs.indexOf(jointRightToeID);
+    hfmModel.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);
+    hfmModel.rightEyeJointIndex = modelIDs.indexOf(jointEyeRightID);
+    hfmModel.neckJointIndex = modelIDs.indexOf(jointNeckID);
+    hfmModel.rootJointIndex = modelIDs.indexOf(jointRootID);
+    hfmModel.leanJointIndex = modelIDs.indexOf(jointLeanID);
+    hfmModel.headJointIndex = modelIDs.indexOf(jointHeadID);
+    hfmModel.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
+    hfmModel.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
+    hfmModel.leftToeJointIndex = modelIDs.indexOf(jointLeftToeID);
+    hfmModel.rightToeJointIndex = modelIDs.indexOf(jointRightToeID);
 
     foreach (const QString& id, humanIKJointIDs) {
-        geometry.humanIKJointIndices.append(modelIDs.indexOf(id));
+        hfmModel.humanIKJointIndices.append(modelIDs.indexOf(id));
     }
 
     // extract the translation component of the neck transform
-    if (geometry.neckJointIndex != -1) {
-        const glm::mat4& transform = geometry.joints.at(geometry.neckJointIndex).transform;
-        geometry.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
+    if (hfmModel.neckJointIndex != -1) {
+        const glm::mat4& transform = hfmModel.joints.at(hfmModel.neckJointIndex).transform;
+        hfmModel.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
     }
 
-    geometry.bindExtents.reset();
-    geometry.meshExtents.reset();
+    hfmModel.bindExtents.reset();
+    hfmModel.meshExtents.reset();
 
     // Create the Material Library
     consolidateHFMMaterials(mapping);
@@ -1664,7 +1664,7 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
         }
     }
 #endif
-    geometry.materials = _hfmMaterials;
+    hfmModel.materials = _hfmMaterials;
 
     // see if any materials have texture children
     bool materialsHaveTextures = checkMaterialsHaveTextures(_hfmMaterials, _textureFilenames, _connectionChildMap);
@@ -1675,14 +1675,14 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
         extracted.mesh.meshExtents.reset();
 
         // accumulate local transforms
-        QString modelID = models.contains(it.key()) ? it.key() : _connectionParentMap.value(it.key());
-        glm::mat4 modelTransform = getGlobalTransform(_connectionParentMap, models, modelID, geometry.applicationName == "mixamo.com", url);
+        QString modelID = fbxModels.contains(it.key()) ? it.key() : _connectionParentMap.value(it.key());
+        glm::mat4 modelTransform = getGlobalTransform(_connectionParentMap, fbxModels, modelID, hfmModel.applicationName == "mixamo.com", url);
 
         // compute the mesh extents from the transformed vertices
         foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
             glm::vec3 transformedVertex = glm::vec3(modelTransform * glm::vec4(vertex, 1.0f));
-            geometry.meshExtents.minimum = glm::min(geometry.meshExtents.minimum, transformedVertex);
-            geometry.meshExtents.maximum = glm::max(geometry.meshExtents.maximum, transformedVertex);
+            hfmModel.meshExtents.minimum = glm::min(hfmModel.meshExtents.minimum, transformedVertex);
+            hfmModel.meshExtents.maximum = glm::max(hfmModel.meshExtents.maximum, transformedVertex);
 
             extracted.mesh.meshExtents.minimum = glm::min(extracted.mesh.meshExtents.minimum, transformedVertex);
             extracted.mesh.meshExtents.maximum = glm::max(extracted.mesh.meshExtents.maximum, transformedVertex);
@@ -1763,14 +1763,14 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
                 extracted.mesh.clusters.append(hfmCluster);
 
                 // override the bind rotation with the transform link
-                HFMJoint& joint = geometry.joints[hfmCluster.jointIndex];
+                HFMJoint& joint = hfmModel.joints[hfmCluster.jointIndex];
                 joint.inverseBindRotation = glm::inverse(extractRotation(cluster.transformLink));
                 joint.bindTransform = cluster.transformLink;
                 joint.bindTransformFoundInCluster = true;
 
                 // update the bind pose extents
-                glm::vec3 bindTranslation = extractTranslation(geometry.offset * joint.bindTransform);
-                geometry.bindExtents.addPoint(bindTranslation);
+                glm::vec3 bindTranslation = extractTranslation(hfmModel.offset * joint.bindTransform);
+                hfmModel.bindExtents.addPoint(bindTranslation);
             }
         }
 
@@ -1801,14 +1801,14 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
                 const Cluster& cluster = clusters[clusterID];
                 const HFMCluster& hfmCluster = extracted.mesh.clusters.at(i);
                 int jointIndex = hfmCluster.jointIndex;
-                HFMJoint& joint = geometry.joints[jointIndex];
+                HFMJoint& joint = hfmModel.joints[jointIndex];
                 glm::mat4 transformJointToMesh = inverseModelTransform * joint.bindTransform;
                 glm::vec3 boneEnd = extractTranslation(transformJointToMesh);
                 glm::vec3 boneBegin = boneEnd;
                 glm::vec3 boneDirection;
                 float boneLength = 0.0f;
                 if (joint.parentIndex != -1) {
-                    boneBegin = extractTranslation(inverseModelTransform * geometry.joints[joint.parentIndex].bindTransform);
+                    boneBegin = extractTranslation(inverseModelTransform * hfmModel.joints[joint.parentIndex].bindTransform);
                     boneDirection = boneEnd - boneBegin;
                     boneLength = glm::length(boneDirection);
                     if (boneLength > EPSILON) {
@@ -1882,7 +1882,7 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
         } else {
             // this is a single-mesh joint
             int jointIndex = firstHFMCluster.jointIndex;
-            HFMJoint& joint = geometry.joints[jointIndex];
+            HFMJoint& joint = hfmModel.joints[jointIndex];
 
             // transform cluster vertices to joint-frame and save for later
             glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
@@ -1902,8 +1902,8 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
         }
         buildModelMesh(extracted.mesh, url);
 
-        geometry.meshes.append(extracted.mesh);
-        int meshIndex = geometry.meshes.size() - 1;
+        hfmModel.meshes.append(extracted.mesh);
+        int meshIndex = hfmModel.meshes.size() - 1;
         if (extracted.mesh._mesh) {
             extracted.mesh._mesh->displayName = QString("%1#/mesh/%2").arg(url).arg(meshIndex).toStdString();
             extracted.mesh._mesh->modelName = modelIDsToNames.value(modelID).toStdString();
@@ -1923,8 +1923,8 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
     };
 
     // now that all joints have been scanned compute a k-Dop bounding volume of mesh
-    for (int i = 0; i < geometry.joints.size(); ++i) {
-        HFMJoint& joint = geometry.joints[i];
+    for (int i = 0; i < hfmModel.joints.size(); ++i) {
+        HFMJoint& joint = hfmModel.joints[i];
 
         // NOTE: points are in joint-frame
         ShapeVertices& points = shapeVertices.at(i);
@@ -1958,7 +1958,7 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
             generateBoundryLinesForDop14(joint.shapeInfo.dots, joint.shapeInfo.avgPoint, joint.shapeInfo.debugLines);
         }
     }
-    geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
+    hfmModel.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
 
     // attempt to map any meshes to a named model
     for (QHash<QString, int>::const_iterator m = meshIDsToMeshIndices.constBegin();
@@ -1971,14 +1971,14 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
             const QString& modelID = ooChildToParent.value(meshID);
             if (modelIDsToNames.contains(modelID)) {
                 const QString& modelName = modelIDsToNames.value(modelID);
-                geometry.meshIndicesToModelNames.insert(meshIndex, modelName);
+                hfmModel.meshIndicesToModelNames.insert(meshIndex, modelName);
             }
         }
     }
     {
         int i = 0;
-        for (const auto& mesh : geometry.meshes) {
-            auto name = geometry.getModelNameOfMesh(i++);
+        for (const auto& mesh : hfmModel.meshes) {
+            auto name = hfmModel.getModelNameOfMesh(i++);
             if (!name.isEmpty()) {
                 if (mesh._mesh) {
                     mesh._mesh->modelName = name.toStdString();
@@ -1991,16 +1991,16 @@ HFMGeometry* FBXReader::extractHFMGeometry(const QVariantHash& mapping, const QS
             }
         }
     }
-    return geometryPtr;
+    return hfmModelPtr;
 }
 
-HFMGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
-    QBuffer buffer(const_cast<QByteArray*>(&model));
+HFMModel* readFBX(const QByteArray& data, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+    QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);
     return readFBX(&buffer, mapping, url, loadLightmaps, lightmapLevel);
 }
 
-HFMGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+HFMModel* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     FBXReader reader;
     reader._rootNode = FBXReader::parseFBX(device);
     reader._loadLightmaps = loadLightmaps;
@@ -2008,5 +2008,5 @@ HFMGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QStri
 
     qCDebug(modelformat) << "Reading FBX: " << url;
 
-    return reader.extractHFMGeometry(mapping, url);
+    return reader.extractHFMModel(mapping, url);
 }
