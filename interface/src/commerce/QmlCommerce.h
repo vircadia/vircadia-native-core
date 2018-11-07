@@ -92,7 +92,7 @@ protected:
     Q_INVOKABLE bool uninstallApp(const QString& appHref);
     Q_INVOKABLE bool openApp(const QString& appHref);
 
-    Q_INVOKABLE void getAvailableUpdates(const QString& itemId = "");
+    Q_INVOKABLE void getAvailableUpdates(const QString& itemId = "", const int& pageNumber = 1, const int& itemsPerPage = 10);
     Q_INVOKABLE void updateItem(const QString& certificateId);
 
 private:
