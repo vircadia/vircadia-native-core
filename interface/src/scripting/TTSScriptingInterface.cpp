@@ -75,7 +75,7 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak) {
 #ifdef WIN32
     WAVEFORMATEX fmt;
     fmt.wFormatTag = WAVE_FORMAT_PCM;
-    fmt.nSamplesPerSec = 24000;
+    fmt.nSamplesPerSec = AudioConstants::SAMPLE_RATE;
     fmt.wBitsPerSample = 16;
     fmt.nChannels = 1;
     fmt.nBlockAlign = fmt.nChannels * fmt.wBitsPerSample / 8;
@@ -132,16 +132,12 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak) {
     hr = IStream_Size(pStream, &StreamSize);
 
     DWORD dwSize = StreamSize.QuadPart;
-    char* buf1 = new char[dwSize + 1];
-    memset(buf1, 0, dwSize + 1);
+    _lastSoundByteArray.resize(dwSize);
 
-    hr = IStream_Read(pStream, buf1, dwSize);
+    hr = IStream_Read(pStream, _lastSoundByteArray.data(), dwSize);
     if (FAILED(hr)) {
         qDebug() << "Couldn't read from stream.";
     }
-
-    _lastSoundByteArray.resize(0);
-    _lastSoundByteArray.append(buf1, dwSize);
 
     AudioInjectorOptions options;
     options.position = DependencyManager::get<AvatarManager>()->getMyAvatarPosition();
