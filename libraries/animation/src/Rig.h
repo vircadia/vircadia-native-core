@@ -128,6 +128,7 @@ public:
     int getJointStateCount() const;
     int indexOfJoint(const QString& jointName) const;
     QString nameOfJoint(int jointIndex) const;
+    const QMap<int, glm::quat>& getJointRotationOffsets() const;
 
     void setModelOffset(const glm::mat4& modelOffsetMat);
 
@@ -422,6 +423,7 @@ protected:
 
     SnapshotBlendPoseHelper _hipsBlendHelper;
     ControllerParameters _previousControllerParameters;
+    bool _alreadyInitialized { false };
 };
 
 #endif /* defined(__hifi__Rig__) */

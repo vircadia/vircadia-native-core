@@ -267,7 +267,7 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
     _rigToGeometryTransform = glm::inverse(_geometryToRigTransform);
     setModelOffset(modelOffset);
 
-    _animSkeleton = std::make_shared<AnimSkeleton>(geometry,_jointRotationOffsets);
+    _animSkeleton = std::make_shared<AnimSkeleton>(geometry, _jointRotationOffsets);
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -2084,4 +2084,8 @@ void Rig::setJointRotationOffsets(const QMap<QString, glm::quat>& offsets) {
         _jointRotationOffsets.insert(spine2Id, glm::quat(0.5f, 0.5f, 0.5f, -0.5f));
     }
     qCDebug(animation) << "set the neck and spine2 offsets " << spine2Id << " " << neckId;
+}
+
+const QMap<int, glm::quat>& Rig::getJointRotationOffsets() const {
+    return _jointRotationOffsets;
 }

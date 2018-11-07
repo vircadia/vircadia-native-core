@@ -91,6 +91,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
 // Called within Model::simulate call, below.
 void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     const FBXGeometry& geometry = getFBXGeometry();
+    const QMap<int, glm::quat> jointOffsetMap = _rig.getJointRotationOffsets();
 
     Head* head = _owningAvatar->getHead();
 
@@ -118,8 +119,10 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     // input action is the highest priority source for head orientation.
     auto avatarHeadPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (avatarHeadPose.isValid()) {
+        qCDebug(interfaceapp) << "neck joint offset " << jointOffsetMap[62];
+        AnimPose jointOffset(jointOffsetMap[62], glm::vec3());
         AnimPose pose(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
-        params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = avatarToRigPose * pose;
+        params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = jointOffset.inverse() * (avatarToRigPose * pose) * jointOffset;
         params.primaryControllerFlags[Rig::PrimaryControllerType_Head] = (uint8_t)Rig::ControllerFlags::Enabled;
     } else {
         // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and
@@ -229,7 +232,8 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
 
         // set spine2 if we have hand controllers
-        if (myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid() &&
+        qCDebug(interfaceapp) << "spine 2 joint offset " << jointOffsetMap[13];
+        if (false && myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid() &&
             myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() &&
             !(params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] & (uint8_t)Rig::ControllerFlags::Enabled)) {
 
