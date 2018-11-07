@@ -279,11 +279,27 @@ Rectangle {
             }
         }
         Separator {}
-        HifiControls.Button {
-            text: "Engine"
-           // activeFocusOnPress: false
-            onClicked: {
-               sendToScript({method: "openEngineView"}); 
+        Row {
+            HifiControls.Button {
+                text: "Engine"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openEngineView"}); 
+                }
+            }
+            HifiControls.Button {
+                text: "LOD"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openEngineLODView"}); 
+                }
+            }
+            HifiControls.Button {
+                text: "Cull"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openCullInspectorView"}); 
+                }
             }
         }
     }

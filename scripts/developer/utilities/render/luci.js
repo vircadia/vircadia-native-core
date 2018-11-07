@@ -11,122 +11,131 @@
 //
 
 (function() {
-    var TABLET_BUTTON_NAME = "LUCI";
-    var QMLAPP_URL = Script.resolvePath("./deferredLighting.qml");
-    var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
-    var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
-
-   
-    var onLuciScreen = false;
-
-    function onClicked() {
-        if (onLuciScreen) {
-            tablet.gotoHomeScreen();
-        } else {
-            tablet.loadQMLSource(QMLAPP_URL);
-        }
-    }
-
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    var button = tablet.addButton({
-        text: TABLET_BUTTON_NAME,
-        icon: ICON_URL,
-        activeIcon: ACTIVE_ICON_URL
-    });
-
-    var hasEventBridge = false;
-
-    function wireEventBridge(on) {
-        if (!tablet) {
-            print("Warning in wireEventBridge(): 'tablet' undefined!");
-            return;
-        }
-        if (on) {
-            if (!hasEventBridge) {
-                tablet.fromQml.connect(fromQml);
-                hasEventBridge = true;
-            }
-        } else {
-            if (hasEventBridge) {
-                tablet.fromQml.disconnect(fromQml);
-                hasEventBridge = false;
-            }
-        }
-    }
-
-    function onScreenChanged(type, url) {
-        if (url === QMLAPP_URL) {
-            onLuciScreen = true;
-        } else { 
-            onLuciScreen = false;
-        }
-        
-        button.editProperties({isActive: onLuciScreen});
-        wireEventBridge(onLuciScreen);
-    }
-        
-    button.clicked.connect(onClicked);
-    tablet.screenChanged.connect(onScreenChanged);
+    var AppUi = Script.require('appUi');
 
     var moveDebugCursor = false;
-    Controller.mousePressEvent.connect(function (e) {
+    var onMousePressEvent = function (e) {
         if (e.isMiddleButton) {
             moveDebugCursor = true;
             setDebugCursor(e.x, e.y);
         }
-    });
-    Controller.mouseReleaseEvent.connect(function() { moveDebugCursor = false; });
-    Controller.mouseMoveEvent.connect(function (e) { if (moveDebugCursor) setDebugCursor(e.x, e.y); });
+    };
+    Controller.mousePressEvent.connect(onMousePressEvent);
 
+    var onMouseReleaseEvent = function () {
+        moveDebugCursor = false;
+    };
+    Controller.mouseReleaseEvent.connect(onMouseReleaseEvent);
 
+    var onMouseMoveEvent = function (e) {
+        if (moveDebugCursor) {
+            setDebugCursor(e.x, e.y);
+        }
+    };
+    Controller.mouseMoveEvent.connect(onMouseMoveEvent);
 
     function setDebugCursor(x, y) {
-        nx = 2.0 * (x / Window.innerWidth) - 1.0;
-        ny = 1.0 - 2.0 * ((y) / (Window.innerHeight));
+        var nx = 2.0 * (x / Window.innerWidth) - 1.0;
+        var ny = 1.0 - 2.0 * ((y) / (Window.innerHeight));
 
-         Render.getConfig("RenderMainView").getConfig("DebugDeferredBuffer").size = { x: nx, y: ny, z: 1.0, w: 1.0 };
+        Render.getConfig("RenderMainView").getConfig("DebugDeferredBuffer").size = { x: nx, y: ny, z: 1.0, w: 1.0 };
     }
 
+    function Page(title, qmlurl, width, height) {
+        this.title = title;
+        this.qml = qmlurl;
+        this.width = width;
+        this.height = height;
+
+        this.window;
+
+        print("Page: New Page:" + JSON.stringify(this));
+    }
+
+    Page.prototype.killView = function () {
+        print("Page: Kill window for page:" + JSON.stringify(this));
+        if (this.window) { 
+            print("Page: Kill window for page:" + this.title);
+            //this.window.closed.disconnect(function () {
+            //    this.killView();
+            //});
+            this.window.close();
+            this.window = false;
+        }
+    };
+
+    Page.prototype.createView = function () {
+        var that = this;
+        if (!this.window) {
+            print("Page: New window for page:" + this.title);
+            this.window = Desktop.createWindow(Script.resolvePath(this.qml), {
+                title: this.title,
+                presentationMode: Desktop.PresentationMode.NATIVE,
+                size: {x: this.width, y: this.height}
+            });
+            this.window.closed.connect(function () {
+                that.killView();
+            });
+        }  
+    };
+
+
+    var Pages = function () {
+        this._pages = {};
+    };
+
+    Pages.prototype.addPage = function (command, title, qmlurl, width, height) {
+        this._pages[command] = new Page(title, qmlurl, width, height);
+    };
+
+    Pages.prototype.open = function (command) {
+        print("Pages: command = " + command);
+        if (!this._pages[command]) {
+            print("Pages: unknown command = " + command);
+            return;
+        }
+        this._pages[command].createView();
+    };
+
+    Pages.prototype.clear = function () {
+        for (var p in this._pages) {
+            print("Pages: kill page: " + p);
+            this._pages[p].killView();
+            delete this._pages[p];
+        }
+        this._pages = {};
+    };
+    var pages = new Pages();
+
+    pages.addPage('openEngineView', 'Render Engine', 'engineInspector.qml', 300, 400);
+    pages.addPage('openEngineLODView', 'Render LOD', 'lod.qml', 300, 400);
+    pages.addPage('openCullInspectorView', 'Cull Inspector', 'culling.qml', 300, 400);
 
     function fromQml(message) {
-        switch (message.method) {
-        case "openEngineView":
-            openEngineTaskView();
-            break;
-        }            
+        if (pages.open(message.method)) {
+            return;
+        }    
     }
 
-
-    var engineInspectorView = null 
-    function openEngineTaskView() {
-        if (engineInspectorView == null) {
-            var qml = Script.resolvePath('engineInspector.qml');
-            var window = new OverlayWindow({
-                title: 'Render Engine',
-                source: qml,
-                width: 300, 
-                height: 400
-            });
-            window.setPosition(200, 50);
-            engineInspectorView = window
-            window.closed.connect(function() { engineInspectorView = null; });
-        } else {
-            engineInspectorView.setPosition(200, 50);          
-        }
+    var ui;
+    function startup() {
+        ui = new AppUi({
+            buttonName: "LUCI",
+            home: Script.resolvePath("deferredLighting.qml"),
+            additionalAppScreens: Script.resolvePath("engineInspector.qml"),
+            onMessage: fromQml,
+            normalButton: Script.resolvePath("../../../system/assets/images/luci-i.svg"),
+            activeButton: Script.resolvePath("../../../system/assets/images/luci-a.svg")
+        });
     }
-
-
-    
+    startup();
     Script.scriptEnding.connect(function () {
-        if (onLuciScreen) {
-            tablet.gotoHomeScreen();
-        }
-        button.clicked.disconnect(onClicked);
-        tablet.screenChanged.disconnect(onScreenChanged);
-        tablet.removeButton(button);
-
-        if (engineInspectorView !== null) {
-            engineInspectorView.close()
-        }
+        Controller.mousePressEvent.disconnect(onMousePressEvent);
+        Controller.mouseReleaseEvent.disconnect(onMouseReleaseEvent);
+        Controller.mouseMoveEvent.disconnect(onMouseMoveEvent);
+        pages.clear();
+        // killEngineInspectorView();
+        // killCullInspectorView();
+        // killEngineLODWindow();
     });
 }()); 
