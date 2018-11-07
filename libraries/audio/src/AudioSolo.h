@@ -20,7 +20,7 @@
 #include <QUuid>
 
 class AudioSolo {
-    using Mutex = std::mutex;
+    using Mutex = std::recursive_mutex;
     using Lock = std::unique_lock<Mutex>;
 
 public:
@@ -29,6 +29,8 @@ public:
     void addUUIDs(QVector<QUuid> uuidList);
     void removeUUIDs(QVector<QUuid> uuidList);
     void reset();
+
+    void resend();
 
 private:
     mutable Mutex _mutex;

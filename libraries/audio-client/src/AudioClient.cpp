@@ -284,6 +284,11 @@ AudioClient::AudioClient() :
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this] {
         _solo.reset();
     });
+    connect(nodeList.data(), &NodeList::nodeAdded, this, [this](SharedNodePointer node) {
+        if (node->getType() == NodeType::AudioMixer) {
+            _solo.resend();
+        }
+    });
 }
 
 AudioClient::~AudioClient() {

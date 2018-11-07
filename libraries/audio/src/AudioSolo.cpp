@@ -72,6 +72,15 @@ void AudioSolo::removeUUIDs(QVector<QUuid> uuidList) {
 }
 
 void AudioSolo::reset() {
+    Lock lock(_mutex);
     removeUUIDs(getUUIDs());
+}
+
+
+void AudioSolo::resend() {
+    Lock lock(_mutex);
+    auto uuids = getUUIDs();
+    _nodesSoloed.clear();
+    addUUIDs(uuids);
 }
 
