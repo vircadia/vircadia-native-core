@@ -1,7 +1,7 @@
 import QtQuick 2.5
 
-import "../../qml/controls-uit"
-import "../../qml/styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 import "../../qml/dialogs"
 
 QtObject {

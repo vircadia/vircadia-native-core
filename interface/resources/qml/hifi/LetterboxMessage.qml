@@ -10,7 +10,7 @@
 //
 
 import QtQuick 2.5
-import "../styles-uit"
+import stylesUit 1.0
 
 Item {
     property alias text: popupText.text
