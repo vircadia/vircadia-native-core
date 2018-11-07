@@ -931,6 +931,7 @@ var toolBar = (function () {
     };
 
     that.toggle = function () {
+        print("toggling");
         that.setActive(!isActive);
         if (!isActive) {
             tablet.gotoHomeScreen();
@@ -2014,7 +2015,7 @@ function focusKey(value) {
     if (value === 0) { // on release
         cameraManager.enable();
         if (selectionManager.hasSelection()) {
-            cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions, 
+            cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions,
                                 Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
         }
     }
@@ -2258,7 +2259,7 @@ var PropertiesTool = function (opts) {
     };
 
     that.setVisible(false);
-    
+
     function emitScriptEvent(data) {
         var dataString = JSON.stringify(data);
         webView.emitScriptEvent(dataString);

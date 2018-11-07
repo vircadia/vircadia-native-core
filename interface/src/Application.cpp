@@ -8490,7 +8490,7 @@ void Application::setShowBulletConstraintLimits(bool value) {
 }
 
 void Application::checkReadyToCreateLoginDialogOverlay() {
-    if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible() && qApp->getLoginDialogPoppedUp() && _loginDialogOverlayID.isNull()) {
+    if (qApp->isHMDMode() && qApp->getLoginDialogPoppedUp() && _loginDialogOverlayID.isNull()) {
         createLoginDialogOverlay();
         _loginPointerManager.setUp();
     } else if (qApp->getLoginDialogPoppedUp()) {
