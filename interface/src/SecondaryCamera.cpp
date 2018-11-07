@@ -40,7 +40,50 @@ public:
         _farClipPlaneDistance = config.farClipPlaneDistance;
         _textureWidth = config.textureWidth;
         _textureHeight = config.textureHeight;
-        _mirrorProjection = config.mirrorProjection;  
+        _mirrorProjection = config.mirrorProjection;
+        _portalProjection = config.portalProjection;
+    }
+
+    void setPortalProjection(ViewFrustum& srcViewFrustum) {
+        if (_attachedEntityId.isNull()) {
+            qWarning() << "ERROR: Cannot set mirror projection for SecondaryCamera without an attachedEntityId set.";
+            return;
+        }
+        EntityItemPointer attachedEntity = qApp->getEntities()->getTree()->findEntityByID(_attachedEntityId);
+
+        if (!attachedEntity) {
+            qWarning() << "ERROR: Cannot get EntityItemPointer for _attachedEntityId.";
+            return;
+        }
+
+        glm::vec3 mirrorPropertiesPosition = attachedEntity->getWorldPosition();
+        glm::quat mirrorPropertiesRotation = attachedEntity->getWorldOrientation();
+        glm::vec3 mirrorPropertiesDimensions = attachedEntity->getScaledDimensions();
+        glm::vec3 halfMirrorPropertiesDimensions = 0.5f * mirrorPropertiesDimensions;
+
+        glm::mat4 worldFromMirrorRotation = glm::mat4_cast(mirrorPropertiesRotation);
+        glm::mat4 worldFromMirrorTranslation = glm::translate(mirrorPropertiesPosition);
+        glm::mat4 worldFromMirror = worldFromMirrorTranslation * worldFromMirrorRotation;
+        glm::mat4 mirrorFromWorld = glm::inverse(worldFromMirror);
+
+
+        glm::vec3 mainCameraPositionWorld = qApp->getCamera().getPosition();
+        glm::vec3 mainCameraPositionMirror = vec3(mirrorFromWorld * vec4(mainCameraPositionWorld, 1.0f));
+        glm::vec3 mirrorCameraPositionMirror = vec3(mainCameraPositionMirror.x, mainCameraPositionMirror.y,
+            mainCameraPositionMirror.z);
+        glm::vec3 mirrorCameraPositionWorld = vec3(worldFromMirror * vec4(mirrorCameraPositionMirror, 1.0f));
+
+        // set frustum position to be mirrored camera and set orientation to mirror's adjusted rotation
+        glm::quat mirrorCameraOrientation = glm::quat_cast(worldFromMirrorRotation);
+        srcViewFrustum.setPosition(mirrorCameraPositionWorld);
+        srcViewFrustum.setOrientation(mirrorCameraOrientation);
+
+        // build frustum using mirror space translation of mirrored camera
+        float nearClip = mirrorCameraPositionMirror.z + mirrorPropertiesDimensions.z * 2.0f;
+        glm::vec3 upperRight = halfMirrorPropertiesDimensions - mirrorCameraPositionMirror;
+        glm::vec3 bottomLeft = -halfMirrorPropertiesDimensions - mirrorCameraPositionMirror;
+        glm::mat4 frustum = glm::frustum(bottomLeft.x, upperRight.x, bottomLeft.y, upperRight.y, nearClip, _farClipPlaneDistance);
+        srcViewFrustum.setProjection(frustum);
     }
 
     void setMirrorProjection(ViewFrustum& srcViewFrustum) {
@@ -109,7 +152,17 @@ public:
 
             auto srcViewFrustum = args->getViewFrustum();
             if (_mirrorProjection) {
-                setMirrorProjection(srcViewFrustum);
+                if (_portalProjection) {
+                    qWarning() << "ERROR: You can't set both _portalProjection and _mirrorProjection";
+                } else {
+                    setMirrorProjection(srcViewFrustum);
+                }
+            } else if (_portalProjection) {
+                if (_mirrorProjection) {
+                    qWarning() << "ERROR: You can't set both _portalProjection and _mirrorProjection";
+                } else {
+                    setPortalProjection(srcViewFrustum);
+                }
             } else {
                 if (!_attachedEntityId.isNull()) {
                     EntityItemPointer attachedEntity = qApp->getEntities()->getTree()->findEntityByID(_attachedEntityId);
@@ -149,6 +202,7 @@ private:
     int _textureWidth;
     int _textureHeight;
     bool _mirrorProjection;
+    bool _portalProjection;
     EntityPropertyFlags _attachedEntityPropertyFlags;
 };
 
