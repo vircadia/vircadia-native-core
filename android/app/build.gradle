@@ -52,9 +52,9 @@ android {
         debug {
             buildConfigField "String", "BACKTRACE_URL", "\"" + (System.getenv("CMAKE_BACKTRACE_URL") ? System.getenv("CMAKE_BACKTRACE_URL") : '') + "\""
             buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (System.getenv("CMAKE_BACKTRACE_TOKEN") ? System.getenv("CMAKE_BACKTRACE_TOKEN") : '') + "\""
-            buildConfigField "String", "OAUTH_CLIENT_ID", "\"" + (project.hasProperty("OAUTH_CLIENT_ID") ? OAUTH_CLIENT_ID : '') + "\""
-            buildConfigField "String", "OAUTH_CLIENT_SECRET", "\"" + (project.hasProperty("OAUTH_CLIENT_SECRET") ? OAUTH_CLIENT_SECRET : '') + "\""
-            buildConfigField "String", "OAUTH_REDIRECT_URI", "\"" + (project.hasProperty("OAUTH_REDIRECT_URI") ? OAUTH_REDIRECT_URI : '') + "\""
+            buildConfigField "String", "OAUTH_CLIENT_ID", "\"" + (System.getenv("OAUTH_CLIENT_ID") ? System.getenv("OAUTH_CLIENT_ID") : '') + "\""
+            buildConfigField "String", "OAUTH_CLIENT_SECRET", "\"" + (System.getenv("OAUTH_CLIENT_SECRET") ? System.getenv("OAUTH_CLIENT_SECRET") : '') + "\""
+            buildConfigField "String", "OAUTH_REDIRECT_URI", "\"" + (System.getenv("OAUTH_REDIRECT_URI") ? System.getenv("OAUTH_REDIRECT_URI") : '') + "\""
         }
         release {
             minifyEnabled false
@@ -65,9 +65,9 @@ android {
                     project.hasProperty("HIFI_ANDROID_KEY_PASSWORD")? signingConfigs.release : null
             buildConfigField "String", "BACKTRACE_URL", "\"" + (System.getenv("CMAKE_BACKTRACE_URL") ? System.getenv("CMAKE_BACKTRACE_URL") : '') + "\""
             buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (System.getenv("CMAKE_BACKTRACE_TOKEN") ? System.getenv("CMAKE_BACKTRACE_TOKEN") : '') + "\""
-            buildConfigField "String", "OAUTH_CLIENT_ID", "\"" + (project.hasProperty("OAUTH_CLIENT_ID") ? OAUTH_CLIENT_ID : '') + "\""
-            buildConfigField "String", "OAUTH_CLIENT_SECRET", "\"" + (project.hasProperty("OAUTH_CLIENT_SECRET") ? OAUTH_CLIENT_SECRET : '') + "\""
-            buildConfigField "String", "OAUTH_REDIRECT_URI", "\"" + (project.hasProperty("OAUTH_REDIRECT_URI") ? OAUTH_REDIRECT_URI : '') + "\""
+            buildConfigField "String", "OAUTH_CLIENT_ID", "\"" + (System.getenv("OAUTH_CLIENT_ID") ? System.getenv("OAUTH_CLIENT_ID") : '') + "\""
+            buildConfigField "String", "OAUTH_CLIENT_SECRET", "\"" + (System.getenv("OAUTH_CLIENT_SECRET") ? System.getenv("OAUTH_CLIENT_SECRET") : '') + "\""
+            buildConfigField "String", "OAUTH_REDIRECT_URI", "\"" + (System.getenv("OAUTH_REDIRECT_URI") ? System.getenv("OAUTH_REDIRECT_URI") : '') + "\""
         }
     }
 
