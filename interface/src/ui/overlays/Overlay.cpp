@@ -247,7 +247,7 @@ void Overlay::removeMaterial(graphics::MaterialPointer material, const std::stri
 }
 
 render::ItemKey Overlay::getKey() {
-    auto builder = render::ItemKey::Builder().withTypeShape().withTypeMeta();
+    auto builder = render::ItemKey::Builder().withTypeShape();
 
     builder.withViewSpace();
     builder.withLayer(render::hifi::LAYER_2D);
