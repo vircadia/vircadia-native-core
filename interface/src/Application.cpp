@@ -1748,9 +1748,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         userInputMapper->registerDevice(_touchscreenVirtualPadDevice->getInputDevice());
     }
 
-    QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
-    _defaultScriptsLocation = getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str());
-
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -5191,6 +5188,11 @@ void Application::pauseUntilLoginDetermined() {
     menu->getMenu("View")->setVisible(false);
     menu->getMenu("Navigate")->setVisible(false);
     menu->getMenu("Settings")->setVisible(false);
+    _developerMenuVisible = menu->getMenu("Developer")->isVisible();
+    if (_developerMenuVisible) {
+        menu->getMenu("Developer")->setVisible(false);
+    }
+
 }
 
 void Application::resumeAfterLoginDialogActionTaken() {
@@ -5209,19 +5211,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
         // this will force the model the look at the correct directory (weird order of operations issue)
         scriptEngines->reloadLocalFiles();
 
-        // do this as late as possible so that all required subsystems are initialized
-        // If we've overridden the default scripts location, just load default scripts
-        // otherwise, load 'em all
-
-        // we just want to see if --scripts was set, we've already parsed it and done
-        // the change in PathUtils.  Rather than pass that in the constructor, lets just
-        // look (this could be debated)
-        if (!_defaultScriptsLocation.exists()) {
-            scriptEngines->loadDefaultScripts();
-            scriptEngines->defaultScriptsLocationOverridden(true);
-        } else {
-            scriptEngines->loadScripts();
-        }
+        scriptEngines->loadScripts();
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -5257,6 +5247,9 @@ void Application::resumeAfterLoginDialogActionTaken() {
     menu->getMenu("View")->setVisible(true);
     menu->getMenu("Navigate")->setVisible(true);
     menu->getMenu("Settings")->setVisible(true);
+    if (_developerMenuVisible) {
+        menu->getMenu("Developer")->setVisible(true);
+    }
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -8499,6 +8492,7 @@ void Application::setShowBulletConstraintLimits(bool value) {
 void Application::checkReadyToCreateLoginDialogOverlay() {
     if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible() && qApp->getLoginDialogPoppedUp() && _loginDialogOverlayID.isNull()) {
         createLoginDialogOverlay();
+        _loginPointerManager.setUp();
     } else if (qApp->getLoginDialogPoppedUp()) {
         if (!qApp->isHMDMode()) {
             _loginPointerManager.tearDown();
@@ -8528,7 +8522,6 @@ void Application::createLoginDialogOverlay() {
         { "visible", true }
     };
      _loginDialogOverlayID = overlays.addOverlay("web3d", overlayProperties);
-    _loginPointerManager.setUp();
 }
 
 void Application::onDismissedLoginDialog() {

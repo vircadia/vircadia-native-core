@@ -98,7 +98,6 @@ static const UINT UWM_SHOW_APPLICATION =
 #endif
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
-static const QString SCRIPTS_SWITCH = "scripts";
 
 class Application;
 #if defined(qApp)
@@ -664,8 +663,6 @@ private:
     QPointer<LogDialog> _logDialog;
     QPointer<EntityScriptServerLogDialog> _entityScriptServerLogDialog;
 
-    QDir _defaultScriptsLocation{""};
-
     FileLogger* _logger;
 
     TouchEvent _lastTouchEvent;
@@ -688,6 +685,8 @@ private:
     bool _interstitialModeEnabled{ false };
 
     bool _loginDialogPoppedUp = false;
+    // if visible before login popped up.
+    bool _developerMenuVisible{ false };
     OverlayID _loginDialogOverlayID;
     LoginPointerManager _loginPointerManager;
 

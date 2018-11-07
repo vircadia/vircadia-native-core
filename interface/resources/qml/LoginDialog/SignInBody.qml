@@ -87,7 +87,7 @@ Item {
             loginButtonAtSignIn.color = hifi.buttons.black;
             emailField.placeholderText = "Username or Email";
             var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
-            emailField.text = savedUsername === "Unknown user" ? "" : savedUsername;
+            emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
             emailField.anchors.top = loginContainer.top;
             emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.height : 0.24 * root.height;
             cantAccessContainer.anchors.topMargin = !root.isTablet ? 3.5 * hifi.dimensions.contentSpacing.y : hifi.dimensions.contentSpacing.y;
@@ -203,10 +203,12 @@ Item {
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                             event.accepted = true;
-                            if (loginDialog.isLogIn) {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
-                            } else {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                            if (keepMeLoggedInCheckbox.checked) {
+                                if (loginDialog.isLogIn) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                                }
                             }
                             signInBody.login();
                             break;
@@ -249,10 +251,12 @@ Item {
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                             event.accepted = true;
-                            if (loginDialog.isLogIn) {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
-                            } else {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                            if (keepMeLoggedInCheckbox.checked) {
+                                if (loginDialog.isLogIn) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                                }
                             }
                             signInBody.login();
                             break;
@@ -335,10 +339,12 @@ Item {
                     case Qt.Key_Enter:
                     case Qt.Key_Return:
                         event.accepted = true;
-                        if (loginDialog.isLogIn) {
-                            Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
-                        } else {
-                            Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                        if (keepMeLoggedInCheckbox.checked) {
+                            if (loginDialog.isLogIn) {
+                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                            } else {
+                                Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                            }
                         }
                         signInBody.login();
                         break;
@@ -346,7 +352,7 @@ Item {
                 }
             }
             HifiControlsUit.CheckBox {
-                id: autoLogoutCheckbox
+                id: keepMeLoggedInCheckbox
                 checked: Settings.getValue("keepMeLoggedIn", false);
                 text: qsTr("Keep Me Logged In");
                 boxSize: 18;
@@ -377,7 +383,7 @@ Item {
                 width: cancelText.width
                 height: d.minHeightButton
                 anchors {
-                    top: autoLogoutCheckbox.bottom
+                    top: keepMeLoggedInCheckbox.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
                     left: parent.left
                     leftMargin: (parent.width - passwordField.width) / 2

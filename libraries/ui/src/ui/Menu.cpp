@@ -550,6 +550,10 @@ void MenuWrapper::setEnabled(bool enabled) {
     _realMenu->setEnabled(enabled);
 }
 
+bool MenuWrapper::isVisible() {
+    return _realMenu->menuAction()->isVisible();
+}
+
 void MenuWrapper::setVisible(bool visible) {
     _realMenu->menuAction()->setVisible(visible);
 }
