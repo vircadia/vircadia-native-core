@@ -13,8 +13,8 @@ import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
-import "../../styles-uit"
-import "../../controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 import "../../windows" as Windows
 import "../"
 
@@ -30,7 +30,7 @@ Windows.ScrollingWindow {
     minSize: Qt.vector2d(424, 300)
 
     HifiConstants { id: hifi }
-    
+
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
@@ -63,8 +63,8 @@ Windows.ScrollingWindow {
             }
         }
     }
-    
-    
+
+
     Timer {
         id: refreshTimer
         interval: 100
@@ -81,7 +81,7 @@ Windows.ScrollingWindow {
         running: false
         onTriggered: developerMenuEnabled = MenuInterface.isOptionChecked("Developer Menu");
     }
-    
+
     Component {
         id: listModelBuilder
         ListModel { }
@@ -92,7 +92,7 @@ Windows.ScrollingWindow {
         onScriptCountChanged: {
             runningScriptsModel = listModelBuilder.createObject(root);
             refreshTimer.restart();
-        }            
+        }
     }
 
     Component.onCompleted: {
@@ -120,7 +120,7 @@ Windows.ScrollingWindow {
         // Calling  `runningScriptsModel.clear()` here instead of creating a new object
         // triggers some kind of weird heap corruption deep inside Qt.  So instead of
         // modifying the model in place, possibly triggering behaviors in the table
-        // instead we create a new `ListModel`, populate it and update the 
+        // instead we create a new `ListModel`, populate it and update the
         // existing model atomically.
         var newRunningScriptsModel = listModelBuilder.createObject(root);
         for (var i = 0; i < runningScripts.length; ++i) {
@@ -180,7 +180,7 @@ Windows.ScrollingWindow {
         if ((script === "controllerScripts.js") || (script === "defaultScripts.js")) {
             return developerMenuEnabled;
         }
-        
+
         return true;
     }
 
@@ -372,7 +372,7 @@ Windows.ScrollingWindow {
                 colorScheme: hifi.colorSchemes.dark
                 anchors.left: parent.left
                 anchors.right: parent.right
-                
+
                 TableViewColumn {
                     role: "display";
                 }
@@ -450,4 +450,3 @@ Windows.ScrollingWindow {
         }
     }
 }
-

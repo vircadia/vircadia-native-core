@@ -13,10 +13,15 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
+<<<<<<< HEAD
 import "qrc:////qml//controls-uit" as HifiControlsUit
 import "qrc:////qml//styles-uit" as HifiStylesUit
 
 import TabletScriptingInterface 1.0
+=======
+import controlsUit 1.0
+import stylesUit 1.0
+>>>>>>> 63bf0777766bc2421184a1cd9a06ed775b09fc1c
 
 Item {
     id: linkAccountBody

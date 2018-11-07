@@ -11,8 +11,8 @@
 import Hifi 1.0
 import QtQuick 2.4
 
-import "qrc:////qml//controls-uit" as HifiControlsUit
-import "qrc:////qml//styles-uit" as HifiStylesUit
+import controlsUit 1.0 as HifiControlsUit
+import stylesUit 1.0 as HifiStylesUit
 
 import "LoginDialog"
 

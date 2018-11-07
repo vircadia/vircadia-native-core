@@ -13,8 +13,8 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
-import "qrc:////qml//controls-uit" as HifiControlsUit
-import "qrc:////qml//styles-uit" as HifiStylesUit
+import controlsUit 1.0 as HifiControlsUit
+import stylesUit 1.0 as HifiStylesUit
 
 Item {
 
