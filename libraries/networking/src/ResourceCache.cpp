@@ -740,6 +740,8 @@ void Resource::handleReplyFinished() {
 
     setSize(_bytesTotal);
 
+    // Make sure we keep the Resource alive here
+    auto self = _self.lock();
     ResourceCache::requestCompleted(_self);
 
     auto result = _request->getResult();
