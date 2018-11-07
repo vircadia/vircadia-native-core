@@ -20,6 +20,7 @@
 class SecondaryCameraJobConfig : public render::Task::Config { // Exposes secondary camera parameters to JavaScript.
     Q_OBJECT
     Q_PROPERTY(QUuid attachedEntityId MEMBER attachedEntityId NOTIFY dirty)  // entity whose properties define camera position and orientation
+    Q_PROPERTY(QUuid portalEntranceEntityId MEMBER portalEntranceEntityId NOTIFY dirty)  // entity whose properties define a portal's entrance position and orientation
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)  // of viewpoint to render from
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)  // of viewpoint to render from
     Q_PROPERTY(float vFoV MEMBER vFoV NOTIFY dirty)  // Secondary camera's vertical field of view. In degrees.
@@ -29,6 +30,7 @@ class SecondaryCameraJobConfig : public render::Task::Config { // Exposes second
     Q_PROPERTY(bool portalProjection MEMBER portalProjection NOTIFY dirty)  // Flag to use attached portal entity to build frustum for the portal and set portal camera position/orientation.
 public:
     QUuid attachedEntityId;
+    QUuid portalEntranceEntityId;
     glm::vec3 position;
     glm::quat orientation;
     float vFoV { DEFAULT_FIELD_OF_VIEW_DEGREES };
