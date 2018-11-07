@@ -8511,7 +8511,6 @@ void Application::createLoginDialogOverlay() {
     // reference vector for overlay to spawn.
     glm::vec3 refOverlayVec;
     if (headPose.isValid()) {
-        qDebug() << "controller head position = " << vec3toVariant(headPose.translation);
         refOverlayVec = headPose.translation;
     } else if (HMD->getPosition() != glm::vec3()) {
         refOverlayVec = HMD->getPosition();
