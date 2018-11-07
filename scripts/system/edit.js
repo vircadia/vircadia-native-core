@@ -931,7 +931,6 @@ var toolBar = (function () {
     };
 
     that.toggle = function () {
-        print("toggling");
         that.setActive(!isActive);
         if (!isActive) {
             tablet.gotoHomeScreen();
