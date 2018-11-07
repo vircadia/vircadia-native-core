@@ -203,14 +203,13 @@ void EntityEditFilters::addFilter(EntityItemID entityID, QString filterURL) {
     auto scriptRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(
         this, scriptURL, true, -1, "EntityEditFilters::addFilter");
     if (!scriptRequest) {
-        qWarning() << "Could not create ResourceRequest for Entity Edit filter script at" << scriptURL.toString();
+        qWarning() << "Could not create ResourceRequest for Entity Edit filter.";
         scriptRequestFinished(entityID);
         return;
     }
     // Agent.cpp sets up a timeout here, but that is unnecessary, as ResourceRequest has its own.
     connect(scriptRequest, &ResourceRequest::finished, this, [this, entityID]{ EntityEditFilters::scriptRequestFinished(entityID);} );
     // FIXME: handle atp rquests setup here. See Agent::requestScript()
-    qInfo() << "Requesting script at URL" << qPrintable(scriptRequest->getUrl().toString());
     scriptRequest->send();
     qDebug() << "script request sent for entity " << entityID;
 }
@@ -223,7 +222,7 @@ static bool hasCorrectSyntax(const QScriptProgram& program) {
         const auto error = syntaxCheck.errorMessage();
         const auto line = QString::number(syntaxCheck.errorLineNumber());
         const auto column = QString::number(syntaxCheck.errorColumnNumber());
-        const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, program.fileName(), line, column);
+        const auto message = QString("[SyntaxError] %1 in %2(%3)").arg(error, line, column);
         qCritical() << qPrintable(message);
         return false;
     }
@@ -236,8 +235,8 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
         const auto line = QString::number(engine.uncaughtExceptionLineNumber());
         engine.clearExceptions();
 
-        static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
-        auto message = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, fileName, line);
+        static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 on line %2";
+        auto message = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, line);
         if (!backtrace.empty()) {
             static const auto lineSeparator = "\n    ";
             message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
@@ -376,7 +375,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
         } 
     } else if (scriptRequest) {
         const QString urlString = scriptRequest->getUrl().toString();
-        qCritical() << "Failed to download script at" << urlString;
+        qCritical() << "Failed to download script";
         // See HTTPResourceRequest::onRequestFinished for interpretation of codes. For example, a 404 is code 6 and 403 is 3. A timeout is 2. Go figure.
         qCritical() << "ResourceRequest error was" << scriptRequest->getResult();
     } else {

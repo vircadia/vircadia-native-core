@@ -1829,7 +1829,7 @@ void Rig::initAnimGraph(const QUrl& url) {
             emit onLoadComplete();
         });
         connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
-            qCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
+            qCritical(animation) << "Error loading: code = " << error << "str =" << str;
         });
 
         connect(_networkLoader.get(), &AnimNodeLoader::success, [this, weakSkeletonPtr, networkUrl](AnimNode::Pointer nodeIn) {
@@ -1855,7 +1855,7 @@ void Rig::initAnimGraph(const QUrl& url) {
            
         });
         connect(_networkLoader.get(), &AnimNodeLoader::error, [networkUrl](int error, QString str) {
-            qCritical(animation) << "Error loading" << networkUrl.toDisplayString() << "code = " << error << "str =" << str;
+            qCritical(animation) << "Error loading: code = " << error << "str =" << str;
         });
     }
 }

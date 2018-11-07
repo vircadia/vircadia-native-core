@@ -214,8 +214,6 @@ QImage processRawImageData(QIODevice& content, const std::string& filename) {
         newImageReader.setDevice(&content);
 
         if (newImageReader.canRead()) {
-            qCWarning(imagelogging) << "Image file" << filename.c_str() << "has extension" << filenameExtension.c_str()
-                                    << "but is actually a" << qPrintable(newImageReader.format()) << "(recovering)";
             return newImageReader.read();
         }
     }
@@ -238,7 +236,7 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
     // Validate that the image loaded
     if (imageWidth == 0 || imageHeight == 0 || image.format() == QImage::Format_Invalid) {
         QString reason(image.format() == QImage::Format_Invalid ? "(Invalid Format)" : "(Size is invalid)");
-        qCWarning(imagelogging) << "Failed to load" << filename.c_str() << qPrintable(reason);
+        qCWarning(imagelogging) << "Failed to load:" << qPrintable(reason);
         return nullptr;
     }
 
@@ -250,7 +248,7 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
         imageWidth = (int)(scaleFactor * (float)imageWidth + 0.5f);
         imageHeight = (int)(scaleFactor * (float)imageHeight + 0.5f);
         image = image.scaled(QSize(imageWidth, imageHeight), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        qCDebug(imagelogging).nospace() << "Downscaled " << filename.c_str() << " (" <<
+        qCDebug(imagelogging).nospace() << "Downscaled " << " (" <<
             QSize(originalWidth, originalHeight) << " to " <<
             QSize(imageWidth, imageHeight) << ")";
     }

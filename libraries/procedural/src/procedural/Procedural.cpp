@@ -157,13 +157,11 @@ void Procedural::setProceduralData(const ProceduralData& proceduralData) {
         }
 
         if (!shaderUrl.isValid()) {
-            qCWarning(proceduralLog) << "Invalid shader URL: " << shaderUrl;
             return;
         }
 
         if (shaderUrl.isLocalFile()) {
             if (!QFileInfo(shaderUrl.toLocalFile()).exists()) {
-                qCWarning(proceduralLog) << "Invalid shader URL, missing local file: " << shaderUrl;
                 return;
             }
             _shaderPath = shaderUrl.toLocalFile();
