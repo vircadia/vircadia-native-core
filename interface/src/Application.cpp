@@ -4383,7 +4383,7 @@ void Application::wheelEvent(QWheelEvent* event) const {
     _controllerScriptingInterface->emitWheelEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface->isWheelCaptured()) {
+    if (_controllerScriptingInterface->isWheelCaptured() || _loginDialogPoppedUp) {
         return;
     }
 
@@ -8504,14 +8504,28 @@ void Application::checkReadyToCreateLoginDialogOverlay() {
 
 void Application::createLoginDialogOverlay() {
     auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
     auto myAvatar = avatarManager->getMyAvatar();
+    auto headInt = _controllerScriptingInterface->getActions()["Head"].toInt();
+    auto headPose = _controllerScriptingInterface->getPoseValue(headInt);
+    // reference vector for overlay to spawn.
+    glm::vec3 refOverlayVec;
+    if (headPose.isValid()) {
+        qDebug() << "controller head position = " << vec3toVariant(headPose.translation);
+        refOverlayVec = headPose.translation;
+    } else if (HMD->getPosition() != glm::vec3()) {
+        refOverlayVec = HMD->getPosition();
+    } else {
+        refOverlayVec = myAvatar->getHeadPosition();
+    }
+
     Overlays& overlays = qApp->getOverlays();
     // DEFAULT_DPI / tablet scale percentage
     float overlayDpi = 31.0f / (75.0f / 100.0f);
     QVariantMap overlayProperties {
         { "name", "LoginDialogOverlay" },
         { "url", OVERLAY_LOGIN_DIALOG_URL },
-        { "position", vec3toVariant(myAvatar->getHeadPosition() - glm::vec3(0.0f, -0.1f, 1.0f)) },
+        { "position", vec3toVariant(refOverlayVec - glm::vec3(0.0f, -0.1f, 1.0f)) },
         { "orientation", quatToVariant(myAvatar->getWorldOrientation()) },
         { "isSolid", true },
         { "grabbable", false },

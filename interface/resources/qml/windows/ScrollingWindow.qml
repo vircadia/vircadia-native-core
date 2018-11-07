@@ -15,7 +15,7 @@ import QtGraphicalEffects 1.0
 
 import "." as Windows
 import stylesUit 1.0
-import controlsUit 1.0 as HiFiControlsUit
+import controlsUit 1.0 as HifiControlsUit
 
 // FIXME how do I set the initial position of a window without
 // overriding places where the a individual client of the window
@@ -178,7 +178,7 @@ Windows.Window {
                 children: [ footer ]
             }
 
-            HiFiControlsUit.Keyboard {
+            HifiControlsUit.Keyboard {
                 id: keyboard
                 enabled: !keyboardOverride
                 raised: keyboardEnabled && keyboardRaised
