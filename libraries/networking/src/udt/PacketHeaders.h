@@ -297,7 +297,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     FarGrabJoints,
     MigrateSkeletonURLToTraits,
     MigrateAvatarEntitiesToTraits,
-    FarGrabJointsRedux
+    FarGrabJointsRedux,
+    JointTransScaled
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
