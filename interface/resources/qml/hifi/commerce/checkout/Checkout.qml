@@ -162,7 +162,7 @@ Rectangle {
                     root.availableUpdatesReceived = true;
                     refreshBuyUI();
                 } else {
-                    currentUpdatesPage++;
+                    root.currentUpdatesPage++;
                     Commerce.getAvailableUpdates(root.itemId, currentUpdatesPage)
                 }
             }
