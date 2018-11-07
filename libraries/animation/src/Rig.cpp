@@ -260,14 +260,14 @@ void Rig::destroyAnimGraph() {
     _rightEyeJointChildren.clear();
 }
 
-void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset) {
-    _geometryOffset = AnimPose(geometry.offset);
+void Rig::initJointStates(const HFMModel& hfmModel, const glm::mat4& modelOffset) {
+    _geometryOffset = AnimPose(hfmModel.offset);
     _invGeometryOffset = _geometryOffset.inverse();
-    _geometryToRigTransform = modelOffset * geometry.offset;
+    _geometryToRigTransform = modelOffset * hfmModel.offset;
     _rigToGeometryTransform = glm::inverse(_geometryToRigTransform);
     setModelOffset(modelOffset);
 
-    _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
+    _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel);
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -293,24 +293,24 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
 
     buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
-    _rootJointIndex = geometry.rootJointIndex;
-    _leftEyeJointIndex = geometry.leftEyeJointIndex;
-    _rightEyeJointIndex = geometry.rightEyeJointIndex;
-    _leftHandJointIndex = geometry.leftHandJointIndex;
-    _leftElbowJointIndex = _leftHandJointIndex >= 0 ? geometry.joints.at(_leftHandJointIndex).parentIndex : -1;
-    _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? geometry.joints.at(_leftElbowJointIndex).parentIndex : -1;
-    _rightHandJointIndex = geometry.rightHandJointIndex;
-    _rightElbowJointIndex = _rightHandJointIndex >= 0 ? geometry.joints.at(_rightHandJointIndex).parentIndex : -1;
-    _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? geometry.joints.at(_rightElbowJointIndex).parentIndex : -1;
+    _rootJointIndex = hfmModel.rootJointIndex;
+    _leftEyeJointIndex = hfmModel.leftEyeJointIndex;
+    _rightEyeJointIndex = hfmModel.rightEyeJointIndex;
+    _leftHandJointIndex = hfmModel.leftHandJointIndex;
+    _leftElbowJointIndex = _leftHandJointIndex >= 0 ? hfmModel.joints.at(_leftHandJointIndex).parentIndex : -1;
+    _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? hfmModel.joints.at(_leftElbowJointIndex).parentIndex : -1;
+    _rightHandJointIndex = hfmModel.rightHandJointIndex;
+    _rightElbowJointIndex = _rightHandJointIndex >= 0 ? hfmModel.joints.at(_rightHandJointIndex).parentIndex : -1;
+    _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? hfmModel.joints.at(_rightElbowJointIndex).parentIndex : -1;
 
-    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.leftEyeJointIndex);
-    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.rightEyeJointIndex);
+    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.leftEyeJointIndex);
+    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.rightEyeJointIndex);
 }
 
-void Rig::reset(const FBXGeometry& geometry) {
-    _geometryOffset = AnimPose(geometry.offset);
+void Rig::reset(const HFMModel& hfmModel) {
+    _geometryOffset = AnimPose(hfmModel.offset);
     _invGeometryOffset = _geometryOffset.inverse();
-    _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
+    _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel);
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -338,18 +338,18 @@ void Rig::reset(const FBXGeometry& geometry) {
 
     buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
-    _rootJointIndex = geometry.rootJointIndex;
-    _leftEyeJointIndex = geometry.leftEyeJointIndex;
-    _rightEyeJointIndex = geometry.rightEyeJointIndex;
-    _leftHandJointIndex = geometry.leftHandJointIndex;
-    _leftElbowJointIndex = _leftHandJointIndex >= 0 ? geometry.joints.at(_leftHandJointIndex).parentIndex : -1;
-    _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? geometry.joints.at(_leftElbowJointIndex).parentIndex : -1;
-    _rightHandJointIndex = geometry.rightHandJointIndex;
-    _rightElbowJointIndex = _rightHandJointIndex >= 0 ? geometry.joints.at(_rightHandJointIndex).parentIndex : -1;
-    _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? geometry.joints.at(_rightElbowJointIndex).parentIndex : -1;
+    _rootJointIndex = hfmModel.rootJointIndex;
+    _leftEyeJointIndex = hfmModel.leftEyeJointIndex;
+    _rightEyeJointIndex = hfmModel.rightEyeJointIndex;
+    _leftHandJointIndex = hfmModel.leftHandJointIndex;
+    _leftElbowJointIndex = _leftHandJointIndex >= 0 ? hfmModel.joints.at(_leftHandJointIndex).parentIndex : -1;
+    _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? hfmModel.joints.at(_leftElbowJointIndex).parentIndex : -1;
+    _rightHandJointIndex = hfmModel.rightHandJointIndex;
+    _rightElbowJointIndex = _rightHandJointIndex >= 0 ? hfmModel.joints.at(_rightHandJointIndex).parentIndex : -1;
+    _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? hfmModel.joints.at(_rightElbowJointIndex).parentIndex : -1;
 
-    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.leftEyeJointIndex);
-    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.rightEyeJointIndex);
+    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.leftEyeJointIndex);
+    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.rightEyeJointIndex);
 
     if (!_animGraphURL.isEmpty()) {
         _animNode.reset();
@@ -1253,7 +1253,7 @@ const glm::vec3 DOP14_NORMALS[DOP14_COUNT] = {
 // returns true if the given point lies inside of the k-dop, specified by shapeInfo & shapePose.
 // if the given point does lie within the k-dop, it also returns the amount of displacement necessary to push that point outward
 // such that it lies on the surface of the kdop.
-static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose, const FBXJointShapeInfo& shapeInfo, glm::vec3& displacementOut) {
+static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose, const HFMJointShapeInfo& shapeInfo, glm::vec3& displacementOut) {
 
     // transform point into local space of jointShape.
     glm::vec3 localPoint = shapePose.inverse().xformPoint(point);
@@ -1299,8 +1299,8 @@ static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& sh
     }
 }
 
-glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
-                                    const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) const {
+glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const HFMJointShapeInfo& hipsShapeInfo, const HFMJointShapeInfo& spineShapeInfo,
+                                    const HFMJointShapeInfo& spine1ShapeInfo, const HFMJointShapeInfo& spine2ShapeInfo) const {
     glm::vec3 position = handPosition;
     glm::vec3 displacement;
     int hipsJoint = indexOfJoint("Hips");
@@ -1349,8 +1349,8 @@ glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const FBXJoin
 void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
                       bool leftArmEnabled, bool rightArmEnabled, bool headEnabled, float dt,
                       const AnimPose& leftHandPose, const AnimPose& rightHandPose,
-                      const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
-                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo,
+                      const HFMJointShapeInfo& hipsShapeInfo, const HFMJointShapeInfo& spineShapeInfo,
+                      const HFMJointShapeInfo& spine1ShapeInfo, const HFMJointShapeInfo& spine2ShapeInfo,
                       const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
 
     const bool ENABLE_POLE_VECTORS = true;
@@ -1938,7 +1938,7 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
             data.rotationIsDefaultPose = isEqual(data.rotation, defaultAbsRot);
 
             // translations are in relative frame but scaled so that they are in meters,
-            // instead of geometry units.
+            // instead of model units.
             glm::vec3 defaultRelTrans = _geometryOffset.scale() * _animSkeleton->getRelativeDefaultPose(i).trans();
             data.translation = _geometryOffset.scale() * (!_sendNetworkNode ? _internalPoseSet._relativePoses[i].trans() : _networkPoseSet._relativePoses[i].trans());
             data.translationIsDefaultPose = isEqual(data.translation, defaultRelTrans);
@@ -1963,7 +1963,7 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         return;
     }
 
-    // make a vector of rotations in absolute-geometry-frame
+    // make a vector of rotations in absolute-model-frame
     std::vector<glm::quat> rotations;
     rotations.reserve(numJoints);
     const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
@@ -1972,7 +1972,7 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         if (data.rotationIsDefaultPose) {
             rotations.push_back(absoluteDefaultPoses[i].rot());
         } else {
-            // JointData rotations are in absolute rig-frame so we rotate them to absolute geometry-frame
+            // JointData rotations are in absolute rig-frame so we rotate them to absolute model-frame
             rotations.push_back(rigToGeometryRot * data.rotation);
         }
     }
@@ -2008,7 +2008,7 @@ void Rig::computeExternalPoses(const glm::mat4& modelOffsetMat) {
 }
 
 void Rig::computeAvatarBoundingCapsule(
-        const FBXGeometry& geometry,
+        const HFMModel& hfmModel,
         float& radiusOut,
         float& heightOut,
         glm::vec3& localOffsetOut) const {
@@ -2041,7 +2041,7 @@ void Rig::computeAvatarBoundingCapsule(
     // from the head to the hips when computing the rest of the bounding capsule.
     int index = indexOfJoint("Head");
     while (index != -1) {
-        const FBXJointShapeInfo& shapeInfo = geometry.joints.at(index).shapeInfo;
+        const HFMJointShapeInfo& shapeInfo = hfmModel.joints.at(index).shapeInfo;
         AnimPose pose = _animSkeleton->getAbsoluteDefaultPose(index);
         if (shapeInfo.points.size() > 0) {
             for (auto& point : shapeInfo.points) {

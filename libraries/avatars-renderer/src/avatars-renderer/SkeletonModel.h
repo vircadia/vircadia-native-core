@@ -41,10 +41,10 @@ public:
     void updateAttitude(const glm::quat& orientation);
 
     /// Returns the index of the left hand joint, or -1 if not found.
-    int getLeftHandJointIndex() const { return isActive() ? getFBXGeometry().leftHandJointIndex : -1; }
+    int getLeftHandJointIndex() const { return isActive() ? getHFMModel().leftHandJointIndex : -1; }
 
     /// Returns the index of the right hand joint, or -1 if not found.
-    int getRightHandJointIndex() const { return isActive() ? getFBXGeometry().rightHandJointIndex : -1; }
+    int getRightHandJointIndex() const { return isActive() ? getHFMModel().rightHandJointIndex : -1; }
 
     bool getLeftGrabPosition(glm::vec3& position) const;
     bool getRightGrabPosition(glm::vec3& position) const;

@@ -17,7 +17,7 @@ import QtGraphicalEffects 1.0
 import TabletScriptingInterface 1.0
 
 import "toolbars"
-import "../styles-uit"
+import stylesUit 1.0
 
 Item {
     id: root;
