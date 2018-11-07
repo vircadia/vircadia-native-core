@@ -840,6 +840,9 @@ private:
     bool addArrayOfType(const hifi::ByteArray& bin, int byteOffset, int count,
                         QVector<T>& outarray, int accessorType, int componentType);
 
+    template <typename T>
+    bool addArrayOfFromAccessor(GLTFAccessor& accessor, QVector<T>& outarray);
+
     void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices, 
                        const QVector<glm::vec3>& in_normals, QVector<int>& out_indices, 
                        QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals);
