@@ -312,8 +312,8 @@ void LODManager::loadSettings() {
     setDesktopLODTargetFPS(desktopLODDecreaseFPS.get());
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
     if (qApp->property(hifi::properties::OCULUS_STORE).toBool() && firstRun.get()) {
-        const float LOD_LOW_QUALITY_LEVEL = 0.25f;
-        setHMDLODTargetFPS(LOD_LOW_QUALITY_LEVEL * LOD_MAX_LIKELY_HMD_FPS);
+        const float LOD_HIGH_QUALITY_LEVEL = 0.75f;
+        setHMDLODTargetFPS(LOD_HIGH_QUALITY_LEVEL * LOD_MAX_LIKELY_HMD_FPS);
     } else {
         setHMDLODTargetFPS(hmdLODDecreaseFPS.get());
     }
