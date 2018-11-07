@@ -119,6 +119,12 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use reticle cursor instead of arrow", getter, setter));
     }
 
+    {
+        auto getter = []()->bool { return qApp->getMiniTabletEnabled(); };
+        auto setter = [](bool value) { qApp->setMiniTabletEnabled(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use mini tablet", getter, setter));
+    }
+
     static const QString VIEW_CATEGORY{ "View" };
     {
         auto getter = [myAvatar]()->float { return myAvatar->getRealWorldFieldOfView(); };

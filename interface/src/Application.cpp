@@ -987,6 +987,7 @@ const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_PREFER_STYLUS_OVER_LASER = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 const QString DEFAULT_CURSOR_NAME = "DEFAULT";
+const bool DEFAULT_MINI_TABLET_ENABLED = true;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runningMarkerExisted) :
     QApplication(argc, argv),
@@ -1006,6 +1007,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _preferAvatarFingerOverStylusSetting("preferAvatarFingerOverStylus", DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _preferredCursor("preferredCursor", DEFAULT_CURSOR_NAME),
+    _miniTabletEnabledSetting("miniTabletEnabled", DEFAULT_MINI_TABLET_ENABLED),
     _scaleMirror(1.0f),
     _mirrorYawOffset(0.0f),
     _raiseMirror(0.0f),
@@ -3357,6 +3359,11 @@ void Application::setPreferredCursor(const QString& cursorName) {
 void Application::setSettingConstrainToolbarPosition(bool setting) {
     _constrainToolbarPosition.set(setting);
     DependencyManager::get<OffscreenUi>()->setConstrainToolbarToCenterX(setting);
+}
+
+void Application::setMiniTabletEnabled(bool enabled) {
+    _miniTabletEnabledSetting.set(enabled);
+    emit miniTabletEnabledChanged(enabled);
 }
 
 void Application::showHelp() {

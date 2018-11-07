@@ -228,6 +228,9 @@ public:
     bool getPreferAvatarFingerOverStylus() { return false; }
     void setPreferAvatarFingerOverStylus(bool value);
 
+    bool getMiniTabletEnabled() { return _miniTabletEnabledSetting.get(); }
+    void setMiniTabletEnabled(bool enabled);
+
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
 
@@ -337,6 +340,8 @@ signals:
     void interstitialModeChanged(bool isInInterstitialMode);
 
     void loginDialogPoppedUp();
+
+    void miniTabletEnabledChanged(bool enabled);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
@@ -629,6 +634,7 @@ private:
     Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
     Setting::Handle<QString> _preferredCursor;
+    Setting::Handle<bool> _miniTabletEnabledSetting;
 
     float _scaleMirror;
     float _mirrorYawOffset;
