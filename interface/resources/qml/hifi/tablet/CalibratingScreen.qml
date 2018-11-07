@@ -10,9 +10,9 @@
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
 
-import "../../styles-uit"
+import stylesUit 1.0
 import "../../controls"
-import "../../controls-uit" as HifiControls
+import controlsUit 1.0 as HifiControls
 
 
 Rectangle {
