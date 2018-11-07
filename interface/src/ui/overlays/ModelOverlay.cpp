@@ -60,6 +60,8 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
 }
 
 void ModelOverlay::update(float deltatime) {
+    Base3DOverlay::update(deltatime);
+
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
