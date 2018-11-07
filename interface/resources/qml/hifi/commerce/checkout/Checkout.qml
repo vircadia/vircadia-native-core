@@ -55,6 +55,7 @@ Rectangle {
     property bool isInstalled;
     property bool isUpdating;
     property string baseAppURL;
+    property int currentUpdatesPage: 1;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -156,8 +157,14 @@ Rectangle {
                         break;
                     }
                 }
-                root.availableUpdatesReceived = true;
-                refreshBuyUI();
+
+                if (result.data.updates.length === 0 || root.isUpdating) {
+                    root.availableUpdatesReceived = true;
+                    refreshBuyUI();
+                } else {
+                    root.currentUpdatesPage++;
+                    Commerce.getAvailableUpdates(root.itemId, currentUpdatesPage)
+                }
             }
         }
 
@@ -176,6 +183,7 @@ Rectangle {
         root.ownershipStatusReceived = false;
         Commerce.alreadyOwned(root.itemId);
         root.availableUpdatesReceived = false;
+        root.currentUpdatesPage = 1;
         Commerce.getAvailableUpdates(root.itemId);
         itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
     }
@@ -1181,6 +1189,7 @@ Rectangle {
             root.ownershipStatusReceived = false;
             Commerce.alreadyOwned(root.itemId);
             root.availableUpdatesReceived = false;
+            root.currentUpdatesPage = 1;
             Commerce.getAvailableUpdates(root.itemId);
             root.balanceReceived = false;
             Commerce.balance();
