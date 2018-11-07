@@ -120,9 +120,10 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     auto avatarHeadPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (avatarHeadPose.isValid()) {
         qCDebug(interfaceapp) << "neck joint offset " << jointOffsetMap[62];
-        AnimPose jointOffset(jointOffsetMap[62], glm::vec3());
+        AnimPose jointOffsetNeck(jointOffsetMap[62], glm::vec3());
+        AnimPose jointOffsetSpine2(jointOffsetMap[13], glm::vec3());
         AnimPose pose(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
-        params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = jointOffset.inverse() * (avatarToRigPose * pose) * jointOffset;
+        params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = jointOffsetSpine2.inverse() * jointOffsetNeck.inverse() * (avatarToRigPose * pose) * jointOffsetNeck * jointOffsetSpine2;
         params.primaryControllerFlags[Rig::PrimaryControllerType_Head] = (uint8_t)Rig::ControllerFlags::Enabled;
     } else {
         // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and
