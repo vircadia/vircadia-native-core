@@ -43,7 +43,7 @@ int getBlurRadius() {
 }
 
 vec4 fetchOcclusionPacked(ivec4 side, vec2 texCoord) {
-    texCoord.x = mix(texCoord.x, (texCoord.x + getStereoSide(side) * getBlurOcclusionUVLimit().x) * 0.5, isStereo());
+    texCoord.x = isStereo() ? (texCoord.x + float(getStereoSide(side)) * getBlurOcclusionUVLimit().x) * 0.5 : texCoord.x;
     return textureLod(occlusionMap, texCoord, 0.0);
 }
 
@@ -96,7 +96,7 @@ vec4 getBlurredOcclusion(ivec2 destPixelCoord, vec2 occlusionTexCoord, vec2 dept
     int r;
 
     // From now on, occlusionTexCoord is the UV pos in the side
-    float sideTexCoord = occlusionTexCoord.x * 2.0 - getStereoSide(side) * getBlurOcclusionUVLimit().x;
+    float sideTexCoord = occlusionTexCoord.x * 2.0 - float(getStereoSide(side)) * getBlurOcclusionUVLimit().x;
     occlusionTexCoord.x = mix(occlusionTexCoord.x, sideTexCoord, isStereo());
 
     occlusionTexCoord -= getBlurOcclusionAxis() * blurRadius;
