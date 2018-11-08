@@ -311,8 +311,8 @@ void AudioMixerClientData::parseSoloRequest(QSharedPointer<ReceivedMessage> mess
         if (addToSolo) {
             _soloedNodes.push_back(soloedUUID);
         } else {
-            auto it = std::find(std::begin(_soloedNodes), std::end(_soloedNodes), soloedUUID);
-            _soloedNodes.erase(it);
+            auto it = std::remove(std::begin(_soloedNodes), std::end(_soloedNodes), soloedUUID);
+            _soloedNodes.erase(it, std::end(_soloedNodes));
         }
     }
 }
