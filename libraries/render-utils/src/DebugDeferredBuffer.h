@@ -27,14 +27,14 @@ class DebugDeferredBufferConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled)
     Q_PROPERTY(int mode MEMBER mode WRITE setMode)
-    Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
+    Q_PROPERTY(glm::vec4 size MEMBER size NOTIFY dirty)
 public:
     DebugDeferredBufferConfig() : render::Job::Config(false) {}
 
     void setMode(int newMode);
 
     int mode{ 0 };
-    glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
+    glm::vec4 size{ 0.0f, -1.0f, 1.0f, 1.0f };
 signals:
     void dirty();
 };

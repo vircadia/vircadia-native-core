@@ -163,7 +163,7 @@ public:
 
     bool maybeStartBlender();
 
-    bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
+    bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isHFMModelLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
 
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
@@ -184,8 +184,8 @@ public:
     Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
-    // And so that getGeometry() isn't chained everywhere
-    const FBXGeometry& getFBXGeometry() const { assert(isLoaded()); return _renderGeometry->getFBXGeometry(); }
+    // And so that getHFMModel() isn't chained everywhere
+    const HFMModel& getHFMModel() const { assert(isLoaded()); return _renderGeometry->getHFMModel(); }
 
     bool isActive() const { return isLoaded(); }
 
@@ -450,7 +450,7 @@ protected:
 
     bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
-    void calculateTriangleSets(const FBXGeometry& geometry);
+    void calculateTriangleSets(const HFMModel& hfmModel);
     std::vector<std::vector<TriangleSet>> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
 
     virtual void createRenderItemSet();
@@ -506,7 +506,7 @@ protected:
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
-    void initializeBlendshapes(const FBXMesh& mesh, int index);
+    void initializeBlendshapes(const HFMMesh& mesh, int index);
 
 private:
     float _loadingPriority { 0.0f };

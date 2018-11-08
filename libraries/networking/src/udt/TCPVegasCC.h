@@ -30,6 +30,7 @@ public:
     virtual void onTimeout() override {};
 
     virtual void onPacketSent(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) override;
+    virtual void onPacketReSent(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) override;
 
     virtual int estimatedTimeout() const override;
     
@@ -37,11 +38,23 @@ protected:
     virtual void performCongestionAvoidance(SequenceNumber ack);
     virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) override { _lastACK = seqNum - 1; }
 private:
+    bool calculateRTT(p_high_resolution_clock::time_point sendTime, p_high_resolution_clock::time_point receiveTime);
+    bool needsFastRetransmit(SequenceNumber ack, bool wasDuplicateACK);
+
     bool isCongestionWindowLimited();
     void performRenoCongestionAvoidance(SequenceNumber ack);
 
-    using PacketTimeList = std::map<SequenceNumber, p_high_resolution_clock::time_point>;
-    PacketTimeList _sentPacketTimes; // Map of sequence numbers to sent time
+    struct SentPacketData {
+        SentPacketData(SequenceNumber seqNum, p_high_resolution_clock::time_point tPoint)
+            : sequenceNumber(seqNum), timePoint(tPoint) {};
+        
+        SequenceNumber sequenceNumber;
+        p_high_resolution_clock::time_point timePoint;
+        bool wasResent { false };
+    };
+
+    using PacketTimeList = std::vector<SentPacketData>;
+    PacketTimeList _sentPacketDatas; // association of sequence numbers to sent time, for RTT calc
 
     p_high_resolution_clock::time_point _lastAdjustmentTime; // Time of last congestion control adjustment
 
@@ -56,7 +69,7 @@ private:
     int _ewmaRTT { -1 }; // Exponential weighted moving average RTT
     int _rttVariance { 0 }; // Variance in collected RTT values
 
-    int _numACKs { 0 }; // Number of ACKs received during the last RTT (since last performed congestion avoidance)
+    int _numRTTs { 0 }; // Number of RTTs calculated during the last RTT (since last performed congestion avoidance)
 
     int _ackAICount { 0 }; // Counter for number of ACKs received for Reno additive increase
     int _duplicateACKCount { 0 }; // Counter for duplicate ACKs received

@@ -27,7 +27,7 @@
 
 #include "ModelFormatLogging.h"
 
-void FBXMaterial::getTextureNames(QSet<QString>& textureList) const {
+void HFMMaterial::getTextureNames(QSet<QString>& textureList) const {
     if (!normalTexture.isNull()) {
         textureList.insert(normalTexture.name);
     }
@@ -63,7 +63,7 @@ void FBXMaterial::getTextureNames(QSet<QString>& textureList) const {
     }
 }
 
-void FBXMaterial::setMaxNumPixelsPerTexture(int maxNumPixels) {
+void HFMMaterial::setMaxNumPixelsPerTexture(int maxNumPixels) {
     normalTexture.maxNumPixels = maxNumPixels;
     albedoTexture.maxNumPixels = maxNumPixels;
     opacityTexture.maxNumPixels = maxNumPixels;
@@ -77,12 +77,12 @@ void FBXMaterial::setMaxNumPixelsPerTexture(int maxNumPixels) {
     lightmapTexture.maxNumPixels = maxNumPixels;
 }
 
-bool FBXMaterial::needTangentSpace() const {
+bool HFMMaterial::needTangentSpace() const {
     return !normalTexture.isNull();
 }
 
-FBXTexture FBXReader::getTexture(const QString& textureID) {
-    FBXTexture texture;
+HFMTexture FBXReader::getTexture(const QString& textureID) {
+    HFMTexture texture;
     const QByteArray& filepath = _textureFilepaths.value(textureID);
     texture.content = _textureContent.value(filepath);
 
@@ -123,7 +123,7 @@ FBXTexture FBXReader::getTexture(const QString& textureID) {
     return texture;
 }
 
-void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
+void FBXReader::consolidateHFMMaterials(const QVariantHash& mapping) {
 
     QString materialMapString = mapping.value("materialMap").toString();
     QJsonDocument materialMapDocument = QJsonDocument::fromJson(materialMapString.toUtf8());
@@ -133,16 +133,16 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
             qCDebug(modelformat) << "fbx Material Map found but did not produce valid JSON:" << materialMapString;
         }
     }
-    for (QHash<QString, FBXMaterial>::iterator it = _fbxMaterials.begin(); it != _fbxMaterials.end(); it++) {
-        FBXMaterial& material = (*it);
+    for (QHash<QString, HFMMaterial>::iterator it = _hfmMaterials.begin(); it != _hfmMaterials.end(); it++) {
+        HFMMaterial& material = (*it);
 
         // Maya is the exporting the shading model and we are trying to use it
         bool isMaterialLambert = (material.shadingModel.toLower() == "lambert");
 
         // the pure material associated with this part
         bool detectDifferentUVs = false;
-        FBXTexture diffuseTexture;
-        FBXTexture diffuseFactorTexture;
+        HFMTexture diffuseTexture;
+        HFMTexture diffuseFactorTexture;
         QString diffuseTextureID = diffuseTextures.value(material.materialID);
         QString diffuseFactorTextureID = diffuseFactorTextures.value(material.materialID);
 
@@ -169,7 +169,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
             detectDifferentUVs = (diffuseTexture.texcoordSet != 0) || (!diffuseTexture.transform.isIdentity());
         }
 
-        FBXTexture transparentTexture;
+        HFMTexture transparentTexture;
         QString transparentTextureID = transparentTextures.value(material.materialID);
         // If PBS Material, systematically bind the albedo texture as transparency texture and check for the alpha channel
         if (material.isPBSMaterial) {
@@ -181,7 +181,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
             detectDifferentUVs |= (transparentTexture.texcoordSet != 0) || (!transparentTexture.transform.isIdentity());
         }
 
-        FBXTexture normalTexture;
+        HFMTexture normalTexture;
         QString bumpTextureID = bumpTextures.value(material.materialID);
         QString normalTextureID = normalTextures.value(material.materialID);
         if (!normalTextureID.isNull()) {
@@ -198,7 +198,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
             detectDifferentUVs |= (normalTexture.texcoordSet != 0) || (!normalTexture.transform.isIdentity());
         }
 
-        FBXTexture specularTexture;
+        HFMTexture specularTexture;
         QString specularTextureID = specularTextures.value(material.materialID);
         if (!specularTextureID.isNull()) {
             specularTexture = getTexture(specularTextureID);
@@ -206,7 +206,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
             material.specularTexture = specularTexture;
         }
 
-        FBXTexture metallicTexture;
+        HFMTexture metallicTexture;
         QString metallicTextureID = metallicTextures.value(material.materialID);
         if (!metallicTextureID.isNull()) {
             metallicTexture = getTexture(metallicTextureID);
@@ -214,7 +214,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
             material.metallicTexture = metallicTexture;
         }
 
-        FBXTexture roughnessTexture;
+        HFMTexture roughnessTexture;
         QString roughnessTextureID = roughnessTextures.value(material.materialID);
         if (!roughnessTextureID.isNull()) {
             roughnessTexture = getTexture(roughnessTextureID);
@@ -222,7 +222,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
             detectDifferentUVs |= (roughnessTexture.texcoordSet != 0) || (!roughnessTexture.transform.isIdentity());
         }
 
-        FBXTexture shininessTexture;
+        HFMTexture shininessTexture;
         QString shininessTextureID = shininessTextures.value(material.materialID);
         if (!shininessTextureID.isNull()) {
             shininessTexture = getTexture(shininessTextureID);
@@ -230,7 +230,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
             detectDifferentUVs |= (shininessTexture.texcoordSet != 0) || (!shininessTexture.transform.isIdentity());
         }
 
-        FBXTexture emissiveTexture;
+        HFMTexture emissiveTexture;
         QString emissiveTextureID = emissiveTextures.value(material.materialID);
         if (!emissiveTextureID.isNull()) {
             emissiveTexture = getTexture(emissiveTextureID);
@@ -245,7 +245,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
             }
         }
 
-        FBXTexture occlusionTexture;
+        HFMTexture occlusionTexture;
         QString occlusionTextureID = occlusionTextures.value(material.materialID);
         if (occlusionTextureID.isNull()) {
             // 2nd chance
@@ -265,7 +265,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
         lightmapParams.x = _lightmapOffset;
         lightmapParams.y = _lightmapLevel;
 
-        FBXTexture ambientTexture;
+        HFMTexture ambientTexture;
         QString ambientTextureID = ambientTextures.value(material.materialID);
         if (ambientTextureID.isNull()) {
             // 2nd chance
@@ -326,7 +326,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
 
             if (materialOptions.contains("scatteringMap")) {
                 QByteArray scatteringMap = materialOptions.value("scatteringMap").toVariant().toByteArray();
-                material.scatteringTexture = FBXTexture();
+                material.scatteringTexture = HFMTexture();
                 material.scatteringTexture.name = material.name + ".scatteringMap";
                 material.scatteringTexture.filename = scatteringMap;
             }

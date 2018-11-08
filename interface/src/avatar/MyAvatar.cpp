@@ -155,8 +155,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     });
     connect(_skeletonModel.get(), &Model::rigReady, this, [this]() {
         if (_shouldLoadScripts) {
-            auto geometry = getSkeletonModel()->getFBXGeometry();
-            qApp->loadAvatarScripts(geometry.scripts);
+            auto hfmModel = getSkeletonModel()->getHFMModel();
+            qApp->loadAvatarScripts(hfmModel.scripts);
             _shouldLoadScripts = false;
         }
                 // Load and convert old attachments to avatar entities
@@ -1058,7 +1058,6 @@ void MyAvatar::updateSensorToWorldMatrix() {
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
     
     if (hasSensorToWorldScaleChanged) {
-        setTransitScale(sensorToWorldScale);
         emit sensorToWorldScaleChanged(sensorToWorldScale);
     }
     
@@ -2430,10 +2429,10 @@ void MyAvatar::attachmentDataToEntityProperties(const AttachmentData& data, Enti
 void MyAvatar::initHeadBones() {
     int neckJointIndex = -1;
     if (_skeletonModel->isLoaded()) {
-        neckJointIndex = _skeletonModel->getFBXGeometry().neckJointIndex;
+        neckJointIndex = _skeletonModel->getHFMModel().neckJointIndex;
     }
     if (neckJointIndex == -1) {
-        neckJointIndex = (_skeletonModel->getFBXGeometry().headJointIndex - 1);
+        neckJointIndex = (_skeletonModel->getHFMModel().headJointIndex - 1);
         if (neckJointIndex < 0) {
             // return if the head is not even there. can't cauterize!!
             return;
@@ -2444,7 +2443,7 @@ void MyAvatar::initHeadBones() {
     q.push(neckJointIndex);
     _headBoneSet.insert(neckJointIndex);
 
-    // fbxJoints only hold links to parents not children, so we have to do a bit of extra work here.
+    // hfmJoints only hold links to parents not children, so we have to do a bit of extra work here.
     while (q.size() > 0) {
         int jointIndex = q.front();
         for (int i = 0; i < _skeletonModel->getJointStateCount(); i++) {
@@ -2593,11 +2592,11 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
         if (_skeletonModel && _skeletonModel->isLoaded()) {
             const Rig& rig = _skeletonModel->getRig();
-            const FBXGeometry& geometry = _skeletonModel->getFBXGeometry();
+            const HFMModel& hfmModel = _skeletonModel->getHFMModel();
             for (int i = 0; i < rig.getJointStateCount(); i++) {
                 AnimPose jointPose;
                 rig.getAbsoluteJointPoseInRigFrame(i, jointPose);
-                const FBXJointShapeInfo& shapeInfo = geometry.joints[i].shapeInfo;
+                const HFMJointShapeInfo& shapeInfo = hfmModel.joints[i].shapeInfo;
                 const AnimPose pose = rigToWorldPose * jointPose;
                 for (size_t j = 0; j < shapeInfo.debugLines.size() / 2; j++) {
                     glm::vec3 pointA = pose.xformPoint(shapeInfo.debugLines[2 * j]);
@@ -4013,7 +4012,7 @@ float MyAvatar::getSitStandStateChange() const {
 }
 
 QVector<QString> MyAvatar::getScriptUrls() {
-    QVector<QString> scripts = _skeletonModel->isLoaded() ? _skeletonModel->getFBXGeometry().scripts : QVector<QString>();
+    QVector<QString> scripts = _skeletonModel->isLoaded() ? _skeletonModel->getHFMModel().scripts : QVector<QString>();
     return scripts;
 }
 
