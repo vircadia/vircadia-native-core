@@ -1,3 +1,16 @@
+//
+//  OBJSerializer.h
+//  libraries/fbx/src/
+//
+//  Created by Seth Alves on 3/6/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#ifndef hifi_OBJSerializer_h
+#define hifi_OBJSerializer_h
 
 #include <QtNetwork/QNetworkReply>
 #include <hfm/HFMSerializer.h>
@@ -106,3 +119,5 @@ private:
 // What are these utilities doing here? One is used by fbx loading code in VHACD Utils, and the other a general debugging utility.
 void setMeshPartDefaults(HFMMeshPart& meshPart, QString materialID);
 void hfmDebugDump(const HFMModel& hfmModel);
+
+#endif // hifi_OBJSerializer_h
