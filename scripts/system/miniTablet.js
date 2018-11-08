@@ -1057,6 +1057,8 @@
 
     function setUp() {
         miniState = new State();
+
+        HMD.miniTabletEnabledChanged.connect(onMiniTabletEnabledChanged);
         miniTabletEnabled = HMD.miniTabletEnabled;
 
         Messages.subscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
@@ -1064,8 +1066,8 @@
 
         MyAvatar.wentAway.connect(onWentAway);
         HMD.displayModeChanged.connect(onDisplayModeChanged);
-        HMD.miniTabletEnabledChanged.connect(onMiniTabletEnabledChanged);
-        if (HMD.active) {
+
+        if (HMD.active && miniTabletEnabled) {
             miniState.setState(miniState.MINI_HIDDEN);
         }
     }
@@ -1073,12 +1075,13 @@
     function tearDown() {
         miniState.setState(miniState.MINI_DISABLED);
 
-        HMD.miniTabletEnabledChanged.disconnect(onMiniTabletEnabledChanged);
         HMD.displayModeChanged.disconnect(onDisplayModeChanged);
         MyAvatar.wentAway.disconnect(onWentAway);
 
         Messages.messageReceived.disconnect(onMessageReceived);
         Messages.unsubscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
+
+        HMD.miniTabletEnabledChanged.disconnect(onMiniTabletEnabledChanged);
 
         miniState.destroy();
         miniState = null;
