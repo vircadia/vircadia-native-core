@@ -166,7 +166,7 @@ void AddressManager::storeCurrentAddress() {
             if (isInErrorState) {
                 // save the last address visited before the problem url.
                 currentAddressHandle.set(lastAddress());
-            }  else {
+            } else {
                 currentAddressHandle.set(url);
             }
         } else {
@@ -824,7 +824,6 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     bool emitHostChanged { false };
     // Check if domain handler is in error state. always emit host changed if true.
     bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
-    // Check if domain handler is in login screen state. always emit host changed if true.
 
     if (domainURL != _domainURL || isInErrorState) {
         addCurrentAddressToHistory(trigger);
