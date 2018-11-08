@@ -195,6 +195,10 @@ Item {
         keyboardEnabled = HMD.active;
     }
 
+    Component.onDestruction: {
+        keyboardRaised = false;
+    }
+
     Keys.onPressed: {
         switch(event.key) {
         case Qt.Key_L:

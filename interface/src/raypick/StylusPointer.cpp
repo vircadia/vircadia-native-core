@@ -17,9 +17,6 @@
 #include "PickScriptingInterface.h"
 #include <PickManager.h>
 
-// TODO: make these configurable per pointer
-static const float WEB_STYLUS_LENGTH = 0.2f;
-
 static const float TABLET_MIN_HOVER_DISTANCE = -0.1f;
 static const float TABLET_MAX_HOVER_DISTANCE = 0.1f;
 static const float TABLET_MIN_TOUCH_DISTANCE = -0.1f;
@@ -28,9 +25,15 @@ static const float TABLET_MAX_TOUCH_DISTANCE = 0.005f;
 static const float HOVER_HYSTERESIS = 0.01f;
 static const float TOUCH_HYSTERESIS = 0.001f;
 
-StylusPointer::StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled) :
+static const QString DEFAULT_STYLUS_MODEL_URL = PathUtils::resourcesUrl() + "/meshes/tablet-stylus-fat.fbx";
+
+StylusPointer::StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled,
+                             const glm::vec3& modelPositionOffset, const glm::quat& modelRotationOffset, const glm::vec3& modelDimensions) :
     Pointer(DependencyManager::get<PickScriptingInterface>()->createStylusPick(props), enabled, hover),
-    _stylusOverlay(stylusOverlay)
+    _stylusOverlay(stylusOverlay),
+    _modelPositionOffset(modelPositionOffset),
+    _modelDimensions(modelDimensions),
+    _modelRotationOffset(modelRotationOffset)
 {
 }
 
@@ -42,9 +45,19 @@ StylusPointer::~StylusPointer() {
 
 OverlayID StylusPointer::buildStylusOverlay(const QVariantMap& properties) {
     QVariantMap overlayProperties;
+
+    QString modelUrl = DEFAULT_STYLUS_MODEL_URL;
+
+    if (properties["model"].isValid()) {
+        QVariantMap modelData = properties["model"].toMap();
+
+        if (modelData["url"].isValid()) {
+            modelUrl = modelData["url"].toString();
+        }
+    }
     // TODO: make these configurable per pointer
     overlayProperties["name"] = "stylus";
-    overlayProperties["url"] = PathUtils::resourcesUrl() + "/meshes/tablet-stylus-fat.fbx";
+    overlayProperties["url"] = modelUrl;
     overlayProperties["loadPriority"] = 10.0f;
     overlayProperties["solid"] = true;
     overlayProperties["visible"] = false;
@@ -72,13 +85,12 @@ void StylusPointer::updateVisuals(const PickResultPointer& pickResult) {
 void StylusPointer::show(const StylusTip& tip) {
     if (!_stylusOverlay.isNull()) {
         QVariantMap props;
-        static const glm::quat X_ROT_NEG_90{ 0.70710678f, -0.70710678f, 0.0f, 0.0f };
-        auto modelOrientation = tip.orientation * X_ROT_NEG_90;
+        auto modelOrientation = tip.orientation * _modelRotationOffset;
         auto sensorToWorldScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
-        auto modelPositionOffset = modelOrientation * (vec3(0.0f, 0.0f, -WEB_STYLUS_LENGTH / 2.0f) * sensorToWorldScale);
+        auto modelPositionOffset = modelOrientation * (_modelPositionOffset * sensorToWorldScale);
         props["position"] = vec3toVariant(tip.position + modelPositionOffset);
         props["rotation"] = quatToVariant(modelOrientation);
-        props["dimensions"] = vec3toVariant(sensorToWorldScale * vec3(0.01f, 0.01f, WEB_STYLUS_LENGTH));
+        props["dimensions"] = vec3toVariant(sensorToWorldScale * _modelDimensions);
         props["visible"] = true;
         qApp->getOverlays().editOverlay(_stylusOverlay, props);
     }

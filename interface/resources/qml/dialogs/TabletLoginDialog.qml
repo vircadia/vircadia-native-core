@@ -67,7 +67,17 @@ FocusScope {
 
     HifiStylesUit.HifiConstants { id: hifi }
 
-    readonly property int frameMarginTop: hifi.dimensions.modalDialogMargin.y
+    Timer {
+        id: keyboardTimer
+        repeat: false
+        interval: 200
+
+        onTriggered: {
+            if (MenuInterface.isOptionChecked("Use 3D Keyboard")) {
+                KeyboardScriptingInterface.raised = true;
+            }
+        }
+    }
 
     LoginDialog {
         id: loginDialog
@@ -119,7 +129,13 @@ FocusScope {
                 break
         }
     }
+
+    Component.onDestruction: {
+        loginKeyboard.raised = false;
+    }
+
     Component.onCompleted: {
         bodyLoader.setSource("../LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+        keyboardTimer.start();
     }
 }

@@ -202,7 +202,7 @@ void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const
     }
 }
 
-void AudioMixerClientData::setGainForAvatar(QUuid nodeID, uint8_t gain) {
+void AudioMixerClientData::setGainForAvatar(QUuid nodeID, float gain) {
     auto it = std::find_if(_streams.active.cbegin(), _streams.active.cend(), [nodeID](const MixableStream& mixableStream){
         return mixableStream.nodeStreamID.nodeID == nodeID && mixableStream.nodeStreamID.streamID.isNull();
     });

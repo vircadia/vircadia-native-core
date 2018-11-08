@@ -49,6 +49,19 @@ FocusScope {
             anchors.fill: parent
         }
     }
+
+    Timer {
+        id: keyboardTimer
+        repeat: false
+        interval: 200
+
+        onTriggered: {
+            if (MenuInterface.isOptionChecked("Use 3D Keyboard")) {
+                KeyboardScriptingInterface.raised = true;
+            }
+        }
+    }
+
     HifiControlsUit.Keyboard {
         id: loginKeyboard
         raised: root.keyboardEnabled && root.keyboardRaised
@@ -95,7 +108,12 @@ FocusScope {
         }
     }
 
+    Component.onDestruction: {
+        loginKeyboard.raised = false;
+    }
+
     Component.onCompleted: {
+        keyboardTimer.start();
         bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
     }
 }

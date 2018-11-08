@@ -36,13 +36,29 @@ Rectangle {
 
     readonly property int raisedHeight: keyboardHeight + (showMirrorText ? keyboardRowHeight : 0)
 
-    height: enabled && raised ? raisedHeight : 0
-    visible: enabled && raised
+    height: 0
+    visible: false
 
     property bool shiftMode: false
     property bool numericShiftMode: false
 
+
+    onPasswordChanged: {
+        var use3DKeyboard = (typeof MenuInterface === "undefined") ? false : MenuInterface.isOptionChecked("Use 3D Keyboard");
+        if (use3DKeyboard) {
+            KeyboardScriptingInterface.password = password;
+        }
+    }
+
     onRaisedChanged: {
+        var use3DKeyboard = (typeof MenuInterface === "undefined") ? false : MenuInterface.isOptionChecked("Use 3D Keyboard");
+        if (!use3DKeyboard) {
+            keyboardBase.height = raised ? raisedHeight : 0;
+            keyboardBase.visible = raised;
+        } else {
+            KeyboardScriptingInterface.raised = raised;
+            KeyboardScriptingInterface.password = raised ? password : false;
+        }
         mirroredText = "";
     }
 
