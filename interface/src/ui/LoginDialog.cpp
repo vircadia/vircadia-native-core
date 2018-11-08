@@ -26,10 +26,7 @@
 #include "Menu.h"
 
 #include "Application.h"
-#include "avatar/AvatarManager.h"
 #include "scripting/HMDScriptingInterface.h"
-#include "ui/overlays/Overlays.h"
-#include "ui/overlays/Web3DOverlay.h"
 #include "Constants.h"
 
 HIFI_QML_DEF(LoginDialog)
@@ -180,7 +177,7 @@ void LoginDialog::createAccountFromSteam(QString username) {
 
             auto accountManager = DependencyManager::get<AccountManager>();
             accountManager->sendRequest(CREATE_ACCOUNT_FROM_STEAM_PATH, AccountManagerAuth::None,
-                                        NetworkAccessManager::PostOperation, callbackParams,
+                                        QNetworkAccessManager::PostOperation, callbackParams,
                                         QJsonDocument(payload).toJson());
         });
     }
