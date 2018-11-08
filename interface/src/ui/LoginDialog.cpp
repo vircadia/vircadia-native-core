@@ -71,7 +71,6 @@ void LoginDialog::showWithSelection() {
             tablet->initialScreen(TABLET_LOGIN_DIALOG_URL);
         } else {
             // let Application handle creating login dialog overlay.
-            qApp->checkReadyToCreateLoginDialogOverlay();
         }
     }
 
