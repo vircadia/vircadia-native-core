@@ -97,7 +97,12 @@ void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
 }
 
 void AutoTester::on_tabWidget_currentChanged(int index) {
+// Enable the GitHub edit boxes as required
+#ifdef Q_OS_WIN
     if (index == 0 || index == 2 || index == 3) {
+#elif defined Q_OS_MAC
+    if (index == 0 || index == 1 || index == 2) {
+#endif
         _ui.userLineEdit->setDisabled(false);
         _ui.branchLineEdit->setDisabled(false);
     } else {
