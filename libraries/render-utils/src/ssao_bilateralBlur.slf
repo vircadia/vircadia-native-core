@@ -44,7 +44,7 @@ int getBlurRadius() {
 
 vec4 fetchOcclusionPacked(ivec4 side, vec2 texCoord) {
     texCoord.x = mix(texCoord.x, (texCoord.x + getStereoSide(side) * getBlurOcclusionUVLimit().x) * 0.5, isStereo());
-    return textureLod(occlusionMap, texCoord, 0);
+    return textureLod(occlusionMap, texCoord, 0.0);
 }
 
 float evalBlurCoefficient(vec3 blurScales, float radialDistance, float zDistance, float normalDistance) {
@@ -81,10 +81,10 @@ vec4 getBlurredOcclusion(ivec2 destPixelCoord, vec2 occlusionTexCoord, vec2 dept
     // Stereo side info
     ivec4 side = getStereoSideInfo(destPixelCoord.x, 0);
 
-    float fragDepth = getZEyeAtUV(depthTexCoord, 0);
+    float fragDepth = getZEyeAtUV(depthTexCoord, 0.0);
     float fragDepthKey = CSZToDepthKey(fragDepth);
 #if SSAO_BILATERAL_BLUR_USE_NORMAL    
-    vec3 fragNormal = getNormalEyeAtUV(depthTexCoord, 0);
+    vec3 fragNormal = getNormalEyeAtUV(depthTexCoord, 0.0);
 #else
     vec3 fragNormal = vec3(0, 0, 1);
 #endif

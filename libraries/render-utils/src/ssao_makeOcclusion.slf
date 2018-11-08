@@ -32,7 +32,7 @@ void main(void) {
     vec2 fragUVPos = varTexCoord0;
 
 #if SSAO_USE_QUAD_SPLIT
-    vec3 fragNormalES = getNormalEyeAtUV(fragUVPos, 0);
+    vec3 fragNormalES = getNormalEyeAtUV(fragUVPos, 0.0);
 #endif
 
     // Stereo side info based on the real viewport size of this pass
