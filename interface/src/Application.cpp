@@ -8519,13 +8519,19 @@ void Application::createLoginDialogOverlay() {
         refOverlayVec = myAvatar->getHeadPosition();
     }
 
+    auto playArea = HMD->getPlayAreaRect().toRectF();
+    if (!(playArea.isEmpty())) {
+        refOverlayVec = glm::vec3(playArea.x() - 0.5f, playArea.y() - 0.5f, 0.0f);
+    }
+
     Overlays& overlays = qApp->getOverlays();
     // DEFAULT_DPI / tablet scale percentage
     float overlayDpi = 31.0f / (75.0f / 100.0f);
     QVariantMap overlayProperties {
         { "name", "LoginDialogOverlay" },
         { "url", OVERLAY_LOGIN_DIALOG_URL },
-        { "position", vec3toVariant(refOverlayVec - glm::vec3(0.0f, -0.1f, 1.0f)) },
+        //{ "position", vec3toVariant(refOverlayVec - glm::vec3(0.0f, -0.1f, 1.0f)) },
+        { "position", vec3toVariant(refOverlayVec) },
         { "orientation", quatToVariant(myAvatar->getWorldOrientation()) },
         { "isSolid", true },
         { "grabbable", false },
