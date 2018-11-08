@@ -95,6 +95,18 @@ TabletModalWindow {
         }
     }
 
+    Timer {
+        id: keyboardTimer
+        repeat: false
+        interval: 200
+
+        onTriggered: {
+            if (MenuInterface.isOptionChecked("Use 3D Keyboard")) {
+                KeyboardScriptingInterface.raised = true;
+            }
+        }
+    }
+
     TabletModalFrame {
         id: mfRoot
 
@@ -125,6 +137,14 @@ TabletModalWindow {
                 source: loginDialog.isSteamRunning() ? "../LoginDialog/SignInBody.qml" : "../LoginDialog/LinkAccountBody.qml"
             }
         }
+    }
+
+    Component.onDestruction: {
+        loginKeyboard.raised = false;
+    }
+
+    Component.onCompleted: {
+        keyboardTimer.start();
     }
 
     Keyboard {

@@ -726,8 +726,13 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
         filterText = "";
     }
 
+    var wasIsOpen = ui.isOpen;
     ui.isOpen = (onMarketplaceScreen || onCommerceScreen) && !onWalletScreen;
     ui.buttonActive(ui.isOpen);
+
+    if (wasIsOpen !== ui.isOpen && Keyboard.raised) {
+        Keyboard.raised = false;
+    }
 
     if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
         ContextOverlay.isInMarketplaceInspectionMode = true;
