@@ -278,7 +278,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
     All: {
         description: "",
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        collidesWith: "static,dynamic,kinematic,otherAvatar",
+        collidesWith: "static,dynamic,kinematic,otherAvatar,myAvatar",
         collisionSoundURL: "",
         cloneable: false,
         ignoreIK: true,
@@ -484,22 +484,27 @@ var toolBar = (function () {
             originalProperties[key] = newProperties[key];
         }
     }
-    function createNewEntity(properties) {
-        var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
+    function createNewEntity(requestedProperties) {
+        var dimensions = requestedProperties.dimensions ? requestedProperties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
 
+        var properties = {};
+
         applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.All);
 
-        var type = properties.type;
+        var type = requestedProperties.type;
         if (type == "Box" || type == "Sphere") {
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
         } else if (type == "Image") {
-            properties.type = "Model";
+            requestedProperties.type = "Model";
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Image);
         } else {
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES[type]);
         }
+
+        // We apply the requested properties first so that they take priority over any default properties.
+        applyProperties(properties, requestedProperties);
 
 
         if (position !== null && position !== undefined) {
@@ -845,41 +850,18 @@ var toolBar = (function () {
         addButton("newCubeButton", function () {
             createNewEntity({
                 type: "Box",
-                dimensions: DEFAULT_DIMENSIONS,
-                color: {
-                    red: 255,
-                    green: 0,
-                    blue: 0
-                }
             });
         });
 
         addButton("newSphereButton", function () {
             createNewEntity({
                 type: "Sphere",
-                dimensions: DEFAULT_DIMENSIONS,
-                color: {
-                    red: 255,
-                    green: 0,
-                    blue: 0
-                }
             });
         });
 
         addButton("newLightButton", function () {
             createNewEntity({
                 type: "Light",
-                isSpotlight: false,
-                color: {
-                    red: 150,
-                    green: 150,
-                    blue: 150
-                },
-                constantAttenuation: 1,
-                linearAttenuation: 0,
-                quadraticAttenuation: 0,
-                exponent: 0,
-                cutoff: 180 // in degrees
             });
         });
 
@@ -2489,6 +2471,13 @@ var PropertiesTool = function (opts) {
             });
         }
     };
+
+    HMD.displayModeChanged.connect(function() {
+        emitScriptEvent({
+            type: 'hmdActiveChanged',
+            hmdActive: HMD.active,
+        });
+    });
 
     createToolsWindow.webEventReceived.addListener(this, onWebEventReceived);
 
