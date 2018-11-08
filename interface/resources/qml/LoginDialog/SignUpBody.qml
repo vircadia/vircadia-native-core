@@ -12,8 +12,8 @@ import Hifi 1.0
 import QtQuick 2.7
 import QtQuick.Controls 1.4
 
-import "../controls-uit"
-import "../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 
 Item {
     id: signupBody

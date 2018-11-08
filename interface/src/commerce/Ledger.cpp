@@ -454,7 +454,7 @@ void Ledger::alreadyOwned(const QString& marketplaceId) {
     }
 }
 
-void Ledger::getAvailableUpdates(const QString& itemId) {
+void Ledger::getAvailableUpdates(const QString& itemId, const int& pageNumber, const int& itemsPerPage) {
     auto wallet = DependencyManager::get<Wallet>();
     QString endpoint = "available_updates";
     QJsonObject request;
@@ -462,6 +462,8 @@ void Ledger::getAvailableUpdates(const QString& itemId) {
     if (!itemId.isEmpty()) {
         request["marketplace_item_id"] = itemId;
     }
+    request["per_page"] = itemsPerPage;
+    request["page"] = pageNumber;
     send(endpoint, "availableUpdatesSuccess", "availableUpdatesFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 

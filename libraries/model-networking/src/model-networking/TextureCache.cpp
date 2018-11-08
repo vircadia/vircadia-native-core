@@ -329,7 +329,7 @@ _maxNumPixels(100)
 
 static bool isLocalUrl(const QUrl& url) {
     auto scheme = url.scheme();
-    return (scheme == URL_SCHEME_FILE || scheme == URL_SCHEME_QRC || scheme == RESOURCE_SCHEME);
+    return (scheme == HIFI_URL_SCHEME_FILE || scheme == URL_SCHEME_QRC || scheme == RESOURCE_SCHEME);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) :
@@ -503,7 +503,7 @@ void NetworkTexture::handleLocalRequestCompleted() {
 void NetworkTexture::makeLocalRequest() {
     const QString scheme = _activeUrl.scheme();
     QString path;
-    if (scheme == URL_SCHEME_FILE) {
+    if (scheme == HIFI_URL_SCHEME_FILE) {
         path = PathUtils::expandToLocalDataAbsolutePath(_activeUrl).toLocalFile();
     } else {
         path = ":" + _activeUrl.path();
