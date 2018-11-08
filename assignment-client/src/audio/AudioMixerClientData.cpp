@@ -301,7 +301,7 @@ void AudioMixerClientData::parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessa
 
 void AudioMixerClientData::parseSoloRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
 
-    bool addToSolo;
+    uint8_t addToSolo;
     message->readPrimitive(&addToSolo);
 
     while (message->getBytesLeftToRead()) {

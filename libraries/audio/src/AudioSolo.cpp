@@ -26,8 +26,9 @@ QVector<QUuid> AudioSolo::getUUIDs() const {
 void AudioSolo::addUUIDs(QVector<QUuid> uuidList) {
     // create a reliable NLPacket with space for the solo UUIDs
     auto soloPacket = NLPacket::create(PacketType::AudioSoloRequest,
-                                       uuidList.size() * NUM_BYTES_RFC4122_UUID + sizeof(bool), true);
-    soloPacket->writePrimitive(true);
+                                       uuidList.size() * NUM_BYTES_RFC4122_UUID + sizeof(uint8_t), true);
+    uint8_t addToSoloList = (uint8_t)true;
+    soloPacket->writePrimitive(addToSoloList);
 
     {
         Lock lock(_mutex);
@@ -42,7 +43,7 @@ void AudioSolo::addUUIDs(QVector<QUuid> uuidList) {
         }
     }
 
-    // send off this ignore packet reliably to the matching node
+    // send off this solo packet reliably to the matching node
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->broadcastToNodes(std::move(soloPacket), { NodeType::AudioMixer });
 }
@@ -50,8 +51,9 @@ void AudioSolo::addUUIDs(QVector<QUuid> uuidList) {
 void AudioSolo::removeUUIDs(QVector<QUuid> uuidList) {
     // create a reliable NLPacket with space for the solo UUIDs
     auto soloPacket = NLPacket::create(PacketType::AudioSoloRequest,
-                                       uuidList.size() * NUM_BYTES_RFC4122_UUID + sizeof(bool), true);
-    soloPacket->writePrimitive(false);
+                                       uuidList.size() * NUM_BYTES_RFC4122_UUID + sizeof(uint8_t), true);
+    uint8_t addToSoloList = (uint8_t)false;
+    soloPacket->writePrimitive(addToSoloList);
 
     {
         Lock lock(_mutex);
@@ -66,7 +68,7 @@ void AudioSolo::removeUUIDs(QVector<QUuid> uuidList) {
         }
     }
 
-    // send off this ignore packet reliably to the matching node
+    // send off this solo packet reliably to the matching node
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->broadcastToNodes(std::move(soloPacket), { NodeType::AudioMixer });
 }
