@@ -81,6 +81,8 @@ public:
 
         glm::vec3 mainCameraPositionWorld = qApp->getCamera().getPosition();
         glm::vec3 mainCameraPositionPortalEntrance = vec3(portalEntranceFromWorld * vec4(mainCameraPositionWorld, 1.0f));
+        mainCameraPositionPortalEntrance = vec3(-mainCameraPositionPortalEntrance.x, mainCameraPositionPortalEntrance.y,
+            -mainCameraPositionPortalEntrance.z);
         glm::vec3 portalExitCameraPositionWorld = vec3(worldFromPortalExit * vec4(mainCameraPositionPortalEntrance, 1.0f));
 
         srcViewFrustum.setPosition(portalExitCameraPositionWorld);
