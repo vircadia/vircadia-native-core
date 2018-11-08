@@ -261,22 +261,14 @@ vec2 getSideUVFromFramebufferUV(ivec4 side, vec2 uv) {
     return isStereo() ? vec2(uv.x * 2.0 - float(getStereoSide(side)), uv.y) : uv;
 }
 
-ivec2 getDepthTextureSize(int level) {
-    return textureSize(depthPyramidTex, level);
-}
-ivec2 getDepthTextureSideSize(int level) {
-    ivec2 size = getDepthTextureSize(level);
-    size.x >>= int(isStereo()) & 1;
-    return size;
+vec2 getDepthTextureSize(int level) {
+    return vec2(textureSize(depthPyramidTex, level));
 }
 
-ivec2 getNormalTextureSize(int level) {
-    return textureSize(normalTex, level);
-}
-ivec2 getNormalTextureSideSize(int level) {
-    ivec2 size = getNormalTextureSize(level);
+vec2 getDepthTextureSideSize(int level) {
+    ivec2 size = textureSize(depthPyramidTex, level);
     size.x >>= int(isStereo()) & 1;
-    return size;
+    return vec2(size);
 }
 
 vec2 getStereoSideSizeRoundUp(int resolutionLevel) {
