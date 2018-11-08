@@ -222,7 +222,7 @@ static bool hasCorrectSyntax(const QScriptProgram& program) {
         const auto error = syntaxCheck.errorMessage();
         const auto line = QString::number(syntaxCheck.errorLineNumber());
         const auto column = QString::number(syntaxCheck.errorColumnNumber());
-        const auto message = QString("[SyntaxError] %1 in %2(%3)").arg(error, line, column);
+        const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, program.fileName(), line, column);
         qCritical() << qPrintable(message);
         return false;
     }
@@ -235,8 +235,8 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
         const auto line = QString::number(engine.uncaughtExceptionLineNumber());
         engine.clearExceptions();
 
-        static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 on line %2";
-        auto message = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, line);
+        static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
+        auto message = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, fileName, line);
         if (!backtrace.empty()) {
             static const auto lineSeparator = "\n    ";
             message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));

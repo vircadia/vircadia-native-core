@@ -1009,7 +1009,7 @@ Rectangle {
         try { // Not all calls to onFileOpenChanged() connect an event.
             Window.browseChanged.disconnect(onFileOpenChanged);
         } catch (e) {
-            console.log('Purchases.qml ignoring');
+            console.log('Purchases.qml ignoring', e);
         }
         if (filename) {
             Commerce.installApp(filename);

@@ -81,14 +81,16 @@ Windows.ScrollingWindow {
     }
 
     function doDeleteFile(paths) {
+        console.log("Deleting " + paths);
+
         Assets.deleteMappings(paths, function(err) {
             if (err) {
-                console.log("Asset browser - error deleting paths: ", err);
+                console.log("Asset browser - error deleting paths: ", paths, err);
 
-                box = errorMessageBox("There was an error deleting:\n" + err);
+                box = errorMessageBox("There was an error deleting:\n" + paths + "\n" + err);
                 box.selected.connect(reload);
             } else {
-                console.log("Asset browser - finished deleting paths");
+                console.log("Asset browser - finished deleting paths: ", paths);
                 reload();
             }
         });
@@ -115,11 +117,11 @@ Windows.ScrollingWindow {
 
         Assets.renameMapping(oldPath, newPath, function(err) {
             if (err) {
-                console.log("Asset browser - error renaming:", err);
+                console.log("Asset browser - error renaming: ", oldPath, "=>", newPath, " - error ", err);
                 box = errorMessageBox("There was an error renaming:\n" + oldPath + " to " + newPath + "\n" + err);
                 box.selected.connect(reload);
             } else {
-                console.log("Asset browser - finished rename");
+                console.log("Asset browser - finished rename: ", oldPath, "=>", newPath);
             }
 
             reload();
@@ -278,7 +280,7 @@ Windows.ScrollingWindow {
                             gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
                         }
 
-                        print("Asset browser - adding asset " + name + " to world.");
+                        print("Asset browser - adding asset " + url + " (" + name + ") to world.");
 
                         // Entities.addEntity doesn't work from QML, so we use this.
                         Entities.addModelEntity(name, url, "", shapeType, dynamic, collisionless, grabbable, addPosition, gravity);
@@ -424,7 +426,7 @@ Windows.ScrollingWindow {
                     uploadProgressLabel.text = "In progress...";
                 },
                 function(err, path) {
-                    print(err);
+                    print(err, path);
                     if (err === "") {
                         uploadProgressLabel.text = "Upload Complete";
                         timer.interval = 1000;
@@ -435,7 +437,7 @@ Windows.ScrollingWindow {
                             uploadOpen = false;
                         });
                         timer.start();
-                        console.log("Asset Browser - finished uploading");
+                        console.log("Asset Browser - finished uploading: ", fileUrl);
                         reload();
                     } else {
                         uploadSpinner.visible = false;
@@ -443,7 +445,7 @@ Windows.ScrollingWindow {
                         uploadOpen = false;
 
                         if (err !== -1) {
-                            console.log("Asset Browser - error uploading:", err);
+                            console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
                             var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + err);
                             box.selected.connect(reload);
                         }

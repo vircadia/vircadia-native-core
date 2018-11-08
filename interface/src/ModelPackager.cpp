@@ -83,7 +83,7 @@ bool ModelPackager::loadModel() {
                                  QString("ModelPackager::loadModel()"),
                                  QString("Could not open FST file %1").arg(_modelFile.filePath()),
                                  QMessageBox::Ok);
-            qWarning() << "ModelPackager::loadModel(): Could not open FST file";
+            qWarning() << QString("ModelPackager::loadModel(): Could not open FST file %1").arg(_modelFile.filePath());
             return false;
         }
         qCDebug(interfaceapp) << "Reading FST file";
@@ -106,7 +106,7 @@ bool ModelPackager::loadModel() {
         return false;
     }
     try {
-        qCDebug(interfaceapp) << "Reading FBX file";
+        qCDebug(interfaceapp) << "Reading FBX file : " << _fbxInfo.filePath();
         QByteArray fbxContents = fbx.readAll();
 
         _hfmModel.reset(readFBX(fbxContents, QVariantHash(), _fbxInfo.filePath()));

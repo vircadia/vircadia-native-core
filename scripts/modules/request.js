@@ -75,3 +75,9 @@ module.exports = {
         httpRequest.send(options.body || null);
     }
 };
+
+// ===========================================================================================
+// @function - debug logging
+function debug() {
+    print('RequestModule | ' + [].slice.call(arguments).join(' '));
+}

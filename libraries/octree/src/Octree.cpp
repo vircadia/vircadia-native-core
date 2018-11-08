@@ -696,12 +696,14 @@ bool Octree::readFromFile(const char* fileName) {
 bool Octree::readJSONFromGzippedFile(QString qFileName) {
     QFile file(qFileName);
     if (!file.open(QIODevice::ReadOnly)) {
+        qCritical() << "Cannot open gzipped json file for reading: " << qFileName;
         return false;
     }
     QByteArray compressedJsonData = file.readAll();
     QByteArray jsonData;
 
     if (!gunzip(compressedJsonData, jsonData)) {
+        qCritical() << "json File not in gzip format: " << qFileName;
         return false;
     }
 
