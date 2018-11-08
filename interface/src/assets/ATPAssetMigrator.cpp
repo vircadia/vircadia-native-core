@@ -209,7 +209,7 @@ void ATPAssetMigrator::migrateResource(ResourceRequest* request) {
     // add this URL to our hash of AssetUpload to original URL
     _originalURLs.insert(upload, request->getUrl());
 
-    qCDebug(asset_migrator) << "Starting upload of asset";
+    qCDebug(asset_migrator) << "Starting upload of asset from" << request->getUrl();
 
     // connect to the finished signal so we know when the AssetUpload is done
     QObject::connect(upload, &AssetUpload::finished, this, &ATPAssetMigrator::assetUploadFinished);
