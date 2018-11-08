@@ -345,7 +345,7 @@ vec3 buildPosition(ivec4 side, vec2 fragUVPos) {
 
 <@func buildPositionOffset(side, fragUVPos, sideFragUVPos, texelOffset, deltaUV, position)@>
 {
-    float Zeye = <$getZEyeAtUVOffset($sideFragUVPos$, 0, $texelOffset$)$>
+    float Zeye = <$getZEyeAtUVOffset($sideFragUVPos$, 0.0, $texelOffset$)$>
     <$position$> = evalEyePositionFromZeye(<$side$>.x, Zeye, <$fragUVPos$> + <$texelOffset$>*<$deltaUV$>);
 }
 <@endfunc@>
