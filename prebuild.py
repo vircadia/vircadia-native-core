@@ -71,14 +71,6 @@ def downloadAndExtract(url, destPath, hash=None):
         
     # Extract the archive
     with tarfile.open(tempFileName, 'r:gz') as tgz:
-        # prefix = os.path.commonprefix(tgz.getnames())
-        # if (prefix != '.' and prefix != ''):
-        #     prefixlen = len(prefix)
-        #     for member in tgz.getmembers():
-        #         name = member.name
-        #         if prefix == name:
-        #             continue
-        #         member.name = name[prefixlen + 1:]
         tgz.extractall(destPath)
     os.remove(tempFileName)
 
@@ -162,8 +154,22 @@ class VcpkgRepo:
             self.clean()
 
         global args
+        downloadVcpkg = False
+        if args.force_bootstrap:
+            print("Forcing bootstrap")
+            downloadVcpkg = True
+
+        if not downloadVcpkg and not os.path.isfile(self.exe):
+            print("Missing executable, boostrapping")
+            downloadVcpkg = True
+        
         # Make sure we have a vcpkg executable
-        if True or args.force_bootstrap or (not os.path.isfile(self.exe)) or (not os.path.isfile(os.path.join(self.path, '.vcpkg_root'))):
+        testFile = os.path.join(self.path, '.vcpkg-root')
+        if not downloadVcpkg and not os.path.isfile(testFile):
+            print("Missing {}, bootstrapping".format(testFile))
+            downloadVcpkg = True
+
+        if downloadVcpkg:
             print("Fetching vcpkg from {} to {}".format(self.vcpkgUrl, self.path))
             downloadAndExtract(self.vcpkgUrl, self.path, self.vcpkgHash)
 
@@ -215,7 +221,7 @@ class VcpkgRepo:
         installPath = os.path.join(self.path, 'installed', self.triplet)
         toolsPath = os.path.join(self.path, 'installed', self.hostTriplet, 'tools')
         cmakeTemplate = 'set(CMAKE_TOOLCHAIN_FILE "{}" CACHE FILEPATH "Toolchain file")\n'
-        cmakeTemplate += 'set(VKPKG_INSTALL_ROOT "{}" CACHE FILEPATH "vcpkg installed packages path")\n'
+        cmakeTemplate += 'set(VCPKG_INSTALL_ROOT "{}" CACHE FILEPATH "vcpkg installed packages path")\n'
         cmakeTemplate += 'set(VCPKG_TOOLS_DIR "{}" CACHE FILEPATH "vcpkg installed packages path")\n'
         cmakeConfig = cmakeTemplate.format(cmakeScript, installPath, toolsPath).replace('\\', '/')
         with open(configFilePath, 'w') as f:

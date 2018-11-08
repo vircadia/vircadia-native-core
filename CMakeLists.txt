@@ -35,8 +35,8 @@ project(hifi)
 include("cmake/init.cmake")
 include("cmake/compiler.cmake")
 
-add_paths_to_fixup_libs(${VKPKG_INSTALL_ROOT}/bin)
-add_paths_to_fixup_libs(${VKPKG_INSTALL_ROOT}/debug/bin)
+add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/bin)
+add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/debug/bin)
 
 if (NOT DEFINED CLIENT_ONLY)
   set(CLIENT_ONLY 0)

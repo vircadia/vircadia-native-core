@@ -7,7 +7,7 @@
 # 
 macro(TARGET_GLM)
     if (ANDROID)
-        target_include_directories(${TARGET_NAME} PUBLIC "${VKPKG_INSTALL_ROOT}/include")
+        target_include_directories(${TARGET_NAME} PUBLIC "${VCPKG_INSTALL_ROOT}/include")
     else()
         find_package(glm CONFIG REQUIRED)
         target_link_libraries(${TARGET_NAME} glm)
