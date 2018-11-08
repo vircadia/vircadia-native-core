@@ -82,10 +82,10 @@ const QSet<QString>& getKnownUrls() {
     static std::once_flag once;
     std::call_once(once, [] {
         knownUrls.insert(URL_SCHEME_QRC);
-        knownUrls.insert(URL_SCHEME_FILE);
-        knownUrls.insert(URL_SCHEME_HTTP);
-        knownUrls.insert(URL_SCHEME_HTTPS);
-        knownUrls.insert(URL_SCHEME_FTP);
+        knownUrls.insert(HIFI_URL_SCHEME_FILE);
+        knownUrls.insert(HIFI_URL_SCHEME_HTTP);
+        knownUrls.insert(HIFI_URL_SCHEME_HTTPS);
+        knownUrls.insert(HIFI_URL_SCHEME_FTP);
         knownUrls.insert(URL_SCHEME_ATP);
     });
     return knownUrls;
@@ -97,7 +97,7 @@ QUrl ResourceManager::normalizeURL(const QUrl& originalUrl) {
     if (!getKnownUrls().contains(scheme)) {
         // check the degenerative file case: on windows we can often have urls of the form c:/filename
         // this checks for and works around that case.
-        QUrl urlWithFileScheme{ URL_SCHEME_FILE + ":///" + url.toString() };
+        QUrl urlWithFileScheme{ HIFI_URL_SCHEME_FILE + ":///" + url.toString() };
         if (!urlWithFileScheme.toLocalFile().isEmpty()) {
             return urlWithFileScheme;
         }
@@ -124,9 +124,9 @@ ResourceRequest* ResourceManager::createResourceRequest(
 
     ResourceRequest* request = nullptr;
 
-    if (scheme == URL_SCHEME_FILE || scheme == URL_SCHEME_QRC) {
+    if (scheme == HIFI_URL_SCHEME_FILE || scheme == URL_SCHEME_QRC) {
         request = new FileResourceRequest(normalizedURL, isObservable, callerId, extra);
-    } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
+    } else if (scheme == HIFI_URL_SCHEME_HTTP || scheme == HIFI_URL_SCHEME_HTTPS || scheme == HIFI_URL_SCHEME_FTP) {
         request = new HTTPResourceRequest(normalizedURL, isObservable, callerId, extra);
     } else if (scheme == URL_SCHEME_ATP) {
         if (!_atpSupportEnabled) {
@@ -149,10 +149,10 @@ ResourceRequest* ResourceManager::createResourceRequest(
 
 bool ResourceManager::resourceExists(const QUrl& url) {
     auto scheme = url.scheme();
-    if (scheme == URL_SCHEME_FILE) {
+    if (scheme == HIFI_URL_SCHEME_FILE) {
         QFileInfo file{ url.toString() };
         return file.exists();
-    } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
+    } else if (scheme == HIFI_URL_SCHEME_HTTP || scheme == HIFI_URL_SCHEME_HTTPS || scheme == HIFI_URL_SCHEME_FTP) {
         auto& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest request{ url };
 

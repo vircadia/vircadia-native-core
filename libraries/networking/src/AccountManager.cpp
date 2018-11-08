@@ -837,3 +837,7 @@ void AccountManager::handleKeypairGenerationError() {
     // reset our waiting state for keypair response
     _isWaitingForKeypairResponse = false;
 }
+
+void AccountManager::setLimitedCommerce(bool isLimited) {
+    _limitedCommerce = isLimited;
+}
