@@ -43,27 +43,29 @@ TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
     _url = url;
     _runNow = runNow;
 
-    installerThread = new QThread();
-    installerWorker = new Worker();
-    installerWorker->moveToThread(installerThread);
-    installerThread->start();
-    connect(this, SIGNAL(startInstaller()), installerWorker, SLOT(runCommand()));
-    connect(installerWorker, SIGNAL(commandComplete()), this, SLOT(installationComplete()));
+    _installerThread = new QThread();
+    _installerWorker = new Worker();
+        
+    _installerWorker->moveToThread(_installerThread);
+    _installerThread->start();
+    connect(this, SIGNAL(startInstaller()), _installerWorker, SLOT(runCommand()));
+    connect(_installerWorker, SIGNAL(commandComplete()), this, SLOT(installationComplete()));
 
-    interfaceThread = new QThread();
-    interfaceWorker = new Worker();
-    interfaceThread->start();
-    interfaceWorker->moveToThread(interfaceThread);
-    connect(this, SIGNAL(startInterface()), interfaceWorker, SLOT(runCommand()));
-    connect(interfaceWorker, SIGNAL(commandComplete()), this, SLOT(interfaceExecutionComplete()));
+    _interfaceThread = new QThread();
+    _interfaceWorker = new Worker();
+
+    _interfaceThread->start();
+    _interfaceWorker->moveToThread(_interfaceThread);
+    connect(this, SIGNAL(startInterface()), _interfaceWorker, SLOT(runCommand()));
+    connect(_interfaceWorker, SIGNAL(commandComplete()), this, SLOT(interfaceExecutionComplete()));
 }
 
 TestRunner::~TestRunner() {
-    delete installerThread;
-    delete interfaceThread;
+    delete _installerThread;
+    delete _installerWorker;
 
-    delete interfaceThread;
-    delete interfaceWorker;
+    delete _interfaceThread;
+    delete _interfaceWorker;
 
     if (_timer) {
         delete _timer;
@@ -105,30 +107,7 @@ void TestRunner::setWorkingFolder() {
 #ifdef Q_OS_MAC
     // Create MAC shell scripts
     QFile script;
-    script.setFileName(_workingFolder + "/install_app.sh");
-    if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not open 'install_app.sh'");
-        exit(-1);
-    }
     
-    QString installFolder = QString("\"") + _workingFolder + "/High_Fidelity\"";
-    if (!QDir().exists(installFolder)) {
-        QDir().mkdir(installFolder);
-    }
-    
-    // This script installs High Fidelity.  It is run as "yes | install_app.sh... so "yes" is killed at the end
-    script.write("#!/bin/sh\n\n");
-    script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`\n");
-    
-    script.write((QString("cp -rf \"$VOLUME/") + "/High Fidelity/interface.app\" \"" + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
-    script.write((QString("cp -rf \"$VOLUME/") + "/High Fidelity/Sandbox.app\" \""   + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
-    
-    script.write("hdiutil detach \"$VOLUME\"\n");
-    script.write("killall yes\n");
-    script.close();
-    script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
-
     // This script waits for a process to start
     script.setFileName(_workingFolder + "/waitForStart.sh");
     if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -139,27 +118,31 @@ void TestRunner::setWorkingFolder() {
     
     script.write("#!/bin/sh\n\n");
     script.write("PROCESS=\"$1\"\n");
-    script.write("while (pgrep $PROCESS)\n");
+    script.write("until (pgrep $PROCESS >nul)\n");
     script.write("do\n");
+    script.write("\techo waiting for \"$1\" to start\n");
     script.write("\tsleep 2\n");
     script.write("done\n");
+    script.write("echo \"$1\" \"started\"\n");
     script.close();
     script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
 
-    // The Mac shell command returns immediately.  This little script waits for a process to complete
-    script.setFileName(_workingFolder + "/waitForCompletion.sh");
+    // The Mac shell command returns immediately.  This little script waits for a process to finish
+    script.setFileName(_workingFolder + "/waitForFinish.sh");
     if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not open 'waitForCompletion.sh'");
+                              "Could not open 'waitForFinish.sh'");
         exit(-1);
     }
     
     script.write("#!/bin/sh\n\n");
     script.write("PROCESS=\"$1\"\n");
-    script.write("while (pgrep $PROCESS)\n");
+    script.write("while (pgrep $PROCESS >nul)\n");
     script.write("do\n");
+    script.write("\techo waiting for \"$1\" to finish\n");
     script.write("\tsleep 2\n");
     script.write("done\n");
+    script.write("echo \"$1\" \"finished\"\n");
     script.close();
     script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
     
@@ -177,7 +160,7 @@ void TestRunner::setWorkingFolder() {
     script.write("set height to 540\n");
     script.write("set x to 100\n");
     script.write("set y to 100\n\n");
-    script.write("tell application \"System Events\" to tell application process \"interface\" to tell window 1 to set {size, position} to {{width, height}, {x, y}})\n");
+    script.write("tell application \"System Events\" to tell application process \"interface\" to tell window 1 to set {size, position} to {{width, height}, {x, y}}\n");
 
     script.close();
     script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
@@ -190,7 +173,7 @@ void TestRunner::setWorkingFolder() {
     }
     
     script.write("#!/bin/sh\n\n");
-    script.write((_workingFolder + "/osascript " + _workingFolder + "/setInterfaceSizeAndPosition.scpt\n").toStdString().c_str());
+    script.write(("osascript " + _workingFolder + "/setInterfaceSizeAndPosition.scpt\n").toStdString().c_str());
     script.close();
     script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
 #endif
@@ -281,10 +264,39 @@ void TestRunner::runInstaller() {
 #ifdef Q_OS_WIN
     commandLine = "\"" + QDir::toNativeSeparators(installerFullPath) + "\"" + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
 #elif defined Q_OS_MAC
-    commandLine = "yes | " + _workingFolder + "/install_app.sh " + _workingFolder + "/HighFidelity-Beta-latest-dev.dmg";
-#endif
+    // Create installation shell script
+    QFile script;
+    script.setFileName(_workingFolder + "/install_app.sh");
+    if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open 'install_app.sh'");
+        exit(-1);
+    }
+    
+    if (!QDir().exists(_installationFolder)) {
+        QDir().mkdir(_installationFolder);
+    }
+    
+    // This script installs High Fidelity.  It is run as "yes | install_app.sh... so "yes" is killed at the end
+    script.write("#!/bin/sh\n\n");
+    script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`\n");
+    
+    QString folderName {"High Fidelity"};
+    if (!_runLatest->isChecked()) {
+        folderName += QString(" - ") + getPRNumberFromURL(_url->text());
+    }
 
-    installerWorker->setCommandLine(commandLine);
+    script.write((QString("cp -rf \"$VOLUME/") + folderName + "/interface.app\" \"" + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
+    script.write((QString("cp -rf \"$VOLUME/") + folderName + "/Sandbox.app\" \""   + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
+    
+    script.write("hdiutil detach \"$VOLUME\"\n");
+    script.write("killall yes\n");
+    script.close();
+    script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+    commandLine = "yes | " + _workingFolder + "/install_app.sh " + installerFullPath;
+#endif
+    appendLog(commandLine);
+    _installerWorker->setCommandLine(commandLine);
     emit startInstaller();
 }
 
@@ -415,10 +427,15 @@ void TestRunner::killProcesses() {
         exit(-1);
     }
 #elif defined Q_OS_MAC
-    QString commandLine = QString("killall interface") + "; " + _workingFolder +"/waitForCompletion.sh interface";
+    QString commandLine;
+    
+    commandLine = QString("killall interface") + "; " + _workingFolder +"/waitForFinish.sh interface";
     system(commandLine.toStdString().c_str());
-
-    commandLine = QString("killall Sandbox") + "; " + _workingFolder +"/waitForCompletion.sh interface";
+    
+    commandLine = QString("killall Sandbox") + "; " + _workingFolder +"/waitForFinish.sh Sandbox";
+    system(commandLine.toStdString().c_str());
+    
+    commandLine = QString("killall Console") + "; " + _workingFolder +"/waitForFinish.sh Console";
     system(commandLine.toStdString().c_str());
 #endif
 }
@@ -464,28 +481,56 @@ void TestRunner::runInterfaceWithTestScript() {
     QString commandLine;
 #ifdef Q_OS_WIN
     QString exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"";
-    commandLine = exeFile + " --url " + url + " --no-updater" + " --testScript " + testScript +
-                          " quitWhenFinished --testResultsLocation " + _snapshotFolder;
+    commandLine = exeFile +
+    " --url " + url +
+    " --no-updater" +
+    " --no-login-suggestion"
+    " --testScript " + testScript + " quitWhenFinished" +
+    " --testResultsLocation " + _snapshotFolder;
+
+    interfaceWorker->setCommandLine(commandLine);
+    emit startInterface();
 #elif defined Q_OS_MAC
-    // On The Mac, we need to resize Interface.  The Interface window opens a few seconds after the process has started,
-    // so we wait another 10 seconds
-    // The shell closes if we don't wait for completion, hence the final line
-    commandLine = "open \"" +_installationFolder + "/interface.app\" --args" +
+    // On The Mac, we need to resize Interface.  The Interface window opens a few seconds after the process
+    // has started.
+    // Before starting interface, start a process that will resize interface 10s after it opens
+    // This is performed by creating a bash script that runs to processes
+    QFile script;
+    script.setFileName(_workingFolder + "/runInterfaceTests.sh");
+    if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open 'runInterfaceTests.sh'");
+        exit(-1);
+    }
+    
+    script.write("#!/bin/sh\n\n");
+
+    commandLine = _workingFolder +"/waitForStart.sh interface && sleep 10 && " + _workingFolder +"/setInterfaceSizeAndPosition.sh &\n";
+    script.write(commandLine.toStdString().c_str());
+
+    commandLine =
+        "open \"" +_installationFolder + "/interface.app\" --args" +
         " --url " + url +
         " --no-updater" +
+        " --no-login-suggestion"
         " --testScript " + testScript + " quitWhenFinished" +
         " --testResultsLocation " + _snapshotFolder +
-        "; " + _workingFolder +"/waitForStart.sh interface" +
-        "; " + "sleep 10" +
-        "; " + _workingFolder +"/setInterfaceSizeAndPosition.sh" +
-        "; " + _workingFolder +"/waitForCompletion.sh interface";
+        " && " + _workingFolder +"/waitForStart.sh interface" +
+        " && " + _workingFolder +"/waitForFinish.sh interface";
+
+    script.write(commandLine.toStdString().c_str());
+
+    script.close();
+    script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+
+    commandLine = _workingFolder + "/runInterfaceTests.sh";
+    _interfaceWorker->setCommandLine(commandLine);
+
+    emit startInterface();
 #endif
     
     // Helpful for debugging
     appendLog(commandLine);
-
-    interfaceWorker->setCommandLine(commandLine);
-    emit startInterface();
 }
 
 void TestRunner::interfaceExecutionComplete() {
@@ -637,6 +682,7 @@ void TestRunner::appendLog(const QString& message) {
 
 QString TestRunner::getInstallerNameFromURL(const QString& url) {
     // An example URL: https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe
+    // On Mac, replace `exe` with `dmg`
     try {
         QStringList urlParts = url.split("/");
         return urlParts[urlParts.size() - 1];
@@ -654,7 +700,11 @@ QString TestRunner::getPRNumberFromURL(const QString& url) {
         QStringList urlParts = url.split("/");
         QStringList filenameParts = urlParts[urlParts.size() - 1].split("-");
         if (filenameParts.size() <= 3) {
+#ifdef Q_OS_WIN
             throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe`";
+#elif defined Q_OS_MAC
+            throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.dmg`";
+#endif
         }
         return filenameParts[filenameParts.size() - 2];
     } catch (QString errorMessage) {

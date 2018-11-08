@@ -84,7 +84,8 @@ private slots:
 signals:
     void startInstaller();
     void startInterface();
-
+    void startResize();
+    
 private:
     bool _automatedTestIsRunning{ false };
 
@@ -130,11 +131,12 @@ private:
 
     QDateTime _testStartDateTime;
 
-    QThread* installerThread;
-    QThread* interfaceThread;
-    Worker* installerWorker;
-    Worker* interfaceWorker;
+    QThread* _installerThread;
+    QThread* _interfaceThread;
 
+    Worker* _installerWorker;
+    Worker* _interfaceWorker;
+    
     BuildInformation _buildInformation;
 };
 
@@ -150,7 +152,7 @@ signals:
     void commandComplete();
     void startInstaller();
     void startInterface();
-
+    
 private:
     QString _commandLine;
 };
