@@ -72,7 +72,7 @@ vec2 evalTapWeightedValue(vec3 blurScales, ivec4 side, int r, vec2 occlusionTexC
 #else
     float normalDistance = 0.0;
 #endif
-    float weight = evalBlurCoefficient(blurScales, abs(r), zDistance, normalDistance);
+    float weight = evalBlurCoefficient(blurScales, float(abs(r)), zDistance, normalDistance);
     
     return vec2(tap.occlusion * weight, weight);
 }
