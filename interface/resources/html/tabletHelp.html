@@ -137,29 +137,24 @@
                 switch (params.handControllerName) {
                     case "oculus":
                         handControllerImageURL = "img/tablet-help-oculus.jpg";
-                        index = 0;
                         break;
                     case "windowsMR":
                         handControllerImageURL = "img/tablet-help-windowsMR.jpg";
-                        index = 0;
                         break;
                     case "vive":
 						handControllerImageURL = "img/tablet-help-vive.jpg";
-                        index = 0;
                     default:
-
                 }
 
                 switch (params.defaultTab) {
+					case "handControllers":
+                        showHandControllers();
+						index = 0;
+                        break;
                     case "gamepad":
                         showGamepad();
                         index = 1;
                         break;
-
-                    case "handControllers":
-                        showHandControllers();
-                        break;
-
                     case "kbm":
                     default:
                         showKbm();
