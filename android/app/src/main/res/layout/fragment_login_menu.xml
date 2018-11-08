@@ -29,7 +29,7 @@ tools:context=".fragment.StartMenuFragment">
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fontFamily="@font/raleway_bold"
-        android:textSize="22sp"
+        android:textSize="@dimen/login_menu_text_size"
         android:layout_marginTop="37dp"
         android:text="@string/be_anywere"
         android:gravity="center"
@@ -40,44 +40,44 @@ tools:context=".fragment.StartMenuFragment">
 
     <Button
         android:id="@+id/signupButton"
-        android:layout_width="238dp"
-        android:layout_height="41dp"
+        android:layout_width="@dimen/button_large_width"
+        android:layout_height="@dimen/button_large_height"
         android:layout_marginTop="48dp"
         android:background="@drawable/rounded_button_color1"
         android:fontFamily="@font/raleway_bold"
         android:text="@string/signup_uppercase"
         android:textColor="@color/white_opaque"
         android:textAllCaps="false"
-        android:textSize="18sp"
+        android:textSize="@dimen/button_large_text_size"
         app:layout_constraintTop_toBottomOf="@id/text"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent" />
 
     <android.support.constraint.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="270dp"
+        android:layout_height="@dimen/login_menu_translucent_rectangle_height"
         app:layout_constraintBottom_toBottomOf="parent" android:background="#B2000000">
 
 
         <Button
             android:id="@+id/loginButton"
-            android:layout_width="238dp"
-            android:layout_height="42dp"
+            android:layout_width="@dimen/button_large_width"
+            android:layout_height="@dimen/button_large_height"
             android:background="@drawable/rounded_button_color3"
             android:fontFamily="@font/raleway_bold"
-            android:layout_marginTop="86dp"
+            android:layout_marginTop="@dimen/login_menu_button_margin_top"
             android:text="@string/log_in"
             android:textColor="@color/white_opaque"
             android:textAllCaps="false"
-            android:textSize="18sp"
+            android:textSize="@dimen/button_large_text_size"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"/>
 
         <Button
             android:id="@+id/steamLoginButton"
-            android:layout_width="238dp"
-            android:layout_height="42dp"
+            android:layout_width="@dimen/button_large_width"
+            android:layout_height="@dimen/button_large_height"
             android:background="@drawable/rounded_button_color4"
             android:fontFamily="@font/raleway_bold"
             android:layout_marginTop="10dp"
@@ -85,7 +85,7 @@ tools:context=".fragment.StartMenuFragment">
             android:textAlignment="center"
             android:textColor="@color/white_opaque"
             android:textAllCaps="false"
-            android:textSize="18sp"
+            android:textSize="@dimen/button_large_text_size"
             android:drawableLeft="@drawable/ic_steam"
             android:paddingLeft="38dp"
             android:paddingRight="38dp"
