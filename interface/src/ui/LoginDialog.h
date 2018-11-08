@@ -14,10 +14,7 @@
 #ifndef hifi_LoginDialog_h
 #define hifi_LoginDialog_h
 
-#include <QtCore/QUuid>
-
 #include <OffscreenQmlDialog.h>
-#include <SettingHandle.h>
 
 class QNetworkReply;
 
@@ -84,4 +81,4 @@ private:
     bool _isLogIn{ false };
 };
 
-#endif  // hifi_LoginDialog_h
+#endif // hifi_LoginDialog_h
