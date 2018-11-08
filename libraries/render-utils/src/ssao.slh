@@ -520,7 +520,7 @@ float computeOcclusion(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame
 #else
         // Step is adapted to Mip level
         float radius = deltaRadius;
-        float mipLevel = evalMipFromRadius(radius * float(doFetchMips()));
+        float mipLevel = float(evalMipFromRadius(radius * float(doFetchMips())));
 
         while (radius<=searchRadius) {
             fragUVPos += deltaTapUV;
@@ -530,8 +530,8 @@ float computeOcclusion(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame
 
             if (tapMipZ.x != mipLevel) {
                 mipLevel = tapMipZ.x;
-                deltaRadius *= 2;
-                deltaTapUV *= 2;
+                deltaRadius *= 2.0;
+                deltaTapUV *= 2.0;
                 sideDepthSize = getDepthTextureSideSize(int(mipLevel));
             }
             radius += deltaRadius;
