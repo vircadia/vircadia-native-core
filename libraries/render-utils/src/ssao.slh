@@ -254,11 +254,11 @@ LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_DEPTH) uniform sampler2D depthPyramidTe
 LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_NORMAL) uniform sampler2D normalTex;
 
 vec2 getFramebufferUVFromSideUV(ivec4 side, vec2 uv) {
-    return isStereo() ? vec2((uv.x + float(getStereoSide(side))) * 0.5, uv.y) : uv;
+    return mix(uv, vec2((uv.x + float(getStereoSide(side))) * 0.5, uv.y), float(isStereo()));
 }
 
 vec2 getSideUVFromFramebufferUV(ivec4 side, vec2 uv) {
-    return isStereo() ? vec2(uv.x * 2.0 - float(getStereoSide(side)), uv.y) : uv;
+    return mix(uv, vec2(uv.x * 2.0 - float(getStereoSide(side)), uv.y), float(isStereo()));
 }
 
 vec2 getDepthTextureSize(int level) {
@@ -348,7 +348,7 @@ vec3 getMinDelta(vec3 centralPoint, vec3 offsetPointPos, vec3 offsetPointNeg) {
     float sqrLength0 = dot(delta0, delta0);
     float sqrLength1 = dot(delta1, delta1);
 
-    return sqrLength0 < sqrLength1 ? delta0 : delta1;
+    return mix(delta1, delta0, float(sqrLength0 < sqrLength1));
 }
 
 const ivec2 UV_RIGHT = ivec2(1,0);
@@ -542,7 +542,7 @@ float computeOcclusion(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame
 #if HBAO_USE_COS_ANGLE
     occlusion = min(occlusion * getFalloffCosAngleScale(), 1.0);
 #else
-    occlusion = horizonLimit > 0.0 ? horizonLimit * getFalloffSinAngleScale() : horizonLimit;
+    occlusion = horizonLimit * mix(1.0, getFalloffSinAngleScale(), horizonLimit > 0.0);
 #endif
 
     return occlusion;
