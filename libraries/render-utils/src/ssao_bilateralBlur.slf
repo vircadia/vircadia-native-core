@@ -99,7 +99,7 @@ vec4 getBlurredOcclusion(ivec2 destPixelCoord, vec2 occlusionTexCoord, vec2 dept
     float sideTexCoord = occlusionTexCoord.x * 2.0 - float(getStereoSide(side)) * getBlurOcclusionUVLimit().x;
     occlusionTexCoord.x = mix(occlusionTexCoord.x, sideTexCoord, isStereo());
 
-    occlusionTexCoord -= getBlurOcclusionAxis() * blurRadius;
+    occlusionTexCoord -= getBlurOcclusionAxis() * float(blurRadius);
 
     // negative side first
     for (r = -blurRadius; r <= -1; r++) {
