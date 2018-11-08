@@ -1,11 +1,11 @@
-# Auto Tester
+# nitpick
 
-The auto-tester is a stand alone application that provides a mechanism for regression testing.  The general idea is simple:
+Nitpick is a stand alone application that provides a mechanism for regression testing.  The general idea is simple:
 * Each test folder has a script that produces a set of snapshots.
 * The snapshots are compared to a 'canonical' set of images that have been produced beforehand.
 * The result, if any test failed, is a zipped folder describing the failure.
 
-Auto-tester has 5 functions, separated into 4 tabs:
+Nitpick has 5 functions, separated into 4 tabs:
 1. Creating tests, MD files and recursive scripts
 1. Windows task bar utility (Windows only)
 1. Running tests
@@ -14,12 +14,12 @@ Auto-tester has 5 functions, separated into 4 tabs:
 
 ## Installation
 ### Executable
-1. On Windows: download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/autoTester/AutoTester-Installer-v6.6.exe>).
+1. On Windows: download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/nitpick/Nitpick-Installer-v6.6.exe>).
 2. Double click on the installer and install to a convenient location  
 ![](./setup_7z.PNG)
-3. To run the auto-tester, double click **auto-tester.exe**.
+3. To run nitpick, double click **nitpick.exe**.
 ### Python
-The TestRail interface requires Python 3 to be installed. Auto-Tester has been tested with Python 3.7.0 but should work with newer versions.
+The TestRail interface requires Python 3 to be installed. Nitpick has been tested with Python 3.7.0 but should work with newer versions.
 
 Python 3 can be downloaded from:
 1. Windows installer   <https://www.python.org/downloads/>
@@ -41,7 +41,6 @@ Verify that `/usr/local/bin/python3` exists.
 1.  Enter the AWS account number
 1.  Enter the secret key
 1.  Leave region name and ouput format as default [None]
-
 1.  Install the latest release of Boto3 via pip:  
 pip install boto3
 #### Mac
@@ -78,7 +77,7 @@ This function creates an MD file in the (user-selected) tests root folder.  The 
 This function creates a file named `test.md` from a `test.js` script.  The user will be asked for the folder containing the test script:
 ### Details
 The process to produce the MD file is a simplistic parse of the test script.
-- The string in the `autoTester.perform(...)` function call will be the title of the file
+- The string in the `nitpick.perform(...)` function call will be the title of the file
 
 - Instructions to run the script are then provided: 
 
@@ -110,26 +109,26 @@ The various scripts are called in alphabetical order.
 
 An example of a recursive script is as follows:  
 ```
-// This is an automatically generated file, created by auto-tester on Jul 5 2018, 10:19
+// This is an automatically generated file, created by nitpick on Jul 5 2018, 10:19
 
 PATH_TO_THE_REPO_PATH_UTILS_FILE = "https://raw.githubusercontent.com/highfidelity/hifi_tests/master/tests/utils/branchUtils.js";
 Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);
-var autoTester = createAutoTester(Script.resolvePath("."));
+var nitpick = createNitpick(Script.resolvePath("."));
 
-var testsRootPath = autoTester.getTestsRootPath();
+var testsRootPath = nitpick.getTestsRootPath();
 
 if (typeof Test !== 'undefined') {
     Test.wait(10000);
 };
 
-autoTester.enableRecursive();
-autoTester.enableAuto();
+nitpick.enableRecursive();
+nitpick.enableAuto();
 
 Script.include(testsRootPath + "content/overlay/layer/drawInFront/shape/test.js");
 Script.include(testsRootPath + "content/overlay/layer/drawInFront/model/test.js");
 Script.include(testsRootPath + "content/overlay/layer/drawHUDLayer/test.js");
 
-autoTester.runRecursive();
+nitpick.runRecursive();
 ```
 ## Create all Recursive Scripts
 ### Usage
@@ -186,7 +185,7 @@ Evaluation proceeds in a number of steps:
 1. The images are then pair-wise compared, using the SSIM algorithm.  A fixed threshold is used to define a mismatch.
 
 1.  In interactive mode - a window is opened showing the expected image, actual image, difference image and error:
-![](./autoTesterMismatchExample.PNG)
+![](./nitpickMismatchExample.PNG)
 
 1.  If not in interactive mode, or the user has defined the results as an error, an error is written into the error folder.  The error itself is a folder with the 3 images and a small text file containing details.
 

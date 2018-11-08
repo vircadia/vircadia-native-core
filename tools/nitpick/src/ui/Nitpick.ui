@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AutoTesterClass</class>
- <widget class="QMainWindow" name="AutoTesterClass">
+ <class>NitpickClass</class>
+ <widget class="QMainWindow" name="NitpickClass">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>AutoTester</string>
+   <string>Nitpick</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QPushButton" name="closeButton">

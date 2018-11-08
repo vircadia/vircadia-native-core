@@ -13,8 +13,8 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
 
-#include "ui/AutoTester.h"
-extern AutoTester* autoTester;
+#include "ui/Nitpick.h"
+extern Nitpick* nitpick;
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -95,7 +95,7 @@ void TestRunner::setWorkingFolder() {
 
     _logFile.setFileName(_workingFolder + "/log.txt");
 
-    autoTester->enableRunTabControls();
+    nitpick->enableRunTabControls();
     _workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
 
     _timer = new QTimer(this);
@@ -203,8 +203,8 @@ void TestRunner::run() {
     _automatedTestIsRunning = true;
 
     // Initial setup
-    _branch = autoTester->getSelectedBranch();
-    _user = autoTester->getSelectedUser();
+    _branch = nitpick->getSelectedBranch();
+    _user = nitpick->getSelectedUser();
 
     // This will be restored at the end of the tests
     saveExistingHighFidelityAppDataFolder();
@@ -221,7 +221,7 @@ void TestRunner::run() {
     updateStatusLabel("Downloading Build XML");
 
     buildXMLDownloaded = false;
-    autoTester->downloadFiles(urls, _workingFolder, filenames, (void*)this);
+    nitpick->downloadFiles(urls, _workingFolder, filenames, (void*)this);
 
     // `downloadComplete` will run after download has completed
 }
@@ -250,7 +250,7 @@ void TestRunner::downloadComplete() {
 
         updateStatusLabel("Downloading installer");
 
-        autoTester->downloadFiles(urls, _workingFolder, filenames, (void*)this);
+        nitpick->downloadFiles(urls, _workingFolder, filenames, (void*)this);
 
         // `downloadComplete` will run again after download has completed
 
@@ -505,7 +505,7 @@ void TestRunner::interfaceExecutionComplete() {
 
 void TestRunner::evaluateResults() {
     updateStatusLabel("Evaluating results");
-    autoTester->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
+    nitpick->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
 void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder, int numberOfFailures) {
@@ -618,7 +618,7 @@ void TestRunner::checkTime() {
 }
 
 void TestRunner::updateStatusLabel(const QString& message) {
-    autoTester->updateStatusLabel(message);
+    nitpick->updateStatusLabel(message);
 }
 
 void TestRunner::appendLog(const QString& message) {
@@ -632,7 +632,7 @@ void TestRunner::appendLog(const QString& message) {
     _logFile.write("\n");
     _logFile.close();
 
-    autoTester->appendLogWindow(message);
+    nitpick->appendLogWindow(message);
 }
 
 QString TestRunner::getInstallerNameFromURL(const QString& url) {
