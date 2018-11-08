@@ -295,8 +295,8 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
 
             layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
             qtLayout.addView(mWebSlidingDrawer, layoutParams);
-            mWebSlidingDrawer.setVisibility(View.VISIBLE);
         }
+        mWebSlidingDrawer.setVisibility(View.VISIBLE);
     }
 
     public void openAndroidActivity(String activityName, boolean backToScene) {
