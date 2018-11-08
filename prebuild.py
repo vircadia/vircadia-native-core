@@ -87,13 +87,12 @@ class VcpkgRepo:
         if args.vcpkg_root is not None:
             print("override vcpkg path with " + args.vcpkg_root)
             self.path = args.vcpkg_root
-            self.basePath = None
         else:
             defaultBasePath = os.path.join(tempfile.gettempdir(), 'hifi', 'vcpkg')
-            self.basePath = os.getenv('HIFI_VCPKG_BASE', defaultBasePath)
-            if (not os.path.isdir(self.basePath)):
-                os.makedirs(self.basePath)
-            self.path = os.path.join(self.basePath, self.id)
+            basePath = os.getenv('HIFI_VCPKG_BASE', defaultBasePath)
+            if (not os.path.isdir(basePath)):
+                os.makedirs(basePath)
+            self.path = os.path.join(basePath, self.id)
 
         self.tagFile = os.path.join(self.path, '.id')
         # A format version attached to the tag file... increment when you want to force the build systems to rebuild 
@@ -142,9 +141,7 @@ class VcpkgRepo:
 
     def clean(self):
         cleanPath = self.path
-        if self.basePath is not None:
-            cleanPath = self.basePath
-        print("Cleaning vcpkg installation(s) at {}".format(cleanPath))
+        print("Cleaning vcpkg installation at {}".format(cleanPath))
         if os.path.isdir(self.path):
             print("Removing {}".format(cleanPath))
             shutil.rmtree(cleanPath, ignore_errors=True)
