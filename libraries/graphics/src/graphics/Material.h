@@ -22,6 +22,8 @@
 #include <gpu/Resource.h>
 #include <gpu/TextureTable.h>
 
+#include "MaterialMappingMode.h"
+
 class Transform;
 
 namespace graphics {
@@ -332,7 +334,11 @@ public:
         // Texture Coord Transform Array
         glm::mat4 _texcoordTransforms[NUM_TEXCOORD_TRANSFORMS];
 
-        glm::vec4 _lightmapParams{ 0.0, 1.0, 0.0, 0.0 };
+        glm::vec2 _lightmapParams { 0.0, 1.0 };
+
+        // x: material mode (0 for UV, 1 for PROJECTED)
+        // x: 1 for texture repeat, 0 for discard outside of 0 - 1
+        glm::vec2 _materialParms { 0.0, 1.0 };
 
         Schema() {}
     };
@@ -355,7 +361,7 @@ public:
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
     bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
 
-    void setTextureTransforms(const Transform& transform);
+    void setTextureTransforms(const Transform& transform, MaterialMappingMode mode, bool repeat);
 
     const std::string& getName() const { return _name; }
 

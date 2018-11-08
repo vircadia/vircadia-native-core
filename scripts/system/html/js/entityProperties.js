@@ -566,6 +566,14 @@ const GROUPS = [
                 propertyID: "priority",
             },
             {
+                label: "Material Mapping Mode",
+                type: "dropdown",
+                options: {
+                    uv: "UV space", projected: "3D projected"
+                },
+                propertyID: "materialMappingMode",
+            },
+            {
                 label: "Material Position",
                 type: "vec2",
                 vec2Type: "xy",
@@ -593,6 +601,11 @@ const GROUPS = [
                 decimals: 2,
                 unit: "deg",
                 propertyID: "materialMappingRot",
+            },
+            {
+                label: "Material Repeat",
+                type: "bool",
+                propertyID: "materialRepeat",
             },
         ]
     },
