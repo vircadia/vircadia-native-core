@@ -44,7 +44,7 @@ $(document).ready(function(){
       var fileSize = file.size;
       var filename = file.name;
       
-      var CHUNK_SIZE = 16384;
+      var CHUNK_SIZE = 65536;
       if (offset == undefined) {
           offset = 0;
       }
@@ -58,9 +58,10 @@ $(document).ready(function(){
       var ajaxParams = {
           url: '/content/upload',
           type: 'POST',
-          timeout: 30000,
+          timeout: 30000, // 30 s
           cache: false,
           processData: false,
+          contentType: false,
           data: chunkFormData
           };
      
