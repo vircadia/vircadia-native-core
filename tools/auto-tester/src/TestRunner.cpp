@@ -118,7 +118,7 @@ void TestRunner::setWorkingFolder() {
     
     script.write("#!/bin/sh\n\n");
     script.write("PROCESS=\"$1\"\n");
-    script.write("until (pgrep $PROCESS >nul)\n");
+    script.write("until (pgrep -x $PROCESS >nul)\n");
     script.write("do\n");
     script.write("\techo waiting for \"$1\" to start\n");
     script.write("\tsleep 2\n");
@@ -137,7 +137,7 @@ void TestRunner::setWorkingFolder() {
     
     script.write("#!/bin/sh\n\n");
     script.write("PROCESS=\"$1\"\n");
-    script.write("while (pgrep $PROCESS >nul)\n");
+    script.write("while (pgrep -x $PROCESS >nul)\n");
     script.write("do\n");
     script.write("\techo waiting for \"$1\" to finish\n");
     script.write("\tsleep 2\n");
@@ -515,7 +515,6 @@ void TestRunner::runInterfaceWithTestScript() {
         " --no-login-suggestion"
         " --testScript " + testScript + " quitWhenFinished" +
         " --testResultsLocation " + _snapshotFolder +
-        " && " + _workingFolder +"/waitForStart.sh interface" +
         " && " + _workingFolder +"/waitForFinish.sh interface";
 
     script.write(commandLine.toStdString().c_str());
