@@ -110,7 +110,7 @@ thead {
 
 tbody {
     width: 100%;
-	display: block;
+    display: block;
 }
 
 tfoot {
@@ -194,7 +194,7 @@ td {
 }
 
 td.hidden {
-	padding-left: 0px;
+    padding-left: 0px;
     padding-right: 0px;
 }
 
@@ -1150,16 +1150,16 @@ body#entity-list-body {
 
 #filter-type-multiselect-box select {
     border-radius: 14.5px;
-	width: 107px;
-	height: 28px;
+    width: 107px;
+    height: 28px;
 }
 #filter-type-options {
-	position: absolute;
+    position: absolute;
     top: 48px;
 }
 #filter-type-options div {
-	position: relative;
-	height: 22px;
+    position: relative;
+    height: 22px;
 }
 #filter-type-options span {
     position: relative;
@@ -1168,12 +1168,12 @@ body#entity-list-body {
     padding-right: 4px;
 }
 #filter-type-options label {
-	position: absolute;
-	top: -20px;
+    position: absolute;
+    top: -20px;
     z-index: 2;
-	height: 22px;
-	width: 200px;
-	padding-top: 1px;
+    height: 22px;
+    width: 200px;
+    padding-top: 1px;
 }
 
 #filter-search-and-icon {
@@ -1240,34 +1240,34 @@ input[type=button]#export {
 }
 
 #entity-table-columns-multiselect {
-	position: absolute;
-	top: 51px;
-	right: 22px;
+    position: absolute;
+    top: 51px;
+    right: 22px;
 }
 #entity-table-columns-multiselect-box select {
-	height: 28px;
-	width: 20px;
-	background-color: #1c1c1c;
-	border-top-right-radius: 7px;
+    height: 28px;
+    width: 20px;
+    background-color: #1c1c1c;
+    border-top-right-radius: 7px;
 }
 #entity-table-columns-options {
-	position: absolute;
+    position: absolute;
     top: 50px;
-	right: 110px;
+    right: 110px;
 }
 #entity-table-columns-options div {
-	position: relative;
-	height: 22px;
+    position: relative;
+    height: 22px;
 }
 #entity-table-columns-options label {
-	position: absolute;
+    position: absolute;
     top: -22px;
-	height: 22px;
-	width: 100px;
-	padding-top: 4px;
+    height: 22px;
+    width: 100px;
+    padding-top: 4px;
 }
 #entity-table-columns-options input[type=checkbox] + label {
-	padding-left: 30px;
+    padding-left: 30px;
 }
 
 #entity-table-scroll {
@@ -1353,11 +1353,11 @@ input[type=button]#export {
 }
 
 #entity-table thead .resizer {
-	position: absolute;
-	top: 1px;
-	height: 26px;
-	width: 10px;
-	cursor: col-resize;
+    position: absolute;
+    top: 1px;
+    height: 26px;
+    width: 10px;
+    cursor: col-resize;
 }
 
 #entity-table td {

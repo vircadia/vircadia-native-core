@@ -27,84 +27,84 @@ const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 const COLUMNS = {
     type: {
         columnHeader: "Type",
-		propertyID: "type",
+        propertyID: "type",
         initialWidth: 0.16,
-		initiallyShown: true,
-		alwaysShown: true,
+        initiallyShown: true,
+        alwaysShown: true,
     },
-	name: {
+    name: {
         columnHeader: "Name",
-		propertyID: "name",
+        propertyID: "name",
         initialWidth: 0.34,
-		initiallyShown: true,
-		alwaysShown: true,
+        initiallyShown: true,
+        alwaysShown: true,
     },
     url: {
         columnHeader: "File",
-		dropdownLabel: "File",
-		propertyID: "url",
+        dropdownLabel: "File",
+        propertyID: "url",
         initialWidth: 0.34,
-		initiallyShown: true,
+        initiallyShown: true,
     },
     locked: {
         columnHeader: "&#xe006;",
         glyph: true,
-		propertyID: "locked",
+        propertyID: "locked",
         initialWidth: 0.08,
-		initiallyShown: true,
-		alwaysShown: true,
+        initiallyShown: true,
+        alwaysShown: true,
     },
     visible: {
         columnHeader: "&#xe007;",
         glyph: true,
-		propertyID: "visible",
+        propertyID: "visible",
         initialWidth: 0.08,
-		initiallyShown: true,
-		alwaysShown: true,
+        initiallyShown: true,
+        alwaysShown: true,
     },
-	verticesCount: {
+    verticesCount: {
         columnHeader: "Verts",
-		dropdownLabel: "Vertices",
-		propertyID: "verticesCount",
+        dropdownLabel: "Vertices",
+        propertyID: "verticesCount",
         initialWidth: 0.08,
     },
-	texturesCount: {
+    texturesCount: {
         columnHeader: "Texts",
-		dropdownLabel: "Textures",
-		propertyID: "texturesCount",
+        dropdownLabel: "Textures",
+        propertyID: "texturesCount",
         initialWidth: 0.08,
     },
-	texturesSize: {
+    texturesSize: {
         columnHeader: "Text MB",
-		dropdownLabel: "Texture Size",
-		propertyID: "texturesSize",
+        dropdownLabel: "Texture Size",
+        propertyID: "texturesSize",
         initialWidth: 0.10,
     },
-	hasTransparent: {
+    hasTransparent: {
         columnHeader: "&#xe00b;",
         glyph: true,
-		dropdownLabel: "Transparency",
-		propertyID: "hasTransparent",
+        dropdownLabel: "Transparency",
+        propertyID: "hasTransparent",
         initialWidth: 0.04,
     },
-	isBaked: {
+    isBaked: {
         columnHeader: "&#xe01a;",
-		glyph: true,
-		dropdownLabel: "Baked",
-		propertyID: "isBaked",
+        glyph: true,
+        dropdownLabel: "Baked",
+        propertyID: "isBaked",
         initialWidth: 0.08,
     },
-	drawCalls: {
+    drawCalls: {
         columnHeader: "Draws",
-		dropdownLabel: "Draws",
-		propertyID: "drawCalls",
+        dropdownLabel: "Draws",
+        propertyID: "drawCalls",
         initialWidth: 0.08,
     },
-	hasScript: {
+    hasScript: {
         columnHeader: "k",
-		glyph: true,
-		dropdownLabel: "Script",
-		propertyID: "hasScript",
+        glyph: true,
+        dropdownLabel: "Script",
+        propertyID: "hasScript",
         initialWidth: 0.06,
     },
 };
@@ -221,8 +221,8 @@ function loaded() {
         elSelectedEntitiesCount = document.getElementById("selected-entities-count");
         elVisibleEntitiesCount = document.getElementById("visible-entities-count");
         elNoEntitiesMessage = document.getElementById("no-entities");
-		elColumnsMultiselectBox = document.getElementById("entity-table-columns-multiselect-box");
-		elColumnsOptions = document.getElementById("entity-table-columns-options");
+        elColumnsMultiselectBox = document.getElementById("entity-table-columns-multiselect-box");
+        elColumnsOptions = document.getElementById("entity-table-columns-options");
         
         document.body.onclick = onBodyClick;
         elToggleLocked.onclick = function() {
@@ -240,14 +240,14 @@ function loaded() {
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         };
-		elRefresh.onclick = refreshEntities;
+        elRefresh.onclick = refreshEntities;
         elFilterTypeMultiselectBox.onclick = onToggleTypeDropdown;
         elFilterSearch.onkeyup = refreshEntityList;
         elFilterSearch.onsearch = refreshEntityList;
         elFilterInView.onclick = onToggleFilterInView;
         elFilterRadius.onkeyup = onRadiusChange;
         elFilterRadius.onchange = onRadiusChange;
-		elColumnsMultiselectBox.onclick = onToggleColumnsDropdown;
+        elColumnsMultiselectBox.onclick = onToggleColumnsDropdown;
         
         // create filter type dropdown checkboxes with label and icon for each type
         for (let i = 0; i < FILTER_TYPES.length; ++i) {
@@ -282,14 +282,14 @@ function loaded() {
         // create columns
         elHeaderTr = document.createElement("tr");
         elEntityTableHeader.appendChild(elHeaderTr);
-		let columnIndex = 0;
-		for (let columnID in COLUMNS) {
+        let columnIndex = 0;
+        for (let columnID in COLUMNS) {
             let columnData = COLUMNS[columnID];
             
             let thID = "entity-" + columnID;
             let elTh = document.createElement("th");
             elTh.setAttribute("id", thID);
-			elTh.setAttribute("data-resizable-column-id", thID);
+            elTh.setAttribute("data-resizable-column-id", thID);
             if (columnData.glyph) {
                 let elGlyph = document.createElement("span");
                 elGlyph.className = "glyph";
@@ -298,68 +298,68 @@ function loaded() {
             } else {
                 elTh.innerText = columnData.columnHeader;
             }
-			elTh.onmousedown = function() {
-				startThClick = this;
+            elTh.onmousedown = function() {
+                startThClick = this;
             };
-			elTh.onmouseup = function() {
-				if (startThClick === this) {
-					setSortColumn(columnID);
-				}
-				startThClick = null;
-			};
+            elTh.onmouseup = function() {
+                if (startThClick === this) {
+                    setSortColumn(columnID);
+                }
+                startThClick = null;
+            };
 
-			let elResizer = document.createElement("span");
-			elResizer.className = "resizer";
-			elResizer.innerHTML = "&nbsp;";
-			elResizer.setAttribute("columnIndex", columnIndex);
-			elResizer.onmousedown = onStartResize;
-			elTh.appendChild(elResizer);
+            let elResizer = document.createElement("span");
+            elResizer.className = "resizer";
+            elResizer.innerHTML = "&nbsp;";
+            elResizer.setAttribute("columnIndex", columnIndex);
+            elResizer.onmousedown = onStartResize;
+            elTh.appendChild(elResizer);
 
             let elSortOrder = document.createElement("span");
             elSortOrder.className = "sort-order";
             elTh.appendChild(elSortOrder);
             elHeaderTr.appendChild(elTh);
-						
-			elSortOrders[columnID] = document.querySelector('#' + thID + ' .sort-order');
-			if (currentSortColumn === null) {
-				currentSortColumn = columnID;
-			}
-			
-			// add column to columns dropdown if it is not set to be always shown
-			if (columnData.alwaysShown !== true) { 
-				let columnDropdownID = "entity-table-column-" + columnID;
-				
-				let elDiv = document.createElement('div');
-				elDiv.onclick = onToggleColumn;
-				elColumnsOptions.appendChild(elDiv);
-				
-				let elInput = document.createElement('input');
-				elInput.setAttribute("type", "checkbox");
-				elInput.setAttribute("id", columnDropdownID);
-				elInput.setAttribute("columnID", columnID);
-				elInput.checked = columnData.initiallyShown === true;
-				elDiv.appendChild(elInput);
-				
-				let elLabel = document.createElement('label');
-				elLabel.setAttribute("for", columnDropdownID);
-				elLabel.innerText = columnData.dropdownLabel;
-				elDiv.appendChild(elLabel);
-			}
-			
-			let initialWidth = columnData.initiallyShown === true ? columnData.initialWidth : 0;
-			columns.push({
-				columnID: columnID,
-				elTh: elTh,
-				elResizer: elResizer,
-				width: initialWidth,
-				data: columnData
-			});
-			columnsByID[columnID] = columns[columnIndex];
-			
-			++columnIndex;
+                        
+            elSortOrders[columnID] = document.querySelector('#' + thID + ' .sort-order');
+            if (currentSortColumn === null) {
+                currentSortColumn = columnID;
+            }
+            
+            // add column to columns dropdown if it is not set to be always shown
+            if (columnData.alwaysShown !== true) { 
+                let columnDropdownID = "entity-table-column-" + columnID;
+                
+                let elDiv = document.createElement('div');
+                elDiv.onclick = onToggleColumn;
+                elColumnsOptions.appendChild(elDiv);
+                
+                let elInput = document.createElement('input');
+                elInput.setAttribute("type", "checkbox");
+                elInput.setAttribute("id", columnDropdownID);
+                elInput.setAttribute("columnID", columnID);
+                elInput.checked = columnData.initiallyShown === true;
+                elDiv.appendChild(elInput);
+                
+                let elLabel = document.createElement('label');
+                elLabel.setAttribute("for", columnDropdownID);
+                elLabel.innerText = columnData.dropdownLabel;
+                elDiv.appendChild(elLabel);
+            }
+            
+            let initialWidth = columnData.initiallyShown === true ? columnData.initialWidth : 0;
+            columns.push({
+                columnID: columnID,
+                elTh: elTh,
+                elResizer: elResizer,
+                width: initialWidth,
+                data: columnData
+            });
+            columnsByID[columnID] = columns[columnIndex];
+            
+            ++columnIndex;
         }
-		
-		elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
+        
+        elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
         
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
                                   createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
@@ -589,7 +589,7 @@ function loaded() {
                 PROFILE("update-dom", function() {
                     entityList.itemData = visibleEntities;
                     entityList.refresh();
-					updateColumnWidths();
+                    updateColumnWidths();
                 });
                 
                 refreshFooter();
@@ -685,7 +685,7 @@ function loaded() {
                 refreshEntityList();
             });
         }
-		
+        
         function refreshSortOrder() {
             elSortOrders[currentSortColumn].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
         }
@@ -763,11 +763,11 @@ function loaded() {
         
         function createRow() {
             let elRow = document.createElement("tr");
-			columns.forEach(function(column) {
-				let elRowColumn = document.createElement("td");
+            columns.forEach(function(column) {
+                let elRowColumn = document.createElement("td");
                 elRowColumn.className = getColumnClassName(column.columnID);
                 elRow.appendChild(elRowColumn);
-			});
+            });
             elRow.oncontextmenu = onRowContextMenu;
             elRow.onclick = onRowClicked;
             elRow.ondblclick = onRowDoubleClicked;
@@ -776,17 +776,17 @@ function loaded() {
         
         function updateRow(elRow, itemData) {
             // update all column texts and glyphs to this entity's data
-			for (let i = 0; i < columns.length; ++i) {
-				let column = columns[i];
-				let elCell = elRow.childNodes[i];
-				if (column.data.glyph) {
-					elCell.innerHTML = itemData[column.data.propertyID] ? column.data.columnHeader : null;
-				} else {
-					elCell.innerText = itemData[column.data.propertyID];
-				}
-				elCell.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
-				elCell.className = getColumnClassName(column.columnID);
-			}
+            for (let i = 0; i < columns.length; ++i) {
+                let column = columns[i];
+                let elCell = elRow.childNodes[i];
+                if (column.data.glyph) {
+                    elCell.innerHTML = itemData[column.data.propertyID] ? column.data.columnHeader : null;
+                } else {
+                    elCell.innerText = itemData[column.data.propertyID];
+                }
+                elCell.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
+                elCell.className = getColumnClassName(column.columnID);
+            }
 
             // if this entity was previously selected flag it's row as selected
             if (itemData.selected) {
@@ -813,14 +813,14 @@ function loaded() {
         
         function clearRow(elRow) {
             // reset all texts and glyphs for each of the row's columns
-			for (let i = 0; i < columns.length; ++i) {
+            for (let i = 0; i < columns.length; ++i) {
                 let cell = elRow.childNodes[i];
-				if (columns[i].data.glyph) {
+                if (columns[i].data.glyph) {
                     cell.innerHTML = "";
                 } else {
                     cell.innerText = "";
                 }
-			}
+            }
 
             // clear the row from any associated entity
             let entityID = elRow.dataset.entityID;
@@ -850,87 +850,87 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elFilterRadius.value }));
             refreshEntities();
         }
-		
-		function getColumnIndex(columnID) {
-			for (let i = 0; i < columns.length; ++i) {
-				if (columns[i].columnID === columnID) {
-					return i;
-				}
-			}
-			return -1;
-		}
         
-		function getColumnClassName(columnID) {
-			let column = columnsByID[columnID];
-			let visible = column.elTh.style.visibility !== "hidden";
-			let className = column.data.glyph ? "glyph" : "";
-			className += visible ? "" : " hidden";
-			return className;
-		}
-		
-		function isColumnsDropdownVisible() {
+        function getColumnIndex(columnID) {
+            for (let i = 0; i < columns.length; ++i) {
+                if (columns[i].columnID === columnID) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+        
+        function getColumnClassName(columnID) {
+            let column = columnsByID[columnID];
+            let visible = column.elTh.style.visibility !== "hidden";
+            let className = column.data.glyph ? "glyph" : "";
+            className += visible ? "" : " hidden";
+            return className;
+        }
+        
+        function isColumnsDropdownVisible() {
             return elColumnsOptions.style.display === "block";
         }
-		
-		function toggleColumnsDropdown() {
+        
+        function toggleColumnsDropdown() {
             elColumnsOptions.style.display = isColumnsDropdownVisible() ? "none" : "block";
         }
         
         function onToggleColumnsDropdown(event) {
             toggleColumnsDropdown();
-			if (isTypeDropdownVisible()) {
+            if (isTypeDropdownVisible()) {
                 toggleTypeDropdown();
             }
             event.stopPropagation();
         }
-		
-		function toggleColumn(elInput, refresh) {
+        
+        function toggleColumn(elInput, refresh) {
             let columnID = elInput.getAttribute("columnID");
             let columnChecked = elInput.checked;
             
             if (columnChecked) {
-				let widthNeeded = columnsByID[columnID].data.initialWidth;
-				
-				let numberVisibleColumns = 0;
-				for (let i = 0; i < columns.length; ++i) {
-					let column = columns[i];
-					if (column.columnID === columnID) {
-						column.width = widthNeeded;
-					} else if (column.width > 0) {
-						++numberVisibleColumns;
-					}
-				}
-				
-				for (let i = 0; i < columns.length; ++i) {
-					let column = columns[i];
-					if (column.columnID !== columnID && column.width > 0) {
-						column.width -= column.width * widthNeeded;
-					}
-				}
-			} else {
-				let widthLoss = 0;
-				
-				let numberVisibleColumns = 0;
-				for (let i = 0; i < columns.length; ++i) {
-					let column = columns[i];
-					if (column.columnID === columnID) {
-						widthLoss = column.width;
-						column.width = 0;
-					} else if (column.width > 0) {
-						++numberVisibleColumns;
-					}
-				}
-				
-				for (let i = 0; i < columns.length; ++i) {
-					let column = columns[i];
-					if (column.columnID !== columnID && column.width > 0) {
-						let newTotalWidth = (1 - widthLoss);
-						column.width += (column.width / newTotalWidth) * widthLoss;
-					}
-				}
-			}
-			
-			updateColumnWidths();
+                let widthNeeded = columnsByID[columnID].data.initialWidth;
+                
+                let numberVisibleColumns = 0;
+                for (let i = 0; i < columns.length; ++i) {
+                    let column = columns[i];
+                    if (column.columnID === columnID) {
+                        column.width = widthNeeded;
+                    } else if (column.width > 0) {
+                        ++numberVisibleColumns;
+                    }
+                }
+                
+                for (let i = 0; i < columns.length; ++i) {
+                    let column = columns[i];
+                    if (column.columnID !== columnID && column.width > 0) {
+                        column.width -= column.width * widthNeeded;
+                    }
+                }
+            } else {
+                let widthLoss = 0;
+                
+                let numberVisibleColumns = 0;
+                for (let i = 0; i < columns.length; ++i) {
+                    let column = columns[i];
+                    if (column.columnID === columnID) {
+                        widthLoss = column.width;
+                        column.width = 0;
+                    } else if (column.width > 0) {
+                        ++numberVisibleColumns;
+                    }
+                }
+                
+                for (let i = 0; i < columns.length; ++i) {
+                    let column = columns[i];
+                    if (column.columnID !== columnID && column.width > 0) {
+                        let newTotalWidth = (1 - widthLoss);
+                        column.width += (column.width / newTotalWidth) * widthLoss;
+                    }
+                }
+            }
+            
+            updateColumnWidths();
         }
         
         function onToggleColumn(event) {
@@ -940,8 +940,8 @@ function loaded() {
             }
             event.stopPropagation();
         }
-		
-		function isTypeDropdownVisible() {
+        
+        function isTypeDropdownVisible() {
             return elFilterTypeOptions.style.display === "block";
         }
         
@@ -951,7 +951,7 @@ function loaded() {
         
         function onToggleTypeDropdown(event) {
             toggleTypeDropdown();
-			if (isColumnsDropdownVisible()) {
+            if (isColumnsDropdownVisible()) {
                 toggleColumnsDropdown();
             }
             event.stopPropagation();
@@ -995,88 +995,88 @@ function loaded() {
             if (isTypeDropdownVisible()) {
                 toggleTypeDropdown();
             }
-			if (isColumnsDropdownVisible()) {
+            if (isColumnsDropdownVisible()) {
                 toggleColumnsDropdown();
             }
         }
-		
-		function onStartResize(event) {
-			startResizeEvent = event;
-			resizeColumnIndex = parseInt(this.getAttribute("columnIndex"));
-			event.stopPropagation();
-		}
-		
-		function updateColumnWidths() {
-			let fullWidth = elEntityTableBody.offsetWidth;
-			let remainingWidth = fullWidth;
-			let scrollbarVisible = elEntityTableScroll.scrollHeight > elEntityTableScroll.clientHeight;
-			let resizerRight = scrollbarVisible ? SCROLLBAR_WIDTH - RESIZER_WIDTH/2 : -RESIZER_WIDTH/2;
-			let visibleColumns = 0;
-						
-			for (let i = columns.length - 1; i > 0; --i) {
-				let column = columns[i];
-				column.widthPx = Math.ceil(column.width * fullWidth);
-				column.elTh.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
-				let columnVisible = column.width > 0;
-				column.elTh.style.visibility = columnVisible ? "visible" : "hidden";
-				if (column.elResizer) {
-					column.elResizer.style = "right:" + resizerRight + "px;";
-					column.elResizer.style.visibility = columnVisible && visibleColumns > 0 ? "visible" : "hidden";
-				}
-				resizerRight += column.widthPx;
-				remainingWidth -= column.widthPx;
-				if (columnVisible) {
-					++visibleColumns;
-				}
-			}
-			
-			// assign all remaining space to the first column
-			let column = columns[0];
-			column.widthPx = remainingWidth;
-			column.width = remainingWidth / fullWidth;
-			column.elTh.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
-			let columnVisible = column.width > 0;
-			column.elTh.style.visibility = columnVisible ? "visible" : "hidden";
-			if (column.elResizer) {
-				column.elResizer.style = "right:" + resizerRight + "px;";
-				column.elResizer.style.visibility = columnVisible && visibleColumns > 0 ? "visible" : "hidden";
-			}
-			
-			entityList.refresh();
-		}
-		
-		document.onmousemove = function(ev) {
-			if (startResizeEvent) {
-				startTh = null;
-				
-				let column = columns[resizeColumnIndex];
-				
-				let nextColumnIndex = resizeColumnIndex + 1;
-				let nextColumn = columns[nextColumnIndex];
-				while (nextColumn.width === 0) {
-					nextColumn = columns[++nextColumnIndex];
-				}
+        
+        function onStartResize(event) {
+            startResizeEvent = event;
+            resizeColumnIndex = parseInt(this.getAttribute("columnIndex"));
+            event.stopPropagation();
+        }
+        
+        function updateColumnWidths() {
+            let fullWidth = elEntityTableBody.offsetWidth;
+            let remainingWidth = fullWidth;
+            let scrollbarVisible = elEntityTableScroll.scrollHeight > elEntityTableScroll.clientHeight;
+            let resizerRight = scrollbarVisible ? SCROLLBAR_WIDTH - RESIZER_WIDTH/2 : -RESIZER_WIDTH/2;
+            let visibleColumns = 0;
+                        
+            for (let i = columns.length - 1; i > 0; --i) {
+                let column = columns[i];
+                column.widthPx = Math.ceil(column.width * fullWidth);
+                column.elTh.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
+                let columnVisible = column.width > 0;
+                column.elTh.style.visibility = columnVisible ? "visible" : "hidden";
+                if (column.elResizer) {
+                    column.elResizer.style = "right:" + resizerRight + "px;";
+                    column.elResizer.style.visibility = columnVisible && visibleColumns > 0 ? "visible" : "hidden";
+                }
+                resizerRight += column.widthPx;
+                remainingWidth -= column.widthPx;
+                if (columnVisible) {
+                    ++visibleColumns;
+                }
+            }
+            
+            // assign all remaining space to the first column
+            let column = columns[0];
+            column.widthPx = remainingWidth;
+            column.width = remainingWidth / fullWidth;
+            column.elTh.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
+            let columnVisible = column.width > 0;
+            column.elTh.style.visibility = columnVisible ? "visible" : "hidden";
+            if (column.elResizer) {
+                column.elResizer.style = "right:" + resizerRight + "px;";
+                column.elResizer.style.visibility = columnVisible && visibleColumns > 0 ? "visible" : "hidden";
+            }
+            
+            entityList.refresh();
+        }
+        
+        document.onmousemove = function(ev) {
+            if (startResizeEvent) {
+                startTh = null;
+                
+                let column = columns[resizeColumnIndex];
+                
+                let nextColumnIndex = resizeColumnIndex + 1;
+                let nextColumn = columns[nextColumnIndex];
+                while (nextColumn.width === 0) {
+                    nextColumn = columns[++nextColumnIndex];
+                }
 
-				let fullWidth = elEntityTableBody.offsetWidth;
-				let dx = ev.clientX - startResizeEvent.clientX;
-				let dPct = dx / fullWidth;
-				
-				let newColWidth = column.width + dPct;
-				let newNextColWidth = nextColumn.width - dPct;
-				
-				if (newColWidth * fullWidth >= MINIMUM_COLUMN_WIDTH && newNextColWidth * fullWidth >= MINIMUM_COLUMN_WIDTH) {
-					column.width += dPct;
-					nextColumn.width -= dPct;
-					updateColumnWidths();
-					startResizeEvent = ev;
-				}
-			}
-		}
-		
-		document.onmouseup = function(ev) {
-			startResizeEvent = null;
-			ev.stopPropagation();
-		}
+                let fullWidth = elEntityTableBody.offsetWidth;
+                let dx = ev.clientX - startResizeEvent.clientX;
+                let dPct = dx / fullWidth;
+                
+                let newColWidth = column.width + dPct;
+                let newNextColWidth = nextColumn.width - dPct;
+                
+                if (newColWidth * fullWidth >= MINIMUM_COLUMN_WIDTH && newNextColWidth * fullWidth >= MINIMUM_COLUMN_WIDTH) {
+                    column.width += dPct;
+                    nextColumn.width -= dPct;
+                    updateColumnWidths();
+                    startResizeEvent = ev;
+                }
+            }
+        }
+        
+        document.onmouseup = function(ev) {
+            startResizeEvent = null;
+            ev.stopPropagation();
+        }
 
         document.addEventListener("keydown", function (keyDownEvent) {
             if (keyDownEvent.target.nodeName === "INPUT") {
@@ -1128,8 +1128,8 @@ function loaded() {
         
         refreshSortOrder();
         refreshEntities();
-		
-		window.onresize = updateColumnWidths;
+        
+        window.onresize = updateColumnWidths;
     });
     
     augmentSpinButtons();
