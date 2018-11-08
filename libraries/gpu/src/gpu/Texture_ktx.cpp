@@ -271,7 +271,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     auto& imageDesc = _ktxDescriptor->images[level];
     if (storage->size() != imageDesc._imageSize) {
         qWarning() << "Invalid image size: " << storage->size() << ", expected: " << imageDesc._imageSize
-            << ", level: " << level;
+            << ", level: " << level << ", filename: " << QString::fromStdString(_filename);
         return;
     }
 
