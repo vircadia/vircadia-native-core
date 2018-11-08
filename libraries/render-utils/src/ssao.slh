@@ -26,7 +26,7 @@ vec4 packOcclusionOutput(float occlusion, float depth, vec3 eyeNormal) {
     return vec4(occlusion, depth, eyeNormal.xy / eyeNormal.z);
 #else
     // Round to the nearest 1/256.0
-    depth *= 256;
+    depth *= 256.0;
     float temp = floor(depth);
     return vec4(occlusion, temp * (1.0 / 256.0), depth - temp, 0.0);
 #endif
@@ -45,7 +45,7 @@ void unpackOcclusionOutput(vec4 raw, out UnpackedOcclusion result) {
     result.normal = normalize(vec3(raw.zw, 1.0));
 #else
     result.depth = (raw.y + raw.z / 256.0);
-    result.normal = vec3(0,0,1);
+    result.normal = vec3(0.0, 0.0, 1.0);
 #endif
 }
 
