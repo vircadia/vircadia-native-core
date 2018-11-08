@@ -53,8 +53,13 @@ void LoginDialog::showWithSelection() {
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
 
+    if (qApp->getLoginDialogPoppedUp()) {
+        // user is not logged in but the login screen was displayed.
+        QAction* loginAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
+        Q_CHECK_PTR(loginAction);
+        loginAction->setEnabled(false);
+    }
     if (!qApp->isHMDMode()) {
-    
         if (qApp->getLoginDialogPoppedUp()) {
             LoginDialog::show();
             return;
@@ -68,6 +73,7 @@ void LoginDialog::showWithSelection() {
             tablet->initialScreen(TABLET_LOGIN_DIALOG_URL);
         } else {
             // let Application handle creating login dialog overlay.
+            qApp->checkReadyToCreateLoginDialogOverlay();
         }
     }
 
@@ -104,6 +110,11 @@ bool LoginDialog::isSteamRunning() const {
 void LoginDialog::dismissLoginDialog() {
     // it'll only pop up once.
     qDebug() << "LoginDialog::dismissLoginDialog";
+
+    QAction* loginAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
+    Q_CHECK_PTR(loginAction);
+    loginAction->setEnabled(true);
+
     emit dismissedLoginDialog();
 }
 

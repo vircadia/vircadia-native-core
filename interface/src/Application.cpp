@@ -1214,7 +1214,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainURLChanged(QUrl)));
     connect(&domainHandler, SIGNAL(redirectToErrorDomainURL(QUrl)), SLOT(goToErrorDomainURL(QUrl)));
-    connect(this, SIGNAL(loginScreenStateChanged(bool)), &domainHandler, SLOT((loginScreenStateChanged(bool))));
     connect(&domainHandler, &DomainHandler::domainURLChanged, [](QUrl domainURL){
         setCrashAnnotation("domain", domainURL.toString().toStdString());
     });
@@ -1770,7 +1769,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     connect(offscreenUi.data(), &OffscreenUi::keyboardFocusActive, [this]() {
-        initializeQml();
+#if !defined(Q_OS_ANDROID)
+        // only for non-android. QML is ready to be shown at this time.
+        showLoginScreen();
+#endif
     });
 
     // Make sure we don't time out during slow operations at startup
@@ -2887,16 +2889,6 @@ void Application::showLoginScreen() {
     }
     _loginDialogPoppedUp = !accountManager->isLoggedIn();
     loginDialogPoppedUp.set(_loginDialogPoppedUp);
-}
-
-void Application::initializeQml() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "initializeQml");
-        return;
-    }
-#if !defined(Q_OS_ANDROID)
-    showLoginScreen();
-#endif
 }
 
 void Application::initializeUi() {
@@ -8498,7 +8490,8 @@ void Application::setShowBulletConstraintLimits(bool value) {
 }
 
 void Application::checkReadyToCreateLoginDialogOverlay() {
-    if (qApp->isHMDMode() && qApp->getLoginDialogPoppedUp() && _loginDialogOverlayID.isNull()) {
+    if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible() &&
+    qApp->getLoginDialogPoppedUp() && _loginDialogOverlayID.isNull()) {
         createLoginDialogOverlay();
         _loginPointerManager.setUp();
     } else if (qApp->getLoginDialogPoppedUp()) {
