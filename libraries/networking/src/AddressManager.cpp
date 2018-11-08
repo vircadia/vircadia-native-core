@@ -155,12 +155,12 @@ void AddressManager::goForward() {
 void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
 
-    if (url.scheme() == URL_SCHEME_FILE ||
+    if (url.scheme() == HIFI_URL_SCHEME_FILE ||
         (url.scheme() == URL_SCHEME_HIFI && !url.host().isEmpty())) {
         // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
         // be loaded over http(s)
-        // url.scheme() == URL_SCHEME_HTTP ||
-        // url.scheme() == URL_SCHEME_HTTPS ||
+        // url.scheme() == HIFI_URL_SCHEME_HTTP ||
+        // url.scheme() == HIFI_URL_SCHEME_HTTPS ||
         bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
         if (isConnected()) {
             if (isInErrorState) {
@@ -331,11 +331,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         emit lookupResultsFinished();
 
         return true;
-    } else if (lookupUrl.scheme() == URL_SCHEME_FILE) {
+    } else if (lookupUrl.scheme() == HIFI_URL_SCHEME_FILE) {
         // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
         // be loaded over http(s)
         // lookupUrl.scheme() == URL_SCHEME_HTTP ||
-        // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
+        // lookupUrl.scheme() == HIFI_URL_SCHEME_HTTPS ||
         // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd 
         // need to store the previous domain tried in _lastVisitedURL. For now , do not store it.
 
