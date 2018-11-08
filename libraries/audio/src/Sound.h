@@ -37,8 +37,6 @@ public:
     static AudioDataPointer make(uint32_t numSamples, uint32_t numChannels,
                                  const AudioSample* samples);
 
-    AudioData(uint32_t numSamples, uint32_t numChannels, const AudioSample* samples);
-
     uint32_t getNumSamples() const { return _numSamples; }
     uint32_t getNumChannels() const { return _numChannels; }
     const AudioSample* data() const { return _data; }
@@ -51,6 +49,8 @@ public:
     uint32_t getNumBytes() const { return _numSamples * sizeof(AudioSample); }
 
 private:
+    AudioData(uint32_t numSamples, uint32_t numChannels, const AudioSample* samples);
+
     const uint32_t _numSamples { 0 };
     const uint32_t _numChannels { 0 };
     const AudioSample* const _data { nullptr };

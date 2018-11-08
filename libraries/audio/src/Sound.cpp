@@ -111,10 +111,9 @@ void SoundProcessor::run() {
         return;
     }
 
-    QString fileName = sound->getURL().fileName().toLower();
+    auto url = sound->getURL();
+    QString fileName = url.fileName().toLower();
     qCDebug(audio) << "Processing sound file" << fileName;
-
-    // replace our byte array with the downloaded data
 
     static const QString WAV_EXTENSION = ".wav";
     static const QString MP3_EXTENSION = ".mp3";
@@ -165,7 +164,7 @@ void SoundProcessor::run() {
 }
 
 QByteArray SoundProcessor::downSample(const QByteArray& rawAudioByteArray,
-                                AudioProperties properties) {
+                                      AudioProperties properties) {
 
     // we want to convert it to the format that the audio-mixer wants
     // which is signed, 16-bit, 24Khz
