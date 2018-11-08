@@ -126,6 +126,9 @@ class VcpkgRepo:
 
     def outOfDate(self):
         global args
+        # Prevent doing a clean if we've explcitly set a directory for vcpkg
+        if args.vcpkg_root is not None:
+            return False
         if args.force_build:
             return True
         print("Looking for tag file {}".format(self.tagFile))
@@ -147,28 +150,31 @@ class VcpkgRepo:
             shutil.rmtree(cleanPath, ignore_errors=True)
 
     def bootstrap(self):
+        global args
         if self.outOfDate():
             self.clean()
 
-        global args
-        downloadVcpkg = False
-        if args.force_bootstrap:
-            print("Forcing bootstrap")
-            downloadVcpkg = True
+        # don't download the vcpkg binaries if we're working with an explicit 
+        # vcpkg directory (possibly a git checkout)
+        if args.vcpkg_root is None:
+            downloadVcpkg = False
+            if args.force_bootstrap:
+                print("Forcing bootstrap")
+                downloadVcpkg = True
 
-        if not downloadVcpkg and not os.path.isfile(self.exe):
-            print("Missing executable, boostrapping")
-            downloadVcpkg = True
-        
-        # Make sure we have a vcpkg executable
-        testFile = os.path.join(self.path, '.vcpkg-root')
-        if not downloadVcpkg and not os.path.isfile(testFile):
-            print("Missing {}, bootstrapping".format(testFile))
-            downloadVcpkg = True
+            if not downloadVcpkg and not os.path.isfile(self.exe):
+                print("Missing executable, boostrapping")
+                downloadVcpkg = True
+            
+            # Make sure we have a vcpkg executable
+            testFile = os.path.join(self.path, '.vcpkg-root')
+            if not downloadVcpkg and not os.path.isfile(testFile):
+                print("Missing {}, bootstrapping".format(testFile))
+                downloadVcpkg = True
 
-        if downloadVcpkg:
-            print("Fetching vcpkg from {} to {}".format(self.vcpkgUrl, self.path))
-            downloadAndExtract(self.vcpkgUrl, self.path, self.vcpkgHash)
+            if downloadVcpkg:
+                print("Fetching vcpkg from {} to {}".format(self.vcpkgUrl, self.path))
+                downloadAndExtract(self.vcpkgUrl, self.path, self.vcpkgHash)
 
         print("Replacing port files")
         portsPath = os.path.join(self.path, 'ports')
@@ -183,7 +189,6 @@ class VcpkgRepo:
         hash = "832f82a4d090046bdec25d313e20f56ead45b54dd06eee3798c5c8cbdd64cce4067692b1c3f26a89afe6ff9917c10e4b601c118bea06d23f8adbfe5c0ec12bc3"
         dest = os.path.join(self.path, 'installed')
         downloadAndExtract(url, dest, hash)
-
 
     def run(self, commands):
         actualCommands = [self.exe, '--vcpkg-root', self.path]
