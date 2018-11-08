@@ -25,7 +25,7 @@ LAYOUT(binding=RENDER_UTILS_TEXTURE_SHADOW) uniform sampler2DArrayShadow shadowM
 
 <@include debug_deferred_buffer_shared.slh@>
 
-layout(std140, binding=RENDER_UTILS_BUFFER_DEBUG_DEFERRED_PARAMS) uniform parametersBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_DEBUG_DEFERRED_PARAMS) uniform parametersBuffer {
     DebugParameters parameters;
 };
 

@@ -129,8 +129,21 @@ Windows.ScrollingWindow {
 
         height: pane.scrollHeight
         width: pane.contentWidth
-        anchors.left: parent.left
-        anchors.top: parent.top
+
+        // this might be looking not clear from the first look
+        // but loader.parent is not tabletRoot and it can be null!
+        // unfortunately we can't use conditional bindings here due to https://bugreports.qt.io/browse/QTBUG-22005
+
+        onParentChanged: {
+            if (parent) {
+                anchors.left = Qt.binding(function() { return parent.left })
+                anchors.top = Qt.binding(function() { return parent.top })
+            } else {
+                anchors.left = undefined
+                anchors.top = undefined
+            }
+        }
+
         signal loaded;
         
         onWidthChanged: {

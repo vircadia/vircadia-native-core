@@ -2,16 +2,9 @@ import QtQuick 2.10
 import QtQuick.Window 2.10
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
-import "qrc:////qml//styles-uit" as HifiStylesUit
-import "qrc:////qml//controls-uit" as HifiControlsUit
 
-//uncomment to use from qmlscratch tool
-//import '../../../interface/resources/qml/controls-uit' as HifiControlsUit
-//import '../../../interface/resources/qml/styles-uit'
-
-//uncomment to use with HIFI_USE_SOURCE_TREE_RESOURCES=1
-//import '../../../resources/qml/controls-uit' as HifiControlsUit
-//import '../../../resources/qml/styles-uit'
+import stylesUit 1.0 as HifiStylesUit
+import controlsUit 1.0 as HifiControlsUit
 
 Item {
     visible: true

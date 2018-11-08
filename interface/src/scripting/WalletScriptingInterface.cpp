@@ -10,13 +10,15 @@
 //
 
 #include "WalletScriptingInterface.h"
+#include <SettingHandle.h>
 
 CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(qmlObject, parent) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
 }
 
 WalletScriptingInterface::WalletScriptingInterface() {
-
+    connect(DependencyManager::get<AccountManager>().data(),
+        &AccountManager::limitedCommerceChanged, this, &WalletScriptingInterface::limitedCommerceChanged);
 }
 
 void WalletScriptingInterface::refreshWalletStatus() {
