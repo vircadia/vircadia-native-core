@@ -642,9 +642,9 @@ NetworkMaterial::NetworkMaterial(const HFMMaterial& material, const QUrl& textur
                     map->setUseAlphaChannel(true);
                 }
             }
-        }
 
-        setTextureMap(MapChannel::ALBEDO_MAP, map);
+            setTextureMap(MapChannel::ALBEDO_MAP, map);
+        }
     }
 
 
@@ -674,8 +674,8 @@ NetworkMaterial::NetworkMaterial(const HFMMaterial& material, const QUrl& textur
         auto map = fetchTextureMap(textureBaseUrl, material.occlusionTexture, image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
         if (map) {
             map->setTextureTransform(material.occlusionTexture.transform);
+            setTextureMap(MapChannel::OCCLUSION_MAP, map);
         }
-        setTextureMap(MapChannel::OCCLUSION_MAP, map);
     }
 
     if (!material.emissiveTexture.filename.isEmpty()) {
@@ -695,8 +695,8 @@ NetworkMaterial::NetworkMaterial(const HFMMaterial& material, const QUrl& textur
             _lightmapParams = material.lightmapParams;
             map->setTextureTransform(_lightmapTransform);
             map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
+            setTextureMap(MapChannel::LIGHTMAP_MAP, map);
         }
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
     }
 }
 
@@ -719,8 +719,8 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
             map->setTextureTransform(_albedoTransform);
             // when reassigning the albedo texture we also check for the alpha channel used as opacity
             map->setUseAlphaChannel(true);
+            setTextureMap(MapChannel::ALBEDO_MAP, map);
         }
-        setTextureMap(MapChannel::ALBEDO_MAP, map);
     }
 
     if (!normalName.isEmpty()) {
@@ -768,8 +768,8 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
         if (map) {
             map->setTextureTransform(_lightmapTransform);
             map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
+            setTextureMap(MapChannel::LIGHTMAP_MAP, map);
         }
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
     }
 }
 
