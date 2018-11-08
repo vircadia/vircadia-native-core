@@ -451,7 +451,7 @@ float computeWeightedHorizon(float horizonLimit, float distanceSquared) {
 }
 
 <@func computeHorizon()@>
-        if (tapUVPos.x<0 || tapUVPos.y<0 || tapUVPos.x>=1.0 || tapUVPos.y>=1.0) {
+        if (tapUVPos.x<0.0 || tapUVPos.y<0.0 || tapUVPos.x>=1.0 || tapUVPos.y>=1.0) {
             // Early exit because we've hit the borders of the frame
             break;
         }
