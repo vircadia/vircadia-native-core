@@ -14,6 +14,81 @@ $(document).ready(function(){
     return html;
   }
 
+  function uploadInChunks(file) {
+    var fileSize = file.size;
+    var filename = file.name;
+    var CHUNK_SIZE = 16384;
+      
+    for(p = 0; p <= fileSize; p += CHUNK_SIZE) {
+        var chunk = file.slice(p, p + CHUNK_SIZE, file.type);
+        var chunkFormData = new FormData();
+        chunkFormData.append('restore-file-chunk', chunk, filename);
+        var ajaxParams = {
+          url: '/content/upload',
+          type: 'POST',
+          async: false,
+          timeout: 60,
+          processData: false,
+          contentType: false,
+          data: chunkFormData
+          };
+        var ajaxObject = $.ajax(ajaxParams);
+        
+        }
+    
+      
+  }
+    
+  function uploadNextChunk(file, offset)
+  {
+      var fileSize = file.size;
+      var filename = file.name;
+      
+      var CHUNK_SIZE = 16384;
+      if (offset == undefined) {
+          offset = 0;
+      }
+      var isFinal = fileSize - offset > CHUNK_SIZE ? false : true;
+      var nextChunkSize = Math.min(fileSize - offset, CHUNK_SIZE);
+      var chunk = file.slice(offset, offset + CHUNK_SIZE, file.type);
+      var chunkFormData = new FormData();
+
+      var formItemName = isFinal ? 'restore-file-chunk-final' : 'restore-file-chunk';
+      chunkFormData.append(formItemName, chunk, filename);
+      var ajaxParams = {
+          url: '/content/upload',
+          type: 'POST',
+          timeout: 30000,
+          cache: false,
+          processData: false,
+          data: chunkFormData
+          };
+     
+      var ajaxObject = $.ajax(ajaxParams);
+      ajaxObject.fail(function(jqXHR, textStatus, errorThrown) {
+          showErrorMessage(
+            "Error",
+            "There was a problem restoring domain content.\n"
+            + "Please ensure that the content archive or entity file is valid and try again."
+          );
+        });
+
+      if (!isFinal) {
+          ajaxObject.done(function (data, textStatus, jqXHR)
+              {uploadNextChunk(file, offset + CHUNK_SIZE);});
+      } else {
+          ajaxObject.done(function(data, textStatus, jqXHR) {
+          isRestoring = true;
+
+          // immediately reload backup information since one should be restoring now
+          reloadBackupInformation();
+
+          swal.close();
+        });
+      }
+      
+  }
+  
   function setupBackupUpload() {
     // construct the HTML needed for the settings backup panel
     var html = "<div class='form-group'><div id='" + UPLOAD_CONTENT_ALLOWED_DIV_ID + "'>";
@@ -56,6 +131,11 @@ $(document).ready(function(){
 
         showSpinnerAlert("Uploading content to restore");
 
+          
+        uploadNextChunk(files[0]);
+        return;
+          
+          // Previous one-upload method.
         $.ajax({
           url: '/content/upload',
           type: 'POST',
