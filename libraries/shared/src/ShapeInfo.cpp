@@ -261,7 +261,7 @@ bool ShapeInfo::contains(const glm::vec3& point) const {
         case SHAPE_TYPE_CYLINDER_Z:
             return glm::length(glm::vec2(point.x, point.y)) <= _halfExtents.y;
         case SHAPE_TYPE_CAPSULE_X: {
-            if (glm::abs(point.x) <= _halfExtents.x) {
+            if (glm::abs(point.x) <= _halfExtents.x - _halfExtents.y) {
                 return glm::length(glm::vec2(point.y, point.z)) <= _halfExtents.y;
             } else {
                 glm::vec3 absPoint = glm::abs(point) - glm::vec3(_halfExtents.x, 0.0f, 0.0f);
@@ -269,7 +269,7 @@ bool ShapeInfo::contains(const glm::vec3& point) const {
             }
         }
         case SHAPE_TYPE_CAPSULE_Y: {
-            if (glm::abs(point.y) <= _halfExtents.y) {
+            if (glm::abs(point.y) <= _halfExtents.y - _halfExtents.z) {
                 return glm::length(glm::vec2(point.x, point.z)) <= _halfExtents.z;
             } else {
                 glm::vec3 absPoint = glm::abs(point) - glm::vec3(0.0f, _halfExtents.y, 0.0f);
@@ -277,7 +277,7 @@ bool ShapeInfo::contains(const glm::vec3& point) const {
             }
         }
         case SHAPE_TYPE_CAPSULE_Z: {
-            if (glm::abs(point.z) <= _halfExtents.z) {
+            if (glm::abs(point.z) <= _halfExtents.z - _halfExtents.x) {
                 return glm::length(glm::vec2(point.x, point.y)) <= _halfExtents.x;
             } else {
                 glm::vec3 absPoint = glm::abs(point) - glm::vec3(0.0f, 0.0f, _halfExtents.z);
