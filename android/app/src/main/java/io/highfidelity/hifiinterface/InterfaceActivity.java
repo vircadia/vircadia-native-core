@@ -76,7 +76,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     private static boolean inVrMode;
 
     private boolean nativeEnterBackgroundCallEnqueued = false;
-    private SlidingDrawer webSlidingDrawer;
+    private SlidingDrawer mWebSlidingDrawer;
 //    private GvrApi gvrApi;
     // Opaque native pointer to the Application C++ object.
     // This object is owned by the InterfaceActivity instance and passed to the native methods.
@@ -116,17 +116,6 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         //nativeGvrApi =
             nativeOnCreate(this, assetManager /*, gvrApi.getNativeGvrContext()*/);
 
-        Point size = new Point();
-        getWindowManager().getDefaultDisplay().getRealSize(size);
-
-        try {
-            PackageInfo pInfo = this.getPackageManager().getPackageInfo(getPackageName(), 0);
-            String version = pInfo.versionName;
-//            setAppVersion(version);
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.e("GVR", "Error getting application version", e);
-        }
-
         final View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
 
         // This is a workaround to hide the menu bar when the virtual keyboard is shown from Qt
@@ -137,32 +126,6 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         });
         startActivity(new Intent(this, SplashActivity.class));
         mVibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
-
-        FrameLayout mainLayout = findViewById(android.R.id.content);
-        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        webSlidingDrawer = (SlidingDrawer) inflater.inflate(R.layout.web_drawer, mainLayout, false);
-        QtLayout qtLayout = (QtLayout) mainLayout.getChildAt(0);
-        if (qtLayout == null) {
-            Log.d("[QTLAYOUT-NULL]" , "Mainlayout children: "  + mainLayout.getChildCount());
-            for (int i=0; i< mainLayout.getChildCount(); i++) {
-                Log.d("[QTLAYOUT-NULL]" , "Child " + i + ": "  + mainLayout.getChildAt(i));
-            }
-        }
-        QtLayout.LayoutParams layoutParams = new QtLayout.LayoutParams(webSlidingDrawer.getLayoutParams());
-        webSlidingDrawer.setOnDrawerCloseListener(() -> {
-            WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
-            webViewFragment.close();
-        });
-        int widthPx = Math.max(size.x, size.y);
-        int heightPx = Math.min(size.x, size.y);
-
-        layoutParams.x = (int) (widthPx - WEB_DRAWER_RIGHT_MARGIN * getResources().getDisplayMetrics().xdpi / NORMAL_DPI);
-        layoutParams.y = (int) (heightPx - WEB_DRAWER_BOTTOM_MARGIN * getResources().getDisplayMetrics().ydpi / NORMAL_DPI);
-
-        layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        qtLayout.addView(webSlidingDrawer, layoutParams);
-        webSlidingDrawer.setVisibility(View.GONE);
-
         headsetStateReceiver = new HeadsetStateReceiver();
     }
 
@@ -295,11 +258,44 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if (intent.hasExtra(DOMAIN_URL)) {
-            webSlidingDrawer.setVisibility(View.GONE);
+            hideWebDrawer();
             nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
         } else if (intent.hasExtra(EXTRA_GOTO_USERNAME)) {
-            webSlidingDrawer.setVisibility(View.GONE);
+            hideWebDrawer();
             nativeGoToUser(intent.getStringExtra(EXTRA_GOTO_USERNAME));
+        }
+    }
+
+    private void hideWebDrawer() {
+        if (mWebSlidingDrawer != null) {
+            mWebSlidingDrawer.setVisibility(View.GONE);
+        }
+    }
+
+    public void showWebDrawer() {
+        if (mWebSlidingDrawer == null) {
+            FrameLayout mainLayout = findViewById(android.R.id.content);
+            LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            QtLayout qtLayout = (QtLayout) mainLayout.getChildAt(0);
+            mWebSlidingDrawer = (SlidingDrawer) inflater.inflate(R.layout.web_drawer, mainLayout, false);
+
+            QtLayout.LayoutParams layoutParams = new QtLayout.LayoutParams(mWebSlidingDrawer.getLayoutParams());
+            mWebSlidingDrawer.setOnDrawerCloseListener(() -> {
+                WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
+                webViewFragment.close();
+            });
+
+            Point size = new Point();
+            getWindowManager().getDefaultDisplay().getRealSize(size);
+            int widthPx = Math.max(size.x, size.y);
+            int heightPx = Math.min(size.x, size.y);
+
+            layoutParams.x = (int) (widthPx - WEB_DRAWER_RIGHT_MARGIN * getResources().getDisplayMetrics().xdpi / NORMAL_DPI);
+            layoutParams.y = (int) (heightPx - WEB_DRAWER_BOTTOM_MARGIN * getResources().getDisplayMetrics().ydpi / NORMAL_DPI);
+
+            layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            qtLayout.addView(mWebSlidingDrawer, layoutParams);
+            mWebSlidingDrawer.setVisibility(View.VISIBLE);
         }
     }
 
@@ -321,6 +317,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
                 nativeBeforeEnterBackground();
                 Intent loginIntent = new Intent(this, LoginMenuActivity.class);
                 loginIntent.putExtra(LoginMenuActivity.EXTRA_BACK_TO_SCENE, backToScene);
+                loginIntent.putExtra(LoginMenuActivity.EXTRA_BACK_ON_SKIP, true);
                 if (args != null && args.containsKey(DOMAIN_URL)) {
                     loginIntent.putExtra(LoginMenuActivity.EXTRA_DOMAIN_URL, (String) args.get(DOMAIN_URL));
                 }
@@ -328,19 +325,19 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
                 break;
             case "WebView":
                 runOnUiThread(() -> {
-                    webSlidingDrawer.setVisibility(View.VISIBLE);
-                    if (!webSlidingDrawer.isOpened()) {
-                        webSlidingDrawer.animateOpen();
+                    showWebDrawer();
+                    if (!mWebSlidingDrawer.isOpened()) {
+                        mWebSlidingDrawer.animateOpen();
                     }
                     if (args != null && args.containsKey(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL)) {
                         WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
                         webViewFragment.loadUrl((String) args.get(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL), true);
                         webViewFragment.setToolbarVisible(true);
                         webViewFragment.setCloseAction(() -> {
-                            if (webSlidingDrawer.isOpened()) {
-                                webSlidingDrawer.animateClose();
+                            if (mWebSlidingDrawer.isOpened()) {
+                                mWebSlidingDrawer.animateClose();
                             }
-                            webSlidingDrawer.setVisibility(View.GONE);
+                            hideWebDrawer();
                         });
                     }
                 });

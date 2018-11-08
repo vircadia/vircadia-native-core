@@ -18,12 +18,26 @@ public class LoginMenuActivity extends AppCompatActivity
                                                 LoginFragment.OnLoginInteractionListener,
                                                 SignupFragment.OnSignupInteractionListener {
 
+    /**
+     * Set EXTRA_FINISH_ON_BACK to finish the app when back button is pressed
+     */
     public static final String EXTRA_FINISH_ON_BACK = "finishOnBack";
+
+    /**
+     * Set EXTRA_BACK_TO_SCENE to back to the scene
+     */
     public static final String EXTRA_BACK_TO_SCENE = "backToScene";
+
+    /**
+     * Set EXTRA_BACK_ON_SKIP to finish this activity when skip button is pressed
+     */
+    public static final String EXTRA_BACK_ON_SKIP = "backOnSkip";
+
     public static final String EXTRA_DOMAIN_URL = "url";
 
     private boolean finishOnBack;
     private boolean backToScene;
+    private boolean backOnSkip;
     private String domainUrlToBack;
 
 
@@ -35,10 +49,12 @@ public class LoginMenuActivity extends AppCompatActivity
         finishOnBack = getIntent().getBooleanExtra(EXTRA_FINISH_ON_BACK, false);
         backToScene = getIntent().getBooleanExtra(EXTRA_BACK_TO_SCENE, false);
         domainUrlToBack =  getIntent().getStringExtra(EXTRA_DOMAIN_URL);
+        backOnSkip = getIntent().getBooleanExtra(EXTRA_BACK_ON_SKIP, false);
 
         if (savedInstanceState != null) {
             finishOnBack = savedInstanceState.getBoolean(EXTRA_FINISH_ON_BACK, false);
             backToScene = savedInstanceState.getBoolean(EXTRA_BACK_TO_SCENE, false);
+            backOnSkip = savedInstanceState.getBoolean(EXTRA_BACK_ON_SKIP, false);
             domainUrlToBack = savedInstanceState.getString(EXTRA_DOMAIN_URL);
         }
 
@@ -58,6 +74,7 @@ public class LoginMenuActivity extends AppCompatActivity
         super.onRestoreInstanceState(savedInstanceState);
         finishOnBack = savedInstanceState.getBoolean(EXTRA_FINISH_ON_BACK, false);
         backToScene = savedInstanceState.getBoolean(EXTRA_BACK_TO_SCENE, false);
+        backOnSkip = savedInstanceState.getBoolean(EXTRA_BACK_ON_SKIP, false);
         domainUrlToBack = savedInstanceState.getString(EXTRA_DOMAIN_URL);
     }
 
@@ -97,7 +114,11 @@ public class LoginMenuActivity extends AppCompatActivity
 
     @Override
     public void onSkipLoginClicked() {
-        loadMainActivity();
+        if (backOnSkip) {
+            onBackPressed();
+        } else {
+            loadMainActivity();
+        }
     }
 
     @Override
@@ -176,10 +197,8 @@ public class LoginMenuActivity extends AppCompatActivity
             FragmentManager.BackStackEntry backEntry = fm.getBackStackEntryAt(index);
             String tag = backEntry.getName();
             Fragment topFragment = getFragmentManager().findFragmentByTag(tag);
-            if (topFragment instanceof OnBackPressedListener &&
-                    ((OnBackPressedListener) topFragment).doBack()) {
-
-            } else {
+            if (!(topFragment instanceof OnBackPressedListener) ||
+                    !((OnBackPressedListener) topFragment).doBack()) {
                 super.onBackPressed();
             }
         } else if (finishOnBack){

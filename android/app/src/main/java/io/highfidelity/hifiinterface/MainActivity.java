@@ -145,7 +145,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void startLoginMenuActivity() {
-        startActivity(new Intent(this, LoginMenuActivity.class));
+        Intent intent = new Intent(this, LoginMenuActivity.class);
+        intent.putExtra(LoginMenuActivity.EXTRA_BACK_ON_SKIP, true);
+        startActivity(intent);
     }
 
     private void loadPrivacyPolicyFragment() {
