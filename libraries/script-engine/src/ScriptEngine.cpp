@@ -418,10 +418,10 @@ void ScriptEngine::waitTillDoneRunning() {
                 workerThread->quit();
 
                 if (isEvaluating()) {
-                    qCWarning(scriptengine) << "Script Engine has been running too long, aborting.";
+                    qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
                     abortEvaluation();
                 } else {
-                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing.";
+                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                     auto context = currentContext();
                     if (context) {
                         context->throwError("Timed out during shutdown");
