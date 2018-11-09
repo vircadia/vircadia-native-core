@@ -2027,6 +2027,8 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
         }
         qCDebug(modelformat) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
     }
+    hfmModel.jointRotationOffsets.insert(13, glm::quat(0.5f, 0.5f, 0.5f, -0.5f));
+    hfmModel.jointRotationOffsets.insert(62, glm::quat(0.7071f, 0.0f, -0.7071f, 0.0f));
 
     return hfmModelPtr;
 }

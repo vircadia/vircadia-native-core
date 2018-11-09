@@ -26,7 +26,10 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
         joints.push_back(joint);
     }
   
-    buildSkeletonFromJoints(joints, hfmModel.jointOffsets);
+    glm::quat offset1(0.5f, 0.5f, 0.5f, -0.5f);
+    glm::quat offset2(0.7071f, 0.0f, 0.7071f, 0.0f);
+
+    buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
     // add offsets for spine2 and the neck
     
     
@@ -44,15 +47,17 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
 
                 if (cluster.jointIndex == 62) {
                     qCDebug(animation) << "Neck";
-                    qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << jointOffsets[cluster.jointIndex] << " cluster " << cluster.jointIndex;
-                    AnimPose localOffset(jointOffsets[cluster.jointIndex], glm::vec3());
+                    qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << offset2 << " cluster " << cluster.jointIndex;
+                    AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
+                    //AnimPose localOffset(offset2, glm::vec3());
                     cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
                     cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
                 }
                 if (cluster.jointIndex == 13) {
                     qCDebug(animation) << "Spine2";
-                    qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << jointOffsets[cluster.jointIndex] << " cluster " << cluster.jointIndex;
-                    AnimPose localOffset(jointOffsets[cluster.jointIndex], glm::vec3());
+                    qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << offset1<< " cluster " << cluster.jointIndex;
+                    AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
+                    //AnimPose localOffset(offset1, glm::vec3());
                     cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
                     cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
                 }
@@ -257,40 +262,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
         }
     }
 
-    /*
-        AnimPose newAbsPose;
-        if (parentIndex >= 0) {
-            newAbsPose = _absoluteDefaultPoses[parentIndex] * AnimPose(relDefaultPose.rot(),glm::vec3());
-        } else {
-            newAbsPose = relDefaultPose;
-        }
-
-        // putting the pipeline code is
-        // remember the inverse bind pose already has the offset added into it.  the total effect is offset^-1 * relDefPose * offset.
-        // this gives us the correct transform for the joint that has been put in t-pose with an offset rotation.
-        //relDefaultPose = relDefaultPose * _avatarTPoseOffsets[i];
-
-        QString jointName = getJointName(i);
-        if (jointOffsets.contains(i)) {
-            //QString parentIndex = getJointName(parentIndex);
-             AnimPose localOffset(jointOffsets[i], glm::vec3());
-            newAbsPose = newAbsPose * localOffset;
-        }
-        if ((parentIndex >= 0) && jointOffsets.contains(parentIndex)) {
-            AnimPose localParentOffset(jointOffsets[parentIndex], glm::vec3());
-            newAbsPose = localParentOffset.inverse() * AnimPose(glm::quat(), relDefaultPose.trans()) * localParentOffset * AnimPose(newAbsPose.rot(), glm::vec3());
-        }
-
-        if (parentIndex >= 0) {
-            relDefaultPose = _absoluteDefaultPoses[parentIndex].inverse() * newAbsPose;
-        }
-        _relativeDefaultPoses.push_back(relDefaultPose);
-
-        
-        _absoluteDefaultPoses.push_back(newAbsPose);
-      
-    }
-    */
+   
     for (int i = 0; i < _jointsSize; i++) {
         _jointIndicesByName[_joints[i].name] = i;
     }

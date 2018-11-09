@@ -23,7 +23,7 @@ public:
     using Pointer = std::shared_ptr<AnimSkeleton>;
     using ConstPointer = std::shared_ptr<const AnimSkeleton>;
 
-    explicit AnimSkeleton(const HFMModel& hfmModel, const QMap<int, glm::quat> jointOffsets);
+    explicit AnimSkeleton(const HFMModel& hfmModel);
     explicit AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets);
 
     int nameToJointIndex(const QString& jointName) const;
