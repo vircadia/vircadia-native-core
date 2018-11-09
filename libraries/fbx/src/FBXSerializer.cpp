@@ -1799,17 +1799,10 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
 HFMModel::Pointer FBXSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);
-    return HFMModel::Pointer(read(&buffer, mapping, url));
-}
 
-HFMModel* FBXSerializer::read(QIODevice* device, const QVariantHash& mapping, const QUrl& url) {
-    _rootNode = parseFBX(device);
+    _rootNode = parseFBX(&buffer);
 
     qCDebug(modelformat) << "Reading FBX: " << url;
 
-    return extractHFMModel(mapping, url.toString());
-}
-
-HFMModel* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
-    return FBXSerializer().extractHFMModel(mapping, url);
+    return HFMModel::Pointer(extractHFMModel(mapping, url.toString()));
 }

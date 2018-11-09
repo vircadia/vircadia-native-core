@@ -35,10 +35,6 @@
 class QIODevice;
 class FBXNode;
 
-/// Reads HFMModel from the supplied model and mapping data.
-/// \exception QString if an error occurs in parsing
-HFMModel* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
-
 class TextureParam {
 public:
     glm::vec2 UVTranslation;
@@ -104,7 +100,6 @@ public:
     /// Reads HFMModel from the supplied model and mapping data.
     /// \exception QString if an error occurs in parsing
     HFMModel::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
-    HFMModel* read(QIODevice* device, const QVariantHash& mapping, const QUrl& url = QUrl());
 
     FBXNode _rootNode;
     static FBXNode parseFBX(QIODevice* device);
