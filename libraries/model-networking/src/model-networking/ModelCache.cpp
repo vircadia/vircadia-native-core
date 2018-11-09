@@ -237,7 +237,7 @@ void GeometryReader::run() {
         } else {
             throw QString("url is invalid");
         }
-    } catch (const QString& error) {
+    } catch {
 
         auto resource = _resource.toStrongRef();
         if (resource) {
