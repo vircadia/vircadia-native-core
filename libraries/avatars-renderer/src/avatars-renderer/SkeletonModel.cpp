@@ -83,6 +83,7 @@ void SkeletonModel::initJointStates() {
 
     // Skeleton may have already been scaled so unscale it
     _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
+
     computeBoundingShape();
 
     Extents meshExtents = getMeshExtents();
