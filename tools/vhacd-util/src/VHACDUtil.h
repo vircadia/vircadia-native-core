@@ -18,9 +18,9 @@
 #include <vector>
 #include <chrono> //c++11 feature
 #include <QFile>
-#include <FBXSerializer.h>
-#include <OBJSerializer.h>
 #include <VHACD.h>
+
+#include <hfm/HFM.h>
 
 namespace vhacd {
     class VHACDUtil {

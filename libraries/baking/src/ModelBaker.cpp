@@ -13,7 +13,6 @@
 
 #include <PathUtils.h>
 
-#include <FBXSerializer.h>
 #include <FBXWriter.h>
 
 #ifdef _WIN32

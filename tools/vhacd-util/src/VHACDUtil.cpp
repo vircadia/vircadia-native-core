@@ -15,6 +15,8 @@
 #include <QVector>
 
 #include <NumericalConstants.h>
+#include <FBXSerializer.h>
+#include <OBJSerializer.h>
 
 
 // FBXSerializer jumbles the order of the meshes by reading them back out of a hashtable.  This will put

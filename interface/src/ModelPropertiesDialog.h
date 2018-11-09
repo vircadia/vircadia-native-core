@@ -14,7 +14,7 @@
 
 #include <QDialog>
 
-#include <FBXSerializer.h>
+#include <hfm/HFM.h>
 #include <FSTReader.h>
 
 #include "ui/ModelsBrowser.h"

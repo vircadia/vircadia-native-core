@@ -17,6 +17,7 @@
 #include <QTemporaryDir>
 
 #include <FSTReader.h>
+#include <FBXSerializer.h>
 #include <OffscreenUi.h>
 
 #include "ModelSelector.h"
