@@ -8538,7 +8538,7 @@ void Application::createLoginDialogOverlay() {
 
     auto playArea = HMD->getPlayAreaRect().toRectF();
     if (!(playArea.isEmpty())) {
-        refOverlayVec = glm::vec3(playArea.x() - 0.5f, playArea.y() - 0.5f, 0.0f);
+        refOverlayVec = glm::vec3(playArea.center().x(), playArea.center().y(), 0.0f);
     }
 
     Overlays& overlays = qApp->getOverlays();
