@@ -1,6 +1,6 @@
 //
 //  FBXSerializer.h
-//  interface/src/renderer
+//  libraries/fbx/src
 //
 //  Created by Andrzej Kapolka on 9/18/13.
 //  Copyright 2013 High Fidelity, Inc.
