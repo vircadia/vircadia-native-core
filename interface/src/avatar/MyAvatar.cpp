@@ -2037,9 +2037,7 @@ controller::Pose MyAvatar::getControllerPoseInSensorFrame(controller::Action act
 
 controller::Pose MyAvatar::getControllerPoseInWorldFrame(controller::Action action) const {
     auto pose = getControllerPoseInSensorFrame(action);
-    qCDebug(interfaceapp) << "avatar sensor orientation " << pose.getRotation();
     if (pose.valid) {
-        qCDebug(interfaceapp) << "sensor to world matrix orientation " << extractRotation(getSensorToWorldMatrix());
         return pose.transform(getSensorToWorldMatrix());
     } else {
         return controller::Pose(); // invalid pose
@@ -2049,7 +2047,6 @@ controller::Pose MyAvatar::getControllerPoseInWorldFrame(controller::Action acti
 controller::Pose MyAvatar::getControllerPoseInAvatarFrame(controller::Action action) const {
     auto pose = getControllerPoseInWorldFrame(action);
     if (pose.valid) {
-        qCDebug(interfaceapp) << "avatar world orientation " << getWorldOrientation();
         glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getWorldOrientation(), getWorldPosition()));
         return pose.transform(invAvatarMatrix);
     } else {

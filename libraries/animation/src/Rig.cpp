@@ -2084,6 +2084,8 @@ void Rig::setJointRotationOffsets(const QMap<QString, glm::quat>& offsets) {
         _jointRotationOffsets.insert(spine2Id, glm::quat(0.5f, 0.5f, 0.5f, -0.5f));
     }
     qCDebug(animation) << "set the neck and spine2 offsets " << spine2Id << " " << neckId;
+    glm::quat testRot(glm::vec3(0.000018095f, -4.74360667058f, -89.9994155926f));
+    qCDebug(animation) << "test rot from euler" << testRot;
 }
 
 const QMap<int, glm::quat>& Rig::getJointRotationOffsets() const {

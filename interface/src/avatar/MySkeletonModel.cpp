@@ -119,21 +119,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     // input action is the highest priority source for head orientation.
     auto avatarHeadPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (avatarHeadPose.isValid()) {
-        AnimPose previousHeadPose;
-        bool headUnfuckedWith = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Head"), previousHeadPose);
-        if (headUnfuckedWith) {
-            qCDebug(interfaceapp) << "unset head position " << previousHeadPose.trans();
-            qCDebug(interfaceapp) << "unset head rotation " << previousHeadPose.rot();
-        }
-        qCDebug(interfaceapp) << "neck joint offset " << jointOffsetMap[62];
-        qCDebug(interfaceapp) << "head joint avatar frame " << avatarHeadPose.getRotation();
-        AnimPose jointOffsetNeck(jointOffsetMap[62], glm::vec3());
-        AnimPose jointOffsetSpine2(jointOffsetMap[13], glm::vec3());
-        AnimPose testPose(glm::quat(0.7071f, 0.0f, 0.0f, 0.7071f), glm::vec3());
         AnimPose pose(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
-        AnimPose newHeadRot = (avatarToRigPose * pose) * testPose;
-        AnimPose newHeadRot2(newHeadRot.rot(), avatarHeadPose.getTranslation());
-        AnimPose identityPose(glm::quat(1.0f,0.0f,0.0f,0.0f), glm::vec3(0.0f,0.57f,0.0f));
         params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = avatarToRigPose * pose;
         params.primaryControllerFlags[Rig::PrimaryControllerType_Head] = (uint8_t)Rig::ControllerFlags::Enabled;
     } else {
@@ -244,7 +230,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
 
         // set spine2 if we have hand controllers
-        qCDebug(interfaceapp) << "spine 2 joint offset " << jointOffsetMap[13];
+        //qCDebug(interfaceapp) << "spine 2 joint offset " << jointOffsetMap[13];
         if (myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid() &&
             myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() &&
             !(params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] & (uint8_t)Rig::ControllerFlags::Enabled)) {
@@ -255,6 +241,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             bool spine2Exists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Spine2"), currentSpine2Pose);
             bool headExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Head"), currentHeadPose);
             bool hipsExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Hips"), currentHipsPose);
+
             if (spine2Exists && headExists && hipsExists) {
 
                 AnimPose rigSpaceYaw(myAvatar->getSpine2RotationRigSpace());
