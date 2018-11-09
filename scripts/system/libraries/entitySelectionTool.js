@@ -639,7 +639,18 @@ SelectionDisplay = (function() {
         ROLL: 2
     };
 
+    /**
+     * The current space mode, this could have been a forced space mode since we do not support multi selection while in
+     * local space mode.
+     * @type {string} - should only be set to SPACE_LOCAL or SPACE_WORLD
+     */
     var spaceMode = SPACE_LOCAL;
+
+    /**
+     * The desired space mode, this is the user set space mode, which should be respected whenever it is possible. In the case
+     * of multi entity selection this space mode may differ from the actual spaceMode.
+     * @type {string} - should only be set to SPACE_LOCAL or SPACE_WORLD
+     */
     var desiredSpaceMode = SPACE_LOCAL;
 
     var overlayNames = [];
