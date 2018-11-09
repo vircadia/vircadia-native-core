@@ -21,7 +21,7 @@
 namespace hfm {
 
 class Serializer {
-    virtual Model* read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl(), bool combineParts = false) = 0;
+    virtual Model* read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) = 0;
 };
 
 };

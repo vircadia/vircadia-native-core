@@ -195,23 +195,26 @@ void GeometryReader::run() {
 
             HFMModel::Pointer hfmModel;
 
+            QVariantHash serializerMapping = _mapping;
+            serializerMapping["combineParts"] = _combineParts;
+
             if (_url.path().toLower().endsWith(".fbx")) {
-                hfmModel.reset(FBXSerializer().read(_data, _mapping, _url.path()));
+                hfmModel.reset(FBXSerializer().read(_data, serializerMapping, _url));
                 if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported FBX version");
                 }
             } else if (_url.path().toLower().endsWith(".obj")) {
-                hfmModel.reset(OBJSerializer().read(_data, _mapping, _url, _combineParts));
+                hfmModel.reset(OBJSerializer().read(_data, serializerMapping, _url));
             } else if (_url.path().toLower().endsWith(".obj.gz")) {
                 QByteArray uncompressedData;
                 if (gunzip(_data, uncompressedData)){
-                    hfmModel.reset(OBJSerializer().read(uncompressedData, _mapping, _url, _combineParts));
+                    hfmModel.reset(OBJSerializer().read(uncompressedData, serializerMapping, _url));
                 } else {
                     throw QString("failed to decompress .obj.gz");
                 }
 
             } else if (_url.path().toLower().endsWith(".gltf")) {
-                hfmModel.reset(GLTFSerializer().read(_data, _mapping, _url));
+                hfmModel.reset(GLTFSerializer().read(_data, serializerMapping, _url));
                 if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported GLTF version");
                 }

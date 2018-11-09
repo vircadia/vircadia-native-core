@@ -101,7 +101,7 @@ public:
     QString currentMaterialName;
     QHash<QString, OBJMaterial> materials;
     
-    HFMModel* read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl(), bool combineParts = false) override;
+    HFMModel* read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
 
 private:
     QUrl _url;

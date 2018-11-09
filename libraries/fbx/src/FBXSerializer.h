@@ -103,8 +103,8 @@ public:
     HFMModel* _hfmModel;
     /// Reads HFMModel from the supplied model and mapping data.
     /// \exception QString if an error occurs in parsing
-    HFMModel* read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl(), bool combineParts = false) override;
-    HFMModel* read(QIODevice* device, const QVariantHash& mapping, const QUrl& url = QUrl(), bool combineParts = false);
+    HFMModel* read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
+    HFMModel* read(QIODevice* device, const QVariantHash& mapping, const QUrl& url = QUrl());
 
     FBXNode _rootNode;
     static FBXNode parseFBX(QIODevice* device);

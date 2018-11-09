@@ -910,13 +910,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     return true;
 }
 
-HFMModel* GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping,
-                                  const QUrl& url, bool combineParts) {
+HFMModel* GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     
     _url = url;
 
     // Normalize url for local files
-    QUrl normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(url);
+    QUrl normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(_url);
     if (normalizeUrl.scheme().isEmpty() || (normalizeUrl.scheme() == "file")) {
         QString localFileName = PathUtils::expandToLocalDataAbsolutePath(normalizeUrl).toLocalFile();
         _url = QUrl(QFileInfo(localFileName).absoluteFilePath());
@@ -927,7 +926,7 @@ HFMModel* GLTFSerializer::read(const QByteArray& data, const QVariantHash& mappi
     HFMModel* hfmModelPtr = new HFMModel();
     HFMModel& hfmModel = *hfmModelPtr;
 
-    buildGeometry(hfmModel, url);
+    buildGeometry(hfmModel, _url);
     
     //hfmDebugDump(data);
     return hfmModelPtr;

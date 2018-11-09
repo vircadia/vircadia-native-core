@@ -707,8 +707,7 @@ class GLTFSerializer : public QObject, public HFMSerializer {
     Q_OBJECT
 public:
     GLTFSerializer();
-    HFMModel* read(const QByteArray& data, const QVariantHash& mapping,
-                          const QUrl& url = QUrl(), bool combineParts = false) override;
+    HFMModel* read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
 private:
     GLTFFile _file;
     QUrl _url;

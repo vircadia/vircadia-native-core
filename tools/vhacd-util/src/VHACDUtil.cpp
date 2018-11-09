@@ -43,8 +43,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, HFMModel& result) {
         QByteArray fbxContents = fbx.readAll();
         HFMModel::Pointer hfmModel;
         if (filename.toLower().endsWith(".obj")) {
-            bool combineParts = false;
-            hfmModel.reset(OBJSerializer().read(fbxContents, QVariantHash(), filename, combineParts));
+            hfmModel.reset(OBJSerializer().read(fbxContents, QVariantHash(), filename));
         } else if (filename.toLower().endsWith(".fbx")) {
             hfmModel.reset(FBXSerializer().read(fbxContents, QVariantHash(), filename));
         } else {

@@ -652,7 +652,7 @@ done:
 }
 
 
-HFMModel* OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url, bool combineParts) {
+HFMModel* OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
     QBuffer buffer { const_cast<QByteArray*>(&data) };
     buffer.open(QIODevice::ReadOnly);
@@ -665,6 +665,7 @@ HFMModel* OBJSerializer::read(const QByteArray& data, const QVariantHash& mappin
     bool needsMaterialLibrary = false;
 
     _url = url;
+    bool combineParts = mapping.value("combineParts").toBool();
     hfmModel.meshExtents.reset();
     hfmModel.meshes.append(HFMMesh());
 
@@ -822,7 +823,7 @@ HFMModel* OBJSerializer::read(const QByteArray& data, const QVariantHash& mappin
         }
 
         // Build the single mesh.
-        FBXSerializer::buildModelMesh(mesh, url.toString());
+        FBXSerializer::buildModelMesh(mesh, _url.toString());
 
         // hfmDebugDump(hfmModel);
     } catch(const std::exception& e) {
@@ -838,14 +839,14 @@ HFMModel* OBJSerializer::read(const QByteArray& data, const QVariantHash& mappin
     }
     // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use
     // a texture with the same basename as the .obj file.
-    if (preDefinedMaterial.userSpecifiesUV && !url.isEmpty()) {
-        QString filename = url.fileName();
+    if (preDefinedMaterial.userSpecifiesUV && !_url.isEmpty()) {
+        QString filename = _url.fileName();
         int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
         QString basename = filename.remove(extIndex + 1, sizeof("obj"));
         preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
         QVector<QByteArray> extensions = { "jpg", "jpeg", "png", "tga" };
         QByteArray base = basename.toUtf8(), textName = "";
-        qCDebug(modelformat) << "OBJSerializer looking for default texture of" << url;
+        qCDebug(modelformat) << "OBJSerializer looking for default texture of" << _url;
         for (int i = 0; i < extensions.count(); i++) {
             QByteArray candidateString = base + extensions[i];
             if (isValidTexture(candidateString)) {
