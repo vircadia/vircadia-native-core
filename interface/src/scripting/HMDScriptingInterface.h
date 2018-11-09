@@ -358,6 +358,12 @@ signals:
      */
     bool shouldShowHandControllersChanged();
 
+    /**jsdoc
+     * Triggered when the tablet is shown or hidden.
+     * @function HMD.showTabletChanged
+     * @param {boolean} showTablet - <code>true</code> if the tablet is showing, otherwise <code>false</code>.
+     * @returns {Signal}
+     */
     void showTabletChanged(bool showTablet);
 
     /**jsdoc
