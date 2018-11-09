@@ -103,7 +103,7 @@ thead {
     font-size: 12px;
     text-transform: uppercase;
     background-color: #1c1c1c;
-    padding: 1px 0px;
+    padding: 1px 0;
     border-bottom: 1px solid #575757;
     width: 100%;
 }
@@ -283,7 +283,7 @@ input[type=number]::-webkit-inner-spin-button {
     width: 10px;
     height: 90%;
     overflow: hidden;
-    font-family: hifi-glyphs;
+    font-family: HiFi-Glyphs;
     font-size: 32px;
     color: #afafaf;
     cursor: pointer;
@@ -347,7 +347,7 @@ input[type=button], button.hifi-edit-button {
     vertical-align: top;
     height: 28px;
     min-width: 120px;
-    padding: 0px 18px;
+    padding: 0 18px;
     margin-right: 6px;
     border-radius: 5px;
     border: none;
@@ -447,7 +447,7 @@ input[type=checkbox]:checked + label:hover {
     position: absolute;
     left: 6px;
     top: -2px;
-    font-family: hifi-glyphs;
+    font-family: HiFi-Glyphs;
     font-size: 30px;
     color: #afafaf;
 }
@@ -1100,7 +1100,6 @@ body#entity-list-body {
     float: right;
     margin-right: 0;
     background-color: #ff0000;
-    min-width: 90px;
 }
 
 #entity-list {
@@ -1129,7 +1128,7 @@ body#entity-list-body {
 #filter-type-checkboxes span {
     position: relative;
     top: 3px;
-    font-family: hifi-glyphs;
+    font-family: HiFi-Glyphs;
     font-size: 13px;
     color: #000000;
     padding-left: 6px;
@@ -1173,7 +1172,7 @@ body#entity-list-body {
 
 #filter-in-view {
     position: absolute;
-    top: 0px;
+    top: 0;
     right: 126px;
 }
 
@@ -1453,7 +1452,7 @@ th#entity-hasScript {
 }
 
 #properties-base #property-type-icon {
-    font-family: hifi-glyphs;
+    font-family: HiFi-Glyphs;
     font-size: 31px;
     color: #00b4ef;
     margin: -4px 12px -4px -2px;

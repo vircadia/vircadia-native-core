@@ -281,7 +281,7 @@ SelectionManager = (function() {
                     var actionArguments = Entities.getActionArguments(properties.id, actionID);
                     if (actionArguments) {
                         var type = actionArguments.type;
-                        if (type == 'hold' || type == 'far-grab') {
+                        if (type === 'hold' || type === 'far-grab') {
                             continue;
                         }
                         delete actionArguments.ttl;
@@ -501,6 +501,7 @@ SelectionManager = (function() {
             
             if (selectionUpdated) {
                 SelectionDisplay.useDesiredSpaceMode();
+                //SelectionDisplay.setSpaceMode(SPACE_LOCAL, false);
             }
         } else {
             properties = Entities.getEntityProperties(that.selections[0], ['type', 'boundingBox']);
@@ -631,17 +632,6 @@ SelectionDisplay = (function() {
         Y: 1,
         Z: 2,
         ALL: 3
-    };
-
-    const SCALE_DIRECTION = {
-        LBN: 0,
-        RBN: 1,
-        LBF: 2,
-        RBF: 3,
-        LTN: 4,
-        RTN: 5,
-        LTF: 6,
-        RTF: 7
     };
 
     const ROTATE_DIRECTION = {
@@ -1342,7 +1332,7 @@ SelectionDisplay = (function() {
         }
     };
 
-    function controllerComputePickRay(hand) {
+    function controllerComputePickRay() {
         var hand = that.triggered() ? that.triggeredHand : that.pressedHand;
         var controllerPose = getControllerWorldLocation(hand, true);
         if (controllerPose.valid) {
@@ -1832,7 +1822,7 @@ SelectionDisplay = (function() {
                                                               !isActiveTool(handleRotateYawRing) &&
                                                               !isActiveTool(handleRotateRollRing)));
 
-        // keep duplicator always hidden for now since you can hold Alt to duplciate while  
+        // keep duplicator always hidden for now since you can hold Alt to duplicate while
         // translating an entity - we may bring duplicator back for HMD only later
         // that.setHandleDuplicatorVisible(!activeTool || isActiveTool(handleDuplicator));
 

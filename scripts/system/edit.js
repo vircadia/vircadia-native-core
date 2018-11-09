@@ -494,9 +494,9 @@ var toolBar = (function () {
         applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.All);
 
         var type = requestedProperties.type;
-        if (type == "Box" || type == "Sphere") {
+        if (type === "Box" || type === "Sphere") {
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
-        } else if (type == "Image") {
+        } else if (type === "Image") {
             requestedProperties.type = "Model";
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Image);
         } else {
@@ -1218,7 +1218,7 @@ function mouseClickEvent(event) {
     var result, properties, tabletClicked;
     if (isActive && event.isLeftButton) {
         result = findClickedEntity(event);
-        tabletOrEditHandleClicked = wasTabletOrEditHandleClicked(event);
+        var tabletOrEditHandleClicked = wasTabletOrEditHandleClicked(event);
         if (tabletOrEditHandleClicked) {
             return;
         }
@@ -1541,7 +1541,7 @@ function insideBox(center, dimensions, point) {
            (Math.abs(point.z - center.z) <= (dimensions.z / 2.0));
 }
 
-function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
+function selectAllEntitiesInCurrentSelectionBox(keepIfTouching) {
     if (selectionManager.hasSelection()) {
         // Get all entities touching the bounding box of the current selection
         var boundingBoxCorner = Vec3.subtract(selectionManager.worldPosition,
@@ -1820,9 +1820,9 @@ function handleMenuEvent(menuItem) {
             Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Select All Entities In Box") {
-        selectAllEtitiesInCurrentSelectionBox(false);
+        selectAllEntitiesInCurrentSelectionBox(false);
     } else if (menuItem === "Select All Entities Touching Box") {
-        selectAllEtitiesInCurrentSelectionBox(true);
+        selectAllEntitiesInCurrentSelectionBox(true);
     } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
         entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
@@ -2108,14 +2108,14 @@ var DELETED_ENTITY_MAP = {};
 function applyEntityProperties(data) {
     var editEntities = data.editEntities;
     var selectedEntityIDs = [];
-    var selectEdits = data.createEntities.length == 0 || !data.selectCreated;
-    var i, entityID;
+    var selectEdits = data.createEntities.length === 0 || !data.selectCreated;
+    var i, entityID, entityProperties;
     for (i = 0; i < editEntities.length; i++) {
-        var entityID = editEntities[i].entityID;
+        entityID = editEntities[i].entityID;
         if (DELETED_ENTITY_MAP[entityID] !== undefined) {
             entityID = DELETED_ENTITY_MAP[entityID];
         }
-        var entityProperties = editEntities[i].properties;
+        entityProperties = editEntities[i].properties;
         if (entityProperties !== null) {
             Entities.editEntity(entityID, entityProperties);
         }
@@ -2125,7 +2125,7 @@ function applyEntityProperties(data) {
     }
     for (i = 0; i < data.createEntities.length; i++) {
         entityID = data.createEntities[i].entityID;
-        var entityProperties = data.createEntities[i].properties;
+        entityProperties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(entityProperties);
         recursiveAdd(newEntityID, data.createEntities[i]);
         DELETED_ENTITY_MAP[entityID] = newEntityID;
@@ -2597,7 +2597,7 @@ var PopupMenu = function () {
                 y: event.y
             });
             if (!pressingOverlay) {
-                if (hoveringOverlay !== null && hoveringOverlay !== null && overlay !== hoveringOverlay) {
+                if (hoveringOverlay !== null && overlay !== hoveringOverlay) {
                     Overlays.editOverlay(hoveringOverlay, {
                         backgroundColor: upColor
                     });
