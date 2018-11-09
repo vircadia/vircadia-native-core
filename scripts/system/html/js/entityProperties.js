@@ -902,13 +902,13 @@ const GROUPS = [
             {
                 label: "Horizontal Angle Start",
                 type: "slider",
-                min: -180,
-                max: 0,
+                min: 0,
+                max: 180,
                 step: 1,
                 decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
-                propertyID: "azimuthStart",
+                propertyID: "polarStart",
             },
             {
                 label: "Horizontal Angle Finish",
@@ -919,18 +919,18 @@ const GROUPS = [
                 decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
-                propertyID: "azimuthFinish",
+                propertyID: "polarFinish",
             },
             {
                 label: "Vertical Angle Start",
                 type: "slider",
-                min: 0,
-                max: 180,
+                min: -180,
+                max: 0,
                 step: 1,
                 decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
-                propertyID: "polarStart",
+                propertyID: "azimuthStart",
             },
             {
                 label: "Vertical Angle Finish",
@@ -941,7 +941,7 @@ const GROUPS = [
                 decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
-                propertyID: "polarFinish",
+                propertyID: "azimuthFinish",
             },
         ]
     },
@@ -3165,8 +3165,13 @@ function loaded() {
                 } else if (data.type === 'tooltipsReply') {
                     createAppTooltip.setIsEnabled(!data.hmdActive);
                     createAppTooltip.setTooltipData(data.tooltips);
+                } else if (data.type === 'hmdActiveChanged') {
+                    createAppTooltip.setIsEnabled(!data.hmdActive);
                 }
             });
+
+            // Request tooltips as soon as we can process a reply:
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
         }
         
         // Server Script Status
@@ -3397,6 +3402,5 @@ function loaded() {
 
     setTimeout(function() {
         EventBridge.emitWebEvent(JSON.stringify({ type: 'propertiesPageReady' }));
-        EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
     }, 1000);
 }
