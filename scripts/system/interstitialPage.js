@@ -274,6 +274,7 @@
             previousCameraMode = Camera.mode;
             Camera.mode = "first person";
             updateProgressBar(0.0);
+            scaleInterstitialPage(MyAvatar.sensorToWorldScale);
             timer = Script.setTimeout(update, 2000);
         }
     }
@@ -482,7 +483,7 @@
         var end = 0;
         var xLocalPosition = (progressPercentage * (end - start)) + start;
         var properties = {
-            localPosition: { x: xLocalPosition, y: -0.91, z: 0.0 },
+            localPosition: { x: xLocalPosition, y: (HMD.active ? -0.93 : -0.91), z: 0.0 },
             dimensions: {
                 x: progress,
                 y: 0.3
