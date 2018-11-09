@@ -31,8 +31,6 @@ The above dependencies will be downloaded, built, linked and included automatica
 
 These are not placed in your normal build tree when doing an out of source build so that they do not need to be re-downloaded and re-compiled every time the CMake build folder is cleared. Should you want to force a re-download and re-compile of a specific external, you can simply remove that directory from the appropriate subfolder in `build/ext`. Should you want to force a re-download and re-compile of all externals, just remove the `build/ext` folder.
 
-If you would like to use a specific install of a dependency instead of the version that would be grabbed as a CMake ExternalProject, you can pass -DUSE\_LOCAL\_$NAME=0 (where $NAME is the name of the subfolder in [cmake/externals](cmake/externals)) when you run CMake to tell it not to get that dependency as an external project.
-
 #### CMake
 
 Hifi uses CMake to generate build files and project files for your platform.
