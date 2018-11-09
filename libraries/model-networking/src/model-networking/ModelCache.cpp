@@ -237,8 +237,7 @@ void GeometryReader::run() {
         } else {
             throw QString("url is invalid");
         }
-    } catch {
-
+    } catch (const std::exception&) {
         auto resource = _resource.toStrongRef();
         if (resource) {
             QMetaObject::invokeMethod(resource.data(), "finishedLoading",
