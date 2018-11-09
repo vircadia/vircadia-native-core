@@ -910,7 +910,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     return true;
 }
 
-HFMModel* GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
+HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     
     _url = url;
 
@@ -923,7 +923,7 @@ HFMModel* GLTFSerializer::read(const QByteArray& data, const QVariantHash& mappi
 
     parseGLTF(data);
     //_file.dump();
-    HFMModel* hfmModelPtr = new HFMModel();
+    auto hfmModelPtr = std::make_shared<HFMModel>();
     HFMModel& hfmModel = *hfmModelPtr;
 
     buildGeometry(hfmModel, _url);

@@ -100,7 +100,7 @@ bool TestFbx::isReady() const {
 
 void TestFbx::parseFbx(const QByteArray& fbxData) {
     QVariantHash mapping;
-    HFMModel* hfmModel = FBXSerializer().read(fbxData, mapping);
+    HFMModel::Pointer hfmModel = FBXSerializer().read(fbxData, mapping);
     size_t totalVertexCount = 0;
     size_t totalIndexCount = 0;
     size_t totalPartCount = 0;
@@ -163,7 +163,6 @@ void TestFbx::parseFbx(const QByteArray& fbxData) {
     _vertexBuffer->append(vertices);
     _indexBuffer->append(indices);
     _indirectBuffer->append(parts);
-    delete hfmModel;
 }
 
 void TestFbx::renderTest(size_t testId, RenderArgs* args) {

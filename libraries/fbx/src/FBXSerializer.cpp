@@ -1796,10 +1796,10 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     return hfmModelPtr;
 }
 
-HFMModel* FBXSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
+HFMModel::Pointer FBXSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);
-    return read(&buffer, mapping, url);
+    return HFMModel::Pointer(read(&buffer, mapping, url));
 }
 
 HFMModel* FBXSerializer::read(QIODevice* device, const QVariantHash& mapping, const QUrl& url) {
