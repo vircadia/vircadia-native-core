@@ -41,7 +41,7 @@ public class LoginFragment extends Fragment
 
     private final String OAUTH_CLIENT_ID = BuildConfig.OAUTH_CLIENT_ID;
     private final String OAUTH_REDIRECT_URI = BuildConfig.OAUTH_REDIRECT_URI;
-    private final String OAUTH_AUTHORIZE_BASE_URL = "https://highfidelity.com/oauth/authorize";
+    private final String OAUTH_AUTHORIZE_BASE_URL = "https://highfidelity.com/users/auth/steam";
     private static final int OAUTH_AUTORIZE_REQUEST = 1;
 
     private EditText mUsername;
