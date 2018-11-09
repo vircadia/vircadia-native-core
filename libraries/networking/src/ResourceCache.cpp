@@ -118,7 +118,7 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
 
         // Check load priority
         float priority = resource->getLoadPriority();
-        bool isFile = resource->getURL().scheme() == URL_SCHEME_FILE;
+        bool isFile = resource->getURL().scheme() == HIFI_URL_SCHEME_FILE;
         if (priority >= highestPriority && (isFile || !currentHighestIsFile)) {
             highestPriority = priority;
             highestIndex = i;
@@ -740,6 +740,8 @@ void Resource::handleReplyFinished() {
 
     setSize(_bytesTotal);
 
+    // Make sure we keep the Resource alive here
+    auto self = _self.lock();
     ResourceCache::requestCompleted(_self);
 
     auto result = _request->getResult();

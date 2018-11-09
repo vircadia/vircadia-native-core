@@ -13,8 +13,9 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
-import "../controls-uit"
-import "../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
+
 Item {
     id: linkAccountBody
     clip: true
@@ -96,7 +97,7 @@ Item {
             topMargin: hifi.dimensions.contentSpacing.y
         }
 
-        text: qsTr("Sign in to High Fidelity to make friends, get HFC, and buy interesting things on the Marketplace!")
+        text: qsTr("Sign in to High Fidelity to make friends, get HFC, and get interesting things on the Marketplace!")
         width: parent.width
         wrapMode: Text.WordWrap
         lineHeight: 1
@@ -136,7 +137,7 @@ Item {
 
         TextField {
             id: usernameField
-            text: Settings.getValue("wallet/savedUsername", "");
+            text: Settings.getValue("keepMeLoggedIn/savedUsername", "");
             width: parent.width
             focus: true
             placeholderText: "Username or Email"
@@ -165,7 +166,7 @@ Item {
                 root.text = "";
             }
             Component.onCompleted: {
-                var savedUsername = Settings.getValue("wallet/savedUsername", "");
+                var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
                 usernameField.text = savedUsername === "Unknown user" ? "" : savedUsername;
             }
         }
@@ -239,7 +240,10 @@ Item {
 
             }
 
-            Keys.onReturnPressed: linkAccountBody.login()
+            Keys.onReturnPressed: {
+                Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                linkAccountBody.login();
+            }
         }
 
         InfoItem {
@@ -263,21 +267,21 @@ Item {
 
             CheckBox {
                 id: autoLogoutCheckbox
-                checked: !Settings.getValue("wallet/autoLogout", true)
-                text: "Keep me signed in"
+                checked: Settings.getValue("keepMeLoggedIn", false)
+                text: "Keep me logged in"
                 boxSize: 20;
                 labelFontSize: 15
                 color: hifi.colors.black
                 onCheckedChanged: {
-                    Settings.setValue("wallet/autoLogout", !checked);
+                    Settings.setValue("keepMeLoggedIn", checked);
                     if (checked) {
-                        Settings.setValue("wallet/savedUsername", Account.username);
+                        Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
                     } else {
-                        Settings.setValue("wallet/savedUsername", "");
+                        Settings.setValue("keepMeLoggedIn/savedUsername", "");
                     }
                 }
                 Component.onDestruction: {
-                    Settings.setValue("wallet/autoLogout", !checked);
+                    Settings.setValue("keepMeLoggedIn", checked);
                 }
             }
 
@@ -289,7 +293,10 @@ Item {
                 text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Log in")
                 color: hifi.buttons.blue
 
-                onClicked: linkAccountBody.login()
+                onClicked: {
+                    Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
+                    linkAccountBody.login();
+                }
             }
         }
 
@@ -403,6 +410,7 @@ Item {
         case Qt.Key_Enter:
         case Qt.Key_Return:
             event.accepted = true
+            Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
             linkAccountBody.login()
             break
         }

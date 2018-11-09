@@ -21,7 +21,8 @@ class StylusPointer : public Pointer {
     using Ptr = std::shared_ptr<StylusPointer>;
 
 public:
-    StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled);
+    StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled,
+                  const glm::vec3& modelPositionOffset, const glm::quat& modelRotationOffset, const glm::vec3& modelDimensions);
     ~StylusPointer();
 
     void updateVisuals(const PickResultPointer& pickResult) override;
@@ -80,6 +81,10 @@ private:
     static glm::vec2 findPos2D(const PickedObject& pickedObject, const glm::vec3& origin);
 
     bool _showing { true };
+
+    glm::vec3 _modelPositionOffset;
+    glm::vec3 _modelDimensions;
+    glm::quat _modelRotationOffset;
 
 };
 

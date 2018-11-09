@@ -100,12 +100,12 @@ bool TestFbx::isReady() const {
 
 void TestFbx::parseFbx(const QByteArray& fbxData) {
     QVariantHash mapping;
-    FBXGeometry* fbx = readFBX(fbxData, mapping);
+    HFMModel* hfmModel = readFBX(fbxData, mapping);
     size_t totalVertexCount = 0;
     size_t totalIndexCount = 0;
     size_t totalPartCount = 0;
     size_t highestIndex = 0;
-    for (const auto& mesh : fbx->meshes) {
+    for (const auto& mesh : hfmModel->meshes) {
         size_t vertexCount = mesh.vertices.size();
         totalVertexCount += mesh.vertices.size();
         highestIndex = std::max(highestIndex, vertexCount);
@@ -123,7 +123,7 @@ void TestFbx::parseFbx(const QByteArray& fbxData) {
     std::vector<DrawElementsIndirectCommand> parts;
     parts.reserve(totalPartCount);
     _partCount = totalPartCount;
-    for (const auto& mesh : fbx->meshes) {
+    for (const auto& mesh : hfmModel->meshes) {
         baseVertex = vertices.size();
 
         vec3 color;
@@ -133,7 +133,7 @@ void TestFbx::parseFbx(const QByteArray& fbxData) {
             partIndirect.firstIndex = (uint)indices.size();
             partIndirect.baseInstance = (uint)parts.size();
             _partTransforms.push_back(mesh.modelTransform);
-            auto material = fbx->materials[part.materialID];
+            auto material = hfmModel->materials[part.materialID];
             color = material.diffuseColor;
             for (auto index : part.quadTrianglesIndices) {
                 indices.push_back(index);
@@ -163,7 +163,7 @@ void TestFbx::parseFbx(const QByteArray& fbxData) {
     _vertexBuffer->append(vertices);
     _indexBuffer->append(indices);
     _indirectBuffer->append(parts);
-    delete fbx;
+    delete hfmModel;
 }
 
 void TestFbx::renderTest(size_t testId, RenderArgs* args) {

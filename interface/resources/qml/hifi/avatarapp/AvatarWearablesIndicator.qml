@@ -1,6 +1,6 @@
 import QtQuick 2.9
-import "../../controls-uit"
-import "../../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 
 ShadowRectangle {
     property int wearablesCount: 0

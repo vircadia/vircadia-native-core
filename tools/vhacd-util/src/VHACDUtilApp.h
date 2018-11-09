@@ -28,7 +28,7 @@ public:
     VHACDUtilApp(int argc, char* argv[]);
     ~VHACDUtilApp();
 
-    bool writeOBJ(QString outFileName, FBXGeometry& geometry, bool outputCentimeters, int whichMeshPart = -1);
+    bool writeOBJ(QString outFileName, HFMModel& hfmModel, bool outputCentimeters, int whichMeshPart = -1);
 
     int getReturnCode() const { return _returnCode; }
 

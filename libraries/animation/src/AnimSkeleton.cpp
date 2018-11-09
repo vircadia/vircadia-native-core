@@ -17,13 +17,12 @@
 #include "AnimationLogging.h"
 static bool notBound = true;
 
-AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry, const QMap<int, glm::quat> jointOffsets) {
-    
+AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel, const QMap<int, glm::quat> jointOffsets) {
     qCDebug(animation) << "in the animSkeleton";
     // convert to std::vector of joints
-    std::vector<FBXJoint> joints;
-    joints.reserve(fbxGeometry.joints.size());
-    for (auto& joint : fbxGeometry.joints) {
+    std::vector<HFMJoint> joints;
+    joints.reserve(hfmModel.joints.size());
+    for (auto& joint : hfmModel.joints) {
         joints.push_back(joint);
     }
   
@@ -31,13 +30,13 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry, const QMap<int, glm::
     // add offsets for spine2 and the neck
     if (notBound) {
         notBound = false;
-        for (int i = 0; i < (int)fbxGeometry.meshes.size(); i++) {
-            const FBXMesh& mesh = fbxGeometry.meshes.at(i);
+        for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
+            const HFMMesh& mesh = hfmModel.meshes.at(i);
             for (int j = 0; j < mesh.clusters.size(); j++) {
 
 
                 // cast into a non-const reference, so we can mutate the FBXCluster
-                FBXCluster& cluster = const_cast<FBXCluster&>(mesh.clusters.at(j));
+                HFMCluster& cluster = const_cast<HFMCluster&>(mesh.clusters.at(j));
 
                 // AJT: mutate bind pose! this allows us to oreint the skeleton back into the authored orientaiton before
                 // rendering, with no runtime overhead.
@@ -57,7 +56,6 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry, const QMap<int, glm::
                     cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
                     cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
                 }
-
             }
         }
 
@@ -65,7 +63,7 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry, const QMap<int, glm::
     
 }	
 
-AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
+AnimSkeleton::AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
     buildSkeletonFromJoints(joints, jointOffsets);
 }
 
@@ -205,7 +203,8 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
     }
 }
 
-void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
+    void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
+
     _joints = joints;
     _jointsSize = (int)joints.size();
     // build a cache of bind poses
@@ -216,7 +215,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, 
     _relativePreRotationPoses.reserve(_jointsSize);
     _relativePostRotationPoses.reserve(_jointsSize);
 
-    // iterate over FBXJoints and extract the bind pose information.
+    // iterate over HFMJoints and extract the bind pose information.
     for (int i = 0; i < _jointsSize; i++) {
 
         // build pre and post transforms
@@ -306,7 +305,7 @@ void AnimSkeleton::dump(bool verbose) const {
         qCDebug(animation) << "        absDefaultPose =" << getAbsoluteDefaultPose(i);
         qCDebug(animation) << "        relDefaultPose =" << getRelativeDefaultPose(i);
         if (verbose) {
-            qCDebug(animation) << "        fbxJoint =";
+            qCDebug(animation) << "        hfmJoint =";
             qCDebug(animation) << "            isFree =" << _joints[i].isFree;
             qCDebug(animation) << "            freeLineage =" << _joints[i].freeLineage;
             qCDebug(animation) << "            parentIndex =" << _joints[i].parentIndex;

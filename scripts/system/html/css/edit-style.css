@@ -1598,7 +1598,7 @@ input.rename-entity {
     padding-left: 2px;
 }
 
-.createAppTooltip {
+.create-app-tooltip {
     position: absolute;
     background: #6a6a6a;
     border: 1px solid black;
@@ -1607,17 +1607,16 @@ input.rename-entity {
     padding: 5px;
 }
 
-.createAppTooltip .createAppTooltipDescription {
+.create-app-tooltip .create-app-tooltip-description {
     font-size: 12px;
     font-style: italic;
     color: #ffffff;
 }
 
-.createAppTooltip .createAppTooltipJSAttribute {
+.create-app-tooltip .create-app-tooltip-js-attribute {
     font-family: Raleway-SemiBold;
     font-size: 11px;
     color: #000000;
     bottom: 0;
     margin-top: 5px;
 }
-
