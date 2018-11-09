@@ -466,7 +466,6 @@ const DEFAULT_ENTITY_PROPERTIES = {
         isSpotlight: false,
         exponent: 1.0,
         cutoff: 75.0,
-        dimensions: { x: 20, y: 20, z: 20 },
     },
 };
 
