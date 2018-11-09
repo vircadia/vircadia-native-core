@@ -11,7 +11,7 @@
 
 import QtQuick.Layouts 1.3
 import QtQuick 2.5
-import "../controls-uit" as HifiControlsUit
+import controlsUit 1.0 as HifiControlsUit
 
 ColumnLayout {
     id: itemRoot

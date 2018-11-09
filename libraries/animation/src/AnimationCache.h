@@ -66,7 +66,7 @@ public:
 
     QString getType() const override { return "Animation"; }
 
-    const FBXGeometry& getGeometry() const { return *_geometry; }
+    const HFMModel& getHFMModel() const { return *_hfmModel; }
 
     virtual bool isLoaded() const override;
 
@@ -80,20 +80,20 @@ public:
      * @function AnimationObject.getFrames
      * @returns {FBXAnimationFrame[]}
      */
-    Q_INVOKABLE QVector<FBXAnimationFrame> getFrames() const;
+    Q_INVOKABLE QVector<HFMAnimationFrame> getFrames() const;
 
-    const QVector<FBXAnimationFrame>& getFramesReference() const;
+    const QVector<HFMAnimationFrame>& getFramesReference() const;
     
 protected:
     virtual void downloadFinished(const QByteArray& data) override;
 
 protected slots:
-    void animationParseSuccess(FBXGeometry::Pointer geometry);
+    void animationParseSuccess(HFMModel::Pointer hfmModel);
     void animationParseError(int error, QString str);
 
 private:
     
-    FBXGeometry::Pointer _geometry;
+    HFMModel::Pointer _hfmModel;
 };
 
 /// Reads geometry in a worker thread.
@@ -105,7 +105,7 @@ public:
     virtual void run() override;
 
 signals:
-    void onSuccess(FBXGeometry::Pointer geometry);
+    void onSuccess(HFMModel::Pointer hfmModel);
     void onError(int error, QString str);
 
 private:

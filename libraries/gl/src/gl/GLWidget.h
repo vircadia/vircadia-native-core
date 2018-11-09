@@ -29,7 +29,7 @@ public:
     int getDeviceHeight() const;
     QSize getDeviceSize() const { return QSize(getDeviceWidth(), getDeviceHeight()); }
     QPaintEngine* paintEngine() const override;
-    void createContext();
+    void createContext(QOpenGLContext* shareContext = nullptr);
     bool makeCurrent();
     void doneCurrent();
     void swapBuffers();

@@ -766,14 +766,16 @@ void CharacterController::updateState() {
                 SET_STATE(State::InAir, "takeoff done");
 
                 // compute jumpSpeed based on the scaled jump height for the default avatar in default gravity.
-                float jumpSpeed = sqrtf(2.0f * DEFAULT_AVATAR_GRAVITY * _scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT);
+                const float jumpHeight = std::max(_scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT, DEFAULT_AVATAR_MIN_JUMP_HEIGHT);
+                const float jumpSpeed = sqrtf(2.0f * -DEFAULT_AVATAR_GRAVITY * jumpHeight);
                 velocity += jumpSpeed * _currentUp;
                 _rigidBody->setLinearVelocity(velocity);
             }
             break;
         case State::InAir: {
-            const float JUMP_SPEED = _scaleFactor * DEFAULT_AVATAR_JUMP_SPEED;
-            if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
+            const float jumpHeight = std::max(_scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT, DEFAULT_AVATAR_MIN_JUMP_HEIGHT);
+            const float jumpSpeed = sqrtf(2.0f * -DEFAULT_AVATAR_GRAVITY * jumpHeight);
+            if ((velocity.dot(_currentUp) <= (jumpSpeed / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
             } else if (_flyingAllowed) {
                 btVector3 desiredVelocity = _targetVelocity;

@@ -216,13 +216,14 @@ void Agent::requestScript() {
     }
 
     // make sure this is not a script request for the file scheme
-    if (scriptURL.scheme() == URL_SCHEME_FILE) {
+    if (scriptURL.scheme() == HIFI_URL_SCHEME_FILE) {
         qWarning() << "Cannot load script for Agent from local filesystem.";
         scriptRequestFinished();
         return;
     }
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, scriptURL);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, scriptURL, true, -1, "Agent::requestScript");
 
     if (!request) {
         qWarning() << "Could not create ResourceRequest for Agent script at" << scriptURL.toString();

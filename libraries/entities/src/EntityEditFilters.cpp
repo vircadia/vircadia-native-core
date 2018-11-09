@@ -183,7 +183,7 @@ void EntityEditFilters::addFilter(EntityItemID entityID, QString filterURL) {
     }
    
     // The following should be abstracted out for use in Agent.cpp (and maybe later AvatarMixer.cpp)
-    if (scriptURL.scheme().isEmpty() || (scriptURL.scheme() == URL_SCHEME_FILE)) {
+    if (scriptURL.scheme().isEmpty() || (scriptURL.scheme() == HIFI_URL_SCHEME_FILE)) {
         qWarning() << "Cannot load script from local filesystem, because assignment may be on a different computer.";
         scriptRequestFinished(entityID);
         return;
@@ -200,7 +200,8 @@ void EntityEditFilters::addFilter(EntityItemID entityID, QString filterURL) {
     _filterDataMap.insert(entityID, filterData);
     _lock.unlock();
    
-    auto scriptRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(this, scriptURL);
+    auto scriptRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, scriptURL, true, -1, "EntityEditFilters::addFilter");
     if (!scriptRequest) {
         qWarning() << "Could not create ResourceRequest for Entity Edit filter script at" << scriptURL.toString();
         scriptRequestFinished(entityID);

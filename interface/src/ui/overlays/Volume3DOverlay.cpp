@@ -20,11 +20,9 @@ Volume3DOverlay::Volume3DOverlay(const Volume3DOverlay* volume3DOverlay) :
 }
 
 AABox Volume3DOverlay::getBounds() const {
-    auto extents = Extents{_localBoundingBox};
-    extents.rotate(getWorldOrientation());
-    extents.shiftBy(getWorldPosition());
-
-    return AABox(extents);
+    AABox bounds = _localBoundingBox;
+    bounds.transform(getTransform());
+    return bounds;
 }
 
 void Volume3DOverlay::setDimensions(const glm::vec3& value) {
@@ -49,15 +47,7 @@ void Volume3DOverlay::setProperties(const QVariantMap& properties) {
         glm::vec3 scale = vec3FromVariant(dimensions);
         // don't allow a zero or negative dimension component to reach the renderTransform
         const float MIN_DIMENSION = 0.0001f;
-        if (scale.x < MIN_DIMENSION) {
-            scale.x = MIN_DIMENSION;
-        }
-        if (scale.y < MIN_DIMENSION) {
-            scale.y = MIN_DIMENSION;
-        }
-        if (scale.z < MIN_DIMENSION) {
-            scale.z = MIN_DIMENSION;
-        }
+        scale = glm::max(scale, MIN_DIMENSION);
         setDimensions(scale);
     }
 }
