@@ -90,7 +90,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
 
 // Called within Model::simulate call, below.
 void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMModel& hfmModel = getHFMModel();
 
     Head* head = _owningAvatar->getHead();
 
@@ -268,19 +268,19 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     // pass detailed torso k-dops to rig.
     int hipsJoint = _rig.indexOfJoint("Hips");
     if (hipsJoint >= 0) {
-        params.hipsShapeInfo = geometry.joints[hipsJoint].shapeInfo;
+        params.hipsShapeInfo = hfmModel.joints[hipsJoint].shapeInfo;
     }
     int spineJoint = _rig.indexOfJoint("Spine");
     if (spineJoint >= 0) {
-        params.spineShapeInfo = geometry.joints[spineJoint].shapeInfo;
+        params.spineShapeInfo = hfmModel.joints[spineJoint].shapeInfo;
     }
     int spine1Joint = _rig.indexOfJoint("Spine1");
     if (spine1Joint >= 0) {
-        params.spine1ShapeInfo = geometry.joints[spine1Joint].shapeInfo;
+        params.spine1ShapeInfo = hfmModel.joints[spine1Joint].shapeInfo;
     }
     int spine2Joint = _rig.indexOfJoint("Spine2");
     if (spine2Joint >= 0) {
-        params.spine2ShapeInfo = geometry.joints[spine2Joint].shapeInfo;
+        params.spine2ShapeInfo = hfmModel.joints[spine2Joint].shapeInfo;
     }
 
     _rig.updateFromControllerParameters(params, deltaTime);
@@ -300,8 +300,8 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     eyeParams.eyeSaccade = head->getSaccade();
     eyeParams.modelRotation = getRotation();
     eyeParams.modelTranslation = getTranslation();
-    eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
-    eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
+    eyeParams.leftEyeJointIndex = hfmModel.leftEyeJointIndex;
+    eyeParams.rightEyeJointIndex = hfmModel.rightEyeJointIndex;
 
     _rig.updateFromEyeParameters(eyeParams);
 
