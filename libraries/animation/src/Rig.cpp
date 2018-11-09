@@ -310,11 +310,9 @@ void Rig::initJointStates(const HFMModel& hfmModel, const glm::mat4& modelOffset
 void Rig::reset(const HFMModel& hfmModel) {
     _geometryOffset = AnimPose(hfmModel.offset);
     _invGeometryOffset = _geometryOffset.inverse();
-<<<<<<< HEAD
-    _animSkeleton = std::make_shared<AnimSkeleton>(geometry, _jointRotationOffsets);
-=======
-    _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel);
->>>>>>> upstream/master
+
+    _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel, _jointRotationOffsets);
+
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -2087,9 +2085,74 @@ void Rig::setJointRotationOffsets(const QMap<QString, glm::quat>& offsets) {
     if (true){ //spine2Index != -1) {
         _jointRotationOffsets.insert(spine2Id, glm::quat(0.5f, 0.5f, 0.5f, -0.5f));
     }
-    qCDebug(animation) << "set the neck and spine2 offsets " << spine2Id << " " << neckId;
-    glm::quat testRot(glm::vec3(0.000018095f, -4.74360667058f, -89.9994155926f));
-    qCDebug(animation) << "test rot from euler" << testRot;
+
+    std::vector<glm::vec3> eulersFromEngineer;
+    eulersFromEngineer.push_back(glm::vec3(-81.1050620752f, -20.1443891394f, 100.309499473f));
+    eulersFromEngineer.push_back(glm::vec3(260.889773298f, -20.143735467f, 79.7184972987f));
+    eulersFromEngineer.push_back(glm::vec3(-196.885439853f, -15.4618394328f, 107.273377257f));
+    eulersFromEngineer.push_back(glm::vec3(185.169288353f, -14.3865564204f, 73.5514142013f));
+    eulersFromEngineer.push_back(glm::vec3(85.0436206363f, -0.405424354654f, 279.126747746f));
+    eulersFromEngineer.push_back(glm::vec3(265.040827938f, -24.8809133357f, 80.8874530433f));
+    eulersFromEngineer.push_back(glm::vec3(0.0000012746f, -9.5408567955f, 89.9999827841f));
+    eulersFromEngineer.push_back(glm::vec3(-304.676178613f, -1.77806457464f, 94.6267844984f));
+    eulersFromEngineer.push_back(glm::vec3(299.239708621f, -1.75410019523f, 85.3712190608f));
+    eulersFromEngineer.push_back(glm::vec3(-70.5442845855f, 180.00795643f, -73.899282669f));
+    eulersFromEngineer.push_back(glm::vec3(-5.65981473995f, -0.554837824572f, 90.3818083467f));
+    eulersFromEngineer.push_back(glm::vec3(282.516400893f, -2.86457680169f, 106.966109268f));
+    eulersFromEngineer.push_back(glm::vec3(-5.74446362761f, -3.69252247483f, 89.4088276443f));
+    eulersFromEngineer.push_back(glm::vec3(175.098015269f, 11.7273076323f, 282.707060357f));
+    eulersFromEngineer.push_back(glm::vec3(-5.86440719705f, -11.5976507143f, 93.7305032918f));
+    eulersFromEngineer.push_back(glm::vec3(212.162310762f, 11.1889030401f, 90.489887929f));
+    eulersFromEngineer.push_back(glm::vec3(-183.528298852f, 11.1630787238f, 89.5119846423f));
+    eulersFromEngineer.push_back(glm::vec3(-21.5907187136f, -1.16096242449f, 93.4017341288f));
+    eulersFromEngineer.push_back(glm::vec3(-230.174545226f, -1.16165879865f, 86.5984269351f));
+    eulersFromEngineer.push_back(glm::vec3(-71.3250132734f, 179.345867731f, -73.9245897857f));
+    eulersFromEngineer.push_back(glm::vec3(4.4183033408f, 0.0214780500113f, 89.6156394563f));
+    eulersFromEngineer.push_back(glm::vec3(-71.3557521294f, -1.96233777224f, 101.311991763f));
+    eulersFromEngineer.push_back(glm::vec3(4.52300317986f, -3.2744480538f, 93.9297689938f));
+    eulersFromEngineer.push_back(glm::vec3(183.372659045f, 18.4240672177f, 289.089833888f));
+    eulersFromEngineer.push_back(glm::vec3(4.69575782766f, -18.4271517191f, 85.8795582505f));
+    eulersFromEngineer.push_back(glm::vec3(180.000000381f, 184.227605816f, -90.0000102753f));
+    eulersFromEngineer.push_back(glm::vec3(180.000018095f, -4.74360667058f, -89.9994155926f));
+    eulersFromEngineer.push_back(glm::vec3(-6.65059725988f, 179.738939306f, -74.3826161322f));
+    eulersFromEngineer.push_back(glm::vec3(1.39276173327f, 0.376166992987f, 92.9332563713f));
+    eulersFromEngineer.push_back(glm::vec3(290.266370725f, -2.98535083963f, 105.944099833f));
+    eulersFromEngineer.push_back(glm::vec3(1.43200712942f, -2.97286285904f, 93.1492284976f));
+    eulersFromEngineer.push_back(glm::vec3(194.564263389f, 20.3832505773f, 294.645037769f));
+    eulersFromEngineer.push_back(glm::vec3(1.63629620002f, -20.9266621269f, 88.1506158063f));
+    eulersFromEngineer.push_back(glm::vec3(-0.0431167069757f, 179.97446471f, -73.261703364f));
+    eulersFromEngineer.push_back(glm::vec3(7.60338271732f, -0.342204658844f, 91.3116554499f));
+    eulersFromEngineer.push_back(glm::vec3(279.206234833f, -3.4007859075f, 106.246009192f));
+    eulersFromEngineer.push_back(glm::vec3(7.72548545025f, -3.33436960581f, 92.0998444782f));
+    eulersFromEngineer.push_back(glm::vec3(197.45405684f, 22.6995116972f, 295.695981195f));
+    eulersFromEngineer.push_back(glm::vec3(8.21527813645f, -19.794697098f, 86.2545417524f));
+    eulersFromEngineer.push_back(glm::vec3(180.000036925f, 168.400465599f, -90.0003196145f));
+    eulersFromEngineer.push_back(glm::vec3(7.86635710548e-05f, -2.45210839758f, 89.9992192762f));
+    eulersFromEngineer.push_back(glm::vec3(179.999920323f, 4.95709895474f, 269.999215822f));
+    eulersFromEngineer.push_back(glm::vec3(241.077352225f, -184.455008741f, -426.541304554f));
+    eulersFromEngineer.push_back(glm::vec3(-70.6642196779f, 6.88023375774f, 85.5052784744f));
+    eulersFromEngineer.push_back(glm::vec3(51.5850104459f, 4.10357301154f, 96.1370118091f));
+    eulersFromEngineer.push_back(glm::vec3(-70.3665845407f, 5.50499763056f, 102.700969646f));
+    eulersFromEngineer.push_back(glm::vec3(94.1058470618f, -4.50566341059f, -63.663409373f));
+    eulersFromEngineer.push_back(glm::vec3(-70.8795528982f, 7.23642133863f, 82.4215992116f));
+    eulersFromEngineer.push_back(glm::vec3(354.986036508f, -0.167802950666f, -73.0700479208f));
+    eulersFromEngineer.push_back(glm::vec3(174.972844269f, 0.163203627576f, 73.0320316709f));
+    eulersFromEngineer.push_back(glm::vec3(-156.40949683f, -2.25584901219f, 89.478726037f));
+    eulersFromEngineer.push_back(glm::vec3(-147.791270237f, -2.25609369727f, 90.5216948763f));
+    
+    qCDebug(animation) << "list of joint quats for engineer";
+    for (glm::vec3 bone : eulersFromEngineer) {
+        glm::quat boneQuat(glm::vec3((bone.x / 180.0f)*PI, (bone.y / 180.0f)*PI, (bone.z / 180.0f)*PI));
+        qCDebug(animation) << boneQuat;
+    }
+
+
+
+    //qCDebug(animation) << "set the neck and spine2 offsets " << spine2Id << " " << neckId;
+    //glm::quat leftShoulder(glm::vec3((-81.1050620752f / 180.0f)*PI, (-20.1443891394f / 180.0f)*PI, (100.309499473f / 180.0f)*PI));
+    //qCDebug(animation) << "jointRotationOffset = LeftShoulder = (" << leftShoulder << ")";
+    //glm::quat testRot2(glm::vec3(PI / 2.0f, 0.0f, PI / 2.0f));
+    //qCDebug(animation) << "test rot2 from euler" << testRot2;
 }
 
 const QMap<int, glm::quat>& Rig::getJointRotationOffsets() const {

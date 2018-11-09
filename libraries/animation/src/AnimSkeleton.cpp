@@ -28,8 +28,8 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel, const QMap<int, glm::quat> 
   
     buildSkeletonFromJoints(joints, jointOffsets);
     // add offsets for spine2 and the neck
-    if (notBound) {
-        notBound = false;
+    
+    
         for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
             const HFMMesh& mesh = hfmModel.meshes.at(i);
             for (int j = 0; j < mesh.clusters.size(); j++) {
@@ -59,7 +59,7 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel, const QMap<int, glm::quat> 
             }
         }
 
-    }
+    
     
 }	
 
@@ -230,6 +230,34 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
         qCDebug(animation) << "relative default pose for joint " << i << " " << relDefaultPose.trans() << " " << relDefaultPose.rot();
 
         int parentIndex = getParentIndex(i);
+
+        AnimPose newAbsPose;
+        if (parentIndex >= 0) {
+            newAbsPose = _absoluteDefaultPoses[parentIndex] * relDefaultPose;
+            
+            _absoluteDefaultPoses.push_back(newAbsPose);
+        } else {
+            
+            _absoluteDefaultPoses.push_back(relDefaultPose);
+        }
+        
+    }
+    for (int k = 0; k < _jointsSize; k++) {
+        int parentIndex2 = getParentIndex(k);
+        if (jointOffsets.contains(k)) {
+            AnimPose localOffset(jointOffsets[k], glm::vec3());
+            _absoluteDefaultPoses[k] = _absoluteDefaultPoses[k] * localOffset;
+        }
+        if (parentIndex2 >= 0) {
+            
+            _relativeDefaultPoses.push_back(_absoluteDefaultPoses[parentIndex2].inverse() * _absoluteDefaultPoses[k]);
+        } else {
+            
+            _relativeDefaultPoses.push_back(_absoluteDefaultPoses[k]);
+        }
+    }
+
+    /*
         AnimPose newAbsPose;
         if (parentIndex >= 0) {
             newAbsPose = _absoluteDefaultPoses[parentIndex] * AnimPose(relDefaultPose.rot(),glm::vec3());
@@ -260,9 +288,9 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
 
         
         _absoluteDefaultPoses.push_back(newAbsPose);
-        
+      
     }
-
+    */
     for (int i = 0; i < _jointsSize; i++) {
         _jointIndicesByName[_joints[i].name] = i;
     }
