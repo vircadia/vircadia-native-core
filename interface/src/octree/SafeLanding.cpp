@@ -13,6 +13,7 @@
 
 #include <NodeList.h>
 #include <SharedUtil.h>
+#include <NumericalConstants.h>
 
 #include "EntityTreeRenderer.h"
 #include "RenderableModelEntityItem.h"
@@ -21,7 +22,6 @@
 
 const int SafeLanding::SEQUENCE_MODULO = std::numeric_limits<OCTREE_PACKET_SEQUENCE>::max() + 1;
 const quint64 MAX_ELAPSED_TIME = 1000; // msec
-const quint64 MICRO_TO_MILI_SECONDS = 1000;
 
 namespace {
     template<typename T> bool lessThanWraparound(int a, int b) {
@@ -110,7 +110,7 @@ void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
 }
 
 bool SafeLanding::isLoadSequenceComplete() {
-    quint64 elapsedTime = (usecTimestampNow() - _startTime) / MICRO_TO_MILI_SECONDS;
+    quint64 elapsedTime = (usecTimestampNow() - _startTime) / USECS_PER_MSEC;
     if ((isEntityLoadingComplete() && isSequenceNumbersComplete()) ||
         (elapsedTime >= MAX_ELAPSED_TIME && isEntityServerNotRunning() && _sequenceNumbers.empty())) {
         Locker lock(_lock);

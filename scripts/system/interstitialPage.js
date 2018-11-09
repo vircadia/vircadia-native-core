@@ -15,7 +15,7 @@
 (function() {
     Script.include("/~/system/libraries/Xform.js");
     Script.include("/~/system/libraries/globals.js");
-    var DEBUG = true;
+    var DEBUG = false;
     var TOTAL_LOADING_PROGRESS = 3.7;
     var EPSILON = 0.05;
     var TEXTURE_EPSILON = 0.01;
@@ -197,7 +197,7 @@
 
     var loadingBarProgress = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Progress",
-        localPosition: { x: 0.0, y: -0.86, z: 0.0 },
+        localPosition: { x: 0.0, y: -0.91, z: 0.0 },
         url: LOADING_BAR_PROGRESS,
         alpha: 1,
         dimensions: { x: TOTAL_LOADING_PROGRESS, y: 0.3},
@@ -482,7 +482,7 @@
         var end = 0;
         var xLocalPosition = (progressPercentage * (end - start)) + start;
         var properties = {
-            localPosition: { x: xLocalPosition, y: -0.93, z: 0.0 },
+            localPosition: { x: xLocalPosition, y: -0.91, z: 0.0 },
             dimensions: {
                 x: progress,
                 y: 0.3
