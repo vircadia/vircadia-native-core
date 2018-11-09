@@ -5705,6 +5705,7 @@ void Application::update(float deltaTime) {
         quint64 now = usecTimestampNow();
         if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
             bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+
             if (gpuTextureMemSizeStable() || !enableInterstitial) {
                 // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
                 _lastPhysicsCheckTime = now;

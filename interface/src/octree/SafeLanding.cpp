@@ -11,6 +11,7 @@
 
 #include "SafeLanding.h"
 
+#include <NodeList.h>
 #include <SharedUtil.h>
 
 #include "EntityTreeRenderer.h"
@@ -19,6 +20,8 @@
 #include "Application.h"
 
 const int SafeLanding::SEQUENCE_MODULO = std::numeric_limits<OCTREE_PACKET_SEQUENCE>::max() + 1;
+const quint64 MAX_ELAPSED_TIME = 1000; // msec
+const quint64 MICRO_TO_MILI_SECONDS = 1000;
 
 namespace {
     template<typename T> bool lessThanWraparound(int a, int b) {
@@ -107,7 +110,9 @@ void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
 }
 
 bool SafeLanding::isLoadSequenceComplete() {
-    if (isEntityLoadingComplete() && isSequenceNumbersComplete()) {
+    quint64 elapsedTime = (usecTimestampNow() - _startTime) / MICRO_TO_MILI_SECONDS;
+    if ((isEntityLoadingComplete() && isSequenceNumbersComplete()) ||
+        (elapsedTime >= MAX_ELAPSED_TIME && isEntityServerNotRunning() && _sequenceNumbers.empty())) {
         Locker lock(_lock);
         _initialStart = INVALID_SEQUENCE;
         _initialEnd = INVALID_SEQUENCE;
@@ -117,6 +122,14 @@ bool SafeLanding::isLoadSequenceComplete() {
     }
 
     return !_trackingEntities;
+}
+
+bool SafeLanding::isEntityServerNotRunning() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    const auto& domainHandler = nodeList->getDomainHandler();
+    auto entityServer = nodeList->soloNodeOfType(NodeType::EntityServer);
+
+    return (domainHandler.isConnected() && !entityServer);
 }
 
 float SafeLanding::loadingProgressPercentage() {

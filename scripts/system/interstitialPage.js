@@ -15,7 +15,7 @@
 (function() {
     Script.include("/~/system/libraries/Xform.js");
     Script.include("/~/system/libraries/globals.js");
-    var DEBUG = false;
+    var DEBUG = true;
     var TOTAL_LOADING_PROGRESS = 3.7;
     var EPSILON = 0.05;
     var TEXTURE_EPSILON = 0.01;

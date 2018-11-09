@@ -40,6 +40,7 @@ private:
     bool isSequenceNumbersComplete();
     void debugDumpSequenceIDs() const;
     bool isEntityLoadingComplete();
+    bool isEntityServerNotRunning();
 
     std::mutex _lock;
     using Locker = std::lock_guard<std::mutex>;
