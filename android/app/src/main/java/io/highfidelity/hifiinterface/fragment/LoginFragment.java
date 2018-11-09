@@ -289,7 +289,8 @@ public class LoginFragment extends Fragment
     }
 
     private void updateOauthState() {
-        mOauthState = Long.toString(new Random().nextLong());
+        // as we only use oauth for steam that's ok for now
+        mOauthState = "steam-" + Long.toString(new Random().nextLong());
     }
 
     private String buildAuthorizeUrl() {
