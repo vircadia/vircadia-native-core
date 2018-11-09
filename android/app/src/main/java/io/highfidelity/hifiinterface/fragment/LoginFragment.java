@@ -42,7 +42,7 @@ public class LoginFragment extends Fragment
     private final String OAUTH_CLIENT_ID = BuildConfig.OAUTH_CLIENT_ID;
     private final String OAUTH_REDIRECT_URI = BuildConfig.OAUTH_REDIRECT_URI;
     private final String OAUTH_AUTHORIZE_BASE_URL = "https://highfidelity.com/users/auth/steam";
-    private static final int OAUTH_AUTORIZE_REQUEST = 1;
+    private static final int OAUTH_AUTHORIZE_REQUEST = 1;
 
     private EditText mUsername;
     private EditText mPassword;
@@ -146,9 +146,6 @@ public class LoginFragment extends Fragment
     @Override
     public void onStop() {
         super.onStop();
-        if (!mUseOauth) {
-            showLoginForm();
-        }
         // Leave the Qt app paused
         QtNative.setApplicationState(ApplicationInactive);
         hideKeyboard();
@@ -156,7 +153,7 @@ public class LoginFragment extends Fragment
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == OAUTH_AUTORIZE_REQUEST) {
+        if (requestCode == OAUTH_AUTHORIZE_REQUEST) {
             if (resultCode == Activity.RESULT_OK) {
                 String authCode = data.getStringExtra(WebViewActivity.RESULT_OAUTH_CODE);
                 String state = data.getStringExtra(WebViewActivity.RESULT_OAUTH_STATE);
@@ -314,7 +311,7 @@ public class LoginFragment extends Fragment
         updateOauthState();
         openUrlIntent.putExtra(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL, buildAuthorizeUrl());
         openUrlIntent.putExtra(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_CLEAR_COOKIES, true);
-        startActivityForResult(openUrlIntent, OAUTH_AUTORIZE_REQUEST);
+        startActivityForResult(openUrlIntent, OAUTH_AUTHORIZE_REQUEST);
     }
 
 

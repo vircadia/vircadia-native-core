@@ -134,7 +134,7 @@
         android:layout_marginLeft="@dimen/signup_margin"
         android:layout_marginRight="@dimen/signup_margin"
         android:background="@color/white_opaque"
-        android:paddingLeft="@dimen/login_edit_text_padding"
+        android:paddingLeft="@dimen/edit_text_padding"
         android:ems="10"
         android:fontFamily="sans-serif"
         android:textSize="@dimen/login_edit_text_size"
@@ -149,7 +149,7 @@
     <EditText
         android:id="@+id/email"
         android:layout_width="match_parent"
-        android:layout_height="27dp"
+        android:layout_height="@dimen/login_edit_text_height"
         android:layout_marginLeft="@dimen/signup_margin"
         android:layout_marginRight="@dimen/signup_margin"
         android:background="@color/white_opaque"

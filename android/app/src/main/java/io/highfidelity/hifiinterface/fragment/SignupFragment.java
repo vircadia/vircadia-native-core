@@ -114,7 +114,6 @@ public class SignupFragment extends Fragment
     @Override
     public void onStop() {
         super.onStop();
-        showSignupForm();
         // Leave the Qt app paused
         QtNative.setApplicationState(ApplicationInactive);
         hideKeyboard();
