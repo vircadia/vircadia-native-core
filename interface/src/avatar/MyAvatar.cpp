@@ -431,7 +431,7 @@ void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
     _wasPushing = _isPushing = _isBraking = false;
     _follow.deactivate();
     if (andReload) {
-        //_skeletonModel->reset();
+        _skeletonModel->reset();
     }
     if (andHead) { // which drives camera in desktop
         getHead()->reset();

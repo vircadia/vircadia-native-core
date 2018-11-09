@@ -31,8 +31,11 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
 
     buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
     // add offsets for spine2 and the neck
-    
-    
+    static bool once = true;
+    qCDebug(animation) << "the hfm model path is " << hfmModel.originalURL;
+    if (once && hfmModel.originalURL == "/angus/avatars/engineer_hifinames/engineer_hifinames/engineer_hifinames.fbx") {
+    //if (once && hfmModel.originalURL == "/angus/avatars/pei_z_neckNexX_spine2NegY_fwd/pei_z_neckNexX_spine2NegY_fwd/pei_z_neckNexX_spine2NegY_fwd.fbx") {
+        once = false;
         for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
             const HFMMesh& mesh = hfmModel.meshes.at(i);
             for (int j = 0; j < mesh.clusters.size(); j++) {
@@ -44,6 +47,15 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
                 // AJT: mutate bind pose! this allows us to oreint the skeleton back into the authored orientaiton before
                 // rendering, with no runtime overhead.
                 // this works if clusters match joints one for one.
+                if (hfmModel.jointRotationOffsets.contains(cluster.jointIndex)) {
+                    qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << offset2 << " cluster " << cluster.jointIndex;
+                    AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
+                    //AnimPose localOffset(offset2, glm::vec3());
+                    cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
+                    cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
+                }
+
+                /*
 
                 if (cluster.jointIndex == 62) {
                     qCDebug(animation) << "Neck";
@@ -55,14 +67,16 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
                 }
                 if (cluster.jointIndex == 13) {
                     qCDebug(animation) << "Spine2";
-                    qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << offset1<< " cluster " << cluster.jointIndex;
+                    qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << offset1 << " cluster " << cluster.jointIndex;
                     AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
                     //AnimPose localOffset(offset1, glm::vec3());
                     cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
                     cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
                 }
+                */
             }
         }
+    }
 
     
     
@@ -247,6 +261,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
         }
         
     }
+    
     for (int k = 0; k < _jointsSize; k++) {
         int parentIndex2 = getParentIndex(k);
         if (jointOffsets.contains(k)) {
@@ -261,6 +276,10 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
             _relativeDefaultPoses.push_back(_absoluteDefaultPoses[k]);
         }
     }
+    
+    // re-compute relative poses 
+    //_relativeDefaultPoses = _absoluteDefaultPoses;
+    //convertAbsolutePosesToRelative(_relativeDefaultPoses);
 
    
     for (int i = 0; i < _jointsSize; i++) {
