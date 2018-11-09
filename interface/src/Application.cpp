@@ -4834,6 +4834,7 @@ void Application::idle() {
             _idleLoopStdev.reset();
         }
     }
+
     _overlayConductor.update(secondsSinceLastUpdate);
 
     _gameLoopCounter.increment();
