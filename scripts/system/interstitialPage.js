@@ -285,12 +285,21 @@
         }
     }
 
+    function restartAudio() {
+        tune.ready.disconnect(restartAudio);
+        startAudio();
+    }
+
     function startAudio() {
-        sample = Audio.playSound(tune, {
-            localOnly: true,
-            position: MyAvatar.getHeadPosition(),
-            volume: VOLUME
-        });
+        if (tune.downloaded) {
+            sample = Audio.playSound(tune, {
+                localOnly: true,
+                position: MyAvatar.getHeadPosition(),
+                volume: VOLUME
+            });
+        } else {
+            tune.ready.connect(restartAudio);
+        }
     }
 
     function endAudio() {
