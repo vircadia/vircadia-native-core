@@ -501,7 +501,6 @@ SelectionManager = (function() {
             
             if (selectionUpdated) {
                 SelectionDisplay.useDesiredSpaceMode();
-                //SelectionDisplay.setSpaceMode(SPACE_LOCAL, false);
             }
         } else {
             properties = Entities.getEntityProperties(that.selections[0], ['type', 'boundingBox']);
