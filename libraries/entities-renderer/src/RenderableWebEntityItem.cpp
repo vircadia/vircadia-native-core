@@ -54,7 +54,7 @@ WebEntityRenderer::ContentType WebEntityRenderer::getContentType(const QString& 
 
     const QUrl url(urlString);
     auto scheme = url.scheme();
-    if (scheme == URL_SCHEME_ABOUT || scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS ||
+    if (scheme == HIFI_URL_SCHEME_ABOUT || scheme == HIFI_URL_SCHEME_HTTP || scheme == HIFI_URL_SCHEME_HTTPS ||
         urlString.toLower().endsWith(".htm") || urlString.toLower().endsWith(".html")) {
         return ContentType::HtmlContent;
     }
@@ -261,6 +261,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, fadeRatio < OPAQUE_ALPHA_THRESHOLD);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
     batch.popProjectionJitter();
+    batch.setResourceTexture(0, nullptr);
 }
 
 bool WebEntityRenderer::hasWebSurface() {

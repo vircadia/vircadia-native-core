@@ -14,9 +14,9 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
-import "../../../controls" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
+import "qrc:////qml//controls" as HifiControls
 
 // references XXX from root context
 
@@ -33,13 +33,15 @@ Rectangle {
     property string buttonLayout: "leftright";
 
     readonly property string securityPicBodyText: "When you see your Security Pic, your actions and data are securely making use of your " +
-        "Wallet's private keys.<br><br>You can change your Security Pic in your Wallet.";
+        "private keys.<br><br>You can change your Security Pic via Settings > Security...";
 
     id: root;
     visible: false;
     anchors.fill: parent;
     color: Qt.rgba(0, 0, 0, 0.5);
     z: 999;
+    
+    HifiConstants { id: hifi; }
 
     onVisibleChanged: {
         if (!visible) {

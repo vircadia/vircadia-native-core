@@ -19,16 +19,16 @@
 
 // FBXReader jumbles the order of the meshes by reading them back out of a hashtable.  This will put
 // them back in the order in which they appeared in the file.
-bool FBXGeometryLessThan(const FBXMesh& e1, const FBXMesh& e2) {
+bool HFMModelLessThan(const HFMMesh& e1, const HFMMesh& e2) {
     return e1.meshIndex < e2.meshIndex;
 }
-void reSortFBXGeometryMeshes(FBXGeometry& geometry) {
-    qSort(geometry.meshes.begin(), geometry.meshes.end(), FBXGeometryLessThan);
+void reSortHFMModelMeshes(HFMModel& hfmModel) {
+    qSort(hfmModel.meshes.begin(), hfmModel.meshes.end(), HFMModelLessThan);
 }
 
 
 // Read all the meshes from provided FBX file
-bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
+bool vhacd::VHACDUtil::loadFBX(const QString filename, HFMModel& result) {
     if (_verbose) {
         qDebug() << "reading FBX file =" << filename << "...";
     }
@@ -41,19 +41,19 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
     }
     try {
         QByteArray fbxContents = fbx.readAll();
-        FBXGeometry::Pointer geom;
+        HFMModel::Pointer hfmModel;
         if (filename.toLower().endsWith(".obj")) {
             bool combineParts = false;
-            geom = OBJReader().readOBJ(fbxContents, QVariantHash(), combineParts);
+            hfmModel = OBJReader().readOBJ(fbxContents, QVariantHash(), combineParts);
         } else if (filename.toLower().endsWith(".fbx")) {
-            geom.reset(readFBX(fbxContents, QVariantHash(), filename));
+            hfmModel.reset(readFBX(fbxContents, QVariantHash(), filename));
         } else {
             qWarning() << "file has unknown extension" << filename;
             return false;
         }
-        result = *geom;
+        result = *hfmModel;
 
-        reSortFBXGeometryMeshes(result);
+        reSortHFMModelMeshes(result);
     } catch (const QString& error) {
         qWarning() << "error reading" << filename << ":" << error;
         return false;
@@ -63,7 +63,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
 }
 
 
-void getTrianglesInMeshPart(const FBXMeshPart &meshPart, std::vector<int>& triangleIndices) {
+void getTrianglesInMeshPart(const HFMMeshPart &meshPart, std::vector<int>& triangleIndices) {
     // append triangle indices
     triangleIndices.reserve(triangleIndices.size() + (size_t)meshPart.triangleIndices.size());
     for (auto index : meshPart.triangleIndices) {
@@ -88,12 +88,12 @@ void getTrianglesInMeshPart(const FBXMeshPart &meshPart, std::vector<int>& trian
     }
 }
 
-void vhacd::VHACDUtil::fattenMesh(const FBXMesh& mesh, const glm::mat4& geometryOffset, FBXMesh& result) const {
+void vhacd::VHACDUtil::fattenMesh(const HFMMesh& mesh, const glm::mat4& modelOffset, HFMMesh& result) const {
     // this is used to make meshes generated from a highfield collidable.  each triangle
     // is converted into a tetrahedron and made into its own mesh-part.
 
     std::vector<int> triangleIndices;
-    foreach (const FBXMeshPart &meshPart, mesh.parts) {
+    foreach (const HFMMeshPart &meshPart, mesh.parts) {
         getTrianglesInMeshPart(meshPart, triangleIndices);
     }
 
@@ -104,7 +104,7 @@ void vhacd::VHACDUtil::fattenMesh(const FBXMesh& mesh, const glm::mat4& geometry
     int indexStartOffset = result.vertices.size();
 
     // new mesh gets the transformed points from the original
-    glm::mat4 totalTransform = geometryOffset * mesh.modelTransform;
+    glm::mat4 totalTransform = modelOffset * mesh.modelTransform;
     for (int i = 0; i < mesh.vertices.size(); i++) {
         // apply the source mesh's transform to the points
         glm::vec4 v = totalTransform * glm::vec4(mesh.vertices[i], 1.0f);
@@ -145,7 +145,7 @@ void vhacd::VHACDUtil::fattenMesh(const FBXMesh& mesh, const glm::mat4& geometry
         int index3 = result.vertices.size();
         result.vertices << p3; // add the new point to the result mesh
 
-        FBXMeshPart newMeshPart;
+        HFMMeshPart newMeshPart;
         setMeshPartDefaults(newMeshPart, "unknown");
         newMeshPart.triangleIndices << index0 << index1 << index2;
         newMeshPart.triangleIndices << index0 << index3 << index1;
@@ -155,7 +155,7 @@ void vhacd::VHACDUtil::fattenMesh(const FBXMesh& mesh, const glm::mat4& geometry
     }
 }
 
-AABox getAABoxForMeshPart(const FBXMesh& mesh, const FBXMeshPart &meshPart) {
+AABox getAABoxForMeshPart(const HFMMesh& mesh, const HFMMeshPart &meshPart) {
     AABox aaBox;
     const int TRIANGLE_STRIDE = 3;
     for (int i = 0; i < meshPart.triangleIndices.size(); i += TRIANGLE_STRIDE) {
@@ -242,7 +242,7 @@ bool isClosedManifold(const std::vector<int>& triangleIndices) {
     return true;
 }
 
-void vhacd::VHACDUtil::getConvexResults(VHACD::IVHACD* convexifier, FBXMesh& resultMesh) const {
+void vhacd::VHACDUtil::getConvexResults(VHACD::IVHACD* convexifier, HFMMesh& resultMesh) const {
     // Number of hulls for this input meshPart
     uint32_t numHulls = convexifier->GetNConvexHulls();
     if (_verbose) {
@@ -256,8 +256,8 @@ void vhacd::VHACDUtil::getConvexResults(VHACD::IVHACD* convexifier, FBXMesh& res
         VHACD::IVHACD::ConvexHull hull;
         convexifier->GetConvexHull(j, hull);
 
-        resultMesh.parts.append(FBXMeshPart());
-        FBXMeshPart& resultMeshPart = resultMesh.parts.last();
+        resultMesh.parts.append(HFMMeshPart());
+        HFMMeshPart& resultMeshPart = resultMesh.parts.last();
 
         int hullIndexStart = resultMesh.vertices.size();
         resultMesh.vertices.reserve(hullIndexStart + hull.m_nPoints);
@@ -288,17 +288,17 @@ float computeDt(uint64_t start) {
     return (float)(usecTimestampNow() - start) / (float)USECS_PER_SECOND;
 }
 
-bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
+bool vhacd::VHACDUtil::computeVHACD(HFMModel& hfmModel,
                                     VHACD::IVHACD::Parameters params,
-                                    FBXGeometry& result,
+                                    HFMModel& result,
                                     float minimumMeshSize, float maximumMeshSize) {
     if (_verbose) {
-        qDebug() << "meshes =" << geometry.meshes.size();
+        qDebug() << "meshes =" << hfmModel.meshes.size();
     }
 
     // count the mesh-parts
     int numParts = 0;
-    foreach (const FBXMesh& mesh, geometry.meshes) {
+    foreach (const HFMMesh& mesh, hfmModel.meshes) {
         numParts += mesh.parts.size();
     }
     if (_verbose) {
@@ -308,15 +308,15 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
     VHACD::IVHACD * convexifier = VHACD::CreateVHACD();
 
     result.meshExtents.reset();
-    result.meshes.append(FBXMesh());
-    FBXMesh &resultMesh = result.meshes.last();
+    result.meshes.append(HFMMesh());
+    HFMMesh &resultMesh = result.meshes.last();
 
     const uint32_t POINT_STRIDE = 3;
     const uint32_t TRIANGLE_STRIDE = 3;
 
     int meshIndex = 0;
     int validPartsFound = 0;
-    foreach (const FBXMesh& mesh, geometry.meshes) {
+    foreach (const HFMMesh& mesh, hfmModel.meshes) {
 
         // find duplicate points
         int numDupes = 0;
@@ -337,7 +337,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
 
         // each mesh has its own transform to move it to model-space
         std::vector<glm::vec3> vertices;
-        glm::mat4 totalTransform = geometry.offset * mesh.modelTransform;
+        glm::mat4 totalTransform = hfmModel.offset * mesh.modelTransform;
         foreach (glm::vec3 vertex, mesh.vertices) {
             vertices.push_back(glm::vec3(totalTransform * glm::vec4(vertex, 1.0f)));
         }
@@ -354,7 +354,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
 
         int partIndex = 0;
         std::vector<int> triangleIndices;
-        foreach (const FBXMeshPart &meshPart, mesh.parts) {
+        foreach (const HFMMeshPart &meshPart, mesh.parts) {
             triangleIndices.clear();
             getTrianglesInMeshPart(meshPart, triangleIndices);
 
@@ -421,7 +421,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
 
             triangleIndices.clear();
             for (auto index : openParts) {
-                const FBXMeshPart &meshPart = mesh.parts[index];
+                const HFMMeshPart &meshPart = mesh.parts[index];
                 getTrianglesInMeshPart(meshPart, triangleIndices);
             }
 

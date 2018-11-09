@@ -88,6 +88,7 @@ public:
         // Move the OpenGL context to the present thread
         // Extra code because of the widget 'wrapper' context
         _context = context;
+        _context->doneCurrent();
         _context->moveToThread(this);
     }
 
@@ -179,7 +180,9 @@ public:
             _context->makeCurrent();
             {
                 PROFILE_RANGE(render, "PluginPresent")
+                gl::globalLock();
                 currentPlugin->present();
+                gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
             _context->doneCurrent();

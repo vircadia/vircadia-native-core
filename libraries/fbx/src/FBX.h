@@ -70,8 +70,8 @@ public:
 };
 
 
-/// A single blendshape extracted from an FBX document.
-class FBXBlendshape {
+/// A single blendshape.
+class HFMBlendshape {
 public:
     QVector<int> indices;
     QVector<glm::vec3> vertices;
@@ -79,19 +79,19 @@ public:
     QVector<glm::vec3> tangents;
 };
 
-struct FBXJointShapeInfo {
-    // same units and frame as FBXJoint.translation
+struct HFMJointShapeInfo {
+    // same units and frame as HFMJoint.translation
     glm::vec3 avgPoint;
     std::vector<float> dots;
     std::vector<glm::vec3> points;
     std::vector<glm::vec3> debugLines;
 };
 
-/// A single joint (transformation node) extracted from an FBX document.
-class FBXJoint {
+/// A single joint (transformation node).
+class HFMJoint {
 public:
 
-    FBXJointShapeInfo shapeInfo;
+    HFMJointShapeInfo shapeInfo;
     QVector<int> freeLineage;
     bool isFree;
     int parentIndex;
@@ -126,8 +126,8 @@ public:
 };
 
 
-/// A single binding to a joint in an FBX document.
-class FBXCluster {
+/// A single binding to a joint.
+class HFMCluster {
 public:
 
     int jointIndex;
@@ -137,8 +137,8 @@ public:
 
 const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;
 
-/// A texture map in an FBX document.
-class FBXTexture {
+/// A texture map.
+class HFMTexture {
 public:
     QString id;
     QString name;
@@ -156,7 +156,7 @@ public:
 };
 
 /// A single part of a mesh (with the same material).
-class FBXMeshPart {
+class HFMMeshPart {
 public:
 
     QVector<int> quadIndices; // original indices from the FBX mesh
@@ -166,10 +166,10 @@ public:
     QString materialID;
 };
 
-class FBXMaterial {
+class HFMMaterial {
 public:
-    FBXMaterial() {};
-    FBXMaterial(const glm::vec3& diffuseColor, const glm::vec3& specularColor, const glm::vec3& emissiveColor,
+    HFMMaterial() {};
+    HFMMaterial(const glm::vec3& diffuseColor, const glm::vec3& specularColor, const glm::vec3& emissiveColor,
          float shininess, float opacity) :
         diffuseColor(diffuseColor),
         specularColor(specularColor),
@@ -203,17 +203,17 @@ public:
     QString shadingModel;
     graphics::MaterialPointer _material;
 
-    FBXTexture normalTexture;
-    FBXTexture albedoTexture;
-    FBXTexture opacityTexture;
-    FBXTexture glossTexture;
-    FBXTexture roughnessTexture;
-    FBXTexture specularTexture;
-    FBXTexture metallicTexture;
-    FBXTexture emissiveTexture;
-    FBXTexture occlusionTexture;
-    FBXTexture scatteringTexture;
-    FBXTexture lightmapTexture;
+    HFMTexture normalTexture;
+    HFMTexture albedoTexture;
+    HFMTexture opacityTexture;
+    HFMTexture glossTexture;
+    HFMTexture roughnessTexture;
+    HFMTexture specularTexture;
+    HFMTexture metallicTexture;
+    HFMTexture emissiveTexture;
+    HFMTexture occlusionTexture;
+    HFMTexture scatteringTexture;
+    HFMTexture lightmapTexture;
     glm::vec2 lightmapParams{ 0.0f, 1.0f };
 
 
@@ -231,11 +231,11 @@ public:
     bool needTangentSpace() const;
 };
 
-/// A single mesh (with optional blendshapes) extracted from an FBX document.
-class FBXMesh {
+/// A single mesh (with optional blendshapes).
+class HFMMesh {
 public:
 
-    QVector<FBXMeshPart> parts;
+    QVector<HFMMeshPart> parts;
 
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
@@ -247,12 +247,12 @@ public:
     QVector<uint16_t> clusterWeights;
     QVector<int32_t> originalIndices;
 
-    QVector<FBXCluster> clusters;
+    QVector<HFMCluster> clusters;
 
     Extents meshExtents;
     glm::mat4 modelTransform;
 
-    QVector<FBXBlendshape> blendshapes;
+    QVector<HFMBlendshape> blendshapes;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
 
@@ -265,7 +265,7 @@ public:
 
 class ExtractedMesh {
 public:
-    FBXMesh mesh;
+    HFMMesh mesh;
     QMultiHash<int, int> newIndices;
     QVector<QHash<int, int> > blendshapeIndexMaps;
     QVector<QPair<int, int> > partMaterialTextures;
@@ -277,15 +277,15 @@ public:
  * @property {Quat[]} rotations
  * @property {Vec3[]} translations
  */
-/// A single animation frame extracted from an FBX document.
-class FBXAnimationFrame {
+/// A single animation frame.
+class HFMAnimationFrame {
 public:
     QVector<glm::quat> rotations;
     QVector<glm::vec3> translations;
 };
 
-/// A light in an FBX document.
-class FBXLight {
+/// A light.
+class HFMLight {
 public:
     QString name;
     Transform transform;
@@ -293,7 +293,7 @@ public:
     float fogValue;
     glm::vec3 color;
 
-    FBXLight() :
+    HFMLight() :
         name(),
         transform(),
         intensity(1.0f),
@@ -302,26 +302,26 @@ public:
     {}
 };
 
-Q_DECLARE_METATYPE(FBXAnimationFrame)
-Q_DECLARE_METATYPE(QVector<FBXAnimationFrame>)
+Q_DECLARE_METATYPE(HFMAnimationFrame)
+Q_DECLARE_METATYPE(QVector<HFMAnimationFrame>)
 
-/// A set of meshes extracted from an FBX document.
-class FBXGeometry {
+/// The runtime model format.
+class HFMModel {
 public:
-    using Pointer = std::shared_ptr<FBXGeometry>;
+    using Pointer = std::shared_ptr<HFMModel>;
 
     QString originalURL;
     QString author;
     QString applicationName; ///< the name of the application that generated the model
 
-    QVector<FBXJoint> joints;
+    QVector<HFMJoint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
     bool hasSkeletonJoints;
 
-    QVector<FBXMesh> meshes;
+    QVector<HFMMesh> meshes;
     QVector<QString> scripts;
 
-    QHash<QString, FBXMaterial> materials;
+    QHash<QString, HFMMaterial> materials;
 
     glm::mat4 offset; // This includes offset, rotation, and scale as specified by the FST file
 
@@ -348,7 +348,7 @@ public:
     Extents bindExtents;
     Extents meshExtents;
 
-    QVector<FBXAnimationFrame> animationFrames;
+    QVector<HFMAnimationFrame> animationFrames;
 
     int getJointIndex(const QString& name) const { return jointIndices.value(name) - 1; }
     QStringList getJointNames() const;
@@ -368,7 +368,7 @@ public:
     QList<QString> blendshapeChannelNames;
 };
 
-Q_DECLARE_METATYPE(FBXGeometry)
-Q_DECLARE_METATYPE(FBXGeometry::Pointer)
+Q_DECLARE_METATYPE(HFMModel)
+Q_DECLARE_METATYPE(HFMModel::Pointer)
 
 #endif // hifi_FBX_h_
