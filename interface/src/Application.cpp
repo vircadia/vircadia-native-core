@@ -3366,7 +3366,7 @@ void Application::showHelp() {
     static const QString TAB_GAMEPAD = "gamepad";
     static const QString TAB_HAND_CONTROLLERS = "handControllers";
 
-    QString handControllerName = HAND_CONTROLLER_NAME_VIVE;
+    QString handControllerName = "";
     QString defaultTab = TAB_KEYBOARD_MOUSE;
 
     if (PluginUtils::isViveControllerAvailable()) {

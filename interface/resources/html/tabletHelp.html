@@ -94,15 +94,14 @@
                 switch (index) 
                 {
                     case 0:
-                        showHandControllers();
-                        break;
-                    case 1:
                         showGamepad();
                         break;
-                    case 2:
+                    case 1:
                         showKbm();
                         break;
-
+                    case 2:
+                        showHandControllers();
+                        break;
                     default:
                 }
             }
@@ -142,23 +141,26 @@
                         handControllerImageURL = "img/tablet-help-vive.jpg";
                         break;
                     case "oculus":
+						handControllerImageURL = "img/tablet-help-oculus.jpg";
+						break;
                     default:
-                        handControllerImageURL = "img/tablet-help-oculus.jpg";
+                        handControllerImageURL = null;
+						count = 2;
                 }
 
                 switch (params.defaultTab) {
                     case "handControllers":
                         showHandControllers();
-                        index = 0;
+                        index = 2;
                         break;
                     case "gamepad":
                         showGamepad();
-                        index = 1;
+                        index = 0;
                         break;
                     case "kbm":
                     default:
                         showKbm();
-                        index = 2;
+                        index = 1;
                 }
             }
         </script>
