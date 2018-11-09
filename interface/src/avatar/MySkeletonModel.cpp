@@ -92,7 +92,6 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
 void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     const HFMModel& hfmModel = getHFMModel();
-    const QMap<int, glm::quat> jointOffsetMap = _rig.getJointRotationOffsets();
 
     Head* head = _owningAvatar->getHead();
 

@@ -128,7 +128,6 @@ public:
     int getJointStateCount() const;
     int indexOfJoint(const QString& jointName) const;
     QString nameOfJoint(int jointIndex) const;
-    const QMap<int, glm::quat>& getJointRotationOffsets() const;
 
     void setModelOffset(const glm::mat4& modelOffsetMat);
 
@@ -232,8 +231,6 @@ public:
     const AnimContext::DebugAlphaMap& getDebugAlphaMap() const { return _lastContext.getDebugAlphaMap(); }
     const AnimVariantMap& getAnimVars() const { return _lastAnimVars; }
     const AnimContext::DebugStateMachineMap& getStateMachineMap() const { return _lastContext.getStateMachineMap(); }
-    
-    void setJointRotationOffsets(const QMap<QString, glm::quat>& offsets);
 
 signals:
     void onLoadComplete();
@@ -302,8 +299,6 @@ protected:
     int _rightHandJointIndex { -1 };
     int _rightElbowJointIndex { -1 };
     int _rightShoulderJointIndex { -1 };
-
-    QMap<int, glm::quat> _jointRotationOffsets;
 
     glm::vec3 _lastForward;
     glm::vec3 _lastPosition;
@@ -423,7 +418,6 @@ protected:
 
     SnapshotBlendPoseHelper _hipsBlendHelper;
     ControllerParameters _previousControllerParameters;
-    bool _alreadyInitialized { false };
 };
 
 #endif /* defined(__hifi__Rig__) */

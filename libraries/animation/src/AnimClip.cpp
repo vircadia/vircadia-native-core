@@ -103,8 +103,7 @@ void AnimClip::copyFromNetworkAnim() {
     // by matching joints with the same name.
 
     const HFMModel& hfmModel = _networkAnim->getHFMModel();
-    QMap<int, glm::quat> jointRotationOffsets;
-    AnimSkeleton animSkeleton(hfmModel, jointRotationOffsets);
+    AnimSkeleton animSkeleton(hfmModel);
 
     const auto animJointCount = animSkeleton.getNumJoints();
     const auto skeletonJointCount = _skeleton->getNumJoints();

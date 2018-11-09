@@ -17,7 +17,7 @@
 #include "AnimationLogging.h"
 static bool notBound = true;
 
-AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel, const QMap<int, glm::quat> jointOffsets) {
+AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     qCDebug(animation) << "in the animSkeleton";
     // convert to std::vector of joints
     std::vector<HFMJoint> joints;
@@ -26,7 +26,7 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel, const QMap<int, glm::quat> 
         joints.push_back(joint);
     }
   
-    buildSkeletonFromJoints(joints, jointOffsets);
+    buildSkeletonFromJoints(joints, hfmModel.jointOffsets);
     // add offsets for spine2 and the neck
     
     
@@ -203,7 +203,7 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
     }
 }
 
-    void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
+void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
 
     _joints = joints;
     _jointsSize = (int)joints.size();
