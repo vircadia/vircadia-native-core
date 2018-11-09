@@ -14,41 +14,18 @@ $(document).ready(function(){
     return html;
   }
 
-  function uploadInChunks(file) {
-    var fileSize = file.size;
-    var filename = file.name;
-    var CHUNK_SIZE = 16384;
-      
-    for(p = 0; p <= fileSize; p += CHUNK_SIZE) {
-        var chunk = file.slice(p, p + CHUNK_SIZE, file.type);
-        var chunkFormData = new FormData();
-        chunkFormData.append('restore-file-chunk', chunk, filename);
-        var ajaxParams = {
-          url: '/content/upload',
-          type: 'POST',
-          async: false,
-          timeout: 60,
-          processData: false,
-          contentType: false,
-          data: chunkFormData
-          };
-        var ajaxObject = $.ajax(ajaxParams);
-        
-        }
-    
-      
-  }
-    
   function uploadNextChunk(file, offset)
   {
+      if (offset == undefined) {
+          offset = 0;
+      }
+
       var fileSize = file.size;
       var filename = file.name;
       
       var CHUNK_SIZE = 65536;
-      if (offset == undefined) {
-          offset = 0;
-      }
-      var isFinal = fileSize - offset > CHUNK_SIZE ? false : true;
+      
+      var isFinal = Boolean(fileSize - offset <= CHUNK_SIZE);
       var nextChunkSize = Math.min(fileSize - offset, CHUNK_SIZE);
       var chunk = file.slice(offset, offset + CHUNK_SIZE, file.type);
       var chunkFormData = new FormData();
@@ -127,38 +104,10 @@ $(document).ready(function(){
       function() {
         var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
 
-        var fileFormData = new FormData();
-        fileFormData.append('restore-file', files[0]);
-
         showSpinnerAlert("Uploading content to restore");
 
           
         uploadNextChunk(files[0]);
-        return;
-          
-          // Previous one-upload method.
-        $.ajax({
-          url: '/content/upload',
-          type: 'POST',
-          timeout: 3600000, // Set timeout to 1h
-          cache: false,
-          processData: false,
-          contentType: false,
-          data: fileFormData
-        }).done(function(data, textStatus, jqXHR) {
-          isRestoring = true;
-
-          // immediately reload backup information since one should be restoring now
-          reloadBackupInformation();
-
-          swal.close();
-        }).fail(function(jqXHR, textStatus, errorThrown) {
-          showErrorMessage(
-            "Error",
-            "There was a problem restoring domain content.\n"
-            + "Please ensure that the content archive or entity file is valid and try again."
-          );
-        });
       }
     );
   });

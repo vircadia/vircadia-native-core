@@ -2273,53 +2273,12 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     // Received another chunk
                     connection->respond(HTTPConnection::StatusCode200);
                 } else if (formItemName == "restore-file-chunk-final") {
-                    if (uploadedFilename.endsWith(".json", Qt::CaseInsensitive)
-                        || uploadedFilename.endsWith(".json.gz", Qt::CaseInsensitive)) {
-                        // invoke our method to hand the new octree file off to the octree server
-                        QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
-                            Qt::QueuedConnection, Q_ARG(QByteArray, _pendingUploadedContent));
-                        _pendingUploadedContent.clear();
-                        // respond with a 200 for success
-                        connection->respond(HTTPConnection::StatusCode200);
+                    readPendingContent(connection, uploadedFilename);
                 } else if (formItemName == "restore-file") {
-                    if (uploadedFilename.endsWith(".json", Qt::CaseInsensitive)
-                        || uploadedFilename.endsWith(".json.gz", Qt::CaseInsensitive)) {
-                        // invoke our method to hand the new octree file off to the octree server
-                        QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
-                                                  Qt::QueuedConnection, Q_ARG(QByteArray, firstFormData.second));
-
-                        _pendingUploadedContent.clear();
-                        // respond with a 200 for success
-                        connection->respond(HTTPConnection::StatusCode200);
-                    } else if (uploadedFilename.endsWith(".zip", Qt::CaseInsensitive)) {
-                        auto deferred = makePromise("recoverFromUploadedBackup");
-
-                        deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
-                            if (!connectionPtr) {
-                                return;
-                            }
-
-                            QJsonObject rootJSON;
-                            auto success = result["success"].toBool();
-                            rootJSON["success"] = success;
-                            QJsonDocument docJSON(rootJSON);
-                            connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
-                                JSON_MIME_TYPE.toUtf8());
-                        });
-
-                        _contentManager->recoverFromUploadedBackup(deferred, firstFormData.second);
-                        _pendingUploadedContent.clear();
-
-                        return true;
-                        }
-                    } else {
-                        connection->respond(HTTPConnection::StatusCode400);
-                    }
+                    readPendingContent(connection, uploadedFilename);
                 } else {
-                    // we don't have handling for this filetype, send back a 400 for failure
                     connection->respond(HTTPConnection::StatusCode400);
                 }
-
             } else {
                 // respond with a 400 for failure
                 connection->respond(HTTPConnection::StatusCode400);
@@ -2565,6 +2524,39 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
         }
     } else {
         return false;
+    }
+}
+
+void DomainServer::readPendingContent(HTTPConnection* connection, QString filename) {
+    if (filename.endsWith(".json", Qt::CaseInsensitive)
+        || filename.endsWith(".json.gz", Qt::CaseInsensitive)) {
+        // invoke our method to hand the new octree file off to the octree server
+        QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
+            Qt::QueuedConnection, Q_ARG(QByteArray, _pendingUploadedContent));
+
+        // respond with a 200 for success
+        connection->respond(HTTPConnection::StatusCode200);
+        _pendingUploadedContent.clear();
+    } else if (filename.endsWith(".zip", Qt::CaseInsensitive)) {
+        auto deferred = makePromise("recoverFromUploadedBackup");
+
+        QPointer<HTTPConnection> connectionPtr(connection);
+        const QString JSON_MIME_TYPE = "application/json";
+        deferred->then([connectionPtr, JSON_MIME_TYPE, this](QString error, QVariantMap result) {
+            if (!connectionPtr) {
+                return;
+            }
+
+            QJsonObject rootJSON;
+            auto success = result["success"].toBool();
+            rootJSON["success"] = success;
+            QJsonDocument docJSON(rootJSON);
+            connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                JSON_MIME_TYPE.toUtf8());
+            _pendingUploadedContent.clear();
+        });
+
+        _contentManager->recoverFromUploadedBackup(deferred, _pendingUploadedContent);
     }
 }
 

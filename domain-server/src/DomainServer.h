@@ -209,6 +209,8 @@ private:
 
     HTTPSConnection* connectionFromReplyWithState(QNetworkReply* reply);
 
+    void readPendingContent(HTTPConnection* connection, QString filename);
+
     bool forwardMetaverseAPIRequest(HTTPConnection* connection,
                                     const QString& metaversePath,
                                     const QString& requestSubobject,
