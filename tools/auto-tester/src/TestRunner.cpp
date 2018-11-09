@@ -340,7 +340,7 @@ void TestRunner::runInterfaceWithTestScript() {
     QString testScript =
         QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/testRecursive.js";
 
-    QString commandLine = exeFile + " --url " + url + " --no-updater --no-login" + " --testScript " + testScript +
+    QString commandLine = exeFile + " --url " + url + " --no-updater --no-login-suggestion" + " --testScript " + testScript +
                           " quitWhenFinished --testResultsLocation " + snapshotFolder;
 
     interfaceWorker->setCommandLine(commandLine);

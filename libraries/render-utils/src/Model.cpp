@@ -1180,9 +1180,9 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
 
 void Model::setTextures(const QVariantMap& textures) {
     if (isLoaded()) {
-        _pendingTextures.clear();
         _needsFixupInScene = true;
         _renderGeometry->setTextures(textures);
+        _pendingTextures.clear();
     } else {
         _pendingTextures = textures;
     }

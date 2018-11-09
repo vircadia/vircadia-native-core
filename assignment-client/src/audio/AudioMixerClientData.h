@@ -172,7 +172,7 @@ private:
 
     void optionallyReplicatePacket(ReceivedMessage& packet, const Node& node);
 
-    void setGainForAvatar(QUuid nodeID, uint8_t gain);
+    void setGainForAvatar(QUuid nodeID, float gain);
 
     bool containsValidPosition(ReceivedMessage& message) const;
 

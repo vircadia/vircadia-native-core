@@ -122,8 +122,11 @@ void HMDScriptingInterface::toggleShouldShowTablet() {
 }
 
 void HMDScriptingInterface::setShouldShowTablet(bool value) {
-    _showTablet = value;
-    _tabletContextualMode = false;
+    if (_showTablet != value) {
+        _showTablet = value;
+        _tabletContextualMode = false;
+        emit showTabletChanged(value);
+    }
 }
 
 void HMDScriptingInterface::setMiniTabletEnabled(bool enabled) {

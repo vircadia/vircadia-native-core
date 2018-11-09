@@ -358,6 +358,8 @@ signals:
      */
     bool shouldShowHandControllersChanged();
 
+    void showTabletChanged(bool showTablet);
+
     /**jsdoc
      * Triggered when the ability to display the mini tablet has changed.
      * @function HMD.miniTabletEnabledChanged
