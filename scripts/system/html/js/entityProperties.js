@@ -309,7 +309,7 @@ const GROUPS = [
             },
             {
                 label: "Background Blend",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -331,7 +331,7 @@ const GROUPS = [
             },
             {
                 label: "Glare Angle",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 180,
                 step: 1,
@@ -347,7 +347,7 @@ const GROUPS = [
             },
             {
                 label: "Bloom Intensity",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -357,7 +357,7 @@ const GROUPS = [
             },
             {
                 label: "Bloom Threshold",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -367,7 +367,7 @@ const GROUPS = [
             },
             {
                 label: "Bloom Size",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 2,
                 step: 0.01,
@@ -615,7 +615,7 @@ const GROUPS = [
             },
             {
                 label: "Lifespan",
-                type: "slider",
+                type: "number",
                 unit: "s",
                 min: 0.01,
                 max: 10,
@@ -625,7 +625,7 @@ const GROUPS = [
             },
             {
                 label: "Max Particles",
-                type: "slider",
+                type: "number",
                 min: 1,
                 max: 10000,
                 step: 1,
@@ -646,7 +646,7 @@ const GROUPS = [
         properties: [
             {
                 label: "Emit Rate",
-                type: "slider",
+                type: "number",
                 min: 1,
                 max: 1000,
                 step: 1,
@@ -654,7 +654,7 @@ const GROUPS = [
             },
             {
                 label: "Emit Speed",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 5,
                 step: 0.01,
@@ -663,7 +663,7 @@ const GROUPS = [
             },
             {
                 label: "Speed Spread",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 5,
                 step: 0.01,
@@ -682,7 +682,7 @@ const GROUPS = [
             },
             {
                 label: "Emit Radius Start",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -717,7 +717,7 @@ const GROUPS = [
                 properties: [
                     {
                         label: "Start",
-                        type: "slider",
+                        type: "number",
                         min: 0,
                         max: 4,
                         step: 0.01,
@@ -727,7 +727,7 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "slider",
+                        type: "number",
                         min: 0,
                         max: 4,
                         step: 0.01,
@@ -736,7 +736,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "slider",
+                        type: "number",
                         min: 0,
                         max: 4,
                         step: 0.01,
@@ -748,7 +748,7 @@ const GROUPS = [
             },
             {
                 label: "Size Spread",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 4,
                 step: 0.01,
@@ -804,7 +804,7 @@ const GROUPS = [
                 properties: [
                     {
                         label: "Start",
-                        type: "slider",
+                        type: "number",
                         min: 0,
                         max: 1,
                         step: 0.01,
@@ -814,7 +814,7 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "slider",
+                        type: "number",
                         min: 0,
                         max: 1,
                         step: 0.01,
@@ -823,7 +823,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "slider",
+                        type: "number",
                         min: 0,
                         max: 1,
                         step: 0.01,
@@ -835,7 +835,7 @@ const GROUPS = [
             },
             {
                 label: "Alpha Spread",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -880,7 +880,7 @@ const GROUPS = [
                 properties: [
                     {
                         label: "Start",
-                        type: "slider",
+                        type: "number",
                         min: -360,
                         max: 360,
                         step: 1,
@@ -892,7 +892,7 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "slider",
+                        type: "number",
                         min: -360,
                         max: 360,
                         step: 1,
@@ -903,7 +903,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "slider",
+                        type: "number",
                         min: -360,
                         max: 360,
                         step: 1,
@@ -917,7 +917,7 @@ const GROUPS = [
             },
             {
                 label: "Spin Spread",
-                type: "slider",
+                type: "number",
                 min: 0,
                 max: 360,
                 step: 1,
@@ -944,7 +944,7 @@ const GROUPS = [
                 properties: [
                     {
                         label: "Start",
-                        type: "slider",
+                        type: "number",
                         min: -180,
                         max: 0,
                         step: 1,
@@ -955,7 +955,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "slider",
+                        type: "number",
                         min: 0,
                         max: 180,
                         step: 1,
@@ -972,7 +972,7 @@ const GROUPS = [
                 properties: [
                     {
                         label: "Start",
-                        type: "slider",
+                        type: "number",
                         min: 0,
                         max: 180,
                         step: 1,
@@ -983,7 +983,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "slider",
+                        type: "number",
                         min: 0,
                         max: 180,
                         step: 1,
@@ -1348,11 +1348,6 @@ const COLOR_ELEMENTS = {
     BLUE_INPUT: 3,
 };
 
-const SLIDER_ELEMENTS = {
-    SLIDER: 0,
-    NUMBER_INPUT: 1,
-};
-
 const ICON_ELEMENTS = {
     ICON: 0,
     LABEL: 1,
@@ -1399,7 +1394,6 @@ function getPropertyInputElement(propertyID) {
         case 'string':
         case 'bool':
         case 'number':
-        case 'slider':
         case 'dropdown':
         case 'textarea':
         case 'texture':
@@ -1478,15 +1472,11 @@ function resetProperties() {
                 property.elInput.checked = false;
                 break;
             }
-            case 'number':
-            case 'slider': {
+            case 'number': {
                 if (propertyData.defaultValue !== undefined) {
                     property.elInput.value = propertyData.defaultValue;
                 } else { 
                     property.elInput.value = "";
-                }
-                if (property.elSlider !== undefined) {
-                    property.elSlider.value = property.elInput.value;   
                 }
                 break;
             }
@@ -1782,98 +1772,21 @@ function createNumberProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "number";
+    elProperty.className = "property draggable-number";
     
-    let elInput = document.createElement('input');
-    elInput.setAttribute("id", elementID);
-    elInput.setAttribute("type", "number");
-    if (propertyData.min !== undefined) {
-        elInput.setAttribute("min", propertyData.min);
-    }
-    if (propertyData.max !== undefined) {
-        elInput.setAttribute("max", propertyData.max);
-    }
-    if (propertyData.step !== undefined) {
-        elInput.setAttribute("step", propertyData.step);
-    }
+    let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step);
+
+    let inputChangeFunction = createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, propertyData.decimals, property.isParticleProperty);
+    elDraggableNumber.setInputChangeFunction(inputChangeFunction);
     
-    let defaultValue = propertyData.defaultValue;
-    if (defaultValue !== undefined) {
-        elInput.value = defaultValue;
-    }
-    
-    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, propertyData.decimals, property.isParticleProperty));
-    
-    elProperty.appendChild(elInput);
-    
+    elDraggableNumber.elInput.setAttribute("id", elementID);
+    elProperty.appendChild(elDraggableNumber.elDiv);
+
     if (propertyData.buttons !== undefined) {
-        addButtons(elProperty, elementID, propertyData.buttons, true);
+        addButtons(elDraggableNumber.elDiv, elementID, propertyData.buttons, false);
     }
     
-    return elInput;
-}
-
-function createSliderProperty(property, elProperty) {  
-    let propertyData = property.data;
-    
-    elProperty.className = "range";
-    
-    let elDiv = document.createElement("div");
-    elDiv.className = "slider-wrapper";
-    
-    let elSlider = document.createElement("input");
-    elSlider.setAttribute("type", "range");
-
-    let elInput = document.createElement("input");
-    elInput.setAttribute("type", "number");
-
-    if (propertyData.min !== undefined) {
-        elInput.setAttribute("min", propertyData.min);
-        elSlider.setAttribute("min", propertyData.min);
-    }
-    if (propertyData.max !== undefined) {
-        elInput.setAttribute("max", propertyData.max);
-        elSlider.setAttribute("max", propertyData.max);
-        elSlider.setAttribute("data-max", propertyData.max);
-    }
-    if (propertyData.step !== undefined) {
-        elInput.setAttribute("step", propertyData.step);
-        elSlider.setAttribute("step", propertyData.step);
-    }
-    
-    elInput.onchange = function (event) {
-        let inputValue = event.target.value;
-        elSlider.value = inputValue;
-        if (propertyData.multiplier !== undefined) {
-            inputValue *= propertyData.multiplier;
-        }
-        updateProperty(property.name, inputValue, property.isParticleProperty);
-    };
-    elSlider.oninput = function (event) {
-        let sliderValue = event.target.value;
-        if (propertyData.step === 1) {
-            if (sliderValue > 0) {
-                elInput.value = Math.floor(sliderValue);
-            } else {
-                elInput.value = Math.ceil(sliderValue);
-            }
-        } else {
-            elInput.value = sliderValue;
-        }
-        if (propertyData.multiplier !== undefined) {
-            sliderValue *= propertyData.multiplier;
-        }
-        updateProperty(property.name, sliderValue, property.isParticleProperty);
-    };
-
-    elDiv.appendChild(elSlider);
-    elDiv.appendChild(elInput);
-    elProperty.appendChild(elDiv);
-    
-    let elResult = [];
-    elResult[SLIDER_ELEMENTS.SLIDER] = elSlider;
-    elResult[SLIDER_ELEMENTS.NUMBER_INPUT] = elInput;
-    return elResult;
+    return elDraggableNumber.elInput;
 }
 
 function createVec3Property(property, elProperty) {
@@ -1888,23 +1801,24 @@ function createVec3Property(property, elProperty) {
     
     //elProperty.appendChild(elTuple);
     
-    let elInputX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
-                                          propertyData.min, propertyData.max, propertyData.step);
-    let elInputY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
-                                          propertyData.min, propertyData.max, propertyData.step);
-    let elInputZ = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Z_INPUT], 
-                                          propertyData.min, propertyData.max, propertyData.step);
+    let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
+                                           propertyData.min, propertyData.max, propertyData.step);
+    let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
+                                           propertyData.min, propertyData.max, propertyData.step);
+    let elNumberZ = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Z_INPUT], 
+                                           propertyData.min, propertyData.max, propertyData.step);
     
-    let inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elInputX, elInputY, elInputZ, 
-                                                                   propertyData.multiplier, property.isParticleProperty);
-    elInputX.addEventListener('change', inputChangeFunction);
-    elInputY.addEventListener('change', inputChangeFunction);
-    elInputZ.addEventListener('change', inputChangeFunction);
+    let inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput, 
+                                                                   elNumberZ.elInput, propertyData.multiplier, 
+                                                                   property.isParticleProperty);    
+    elNumberX.setInputChangeFunction(inputChangeFunction);
+    elNumberY.setInputChangeFunction(inputChangeFunction);
+    elNumberZ.setInputChangeFunction(inputChangeFunction);
     
     let elResult = [];
-    elResult[VECTOR_ELEMENTS.X_INPUT] = elInputX;
-    elResult[VECTOR_ELEMENTS.Y_INPUT] = elInputY;
-    elResult[VECTOR_ELEMENTS.Z_INPUT] = elInputZ;
+    elResult[VECTOR_ELEMENTS.X_INPUT] = elNumberX.elInput;
+    elResult[VECTOR_ELEMENTS.Y_INPUT] = elNumberY.elInput;
+    elResult[VECTOR_ELEMENTS.Z_INPUT] = elNumberZ.elInput;
     return elResult;
 }
 
@@ -1920,19 +1834,19 @@ function createVec2Property(property, elProperty) {
     
     elProperty.appendChild(elTuple);
     
-    let elInputX = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
-                                          propertyData.min, propertyData.max, propertyData.step);
-    let elInputY = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
-                                          propertyData.min, propertyData.max, propertyData.step);
+    let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
+                                           propertyData.min, propertyData.max, propertyData.step);
+    let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
+                                           propertyData.min, propertyData.max, propertyData.step);
     
-    let inputChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elInputX, elInputY, 
+    let inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput,
                                                                    propertyData.multiplier, property.isParticleProperty);
-    elInputX.addEventListener('change', inputChangeFunction);
-    elInputY.addEventListener('change', inputChangeFunction);
+    elNumberX.setInputChangeFunction(inputChangeFunction);
+    elNumberY.setInputChangeFunction(inputChangeFunction);
     
     let elResult = [];
-    elResult[VECTOR_ELEMENTS.X_INPUT] = elInputX;
-    elResult[VECTOR_ELEMENTS.Y_INPUT] = elInputY;
+    elResult[VECTOR_ELEMENTS.X_INPUT] = elNumberX.elInput;
+    elResult[VECTOR_ELEMENTS.Y_INPUT] = elNumberY.elInput;
     return elResult;
 }
 
@@ -1952,15 +1866,15 @@ function createColorProperty(property, elProperty) {
     elProperty.appendChild(elColorPicker);
     elProperty.appendChild(elTuple);
     
-    let elInputR = createTupleNumberInput(elTuple, elementID, "red", COLOR_MIN, COLOR_MAX, COLOR_STEP);
-    let elInputG = createTupleNumberInput(elTuple, elementID, "green", COLOR_MIN, COLOR_MAX, COLOR_STEP);
-    let elInputB = createTupleNumberInput(elTuple, elementID, "blue", COLOR_MIN, COLOR_MAX, COLOR_STEP);
+    let elNumberR = createTupleNumberInput(elTuple, elementID, "red", COLOR_MIN, COLOR_MAX, COLOR_STEP);
+    let elNumberG = createTupleNumberInput(elTuple, elementID, "green", COLOR_MIN, COLOR_MAX, COLOR_STEP);
+    let elNumberB = createTupleNumberInput(elTuple, elementID, "blue", COLOR_MIN, COLOR_MAX, COLOR_STEP);
     
-    let inputChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elInputR, elInputG, elInputB, 
-                                                                    property.isParticleProperty);  
-    elInputR.addEventListener('change', inputChangeFunction);
-    elInputG.addEventListener('change', inputChangeFunction);
-    elInputB.addEventListener('change', inputChangeFunction);
+    let inputChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elNumberR.elInput, elNumberG.elInput,
+                                                                    elNumberB.elInput, property.isParticleProperty);    
+    elNumberR.setInputChangeFunction(inputChangeFunction);
+    elNumberG.setInputChangeFunction(inputChangeFunction);
+    elNumberB.setInputChangeFunction(inputChangeFunction);
     
     let colorPickerID = "#" + elementID;
     colorPickers[colorPickerID] = $(colorPickerID).colpick({
@@ -1989,9 +1903,9 @@ function createColorProperty(property, elProperty) {
     
     let elResult = [];
     elResult[COLOR_ELEMENTS.COLOR_PICKER] = elColorPicker;
-    elResult[COLOR_ELEMENTS.RED_INPUT] = elInputR;
-    elResult[COLOR_ELEMENTS.GREEN_INPUT] = elInputG;
-    elResult[COLOR_ELEMENTS.BLUE_INPUT] = elInputB;
+    elResult[COLOR_ELEMENTS.RED_INPUT] = elNumberR.elInput;
+    elResult[COLOR_ELEMENTS.GREEN_INPUT] = elNumberG.elInput;
+    elResult[COLOR_ELEMENTS.BLUE_INPUT] = elNumberB.elInput;
     return elResult;
 }
 
@@ -2125,7 +2039,7 @@ function createButtonsProperty(property, elProperty, elLabel) {
     }
     
     if (propertyData.buttons !== undefined) {
-        addButtons(elProperty, elementID, propertyData.buttons, hasLabel);
+        addButtons(elProperty, elementID, propertyData.buttons, false);
     }
     
     return elProperty;
@@ -2134,25 +2048,17 @@ function createButtonsProperty(property, elProperty, elLabel) {
 function createTupleNumberInput(elTuple, propertyElementID, subLabel, min, max, step) {
     let elementID = propertyElementID + "-" + subLabel.toLowerCase();
     
-    let elDiv = document.createElement('div');
     let elLabel = document.createElement('label');
     elLabel.className = subLabel;
     elLabel.innerText = subLabel[0].toUpperCase() + subLabel.slice(1);
     elLabel.setAttribute("for", elementID);
     
-    let elInput = document.createElement('input');
-    elInput.className = subLabel + " number-slider";
-    elInput.setAttribute("id", elementID);
-    elInput.setAttribute("type", "number");
-    elInput.setAttribute("min", min);
-    elInput.setAttribute("max", max);
-    elInput.setAttribute("step", step);
+    let elDraggableNumber = new DraggableNumber(min, max, step);
+    elDraggableNumber.elInput.setAttribute("id", elementID);
+    elDraggableNumber.elDiv.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
+    elTuple.appendChild(elDraggableNumber.elDiv);
     
-    elDiv.appendChild(elLabel);
-    elDiv.appendChild(elInput);
-    elTuple.appendChild(elDiv);
-    
-    return elInput;
+    return elDraggableNumber;
 }
 
 function addButtons(elProperty, propertyID, buttons, newRow) {
@@ -2718,12 +2624,6 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
         }
         case 'number': {
             property.elInput = createNumberProperty(property, elProperty);
-            break;
-        }
-        case 'slider': {
-            let elSlider = createSliderProperty(property, elProperty);
-            property.elSlider = elSlider[SLIDER_ELEMENTS.SLIDER];
-            property.elInput = elSlider[SLIDER_ELEMENTS.NUMBER_INPUT];
             break;
         }
         case 'vec3': {

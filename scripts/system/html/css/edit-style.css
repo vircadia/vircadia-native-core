@@ -309,6 +309,34 @@ input[type=number].hover-down::-webkit-inner-spin-button:after {
     color: #ffffff;
 }
 
+.draggable-number {
+    position: relative;
+    right: 10px;
+}
+.draggable-number span {
+    position: relative;
+    top: -2px;
+    display: inline-block;
+    font-family: hifi-glyphs;
+    font-size: 20px;
+    z-index: 2;
+}
+.draggable-number.left-arrow {
+    left: 18px;
+    transform: rotate(180deg);
+}
+.draggable-number.right-arrow {
+    right: 18px;
+}
+.draggable-number input {
+}
+.draggable-number input::selection {
+}
+.draggable-number input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    visibility: hidden;
+}
+
 input[type=range] {
     -webkit-appearance: none;
     background: #2e2e2e;
@@ -1460,11 +1488,9 @@ th#entity-hasScript {
 }
 
 input#property-scale-button-rescale {
-    margin-top: 6px;
     min-width: 50px;
 }
 input#property-scale-button-reset {
-    margin-top: 6px;
     margin-right: 0;
 }
 
@@ -1593,9 +1619,9 @@ input.rename-entity {
     display: flex;
     flex-flow: row;
 }
-.fstuple input {
-    margin-left: 4px;
-    margin-right: 10px;
+.fstuple label {
+    position: relative;
+    left: 10px;
 }
 .fstuple label.red, .fstuple label.x {
     color: #C62147;
@@ -1609,7 +1635,7 @@ input.rename-entity {
 
 .xyz.fstuple, .pyr.fstuple {
     position: relative;
-    left: -12px;
+    left: -19px;
 }
 
 .rgb.fstuple .tuple {
