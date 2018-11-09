@@ -71,13 +71,13 @@ void GLBackend::do_generateTextureMips(const Batch& batch, size_t paramOffset) {
         return;
     }
 
-	// DO not transfer the texture, this call is expected for rendering texture
-	GLTexture* object = syncGPUObject(resourceTexture);
-	if (!object) {
-		return;
-	}
+    // DO not transfer the texture, this call is expected for rendering texture
+    GLTexture* object = syncGPUObject(resourceTexture);
+    if (!object) {
+        return;
+    }
 
-	object->generateMips();
+    object->generateMips();
 }
 
 void GLBackend::do_generateTextureMipsWithPipeline(const Batch& batch, size_t paramOffset) {
