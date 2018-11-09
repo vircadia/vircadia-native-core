@@ -3865,7 +3865,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
         return;
     }
 
-    if (hasFocus() && _loginDialogPoppedUp) {
+    if (hasFocus() && getLoginDialogPoppedUp()) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->keyReleaseEvent(event);
         }
@@ -4398,7 +4398,7 @@ void Application::wheelEvent(QWheelEvent* event) const {
     _controllerScriptingInterface->emitWheelEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface->isWheelCaptured() || _loginDialogPoppedUp) {
+    if (_controllerScriptingInterface->isWheelCaptured() || getLoginDialogPoppedUp()) {
         return;
     }
 
@@ -8528,6 +8528,7 @@ void Application::createLoginDialogOverlay() {
     auto headPose = _controllerScriptingInterface->getPoseValue(headInt);
     // reference vector for overlay to spawn.
     glm::vec3 refOverlayVec;
+    glm::quat refRotation = myAvatar->getWorldOrientation();
     if (headPose.isValid()) {
         refOverlayVec = headPose.translation;
     } else if (HMD->getPosition() != glm::vec3()) {
@@ -8535,10 +8536,21 @@ void Application::createLoginDialogOverlay() {
     } else {
         refOverlayVec = myAvatar->getHeadPosition();
     }
+    //for non-play area position.
+    refOverlayVec -= glm::vec3(0.0f, -0.1f, 1.0f);
 
-    auto playArea = HMD->getPlayAreaRect().toRectF();
+    auto playArea = _displayPlugin->getPlayAreaRect();
+    const glm::vec2 PLAY_AREA_OVERLAY_MODEL_DIMENSIONS{ 0.5f, 0.5f };
+    const float PLAY_AREA_FLOAT_ABOVE_FLOOR = 0.005f;
+    //const glm::vec3 PLAY_AREA_OVERLAY_OFFSET{ 0.0f, PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2 + PLAY_AREA_FLOAT_ABOVE_FLOOR, 0.0f };
     if (!(playArea.isEmpty())) {
-        refOverlayVec = glm::vec3(playArea.center().x(), playArea.center().y(), 0.0f);
+        auto playAreaCenterOffset = glm::vec3(playArea.x(), 1.6f, playArea.y());
+        auto sensorToWorldMatrix = myAvatar->getSensorToWorldMatrix();
+        auto sensorToWorldRotation = extractRotation(sensorToWorldMatrix);
+        auto position = sensorToWorldRotation * (myAvatar->getSensorToWorldScale() * (playAreaCenterOffset -
+           transformPoint(sensorToWorldMatrix, myAvatar->getWorldPosition())));
+        refOverlayVec = position;
+        refRotation = sensorToWorldRotation * glm::quat(1.0f, 0.0f, 1.0f, 0.0f);
     }
 
     Overlays& overlays = qApp->getOverlays();
@@ -8547,14 +8559,13 @@ void Application::createLoginDialogOverlay() {
     QVariantMap overlayProperties {
         { "name", "LoginDialogOverlay" },
         { "url", OVERLAY_LOGIN_DIALOG_URL },
-        //{ "position", vec3toVariant(refOverlayVec - glm::vec3(0.0f, -0.1f, 1.0f)) },
         { "position", vec3toVariant(refOverlayVec) },
-        { "orientation", quatToVariant(myAvatar->getWorldOrientation()) },
+        { "orientation", quatToVariant(refRotation) },
         { "isSolid", true },
         { "grabbable", false },
         { "ignorePickIntersection", false },
         { "alpha", 1.0 },
-        { "dimensions", vec2ToVariant(glm::vec2(0.5f, 0.5f)) },
+        { "dimensions", vec2ToVariant(PLAY_AREA_OVERLAY_MODEL_DIMENSIONS)},
         { "dpi", overlayDpi },
         { "visible", true }
     };
