@@ -90,10 +90,10 @@ bool operator==(const Properties& a, const Properties& b) {
     return
         (a.color == b.color) &&
         (a.alpha == b.alpha) &&
+        (a.radiusStart == b.radiusStart) &&
         (a.radius == b.radius) &&
         (a.spin == b.spin) &&
         (a.rotateWithEntity == b.rotateWithEntity) &&
-        (a.radiusStart == b.radiusStart) &&
         (a.lifespan == b.lifespan) &&
         (a.maxParticles == b.maxParticles) &&
         (a.emission == b.emission) &&
@@ -117,18 +117,7 @@ bool Properties::valid() const {
         (alpha.range.start == glm::clamp(alpha.range.start, MINIMUM_ALPHA, MAXIMUM_ALPHA)) &&
         (alpha.range.finish == glm::clamp(alpha.range.finish, MINIMUM_ALPHA, MAXIMUM_ALPHA)) &&
         (alpha.gradient.spread == glm::clamp(alpha.gradient.spread, MINIMUM_ALPHA, MAXIMUM_ALPHA)) &&
-        (lifespan == glm::clamp(lifespan, MINIMUM_LIFESPAN, MAXIMUM_LIFESPAN)) &&
-        (emission.rate == glm::clamp(emission.rate, MINIMUM_EMIT_RATE, MAXIMUM_EMIT_RATE)) &&
-        (emission.speed.target == glm::clamp(emission.speed.target, MINIMUM_EMIT_SPEED, MAXIMUM_EMIT_SPEED)) &&
-        (emission.speed.spread == glm::clamp(emission.speed.spread, MINIMUM_EMIT_SPEED, MAXIMUM_EMIT_SPEED)) &&
-        (emission.dimensions == glm::clamp(emission.dimensions, vec3(MINIMUM_EMIT_DIMENSION), vec3(MAXIMUM_EMIT_DIMENSION))) &&
         (radiusStart == glm::clamp(radiusStart, MINIMUM_EMIT_RADIUS_START, MAXIMUM_EMIT_RADIUS_START)) &&
-        (polar.start == glm::clamp(polar.start, MINIMUM_POLAR, MAXIMUM_POLAR)) &&
-        (polar.finish == glm::clamp(polar.finish, MINIMUM_POLAR, MAXIMUM_POLAR)) &&
-        (azimuth.start == glm::clamp(azimuth.start, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH)) &&
-        (azimuth.finish == glm::clamp(azimuth.finish, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH)) &&
-        (emission.acceleration.target == glm::clamp(emission.acceleration.target, vec3(MINIMUM_EMIT_ACCELERATION), vec3(MAXIMUM_EMIT_ACCELERATION))) &&
-        (emission.acceleration.spread == glm::clamp(emission.acceleration.spread, vec3(MINIMUM_ACCELERATION_SPREAD), vec3(MAXIMUM_ACCELERATION_SPREAD))) &&
         (radius.gradient.target == glm::clamp(radius.gradient.target, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS)) &&
         (radius.range.start == glm::clamp(radius.range.start, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS)) &&
         (radius.range.finish == glm::clamp(radius.range.finish, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS)) &&
@@ -136,7 +125,19 @@ bool Properties::valid() const {
         (spin.gradient.target == glm::clamp(spin.gradient.target, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN)) &&
         (spin.range.start == glm::clamp(spin.range.start, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN)) &&
         (spin.range.finish == glm::clamp(spin.range.finish, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN)) &&
-        (spin.gradient.spread == glm::clamp(spin.gradient.spread, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN));
+        (spin.gradient.spread == glm::clamp(spin.gradient.spread, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN)) &&
+        (lifespan == glm::clamp(lifespan, MINIMUM_LIFESPAN, MAXIMUM_LIFESPAN)) &&
+        (maxParticles == glm::clamp(maxParticles, MINIMUM_MAX_PARTICLES, MAXIMUM_MAX_PARTICLES)) &&
+        (emission.rate == glm::clamp(emission.rate, MINIMUM_EMIT_RATE, MAXIMUM_EMIT_RATE)) &&
+        (emission.speed.target == glm::clamp(emission.speed.target, MINIMUM_EMIT_SPEED, MAXIMUM_EMIT_SPEED)) &&
+        (emission.speed.spread == glm::clamp(emission.speed.spread, MINIMUM_EMIT_SPEED, MAXIMUM_EMIT_SPEED)) &&
+        (emission.acceleration.target == glm::clamp(emission.acceleration.target, vec3(MINIMUM_EMIT_ACCELERATION), vec3(MAXIMUM_EMIT_ACCELERATION))) &&
+        (emission.acceleration.spread == glm::clamp(emission.acceleration.spread, vec3(MINIMUM_ACCELERATION_SPREAD), vec3(MAXIMUM_ACCELERATION_SPREAD)) &&
+        (emission.dimensions == glm::clamp(emission.dimensions, vec3(MINIMUM_EMIT_DIMENSION), vec3(MAXIMUM_EMIT_DIMENSION))) &&
+        (polar.start == glm::clamp(polar.start, MINIMUM_POLAR, MAXIMUM_POLAR)) &&
+        (polar.finish == glm::clamp(polar.finish, MINIMUM_POLAR, MAXIMUM_POLAR)) &&
+        (azimuth.start == glm::clamp(azimuth.start, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH)) &&
+        (azimuth.finish == glm::clamp(azimuth.finish, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH)));
 }
 
 bool Properties::emitting() const {

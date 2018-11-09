@@ -62,7 +62,7 @@ static const qint64 MAX_UNUSED_MAX_SIZE = MAXIMUM_CACHE_SIZE;
 class ResourceCacheSharedItems : public Dependency  {
     SINGLETON_DEPENDENCY
 
-    using Mutex = std::mutex;
+    using Mutex = std::recursive_mutex;
     using Lock = std::unique_lock<Mutex>;
 
 public:

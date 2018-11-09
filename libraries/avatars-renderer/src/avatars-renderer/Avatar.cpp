@@ -498,8 +498,8 @@ void Avatar::relayJointDataToChildren() {
                             glm::quat jointRotation;
                             glm::vec3 jointTranslation;
                             if (avatarJointIndex < 0) {
-                                jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
-                                jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                                jointRotation = modelEntity->getLocalJointRotation(jointIndex);
+                                jointTranslation = modelEntity->getLocalJointTranslation(jointIndex);
                                 map.push_back(-1);
                             } else {
                                 int jointIndex = getJointIndex(jointName);
@@ -522,8 +522,8 @@ void Avatar::relayJointDataToChildren() {
                                 jointRotation = getJointRotation(avatarJointIndex);
                                 jointTranslation = getJointTranslation(avatarJointIndex);
                             } else {
-                                jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
-                                jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                                jointRotation = modelEntity->getLocalJointRotation(jointIndex);
+                                jointTranslation = modelEntity->getLocalJointTranslation(jointIndex);
                             }
                             modelEntity->setLocalJointRotation(jointIndex, jointRotation);
                             modelEntity->setLocalJointTranslation(jointIndex, jointTranslation);
@@ -707,10 +707,10 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::metaBlendshapeOperator(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets, const QVector<int>& blendedMeshSizes,
-                                    const render::ItemIDs& subItemIDs) {
+void Avatar::metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                    const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs) {
     render::Transaction transaction;
-    transaction.updateItem<AvatarData>(_renderItemID, [blendshapeNumber, blendshapeOffsets, blendedMeshSizes,
+    transaction.updateItem<AvatarData>(renderItemID, [blendshapeNumber, blendshapeOffsets, blendedMeshSizes,
                                                        subItemIDs](AvatarData& avatar) {
         auto avatarPtr = dynamic_cast<Avatar*>(&avatar);
         if (avatarPtr) {
@@ -730,7 +730,7 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     _renderBound = getBounds();
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
     using namespace std::placeholders;
-    _skeletonModel->addToScene(scene, transaction, std::bind(&Avatar::metaBlendshapeOperator, this, _1, _2, _3, _4));
+    _skeletonModel->addToScene(scene, transaction, std::bind(&Avatar::metaBlendshapeOperator, _renderItemID, _1, _2, _3, _4));
     _skeletonModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
     _skeletonModel->setGroupCulled(true);
     _skeletonModel->setCanCastShadow(true);
@@ -954,7 +954,7 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
         using namespace std::placeholders;
-        _skeletonModel->addToScene(scene, transaction, std::bind(&Avatar::metaBlendshapeOperator, this, _1, _2, _3, _4));
+        _skeletonModel->addToScene(scene, transaction, std::bind(&Avatar::metaBlendshapeOperator, _renderItemID, _1, _2, _3, _4));
 
         _skeletonModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
         _skeletonModel->setGroupCulled(true);
@@ -1311,7 +1311,7 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
         case CAMERA_MATRIX_INDEX: {
             glm::quat rotation;
             if (_skeletonModel && _skeletonModel->isActive()) {
-                int headJointIndex = _skeletonModel->getFBXGeometry().headJointIndex;
+                int headJointIndex = _skeletonModel->getHFMModel().headJointIndex;
                 if (headJointIndex >= 0) {
                     _skeletonModel->getAbsoluteJointRotationInRigFrame(headJointIndex, rotation);
                 }
@@ -1360,7 +1360,7 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         case CAMERA_MATRIX_INDEX: {
             glm::vec3 translation;
             if (_skeletonModel && _skeletonModel->isActive()) {
-                int headJointIndex = _skeletonModel->getFBXGeometry().headJointIndex;
+                int headJointIndex = _skeletonModel->getHFMModel().headJointIndex;
                 if (headJointIndex >= 0) {
                     _skeletonModel->getAbsoluteJointTranslationInRigFrame(headJointIndex, translation);
                 }
@@ -1416,7 +1416,7 @@ void Avatar::withValidJointIndicesCache(std::function<void()> const& worker) con
             if (!_modelJointsCached) {
                 _modelJointIndicesCache.clear();
                 if (_skeletonModel && _skeletonModel->isActive()) {
-                    _modelJointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
+                    _modelJointIndicesCache = _skeletonModel->getHFMModel().jointIndices;
                     _modelJointsCached = true;
                 }
             }

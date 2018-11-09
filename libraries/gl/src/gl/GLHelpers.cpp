@@ -13,6 +13,8 @@
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLDebugLogger>
 
+#include "Context.h"
+
 size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format) {
     size_t pixelSize = format.redBufferSize() + format.greenBufferSize() + format.blueBufferSize() + format.alphaBufferSize();
     // We don't apply the length of the swap chain into this pixelSize since it is not vsible for the Process (on windows).
@@ -34,13 +36,53 @@ bool gl::disableGl45() {
 #endif
 }
 
+#ifdef Q_OS_MAC
+#define SERIALIZE_GL_RENDERING
+#endif
+
+#ifdef SERIALIZE_GL_RENDERING
+
+// This terrible terrible hack brought to you by the complete lack of reasonable
+// OpenGL debugging tools on OSX.  Without this serialization code, the UI textures
+// frequently become 'glitchy' and get composited onto the main scene in what looks
+// like a partially rendered state.
+// This looks very much like either state bleeding across the contexts, or bad
+// synchronization for the shared OpenGL textures.  However, previous attempts to resolve
+// it, even with gratuitous use of glFinish hasn't improved the situation
+
+static std::mutex _globalOpenGLLock;
+
+void gl::globalLock() {
+    _globalOpenGLLock.lock();
+}
+
+void gl::globalRelease(bool finish) {
+    if (finish) {
+        glFinish();
+    }
+    _globalOpenGLLock.unlock();
+}
+
+#else
+
+void gl::globalLock() {}
+void gl::globalRelease(bool finish) {}
+
+#endif
+
+
 void gl::getTargetVersion(int& major, int& minor) {
 #if defined(USE_GLES)
     major = 3;
     minor = 2;
 #else
+#if defined(Q_OS_MAC)
+    major = 4;
+    minor = 1;
+#else
     major = 4;
     minor = disableGl45() ? 1 : 5;
+#endif
 #endif
 }
 
@@ -57,6 +99,9 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
 #else
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
 #endif
+        if (gl::Context::enableDebugLogger()) {
+            format.setOption(QSurfaceFormat::DebugContext);
+        }
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
@@ -64,7 +109,6 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
         ::gl::getTargetVersion(major, minor);
         format.setMajorVersion(major);
         format.setMinorVersion(minor);
-        QSurfaceFormat::setDefaultFormat(format);
     });
     return format;
 }

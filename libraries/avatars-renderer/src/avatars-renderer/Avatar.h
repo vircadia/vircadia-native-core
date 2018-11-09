@@ -626,8 +626,8 @@ protected:
 
     LoadingStatus _loadingStatus { LoadingStatus::NoModel };
 
-    void metaBlendshapeOperator(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets, const QVector<int>& blendedMeshSizes,
-                                const render::ItemIDs& subItemIDs);
+    static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                       const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
 };
 
 #endif // hifi_Avatar_h
