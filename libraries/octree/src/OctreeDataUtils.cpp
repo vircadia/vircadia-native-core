@@ -56,7 +56,7 @@ bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromJSON(QJsonObject root) {
     return true;
 }
 
-bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromMap(QVariantMap map) {
+bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromMap(const QVariantMap& map) {
     if (map.contains("Id") && map.contains("DataVersion") && map.contains("Version")) {
         id = map["Id"].toUuid();
         dataVersion = map["DataVersion"].toInt();

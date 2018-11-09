@@ -19,9 +19,6 @@
 
 using std::string;
 
-OctreeEntitiesFileParser::OctreeEntitiesFileParser() {
-}
-
 std::string OctreeEntitiesFileParser::getErrorString() const {
     std::ostringstream err;
     if (_errorString.size() != 0) {
@@ -86,7 +83,7 @@ bool OctreeEntitiesFileParser::parseEntities(QVariantMap& parsedEntities) {
                 return false;
             }
 
-            parsedEntities["Entities"] = entitiesValue;
+            parsedEntities["Entities"] = std::move(entitiesValue);
             gotEntities = true;
         } else if (key == "Id") {
             if (gotId) {

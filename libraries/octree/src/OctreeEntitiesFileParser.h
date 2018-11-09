@@ -19,7 +19,6 @@
 
 class OctreeEntitiesFileParser {
 public:
-    OctreeEntitiesFileParser();
     void setEntitiesString(const QByteArray& entitiesContents);
     bool parseEntities(QVariantMap& parsedEntities);
     std::string getErrorString() const;

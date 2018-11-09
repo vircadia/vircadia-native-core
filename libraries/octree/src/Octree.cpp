@@ -925,9 +925,6 @@ bool Octree::toJSONString(QString& jsonString, const OctreeElementPointer& eleme
 }
 
 bool Octree::toJSON(QByteArray* data, const OctreeElementPointer& element, bool doGzip) {
-#define HIFI_USE_DIRECT_TO_JSON
-#ifdef HIFI_USE_DIRECT_TO_JSON
-
     QString jsonString;
     toJSONString(jsonString);
 
@@ -940,29 +937,6 @@ bool Octree::toJSON(QByteArray* data, const OctreeElementPointer& element, bool 
         *data = jsonString.toUtf8();
     }
 
-#else
-
-    QJsonDocument doc;
-    if (!toJSONDocument(&doc, element)) {
-        qCritical("Failed to convert Entities to JSON document.");
-        return false;
-    }
-
-    QString jsonString;
-    toJSONString(jsonString);
-
-    if (doGzip) {
-        QByteArray jsonData = doc.toJson();
-
-        if (!gzip(jsonData, *data, -1)) {
-            qCritical("Unable to gzip data while saving to json.");
-            return false;
-        }
-    } else {
-        *data = doc.toJson();
-    }
-
-#endif  // HIFI_USE_DIRECT_TO_JSON
     return true;
 }
 
