@@ -500,7 +500,7 @@ SelectionManager = (function() {
             that.entityType = properties.type;
             
             if (selectionUpdated) {
-                SelectionDisplay.setSpaceMode(SPACE_LOCAL);
+                SelectionDisplay.useDesiredSpaceMode();
             }
         } else {
             properties = Entities.getEntityProperties(that.selections[0], ['type', 'boundingBox']);
@@ -537,7 +537,7 @@ SelectionManager = (function() {
             };
 
             // For 1+ selections we can only modify selections in world space
-            SelectionDisplay.setSpaceMode(SPACE_WORLD);
+            SelectionDisplay.setSpaceMode(SPACE_WORLD, false);
         }
 
         for (var j = 0; j < listeners.length; j++) {
@@ -651,6 +651,8 @@ SelectionDisplay = (function() {
     };
 
     var spaceMode = SPACE_LOCAL;
+    var desiredSpaceMode = SPACE_LOCAL;
+
     var overlayNames = [];
     var lastControllerPoses = [
         getControllerWorldLocation(Controller.Standard.LeftHand, true),
@@ -1400,8 +1402,21 @@ SelectionDisplay = (function() {
         that.updateHandles();
     };
 
+
+    /**
+     * This callback is used for spaceMode changes.
+     * @callback spaceModeChangedCallback
+     * @param {string} spaceMode
+     */
+
+    /**
+     * set this property with a callback to keep track of spaceMode changes.
+     * @type {spaceModeChangedCallback}
+     */
+    that.onSpaceModeChange = null;
+
     // FUNCTION: SET SPACE MODE
-    that.setSpaceMode = function(newSpaceMode) {
+    that.setSpaceMode = function(newSpaceMode, isDesiredChange) {
         var wantDebug = false;
         if (wantDebug) {
             print("======> SetSpaceMode called. ========");
@@ -1411,7 +1426,15 @@ SelectionDisplay = (function() {
             if (wantDebug) {
                 print("    Updating SpaceMode From: " + spaceMode + " To: " + newSpaceMode);
             }
+            if (isDesiredChange) {
+                desiredSpaceMode = newSpaceMode;
+            }
             spaceMode = newSpaceMode;
+
+            if (that.onSpaceModeChange !== null) {
+                that.onSpaceModeChange(newSpaceMode);
+            }
+
             that.updateHandles();
         } else if (wantDebug) {
             print("WARNING: entitySelectionTool.setSpaceMode - Can't update SpaceMode. CurrentMode: " + 
@@ -1437,12 +1460,34 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("PreToggle: " + spaceMode);
         }
-        spaceMode = (spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL;
-        that.updateHandles();
+        that.setSpaceMode((spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL, true);
         if (wantDebug) {
             print("PostToggle: " + spaceMode);        
             print("======== ToggleSpaceMode called. <=========");
         }
+    };
+
+    /**
+     * Switches the display mode back to the set desired display mode
+     */
+    that.useDesiredSpaceMode = function() {
+        var wantDebug = false;
+        if (wantDebug) {
+            print("========> UseDesiredSpaceMode called. =========");
+        }
+        that.setSpaceMode(desiredSpaceMode, false);
+        if (wantDebug) {
+            print("PostToggle: " + spaceMode);
+            print("======== UseDesiredSpaceMode called. <=========");
+        }
+    };
+
+    /**
+     * Get the currently set SpaceMode
+     * @returns {string} spaceMode
+     */
+    that.getSpaceMode = function() {
+        return spaceMode;
     };
 
     function addHandleTool(overlay, tool) {

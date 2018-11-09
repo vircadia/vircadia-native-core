@@ -2261,9 +2261,17 @@ var PropertiesTool = function (opts) {
         });
     }
 
+    that.setSpaceMode = function(spaceMode) {
+        emitScriptEvent({
+            type: 'setSpaceMode',
+            spaceMode: spaceMode
+        })
+    };
+
     function updateSelections(selectionUpdated) {
         var data = {
-            type: 'update'
+            type: 'update',
+            spaceMode: selectionDisplay.getSpaceMode()
         };
 
         if (selectionUpdated) {
@@ -2292,6 +2300,9 @@ var PropertiesTool = function (opts) {
             entity.properties = Entities.getEntityProperties(selectionManager.selections[i]);
             if (entity.properties.rotation !== undefined) {
                 entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
+            }
+            if (entity.properties.localRotation !== undefined) {
+                entity.properties.localRotation = Quat.safeEulerAngles(entity.properties.localRotation);
             }
             if (entity.properties.emitOrientation !== undefined) {
                 entity.properties.emitOrientation = Quat.safeEulerAngles(entity.properties.emitOrientation);
@@ -2329,11 +2340,14 @@ var PropertiesTool = function (opts) {
             } else if (data.properties) {
                 if (data.properties.dynamic === false) {
                     // this object is leaving dynamic, so we zero its velocities
-                    data.properties.velocity = Vec3.ZERO;
-                    data.properties.angularVelocity = Vec3.ZERO;
+                    data.properties.localVelocity = Vec3.ZERO;
+                    data.properties.localAngularVelocity = Vec3.ZERO;
                 }
                 if (data.properties.rotation !== undefined) {
                     data.properties.rotation = Quat.fromVec3Degrees(data.properties.rotation);
+                }
+                if (data.properties.localRotation !== undefined) {
+                    data.properties.localRotation = Quat.fromVec3Degrees(data.properties.localRotation);
                 }
                 if (data.properties.emitOrientation !== undefined) {
                     data.properties.emitOrientation = Quat.fromVec3Degrees(data.properties.emitOrientation);
@@ -2724,5 +2738,11 @@ entityListTool.webView.webEventReceived.connect(function(data) {
         unparentSelectedEntities();
     }
 });
+
+
+selectionDisplay.onSpaceModeChange = function(spaceMode) {
+    entityListTool.setSpaceMode(spaceMode);
+    propertiesTool.setSpaceMode(spaceMode);
+};
 
 }()); // END LOCAL_SCOPE

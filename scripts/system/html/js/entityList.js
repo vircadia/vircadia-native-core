@@ -149,6 +149,7 @@ function loaded() {
         elSelectedEntitiesCount = document.getElementById("selected-entities-count");
         elVisibleEntitiesCount = document.getElementById("visible-entities-count");
         elNoEntitiesMessage = document.getElementById("no-entities");
+        elToggleSpaceMode = document.getElementById('toggle-space-mode');
         
         document.body.onclick = onBodyClick;
         document.getElementById("entity-name").onclick = function() {
@@ -205,6 +206,10 @@ function loaded() {
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         };
+        elToggleSpaceMode.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleSpaceMode' }));
+        };
+
         elFilterTypeSelectBox.onclick = onToggleTypeDropdown;
         elFilterSearch.onkeyup = refreshEntityList;
         elFilterSearch.onsearch = refreshEntityList;
@@ -646,6 +651,8 @@ function loaded() {
                 }
             }
 
+            elToggleSpaceMode.disabled = selectedIDs.length > 1;
+
             refreshFooter();
 
             return notFound;
@@ -827,6 +834,16 @@ function loaded() {
             entityList.resize();
             event.stopPropagation();
         }
+
+        function setSpaceMode(spaceMode) {
+            if (spaceMode === "local") {
+                elToggleSpaceMode.className = "space-mode-local hifi-edit-button";
+                elToggleSpaceMode.innerText = "Local";
+            } else {
+                elToggleSpaceMode.className = "space-mode-world hifi-edit-button";
+                elToggleSpaceMode.innerText = "World";
+            }
+        }
     
         document.addEventListener("keydown", function (keyDownEvent) {
             if (keyDownEvent.target.nodeName === "INPUT") {
@@ -866,12 +883,15 @@ function loaded() {
                                 updateSelectedEntities(data.selectedIDs, true);
                             }
                         }
+                        setSpaceMode(data.spaceMode);
                     });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
                     removeEntities(data.deletedIDs);
                     updateSelectedEntities(data.selectedIDs, true);
                 } else if (data.type === "deleted" && data.ids) {
                     removeEntities(data.ids);
+                } else if (data.type === "setSpaceMode") {
+                    setSpaceMode(data.spaceMode);
                 }
             });
         }
