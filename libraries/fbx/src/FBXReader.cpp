@@ -632,10 +632,14 @@ QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
                 if (!isNaN(quatX) && !isNaN(quatY) && !isNaN(quatZ) && !isNaN(quatW)) {
                     glm::quat rotationOffset = glm::quat(quatW, quatX, quatY, quatZ);
                     jointRotationOffsets.insert(jointName, rotationOffset);
+                    
                 }
             }
+            qCDebug(modelformat) << "found an offset in fst";
         }
+        qCDebug(modelformat) << "found an offset in fst 2";
     }
+    qCDebug(modelformat) << "found an offset in fst 3";
     return jointRotationOffsets;
 }
 

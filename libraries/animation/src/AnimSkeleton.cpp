@@ -27,7 +27,7 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     }
   
     glm::quat offset1(0.5f, 0.5f, 0.5f, -0.5f);
-    glm::quat offset2(0.7071f, 0.0f, 0.7071f, 0.0f);
+    glm::quat offset2(0.7071f, 0.0f, -0.7071f, 0.0f);
 
     buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
     // add offsets for spine2 and the neck
