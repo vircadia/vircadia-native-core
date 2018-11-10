@@ -1892,9 +1892,9 @@ function createColorProperty(property, elProperty) {
             // The original color preview within the picker needs to be updated on show because
             // prior to the picker being shown we don't have access to the selections' starting color.
             colorPickers[colorPickerID].colpickSetColor({
-                "r": elInputR.value,
-                "g": elInputG.value,
-                "b": elInputB.value
+                "r": elNumberR.elInput.value,
+                "g": elNumberG.elInput.value,
+                "b": elNumberB.elInput.value
             });
         },
         onHide: function(colpick) {

@@ -853,6 +853,9 @@ div.refresh input[type="button"] {
     border-color: #afafaf;
 }
 
+.colpick {
+    z-index: 3;
+}
 .colpick[disabled="disabled"] {
     display: none !important;
 }
