@@ -27,6 +27,7 @@ class StartEndRenderState {
 public:
     StartEndRenderState() {}
     StartEndRenderState(const OverlayID& startID, const OverlayID& endID);
+    virtual ~StartEndRenderState() = default;
 
     const OverlayID& getStartID() const { return _startID; }
     const OverlayID& getEndID() const { return _endID; }
@@ -44,7 +45,7 @@ public:
 
     virtual void cleanup();
     virtual void disable();
-    virtual void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+    virtual void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, float parentScale, bool distanceScaleEnd, bool centerEndY,
                         bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult);
 
     bool isEnabled() const { return _enabled; }
@@ -73,7 +74,7 @@ class PathPointer : public Pointer {
 public:
     PathPointer(PickQuery::PickType type, const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
                 bool hover, const PointerTriggers& triggers, bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd,
-                bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
+                bool distanceScaleEnd, bool scaleWithParent, bool enabled);
     virtual ~PathPointer();
 
     void setRenderState(const std::string& state) override;
@@ -97,7 +98,7 @@ protected:
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;
-    bool _scaleWithAvatar;
+    bool _scaleWithParent;
     LockEndObject _lockEndObject;
 
     struct TriggerState {

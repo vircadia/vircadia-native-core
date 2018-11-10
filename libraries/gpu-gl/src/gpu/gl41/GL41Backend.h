@@ -130,10 +130,14 @@ public:
     };
 
 protected:
+
+    void draw(GLenum mode, uint32 numVertices, uint32 startVertex) override;
+
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 
     GLuint getBufferID(const Buffer& buffer) override;
+    GLuint getBufferIDUnsynced(const Buffer& buffer) override;
     GLuint getResourceBufferID(const Buffer& buffer);
     GLBuffer* syncGPUObject(const Buffer& buffer) override;
 
@@ -160,14 +164,13 @@ protected:
     void updateTransform(const Batch& batch) override;
 
     // Resource Stage
-    bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) override;
+    bool bindResourceBuffer(uint32_t slot, const BufferPointer& buffer) override;
     void releaseResourceBuffer(uint32_t slot) override;
 
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
 
-    std::string getBackendShaderHeader() const override;
-
+    shader::Dialect getShaderDialect() const override { return shader::Dialect::glsl410; }
     void postLinkProgram(ShaderObject& programObject, const Shader& program) const override;
 };
 

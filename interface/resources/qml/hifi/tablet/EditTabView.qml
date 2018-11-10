@@ -175,7 +175,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newParticleButton" }
                                 });
-                                editTabView.currentIndex = 4
+                                editTabView.currentIndex = 2
                             }
                         }
 
@@ -279,21 +279,6 @@ TabBar {
         }
     }
 
-    EditTabButton {
-        title: "P"
-        active: true
-        enabled: true
-        property string originalUrl: ""
-
-        property Component visualItem: Component {
-            WebView {
-                id: particleExplorerWebView
-                url: Paths.defaultScripts + "/system/particle_explorer/particleExplorer.html"
-                enabled: true
-            }
-        }
-    }
-
     function fromScript(message) {
         switch (message.method) {
             case 'selectTab':
@@ -325,9 +310,6 @@ TabBar {
                     break;
                 case 'grid':
                     editTabView.currentIndex = 3;
-                    break;
-                case 'particle':
-                    editTabView.currentIndex = 4;
                     break;
                 default:
                     console.warn('Attempt to switch to invalid tab:', id);

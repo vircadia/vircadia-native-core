@@ -72,17 +72,17 @@ def jniFolder = new File(appDir, 'src/main/jniLibs/arm64-v8a')
 def baseUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/android/'
 def breakpadDumpSymsDir = new File("${appDir}/build/tmp/breakpadDumpSyms")
 
-def qtFile='qt-5.11.1_linux_armv8-libcpp_openssl.tgz'
-def qtChecksum='f312c47cd8b8dbca824c32af4eec5e66'
-def qtVersionId='nyCGcb91S4QbYeJhUkawO5x1lrLdSNB_'
+def qtFile='qt-5.11.1_linux_armv8-libcpp_openssl_patched.tgz'
+def qtChecksum='aa449d4bfa963f3bc9a9dfe558ba29df'
+def qtVersionId='3S97HBM5G5Xw9EfE52sikmgdN3t6C2MN'
 if (Os.isFamily(Os.FAMILY_MAC)) {
-    qtFile = 'qt-5.11.1_osx_armv8-libcpp_openssl.tgz'
-    qtChecksum='a0c8b394aec5b0fcd46714ca3a53278a'
-    qtVersionId='QNa.lwNJaPc0eGuIL.xZ8ebeTuLL7rh8'
+    qtFile = 'qt-5.11.1_osx_armv8-libcpp_openssl_patched.tgz'
+    qtChecksum='c83cc477c08a892e00c71764dca051a0'
+    qtVersionId='OxBD7iKINv1HbyOXmAmDrBb8AF3N.Kup'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-    qtFile = 'qt-5.11.1_win_armv8-libcpp_openssl.tgz'
-    qtChecksum='d80aed4233ce9e222aae8376e7a94bf9'
-    qtVersionId='iDVXu0i3WEXRFIxQCtzcJ2XuKrE8RIqB'
+    qtFile = 'qt-5.11.1_win_armv8-libcpp_openssl_patched.tgz'
+    qtChecksum='0582191cc55431aa4f660848a542883e'
+    qtVersionId='JfWM0P_Mz5Qp0LwpzhrsRwN3fqlLSFeT'
 }
 
 def packages = [
@@ -143,11 +143,9 @@ def packages = [
         includeLibs: ['libtbb.so', 'libtbbmalloc.so'],
     ],
     hifiAC: [
-        file: 'libplugins_libhifiCodec.zip',
-        versionId: 'i31pW.qNbvFOXRxbyiJUxg3sphaFNmZU',
-        checksum: '9412a8e12c88a4096c1fc843bb9fe52d',
-        sharedLibFolder: '',
-        includeLibs: ['libplugins_libhifiCodec.so']
+            baseUrl: 'http://s3.amazonaws.com/hifi-public/dependencies/',
+            file: 'codecSDK-android_armv8-2.0.zip',
+            checksum: '1cbef929675818fc64c4101b72f84a6a'
     ],
     etc2comp: [
         file: 'etc2comp-patched-armv8-libcpp.tgz',
@@ -163,31 +161,19 @@ def packages = [
     ]
 ]
 
-
 def scribeLocalFile='scribe' + EXEC_SUFFIX
 def scribeFile='scribe_linux_x86_64'
-def scribeChecksum='ca4b904f52f4f993c29175ba96798fa6'
-def scribeVersion='u_iTrJDaE95i2abTPXOpPZckGBIim53G'
-
-def shreflectLocalFile='shreflect' + EXEC_SUFFIX
-def shreflectFile='shreflect_linux_x86_64'
-def shreflectChecksum='d6094a8580066c0b6f4e80b5adfb1d98'
-def shreflectVersion='jnrpudh6fptIg6T2.Z6fgKP2ultAdKmE'
+def scribeChecksum='4635c28192724281d2367ce9e94380ab'
+def scribeVersion='mPAY_N846oZH1tPY1bwChB_hzqkiYyoC'
 
 if (Os.isFamily(Os.FAMILY_MAC)) {
     scribeFile = 'scribe_osx_x86_64'
-    scribeChecksum='72db9d32d4e1e50add755570ac5eb749'
-    scribeVersion='DAW0DmnjCRib4MD8x93bgc2Z2MpPojZC'
-    shreflectFile='shreflect_osx_x86_64'
-    shreflectChecksum='d613ef0703c21371fee93fd2e54b964f'
-    shreflectVersion='.rYNzjSFq6WtWDnE5KIKRIAGyJtr__ad'
+    scribeChecksum='1ead61c285d265eba9a5ef91ae3b7c26'
+    scribeVersion='4TAXWdo9fviw60N2wUA8HNyQ9TabjZa3'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     scribeFile = 'scribe_win32_x86_64.exe'
-    scribeChecksum='678e43d290c90fda670c6fefe038a06d'
-    scribeVersion='PuullrA_bPlO9kXZRt8rLe536X1UI.m7'
-    shreflectFile='shreflect_win32_x86_64.exe'
-    shreflectChecksum='6f4a77b8cceb3f1bbc655132c3665060'
-    shreflectVersion='iIyCyza1nelkbI7ihybF59bBlwrfAC3D'
+    scribeChecksum='9c29a62595daf4844f95f6744d568c15'
+    scribeVersion='DUoxjufeX8ZAIVRBKRczWTuZwT13enTv'
 }
 
 def options = [
@@ -367,7 +353,8 @@ task downloadDependencies {
     doLast {
         packages.each { entry ->
             def filename = entry.value['file'];
-            def url = baseUrl + filename;
+            def dependencyBaseUrl = entry.value['baseUrl']
+            def url = (dependencyBaseUrl?.trim() ? dependencyBaseUrl : baseUrl) + filename;
             if (entry.value.containsKey('versionId')) {
                 url = url + '?versionId=' + entry.value['versionId']
             }
@@ -462,27 +449,11 @@ task fixScribePermissions(type: Exec, dependsOn: verifyScribe) {
     commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + scribeLocalFile
 }
 
-task downloadShreflect(type: Download) {
-    src baseUrl + shreflectFile + '?versionId=' + shreflectVersion
-    dest new File(baseFolder, shreflectLocalFile)
-    onlyIfNewer true
-}
-
-task verifyShreflect(type: Verify, dependsOn: downloadShreflect) {
-    src new File(baseFolder, shreflectLocalFile);
-    checksum shreflectChecksum
-}
-
-task fixShreflectPermissions(type: Exec, dependsOn: verifyShreflect) {
-    commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + shreflectLocalFile
-}
-
-task setupScribe(dependsOn: [verifyScribe, verifyShreflect]) { }
+task setupScribe(dependsOn: [verifyScribe]) { }
 
 // On Windows, we don't need to set the executable bit, but on OSX and Unix we do
 if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
     setupScribe.dependsOn fixScribePermissions
-    setupScribe.dependsOn fixShreflectPermissions
 }
 
 task extractGvrBinaries(dependsOn: extractDependencies) {
@@ -665,6 +636,21 @@ task uploadBreakpadDumpSymsRelease(type:io.github.httpbuilderng.http.HttpTask, d
         response.success {
             println ("${appDir}/build/tmp/symbols-${RELEASE_NUMBER}-release.zip uploaded")
         }
+    }
+}
+
+task renameHifiACTaskDebug() {
+    doLast {
+        def sourceFile = new File("${appDir}/build/intermediates/cmake/debug/obj/arm64-v8a/","libhifiCodec.so")
+        def destinationFile = new File("${appDir}/src/main/jniLibs/arm64-v8a", "libplugins_libhifiCodec.so")
+        copy { from sourceFile;  into destinationFile.parent;  rename(sourceFile.name, destinationFile.name) }
+    }
+}
+task renameHifiACTaskRelease(type: Copy) {
+    doLast {
+        def sourceFile = new File("${appDir}/build/intermediates/cmake/release/obj/arm64-v8a/","libhifiCodec.so")
+        def destinationFile = new File("${appDir}/src/main/jniLibs/arm64-v8a", "libplugins_libhifiCodec.so")
+        copy { from sourceFile;  into destinationFile.parent;  rename(sourceFile.name, destinationFile.name) }
     }
 }
 

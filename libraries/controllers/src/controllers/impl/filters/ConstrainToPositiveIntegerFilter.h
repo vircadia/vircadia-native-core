@@ -17,15 +17,13 @@ namespace controller {
 class ConstrainToPositiveIntegerFilter : public Filter {
     REGISTER_FILTER_CLASS(ConstrainToPositiveIntegerFilter);
 public:
-    ConstrainToPositiveIntegerFilter() {};
+    ConstrainToPositiveIntegerFilter() = default;
 
     virtual float apply(float value) const override {
         return (value <= 0.0f) ? 0.0f : 1.0f;
     }
 
     virtual Pose apply(Pose value) const override { return value; }
-
-protected:
 };
 
 }

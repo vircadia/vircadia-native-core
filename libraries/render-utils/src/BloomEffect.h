@@ -14,7 +14,7 @@
 
 #include <render/Engine.h>
 
-#include "graphics/Bloom.h"
+#include "BloomStage.h"
 
 #include "DeferredFrameTransform.h"
 
@@ -28,8 +28,8 @@ class BloomThresholdConfig : public render::Job::Config {
 
 class BloomThreshold {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, graphics::BloomPointer>;
-    using Outputs = render::VaryingSet2<gpu::FramebufferPointer, float>;
+    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, BloomStage::FramePointer>;
+    using Outputs = render::VaryingSet3<gpu::FramebufferPointer, float, graphics::BloomPointer>;
     using Config = BloomThresholdConfig;
     using JobModel = render::Job::ModelIO<BloomThreshold, Inputs, Outputs, Config>;
 
@@ -121,12 +121,13 @@ public:
 
 private:
     gpu::PipelinePointer _pipeline;
+    gpu::BufferPointer _params;
     DebugBloomConfig::Mode _mode;
 };
 
 class BloomEffect {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, graphics::BloomPointer>;
+    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, BloomStage::FramePointer>;
     using Config = BloomConfig;
 	using JobModel = render::Task::ModelI<BloomEffect, Inputs, Config>;
 

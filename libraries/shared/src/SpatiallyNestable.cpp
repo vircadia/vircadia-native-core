@@ -74,8 +74,13 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
         }
     });
 
-    bool success = false;
-    getParentPointer(success);
+    if (!_parentKnowsMe) {
+        bool success = false;
+        auto parent = getParentPointer(success);
+        if (success && parent) {
+            parent->updateQueryAACube();
+        }
+    }
 }
 
 Transform SpatiallyNestable::getParentTransform(bool& success, int depth) const {
@@ -155,12 +160,14 @@ void SpatiallyNestable::beParentOfChild(SpatiallyNestablePointer newChild) const
     _childrenLock.withWriteLock([&] {
         _children[newChild->getID()] = newChild;
     });
+    // Our QueryAACube will automatically be updated to include our new child
 }
 
 void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
     _childrenLock.withWriteLock([&] {
         _children.remove(newChild->getID());
     });
+    _queryAACubeSet = false; // We need to reset our queryAACube when we lose a child
 }
 
 void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {
@@ -1092,7 +1099,23 @@ AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
     return AACube(getWorldPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
 }
 
-const float PARENTED_EXPANSION_FACTOR = 3.0f;
+AACube SpatiallyNestable::calculateInitialQueryAACube(bool& success) {
+    success = false;
+    AACube maxAACube = getMaximumAACube(success);
+    if (!success) {
+        return AACube();
+    }
+
+    success = true;
+    if (shouldPuffQueryAACube()) {
+        // make an expanded AACube centered on the object
+        const float PARENTED_EXPANSION_FACTOR = 3.0f;
+        float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
+        return AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
+    } else {
+        return maxAACube;
+    }
+}
 
 bool SpatiallyNestable::updateQueryAACube() {
     if (!queryAACubeNeedsUpdate()) {
@@ -1100,20 +1123,12 @@ bool SpatiallyNestable::updateQueryAACube() {
     }
 
     bool success;
-    AACube maxAACube = getMaximumAACube(success);
+    AACube initialQueryAACube = calculateInitialQueryAACube(success);
     if (!success) {
         return false;
     }
-
-    if (shouldPuffQueryAACube()) {
-        // make an expanded AACube centered on the object
-        float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
-        _queryAACube = AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
-        _queryAACubeIsPuffed = true;
-    } else {
-        _queryAACube = maxAACube;
-        _queryAACubeIsPuffed = false;
-    }
+    _queryAACube = initialQueryAACube;
+    _queryAACubeIsPuffed = shouldPuffQueryAACube();
 
     forEachDescendant([&](const SpatiallyNestablePointer& descendant) {
         bool childSuccess;
@@ -1128,6 +1143,12 @@ bool SpatiallyNestable::updateQueryAACube() {
     });
 
     _queryAACubeSet = true;
+
+    auto parent = getParentPointer(success);
+    if (success && parent) {
+        parent->updateQueryAACube();
+    }
+
     return true;
 }
 
@@ -1158,7 +1179,7 @@ bool SpatiallyNestable::queryAACubeNeedsUpdate() const {
     // make sure children are still in their boxes, also.
     bool childNeedsUpdate = false;
     forEachDescendantTest([&](const SpatiallyNestablePointer& descendant) {
-        if (!childNeedsUpdate && descendant->queryAACubeNeedsUpdate()) {
+        if (descendant->queryAACubeNeedsUpdate() || !_queryAACube.contains(descendant->getQueryAACube())) {
             childNeedsUpdate = true;
             // Don't recurse further
             return false;

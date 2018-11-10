@@ -11,17 +11,19 @@
 
 /* jslint bitwise: true */
 
-/* global Script, Overlays, Controller, Vec3, MyAvatar, Entities
+/* global Script, Overlays, Controller, Vec3, MyAvatar, Entities, RayPick
 */
 
 (function () {
 
+    var LEAP_MOTION_NAME = "LeapMotion";
     var handTouchEnabled = true;
+    var leapMotionEnabled = Controller.getRunningInputDeviceNames().indexOf(LEAP_MOTION_NAME) >= 0;
     var MSECONDS_AFTER_LOAD = 2000;
     var updateFingerWithIndex = 0;
     var untouchableEntities = [];
-    
-        // Keys to access finger data
+
+    // Keys to access finger data
     var fingerKeys = ["pinky", "ring", "middle", "index", "thumb"];
 
     // Additionally close the hands to achieve a grabbing effect
@@ -45,7 +47,7 @@
         left: new Palm(),
         right: new Palm()
     };
-    
+
     var handJointNames = {left: "LeftHand", right: "RightHand"};
 
     // Store which fingers are touching - if all false restate the default poses
@@ -870,6 +872,12 @@
         handTouchEnabled = !shouldDisable;
     });
 
+    Controller.inputDeviceRunningChanged.connect(function (deviceName, isEnabled) {
+        if (deviceName == LEAP_MOTION_NAME) {
+            leapMotionEnabled = isEnabled;
+        }
+    });
+
     MyAvatar.disableHandTouchForIDChanged.connect(function (entityID, disable) {
         var entityIndex = untouchableEntities.indexOf(entityID);
         if (disable) {
@@ -902,7 +910,7 @@
 
     Script.update.connect(function () {
 
-        if (!handTouchEnabled) {
+        if (!handTouchEnabled || leapMotionEnabled) {
             return;
         }
 

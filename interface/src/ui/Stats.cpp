@@ -106,6 +106,10 @@ extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
 extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
+
+    if (qApp->isInterstitialMode()) {
+        return;
+    }
     QQuickItem* parent = parentItem();
     if (!force) {
         if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
@@ -207,14 +211,6 @@ void Stats::updateStats(bool force) {
 
     // Third column, avatar stats
     auto myAvatar = avatarManager->getMyAvatar();
-    auto animStack = myAvatar->getSkeletonModel()->getRig().getAnimStack();
-
-    _animStackNames.clear();
-    for (auto animStackIterator = animStack.begin(); animStackIterator != animStack.end(); ++animStackIterator) {
-        _animStackNames << animStackIterator->first + ":   " +  QString::number(animStackIterator->second,'f',3);
-    }
-    emit animStackNamesChanged();
-
     glm::vec3 avatarPos = myAvatar->getWorldPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
     STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getWorldVelocity()), 0.01f);
@@ -271,8 +267,8 @@ void Stats::updateStats(bool force) {
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
         STAT_UPDATE(downloads, loadingRequests.size());
-        STAT_UPDATE(downloadLimit, ResourceCache::getRequestLimit())
-        STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
+        STAT_UPDATE(downloadLimit, (int)ResourceCache::getRequestLimit())
+        STAT_UPDATE(downloadsPending, (int)ResourceCache::getPendingRequestCount());
         STAT_UPDATE(processing, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
         STAT_UPDATE(processingPending, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
 

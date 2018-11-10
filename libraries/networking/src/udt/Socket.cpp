@@ -228,13 +228,13 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     return bytesWritten;
 }
 
-Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
+Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreate) {
     auto it = _connectionsHash.find(sockAddr);
 
     if (it == _connectionsHash.end()) {
         // we did not have a matching connection, time to see if we should make one
 
-        if (_connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
+        if (filterCreate && _connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
             // the connection creation filter did not allow us to create a new connection
 #ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Socket::findOrCreateConnection refusing to create connection for" << sockAddr
@@ -315,9 +315,18 @@ void Socket::checkForReadyReadBackup() {
 }
 
 void Socket::readPendingDatagrams() {
+    using namespace std::chrono;
+    static const auto MAX_PROCESS_TIME { 100ms };
+    const auto abortTime = system_clock::now() + MAX_PROCESS_TIME;
     int packetSizeWithHeader = -1;
 
-    while (_udpSocket.hasPendingDatagrams() && (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+    while (_udpSocket.hasPendingDatagrams() &&
+           (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+        if (system_clock::now() > abortTime) {
+            // We've been running for too long, stop processing packets for now
+            // Once we've processed the event queue, we'll come back to packet processing
+            break;
+        }
 
         // we're reading a packet so re-start the readyRead backup timer
         _readyReadBackupTimer->start();
@@ -367,7 +376,7 @@ void Socket::readPendingDatagrams() {
             controlPacket->setReceiveTime(receiveTime);
 
             // move this control packet to the matching connection, if there is one
-            auto connection = findOrCreateConnection(senderSockAddr);
+            auto connection = findOrCreateConnection(senderSockAddr, true);
 
             if (connection) {
                 connection->processControl(move(controlPacket));
@@ -385,7 +394,7 @@ void Socket::readPendingDatagrams() {
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
-                    auto connection = findOrCreateConnection(senderSockAddr);
+                    auto connection = findOrCreateConnection(senderSockAddr, true);
 
                     if (!connection || !connection->processReceivedSequenceNumber(packet->getSequenceNumber(),
                                                                                   packet->getDataSize(),
@@ -400,7 +409,7 @@ void Socket::readPendingDatagrams() {
                 }
 
                 if (packet->isPartOfMessage()) {
-                    auto connection = findOrCreateConnection(senderSockAddr);
+                    auto connection = findOrCreateConnection(senderSockAddr, true);
                     if (connection) {
                         connection->queueReceivedMessagePacket(std::move(packet));
                     }

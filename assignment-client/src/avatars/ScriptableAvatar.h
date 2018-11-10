@@ -157,9 +157,16 @@ public:
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false) override;
 
-private slots:
+    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
+    bool getHasProceduralBlinkFaceMovement() const override { return _headData->getHasProceduralBlinkFaceMovement(); }
+    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
+    bool getHasProceduralEyeFaceMovement() const override { return _headData->getHasProceduralEyeFaceMovement(); }
+    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
+    bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
+
+public slots:
     void update(float deltatime);
-    
+
 private:
     AnimationPointer _animation;
     AnimationDetails _animationDetails;

@@ -2104,9 +2104,7 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
         auto stateNoBlend = std::make_shared<gpu::State>();
         PrepareStencil::testMaskDrawShape(*stateNoBlend);
 
-        auto noBlendPS = gpu::Shader::createVertex(shader::gpu::fragment::DrawTextureOpaque);
         auto programNoBlend = gpu::Shader::createProgram(shader::render_utils::program::standardDrawTextureNoBlend);
-
         _standardDrawPipelineNoBlend = gpu::Pipeline::create(programNoBlend, stateNoBlend);
     });
 
@@ -2177,7 +2175,10 @@ public:
     bool isAntiAliased() const { return isFlag(IS_ANTIALIASED); }
 
     Flags _flags = 0;
-    short _spare = 0;
+#if defined(__clang__)
+    __attribute__((unused))
+#endif
+    short _spare = 0; // Padding
 
     int getRaw() const { return *reinterpret_cast<const int*>(this); }
 

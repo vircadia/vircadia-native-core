@@ -25,8 +25,8 @@
 
 const QString TextEntityItem::DEFAULT_TEXT("");
 const float TextEntityItem::DEFAULT_LINE_HEIGHT = 0.1f;
-const xColor TextEntityItem::DEFAULT_TEXT_COLOR = { 255, 255, 255 };
-const xColor TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
+const glm::u8vec3 TextEntityItem::DEFAULT_TEXT_COLOR = { 255, 255, 255 };
+const glm::u8vec3 TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
 const bool TextEntityItem::DEFAULT_FACE_CAMERA = false;
 
 EntityItemPointer TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -46,13 +46,13 @@ void TextEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     EntityItem::setUnscaledDimensions(glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH));
 }
 
-EntityItemProperties TextEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(text, getText);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineHeight, getLineHeight);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textColor, getTextColorX);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundColor, getBackgroundColorX);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textColor, getTextColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundColor, getBackgroundColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(faceCamera, getFaceCamera);
     return properties;
 }
@@ -91,8 +91,8 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
     READ_ENTITY_PROPERTY(PROP_TEXT, QString, setText);
     READ_ENTITY_PROPERTY(PROP_LINE_HEIGHT, float, setLineHeight);
-    READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, rgbColor, setTextColor);
-    READ_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, rgbColor, setBackgroundColor);
+    READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, glm::u8vec3, setTextColor);
+    READ_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, glm::u8vec3, setBackgroundColor);
     READ_ENTITY_PROPERTY(PROP_FACE_CAMERA, bool, setFaceCamera);
     
     return bytesRead;
@@ -206,55 +206,27 @@ float TextEntityItem::getLineHeight() const {
     return result;
 }
 
-const rgbColor& TextEntityItem::getTextColor() const { 
-    return _textColor;
-}
-
-const rgbColor& TextEntityItem::getBackgroundColor() const {
-    return _backgroundColor;
-}
-
-xColor TextEntityItem::getTextColorX() const { 
-    xColor result;
-    withReadLock([&] {
-        result = { _textColor[RED_INDEX], _textColor[GREEN_INDEX], _textColor[BLUE_INDEX] };
-    });
-    return result;
-}
-
-void TextEntityItem::setTextColor(const rgbColor& value) { 
+void TextEntityItem::setTextColor(const glm::u8vec3& value) {
     withWriteLock([&] {
-        memcpy(_textColor, value, sizeof(_textColor));
+        _textColor = value;
     });
 }
 
-void TextEntityItem::setTextColor(const xColor& value) {
+glm::u8vec3 TextEntityItem::getTextColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
+        return _textColor;
+    });
+}
+
+void TextEntityItem::setBackgroundColor(const glm::u8vec3& value) {
     withWriteLock([&] {
-        _textColor[RED_INDEX] = value.red;
-        _textColor[GREEN_INDEX] = value.green;
-        _textColor[BLUE_INDEX] = value.blue;
+        _backgroundColor = value;
     });
 }
 
-xColor TextEntityItem::getBackgroundColorX() const { 
-    xColor result;
-    withReadLock([&] {
-        result = { _backgroundColor[RED_INDEX], _backgroundColor[GREEN_INDEX], _backgroundColor[BLUE_INDEX] };
-    });
-    return result;
-}
-
-void TextEntityItem::setBackgroundColor(const rgbColor& value) { 
-    withWriteLock([&] {
-        memcpy(_backgroundColor, value, sizeof(_backgroundColor));
-    });
-}
-
-void TextEntityItem::setBackgroundColor(const xColor& value) {
-    withWriteLock([&] {
-        _backgroundColor[RED_INDEX] = value.red;
-        _backgroundColor[GREEN_INDEX] = value.green;
-        _backgroundColor[BLUE_INDEX] = value.blue;
+glm::u8vec3 TextEntityItem::getBackgroundColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
+        return _backgroundColor;
     });
 }
 

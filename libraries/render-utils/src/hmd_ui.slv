@@ -22,7 +22,7 @@ struct HUDData {
     float alpha;
 };
 
-layout(std140, binding=0) uniform hudBuffer {
+LAYOUT_STD140(binding=0) uniform hudBuffer {
     HUDData hud;
 };
 

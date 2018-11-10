@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <unordered_map>
-#include <unordered_set>
+#include <vector>
 #include <queue>
 
 #include <QtCore/QJsonObject>
@@ -45,17 +45,20 @@ public:
 
     int parseData(ReceivedMessage& message) override;
     AvatarData& getAvatar() { return *_avatar; }
+    const AvatarData& getAvatar() const { return *_avatar; }
     const AvatarData* getConstAvatarData() const { return _avatar.get(); }
     AvatarSharedPointer getAvatarSharedPointer() const { return _avatar; }
 
-    uint16_t getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const;
-    void setLastBroadcastSequenceNumber(const QUuid& nodeUUID, uint16_t sequenceNumber)
-        { _lastBroadcastSequenceNumbers[nodeUUID] = sequenceNumber; }
-    Q_INVOKABLE void removeLastBroadcastSequenceNumber(const QUuid& nodeUUID) { _lastBroadcastSequenceNumbers.erase(nodeUUID); }
+    uint16_t getLastBroadcastSequenceNumber(NLPacket::LocalID nodeID) const;
+    void setLastBroadcastSequenceNumber(NLPacket::LocalID nodeID, uint16_t sequenceNumber)
+        { _lastBroadcastSequenceNumbers[nodeID] = sequenceNumber; }
+    Q_INVOKABLE void removeLastBroadcastSequenceNumber(NLPacket::LocalID nodeID) { _lastBroadcastSequenceNumbers.erase(nodeID); }
+    bool isIgnoreRadiusEnabled() const { return _isIgnoreRadiusEnabled; }
+    void setIsIgnoreRadiusEnabled(bool enabled) { _isIgnoreRadiusEnabled = enabled; }
 
-    uint64_t getLastBroadcastTime(const QUuid& nodeUUID) const;
-    void setLastBroadcastTime(const QUuid& nodeUUID, uint64_t broadcastTime) { _lastBroadcastTimes[nodeUUID] = broadcastTime; }
-    Q_INVOKABLE void removeLastBroadcastTime(const QUuid& nodeUUID) { _lastBroadcastTimes.erase(nodeUUID); }
+    uint64_t getLastBroadcastTime(NLPacket::LocalID nodeUUID) const;
+    void setLastBroadcastTime(NLPacket::LocalID nodeUUID, uint64_t broadcastTime) { _lastBroadcastTimes[nodeUUID] = broadcastTime; }
+    Q_INVOKABLE void removeLastBroadcastTime(NLPacket::LocalID nodeUUID) { _lastBroadcastTimes.erase(nodeUUID); }
 
     Q_INVOKABLE void cleanupKilledNode(const QUuid& nodeUUID, Node::LocalID nodeLocalID);
 
@@ -89,12 +92,12 @@ public:
 
     void loadJSONStats(QJsonObject& jsonObject) const;
 
-    glm::vec3 getPosition() const { return _avatar ? _avatar->getWorldPosition() : glm::vec3(0); }
-    glm::vec3 getGlobalBoundingBoxCorner() const { return _avatar ? _avatar->getGlobalBoundingBoxCorner() : glm::vec3(0); }
-    bool isRadiusIgnoring(const QUuid& other) const { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
-    void addToRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.insert(other); }
-    void removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other);
+    glm::vec3 getPosition() const { return _avatar ? _avatar->getClientGlobalPosition() : glm::vec3(0); }
+    bool isRadiusIgnoring(const QUuid& other) const;
+    void addToRadiusIgnoringSet(const QUuid& other);
+    void removeFromRadiusIgnoringSet(const QUuid& other);
     void ignoreOther(SharedNodePointer self, SharedNodePointer other);
+    void ignoreOther(const Node* self, const Node* other);
 
     void readViewFrustumPacket(const QByteArray& message);
 
@@ -110,10 +113,10 @@ public:
 
     const ConicalViewFrustums& getViewFrustums() const { return _currentViewFrustums; }
 
-    uint64_t getLastOtherAvatarEncodeTime(QUuid otherAvatar) const;
-    void setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time);
+    uint64_t getLastOtherAvatarEncodeTime(NLPacket::LocalID otherAvatar) const;
+    void setLastOtherAvatarEncodeTime(NLPacket::LocalID otherAvatar, uint64_t time);
 
-    QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) { return _lastOtherAvatarSentJoints[otherAvatar]; }
+    QVector<JointData>& getLastOtherAvatarSentJoints(NLPacket::LocalID otherAvatar) { return _lastOtherAvatarSentJoints[otherAvatar]; }
 
     void queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
     int processPackets(const SlaveSharedData& slaveSharedData); // returns number of packets processed
@@ -146,13 +149,13 @@ private:
     AvatarSharedPointer _avatar { new AvatarData() };
 
     uint16_t _lastReceivedSequenceNumber { 0 };
-    std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
-    std::unordered_map<QUuid, uint64_t> _lastBroadcastTimes;
+    std::unordered_map<NLPacket::LocalID, uint16_t> _lastBroadcastSequenceNumbers;
+    std::unordered_map<NLPacket::LocalID, uint64_t> _lastBroadcastTimes;
 
     // this is a map of the last time we encoded an "other" avatar for
     // sending to "this" node
-    std::unordered_map<QUuid, uint64_t> _lastOtherAvatarEncodeTime;
-    std::unordered_map<QUuid, QVector<JointData>> _lastOtherAvatarSentJoints;
+    std::unordered_map<NLPacket::LocalID, uint64_t> _lastOtherAvatarEncodeTime;
+    std::unordered_map<NLPacket::LocalID, QVector<JointData>> _lastOtherAvatarSentJoints;
 
     uint64_t _identityChangeTimestamp;
     bool _avatarSessionDisplayNameMustChange{ true };
@@ -166,7 +169,7 @@ private:
     int _numOutOfOrderSends = 0;
 
     SimpleMovingAverage _avgOtherAvatarDataRate;
-    std::unordered_set<QUuid> _radiusIgnoredOthers;
+    std::vector<QUuid> _radiusIgnoredOthers;
     ConicalViewFrustums _currentViewFrustums;
 
     int _recentOtherAvatarsInView { 0 };
@@ -179,6 +182,8 @@ private:
 
     std::unordered_map<Node::LocalID, TraitsCheckTimestamp> _lastSentTraitsTimestamps;
     std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions> _sentTraitVersions;
+
+    std::atomic_bool _isIgnoreRadiusEnabled { false };
 };
 
 #endif // hifi_AvatarMixerClientData_h

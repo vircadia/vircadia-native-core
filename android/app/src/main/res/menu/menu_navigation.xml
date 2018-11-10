@@ -9,4 +9,9 @@
         android:id="@+id/action_people"
         android:title="@string/people"
         />
+    <item
+        android:id="@+id/action_debug_settings"
+        android:title="@string/settings"
+        android:visible="false"
+    />
 </menu>

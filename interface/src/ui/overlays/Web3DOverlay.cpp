@@ -53,12 +53,14 @@
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/AccountServicesScriptingInterface.h"
+#include "scripting/WalletScriptingInterface.h"
 #include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
 #include "SoundCacheScriptingInterface.h"
 #include "raypick/PointerScriptingInterface.h"
 #include <display-plugins/CompositorHelper.h>
 #include "AboutUtil.h"
+#include "ResourceRequestObserver.h"
 
 static int MAX_WINDOW_SIZE = 4096;
 static const float METERS_TO_INCHES = 39.3701f;
@@ -132,7 +134,9 @@ void Web3DOverlay::destroyWebSurface() {
 
     if (rootItem && rootItem->objectName() == "tabletRoot") {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
+        if (tabletScriptingInterface) {
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
+        }
     }
 
     // Fix for crash in QtWebEngineCore when rapidly switching domains
@@ -267,6 +271,8 @@ void Web3DOverlay::setupQmlSurface(bool isTablet) {
         _webSurface->getSurfaceContext()->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Reticle", qApp->getApplicationCompositor().getReticleInterface());
         _webSurface->getSurfaceContext()->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);

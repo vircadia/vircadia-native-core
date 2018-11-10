@@ -20,7 +20,7 @@ struct Grid {
     vec4 edge;
 };
 
-layout(binding=0) uniform gridBuffer {
+LAYOUT(binding=0) uniform gridBuffer {
   Grid grid; 
 };
 

@@ -45,14 +45,6 @@ Item {
         onHistoryResult : {
             transactionHistoryModel.handlePage(null, result);
         }
-
-        onAvailableUpdatesResult: {
-            if (result.status !== 'success') {
-                console.log("Failed to get Available Updates", result.data.message);
-            } else {
-                sendToScript({method: 'wallet_availableUpdatesReceived', numUpdates: result.data.updates.length });
-            }
-        }
     }
 
     Connections {
@@ -185,28 +177,6 @@ Item {
             size: 22;
             // Style
             color: hifi.colors.baseGrayHighlight;
-        }
-
-        RalewaySemiBold {
-            id: myPurchasesLink;
-            text: '<font color="#0093C5"><a href="#myPurchases">My Purchases</a></font>';
-            // Anchors
-            anchors.top: parent.top;
-            anchors.topMargin: 26;
-            anchors.right: parent.right;
-            anchors.rightMargin: 20;
-            width: paintedWidth;
-            height: 30;
-            y: 4;
-            // Text size
-            size: 18;
-            // Style
-            color: hifi.colors.baseGrayHighlight;
-            horizontalAlignment: Text.AlignRight;
-
-            onLinkActivated: {
-                sendSignalToWallet({method: 'goToPurchases_fromWalletHome'});
-            }
         }
 
         HifiModels.PSFListModel {

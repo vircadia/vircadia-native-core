@@ -47,6 +47,54 @@ QmlCommerce::QmlCommerce() {
     _appsPath = PathUtils::getAppDataPath() + "Apps/";
 }
 
+
+
+
+void QmlCommerce::openSystemApp(const QString& appName) {
+    static QMap<QString, QString> systemApps {
+        {"GOTO",        "hifi/tablet/TabletAddressDialog.qml"},
+        {"PEOPLE",      "hifi/Pal.qml"},
+        {"WALLET",      "hifi/commerce/wallet/Wallet.qml"},
+        {"MARKET",      "/marketplace.html"}
+    };
+
+    static QMap<QString, QString> systemInject{
+        {"MARKET",      "/scripts/system/html/js/marketplacesInject.js"}
+    };
+
+
+    auto tablet = dynamic_cast<TabletProxy*>(
+        DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+
+    QMap<QString, QString>::const_iterator appPathIter = systemApps.find(appName);
+    if (appPathIter != systemApps.end()) {
+        if (appPathIter->contains(".qml", Qt::CaseInsensitive)) {
+            tablet->loadQMLSource(*appPathIter);
+        }
+        else if (appPathIter->contains(".html", Qt::CaseInsensitive)) {
+            QMap<QString, QString>::const_iterator injectIter = systemInject.find(appName);
+            if (appPathIter == systemInject.end()) {
+                tablet->gotoWebScreen(NetworkingConstants::METAVERSE_SERVER_URL().toString() + *appPathIter);
+            }
+            else {
+                QString inject = "file:///" + qApp->applicationDirPath() + *injectIter;
+                tablet->gotoWebScreen(NetworkingConstants::METAVERSE_SERVER_URL().toString() + *appPathIter, inject);
+            }
+        }
+        else {
+            qCDebug(commerce) << "Attempted to open unknown type of URL!";
+            return;
+        }
+    }
+    else {
+        qCDebug(commerce) << "Attempted to open unknown APP!";
+        return;
+    }
+
+    DependencyManager::get<HMDScriptingInterface>()->openTablet();
+}
+
+
 void QmlCommerce::getWalletStatus() {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->getWalletStatus();
@@ -199,12 +247,18 @@ void QmlCommerce::transferAssetToUsername(const QString& username,
 }
 
 void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {
-    auto ledger = DependencyManager::get<Ledger>();
-    ledger->updateLocation(certificateID, DependencyManager::get<AddressManager>()->getPlaceName(), true);
+    if (!certificateID.isEmpty()) {
+        auto ledger = DependencyManager::get<Ledger>();
+        ledger->updateLocation(
+            certificateID,
+            DependencyManager::get<AddressManager>()->getPlaceName(),
+            true);
+    }
     qApp->replaceDomainContent(itemHref);
-    QJsonObject messageProperties = { { "status", "SuccessfulRequestToReplaceContent" }, { "content_set_url", itemHref } };
+    QJsonObject messageProperties = {
+        { "status", "SuccessfulRequestToReplaceContent" },
+        { "content_set_url", itemHref } };
     UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
-
     emit contentSetChanged(itemHref);
 }
 
@@ -228,6 +282,7 @@ QString QmlCommerce::getInstalledApps(const QString& justInstalledAppID) {
         // Thus, we protect against deleting the .app.json from the user's disk (below)
         // by skipping that check for the app we just installed.
         if ((justInstalledAppID != "") && ((justInstalledAppID + ".app.json") == appFileName)) {
+            installedAppsFromMarketplace += appFileName + ",";
             continue;
         }
 
@@ -260,7 +315,7 @@ QString QmlCommerce::getInstalledApps(const QString& justInstalledAppID) {
     return installedAppsFromMarketplace;
 }
 
-bool QmlCommerce::installApp(const QString& itemHref) {
+bool QmlCommerce::installApp(const QString& itemHref, const bool& alsoOpenImmediately) {
     if (!QDir(_appsPath).exists()) {
         if (!QDir().mkdir(_appsPath)) {
             qCDebug(commerce) << "Couldn't make _appsPath directory.";
@@ -270,7 +325,8 @@ bool QmlCommerce::installApp(const QString& itemHref) {
 
     QUrl appHref(itemHref);
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref);
+    auto request =
+        DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref, true, -1, "QmlCommerce::installApp");
 
     if (!request) {
         qCDebug(commerce) << "Couldn't create resource request for app.";
@@ -302,13 +358,22 @@ bool QmlCommerce::installApp(const QString& itemHref) {
         QJsonObject appFileJsonObject = appFileJsonDocument.object();
         QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
-        if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
-            qCDebug(commerce) << "Couldn't load script.";
-            return false;
+        // Don't try to re-load (install) a script if it's already running
+        QStringList runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();
+        if (!runningScripts.contains(scriptUrl)) {
+            if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
+                qCDebug(commerce) << "Couldn't load script.";
+                return false;
+            }
+
+            QFileInfo appFileInfo(appFile);
+            emit appInstalled(appFileInfo.baseName());
         }
 
-        QFileInfo appFileInfo(appFile);
-        emit appInstalled(appFileInfo.baseName());
+        if (alsoOpenImmediately) {
+            QmlCommerce::openApp(itemHref);
+        }
+
         return true;
     });
     request->send();
@@ -353,7 +418,7 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     // Read from the file to know what .html or .qml document to open
     QFile appFile(_appsPath + "/" + appHref.fileName());
     if (!appFile.open(QIODevice::ReadOnly)) {
-        qCDebug(commerce) << "Couldn't open local .app.json file.";
+        qCDebug(commerce) << "Couldn't open local .app.json file:" << appFile;
         return false;
     }
     QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());

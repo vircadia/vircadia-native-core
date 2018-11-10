@@ -64,6 +64,8 @@ public:
     QString getPreferredAudioInDevice() const override;
     QString getPreferredAudioOutDevice() const override;
 
+    QRectF getPlayAreaRect() override;
+
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;

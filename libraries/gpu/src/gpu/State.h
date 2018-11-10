@@ -118,10 +118,14 @@ public:
         uint8 _function = LESS;
         uint8 _writeMask = true;
         uint8 _enabled = false;
-        uint8 _spare = 0;
+#if defined(__clang__)
+        __attribute__((unused))
+#endif
+        uint8 _spare = 0; // Padding
     public:
         DepthTest(bool enabled = false, bool writeMask = true, ComparisonFunction func = LESS) :
-            _function(func), _writeMask(writeMask), _enabled(enabled) {}
+            _function(func), _writeMask(writeMask), _enabled(enabled) {
+            }
 
         bool isEnabled() const { return _enabled != 0; }
         ComparisonFunction getFunction() const { return ComparisonFunction(_function); }

@@ -7,6 +7,11 @@ else()
   cmake_minimum_required(VERSION 3.2)
 endif()
 
+# squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
+if ((${CMAKE_MAJOR_VERSION} EQUAL 3 AND ${CMAKE_MINOR_VERSION} GREATER 11) OR ${CMAKE_MAJOR_VERSION} GREATER 3)
+   cmake_policy(SET CMP0074 NEW)
+endif()
+
 project(hifi)
 
 include("cmake/init.cmake")
@@ -61,12 +66,13 @@ if (ANDROID)
   set(GLES_OPTION ON)
   set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
 else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+  set(PLATFORM_QT_COMPONENTS WebEngine)
 endif ()
 
 if (USE_GLES AND (NOT ANDROID))
   set(DISABLE_QML_OPTION ON)
 endif()
+
 
 option(BUILD_CLIENT "Build client components" ${BUILD_CLIENT_OPTION})
 option(BUILD_SERVER "Build server components" ${BUILD_SERVER_OPTION})
@@ -162,7 +168,6 @@ if (BUILD_SERVER)
   set_target_properties(domain-server PROPERTIES FOLDER "Apps")
   add_subdirectory(ice-server)
   set_target_properties(ice-server PROPERTIES FOLDER "Apps")
-  add_subdirectory(server-console)
 endif()
 
 if (BUILD_CLIENT)
@@ -174,6 +179,7 @@ endif()
 
 if (BUILD_CLIENT OR BUILD_SERVER)
   add_subdirectory(plugins)
+  add_subdirectory(server-console)
 endif()
 
 # BUILD_TOOLS option will be handled inside the tools's CMakeLists.txt because 'scribe' tool is required for build anyway

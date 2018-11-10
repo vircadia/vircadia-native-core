@@ -116,32 +116,33 @@ void MessagesClient::handleMessagesPacket(QSharedPointer<ReceivedMessage> receiv
 
 void MessagesClient::sendMessage(QString channel, QString message, bool localOnly) {
     auto nodeList = DependencyManager::get<NodeList>();
+    QUuid senderID = nodeList->getSessionUUID();
     if (localOnly) {
-        QUuid senderID = nodeList->getSessionUUID();
         emit messageReceived(channel, message, senderID, true);
     } else {
         SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
-
         if (messagesMixer) {
-            QUuid senderID = nodeList->getSessionUUID();
             auto packetList = encodeMessagesPacket(channel, message, senderID);
             nodeList->sendPacketList(std::move(packetList), *messagesMixer);
+        } else {
+            emit messageReceived(channel, message, senderID, true);
         }
     }
 }
 
 void MessagesClient::sendData(QString channel, QByteArray data, bool localOnly) {
     auto nodeList = DependencyManager::get<NodeList>();
+    QUuid senderID = nodeList->getSessionUUID();
     if (localOnly) {
-        QUuid senderID = nodeList->getSessionUUID();
         emit dataReceived(channel, data, senderID, true);
     } else {
         SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
-
         if (messagesMixer) {
             QUuid senderID = nodeList->getSessionUUID();
             auto packetList = encodeMessagesDataPacket(channel, data, senderID);
             nodeList->sendPacketList(std::move(packetList), *messagesMixer);
+        } else {
+            emit dataReceived(channel, data, senderID, true);
         }
     }
 }

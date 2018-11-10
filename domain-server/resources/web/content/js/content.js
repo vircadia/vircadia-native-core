@@ -59,6 +59,7 @@ $(document).ready(function(){
         $.ajax({
           url: '/content/upload',
           type: 'POST',
+          timeout: 3600000, // Set timeout to 1h
           cache: false,
           processData: false,
           contentType: false,

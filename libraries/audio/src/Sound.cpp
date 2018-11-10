@@ -43,8 +43,11 @@ void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPo
     }
 }
 
-SoundScriptingInterface::SoundScriptingInterface(SharedSoundPointer sound) : _sound(sound) {
-    QObject::connect(sound.data(), &Sound::ready, this, &SoundScriptingInterface::ready);
+SoundScriptingInterface::SoundScriptingInterface(const SharedSoundPointer& sound) : _sound(sound) {
+    // During shutdown we can sometimes get an empty sound pointer back
+    if (_sound) {
+        QObject::connect(_sound.data(), &Sound::ready, this, &SoundScriptingInterface::ready);
+    }
 }
 
 Sound::Sound(const QUrl& url, bool isStereo, bool isAmbisonic) :

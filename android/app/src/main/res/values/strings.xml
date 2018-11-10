@@ -10,11 +10,13 @@
     <string name="popular">POPULAR</string>
     <string name="bookmarks">BOOKMARKS</string>
     <string name="goto_url_hint">Type a domain url</string>
-    <string name="username_or_email">Username or email\u00A0</string>
-    <string name="password">Password\u00A0</string>
+    <string name="email">Email</string>
+    <string name="username">Username</string>
+    <string name="username_or_email">Username or email</string>
+    <string name="password">Password</string>
     <string name="login">Login</string>
     <string name="logout">Logout</string>
-    <string name="forgot_password">Forgot password?\u00A0</string>
+    <string name="forgot_password"><u>Forgot password?</u>\u00A0</string>
     <string name="login_username_or_password_incorrect">Username or password incorrect.</string>
     <string name="logging_in">Logging into High Fidelity</string>
     <string name="search_hint"><i>Search for a place by name</i>\u00A0</string>
@@ -23,10 +25,24 @@
     <string name="privacyPolicy">Privacy Policy</string>
     <string name="your_last_location">Your Last Location</string>
     <string name="online">Online</string>
+    <string name="signup">Sign Up</string>
+    <string name="creating_account">Creating your High Fidelity account</string>
+    <string name="signup_email_username_or_password_incorrect">Email, username or password incorrect.</string>
+    <string name="signedin_welcome">You are now signed into High Fidelity</string>
+    <string name="welcome">Welcome</string>
+    <string name="cancel">Cancel</string>
+    <string name="get_started">Get Started</string>
 
     <!-- tags -->
     <string name="tagFragmentHome">tagFragmentHome</string>
     <string name="tagFragmentLogin">tagFragmentLogin</string>
+    <string name="tagFragmentSignup">tagFragmentSignup</string>
     <string name="tagFragmentPolicy">tagFragmentPolicy</string>
     <string name="tagFragmentPeople">tagFragmentPeople</string>
+    <string name="tagSettings">tagSettings</string>
+    <string name="tagFragmentSignedIn">tagFragmentSignedIn</string>
+    <string name="settings">Settings</string>
+    <string name="AEC">AEC</string>
+    <string name="acoustic_echo_cancellation">Acoustic Echo Cancellation</string>
+    <string name="settings_developer">Developer</string>
 </resources>

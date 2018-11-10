@@ -38,6 +38,8 @@ public:
 
     void setHaze(bool enable);
     bool isHazeEnabled() const;
+    void setBloom(bool enable);
+    bool isBloomEnabled() const;
 
     void setObscurance(bool enable);
     bool isObscuranceEnabled() const;
@@ -69,6 +71,10 @@ public:
 
     void setWireframe(bool enable);
     bool isWireframeEnabled() const;
+    void setSkinning(bool enable);
+    bool isSkinningEnabled() const;
+    void setBlendshape(bool enable);
+    bool isBlendshapeEnabled() const;
 
     UniformBufferView getParametersBuffer() const { return _parametersBuffer; }
 
@@ -102,9 +108,9 @@ protected:
         float enableWireframe { 0.0f }; // false by default
 
         float enableHaze{ 1.0f };
-        float spare1;  // Needed for having the LightingModel class aligned on a 4 scalar boundary for gpu 
-        float spare2;
-        float spare3;
+        float enableBloom{ 1.0f };
+        float enableSkinning{ 1.0f };
+        float enableBlendshape{ 1.0f };
 
         Parameters() {}
     };
@@ -142,6 +148,10 @@ class MakeLightingModelConfig : public render::Job::Config {
     Q_PROPERTY(bool enableWireframe MEMBER enableWireframe NOTIFY dirty)
     Q_PROPERTY(bool showLightContour MEMBER showLightContour NOTIFY dirty)
 
+    Q_PROPERTY(bool enableBloom MEMBER enableBloom NOTIFY dirty)
+    Q_PROPERTY(bool enableSkinning MEMBER enableSkinning NOTIFY dirty)
+    Q_PROPERTY(bool enableBlendshape MEMBER enableBlendshape NOTIFY dirty)
+
 public:
     MakeLightingModelConfig() : render::Job::Config() {} // Make Lighting Model is always on
 
@@ -167,6 +177,9 @@ public:
 
     bool enableWireframe { false }; // false by default
     bool enableHaze{ true };
+    bool enableBloom{ true };
+    bool enableSkinning{ true };
+    bool enableBlendshape{ true };
 
 signals:
     void dirty();

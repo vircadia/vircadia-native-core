@@ -104,10 +104,10 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                         AABox aaBox = zoneEntity->getAABox(success);
                         if (success) {
                             QScriptValue boundingBox = filterData.engine->newObject();
-                            QScriptValue bottomRightNear = vec3toScriptValue(filterData.engine, aaBox.getCorner());
-                            QScriptValue topFarLeft = vec3toScriptValue(filterData.engine, aaBox.calcTopFarLeft());
-                            QScriptValue center = vec3toScriptValue(filterData.engine, aaBox.calcCenter());
-                            QScriptValue boundingBoxDimensions = vec3toScriptValue(filterData.engine, aaBox.getDimensions());
+                            QScriptValue bottomRightNear = vec3ToScriptValue(filterData.engine, aaBox.getCorner());
+                            QScriptValue topFarLeft = vec3ToScriptValue(filterData.engine, aaBox.calcTopFarLeft());
+                            QScriptValue center = vec3ToScriptValue(filterData.engine, aaBox.calcCenter());
+                            QScriptValue boundingBoxDimensions = vec3ToScriptValue(filterData.engine, aaBox.getDimensions());
                             boundingBox.setProperty("brn", bottomRightNear);
                             boundingBox.setProperty("tfl", topFarLeft);
                             boundingBox.setProperty("center", center);
@@ -200,7 +200,8 @@ void EntityEditFilters::addFilter(EntityItemID entityID, QString filterURL) {
     _filterDataMap.insert(entityID, filterData);
     _lock.unlock();
    
-    auto scriptRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(this, scriptURL);
+    auto scriptRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, scriptURL, true, -1, "EntityEditFilters::addFilter");
     if (!scriptRequest) {
         qWarning() << "Could not create ResourceRequest for Entity Edit filter script at" << scriptURL.toString();
         scriptRequestFinished(entityID);

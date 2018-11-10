@@ -15,7 +15,7 @@
 
 <@func declareBeckmannSpecular()@>
 
-layout(binding=RENDER_UTILS_TEXTURE_SSSC_SPECULAR_BECKMANN) uniform sampler2D scatteringSpecularBeckmann;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SSSC_SPECULAR_BECKMANN) uniform sampler2D scatteringSpecularBeckmann;
 
 float fetchSpecularBeckmann(float ndoth, float roughness) {
     return pow(2.0 * texture(scatteringSpecularBeckmann, vec2(ndoth, roughness)).r, 10.0);

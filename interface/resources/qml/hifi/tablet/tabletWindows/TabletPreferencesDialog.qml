@@ -41,7 +41,15 @@ Item {
             section.saveAll();
         }
 
-        closeDialog();
+        if (HMD.active) {
+            if (gotoPreviousApp) {
+                tablet.returnToPreviousApp();
+            } else {
+                tablet.popFromStack();
+            }
+        } else {
+            closeDialog();
+        }
     }
 
     function restoreAll() {
@@ -50,7 +58,15 @@ Item {
             section.restoreAll();
         }
 
-        closeDialog();
+        if (HMD.active) {
+            if (gotoPreviousApp) {
+                tablet.returnToPreviousApp();
+            } else {
+                tablet.popFromStack();
+            }
+        } else {
+            closeDialog();
+        }
     }
 
     function closeDialog() {
@@ -103,6 +119,22 @@ Item {
                         if (categoryMap[showCategories[i]]) {
                             var properties = categoryProperties.hasOwnProperty(showCategories[i]) ? categoryProperties[showCategories[i]] : {};
                             sections.push(sectionBuilder.createObject(prefControls, {name: showCategories[i], sectionProperties: properties}));
+                        }
+                    }
+
+                    // Runtime customization of preferences.
+                    var locomotionPreference = findPreference("VR Movement", "Teleporting only / Walking and teleporting");
+                    var flyingPreference = findPreference("VR Movement", "Jumping and flying");
+                    if (locomotionPreference && flyingPreference) {
+                        flyingPreference.visible = (locomotionPreference.value === 1);
+                        locomotionPreference.valueChanged.connect(function () {
+                            flyingPreference.visible = (locomotionPreference.value === 1);
+                        });
+                    }
+                    if (HMD.isHeadControllerAvailable("Oculus")) {
+                        var boundariesPreference = findPreference("VR Movement", "Show room boundaries while teleporting");
+                        if (boundariesPreference) {
+                            boundariesPreference.label = "Show room boundaries and sensors while teleporting";
                         }
                     }
 
@@ -217,5 +249,33 @@ Item {
                 scrollView.contentY += delta;
             }
         }
+    }
+
+    function findPreference(category, name) {
+        var section = null;
+        var preference = null;
+        var i;
+
+        // Find category section.
+        i = 0;
+        while (!section && i < sections.length) {
+            if (sections[i].name === category) {
+                section = sections[i];
+            }
+            i++;
+        }
+
+        // Find named preference.
+        if (section) {
+            i = 0;
+            while (!preference && i < section.preferences.length) {
+                if (section.preferences[i].preference && section.preferences[i].preference.name === name) {
+                    preference = section.preferences[i];
+                }
+                i++;
+            }
+        }
+
+        return preference;
     }
 }

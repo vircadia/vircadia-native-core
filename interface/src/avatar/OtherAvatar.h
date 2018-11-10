@@ -28,6 +28,7 @@ public:
 
     virtual void instantiableAvatar() override { };
     virtual void createOrb() override;
+    virtual void indicateLoadingStatus(LoadingStatus loadingStatus) override;
     void updateOrbPosition();
     void removeOrb();
 
@@ -42,6 +43,7 @@ public:
 
     void setWorkloadRegion(uint8_t region);
     bool shouldBeInPhysicsSimulation() const;
+    bool needsPhysicsUpdate() const;
 
     friend AvatarManager;
 

@@ -34,13 +34,18 @@ class AudioMixer : public ThreadedAssignment {
 public:
     AudioMixer(ReceivedMessage& message);
 
+
+    struct ZoneDescription {
+        QString name;
+        AABox area;
+    };
     struct ZoneSettings {
-        QString source;
-        QString listener;
+        int source;
+        int listener;
         float coefficient;
     };
     struct ReverbSettings {
-        QString zone;
+        int zone;
         float reverbTime;
         float wetLevel;
     };
@@ -48,9 +53,9 @@ public:
     static int getStaticJitterFrames() { return _numStaticJitterFrames; }
     static bool shouldMute(float quietestFrame) { return quietestFrame > _noiseMutingThreshold; }
     static float getAttenuationPerDoublingInDistance() { return _attenuationPerDoublingInDistance; }
-    static const QHash<QString, AABox>& getAudioZones() { return _audioZones; }
-    static const QVector<ZoneSettings>& getZoneSettings() { return _zoneSettings; }
-    static const QVector<ReverbSettings>& getReverbSettings() { return _zoneReverbSettings; }
+    static const std::vector<ZoneDescription>& getAudioZones() { return _audioZones; }
+    static const std::vector<ZoneSettings>& getZoneSettings() { return _zoneSettings; }
+    static const std::vector<ReverbSettings>& getReverbSettings() { return _zoneReverbSettings; }
     static const std::pair<QString, CodecPluginPointer> negotiateCodec(std::vector<QString> codecs);
 
     static bool shouldReplicateTo(const Node& from, const Node& to) {
@@ -79,11 +84,8 @@ private slots:
 
 private:
     // mixing helpers
-    std::chrono::microseconds timeFrame(p_high_resolution_clock::time_point& timestamp);
+    std::chrono::microseconds timeFrame();
     void throttle(std::chrono::microseconds frameDuration, int frame);
-    // pop a frame from any streams on the node
-    // returns the number of available streams
-    int prepareFrame(const SharedNodePointer& node, unsigned int frame);
 
     AudioMixerClientData* getOrCreateClientData(Node* node);
 
@@ -91,6 +93,9 @@ private:
 
     void parseSettingsObject(const QJsonObject& settingsObject);
     void clearDomainSettings();
+
+    p_high_resolution_clock::time_point _idealFrameTimestamp;
+    p_high_resolution_clock::time_point _startFrameTimestamp;
 
     float _trailingMixRatio { 0.0f };
     float _throttlingRatio { 0.0f };
@@ -100,7 +105,7 @@ private:
     int _numStatFrames { 0 };
     AudioMixerStats _stats;
 
-    AudioMixerSlavePool _slavePool;
+    AudioMixerSlavePool _slavePool { _workerSharedData };
 
     class Timer {
     public:
@@ -123,7 +128,9 @@ private:
         uint64_t _history[TIMER_TRAILING_SECONDS] {};
         int _index { 0 };
     };
+
     Timer _ticTiming;
+    Timer _checkTimeTiming;
     Timer _sleepTiming;
     Timer _frameTiming;
     Timer _prepareTiming;
@@ -136,10 +143,13 @@ private:
     static float _attenuationPerDoublingInDistance;
     static std::map<QString, CodecPluginPointer> _availableCodecs;
     static QStringList _codecPreferenceOrder;
-    static QHash<QString, AABox> _audioZones;
-    static QVector<ZoneSettings> _zoneSettings;
-    static QVector<ReverbSettings> _zoneReverbSettings;
 
+
+    static std::vector<ZoneDescription> _audioZones;
+    static std::vector<ZoneSettings> _zoneSettings;
+    static std::vector<ReverbSettings> _zoneReverbSettings;
+
+    AudioMixerSlave::SharedData _workerSharedData;
 };
 
 #endif // hifi_AudioMixer_h

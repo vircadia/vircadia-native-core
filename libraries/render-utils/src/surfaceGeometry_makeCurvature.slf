@@ -25,7 +25,7 @@ struct SurfaceGeometryParams {
     vec4 curvatureInfo;
 };
 
-layout(binding= RENDER_UTILS_BUFFER_SG_PARAMS) uniform surfaceGeometryParamsBuffer {
+LAYOUT(binding= RENDER_UTILS_BUFFER_SG_PARAMS) uniform surfaceGeometryParamsBuffer {
     SurfaceGeometryParams params;
 };
 
@@ -46,7 +46,7 @@ bool isFullResolution() {
 }
 
 
-layout(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D linearDepthMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D linearDepthMap;
 
 float getZEye(ivec2 pixel) {
     return -texelFetch(linearDepthMap, pixel, 0).x;
@@ -59,7 +59,7 @@ vec2 sideToFrameTexcoord(vec2 side, vec2 texcoordPos) {
     return vec2((texcoordPos.x + side.x) * side.y, texcoordPos.y);
 }
 
-layout(binding=RENDER_UTILS_TEXTURE_SG_NORMAL) uniform sampler2D normalMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SG_NORMAL) uniform sampler2D normalMap;
 
 vec3 getRawNormal(vec2 texcoord) {
     return texture(normalMap, texcoord).xyz;

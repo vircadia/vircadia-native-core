@@ -564,7 +564,7 @@
     }
 
     function walletNotSetup() {
-        createNotification("Your wallet isn't set up. Open the WALLET app.", NotificationType.WALLET);
+        createNotification("Your wallet isn't activated yet. Open the WALLET app.", NotificationType.WALLET);
     }
 
     function connectionAdded(connectionName) {
@@ -634,7 +634,7 @@
     Window.notifyEditError = onEditError;
     Window.notify = onNotify;
     Tablet.tabletNotification.connect(tabletNotification);
-    Wallet.walletNotSetup.connect(walletNotSetup);
+    WalletScriptingInterface.walletNotSetup.connect(walletNotSetup);
 
     Messages.subscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
     Messages.messageReceived.connect(onMessageReceived);

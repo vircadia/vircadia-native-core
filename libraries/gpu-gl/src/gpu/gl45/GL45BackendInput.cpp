@@ -28,7 +28,7 @@ void GL45Backend::resetInputStage() {
 
 void GL45Backend::updateInput() {
     bool isStereoNow = isStereo();
-    // track stereo state change potentially happening wihtout changing the input format
+    // track stereo state change potentially happening without changing the input format
     // this is a rare case requesting to invalid the format
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
     _input._invalidFormat |= (isStereoNow != _input._lastUpdateStereoState);
@@ -39,13 +39,14 @@ void GL45Backend::updateInput() {
         InputStageState::ActivationCache newActivation;
 
         // Assign the vertex format required
-        if (_input._format) {
+        auto format = acquire(_input._format);
+        if (format) {
             bool hasColorAttribute{ false };
 
             _input._attribBindingBuffers.reset();
 
-            const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
-            auto& inputChannels = _input._format->getChannels();
+            const auto& attributes = format->getAttributes();
+            const auto& inputChannels = format->getChannels();
             for (auto& channelIt : inputChannels) {
                 auto bufferChannelNum = (channelIt).first;
                 const Stream::Format::ChannelMap::value_type::second_type& channel = (channelIt).second;
@@ -132,9 +133,18 @@ void GL45Backend::updateInput() {
         auto offset = _input._bufferOffsets.data();
         auto stride = _input._bufferStrides.data();
 
-        for (GLuint buffer = 0; buffer < _input._buffers.size(); buffer++, vbo++, offset++, stride++) {
+        // Profile the count of buffers to update and use it to short cut the for loop
+        int numInvalids = (int) _input._invalidBuffers.count();
+        _stats._ISNumInputBufferChanges += numInvalids;
+
+        auto numBuffers = _input._buffers.size();
+        for (GLuint buffer = 0; buffer < numBuffers; buffer++, vbo++, offset++, stride++) {
             if (_input._invalidBuffers.test(buffer)) {
                 glBindVertexBuffer(buffer, (*vbo), (*offset), (GLsizei)(*stride));
+                numInvalids--;
+                if (numInvalids <= 0) {
+                    break;
+                }
             }
         }
 

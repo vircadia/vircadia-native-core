@@ -11,12 +11,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-layout(binding=0) uniform sampler2D depthMap;
+LAYOUT(binding=0) uniform sampler2D depthMap;
 
 layout(location=0) out vec4 outFragColor;
 
 void main(void) {
-	float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
-	outFragColor = vec4(Zdb, 0.0, 0.0, 1.0);
+    float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
+    outFragColor = vec4(Zdb, 0.0, 0.0, 1.0);
 }
 

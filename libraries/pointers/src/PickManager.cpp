@@ -38,11 +38,11 @@ std::shared_ptr<PickQuery> PickManager::findPick(unsigned int uid) const {
 
 void PickManager::removePick(unsigned int uid) {
     withWriteLock([&] {
-        auto type = _typeMap.find(uid);
-        if (type != _typeMap.end()) {
-            _picks[type->second].erase(uid);
-            _typeMap.erase(uid);
-            _totalPickCounts[type->second]--;
+        auto typeIt = _typeMap.find(uid);
+        if (typeIt != _typeMap.end()) {
+            _picks[typeIt->second].erase(uid);
+            _totalPickCounts[typeIt->second]--;
+            _typeMap.erase(typeIt);
         }
     });
 }
@@ -88,6 +88,17 @@ void PickManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& includ
     if (pick) {
         pick->setIncludeItems(include);
     }
+}
+
+Transform PickManager::getParentTransform(unsigned int uid) const {
+    auto pick = findPick(uid);
+    if (pick) {
+        auto parentTransform = pick->parentTransform;
+        if (parentTransform) {
+            return parentTransform->getTransform();
+        }
+    }
+    return Transform();
 }
 
 Transform PickManager::getResultTransform(unsigned int uid) const {
