@@ -16,8 +16,7 @@
     Script.include("/~/system/libraries/Xform.js");
     Script.include("/~/system/libraries/globals.js");
     var DEBUG = false;
-    var MIN_LOADING_PROGRESS = 3.6;
-    var TOTAL_LOADING_PROGRESS = 3.8;
+    var TOTAL_LOADING_PROGRESS = 3.7;
     var EPSILON = 0.05;
     var TEXTURE_EPSILON = 0.01;
     var isVisible = false;
@@ -27,6 +26,7 @@
     var MAX_LEFT_MARGIN = 1.9;
     var INNER_CIRCLE_WIDTH = 4.7;
     var DEFAULT_Z_OFFSET = 5.45;
+    var LOADING_IMAGE_WIDTH_PIXELS = 1024;
     var previousCameraMode = Camera.mode;
 
     var renderViewTask = Render.getConfig("RenderMainView");
@@ -182,27 +182,29 @@
         parentID: anchorOverlay
     });
 
-    var loadingBarPlacard = Overlays.addOverlay("image3d", {
-        name: "Loading-Bar-Placard",
-        localPosition: { x: 0.0, y: -0.99, z: 0.3 },
-        url: Script.resourcesPath() + "images/loadingBar_placard.png",
+
+    var loadingBarProgress = Overlays.addOverlay("image3d", {
+        name: "Loading-Bar-Progress",
+        localPosition: { x: 0.0, y: -0.86, z: 0.0 },
+        url: Script.resourcesPath() + "images/loadingBar_progress.png",
         alpha: 1,
-        dimensions: { x: 4, y: 2.8 },
+        dimensions: { x: TOTAL_LOADING_PROGRESS, y: 0.3},
         visible: isVisible,
         emissive: true,
         ignoreRayIntersection: false,
         drawInFront: true,
         grabbable: false,
         localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 180.0, z: 0.0 }),
-        parentID: anchorOverlay
+        parentID: anchorOverlay,
+        keepAspectRatio: false
     });
 
-    var loadingBarProgress = Overlays.addOverlay("image3d", {
-        name: "Loading-Bar-Progress",
-        localPosition: { x: 0.0, y: -0.90, z: 0.0 },
-        url: Script.resourcesPath() + "images/loadingBar_progress.png",
+    var loadingBarPlacard = Overlays.addOverlay("image3d", {
+        name: "Loading-Bar-Placard",
+        localPosition: { x: 0.0, y: -0.99, z: 0.4 },
+        url: Script.resourcesPath() + "images/loadingBar_placard.png",
         alpha: 1,
-        dimensions: { x: 3.8, y: 2.8 },
+        dimensions: { x: 4, y: 2.8 },
         visible: isVisible,
         emissive: true,
         ignoreRayIntersection: false,
@@ -245,15 +247,7 @@
     }
 
     function resetValues() {
-        var properties = {
-            localPosition: { x: 1.85, y: -0.935, z: 0.0 },
-            dimensions: {
-                x: 0.1,
-                y: 2.8
-            }
-        };
-
-        Overlays.editOverlay(loadingBarProgress, properties);
+        updateProgressBar(0.0);
     }
 
     function startInterstitialPage() {
@@ -263,10 +257,11 @@
             target = 0;
             textureMemSizeStabilityCount = 0;
             textureMemSizeAtLastCheck = 0;
-            currentProgress = 0.1;
+            currentProgress = 0.0;
             connectionToDomainFailed = false;
             previousCameraMode = Camera.mode;
             Camera.mode = "first person";
+            updateProgressBar(0.0);
             timer = Script.setTimeout(update, 2000);
         }
     }
@@ -377,13 +372,13 @@
         }
     }
 
-    var currentProgress = 0.1;
+    var currentProgress = 0.0;
 
     function updateOverlays(physicsEnabled) {
 
         if (isInterstitialOverlaysVisible !== !physicsEnabled && !physicsEnabled === true) {
-             // visible changed to true.
-             isInterstitialOverlaysVisible = !physicsEnabled;
+            // visible changed to true.
+            isInterstitialOverlaysVisible = !physicsEnabled;
         }
 
         var properties = {
@@ -400,7 +395,6 @@
         };
 
         var loadingBarProperties = {
-            dimensions: { x: 0.0, y: 2.8 },
             visible: !physicsEnabled
         };
 
@@ -434,8 +428,8 @@
         }
 
         if (isInterstitialOverlaysVisible !== !physicsEnabled && !physicsEnabled === false) {
-             // visible changed to false.
-             isInterstitialOverlaysVisible = !physicsEnabled;
+            // visible changed to false.
+            isInterstitialOverlaysVisible = !physicsEnabled;
         }
     }
 
@@ -459,8 +453,34 @@
         }
     }
 
+    function updateProgressBar(progress) {
+        var progressPercentage = progress / TOTAL_LOADING_PROGRESS;
+        var subImageWidth = progressPercentage * LOADING_IMAGE_WIDTH_PIXELS;
+
+        var start = TOTAL_LOADING_PROGRESS / 2;
+        var end = 0;
+        var xLocalPosition = (progressPercentage * (end - start)) + start;
+        var properties = {
+            localPosition: { x: xLocalPosition, y: -0.93, z: 0.0 },
+            dimensions: {
+                x: progress,
+                y: 0.3
+            },
+            localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 180.0, z: 0.0 }),
+            subImage: {
+                x: 0.0,
+                y: 0.0,
+                width: subImageWidth,
+                height: 128
+            }
+        };
+
+        Overlays.editOverlay(loadingBarProgress, properties);
+    }
+
     var MAX_TEXTURE_STABILITY_COUNT = 30;
     var INTERVAL_PROGRESS = 0.04;
+    var INTERVAL_PROGRESS_PHYSICS_ENABLED = 0.09;
     function update() {
         var renderStats = Render.getConfig("Stats");
         var physicsEnabled = Window.isPhysicsEnabled();
@@ -502,16 +522,9 @@
             target = TOTAL_LOADING_PROGRESS;
         }
 
-        currentProgress = lerp(currentProgress, target, INTERVAL_PROGRESS);
-        var properties = {
-            localPosition: { x: (1.85 - (currentProgress / 2) - (-0.029 * (currentProgress / TOTAL_LOADING_PROGRESS))), y: -0.935, z: 0.0 },
-            dimensions: {
-                x: currentProgress,
-                y: 2.8
-            }
-        };
+        currentProgress = lerp(currentProgress, target, (physicsEnabled ? INTERVAL_PROGRESS_PHYSICS_ENABLED : INTERVAL_PROGRESS));
 
-        Overlays.editOverlay(loadingBarProgress, properties);
+        updateProgressBar(currentProgress);
 
         if (errorConnectingToDomain) {
             updateOverlays(errorConnectingToDomain);
@@ -542,17 +555,11 @@
     }
     var whiteColor = { red: 255, green: 255, blue: 255 };
     var greyColor = { red: 125, green: 125, blue: 125 };
+
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     Overlays.hoverEnterOverlay.connect(onEnterOverlay);
-
     Overlays.hoverLeaveOverlay.connect(onLeaveOverlay);
-
     location.hostChanged.connect(domainChanged);
-    location.lookupResultsFinished.connect(function() {
-        Script.setTimeout(function() {
-            connectionToDomainFailed = !location.isConnected;
-        }, 1200);
-    });
     Window.redirectErrorStateChanged.connect(toggleInterstitialPage);
 
     MyAvatar.sensorToWorldScaleChanged.connect(scaleInterstitialPage);

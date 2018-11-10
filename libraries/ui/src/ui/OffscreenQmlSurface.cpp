@@ -250,6 +250,7 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
 
     engine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
     auto importList = engine->importPathList();
+    importList.insert(importList.begin(), PathUtils::resourcesPath() + "qml/");
     importList.insert(importList.begin(), PathUtils::resourcesPath());
     engine->setImportPathList(importList);
     for (const auto& path : importList) {

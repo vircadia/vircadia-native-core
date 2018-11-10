@@ -149,20 +149,12 @@ Script.include("/~/system/libraries/controllers.js");
             this.hapticTargetID = null;
             var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
             if (this.thisHandIsParent(props) && !this.robbed) {
-                if (this.previousParentID[this.targetEntityID] === Uuid.NULL || this.previousParentID === undefined) {
-                    Entities.editEntity(this.targetEntityID, {
-                        parentID: this.previousParentID[this.targetEntityID],
-                        parentJointIndex: this.previousParentJointIndex[this.targetEntityID]
-                    });
-                } else {
-                    // we're putting this back as a child of some other parent, so zero its velocity
-                    Entities.editEntity(this.targetEntityID, {
-                        parentID: this.previousParentID[this.targetEntityID],
-                        parentJointIndex: this.previousParentJointIndex[this.targetEntityID],
-                        localVelocity: {x: 0, y: 0, z: 0},
-                        localAngularVelocity: {x: 0, y: 0, z: 0}
-                    });
-                }
+                Entities.editEntity(this.targetEntityID, {
+                    parentID: this.previousParentID[this.targetEntityID],
+                    parentJointIndex: this.previousParentJointIndex[this.targetEntityID],
+                    localVelocity: {x: 0, y: 0, z: 0},
+                    localAngularVelocity: {x: 0, y: 0, z: 0}
+                });
             }
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];

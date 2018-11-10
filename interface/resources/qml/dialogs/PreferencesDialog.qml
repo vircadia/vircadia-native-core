@@ -10,8 +10,8 @@
 
 import QtQuick 2.5
 
-import "../controls-uit" as HifiControls
-import "../styles-uit"
+import controlsUit 1.0 as HifiControls
+import stylesUit 1.0
 import "../windows"
 import "preferences"
 
