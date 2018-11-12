@@ -2767,9 +2767,11 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             success = false;
         }
 
-        const QUuid& cloneOriginID = entity->getCloneOriginID();
-        if (!cloneOriginID.isNull()) {
-            cloneIDs[cloneOriginID].push_back(entity->getEntityItemID());
+        if (entity) {
+            const QUuid& cloneOriginID = entity->getCloneOriginID();
+            if (!cloneOriginID.isNull()) {
+                cloneIDs[cloneOriginID].push_back(entity->getEntityItemID());
+            }
         }
     }
 

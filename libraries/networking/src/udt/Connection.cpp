@@ -195,7 +195,7 @@ void Connection::recordSentPackets(int wireSize, int payloadSize,
 void Connection::recordRetransmission(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
     _stats.record(ConnectionStats::Stats::Retransmission);
 
-    _congestionControl->onPacketSent(wireSize, seqNum, timePoint);
+    _congestionControl->onPacketReSent(wireSize, seqNum, timePoint);
 }
 
 void Connection::sendACK() {
@@ -303,7 +303,7 @@ void Connection::processControl(ControlPacketPointer controlPacket) {
                 // where the other end expired our connection. Let's reset.
 
 #ifdef UDT_CONNECTION_DEBUG
-                qCDebug(networking) << "Got  HandshakeRequest from" << _destination << ", stopping SendQueue";
+                qCDebug(networking) << "Got HandshakeRequest from" << _destination << ", stopping SendQueue";
 #endif
                 _hasReceivedHandshakeACK = false;
                 stopSendQueue();
@@ -327,19 +327,19 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
         return;
     }
     
-    if (ack <= _lastReceivedACK) {
+    if (ack < _lastReceivedACK) {
         // this is an out of order ACK, bail
-        // or
-        // processing an already received ACK, bail
         return;
     }
-    
-    _lastReceivedACK = ack;
-    
-    // ACK the send queue so it knows what was received
-    getSendQueue().ack(ack);
 
-    
+    if (ack > _lastReceivedACK) {
+        // this is not a repeated ACK, so update our member and tell the send queue
+        _lastReceivedACK = ack;
+
+        // ACK the send queue so it knows what was received
+        getSendQueue().ack(ack);
+    }
+
     // give this ACK to the congestion control and update the send queue parameters
     updateCongestionControlAndSendQueue([this, ack, &controlPacket] {
         if (_congestionControl->onACK(ack, controlPacket->getReceiveTime())) {

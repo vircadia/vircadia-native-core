@@ -39,7 +39,7 @@ def getTypeForScribeFile(scribefilename):
     return switcher.get(extension)
 
 def getCommonScribeArgs(scribefile, includeLibs):
-    scribeArgs = [args.scribe]
+    scribeArgs = [os.path.join(args.tools_dir, 'scribe')]
     # FIXME use the sys.platform to set the correct value
     scribeArgs.extend(['-D', 'GLPROFILE', 'PC_GL'])
     scribeArgs.extend(['-T', getTypeForScribeFile(scribefile)])
@@ -133,9 +133,9 @@ folderMutex = Lock()
 def processCommand(line):
     global args
     global scribeDepCache
-    glslangExec = args.spirv_binaries + '/glslangValidator'
-    spirvCrossExec = args.spirv_binaries + '/spirv-cross'
-    spirvOptExec = args.spirv_binaries + '/spirv-opt'
+    glslangExec = args.tools_dir + '/glslangValidator'
+    spirvCrossExec = args.tools_dir + '/spirv-cross'
+    spirvOptExec = args.tools_dir + '/spirv-opt'
     params = line.split(';')
     dialect = params.pop(0)
     variant = params.pop(0)
@@ -170,11 +170,8 @@ def processCommand(line):
 
         scribeDepCache.gen(scribeFile, libs, dialect, variant)
         scribeArgs = getCommonScribeArgs(scribeFile, libs)
-        headerFlag = '-H'
-        # using the old flag on Android builds for now
-        if (dialect == '310es'): headerFlag = '-h'
         for header in getDialectAndVariantHeaders(dialect, variant):
-            scribeArgs.extend([headerFlag, header])
+            scribeArgs.extend(['-H', header])
         scribeArgs.extend(['-o', unoptGlslFile])
         executeSubprocess(scribeArgs)
 
@@ -222,10 +219,9 @@ def main():
 
 parser = ArgumentParser(description='Generate shader artifacts.')
 parser.add_argument('--commands', type=argparse.FileType('r'), help='list of commands to execute')
-parser.add_argument('--spirv-binaries', type=str, help='location of the SPIRV binaries')
+parser.add_argument('--tools-dir', type=str, help='location of the host compatible binaries')
 parser.add_argument('--build-dir', type=str, help='The build directory base path')
 parser.add_argument('--source-dir', type=str, help='The root directory of the git repository')
-parser.add_argument('--scribe', type=str, help='The scribe executable path')
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('--force', action='store_true', help='Ignore timestamps and force regeneration of all files')
 parser.add_argument('--dry-run', action='store_true', help='Report the files that would be process, but do not output')
@@ -233,18 +229,16 @@ parser.add_argument('--dry-run', action='store_true', help='Report the files tha
 args = None
 if len(sys.argv) == 1:
     # for debugging
-    spirvPath = os.environ['VULKAN_SDK'] + '/bin'
-    #spirvPath = expanduser('~//VulkanSDK/1.1.82.1/x86_64/bin')
     sourceDir = expanduser('~/git/hifi')
-    buildPath = sourceDir + '/build_noui'
-    scribePath = buildPath + '/tools/scribe/Release/scribe'
+    toolsDir = os.path.join(expanduser('~/git/vcpkg'), 'installed', 'x64-windows', 'tools')
+    buildPath = sourceDir + '/build'
     commandsPath = buildPath + '/libraries/shaders/shadergen.txt'
     shaderDir = buildPath + '/libraries/shaders'
-    testArgs = '--commands {} --spirv-binaries {} --scribe {} --build-dir {} --source-dir {}'.format(
-        commandsPath, spirvPath, scribePath, shaderDir, sourceDir
+    testArgs = '--commands {} --tools-dir {} --build-dir {} --source-dir {}'.format(
+        commandsPath, toolsDir, shaderDir, sourceDir
     ).split()
-    #testArgs.append('--debug')
-    #testArgs.append('--force')
+    testArgs.append('--debug')
+    testArgs.append('--force')
     #testArgs.append('--dry-run')
     args = parser.parse_args(testArgs)
 else:

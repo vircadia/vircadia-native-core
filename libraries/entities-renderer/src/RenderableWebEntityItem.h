@@ -65,7 +65,6 @@ private:
     gpu::TexturePointer _texture;
     QString _lastSourceUrl;
     uint16_t _lastDPI;
-    bool _lastLocked;
     QTimer _timer;
     uint64_t _lastRenderTime { 0 };
 };

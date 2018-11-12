@@ -341,10 +341,10 @@ const glm::vec3 START_LOCATION(6270, 211, 6000);
 // Avatar Transit Constants
 const float AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE = 1.0f;
 const float AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE = 30.0f;
-const int AVATAR_TRANSIT_FRAME_COUNT = 11;
+const int AVATAR_TRANSIT_FRAME_COUNT = 5;
 const float AVATAR_TRANSIT_FRAMES_PER_METER = 0.5f;
 const float AVATAR_TRANSIT_ABORT_DISTANCE = 0.1f;
-const bool AVATAR_TRANSIT_DISTANCE_BASED = true;
+const bool AVATAR_TRANSIT_DISTANCE_BASED = false;
 const float AVATAR_TRANSIT_FRAMES_PER_SECOND = 30.0f;
 const float AVATAR_PRE_TRANSIT_FRAME_COUNT = 10.0f;
 const float AVATAR_POST_TRANSIT_FRAME_COUNT = 27.0f;
@@ -1221,6 +1221,7 @@ public:
 
     void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
     bool getIsNewAvatar() { return _isNewAvatar; }
+    void setIsClientAvatar(bool isClientAvatar) { _isClientAvatar = isClientAvatar; }
 
 signals:
 
@@ -1486,6 +1487,7 @@ protected:
     float _density;
     int _replicaIndex { 0 };
     bool _isNewAvatar { true };
+    bool _isClientAvatar { false };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;

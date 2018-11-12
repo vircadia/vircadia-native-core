@@ -89,7 +89,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
             PacketType::NodeIgnoreRequest,
             PacketType::RadiusIgnoreRequest,
             PacketType::RequestsDomainListData,
-            PacketType::PerAvatarGainSet },
+            PacketType::PerAvatarGainSet,
+            PacketType::AudioSoloRequest },
             this, "queueAudioPacket");
 
     // packets whose consequences are global should be processed on the main thread

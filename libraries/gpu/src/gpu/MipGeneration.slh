@@ -13,7 +13,7 @@
 
 <@include gpu/ShaderConstants.h@>
 
-layout(binding=GPU_TEXTURE_MIP_CREATION_INPUT) uniform sampler2D texMap;
+LAYOUT(binding=GPU_TEXTURE_MIP_CREATION_INPUT) uniform sampler2D texMap;
 
 in vec2 varTexCoord0;
 

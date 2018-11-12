@@ -41,6 +41,7 @@
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
+#include "scripting/KeyboardScriptingInterface.h"
 #include <Preferences.h>
 #include <AvatarBookmarks.h>
 #include <ScriptEngines.h>
@@ -53,6 +54,7 @@
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/AccountServicesScriptingInterface.h"
+#include "scripting/WalletScriptingInterface.h"
 #include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
 #include "SoundCacheScriptingInterface.h"
@@ -270,7 +272,9 @@ void Web3DOverlay::setupQmlSurface(bool isTablet) {
         _webSurface->getSurfaceContext()->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Reticle", qApp->getApplicationCompositor().getReticleInterface());
         _webSurface->getSurfaceContext()->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
 
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);

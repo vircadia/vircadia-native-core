@@ -196,12 +196,6 @@
     "particleRadius": {
         "tooltip": "The size of each particle."
     },
-    "radiusStart": {
-        "tooltip": ""
-    },
-    "radiusFinish": {
-        "tooltip": ""
-    },
     "radiusSpread": {
         "tooltip": "The spread in size that each particle is given, resulting in a variety of sizes."
     },
@@ -215,12 +209,6 @@
     "alpha": {
         "tooltip": "The alpha of each particle."
     },
-    "alphaStart": {
-        "tooltip": ""
-    },
-    "alphaFinish": {
-        "tooltip": ""
-    },
     "alphaSpread": {
         "tooltip": "The spread in alpha that each particle is given, resulting in a variety of alphas."
     },
@@ -233,12 +221,6 @@
     "particleSpin": {
         "tooltip": "The spin of each particle in the system."
     },
-    "spinStart": {
-        "tooltip": ""
-    },
-    "spinFinish": {
-        "tooltip": ""
-    },
     "spinSpread": {
         "tooltip": "The spread in spin that each particle is given, resulting in a variety of spins."
     },
@@ -248,14 +230,8 @@
     "polarStart": {
         "tooltip": "The angle in deg at which particles are emitted. Starts in the entity's -z direction, and rotates around its y axis."
     },
-    "polarFinish": {
-        "tooltip": ""
-    },
     "azimuthStart": {
         "tooltip": "The angle in deg at which particles are emitted.  Starts in the entity's -z direction, and rotates around its y axis."
-    },
-    "azimuthFinish": {
-        "tooltip": ""
     },
     "lightColor": {
         "tooltip": "The color of the light emitted.",
@@ -318,11 +294,20 @@
     "position": {
         "tooltip": "The global position of this entity."
     },
+    "localPosition": {
+        "tooltip": "The local position of this entity."
+    },
     "rotation": {
-        "tooltip": "The rotation of the entity with respect to world coordinates."
+        "tooltip": "The global rotation of this entity."
+    },
+    "localRotation": {
+        "tooltip": "The local rotation of this entity."
     },
     "dimensions": {
         "tooltip": "The global dimensions of this entity."
+    },
+    "localDimensions": {
+        "tooltip": "The local dimensions of this entity."
     },
     "scale": {
         "tooltip": "The global scaling of this entity.",
@@ -422,13 +407,13 @@
     "userData": {
         "tooltip": "Used to store extra data about the entity in JSON format."
     },
-    "velocity": {
+    "localVelocity": {
         "tooltip": "The linear velocity vector of the entity. The velocity at which this entity moves forward in space."
     },
     "damping": {
         "tooltip": "The linear damping to slow down the linear velocity of an entity over time."
     },
-    "angularVelocity": {
+    "localAngularVelocity": {
         "tooltip": "The angular velocity of the entity in rad/s with respect to its axes, about its pivot point."
     },
     "angularDamping": {

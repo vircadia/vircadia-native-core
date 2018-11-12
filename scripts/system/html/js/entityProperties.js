@@ -31,6 +31,12 @@ const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
 const NO_SELECTION = "<i>No selection</i>";
 
+const PROPERTY_SPACE_MODE = {
+    ALL: 0,
+    LOCAL: 1,
+    WORLD: 2
+};
+
 const GROUPS = [
     {
         id: "base",
@@ -662,7 +668,7 @@ const GROUPS = [
                 propertyID: "speedSpread",
             },
             {
-                label: "Emit Dimension",
+                label: "Emit Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
                 min: 0,
@@ -902,13 +908,13 @@ const GROUPS = [
             {
                 label: "Horizontal Angle Start",
                 type: "slider",
-                min: -180,
-                max: 0,
+                min: 0,
+                max: 180,
                 step: 1,
                 decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
-                propertyID: "azimuthStart",
+                propertyID: "polarStart",
             },
             {
                 label: "Horizontal Angle Finish",
@@ -919,18 +925,18 @@ const GROUPS = [
                 decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
-                propertyID: "azimuthFinish",
+                propertyID: "polarFinish",
             },
             {
                 label: "Vertical Angle Start",
                 type: "slider",
-                min: 0,
-                max: 180,
+                min: -180,
+                max: 0,
                 step: 1,
                 decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
-                propertyID: "polarStart",
+                propertyID: "azimuthStart",
             },
             {
                 label: "Vertical Angle Finish",
@@ -941,7 +947,7 @@ const GROUPS = [
                 decimals: 0,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
-                propertyID: "polarFinish",
+                propertyID: "azimuthFinish",
             },
         ]
     },
@@ -957,6 +963,17 @@ const GROUPS = [
                 subLabels: [ "x", "y", "z" ],
                 unit: "m",
                 propertyID: "position",
+                spaceMode: PROPERTY_SPACE_MODE.WORLD,
+            },
+            {
+                label: "Local Position",
+                type: "vec3",
+                vec3Type: "xyz",
+                decimals: 4,
+                subLabels: [ "x", "y", "z" ],
+                unit: "m",
+                propertyID: "localPosition",
+                spaceMode: PROPERTY_SPACE_MODE.LOCAL,
             },
             {
                 label: "Rotation",
@@ -967,9 +984,21 @@ const GROUPS = [
                 subLabels: [ "pitch", "yaw", "roll" ],
                 unit: "deg",
                 propertyID: "rotation",
+                spaceMode: PROPERTY_SPACE_MODE.WORLD,
             },
             {
-                label: "Dimension",
+                label: "Local Rotation",
+                type: "vec3",
+                vec3Type: "pyr",
+                step: 0.1,
+                decimals: 4,
+                subLabels: [ "pitch", "yaw", "roll" ],
+                unit: "deg",
+                propertyID: "localRotation",
+                spaceMode: PROPERTY_SPACE_MODE.LOCAL,
+            },
+            {
+                label: "Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
                 min: 0,
@@ -978,6 +1007,19 @@ const GROUPS = [
                 subLabels: [ "x", "y", "z" ],
                 unit: "m",
                 propertyID: "dimensions",
+                spaceMode: PROPERTY_SPACE_MODE.WORLD,
+            },
+            {
+                label: "Local Dimensions",
+                type: "vec3",
+                vec3Type: "xyz",
+                min: 0,
+                step: 0.1,
+                decimals: 4,
+                subLabels: [ "x", "y", "z" ],
+                unit: "m",
+                propertyID: "localDimensions",
+                spaceMode: PROPERTY_SPACE_MODE.LOCAL,
             },
             {
                 label: "Scale",
@@ -1174,7 +1216,7 @@ const GROUPS = [
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "m/s",
-                propertyID: "velocity",
+                propertyID: "localVelocity",
             },
             {
                 label: "Linear Damping",
@@ -1190,7 +1232,7 @@ const GROUPS = [
                 decimals: 4,
                 subLabels: [ "pitch", "yaw", "roll" ],
                 unit: "deg/s",
-                propertyID: "angularVelocity",
+                propertyID: "localAngularVelocity",
             },
             {
                 label: "Angular Damping",
@@ -1317,6 +1359,7 @@ var particlePropertyUpdates = {};
 var selectedEntityProperties;
 var lastEntityID = null;
 var createAppTooltip = new CreateAppTooltip();
+let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
 function debugPrint(message) {
     EventBridge.emitWebEvent(
@@ -2666,7 +2709,17 @@ function showParentMaterialNameBox(number, elNumber, elString) {
     }
 }
 
-
+function updateVisibleSpaceModeProperties() {
+    for (let propertyID in properties) {
+        if (properties.hasOwnProperty(propertyID)) {
+            let property = properties[propertyID];
+            let propertySpaceMode = property.spaceMode;
+            if (propertySpaceMode !== PROPERTY_SPACE_MODE.ALL) {
+                showPropertyElement(propertyID, propertySpaceMode === currentSpaceMode);
+            }
+        }
+    }
+}
 
 function loaded() {
     openEventBridge(function() {
@@ -2700,6 +2753,7 @@ function loaded() {
                 let propertyType = propertyData.type;
                 let propertyID = propertyData.propertyID;               
                 let propertyName = propertyData.propertyName !== undefined ? propertyData.propertyName : propertyID;
+                let propertySpaceMode = propertyData.spaceMode !== undefined ? propertyData.spaceMode : PROPERTY_SPACE_MODE.ALL;
                 let propertyElementID = "property-" + propertyID;
                 propertyElementID = propertyElementID.replace('.', '-');
                 
@@ -2746,7 +2800,8 @@ function loaded() {
                     elementID: propertyElementID, 
                     name: propertyName,
                     isParticleProperty: group.id.includes("particles"),
-                    elProperty: elProperty 
+                    elProperty,
+                    spaceMode: propertySpaceMode,
                 };
                 properties[propertyID] = property;
                 
@@ -2840,6 +2895,8 @@ function loaded() {
             
             elGroups[group.id] = elGroup;
         });
+
+        updateVisibleSpaceModeProperties();
         
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {
@@ -2860,6 +2917,9 @@ function loaded() {
                         elServerScriptStatus.innerText = NOT_RUNNING_SCRIPT_STATUS;
                     }
                 } else if (data.type === "update" && data.selections) {
+                    if (data.spaceMode !== undefined) {
+                        currentSpaceMode = data.spaceMode === "local" ? PROPERTY_SPACE_MODE.LOCAL : PROPERTY_SPACE_MODE.WORLD;
+                    }
                     if (data.selections.length === 0) {
                         if (lastEntityID !== null) {
                             if (editor !== null) {
@@ -3082,7 +3142,9 @@ function loaded() {
                                 }
                             }
                         }
-                        
+
+                        updateVisibleSpaceModeProperties();
+
                         if (selectedEntityProperties.type === "Image") {
                             let imageLink = JSON.parse(selectedEntityProperties.textures)["tex.picture"];
                             getPropertyInputElement("image").value = imageLink;
@@ -3165,8 +3227,16 @@ function loaded() {
                 } else if (data.type === 'tooltipsReply') {
                     createAppTooltip.setIsEnabled(!data.hmdActive);
                     createAppTooltip.setTooltipData(data.tooltips);
+                } else if (data.type === 'hmdActiveChanged') {
+                    createAppTooltip.setIsEnabled(!data.hmdActive);
+                } else if (data.type === 'setSpaceMode') {
+                    currentSpaceMode = data.spaceMode === "local" ? PROPERTY_SPACE_MODE.LOCAL : PROPERTY_SPACE_MODE.WORLD;
+                    updateVisibleSpaceModeProperties();
                 }
             });
+
+            // Request tooltips as soon as we can process a reply:
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
         }
         
         // Server Script Status
@@ -3397,6 +3467,5 @@ function loaded() {
 
     setTimeout(function() {
         EventBridge.emitWebEvent(JSON.stringify({ type: 'propertiesPageReady' }));
-        EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
     }, 1000);
 }
