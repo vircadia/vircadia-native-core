@@ -31,6 +31,12 @@ const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
 const NO_SELECTION = "w";
 
+const PROPERTY_SPACE_MODE = {
+    ALL: 0,
+    LOCAL: 1,
+    WORLD: 2
+};
+
 const GROUPS = [
     {
         id: "base",
@@ -671,7 +677,7 @@ const GROUPS = [
                 propertyID: "speedSpread",
             },
             {
-                label: "Emit Dimension",
+                label: "Emit Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
                 min: 0,
@@ -1008,6 +1014,17 @@ const GROUPS = [
                 subLabels: [ "x", "y", "z" ],
                 unit: "m",
                 propertyID: "position",
+                spaceMode: PROPERTY_SPACE_MODE.WORLD,
+            },
+            {
+                label: "Local Position",
+                type: "vec3",
+                vec3Type: "xyz",
+                decimals: 4,
+                subLabels: [ "x", "y", "z" ],
+                unit: "m",
+                propertyID: "localPosition",
+                spaceMode: PROPERTY_SPACE_MODE.LOCAL,
             },
             {
                 label: "Rotation",
@@ -1018,9 +1035,21 @@ const GROUPS = [
                 subLabels: [ "x", "y", "z" ],
                 unit: "deg",
                 propertyID: "rotation",
+                spaceMode: PROPERTY_SPACE_MODE.WORLD,
             },
             {
-                label: "Dimension",
+                label: "Local Rotation",
+                type: "vec3",
+                vec3Type: "pyr",
+                step: 0.1,
+                decimals: 4,
+                subLabels: [ "pitch", "yaw", "roll" ],
+                unit: "deg",
+                propertyID: "localRotation",
+                spaceMode: PROPERTY_SPACE_MODE.LOCAL,
+            },
+            {
+                label: "Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
                 min: 0,
@@ -1029,6 +1058,19 @@ const GROUPS = [
                 subLabels: [ "x", "y", "z" ],
                 unit: "m",
                 propertyID: "dimensions",
+                spaceMode: PROPERTY_SPACE_MODE.WORLD,
+            },
+            {
+                label: "Local Dimensions",
+                type: "vec3",
+                vec3Type: "xyz",
+                min: 0,
+                step: 0.1,
+                decimals: 4,
+                subLabels: [ "x", "y", "z" ],
+                unit: "m",
+                propertyID: "localDimensions",
+                spaceMode: PROPERTY_SPACE_MODE.LOCAL,
             },
             {
                 label: "Scale",
@@ -1229,7 +1271,7 @@ const GROUPS = [
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "m/s",
-                propertyID: "velocity",
+                propertyID: "localVelocity",
             },
             {
                 label: "Linear Damping",
@@ -1245,7 +1287,7 @@ const GROUPS = [
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "deg/s",
-                propertyID: "angularVelocity",
+                propertyID: "localAngularVelocity",
             },
             {
                 label: "Angular Damping",
@@ -1367,6 +1409,7 @@ var particlePropertyUpdates = {};
 var selectedEntityProperties;
 var lastEntityID = null;
 var createAppTooltip = new CreateAppTooltip();
+let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
 function debugPrint(message) {
     EventBridge.emitWebEvent(
@@ -1570,6 +1613,18 @@ function getPropertyValue(originalPropertyName) {
         propertyValue = selectedEntityProperties[originalPropertyName];
     }
     return propertyValue;
+}
+
+function updateVisibleSpaceModeProperties() {
+    for (let propertyID in properties) {
+        if (properties.hasOwnProperty(propertyID)) {
+            let property = properties[propertyID];
+            let propertySpaceMode = property.spaceMode;
+            if (propertySpaceMode !== PROPERTY_SPACE_MODE.ALL) {
+                showPropertyElement(propertyID, propertySpaceMode === currentSpaceMode);
+            }
+        }
+    }
 }
 
 
@@ -2083,6 +2138,87 @@ function addButtons(elProperty, propertyID, buttons, newRow) {
         elProperty.appendChild(document.createElement('br'));
         elProperty.appendChild(elDiv);
     }
+}
+
+function createProperty(propertyData, propertyElementID, propertyName, propertyID, elProperty) {
+    let property = { 
+        data: propertyData, 
+        elementID: propertyElementID, 
+        name: propertyName,
+        elProperty: elProperty,
+    };
+    let propertyType = propertyData.type;
+
+    switch (propertyType) {
+        case 'string': {
+            property.elInput = createStringProperty(property, elProperty);
+            break;
+        }
+        case 'bool': {
+            property.elInput = createBoolProperty(property, elProperty);
+            break;
+        }
+        case 'number': {
+            property.elInput = createNumberProperty(property, elProperty);
+            break;
+        }
+        case 'vec3': {
+            let elVec3 = createVec3Property(property, elProperty);  
+            property.elInputX = elVec3[VECTOR_ELEMENTS.X_INPUT];
+            property.elInputY = elVec3[VECTOR_ELEMENTS.Y_INPUT];
+            property.elInputZ = elVec3[VECTOR_ELEMENTS.Z_INPUT];
+            break;
+        }
+        case 'vec2': {
+            let elVec2 = createVec2Property(property, elProperty);  
+            property.elInputX = elVec2[VECTOR_ELEMENTS.X_INPUT];
+            property.elInputY = elVec2[VECTOR_ELEMENTS.Y_INPUT];
+            break;
+        }
+        case 'color': {
+            let elColor = createColorProperty(property, elProperty);  
+            property.elColorPicker = elColor[COLOR_ELEMENTS.COLOR_PICKER];
+            property.elInputR = elColor[COLOR_ELEMENTS.RED_INPUT];
+            property.elInputG = elColor[COLOR_ELEMENTS.GREEN_INPUT];
+            property.elInputB = elColor[COLOR_ELEMENTS.BLUE_INPUT]; 
+            break;
+        }
+        case 'dropdown': {
+            property.elInput = createDropdownProperty(property, propertyID, elProperty);
+            break;
+        }
+        case 'textarea': {
+            property.elInput = createTextareaProperty(property, elProperty);
+            break;
+        }
+        case 'icon': {
+            let elIcon = createIconProperty(property, elProperty);
+            property.elSpan = elIcon[ICON_ELEMENTS.ICON];
+            property.elLabel = elIcon[ICON_ELEMENTS.LABEL];
+            break;
+        }
+        case 'texture': {
+            let elTexture = createTextureProperty(property, elProperty);
+            property.elImage = elTexture[TEXTURE_ELEMENTS.IMAGE];
+            property.elInput = elTexture[TEXTURE_ELEMENTS.TEXT_INPUT];
+            break;
+        }
+        case 'buttons': {
+            property.elProperty = createButtonsProperty(property, elProperty);
+            break;
+        }
+        case 'placeholder':
+        case 'sub-header': {
+            break;
+        }
+        default: {
+            console.log("EntityProperties - Unknown property type " + 
+                propertyType + " set to property " + propertyID);
+            break;
+        }
+    }
+
+    return property;
 }
 
 
@@ -2604,88 +2740,6 @@ function showParentMaterialNameBox(number, elNumber, elString) {
     }
 }
 
-function createProperty(propertyData, propertyElementID, propertyName, propertyID, elProperty) {
-    let property = { 
-        data: propertyData, 
-        elementID: propertyElementID, 
-        name: propertyName,
-        elProperty: elProperty,
-    };
-    let propertyType = propertyData.type;
-
-    switch (propertyType) {
-        case 'string': {
-            property.elInput = createStringProperty(property, elProperty);
-            break;
-        }
-        case 'bool': {
-            property.elInput = createBoolProperty(property, elProperty);
-            break;
-        }
-        case 'number': {
-            property.elInput = createNumberProperty(property, elProperty);
-            break;
-        }
-        case 'vec3': {
-            let elVec3 = createVec3Property(property, elProperty);  
-            property.elInputX = elVec3[VECTOR_ELEMENTS.X_INPUT];
-            property.elInputY = elVec3[VECTOR_ELEMENTS.Y_INPUT];
-            property.elInputZ = elVec3[VECTOR_ELEMENTS.Z_INPUT];
-            break;
-        }
-        case 'vec2': {
-            let elVec2 = createVec2Property(property, elProperty);  
-            property.elInputX = elVec2[VECTOR_ELEMENTS.X_INPUT];
-            property.elInputY = elVec2[VECTOR_ELEMENTS.Y_INPUT];
-            break;
-        }
-        case 'color': {
-            let elColor = createColorProperty(property, elProperty);  
-            property.elColorPicker = elColor[COLOR_ELEMENTS.COLOR_PICKER];
-            property.elInputR = elColor[COLOR_ELEMENTS.RED_INPUT];
-            property.elInputG = elColor[COLOR_ELEMENTS.GREEN_INPUT];
-            property.elInputB = elColor[COLOR_ELEMENTS.BLUE_INPUT]; 
-            break;
-        }
-        case 'dropdown': {
-            property.elInput = createDropdownProperty(property, propertyID, elProperty);
-            break;
-        }
-        case 'textarea': {
-            property.elInput = createTextareaProperty(property, elProperty);
-            break;
-        }
-        case 'icon': {
-            let elIcon = createIconProperty(property, elProperty);
-            property.elSpan = elIcon[ICON_ELEMENTS.ICON];
-            property.elLabel = elIcon[ICON_ELEMENTS.LABEL];
-            break;
-        }
-        case 'texture': {
-            let elTexture = createTextureProperty(property, elProperty);
-            property.elImage = elTexture[TEXTURE_ELEMENTS.IMAGE];
-            property.elInput = elTexture[TEXTURE_ELEMENTS.TEXT_INPUT];
-            break;
-        }
-        case 'buttons': {
-            property.elProperty = createButtonsProperty(property, elProperty);
-            break;
-        }
-        case 'placeholder':
-        case 'sub-header': {
-            break;
-        }
-        default: {
-            console.log("EntityProperties - Unknown property type " + 
-                propertyType + " set to property " + propertyID);
-            break;
-        }
-    }
-
-    return property;
-}
-
-
 
 function loaded() {
     openEventBridge(function() {
@@ -2723,6 +2777,7 @@ function loaded() {
                 let propertyType = propertyData.type;
                 let propertyID = propertyData.propertyID;               
                 let propertyName = propertyData.propertyName !== undefined ? propertyData.propertyName : propertyID;
+                let propertySpaceMode = propertyData.spaceMode !== undefined ? propertyData.spaceMode : PROPERTY_SPACE_MODE.ALL;
                 let propertyElementID = "property-" + propertyID;
                 propertyElementID = propertyElementID.replace('.', '-');
                 
@@ -2775,7 +2830,7 @@ function loaded() {
                 } else {
                     elContainer = document.getElementById(propertyData.replaceID);
                 }
-
+                
                 if (elLabel) {
                     createAppTooltip.registerTooltipElement(elLabel, propertyID);
                 }
@@ -2837,6 +2892,8 @@ function loaded() {
 
         let minorSections = document.querySelectorAll(".section.minor");
         minorSections[minorSections.length - 1].className += " last";
+
+        updateVisibleSpaceModeProperties();
         
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {
@@ -2857,6 +2914,9 @@ function loaded() {
                         elServerScriptStatus.innerText = NOT_RUNNING_SCRIPT_STATUS;
                     }
                 } else if (data.type === "update" && data.selections) {
+                    if (data.spaceMode !== undefined) {
+                        currentSpaceMode = data.spaceMode === "local" ? PROPERTY_SPACE_MODE.LOCAL : PROPERTY_SPACE_MODE.WORLD;
+                    }
                     if (data.selections.length === 0) {
                         if (lastEntityID !== null) {
                             if (editor !== null) {
@@ -3082,7 +3142,9 @@ function loaded() {
                                 }
                             }
                         }
-                        
+
+                        updateVisibleSpaceModeProperties();
+
                         if (selectedEntityProperties.type === "Image") {
                             let imageLink = JSON.parse(selectedEntityProperties.textures)["tex.picture"];
                             getPropertyInputElement("image").value = imageLink;
@@ -3167,6 +3229,9 @@ function loaded() {
                     createAppTooltip.setTooltipData(data.tooltips);
                 } else if (data.type === 'hmdActiveChanged') {
                     createAppTooltip.setIsEnabled(!data.hmdActive);
+                } else if (data.type === 'setSpaceMode') {
+                    currentSpaceMode = data.spaceMode === "local" ? PROPERTY_SPACE_MODE.LOCAL : PROPERTY_SPACE_MODE.WORLD;
+                    updateVisibleSpaceModeProperties();
                 }
             });
 

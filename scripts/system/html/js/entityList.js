@@ -23,7 +23,6 @@ const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
 const WINDOW_NONVARIABLE_HEIGHT = 227;
 const NUM_COLUMNS = 12;
 const EMPTY_ENTITY_ID = "0";
-const MAX_LENGTH_RADIUS = 9;
 const DELETE = 46; // Key code for the delete key.
 const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 
@@ -85,29 +84,52 @@ const ICON_FOR_TYPE = {
 };
 
 // List of all entities
-var entities = [];
+let entities = [];
 // List of all entities, indexed by Entity ID
-var entitiesByID = {};
+let entitiesByID = {};
 // The filtered and sorted list of entities passed to ListView
-var visibleEntities = [];
+let visibleEntities = [];
 // List of all entities that are currently selected
-var selectedEntities = [];
+let selectedEntities = [];
 
-var entityList = null; // The ListView
+let entityList = null; // The ListView
 
 /**
  * @type EntityListContextMenu
  */
-var entityListContextMenu = null;
+let entityListContextMenu = null;
 
-var currentSortColumn = 'type';
-var currentSortOrder = ASCENDING_SORT;
-var typeFilters = [];
-var isFilterInView = false;
-var showExtraInfo = false;
+let currentSortColumn = 'type';
+let currentSortOrder = ASCENDING_SORT;
+let typeFilters = [];
+let isFilterInView = false;
+let showExtraInfo = false;
+
+let elEntityTable,
+    elEntityTableBody,
+    elEntityTableScroll,
+    elEntityTableHeaderRow,
+    elRefresh,
+    elToggleLocked,
+    elToggleVisible,
+    elDelete,
+    elFilterTypeSelectBox,
+    elFilterTypeText,
+    elFilterTypeCheckboxes,
+    elFilterSearch,
+    elFilterInView,
+    elFilterRadius,
+    elExport,
+    elPal,
+    elInfoToggle,
+    elInfoToggleGlyph,
+    elSelectedEntitiesCount,
+    elVisibleEntitiesCount,
+    elNoEntitiesMessage,
+    elToggleSpaceMode;
 
 const ENABLE_PROFILING = false;
-var profileIndent = '';
+let profileIndent = '';
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
 } ;
@@ -140,7 +162,7 @@ function loaded() {
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeCheckboxes = document.getElementById("filter-type-checkboxes");
         elFilterSearch = document.getElementById("filter-search");
-        elFilterInView = document.getElementById("filter-in-view")
+        elFilterInView = document.getElementById("filter-in-view");
         elFilterRadius = document.getElementById("filter-radius");
         elExport = document.getElementById("export");
         elPal = document.getElementById("pal");
@@ -149,6 +171,7 @@ function loaded() {
         elSelectedEntitiesCount = document.getElementById("selected-entities-count");
         elVisibleEntitiesCount = document.getElementById("visible-entities-count");
         elNoEntitiesMessage = document.getElementById("no-entities");
+        elToggleSpaceMode = document.getElementById('toggle-space-mode');
         
         document.body.onclick = onBodyClick;
         document.getElementById("entity-name").onclick = function() {
@@ -205,6 +228,10 @@ function loaded() {
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         };
+        elToggleSpaceMode.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleSpaceMode' }));
+        };
+
         elFilterTypeSelectBox.onclick = onToggleTypeDropdown;
         elFilterSearch.onkeyup = refreshEntityList;
         elFilterSearch.onsearch = refreshEntityList;
@@ -646,6 +673,8 @@ function loaded() {
                 }
             }
 
+            elToggleSpaceMode.disabled = selectedIDs.length > 1;
+
             refreshFooter();
 
             return notFound;
@@ -827,6 +856,16 @@ function loaded() {
             entityList.resize();
             event.stopPropagation();
         }
+
+        function setSpaceMode(spaceMode) {
+            if (spaceMode === "local") {
+                elToggleSpaceMode.className = "space-mode-local hifi-edit-button";
+                elToggleSpaceMode.innerText = "Local";
+            } else {
+                elToggleSpaceMode.className = "space-mode-world hifi-edit-button";
+                elToggleSpaceMode.innerText = "World";
+            }
+        }
     
         document.addEventListener("keydown", function (keyDownEvent) {
             if (keyDownEvent.target.nodeName === "INPUT") {
@@ -866,12 +905,15 @@ function loaded() {
                                 updateSelectedEntities(data.selectedIDs, true);
                             }
                         }
+                        setSpaceMode(data.spaceMode);
                     });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
                     removeEntities(data.deletedIDs);
                     updateSelectedEntities(data.selectedIDs, true);
                 } else if (data.type === "deleted" && data.ids) {
                     removeEntities(data.ids);
+                } else if (data.type === "setSpaceMode") {
+                    setSpaceMode(data.spaceMode);
                 }
             });
         }
