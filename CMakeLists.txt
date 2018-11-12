@@ -7,22 +7,36 @@ else()
   cmake_minimum_required(VERSION 3.2)
 endif()
 
-# squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
-if ((${CMAKE_MAJOR_VERSION} EQUAL 3 AND ${CMAKE_MINOR_VERSION} GREATER 11) OR ${CMAKE_MAJOR_VERSION} GREATER 3)
-   cmake_policy(SET CMP0074 NEW)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros/TargetPython.cmake")
+target_python()
+
+if (HIFI_ANDROID )
+    execute_process(
+        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --android --build-root ${CMAKE_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+else()
+    execute_process(
+        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --build-root ${CMAKE_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+    # squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.12)
+        cmake_policy(SET CMP0074 NEW)
+    endif()
 endif()
 
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.cmake")
+    message(FATAL_ERROR "vcpkg configuration missing.")
+endif()
+
+include("${CMAKE_BINARY_DIR}/vcpkg.cmake")
 project(hifi)
-
 include("cmake/init.cmake")
-
 include("cmake/compiler.cmake")
 
-if (BUILD_SCRIBE_ONLY)
-  add_subdirectory(tools/scribe)
-  add_subdirectory(tools/shader_reflect)
-  return()
-endif()
+add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/bin)
+add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/debug/bin)
 
 if (NOT DEFINED CLIENT_ONLY)
   set(CLIENT_ONLY 0)
@@ -40,7 +54,8 @@ endif()
 
 set(BUILD_CLIENT_OPTION ON)
 set(BUILD_SERVER_OPTION ON)
-set(BUILD_TESTS_OPTION ON)
+set(BUILD_TESTS_OPTION OFF)
+set(BUILD_MANUAL_TESTS_OPTION ${BUILD_TESTS_OPTION})
 set(BUILD_TOOLS_OPTION ON)
 set(BUILD_INSTALLER_OPTION ON)
 set(GLES_OPTION OFF)
@@ -77,6 +92,7 @@ endif()
 option(BUILD_CLIENT "Build client components" ${BUILD_CLIENT_OPTION})
 option(BUILD_SERVER "Build server components" ${BUILD_SERVER_OPTION})
 option(BUILD_TESTS "Build tests" ${BUILD_TESTS_OPTION})
+option(BUILD_MANUAL_TESTS "Build manual tests" ${BUILD_MANUAL_TESTS_OPTION})
 option(BUILD_TOOLS "Build tools" ${BUILD_TOOLS_OPTION})
 option(BUILD_INSTALLER "Build installer" ${BUILD_INSTALLER_OPTION})
 option(USE_GLES "Use OpenGL ES" ${GLES_OPTION})
@@ -144,6 +160,8 @@ list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
 find_package( Threads )
 
 add_definitions(-DGLM_FORCE_RADIANS)
+add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
+add_definitions(-DGLM_FORCE_CTOR_INIT)
 set(HIFI_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libraries")
 
 set(EXTERNAL_PROJECT_PREFIX "project")
@@ -191,7 +209,9 @@ if (BUILD_TESTS)
   include(CTest)
   enable_testing()
   add_subdirectory(tests)
-  add_subdirectory(tests-manual)
+  if (BUILD_MANUAL_TESTS) 
+    add_subdirectory(tests-manual)
+  endif()
 endif()
 
 if (BUILD_INSTALLER)

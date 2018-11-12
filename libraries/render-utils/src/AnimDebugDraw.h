@@ -44,7 +44,8 @@ protected:
 
     typedef std::tuple<AnimSkeleton::ConstPointer, AnimPoseVec, AnimPose, glm::vec4> PosesInfo;
 
-    std::unordered_map<std::string, PosesInfo> _absolutePoses;
+    typedef std::unordered_map<std::string, PosesInfo> PosesInfoMap;
+    PosesInfoMap _posesInfoMap;
 
     // no copies
     AnimDebugDraw(const AnimDebugDraw&) = delete;

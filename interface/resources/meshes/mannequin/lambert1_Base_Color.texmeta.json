@@ -1,0 +1,8 @@
+{
+    "compressed": {
+        "COMPRESSED_SRGB8_ALPHA8_ETC2_EAC": "../lambert1_Base_Color_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC.ktx",
+        "COMPRESSED_SRGB_S3TC_DXT1_EXT": "../lambert1_Base_Color_COMPRESSED_SRGB_S3TC_DXT1_EXT.ktx"
+    },
+    "original": "../lambert1_Base_Color.png",
+    "uncompressed": ""
+}

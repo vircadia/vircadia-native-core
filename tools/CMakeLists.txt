@@ -1,8 +1,6 @@
 # add the tool directories
-add_subdirectory(scribe)
-set_target_properties(scribe PROPERTIES FOLDER "Tools")
-
 find_npm()
+
 if (NPM_EXECUTABLE)
   add_subdirectory(jsdoc)
   set_target_properties(jsdoc PROPERTIES FOLDER "Tools")
