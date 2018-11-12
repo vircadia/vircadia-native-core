@@ -12,16 +12,14 @@
 #ifndef hifi_HFMSerializer_h
 #define hifi_HFMSerializer_h
 
-#include <QVarLengthArray>
-#include <QVariant>
-#include <QUrl>
+#include <shared/HifiTypes.h>
 
 #include "HFM.h"
 
 namespace hfm {
 
 class Serializer {
-    virtual Model::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) = 0;
+    virtual Model::Pointer read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url = hifi::URL()) = 0;
 };
 
 };
