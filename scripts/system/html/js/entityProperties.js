@@ -1116,7 +1116,6 @@ const GROUPS = [
             },
             {
                 label: "Clone Lifetime",
-                indentedLabel: true,
                 type: "number",
                 unit: "s",
                 propertyID: "cloneLifetime",
@@ -1124,21 +1123,18 @@ const GROUPS = [
             },
             {
                 label: "Clone Limit",
-                indentedLabel: true,
                 type: "number",
                 propertyID: "cloneLimit",
                 showPropertyRule: { "cloneable": "true" },
             },
             {
                 label: "Clone Dynamic",
-                indentedLabel: true,
                 type: "bool",
                 propertyID: "cloneDynamic",
                 showPropertyRule: { "cloneable": "true" },
             },
             {
                 label: "Clone Avatar Entity",
-                indentedLabel: true,
                 type: "bool",
                 propertyID: "cloneAvatarEntity",
                 showPropertyRule: { "cloneable": "true" },
@@ -1426,7 +1422,7 @@ function debugPrint(message) {
 }
 
 function createElementFromHTML(htmlString) {
-    var elTemplate = document.createElement('template');
+    let elTemplate = document.createElement('template');
     elTemplate.innerHTML = htmlString.trim();
     return elTemplate.content.firstChild;
 }
@@ -1926,11 +1922,6 @@ function createVec3Property(property, elProperty) {
 
     elProperty.className = propertyData.vec3Type + " fstuple";
     
-    //let elTuple = document.createElement('div');
-    //elTuple.className = "tuple";
-    
-    //elProperty.appendChild(elTuple);
-    
     let elInputX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
                                           propertyData.min, propertyData.max, propertyData.step);
     let elInputY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
@@ -2099,9 +2090,7 @@ function createIconProperty(property, elProperty) {
 
     elProperty.appendChild(elSpan);
     
-    let elResult = [];
-    elResult[ICON_ELEMENTS.ICON] = elSpan;
-    return elResult;
+    return elSpan;
 }
 
 function createTextureProperty(property, elProperty) { 
@@ -2164,9 +2153,6 @@ function createButtonsProperty(property, elProperty, elLabel) {
     elProperty.className = "text";
                         
     let hasLabel = propertyData.label !== undefined;
-    if (hasLabel) {
-    }
-    
     if (propertyData.buttons !== undefined) {
         addButtons(elProperty, elementID, propertyData.buttons, hasLabel);
     }
@@ -2813,9 +2799,7 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
             break;
         }
         case 'icon': {
-            let elIcon = createIconProperty(property, elProperty);
-            property.elSpan = elIcon[ICON_ELEMENTS.ICON];
-            property.elLabel = elIcon[ICON_ELEMENTS.LABEL];
+            property.elSpan = createIconProperty(property, elProperty);
             break;
         }
         case 'texture': {
@@ -2834,7 +2818,7 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
         }
         default: {
             console.log("EntityProperties - Unknown property type " + 
-                propertyType + " set to property " + propertyID);
+                        propertyType + " set to property " + propertyID);
             break;
         }
     }
@@ -2940,9 +2924,9 @@ function loaded() {
                 let elProperty = createElementFromHTML('<div style="width: 100%;"></div>');
                 elContainer.appendChild(elProperty);
 
-                if (propertyType == 'triple') {
+                if (propertyType === 'triple') {
                     elProperty.className = 'flex-row';
-                    for (var i = 0; i < propertyData.properties.length; ++i) {
+                    for (let i = 0; i < propertyData.properties.length; ++i) {
                         let innerPropertyData = propertyData.properties[i];
 
                         let elWrapper = createElementFromHTML('<div class="flex-column flex-center triple-item"><div></div></div>');
