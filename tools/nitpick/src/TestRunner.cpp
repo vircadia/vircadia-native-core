@@ -490,7 +490,7 @@ void TestRunner::runInterfaceWithTestScript() {
     " --testScript " + testScript + " quitWhenFinished" +
     " --testResultsLocation " + _snapshotFolder;
 
-    interfaceWorker->setCommandLine(commandLine);
+    _interfaceWorker->setCommandLine(commandLine);
     emit startInterface();
 #elif defined Q_OS_MAC
     // On The Mac, we need to resize Interface.  The Interface window opens a few seconds after the process
