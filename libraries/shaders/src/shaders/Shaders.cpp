@@ -16,7 +16,7 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QFile>
 
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 
 #include <shared/FileUtils.h>
 #include <gl/GLHelpers.h>

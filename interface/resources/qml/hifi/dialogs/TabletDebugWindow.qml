@@ -12,8 +12,8 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Hifi 1.0 as Hifi
 
-import "../../styles-uit"
-import "../../controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 
 Rectangle {
     id: root

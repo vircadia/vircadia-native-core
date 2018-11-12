@@ -56,9 +56,13 @@ class AvatarTransit {
 public:
     enum Status {
         IDLE = 0,
+        STARTED,
+        PRE_TRANSIT,
         START_TRANSIT,
         TRANSITING,
         END_TRANSIT,
+        POST_TRANSIT,
+        ENDED,
         ABORT_TRANSIT
     };
 
@@ -72,20 +76,20 @@ public:
     struct TransitConfig {
         TransitConfig() {};
         int _totalFrames { 0 };
-        int _framesPerMeter { 0 };
+        float _framesPerMeter { 0.0f };
         bool _isDistanceBased { false };
-        float _triggerDistance { 0 };
+        float _minTriggerDistance { 0.0f };
+        float _maxTriggerDistance { 0.0f };
+        float _abortDistance{ 0.0f };
         EaseType _easeType { EaseType::EASE_OUT };
     };
 
     AvatarTransit() {};
     Status update(float deltaTime, const glm::vec3& avatarPosition, const TransitConfig& config);
     Status getStatus() { return _status; }
-    bool isTransiting() { return _isTransiting; }
+    bool isActive() { return _isActive; }
     glm::vec3 getCurrentPosition() { return _currentPosition; }
-    bool getNextPosition(glm::vec3& nextPosition);
     glm::vec3 getEndPosition() { return _endPosition; }
-    float getTransitTime() { return _totalTime; }
     void setScale(float scale) { _scale = scale; }
     void reset();
 
@@ -93,7 +97,7 @@ private:
     Status updatePosition(float deltaTime);
     void start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const TransitConfig& config);
     float getEaseValue(AvatarTransit::EaseType type, float value);
-    bool _isTransiting { false };
+    bool _isActive { false };
 
     glm::vec3 _startPosition;
     glm::vec3 _endPosition;
@@ -103,7 +107,10 @@ private:
 
     glm::vec3 _transitLine;
     float _totalDistance { 0.0f };
+    float _preTransitTime { 0.0f };
     float _totalTime { 0.0f };
+    float _transitTime { 0.0f };
+    float _postTransitTime { 0.0f };
     float _currentTime { 0.0f };
     EaseType _easeType { EaseType::EASE_OUT };
     Status _status { Status::IDLE };
@@ -431,11 +438,7 @@ public:
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
     std::shared_ptr<AvatarTransit> getTransit() { return std::make_shared<AvatarTransit>(_transit); };
-
-    AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
-    void setTransitScale(float scale);
-
-    void overrideNextPackagePositionData(const glm::vec3& position);
+    AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, float avatarScale, const AvatarTransit::TransitConfig& config);
 
 signals:
     void targetScaleChanged(float targetScale);
@@ -623,8 +626,8 @@ protected:
 
     LoadingStatus _loadingStatus { LoadingStatus::NoModel };
 
-    void metaBlendshapeOperator(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets, const QVector<int>& blendedMeshSizes,
-                                const render::ItemIDs& subItemIDs);
+    static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                       const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
 };
 
 #endif // hifi_Avatar_h

@@ -46,7 +46,6 @@
 #include <AudioConstants.h>
 #include <AudioGate.h>
 
-
 #include <shared/RateCounter.h>
 
 #include <plugins/CodecPlugin.h>
@@ -171,6 +170,7 @@ public:
     void stopRecording();
     void setAudioPaused(bool pause);
 
+    AudioSolo& getAudioSolo() override { return _solo; }
 
 #ifdef Q_OS_WIN
     static QString getWinDeviceName(wchar_t* guid);
@@ -446,6 +446,8 @@ private:
 #if defined(Q_OS_ANDROID)
     bool _shouldRestartInputSetup { true }; // Should we restart the input device because of an unintended stop?
 #endif
+
+    AudioSolo _solo;
     
     Mutex _checkDevicesMutex;
     QTimer* _checkDevicesTimer { nullptr };

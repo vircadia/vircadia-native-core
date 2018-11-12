@@ -262,7 +262,9 @@ Script.include("/~/system/libraries/controllers.js");
             if (this.thisFarGrabJointIsParent(endProps)) {
                 Entities.editEntity(this.targetEntityID, {
                     parentID: this.previousParentID[this.targetEntityID],
-                    parentJointIndex: this.previousParentJointIndex[this.targetEntityID]
+                    parentJointIndex: this.previousParentJointIndex[this.targetEntityID],
+                    localVelocity: {x: 0, y: 0, z: 0},
+                    localAngularVelocity: {x: 0, y: 0, z: 0}
                 });
             }
 

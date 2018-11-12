@@ -108,6 +108,7 @@ public:
     bool getScalesWithParent() const;
     bool parentRelatedPropertyChanged() const;
     bool queryAACubeRelatedPropertyChanged() const;
+    bool grabbingRelatedPropertyChanged() const;
 
     AABox getAABox() const;
 

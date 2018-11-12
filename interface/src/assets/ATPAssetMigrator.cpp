@@ -122,8 +122,8 @@ void ATPAssetMigrator::loadEntityServerFile() {
                                     QUrl migrationURL = QUrl(migrationURLString);
 
                                     if (!_ignoredUrls.contains(migrationURL)
-                                            && (migrationURL.scheme() == URL_SCHEME_HTTP || migrationURL.scheme() == URL_SCHEME_HTTPS
-                                                || migrationURL.scheme() == URL_SCHEME_FILE || migrationURL.scheme() == URL_SCHEME_FTP)) {
+                                            && (migrationURL.scheme() == HIFI_URL_SCHEME_HTTP || migrationURL.scheme() == HIFI_URL_SCHEME_HTTPS
+                                                || migrationURL.scheme() == HIFI_URL_SCHEME_FILE || migrationURL.scheme() == HIFI_URL_SCHEME_FTP)) {
 
                                         if (_pendingReplacements.contains(migrationURL)) {
                                             // we already have a request out for this asset, just store the QJsonValueRef

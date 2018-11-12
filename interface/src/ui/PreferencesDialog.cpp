@@ -147,7 +147,6 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
     }
     */
-
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
     {
