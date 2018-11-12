@@ -108,10 +108,6 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
         return true;
     }
 
-    if (_lastLocked != entity->getLocked()) {
-        return true;
-    }
-
     return false;
 }
 
@@ -203,7 +199,6 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                 }
 
                 _lastDPI = entity->getDPI();
-                _lastLocked = entity->getLocked();
 
                 glm::vec2 windowSize = getWindowSize(entity);
                 _webSurface->resize(QSize(windowSize.x, windowSize.y));
@@ -362,7 +357,7 @@ glm::vec2 WebEntityRenderer::getWindowSize(const TypedEntityPointer& entity) con
 }
 
 void WebEntityRenderer::hoverEnterEntity(const PointerEvent& event) {
-    if (!_lastLocked && _webSurface) {
+    if (_webSurface) {
         PointerEvent webEvent = event;
         webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
         _webSurface->hoverBeginEvent(webEvent, _touchDevice);
@@ -370,7 +365,7 @@ void WebEntityRenderer::hoverEnterEntity(const PointerEvent& event) {
 }
 
 void WebEntityRenderer::hoverLeaveEntity(const PointerEvent& event) {
-    if (!_lastLocked && _webSurface) {
+    if (_webSurface) {
         PointerEvent webEvent = event;
         webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
         _webSurface->hoverEndEvent(webEvent, _touchDevice);
@@ -378,8 +373,7 @@ void WebEntityRenderer::hoverLeaveEntity(const PointerEvent& event) {
 }
 
 void WebEntityRenderer::handlePointerEvent(const PointerEvent& event) {
-    // Ignore mouse interaction if we're locked
-    if (!_lastLocked && _webSurface) {
+    if (_webSurface) {
         PointerEvent webEvent = event;
         webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
         _webSurface->handlePointerEvent(webEvent, _touchDevice);

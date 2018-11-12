@@ -510,7 +510,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
                 localTransforms.push_back(invRegistraionOffset * jointMatrix * cluster.inverseBindMatrix);
             } else {
-                glm::mat4 identity;
                 localTransforms.push_back(invRegistraionOffset);
             }
             totalNumVertices += mesh.vertices.size();

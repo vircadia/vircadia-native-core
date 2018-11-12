@@ -88,6 +88,10 @@ Rectangle {
         checkMenu.restart();
     }
 
+    Component.onDestruction: {
+        keyboard.raised = false;
+    }
+
     function updateRunningScripts() {
         function simplify(path) {
             // trim URI querystring/fragment

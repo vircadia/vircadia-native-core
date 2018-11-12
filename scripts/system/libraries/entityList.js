@@ -115,6 +115,13 @@ EntityListTool = function(shouldUseEditTabletApp) {
         });
     });
 
+    that.setSpaceMode = function(spaceMode) {
+        emitJSONScriptEvent({
+            type: 'setSpaceMode',
+            spaceMode: spaceMode
+        });
+    };
+
     that.clearEntityList = function() {
         emitJSONScriptEvent({
             type: 'clearEntityList'
@@ -200,6 +207,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                 type: "update",
                 entities: entities,
                 selectedIDs: selectedIDs,
+                spaceMode: SelectionDisplay.getSpaceMode(),
             });
         });
     };
@@ -288,6 +296,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
             Entities.editEntity(data.entityID, {name: data.name});
             // make sure that the name also gets updated in the properties window
             SelectionManager._update();
+        } else if (data.type === "toggleSpaceMode") {
+            SelectionDisplay.toggleSpaceMode();
         }
     };
 

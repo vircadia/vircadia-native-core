@@ -135,30 +135,6 @@ void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firs
     _animVars.set("userAnimB", clipNodeEnum == UserAnimState::B);
 }
 
-void Rig::triggerNetworkAnimation(const QString& animName) {
-    _networkVars.set("idleAnim", false);
-    _networkVars.set("preTransitAnim", false);
-    _networkVars.set("transitAnim", false);
-    _networkVars.set("postTransitAnim", false);
-    _sendNetworkNode = true;
-
-    if (animName == "idleAnim") {
-        _networkVars.set("idleAnim", true);
-        _networkAnimState.clipNodeEnum = NetworkAnimState::Idle;
-        _sendNetworkNode = false;
-    } else if (animName == "preTransitAnim") {
-        _networkVars.set("preTransitAnim", true);
-        _networkAnimState.clipNodeEnum = NetworkAnimState::PreTransit;
-    } else if (animName == "transitAnim") {
-        _networkVars.set("transitAnim", true);
-        _networkAnimState.clipNodeEnum = NetworkAnimState::Transit;
-    } else if (animName == "postTransitAnim") {
-        _networkVars.set("postTransitAnim", true);
-        _networkAnimState.clipNodeEnum = NetworkAnimState::PostTransit;
-    }
-    
-}
-
 void Rig::restoreAnimation() {
     if (_userAnimState.clipNodeEnum != UserAnimState::None) {
         _userAnimState.clipNodeEnum = UserAnimState::None;
@@ -170,13 +146,87 @@ void Rig::restoreAnimation() {
     }
 }
 
-void Rig::restoreNetworkAnimation() {
-    if (_networkAnimState.clipNodeEnum != NetworkAnimState::Idle) {
-        _networkAnimState.clipNodeEnum = NetworkAnimState::Idle;
+void Rig::overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
+
+    NetworkAnimState::ClipNodeEnum clipNodeEnum = NetworkAnimState::None;
+    if (_networkAnimState.clipNodeEnum == NetworkAnimState::None || _networkAnimState.clipNodeEnum == NetworkAnimState::B) {
+        clipNodeEnum = NetworkAnimState::A;
+    } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::A) {
+        clipNodeEnum = NetworkAnimState::B;
+    }
+
+    if (_networkNode) {
+        // find an unused AnimClip clipNode
+        std::shared_ptr<AnimClip> clip;
+        if (clipNodeEnum == NetworkAnimState::A) {
+            clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("userNetworkAnimA"));
+        } else {
+            clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("userNetworkAnimB"));
+        }
+        if (clip) {
+            // set parameters
+            clip->setLoopFlag(loop);
+            clip->setStartFrame(firstFrame);
+            clip->setEndFrame(lastFrame);
+            const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
+            float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
+            clip->setTimeScale(timeScale);
+            clip->loadURL(url);
+        }
+    }
+
+    // store current user anim state.
+    _networkAnimState = { clipNodeEnum, url, fps, loop, firstFrame, lastFrame };
+
+    // notify the userAnimStateMachine the desired state.
+    _networkVars.set("transitAnimStateMachine", false);
+    _networkVars.set("userNetworkAnimA", clipNodeEnum == NetworkAnimState::A);
+    _networkVars.set("userNetworkAnimB", clipNodeEnum == NetworkAnimState::B);
+    if (!_computeNetworkAnimation) {
+        _networkAnimState.blendTime = 0.0f;
+        _computeNetworkAnimation = true;
+    }
+}
+
+void Rig::triggerNetworkRole(const QString& role) {
+    _networkVars.set("transitAnimStateMachine", false);
+    _networkVars.set("idleAnim", false);
+    _networkVars.set("userNetworkAnimA", false);
+    _networkVars.set("userNetworkAnimB", false);
+    _networkVars.set("preTransitAnim", false);
+    _networkVars.set("preTransitAnim", false);
+    _networkVars.set("transitAnim", false);
+    _networkVars.set("postTransitAnim", false);
+    _computeNetworkAnimation = true;
+    if (role == "idleAnim") {
         _networkVars.set("idleAnim", true);
-        _networkVars.set("preTransitAnim", false);
-        _networkVars.set("transitAnim", false);
-        _networkVars.set("postTransitAnim", false);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::None;
+        _computeNetworkAnimation = false;
+        _networkAnimState.blendTime = 0.0f;
+    } else if (role == "preTransitAnim") {
+        _networkVars.set("preTransitAnim", true);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::PreTransit;
+        _networkAnimState.blendTime = 0.0f;
+    } else if (role == "transitAnim") {
+        _networkVars.set("transitAnim", true);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::Transit;
+    } else if (role == "postTransitAnim") {
+        _networkVars.set("postTransitAnim", true);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::PostTransit;
+    }
+    
+}
+
+void Rig::restoreNetworkAnimation() {
+    if (_networkAnimState.clipNodeEnum != NetworkAnimState::None) {
+        if (_computeNetworkAnimation) {
+            _networkAnimState.blendTime = 0.0f;
+            _computeNetworkAnimation = false;
+        }
+        _networkAnimState.clipNodeEnum = NetworkAnimState::None;
+        _networkVars.set("transitAnimStateMachine", true);
+        _networkVars.set("userNetworkAnimA", false);
+        _networkVars.set("userNetworkAnimB", false);
     }
 }
 
@@ -1131,24 +1181,19 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         AnimVariantMap networkTriggersOut;
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         if (_networkNode) {
-            _networkPoseSet._relativePoses = _networkNode->evaluate(_networkVars, context, deltaTime, networkTriggersOut);
-            const float NETWORK_ANIMATION_BLEND_FRAMES = 6.0f;
+            // Manually blending networkPoseSet with internalPoseSet.
             float alpha = 1.0f;
-            std::shared_ptr<AnimClip> clip;
-            if (_networkAnimState.clipNodeEnum == NetworkAnimState::PreTransit) {
-                clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("preTransitAnim"));
-                if (clip) {
-                    alpha = (clip->getFrame() - clip->getStartFrame()) / NETWORK_ANIMATION_BLEND_FRAMES;
-                }
-            } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::PostTransit) {
-                clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("postTransitAnim"));
-                if (clip) {
-                    alpha = (clip->getEndFrame() - clip->getFrame()) / NETWORK_ANIMATION_BLEND_FRAMES;
-                }
-            }
+            const float FRAMES_PER_SECOND = 30.0f;
+            const float TOTAL_BLEND_FRAMES = 6.0f;
+            const float TOTAL_BLEND_TIME = TOTAL_BLEND_FRAMES / FRAMES_PER_SECOND;
+            _sendNetworkNode = _computeNetworkAnimation || _networkAnimState.blendTime < TOTAL_BLEND_TIME;
             if (_sendNetworkNode) {
+                _networkPoseSet._relativePoses = _networkNode->evaluate(_networkVars, context, deltaTime, networkTriggersOut);
+                _networkAnimState.blendTime += deltaTime;
+                alpha = _computeNetworkAnimation ? (_networkAnimState.blendTime / TOTAL_BLEND_TIME) : (1.0f - (_networkAnimState.blendTime / TOTAL_BLEND_TIME));
+                alpha = glm::clamp(alpha, 0.0f, 1.0f);
                 for (size_t i = 0; i < _networkPoseSet._relativePoses.size(); i++) {
-                    _networkPoseSet._relativePoses[i].blend(_internalPoseSet._relativePoses[i], (alpha > 1.0f ? 1.0f : alpha));
+                    _networkPoseSet._relativePoses[i].blend(_internalPoseSet._relativePoses[i], alpha);
                 }
             }
         }
@@ -1840,16 +1885,16 @@ void Rig::initAnimGraph(const QUrl& url) {
                 return;
             }
             _networkNode->setSkeleton(sharedSkeletonPtr);
-            if (_networkAnimState.clipNodeEnum != NetworkAnimState::Idle) {
+            if (_networkAnimState.clipNodeEnum != NetworkAnimState::None) {
                 // restore the user animation we had before reset.
                 NetworkAnimState origState = _networkAnimState;
-                _networkAnimState = { NetworkAnimState::Idle, "", 30.0f, false, 0.0f, 0.0f };
+                _networkAnimState = { NetworkAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
                 if (_networkAnimState.clipNodeEnum == NetworkAnimState::PreTransit) {
-                    triggerNetworkAnimation("preTransitAnim");
+                    triggerNetworkRole("preTransitAnim");
                 } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::Transit) {
-                    triggerNetworkAnimation("transitAnim");
+                    triggerNetworkRole("transitAnim");
                 } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::PostTransit) {
-                    triggerNetworkAnimation("postTransitAnim");
+                    triggerNetworkRole("postTransitAnim");
                 }
             }
            
