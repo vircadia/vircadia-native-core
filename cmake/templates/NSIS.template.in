@@ -29,6 +29,78 @@
   !include "WinVer.nsh"
 
 ;--------------------------------
+;Include Installer Logging
+; taken from http://nsis.sourceforge.net/Logging:_Simple_Text_File_Logging_Functions_and_Macros
+; TextLog.nsh v1.1 - 2005-12-26
+; Written by Mike Schinkel [http://www.mikeschinkel.com/blog/]
+   
+  Var /GLOBAL __TextLog_FileHandle
+  Var /GLOBAL __TextLog_FileName
+  Var /GLOBAL __TextLog_State
+   
+  !define LogMsg '!insertmacro LogMsgCall'
+  !macro LogMsgCall _text
+          Call LogSetOn
+      Push "${_text}"
+      Call LogText
+      Call LogSetOff
+  !macroend
+   
+   
+  !define LogText '!insertmacro LogTextCall'
+  !macro LogTextCall _text
+      Push "${_text}"
+      Call LogText
+  !macroend
+   
+  Function LogText
+      Exch $0   	; pABC -> 0ABC
+      FileWrite $__TextLog_FileHandle "$0$\r$\n"
+      Pop $0		; 0ABC -> ABC
+  FunctionEnd
+   
+  !define LogSetFileName '!insertmacro LogSetFileNameCall'
+  !macro LogSetFileNameCall _filename
+      Push "${_filename}"
+      Call LogSetFileName
+  !macroend
+   
+  Function LogSetFileName
+      Exch $0   	; pABC -> 0ABC
+      StrCpy $__TextLog_FileName "$0"
+      StrCmp $__TextLog_State "open" +1 +3
+      Call LogSetOff
+      Call LogSetOn
+      Pop $0		; 0ABC -> ABC
+  FunctionEnd
+   
+  !define LogSetOn '!insertmacro LogSetOnCall'
+  !macro LogSetOnCall
+      Call LogSetOn
+  !macroend
+   
+  Function LogSetOn
+      StrCmp $__TextLog_FileName "" +1 AlreadySet
+      StrCpy $__TextLog_FileName "$INSTDIR\install.log"
+  AlreadySet:
+      StrCmp $__TextLog_State "open" +2
+      FileOpen $__TextLog_FileHandle  "$__TextLog_FileName"  a
+          FileSeek $__TextLog_FileHandle 0 END
+      StrCpy $__TextLog_State "open"
+  FunctionEnd
+   
+  !define LogSetOff '!insertmacro LogSetOffCall'
+  !macro LogSetOffCall
+      Call LogSetOff
+  !macroend
+   
+  Function LogSetOff
+      StrCmp $__TextLog_State "open" +1 +2
+      FileClose $__TextLog_FileHandle
+      StrCpy $__TextLog_State ""
+  FunctionEnd
+
+;--------------------------------
 ; Utilities and Functions
     ;--------------------------------
     ; START String Contains Macro
@@ -375,6 +447,10 @@ Var GAClientID
   !insertmacro CreateGUID $GAClientID
 !macroend
 
+!macro LogStep Category Action Label Value
+  ${LogText} "Step: ${Category} ${Action} ${Label} ${Value}"
+!macroend
+
 !macro GoogleAnalytics Category Action Label Value
   ${If} "@GA_TRACKING_ID@" != ""
     Push $0
@@ -557,11 +633,13 @@ Var Express
 !macro MaybeSkipPage
   ; Check if Express is set, if so, abort the post install options page
   ${If} $Express == "1"
+    ${LogText} "Express Install: Skipping Post Install Options Page"
     Abort
   ${EndIf}
 !macroend
 
 !macro DownloadSlideshowImages
+  ${LogText} "Download Slideshow Images"
   InitPluginsDir
 
   Push $0
@@ -583,32 +661,40 @@ Var Express
 !macroend
 
 Function OnUserAbort
+  !insertmacro LogStep "Installer" "Abort" "User Abort" ""
   !insertmacro GoogleAnalytics "Installer" "Abort" "User Abort" ""
 FunctionEnd
 Function PageWelcomePre
+  !insertmacro LogStep "Installer" "Welcome" "" ""
   !insertmacro GoogleAnalytics "Installer" "Welcome" "" ""
   !insertmacro DownloadSlideshowImages
 FunctionEnd
 Function PageLicensePre
+  !insertmacro LogStep "Installer" "License" "" ""
   !insertmacro GoogleAnalytics "Installer" "License" "" ""
 FunctionEnd
 Function PageDirectoryPre
   !insertmacro MaybeSkipPage
+  !insertmacro LogStep "Installer" "Directory" "" ""
   !insertmacro GoogleAnalytics "Installer" "Directory" "" ""
 FunctionEnd
 Function PageStartMenuPre
   !insertmacro MaybeSkipPage
+  !insertmacro LogStep "Installer" "StartMenu" "" ""
   !insertmacro GoogleAnalytics "Installer" "StartMenu" "" ""
 FunctionEnd
 Function PageComponentsPre
   !insertmacro MaybeSkipPage
+  !insertmacro LogStep "Installer" "Components" "" ""
   !insertmacro GoogleAnalytics "Installer" "Components" "" ""
 FunctionEnd
 Function PageInstallFilesPre
+  !insertmacro LogStep "Installer" "Install" "" ""
   !insertmacro GoogleAnalytics "Installer" "Install" "" ""
 FunctionEnd
 
 !macro SetInstallOption Checkbox OptionName Default
+  ${LogText} "SetInstallOption ${OptionName} ${Default}"
   ; reads the value for the given install option to the registry
   ReadRegStr $0 HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" "${OptionName}"
 
@@ -625,6 +711,7 @@ FunctionEnd
 !macroend
 
 Function InstallTypesPage
+  !insertmacro LogStep "Installer" "Install Types" "" ""
   !insertmacro GoogleAnalytics "Installer" "Install Types" "" ""
 
   !insertmacro MUI_HEADER_TEXT "Choose Installation Type" "Express or Custom Install"
@@ -688,6 +775,7 @@ FunctionEnd
 
 Function StartInstallSlideshow
   ; create a slideshow file based on what files we have available
+  ${LogText} "Start Installs Slideshow"
 
   ; stash $0 and $1
   Push $0
@@ -730,7 +818,11 @@ Function StartInstallSlideshow
 FunctionEnd
 
 Function PostInstallOptionsPage
+
+  ${LogText} "Install Directory: $INSTDIR"
+
   !insertmacro MaybeSkipPage
+  !insertmacro LogStep "Installer" "Post Install Options" "" ""
   !insertmacro GoogleAnalytics "Installer" "Post Install Options" "" ""
 
   !insertmacro MUI_HEADER_TEXT "Setup Options" ""
@@ -876,30 +968,43 @@ Function ReadPostInstallOptions
 
   ; check if the user asked for a desktop shortcut to console
   ${NSD_GetState} $DesktopConsoleCheckbox $DesktopConsoleState
-
+  ${LogText} "Option: Start Desktop Console: $DesktopConsoleState"
+  
   ; check if the user asked to have console launched every startup
   ${NSD_GetState} $ConsoleStartupCheckbox $ConsoleStartupState
+  ${LogText} "Option: Start Desktop Console On Startup: $ConsoleStartupState"
 
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
+    ${LogText} "Option: Install Server"
+  ${EndIf}  
+  
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
+    ${LogText} "Option: Install Client"
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
+    ${LogText} "Option: Create Client Desktop Shortcut: $DesktopClientState"
   ${EndIf}
 
   ${If} @PR_BUILD@ == 1
+    ${LogText} "Option: PR Build"  
     ; check if we need to copy settings/content from production for this PR build
     ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
+    ${LogText} "Option: Copy Settings From Production: $CopyFromProductionState"
   ${EndIf}
 
   ; check if we need to launch the console post-install
   ${NSD_GetState} $LaunchConsoleNowCheckbox $LaunchConsoleNowState
+    ${LogText} "Option: Launch Console Now: $LaunchConsoleNowState"
 
   ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if we need to launch the client post-install
     ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
+    ${LogText} "Option: Launch Client Now: $LaunchClientNowState"
   ${EndIf}
 
   ; check if the user asked for a clean install
   ${NSD_GetState} $CleanInstallCheckbox $CleanInstallState
+  ${LogText} "Option: Clean Install: $CleanInstallState"
 FunctionEnd
 
 Function HandlePostInstallOptions
@@ -1225,6 +1330,7 @@ Section "-Core installation"
   ; Handle whichever post install options were set
   Call HandlePostInstallOptions
 
+  !insertmacro LogStep "Installer" "Done" "" ""
   !insertmacro GoogleAnalytics "Installer" "Done" "" ""
 SectionEnd
 
@@ -1232,7 +1338,6 @@ SectionEnd
 
 !macro PromptForRunningApplication applicationName displayName action prompter
   !define UniqueID ${__LINE__}
-
   Prompt_${UniqueID}:
 
     ${nsProcess::FindProcess} ${applicationName} $R0
@@ -1478,6 +1583,11 @@ InstallDirRegKey HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_RE
 
 Function .onInit
 
+  Delete "$TEMP\hifi_install.log"
+  ${LogSetFileName} "$TEMP\hifi_install.log"
+  ${LogSetOn}
+  ${LogText} "In .onInit"
+
   !ifdef INNER
     ; If INNER is defined, then we aren't supposed to do anything except write out
     ; the installer.  This is better than processing a command line option as it means
@@ -1495,6 +1605,7 @@ Function .onInit
   !insertmacro GoogleAnalytics "Installer" "Start" "$CampaignName" ""
 
   ; make sure none of the installed applications are still running
+  ${LogText} "Checking For Running Applications"
   !insertmacro CheckForRunningApplications "installed" "Installer"
   ${nsProcess::Unload}
 

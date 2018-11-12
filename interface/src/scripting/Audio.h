@@ -50,6 +50,8 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      *     <em>Read-only.</em>
      * @property {object} devices <em>Read-only.</em> <strong>Deprecated:</strong> This property is deprecated and will be
      *     removed.
+     * @property {boolean} isSoloing <em>Read-only.</em> <code>true</code> if any nodes are soloed.
+     * @property {Uuid[]} soloList <em>Read-only.</em> Get the list of currently soloed node UUIDs.
      */
 
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)

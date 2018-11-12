@@ -32,8 +32,8 @@ using namespace gpu;
 #include <nvtt/nvtt.h>
 
 #undef _CRT_SECURE_NO_WARNINGS
-#include <Etc.h>
-#include <EtcFilter.h>
+#include <Etc2/Etc.h>
+#include <Etc2/EtcFilter.h>
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
 static const glm::uvec2 MAX_TEXTURE_SIZE_GLES(2048);

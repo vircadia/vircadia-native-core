@@ -60,7 +60,8 @@ LightStage::LightStage() {
 }
 
 LightStage::Shadow::Schema::Schema() {
-    ShadowTransform defaultTransform;
+    ShadowTransform defaultTransform = {};
+    defaultTransform.reprojection = mat4();
     defaultTransform.fixedBias = 0.005f;
     std::fill(cascades, cascades + SHADOW_CASCADE_MAX_COUNT, defaultTransform);
     invMapSize = 1.0f / MAP_SIZE;
