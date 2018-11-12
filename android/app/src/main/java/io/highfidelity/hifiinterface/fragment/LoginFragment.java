@@ -230,18 +230,21 @@ public class LoginFragment extends Fragment
         mLoginForm.setVisibility(View.GONE);
         mLoggedInFrame.setVisibility(View.GONE);
         mLoggingInFrame.setVisibility(View.VISIBLE);
+        mLoggingInFrame.bringToFront();
     }
 
     private void showLoginForm() {
         mLoggingInFrame.setVisibility(View.GONE);
         mLoggedInFrame.setVisibility(View.GONE);
         mLoginForm.setVisibility(View.VISIBLE);
+        mLoginForm.bringToFront();
     }
 
     private void showLoggedInMessage() {
         mLoginForm.setVisibility(View.GONE);
         mLoggingInFrame.setVisibility(View.GONE);
         mLoggedInFrame.setVisibility(View.VISIBLE);
+        mLoggedInFrame.bringToFront();
     }
 
     private void showError(String error) {
