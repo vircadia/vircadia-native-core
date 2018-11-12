@@ -8,7 +8,7 @@ import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
+import android.text.TextUtils;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -27,9 +27,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 import android.widget.Toast;
-
-import java.util.List;
-import java.util.Set;
 
 import io.highfidelity.hifiinterface.BuildConfig;
 import io.highfidelity.hifiinterface.R;
@@ -338,7 +335,8 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-            if (request.getUrl().toString().startsWith(BuildConfig.OAUTH_REDIRECT_URI)) {
+            if (!TextUtils.isEmpty(BuildConfig.OAUTH_REDIRECT_URI) &&
+                    request.getUrl().toString().startsWith(BuildConfig.OAUTH_REDIRECT_URI)) {
                 if (mListener != null) {
                     mListener.onOAuthAuthorizeCallback(request.getUrl());
                 }
