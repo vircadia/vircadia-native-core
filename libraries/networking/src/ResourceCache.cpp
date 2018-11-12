@@ -699,7 +699,6 @@ void Resource::makeRequest() {
     _request->setByteRange(_requestByteRange);
     _request->setFailOnRedirect(_shouldFailOnRedirect);
 
-    qCDebug(resourceLog).noquote() << "Starting request for:" << _url.toDisplayString();
     emit loading();
 
     connect(_request, &ResourceRequest::progress, this, &Resource::onProgress);
