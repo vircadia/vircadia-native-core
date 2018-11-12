@@ -270,7 +270,8 @@ AudioClient::AudioClient() :
 
     configureReverb();
 
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "processStreamStatsPacket");
     packetReceiver.registerListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
     packetReceiver.registerListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
@@ -278,6 +279,16 @@ AudioClient::AudioClient() :
     packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+
+    auto& domainHandler = nodeList->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this] {
+        _solo.reset();
+    });
+    connect(nodeList.data(), &NodeList::nodeActivated, this, [this](SharedNodePointer node) {
+        if (node->getType() == NodeType::AudioMixer) {
+            _solo.resend();
+        }
+    });
 }
 
 AudioClient::~AudioClient() {
