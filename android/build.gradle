@@ -106,11 +106,6 @@ def packages = [
         versionId: 'r5Zran.JSCtvrrB6Q4KaqfIoALPw3lYY',
         checksum: 'a8ee8584cf1ccd34766c7ddd9d5e5449',
     ],
-    glm: [
-        file: 'glm-0.9.8.5-patched.tgz',
-        versionId: 'cskfMoJrFlAeqI3WPxemyO_Cxt7rT9EJ',
-        checksum: '067b5fe16b220b5b1a1039ba51b062ae',
-    ],
     gvr: [
         file: 'gvrsdk_v1.101.0.tgz',
         versionId: 'nqBV_j81Uc31rC7bKIrlya_Hah4v3y5r',
@@ -160,21 +155,6 @@ def packages = [
         includeLibs: ['libbreakpad_client.a']
     ]
 ]
-
-def scribeLocalFile='scribe' + EXEC_SUFFIX
-def scribeFile='scribe_linux_x86_64'
-def scribeChecksum='4635c28192724281d2367ce9e94380ab'
-def scribeVersion='mPAY_N846oZH1tPY1bwChB_hzqkiYyoC'
-
-if (Os.isFamily(Os.FAMILY_MAC)) {
-    scribeFile = 'scribe_osx_x86_64'
-    scribeChecksum='1ead61c285d265eba9a5ef91ae3b7c26'
-    scribeVersion='4TAXWdo9fviw60N2wUA8HNyQ9TabjZa3'
-} else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-    scribeFile = 'scribe_win32_x86_64.exe'
-    scribeChecksum='9c29a62595daf4844f95f6744d568c15'
-    scribeVersion='DUoxjufeX8ZAIVRBKRczWTuZwT13enTv'
-}
 
 def options = [
     files: new TreeSet<File>(),
@@ -434,28 +414,6 @@ task copyDependencies(dependsOn: [ extractDependencies ]) {
     }
 }
 
-task downloadScribe(type: Download) {
-    src baseUrl + scribeFile + '?versionId=' + scribeVersion
-    dest new File(baseFolder, scribeLocalFile)
-    onlyIfNewer true
-}
-
-task verifyScribe (type: Verify, dependsOn: downloadScribe) {
-    src new File(baseFolder, scribeLocalFile);
-    checksum scribeChecksum
-}
-
-task fixScribePermissions(type: Exec, dependsOn: verifyScribe) {
-    commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + scribeLocalFile
-}
-
-task setupScribe(dependsOn: [verifyScribe]) { }
-
-// On Windows, we don't need to set the executable bit, but on OSX and Unix we do
-if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
-    setupScribe.dependsOn fixScribePermissions
-}
-
 task extractGvrBinaries(dependsOn: extractDependencies) {
     doLast {
         def gvrLibFolder = new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries');
@@ -542,7 +500,7 @@ task qtBundle {
    }
 }
 
-task setupDependencies(dependsOn: [setupScribe, copyDependencies, extractGvrBinaries, qtBundle]) { }
+task setupDependencies(dependsOn: [copyDependencies, extractGvrBinaries, qtBundle]) { }
 
 task cleanDependencies(type: Delete) {
     delete HIFI_ANDROID_PRECOMPILED
