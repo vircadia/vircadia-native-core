@@ -44,6 +44,7 @@ namespace {
         }
         return !doc->isNull();
     }
+
 }  // Anon namespace.
 
 bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromJSON(QJsonObject root) {
@@ -62,6 +63,7 @@ bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromMap(const QVariantMap& ma
         dataVersion = map["DataVersion"].toInt();
         version = map["Version"].toInt();
     }
+    readSubclassData(map);
     return true;
 }
 
@@ -85,13 +87,20 @@ bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromData(QByteArray data) {
 // Reads octree file and parses it into a RawOctreeData object.
 // Returns false if readOctreeFile fails.
 bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromFile(QString path) {
-    QJsonDocument doc;
-    if (!readOctreeFile(path, &doc)) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCritical() << "Cannot open json file for reading: " << path;
         return false;
     }
 
-    auto root = doc.object();
-    return readOctreeDataInfoFromJSON(root);
+    QByteArray data = file.readAll();
+    QByteArray jsonData;
+
+    if (!gunzip(data, jsonData)) {
+        jsonData = data;
+    }
+
+    return readOctreeDataInfoFromData(jsonData);
 }
 
 QByteArray OctreeUtils::RawOctreeData::toByteArray() {
@@ -139,8 +148,18 @@ void OctreeUtils::RawEntityData::readSubclassData(const QJsonObject& root) {
     }
 }
 
+void OctreeUtils::RawEntityData::readSubclassData(const QVariantMap& root) {
+    variantEntityData = root["Entities"].toList();
+}
+
 void OctreeUtils::RawEntityData::writeSubclassData(QJsonObject& root) const {
-    root["Entities"] = entityData;
+    //root["Entities"] = entityData;
+    QJsonArray entitiesJsonArray;
+    for (auto entityIter = variantEntityData.begin(); entityIter != variantEntityData.end(); ++entityIter) {
+        entitiesJsonArray += entityIter->toJsonObject();
+    }
+
+    root["Entities"] = entitiesJsonArray;
 }
 
 PacketType OctreeUtils::RawEntityData::dataPacketType() const { return PacketType::EntityData; }
