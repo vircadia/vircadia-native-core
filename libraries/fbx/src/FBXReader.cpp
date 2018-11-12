@@ -2034,6 +2034,14 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
     //hfmModel.jointRotationOffsets.insert(13, glm::quat(0.5f, 0.5f, 0.5f, -0.5f));
     //hfmModel.jointRotationOffsets.insert(62, glm::quat(0.7071f, 0.0f, -0.7071f, 0.0f));
 
+    for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
+        const HFMMesh& mesh = hfmModel.meshes.at(i);
+        for (int j = 0; j < mesh.clusters.size(); j++) {
+            const HFMCluster& cluster = mesh.clusters.at(j);
+            hfmModel.clusterBindMatrixOriginalValues[i][cluster.jointIndex] = cluster.inverseBindMatrix;
+        }
+    }
+
     return hfmModelPtr;
 }
 
