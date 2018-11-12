@@ -13,7 +13,7 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import stylesUit 1.0
+import stylesUit 1.0 as HifiStylesUit
 import controlsUit 1.0 as HifiControlsUit
 import "qrc:////qml//controls" as HifiControls
 

@@ -13,7 +13,7 @@
 
 #include <random>
 
-#include <glm/detail/func_common.hpp>
+#include <glm/common.hpp>
 
 #include <QtCore/QDebug>
 #include <QtCore/QJsonArray>
