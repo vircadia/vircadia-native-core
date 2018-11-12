@@ -309,34 +309,6 @@ input[type=number].hover-down::-webkit-inner-spin-button:after {
     color: #ffffff;
 }
 
-.draggable-number {
-    position: relative;
-    right: 10px;
-}
-.draggable-number span {
-    position: relative;
-    top: -2px;
-    display: inline-block;
-    font-family: hifi-glyphs;
-    font-size: 20px;
-    z-index: 2;
-}
-.draggable-number.left-arrow {
-    left: 18px;
-    transform: rotate(180deg);
-}
-.draggable-number.right-arrow {
-    right: 18px;
-}
-.draggable-number input {
-}
-.draggable-number input::selection {
-}
-.draggable-number input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    visibility: hidden;
-}
-
 input[type=range] {
     -webkit-appearance: none;
     background: #2e2e2e;
@@ -881,6 +853,9 @@ div.refresh input[type="button"] {
     border-color: #afafaf;
 }
 
+.colpick {
+    z-index: 3;
+}
 .colpick[disabled="disabled"] {
     display: none !important;
 }
@@ -901,6 +876,33 @@ div.refresh input[type="button"] {
 }
 .rgb div.legend + * {
     clear: both;
+}
+
+.draggable-number {
+    position: relative;
+    right: 10px;
+}
+.draggable-number span {
+    position: relative;
+    top: -2px;
+    display: inline-block;
+    font-family: hifi-glyphs;
+    font-size: 20px;
+    z-index: 2;
+}
+.draggable-number.left-arrow {
+    left: 17px;
+    transform: rotate(180deg);
+}
+.draggable-number.right-arrow {
+    right: 17px;
+}
+.draggable-number.fstuple span {
+    top: 0;
+}
+.draggable-number input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    visibility: hidden;
 }
 
 .row .property {

@@ -260,7 +260,7 @@ const GROUPS = [
                 buttons: [ { id: "copy", label: "Copy from Skybox", 
                              className: "black", onClick: copySkyboxURLToAmbientURL } ],
                 propertyID: "copyURLToAmbient",
-                showPropertyRule: { "skyboxMode": "enabled" },
+                showPropertyRule: { "ambientLightMode": "enabled" },
             },
             {
                 label: "Haze",
@@ -1827,9 +1827,14 @@ function createNumberProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "property draggable-number";
+    elProperty.className = "draggable-number";
     
     let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step);
+    
+    let defaultValue = propertyData.defaultValue;   
+    if (defaultValue !== undefined) {   
+        elDraggableNumber.elInput.value = defaultValue; 
+    }
 
     let inputChangeFunction = createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, propertyData.decimals, property.isParticleProperty);
     elDraggableNumber.setInputChangeFunction(inputChangeFunction);
@@ -1894,7 +1899,7 @@ function createVec2Property(property, elProperty) {
     let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
                                            propertyData.min, propertyData.max, propertyData.step);
     
-    let inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput,
+    let inputChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput,
                                                                    propertyData.multiplier, property.isParticleProperty);
     elNumberX.setInputChangeFunction(inputChangeFunction);
     elNumberY.setInputChangeFunction(inputChangeFunction);
@@ -1926,7 +1931,7 @@ function createColorProperty(property, elProperty) {
     let elNumberB = createTupleNumberInput(elTuple, elementID, "blue", COLOR_MIN, COLOR_MAX, COLOR_STEP);
     
     let inputChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elNumberR.elInput, elNumberG.elInput,
-                                                                    elNumberB.elInput, property.isParticleProperty);    
+                                                                    elNumberB.elInput, property.isParticleProperty);
     elNumberR.setInputChangeFunction(inputChangeFunction);
     elNumberG.setInputChangeFunction(inputChangeFunction);
     elNumberB.setInputChangeFunction(inputChangeFunction);
@@ -1942,9 +1947,9 @@ function createColorProperty(property, elProperty) {
             // The original color preview within the picker needs to be updated on show because
             // prior to the picker being shown we don't have access to the selections' starting color.
             colorPickers[colorPickerID].colpickSetColor({
-                "r": elInputR.value,
-                "g": elInputG.value,
-                "b": elInputB.value
+                "r": elNumberR.elInput.value,
+                "g": elNumberG.elInput.value,
+                "b": elNumberB.elInput.value
             });
         },
         onHide: function(colpick) {
@@ -2110,6 +2115,7 @@ function createTupleNumberInput(elTuple, propertyElementID, subLabel, min, max, 
     
     let elDraggableNumber = new DraggableNumber(min, max, step);
     elDraggableNumber.elInput.setAttribute("id", elementID);
+    elDraggableNumber.elDiv.className += " fstuple";
     elDraggableNumber.elDiv.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
     elTuple.appendChild(elDraggableNumber.elDiv);
     
@@ -2821,10 +2827,10 @@ function loaded() {
                     if (propertyData.indentedLabel || propertyData.showPropertyRule !== undefined) {
                         let elSpan = document.createElement('span');
                         elSpan.className = 'indented';
-                        elSpan.innerText = propertyData.label;
+                        elSpan.innerText = propertyData.label !== undefined ? propertyData.label : "";
                         elLabel.appendChild(elSpan);
                     } else {
-                        elLabel.innerText = propertyData.label;
+                        elLabel.innerText = propertyData.label !== undefined ? propertyData.label : "";
                     }
                     elContainer.appendChild(elLabel);
                 } else {
