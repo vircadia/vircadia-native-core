@@ -60,6 +60,8 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
 }
 
 void ModelOverlay::update(float deltatime) {
+    Base3DOverlay::update(deltatime);
+
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
@@ -446,7 +448,7 @@ QVariant ModelOverlay::getProperty(const QString& property) {
 
     if (property == "jointNames") {
         if (_model && _model->isActive()) {
-            // note: going through Rig because Model::getJointNames() (which proxies to HFMGeometry) was always empty
+            // note: going through Rig because Model::getJointNames() (which proxies to HFMModel) was always empty
             const Rig* rig = &(_model->getRig());
             return mapJoints<QStringList, QString>([rig](int jointIndex) -> QString {
                 return rig->nameOfJoint(jointIndex);
@@ -605,11 +607,11 @@ void ModelOverlay::animate() {
         return;
     }
 
-    QStringList animationJointNames = _animation->getGeometry().getJointNames();
-    auto& hfmJoints = _animation->getGeometry().joints;
+    QStringList animationJointNames = _animation->getHFMModel().getJointNames();
+    auto& hfmJoints = _animation->getHFMModel().joints;
 
-    auto& originalHFMJoints = _model->getHFMGeometry().joints;
-    auto& originalFbxIndices = _model->getHFMGeometry().jointIndices;
+    auto& originalHFMJoints = _model->getHFMModel().joints;
+    auto& originalHFMIndices = _model->getHFMModel().jointIndices;
 
     const QVector<glm::quat>& rotations = frames[_lastKnownCurrentFrame].rotations;
     const QVector<glm::vec3>& translations = frames[_lastKnownCurrentFrame].translations;
@@ -628,9 +630,9 @@ void ModelOverlay::animate() {
             } else if (index < animationJointNames.size()) {
                 QString jointName = hfmJoints[index].name;
 
-                if (originalFbxIndices.contains(jointName)) {
+                if (originalHFMIndices.contains(jointName)) {
                     // Making sure the joint names exist in the original model the animation is trying to apply onto. If they do, then remap and get its translation.
-                    int remappedIndex = originalFbxIndices[jointName] - 1; // JointIndeces seem to always start from 1 and the found index is always 1 higher than actual.
+                    int remappedIndex = originalHFMIndices[jointName] - 1; // JointIndeces seem to always start from 1 and the found index is always 1 higher than actual.
                     translationMat = glm::translate(originalHFMJoints[remappedIndex].translation);
                 }
             }

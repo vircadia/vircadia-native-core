@@ -183,11 +183,11 @@ bool Model::shouldInvalidatePayloadShapeKey(int meshIndex) {
         return true;
     }
 
-    const HFMGeometry& geometry = getHFMGeometry();
+    const HFMModel& hfmModel = getHFMModel();
     const auto& networkMeshes = getGeometry()->getMeshes();
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
-    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size()) {
+    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)hfmModel.meshes.size() || meshIndex >= (int)_meshStates.size()) {
         _needsFixupInScene = true;     // trigger remove/add cycle
         invalidCalculatedMeshBoxes();  // if we have to reload, we need to assume our mesh boxes are all invalid
         return true;
@@ -278,8 +278,8 @@ void Model::setRenderItemsNeedUpdate() {
 
 void Model::reset() {
     if (isLoaded()) {
-        const HFMGeometry& geometry = getHFMGeometry();
-        _rig.reset(geometry);
+        const HFMModel& hfmModel = getHFMModel();
+        _rig.reset(hfmModel);
         emit rigReset();
         emit rigReady();
     }
@@ -295,13 +295,13 @@ bool Model::updateGeometry() {
     _needsReload = false;
 
     // TODO: should all Models have a valid _rig?
-    if (_rig.jointStatesEmpty() && getHFMGeometry().joints.size() > 0) {
+    if (_rig.jointStatesEmpty() && getHFMModel().joints.size() > 0) {
         initJointStates();
         assert(_meshStates.empty());
 
-        const HFMGeometry& hfmGeometry = getHFMGeometry();
+        const HFMModel& hfmModel = getHFMModel();
         int i = 0;
-        foreach (const HFMMesh& mesh, hfmGeometry.meshes) {
+        foreach (const HFMMesh& mesh, hfmModel.meshes) {
             MeshState state;
             state.clusterDualQuaternions.resize(mesh.clusters.size());
             state.clusterMatrices.resize(mesh.clusters.size());
@@ -319,10 +319,10 @@ bool Model::updateGeometry() {
 
 // virtual
 void Model::initJointStates() {
-    const HFMGeometry& geometry = getHFMGeometry();
+    const HFMModel& hfmModel = getHFMModel();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
 
-    _rig.initJointStates(geometry, modelOffset);
+    _rig.initJointStates(hfmModel, modelOffset);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
@@ -363,9 +363,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         int bestShapeID = 0;
         int bestSubMeshIndex = 0;
 
-        const HFMGeometry& geometry = getHFMGeometry();
+        const HFMModel& hfmModel = getHFMModel();
         if (!_triangleSetsValid) {
-            calculateTriangleSets(geometry);
+            calculateTriangleSets(hfmModel);
         }
 
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
@@ -448,7 +448,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             extraInfo["shapeID"] = bestShapeID;
             if (pickAgainstTriangles) {
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
-                extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
+                extraInfo["subMeshName"] = hfmModel.getModelNameOfMesh(bestSubMeshIndex);
                 extraInfo["subMeshTriangleWorld"] = QVariantMap{
                     { "v0", vec3toVariant(bestWorldTriangle.v0) },
                     { "v1", vec3toVariant(bestWorldTriangle.v1) },
@@ -506,9 +506,9 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
         int bestShapeID = 0;
         int bestSubMeshIndex = 0;
 
-        const HFMGeometry& geometry = getHFMGeometry();
+        const HFMModel& hfmModel = getHFMModel();
         if (!_triangleSetsValid) {
-            calculateTriangleSets(geometry);
+            calculateTriangleSets(hfmModel);
         }
 
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
@@ -595,7 +595,7 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
             extraInfo["shapeID"] = bestShapeID;
             if (pickAgainstTriangles) {
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
-                extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
+                extraInfo["subMeshName"] = hfmModel.getModelNameOfMesh(bestSubMeshIndex);
                 extraInfo["subMeshTriangleWorld"] = QVariantMap{
                     { "v0", vec3toVariant(bestWorldTriangle.v0) },
                     { "v1", vec3toVariant(bestWorldTriangle.v1) },
@@ -641,7 +641,7 @@ bool Model::convexHullContains(glm::vec3 point) {
         QMutexLocker locker(&_mutex);
 
         if (!_triangleSetsValid) {
-            calculateTriangleSets(getHFMGeometry());
+            calculateTriangleSets(getHFMModel());
         }
 
         // If we are inside the models box, then consider the submeshes...
@@ -753,7 +753,7 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
     }
     // update triangles for picking
     {
-        HFMGeometry geometry;
+        HFMModel hfmModel;
         for (const auto& newMesh : meshes) {
             HFMMesh mesh;
             mesh._mesh = newMesh.getMeshPointer();
@@ -767,15 +767,15 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
             {
                 foreach (const glm::vec3& vertex, mesh.vertices) {
                     glm::vec3 transformedVertex = glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f));
-                    geometry.meshExtents.minimum = glm::min(geometry.meshExtents.minimum, transformedVertex);
-                    geometry.meshExtents.maximum = glm::max(geometry.meshExtents.maximum, transformedVertex);
+                    hfmModel.meshExtents.minimum = glm::min(hfmModel.meshExtents.minimum, transformedVertex);
+                    hfmModel.meshExtents.maximum = glm::max(hfmModel.meshExtents.maximum, transformedVertex);
                     mesh.meshExtents.minimum = glm::min(mesh.meshExtents.minimum, transformedVertex);
                     mesh.meshExtents.maximum = glm::max(mesh.meshExtents.maximum, transformedVertex);
                 }
             }
-            geometry.meshes << mesh;
+            hfmModel.meshes << mesh;
         }
-        calculateTriangleSets(geometry);
+        calculateTriangleSets(hfmModel);
     }
     return true;
 }
@@ -789,11 +789,11 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
         return result;
     }
 
-    const HFMGeometry& geometry = getHFMGeometry();
-    int numberOfMeshes = geometry.meshes.size();
+    const HFMModel& hfmModel = getHFMModel();
+    int numberOfMeshes = hfmModel.meshes.size();
     int shapeID = 0;
     for (int i = 0; i < numberOfMeshes; i++) {
-        const HFMMesh& hfmMesh = geometry.meshes.at(i);
+        const HFMMesh& hfmMesh = hfmModel.meshes.at(i);
         if (auto mesh = hfmMesh._mesh) {
             result.append(mesh);
 
@@ -808,17 +808,17 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
     return result;
 }
 
-void Model::calculateTriangleSets(const HFMGeometry& geometry) {
+void Model::calculateTriangleSets(const HFMModel& hfmModel) {
     PROFILE_RANGE(render, __FUNCTION__);
 
-    int numberOfMeshes = geometry.meshes.size();
+    int numberOfMeshes = hfmModel.meshes.size();
 
     _triangleSetsValid = true;
     _modelSpaceMeshTriangleSets.clear();
     _modelSpaceMeshTriangleSets.resize(numberOfMeshes);
 
     for (int i = 0; i < numberOfMeshes; i++) {
-        const HFMMesh& mesh = geometry.meshes.at(i);
+        const HFMMesh& mesh = hfmModel.meshes.at(i);
 
         const int numberOfParts = mesh.parts.size();
         auto& meshTriangleSets = _modelSpaceMeshTriangleSets[i];
@@ -839,7 +839,7 @@ void Model::calculateTriangleSets(const HFMGeometry& geometry) {
             int totalTriangles = (numberOfQuads * TRIANGLES_PER_QUAD) + numberOfTris;
             partTriangleSet.reserve(totalTriangles);
 
-            auto meshTransform = geometry.offset * mesh.modelTransform;
+            auto meshTransform = hfmModel.offset * mesh.modelTransform;
 
             if (part.quadIndices.size() > 0) {
                 int vIndex = 0;
@@ -1114,7 +1114,7 @@ Extents Model::getBindExtents() const {
     if (!isActive()) {
         return Extents();
     }
-    const Extents& bindExtents = getHFMGeometry().bindExtents;
+    const Extents& bindExtents = getHFMModel().bindExtents;
     Extents scaledExtents = { bindExtents.minimum * _scale, bindExtents.maximum * _scale };
     return scaledExtents;
 }
@@ -1128,12 +1128,12 @@ Extents Model::getMeshExtents() const {
     if (!isActive()) {
         return Extents();
     }
-    const Extents& extents = getHFMGeometry().meshExtents;
+    const Extents& extents = getHFMModel().meshExtents;
 
     // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
     // is captured in the offset matrix
-    glm::vec3 minimum = glm::vec3(getHFMGeometry().offset * glm::vec4(extents.minimum, 1.0f));
-    glm::vec3 maximum = glm::vec3(getHFMGeometry().offset * glm::vec4(extents.maximum, 1.0f));
+    glm::vec3 minimum = glm::vec3(getHFMModel().offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(getHFMModel().offset * glm::vec4(extents.maximum, 1.0f));
     Extents scaledExtents = { minimum * _scale, maximum * _scale };
     return scaledExtents;
 }
@@ -1143,12 +1143,12 @@ Extents Model::getUnscaledMeshExtents() const {
         return Extents();
     }
 
-    const Extents& extents = getHFMGeometry().meshExtents;
+    const Extents& extents = getHFMModel().meshExtents;
 
     // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
     // is captured in the offset matrix
-    glm::vec3 minimum = glm::vec3(getHFMGeometry().offset * glm::vec4(extents.minimum, 1.0f));
-    glm::vec3 maximum = glm::vec3(getHFMGeometry().offset * glm::vec4(extents.maximum, 1.0f));
+    glm::vec3 minimum = glm::vec3(getHFMModel().offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(getHFMModel().offset * glm::vec4(extents.maximum, 1.0f));
     Extents scaledExtents = { minimum, maximum };
 
     return scaledExtents;
@@ -1171,18 +1171,18 @@ void Model::setJointTranslation(int index, bool valid, const glm::vec3& translat
 }
 
 int Model::getParentJointIndex(int jointIndex) const {
-    return (isActive() && jointIndex != -1) ? getHFMGeometry().joints.at(jointIndex).parentIndex : -1;
+    return (isActive() && jointIndex != -1) ? getHFMModel().joints.at(jointIndex).parentIndex : -1;
 }
 
 int Model::getLastFreeJointIndex(int jointIndex) const {
-    return (isActive() && jointIndex != -1) ? getHFMGeometry().joints.at(jointIndex).freeLineage.last() : -1;
+    return (isActive() && jointIndex != -1) ? getHFMModel().joints.at(jointIndex).freeLineage.last() : -1;
 }
 
 void Model::setTextures(const QVariantMap& textures) {
     if (isLoaded()) {
-        _pendingTextures.clear();
         _needsFixupInScene = true;
         _renderGeometry->setTextures(textures);
+        _pendingTextures.clear();
     } else {
         _pendingTextures = textures;
     }
@@ -1275,7 +1275,7 @@ QStringList Model::getJointNames() const {
             Q_RETURN_ARG(QStringList, result));
         return result;
     }
-    return isActive() ? getHFMGeometry().getJointNames() : QStringList();
+    return isActive() ? getHFMModel().getJointNames() : QStringList();
 }
 
 void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale) {
@@ -1415,10 +1415,10 @@ void Model::updateClusterMatrices() {
     }
 
     _needsUpdateClusterMatrices = false;
-    const HFMGeometry& geometry = getHFMGeometry();
+    const HFMModel& hfmModel = getHFMModel();
     for (int i = 0; i < (int) _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
-        const HFMMesh& mesh = geometry.meshes.at(i);
+        const HFMMesh& mesh = hfmModel.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const HFMCluster& cluster = mesh.clusters.at(j);
             if (_useDualQuaternionSkinning) {
@@ -1436,7 +1436,7 @@ void Model::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (_blendshapeOffsetsInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (_blendshapeOffsetsInitialized && modelBlender->shouldComputeBlendshapes() && hfmModel.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
@@ -1505,7 +1505,7 @@ void Model::createRenderItemSet() {
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     uint32_t numMeshes = (uint32_t)meshes.size();
-    auto& hfmGeometry = getHFMGeometry();
+    auto& hfmModel = getHFMModel();
     for (uint32_t i = 0; i < numMeshes; i++) {
         const auto& mesh = meshes.at(i);
         if (!mesh) {
@@ -1515,7 +1515,7 @@ void Model::createRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            initializeBlendshapes(hfmGeometry.meshes[i], i);
+            initializeBlendshapes(hfmModel.meshes[i], i);
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
             auto material = getGeometry()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
@@ -1600,7 +1600,7 @@ void Model::removeMaterial(graphics::MaterialPointer material, const std::string
 class CollisionRenderGeometry : public Geometry {
 public:
     CollisionRenderGeometry(graphics::MeshPointer mesh) {
-        _hfmGeometry = std::make_shared<HFMGeometry>();
+        _hfmModel = std::make_shared<HFMModel>();
         std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
         meshes->push_back(mesh);
         _meshes = meshes;
@@ -1656,7 +1656,7 @@ void Blender::run() {
     if (_model && _model->isLoaded()) {
         DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
         int offset = 0;
-        auto meshes = _model->getHFMGeometry().meshes;
+        auto meshes = _model->getHFMModel().meshes;
         int meshIndex = 0;
         foreach(const HFMMesh& mesh, meshes) {
             auto modelMeshBlendshapeOffsets = _model->_blendshapeOffsets.find(meshIndex++);

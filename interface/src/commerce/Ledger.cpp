@@ -244,7 +244,6 @@ QString transactionString(const QJsonObject& valueObject) {
     return result;
 }
 
-static const QString MARKETPLACE_ITEMS_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
 void Ledger::historySuccess(QNetworkReply* reply) {
     // here we send a historyResult with some extra stuff in it
     // Namely, the styled text we'd like to show.  The issue is the
@@ -455,7 +454,7 @@ void Ledger::alreadyOwned(const QString& marketplaceId) {
     }
 }
 
-void Ledger::getAvailableUpdates(const QString& itemId) {
+void Ledger::getAvailableUpdates(const QString& itemId, const int& pageNumber, const int& itemsPerPage) {
     auto wallet = DependencyManager::get<Wallet>();
     QString endpoint = "available_updates";
     QJsonObject request;
@@ -463,6 +462,8 @@ void Ledger::getAvailableUpdates(const QString& itemId) {
     if (!itemId.isEmpty()) {
         request["marketplace_item_id"] = itemId;
     }
+    request["per_page"] = itemsPerPage;
+    request["page"] = pageNumber;
     send(endpoint, "availableUpdatesSuccess", "availableUpdatesFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 

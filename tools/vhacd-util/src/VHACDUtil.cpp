@@ -19,16 +19,16 @@
 
 // FBXReader jumbles the order of the meshes by reading them back out of a hashtable.  This will put
 // them back in the order in which they appeared in the file.
-bool HFMGeometryLessThan(const HFMMesh& e1, const HFMMesh& e2) {
+bool HFMModelLessThan(const HFMMesh& e1, const HFMMesh& e2) {
     return e1.meshIndex < e2.meshIndex;
 }
-void reSortHFMGeometryMeshes(HFMGeometry& geometry) {
-    qSort(geometry.meshes.begin(), geometry.meshes.end(), HFMGeometryLessThan);
+void reSortHFMModelMeshes(HFMModel& hfmModel) {
+    qSort(hfmModel.meshes.begin(), hfmModel.meshes.end(), HFMModelLessThan);
 }
 
 
 // Read all the meshes from provided FBX file
-bool vhacd::VHACDUtil::loadFBX(const QString filename, HFMGeometry& result) {
+bool vhacd::VHACDUtil::loadFBX(const QString filename, HFMModel& result) {
     if (_verbose) {
         qDebug() << "reading FBX file =" << filename << "...";
     }
@@ -41,19 +41,19 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, HFMGeometry& result) {
     }
     try {
         QByteArray fbxContents = fbx.readAll();
-        HFMGeometry::Pointer geom;
+        HFMModel::Pointer hfmModel;
         if (filename.toLower().endsWith(".obj")) {
             bool combineParts = false;
-            geom = OBJReader().readOBJ(fbxContents, QVariantHash(), combineParts);
+            hfmModel = OBJReader().readOBJ(fbxContents, QVariantHash(), combineParts);
         } else if (filename.toLower().endsWith(".fbx")) {
-            geom.reset(readFBX(fbxContents, QVariantHash(), filename));
+            hfmModel.reset(readFBX(fbxContents, QVariantHash(), filename));
         } else {
             qWarning() << "file has unknown extension" << filename;
             return false;
         }
-        result = *geom;
+        result = *hfmModel;
 
-        reSortHFMGeometryMeshes(result);
+        reSortHFMModelMeshes(result);
     } catch (const QString& error) {
         qWarning() << "error reading" << filename << ":" << error;
         return false;
@@ -88,7 +88,7 @@ void getTrianglesInMeshPart(const HFMMeshPart &meshPart, std::vector<int>& trian
     }
 }
 
-void vhacd::VHACDUtil::fattenMesh(const HFMMesh& mesh, const glm::mat4& geometryOffset, HFMMesh& result) const {
+void vhacd::VHACDUtil::fattenMesh(const HFMMesh& mesh, const glm::mat4& modelOffset, HFMMesh& result) const {
     // this is used to make meshes generated from a highfield collidable.  each triangle
     // is converted into a tetrahedron and made into its own mesh-part.
 
@@ -104,7 +104,7 @@ void vhacd::VHACDUtil::fattenMesh(const HFMMesh& mesh, const glm::mat4& geometry
     int indexStartOffset = result.vertices.size();
 
     // new mesh gets the transformed points from the original
-    glm::mat4 totalTransform = geometryOffset * mesh.modelTransform;
+    glm::mat4 totalTransform = modelOffset * mesh.modelTransform;
     for (int i = 0; i < mesh.vertices.size(); i++) {
         // apply the source mesh's transform to the points
         glm::vec4 v = totalTransform * glm::vec4(mesh.vertices[i], 1.0f);
@@ -288,17 +288,17 @@ float computeDt(uint64_t start) {
     return (float)(usecTimestampNow() - start) / (float)USECS_PER_SECOND;
 }
 
-bool vhacd::VHACDUtil::computeVHACD(HFMGeometry& geometry,
+bool vhacd::VHACDUtil::computeVHACD(HFMModel& hfmModel,
                                     VHACD::IVHACD::Parameters params,
-                                    HFMGeometry& result,
+                                    HFMModel& result,
                                     float minimumMeshSize, float maximumMeshSize) {
     if (_verbose) {
-        qDebug() << "meshes =" << geometry.meshes.size();
+        qDebug() << "meshes =" << hfmModel.meshes.size();
     }
 
     // count the mesh-parts
     int numParts = 0;
-    foreach (const HFMMesh& mesh, geometry.meshes) {
+    foreach (const HFMMesh& mesh, hfmModel.meshes) {
         numParts += mesh.parts.size();
     }
     if (_verbose) {
@@ -316,7 +316,7 @@ bool vhacd::VHACDUtil::computeVHACD(HFMGeometry& geometry,
 
     int meshIndex = 0;
     int validPartsFound = 0;
-    foreach (const HFMMesh& mesh, geometry.meshes) {
+    foreach (const HFMMesh& mesh, hfmModel.meshes) {
 
         // find duplicate points
         int numDupes = 0;
@@ -337,7 +337,7 @@ bool vhacd::VHACDUtil::computeVHACD(HFMGeometry& geometry,
 
         // each mesh has its own transform to move it to model-space
         std::vector<glm::vec3> vertices;
-        glm::mat4 totalTransform = geometry.offset * mesh.modelTransform;
+        glm::mat4 totalTransform = hfmModel.offset * mesh.modelTransform;
         foreach (glm::vec3 vertex, mesh.vertices) {
             vertices.push_back(glm::vec3(totalTransform * glm::vec4(vertex, 1.0f)));
         }

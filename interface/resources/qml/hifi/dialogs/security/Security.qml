@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import "qrc:////qml//styles-uit" as HifiStylesUit
-import "qrc:////qml//controls-uit" as HifiControlsUit
+import stylesUit 1.0 as HifiStylesUit
+import controlsUit 1.0 as HifiControlsUit
 import "qrc:////qml//controls" as HifiControls
 import "qrc:////qml//hifi//commerce//common" as HifiCommerceCommon
 
@@ -328,7 +328,7 @@ Rectangle {
 
                 HifiStylesUit.RalewayRegular {
                     text: "Your wallet is not set up.\n" +
-                        "Open the WALLET app to get started.";
+                        "Open the ASSETS app to get started.";
                     // Anchors
                     anchors.fill: parent;
                     // Text size

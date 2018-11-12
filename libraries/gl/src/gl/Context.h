@@ -56,6 +56,7 @@ namespace gl {
         void release();
         virtual ~Context();
 
+        QWindow* getWindow() const { return _window; }
         void clear();
         void setWindow(QWindow* window);
         bool makeCurrent();
@@ -80,8 +81,6 @@ namespace gl {
 
     class OffscreenContext : public Context {
         using Parent = Context;
-    protected:
-        QWindow* _window { nullptr };
     public:
         virtual ~OffscreenContext();
         void create(QOpenGLContext* shareContext = nullptr) override;

@@ -31,6 +31,9 @@
 
 #include <ScriptEngine.h>
 
+static const float WEB_TOUCH_Y_OFFSET = 0.105f;  // how far forward (or back with a negative number) to slide stylus in hand
+static const glm::vec3 TIP_OFFSET = glm::vec3(0.0f, StylusPick::WEB_STYLUS_LENGTH - WEB_TOUCH_Y_OFFSET, 0.0f);
+
 unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, const QVariant& properties) {
     switch (type) {
         case PickQuery::PickType::Ray:
@@ -137,7 +140,12 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
         maxDistance = propMap["maxDistance"].toFloat();
     }
 
-    return DependencyManager::get<PickManager>()->addPick(PickQuery::Stylus, std::make_shared<StylusPick>(side, filter, maxDistance, enabled));
+    glm::vec3 tipOffset = TIP_OFFSET;
+    if (propMap["tipOffset"].isValid()) {
+        tipOffset = vec3FromVariant(propMap["tipOffset"]);
+    }
+
+    return DependencyManager::get<PickManager>()->addPick(PickQuery::Stylus, std::make_shared<StylusPick>(side, filter, maxDistance, enabled, tipOffset));
 }
 
 // NOTE: Laser pointer still uses scaleWithAvatar. Until scaleWithAvatar is also deprecated for pointers, scaleWithAvatar should not be removed from the pick API.

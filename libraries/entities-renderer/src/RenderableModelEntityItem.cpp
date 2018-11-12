@@ -268,7 +268,7 @@ EntityItemProperties RenderableModelEntityItem::getProperties(const EntityProper
         if (model->isLoaded()) {
             // TODO: improve naturalDimensions in the future,
             //       for now we've added this hack for setting natural dimensions of models
-            Extents meshExtents = model->getHFMGeometry().getUnscaledMeshExtents();
+            Extents meshExtents = model->getHFMModel().getUnscaledMeshExtents();
             properties.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
             properties.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
         }
@@ -403,7 +403,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // should never fall in here when collision model not fully loaded
         // TODO: assert that all geometries exist and are loaded
         //assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
-        const HFMGeometry& collisionGeometry = _compoundShapeResource->getHFMGeometry();
+        const HFMModel& collisionGeometry = _compoundShapeResource->getHFMModel();
 
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
@@ -478,7 +478,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        glm::vec3 scaleToFit = dimensions / model->getHFMGeometry().getUnscaledMeshExtents().size();
+        glm::vec3 scaleToFit = dimensions / model->getHFMModel().getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         glm::vec3 registrationOffset = dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
@@ -498,19 +498,18 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
 
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
-        const HFMGeometry& hfmGeometry = model->getHFMGeometry();
-        int numHFMMeshes = hfmGeometry.meshes.size();
+        const HFMModel& hfmModel = model->getHFMModel();
+        int numHFMMeshes = hfmModel.meshes.size();
         int totalNumVertices = 0;
         glm::mat4 invRegistraionOffset = glm::translate(dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
         for (int i = 0; i < numHFMMeshes; i++) {
-            const HFMMesh& mesh = hfmGeometry.meshes.at(i);
+            const HFMMesh& mesh = hfmModel.meshes.at(i);
             if (mesh.clusters.size() > 0) {
                 const HFMCluster& cluster = mesh.clusters.at(0);
                 auto jointMatrix = model->getRig().getJointTransform(cluster.jointIndex);
                 // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
                 localTransforms.push_back(invRegistraionOffset * jointMatrix * cluster.inverseBindMatrix);
             } else {
-                glm::mat4 identity;
                 localTransforms.push_back(invRegistraionOffset);
             }
             totalNumVertices += mesh.vertices.size();
@@ -524,7 +523,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
 
         std::vector<std::shared_ptr<const graphics::Mesh>> meshes;
         if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
-            auto& hfmMeshes = _compoundShapeResource->getHFMGeometry().meshes;
+            auto& hfmMeshes = _compoundShapeResource->getHFMModel().meshes;
             meshes.reserve(hfmMeshes.size());
             for (auto& hfmMesh : hfmMeshes) {
                 meshes.push_back(hfmMesh._mesh);
@@ -755,7 +754,7 @@ int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     auto model = getModel();
     if (EntityItem::contains(point) && model && _compoundShapeResource && _compoundShapeResource->isLoaded()) {
-        return _compoundShapeResource->getHFMGeometry().convexHullContains(worldToEntity(point));
+        return _compoundShapeResource->getHFMModel().convexHullContains(worldToEntity(point));
     }
 
     return false;
@@ -1159,11 +1158,11 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
-    QStringList animationJointNames = _animation->getGeometry().getJointNames();
-    auto& hfmJoints = _animation->getGeometry().joints;
+    QStringList animationJointNames = _animation->getHFMModel().getJointNames();
+    auto& hfmJoints = _animation->getHFMModel().joints;
 
-    auto& originalHFMJoints = _model->getHFMGeometry().joints;
-    auto& originalHFMIndices = _model->getHFMGeometry().jointIndices;
+    auto& originalHFMJoints = _model->getHFMModel().joints;
+    auto& originalHFMIndices = _model->getHFMModel().jointIndices;
 
     bool allowTranslation = entity->getAnimationAllowTranslation();
 

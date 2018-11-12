@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 
 // references XXX from root context
@@ -62,7 +62,7 @@ Item {
             isExpanded: false;
             question: "How can I get HFC?";
             answer: "High Fidelity commerce is in open beta right now. Want more HFC? \
-Get it by going to <br><br><b><font color='#0093C5'><a href='#bank'>BankOfHighFidelity.</a></font></b> and meeting with the banker!";
+Get it by going to <b><font color='#0093C5'><a href='#bank'>BankOfHighFidelity</a></font></b> and meeting with the banker!";
         }
         ListElement {
             isExpanded: false;

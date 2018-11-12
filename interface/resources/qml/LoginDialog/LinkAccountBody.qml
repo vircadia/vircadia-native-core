@@ -13,8 +13,9 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
-import "../controls-uit"
-import "../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
+
 Item {
     id: linkAccountBody
     clip: true
@@ -96,7 +97,7 @@ Item {
             topMargin: hifi.dimensions.contentSpacing.y
         }
 
-        text: qsTr("Sign in to High Fidelity to make friends, get HFC, and buy interesting things on the Marketplace!")
+        text: qsTr("Sign in to High Fidelity to make friends, get HFC, and get interesting things on the Marketplace!")
         width: parent.width
         wrapMode: Text.WordWrap
         lineHeight: 1

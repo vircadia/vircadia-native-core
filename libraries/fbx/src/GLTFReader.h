@@ -706,7 +706,7 @@ class GLTFReader : public QObject {
     Q_OBJECT
 public:
     GLTFReader();
-    HFMGeometry* readGLTF(QByteArray& model, const QVariantHash& mapping, 
+    HFMModel* readGLTF(QByteArray& data, const QVariantHash& mapping, 
                           const QUrl& url, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 private:
     GLTFFile _file;
@@ -714,8 +714,8 @@ private:
 
     glm::mat4 getModelTransform(const GLTFNode& node);
 
-    bool buildGeometry(HFMGeometry& geometry, const QUrl& url);
-    bool parseGLTF(const QByteArray& model);
+    bool buildGeometry(HFMModel& hfmModel, const QUrl& url);
+    bool parseGLTF(const QByteArray& data);
     
     bool getStringVal(const QJsonObject& object, const QString& fieldname, 
                       QString& value, QMap<QString, bool>&  defined);
@@ -780,7 +780,7 @@ private:
 
     void setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material);
     HFMTexture getHFMTexture(const GLTFTexture& texture);
-    void hfmDebugDump(const HFMGeometry& hfmgeo);
+    void hfmDebugDump(const HFMModel& hfmModel);
 };
 
 #endif // hifi_GLTFReader_h

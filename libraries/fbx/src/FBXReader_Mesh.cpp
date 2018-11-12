@@ -397,7 +397,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
             }
 
             // enumerate the vertices and construct the extracted mesh
-            for (int i = 0; i < numVertices; ++i) {
+            for (uint32_t i = 0; i < numVertices; ++i) {
                 draco::PointIndex vertexIndex(i);
 
                 if (positionAttribute) {
@@ -453,7 +453,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 }
             }
 
-            for (int i = 0; i < dracoMesh->num_faces(); ++i) {
+            for (uint32_t i = 0; i < dracoMesh->num_faces(); ++i) {
                 // grab the material ID and texture ID for this face, if we have it
                 auto& dracoFace = dracoMesh->face(draco::FaceIndex(i));
                 auto& firstCorner = dracoFace[0];

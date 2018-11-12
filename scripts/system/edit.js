@@ -278,7 +278,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
     All: {
         description: "",
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        collidesWith: "static,dynamic,kinematic,otherAvatar",
+        collidesWith: "static,dynamic,kinematic,otherAvatar,myAvatar",
         collisionSoundURL: "",
         cloneable: false,
         ignoreIK: true,
@@ -484,22 +484,27 @@ var toolBar = (function () {
             originalProperties[key] = newProperties[key];
         }
     }
-    function createNewEntity(properties) {
-        var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
+    function createNewEntity(requestedProperties) {
+        var dimensions = requestedProperties.dimensions ? requestedProperties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
 
+        var properties = {};
+
         applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.All);
 
-        var type = properties.type;
-        if (type == "Box" || type == "Sphere") {
+        var type = requestedProperties.type;
+        if (type === "Box" || type === "Sphere") {
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
-        } else if (type == "Image") {
-            properties.type = "Model";
+        } else if (type === "Image") {
+            requestedProperties.type = "Model";
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Image);
         } else {
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES[type]);
         }
+
+        // We apply the requested properties first so that they take priority over any default properties.
+        applyProperties(properties, requestedProperties);
 
 
         if (position !== null && position !== undefined) {
@@ -845,41 +850,18 @@ var toolBar = (function () {
         addButton("newCubeButton", function () {
             createNewEntity({
                 type: "Box",
-                dimensions: DEFAULT_DIMENSIONS,
-                color: {
-                    red: 255,
-                    green: 0,
-                    blue: 0
-                }
             });
         });
 
         addButton("newSphereButton", function () {
             createNewEntity({
                 type: "Sphere",
-                dimensions: DEFAULT_DIMENSIONS,
-                color: {
-                    red: 255,
-                    green: 0,
-                    blue: 0
-                }
             });
         });
 
         addButton("newLightButton", function () {
             createNewEntity({
                 type: "Light",
-                isSpotlight: false,
-                color: {
-                    red: 150,
-                    green: 150,
-                    blue: 150
-                },
-                constantAttenuation: 1,
-                linearAttenuation: 0,
-                quadraticAttenuation: 0,
-                exponent: 0,
-                cutoff: 180 // in degrees
             });
         });
 
@@ -1236,7 +1218,7 @@ function mouseClickEvent(event) {
     var result, properties, tabletClicked;
     if (isActive && event.isLeftButton) {
         result = findClickedEntity(event);
-        tabletOrEditHandleClicked = wasTabletOrEditHandleClicked(event);
+        var tabletOrEditHandleClicked = wasTabletOrEditHandleClicked(event);
         if (tabletOrEditHandleClicked) {
             return;
         }
@@ -1559,7 +1541,7 @@ function insideBox(center, dimensions, point) {
            (Math.abs(point.z - center.z) <= (dimensions.z / 2.0));
 }
 
-function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
+function selectAllEntitiesInCurrentSelectionBox(keepIfTouching) {
     if (selectionManager.hasSelection()) {
         // Get all entities touching the bounding box of the current selection
         var boundingBoxCorner = Vec3.subtract(selectionManager.worldPosition,
@@ -1838,9 +1820,9 @@ function handleMenuEvent(menuItem) {
             Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Select All Entities In Box") {
-        selectAllEtitiesInCurrentSelectionBox(false);
+        selectAllEntitiesInCurrentSelectionBox(false);
     } else if (menuItem === "Select All Entities Touching Box") {
-        selectAllEtitiesInCurrentSelectionBox(true);
+        selectAllEntitiesInCurrentSelectionBox(true);
     } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
         entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
@@ -2126,14 +2108,14 @@ var DELETED_ENTITY_MAP = {};
 function applyEntityProperties(data) {
     var editEntities = data.editEntities;
     var selectedEntityIDs = [];
-    var selectEdits = data.createEntities.length == 0 || !data.selectCreated;
-    var i, entityID;
+    var selectEdits = data.createEntities.length === 0 || !data.selectCreated;
+    var i, entityID, entityProperties;
     for (i = 0; i < editEntities.length; i++) {
-        var entityID = editEntities[i].entityID;
+        entityID = editEntities[i].entityID;
         if (DELETED_ENTITY_MAP[entityID] !== undefined) {
             entityID = DELETED_ENTITY_MAP[entityID];
         }
-        var entityProperties = editEntities[i].properties;
+        entityProperties = editEntities[i].properties;
         if (entityProperties !== null) {
             Entities.editEntity(entityID, entityProperties);
         }
@@ -2143,7 +2125,7 @@ function applyEntityProperties(data) {
     }
     for (i = 0; i < data.createEntities.length; i++) {
         entityID = data.createEntities[i].entityID;
-        var entityProperties = data.createEntities[i].properties;
+        entityProperties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(entityProperties);
         recursiveAdd(newEntityID, data.createEntities[i]);
         DELETED_ENTITY_MAP[entityID] = newEntityID;
@@ -2279,9 +2261,17 @@ var PropertiesTool = function (opts) {
         });
     }
 
+    that.setSpaceMode = function(spaceMode) {
+        emitScriptEvent({
+            type: 'setSpaceMode',
+            spaceMode: spaceMode
+        })
+    };
+
     function updateSelections(selectionUpdated) {
         var data = {
-            type: 'update'
+            type: 'update',
+            spaceMode: selectionDisplay.getSpaceMode()
         };
 
         if (selectionUpdated) {
@@ -2310,6 +2300,9 @@ var PropertiesTool = function (opts) {
             entity.properties = Entities.getEntityProperties(selectionManager.selections[i]);
             if (entity.properties.rotation !== undefined) {
                 entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
+            }
+            if (entity.properties.localRotation !== undefined) {
+                entity.properties.localRotation = Quat.safeEulerAngles(entity.properties.localRotation);
             }
             if (entity.properties.emitOrientation !== undefined) {
                 entity.properties.emitOrientation = Quat.safeEulerAngles(entity.properties.emitOrientation);
@@ -2347,11 +2340,14 @@ var PropertiesTool = function (opts) {
             } else if (data.properties) {
                 if (data.properties.dynamic === false) {
                     // this object is leaving dynamic, so we zero its velocities
-                    data.properties.velocity = Vec3.ZERO;
-                    data.properties.angularVelocity = Vec3.ZERO;
+                    data.properties.localVelocity = Vec3.ZERO;
+                    data.properties.localAngularVelocity = Vec3.ZERO;
                 }
                 if (data.properties.rotation !== undefined) {
                     data.properties.rotation = Quat.fromVec3Degrees(data.properties.rotation);
+                }
+                if (data.properties.localRotation !== undefined) {
+                    data.properties.localRotation = Quat.fromVec3Degrees(data.properties.localRotation);
                 }
                 if (data.properties.emitOrientation !== undefined) {
                     data.properties.emitOrientation = Quat.fromVec3Degrees(data.properties.emitOrientation);
@@ -2490,6 +2486,13 @@ var PropertiesTool = function (opts) {
         }
     };
 
+    HMD.displayModeChanged.connect(function() {
+        emitScriptEvent({
+            type: 'hmdActiveChanged',
+            hmdActive: HMD.active,
+        });
+    });
+
     createToolsWindow.webEventReceived.addListener(this, onWebEventReceived);
 
     webView.webEventReceived.connect(onWebEventReceived);
@@ -2594,7 +2597,7 @@ var PopupMenu = function () {
                 y: event.y
             });
             if (!pressingOverlay) {
-                if (hoveringOverlay !== null && hoveringOverlay !== null && overlay !== hoveringOverlay) {
+                if (hoveringOverlay !== null && overlay !== hoveringOverlay) {
                     Overlays.editOverlay(hoveringOverlay, {
                         backgroundColor: upColor
                     });
@@ -2735,5 +2738,11 @@ entityListTool.webView.webEventReceived.connect(function(data) {
         unparentSelectedEntities();
     }
 });
+
+
+selectionDisplay.onSpaceModeChange = function(spaceMode) {
+    entityListTool.setSpaceMode(spaceMode);
+    propertiesTool.setSpaceMode(spaceMode);
+};
 
 }()); // END LOCAL_SCOPE

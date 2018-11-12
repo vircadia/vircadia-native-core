@@ -103,7 +103,7 @@ thead {
     font-size: 12px;
     text-transform: uppercase;
     background-color: #1c1c1c;
-    padding: 1px 0px;
+    padding: 1px 0;
     border-bottom: 1px solid #575757;
     width: 100%;
 }
@@ -222,7 +222,7 @@ input::-webkit-input-placeholder {
     font-style: italic;
 }
 
-input:focus, textarea:focus {
+input:focus, textarea:focus, button:focus {
     color: #fff;
     background-color: #000;
     outline: 1px solid #00b4ef;
@@ -283,7 +283,7 @@ input[type=number]::-webkit-inner-spin-button {
     width: 10px;
     height: 90%;
     overflow: hidden;
-    font-family: hifi-glyphs;
+    font-family: HiFi-Glyphs;
     font-size: 32px;
     color: #afafaf;
     cursor: pointer;
@@ -340,14 +340,14 @@ input.no-spin::-webkit-inner-spin-button {
     padding-right: 12px;
 }
 
-input[type=button] {
+input[type=button], button.hifi-edit-button {
     font-family: Raleway-Bold;
     font-size: 13px;
     text-transform: uppercase;
     vertical-align: top;
     height: 28px;
     min-width: 120px;
-    padding: 0px 18px;
+    padding: 0 18px;
     margin-right: 6px;
     border-radius: 5px;
     border: none;
@@ -357,7 +357,7 @@ input[type=button] {
     cursor: pointer;
 }
 
-input[type=button].glyph {
+input[type=button].glyph, button.hifi-edit-button.glyph {
     font-family: HiFi-Glyphs;
     font-size: 20px;
     text-transform: none;
@@ -365,58 +365,58 @@ input[type=button].glyph {
     padding: 0;
 }
 
-input[type=button].red {
+input[type=button].red, button.hifi-edit-button.red {
     color: #fff;
     background-color: #94132e;
     background: linear-gradient(#d42043 20%, #94132e 100%);
 }
-input[type=button].blue {
+input[type=button].blue, button.hifi-edit-button.blue {
     color: #fff;
     background-color: #1080b8;
     background: linear-gradient(#00b4ef 20%, #1080b8 100%);
 }
-input[type=button].white {
+input[type=button].white, button.hifi-edit-button.white {
     color: #121212;
     background-color: #afafaf;
     background: linear-gradient(#fff 20%, #afafaf 100%);
 }
 
-input[type=button]:enabled:hover {
+input[type=button]:enabled:hover, button.hifi-edit-button:enabled:hover {
     background: linear-gradient(#000, #000);
     border: none;
 }
-input[type=button].red:enabled:hover {
+input[type=button].red:enabled:hover, button.hifi-edit-button.red:enabled:hover {
     background: linear-gradient(#d42043, #d42043);
     border: none;
 }
-input[type=button].blue:enabled:hover {
+input[type=button].blue:enabled:hover, button.hifi-edit-button.blue:enabled:hover {
     background: linear-gradient(#00b4ef, #00b4ef);
     border: none;
 }
-input[type=button].white:enabled:hover {
+input[type=button].white:enabled:hover, button.hifi-edit-button.white:enabled:hover {
     background: linear-gradient(#fff, #fff);
     border: none;
 }
 
-input[type=button]:active {
+input[type=button]:active, button.hifi-edit-button:active {
     background: linear-gradient(#343434, #343434);
 }
-input[type=button].red:active {
+input[type=button].red:active, button.hifi-edit-button.red:active {
     background: linear-gradient(#94132e, #94132e);
 }
-input[type=button].blue:active {
+input[type=button].blue:active, button.hifi-edit-button.blue:active {
     background: linear-gradient(#1080b8, #1080b8);
 }
-input[type=button].white:active {
+input[type=button].white:active, button.hifi-edit-button.white:active {
     background: linear-gradient(#afafaf, #afafaf);
 }
 
-input[type=button]:disabled {
+input[type=button]:disabled, button.hifi-edit-button:disabled {
     color: #252525;
     background: linear-gradient(#575757 20%, #252525 100%);
 }
 
-input[type=button][pressed=pressed] {
+input[type=button][pressed=pressed], button.hifi-edit-button[pressed=pressed] {
     color: #00b4ef;
 }
 
@@ -447,7 +447,7 @@ input[type=checkbox]:checked + label:hover {
     position: absolute;
     left: 6px;
     top: -2px;
-    font-family: hifi-glyphs;
+    font-family: HiFi-Glyphs;
     font-size: 30px;
     color: #afafaf;
 }
@@ -1100,7 +1100,6 @@ body#entity-list-body {
     float: right;
     margin-right: 0;
     background-color: #ff0000;
-    min-width: 90px;
 }
 
 #entity-list {
@@ -1129,7 +1128,7 @@ body#entity-list-body {
 #filter-type-checkboxes span {
     position: relative;
     top: 3px;
-    font-family: hifi-glyphs;
+    font-family: HiFi-Glyphs;
     font-size: 13px;
     color: #000000;
     padding-left: 6px;
@@ -1173,7 +1172,7 @@ body#entity-list-body {
 
 #filter-in-view {
     position: absolute;
-    top: 0px;
+    top: 0;
     right: 126px;
 }
 
@@ -1453,7 +1452,7 @@ th#entity-hasScript {
 }
 
 #properties-base #property-type-icon {
-    font-family: hifi-glyphs;
+    font-family: HiFi-Glyphs;
     font-size: 31px;
     color: #00b4ef;
     margin: -4px 12px -4px -2px;
@@ -1598,7 +1597,7 @@ input.rename-entity {
     padding-left: 2px;
 }
 
-.createAppTooltip {
+.create-app-tooltip {
     position: absolute;
     background: #6a6a6a;
     border: 1px solid black;
@@ -1607,17 +1606,34 @@ input.rename-entity {
     padding: 5px;
 }
 
-.createAppTooltip .createAppTooltipDescription {
+.create-app-tooltip .create-app-tooltip-description {
     font-size: 12px;
     font-style: italic;
     color: #ffffff;
 }
 
-.createAppTooltip .createAppTooltipJSAttribute {
+.create-app-tooltip .create-app-tooltip-js-attribute {
     font-family: Raleway-SemiBold;
     font-size: 11px;
     color: #000000;
     bottom: 0;
     margin-top: 5px;
+}
+
+#toggle-space-mode::before {
+    font-family: HiFi-Glyphs;
+    font-size: 20px;
+    text-transform: none;
+    min-width: 32px;
+    padding-right: 4px;
+    vertical-align: middle;
+}
+
+#toggle-space-mode.space-mode-local::before {
+    content: "m";
+}
+
+#toggle-space-mode.space-mode-world::before {
+    content: "\e02c";
 }
 

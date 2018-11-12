@@ -27,13 +27,13 @@ namespace vhacd {
     public:
         void setVerbose(bool verbose) { _verbose = verbose; }
 
-        bool loadFBX(const QString filename, HFMGeometry& result);
+        bool loadFBX(const QString filename, HFMModel& result);
 
-        void fattenMesh(const HFMMesh& mesh, const glm::mat4& gometryOffset, HFMMesh& result) const;
+        void fattenMesh(const HFMMesh& mesh, const glm::mat4& modelOffset, HFMMesh& result) const;
 
-        bool computeVHACD(HFMGeometry& geometry,
+        bool computeVHACD(HFMModel& hfmModel,
                           VHACD::IVHACD::Parameters params,
-                          HFMGeometry& result,
+                          HFMModel& result,
                           float minimumMeshSize, float maximumMeshSize);
 
         void getConvexResults(VHACD::IVHACD* convexifier, HFMMesh& resultMesh) const;

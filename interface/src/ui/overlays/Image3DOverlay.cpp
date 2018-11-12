@@ -98,8 +98,8 @@ void Image3DOverlay::render(RenderArgs* args) {
     }
 
     float maxSize = glm::max(fromImage.width(), fromImage.height());
-    float x = fromImage.width() / (2.0f * maxSize);
-    float y = -fromImage.height() / (2.0f * maxSize);
+    float x = _keepAspectRatio ? fromImage.width() / (2.0f * maxSize) : 0.5f;
+    float y = _keepAspectRatio ? -fromImage.height() / (2.0f * maxSize) : -0.5f;
 
     glm::vec2 topLeft(-x, -y);
     glm::vec2 bottomRight(x, y);
@@ -176,6 +176,11 @@ void Image3DOverlay::setProperties(const QVariantMap& properties) {
         }
     }
 
+    auto keepAspectRatioValue = properties["keepAspectRatio"];
+    if (keepAspectRatioValue.isValid()) {
+        _keepAspectRatio = keepAspectRatioValue.toBool();
+    }
+
     auto emissiveValue = properties["emissive"];
     if (emissiveValue.isValid()) {
         _emissive = emissiveValue.toBool();
@@ -225,6 +230,8 @@ void Image3DOverlay::setProperties(const QVariantMap& properties) {
  *
  * @property {Vec2} dimensions=1,1 - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
  *
+ * @property {bool} keepAspectRatio=true - overlays will maintain the aspect ratio when the subImage is applied.
+ *
  * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
  *     parallel to the user's avatar's "up" direction.
  *
@@ -245,6 +252,9 @@ QVariant Image3DOverlay::getProperty(const QString& property) {
     }
     if (property == "emissive") {
         return _emissive;
+    }
+    if (property == "keepAspectRatio") {
+        return _keepAspectRatio;
     }
 
     return Billboard3DOverlay::getProperty(property);
