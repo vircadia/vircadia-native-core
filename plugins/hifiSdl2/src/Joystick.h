@@ -15,7 +15,7 @@
 #include <qobject.h>
 #include <qvector.h>
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #undef main
 
 #include <controllers/InputDevice.h>
