@@ -52,6 +52,10 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
                     AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
                     //AnimPose localOffset(offset2, glm::vec3());
                     cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
+                    qCDebug(animation) << "the new bind matrix num: " << cluster.jointIndex << cluster.inverseBindMatrix;
+                    //if ((hfmModel.clusterBindMatrixOriginalValues.size() > i) && (hfmModel.clusterBindMatrixOriginalValues[i].contains(cluster.jointIndex))) {
+                    //    qCDebug(animation) << "the saved orig matrix num: " << cluster.jointIndex << hfmModel.clusterBindMatrixOriginalValues[i][cluster.jointIndex];
+                    //}
                     cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
                 }
 
