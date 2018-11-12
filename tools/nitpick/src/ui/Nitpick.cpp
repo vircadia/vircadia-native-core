@@ -100,7 +100,7 @@ void Nitpick::on_tabWidget_currentChanged(int index) {
 // Enable the GitHub edit boxes as required
 #ifdef Q_OS_WIN
     if (index == 0 || index == 2 || index == 3) {
-#elif defined Q_OS_MAC
+#else
     if (index == 0 || index == 1 || index == 2) {
 #endif
         _ui.userLineEdit->setDisabled(false);
