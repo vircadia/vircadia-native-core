@@ -47,16 +47,6 @@ namespace {
 
 }  // Anon namespace.
 
-bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromJSON(QJsonObject root) {
-    if (root.contains("Id") && root.contains("DataVersion") && root.contains("Version")) {
-        id = root["Id"].toVariant().toUuid();
-        dataVersion = root["DataVersion"].toInt();
-        version = root["Version"].toInt();
-    }
-    readSubclassData(root);
-    return true;
-}
-
 bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromMap(const QVariantMap& map) {
     if (map.contains("Id") && map.contains("DataVersion") && map.contains("Version")) {
         id = map["Id"].toUuid();
@@ -94,28 +84,25 @@ bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromFile(QString path) {
     }
 
     QByteArray data = file.readAll();
-    QByteArray jsonData;
 
-    if (!gunzip(data, jsonData)) {
-        jsonData = data;
-    }
-
-    return readOctreeDataInfoFromData(jsonData);
+    return readOctreeDataInfoFromData(data);
 }
 
 QByteArray OctreeUtils::RawOctreeData::toByteArray() {
-    QJsonObject obj {
-        { "DataVersion", QJsonValue((qint64)dataVersion) },
-        { "Id", QJsonValue(id.toString()) },
-        { "Version", QJsonValue((qint64)version) },
-    };
+    QByteArray jsonString;
 
-    writeSubclassData(obj);
+    jsonString += QString(R"({
+  "DataVersion": %1,
+)").arg(dataVersion);
 
-    QJsonDocument doc;
-    doc.setObject(obj);
+    writeSubclassData(jsonString);
 
-    return doc.toJson();
+    jsonString += QString(R"(,
+  "Id": "%1",
+  "Version": %2
+})").arg(id.toString()).arg(version);
+
+    return jsonString;
 }
 
 QByteArray OctreeUtils::RawOctreeData::toGzippedByteArray() {
@@ -142,24 +129,21 @@ void OctreeUtils::RawOctreeData::resetIdAndVersion() {
     qDebug() << "Reset octree data to: " << id << dataVersion;
 }
 
-void OctreeUtils::RawEntityData::readSubclassData(const QJsonObject& root) {
-    if (root.contains("Entities")) {
-        entityData = root["Entities"].toArray();
-    }
-}
-
 void OctreeUtils::RawEntityData::readSubclassData(const QVariantMap& root) {
     variantEntityData = root["Entities"].toList();
 }
 
-void OctreeUtils::RawEntityData::writeSubclassData(QJsonObject& root) const {
-    //root["Entities"] = entityData;
-    QJsonArray entitiesJsonArray;
+void OctreeUtils::RawEntityData::writeSubclassData(QByteArray& root) const {
+    root += "  \"Entities\": [";
     for (auto entityIter = variantEntityData.begin(); entityIter != variantEntityData.end(); ++entityIter) {
-        entitiesJsonArray += entityIter->toJsonObject();
+        if (entityIter != variantEntityData.begin()) {
+            root += ",";
+        }
+        root += "\n    ";
+        // Convert to string and remove trailing LF.
+        root += QJsonDocument(entityIter->toJsonObject()).toJson().chopped(1);
     }
-
-    root["Entities"] = entitiesJsonArray;
+    root += "]";
 }
 
 PacketType OctreeUtils::RawEntityData::dataPacketType() const { return PacketType::EntityData; }

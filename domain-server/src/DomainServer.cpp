@@ -3411,20 +3411,11 @@ void DomainServer::maybeHandleReplacementEntityFile() {
 }
 
 void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
-    //Assume we have compressed data
-    auto compressedOctree = octreeFile;
-    QByteArray jsonOctree;
-
-    bool wasCompressed = gunzip(compressedOctree, jsonOctree);
-    if (!wasCompressed) {
-        // the source was not compressed, assume we were sent regular JSON data
-        jsonOctree = compressedOctree;
-    }
-
     OctreeUtils::RawEntityData data;
-    if (data.readOctreeDataInfoFromData(jsonOctree)) {
+    if (data.readOctreeDataInfoFromData(octreeFile)) {
         data.resetIdAndVersion();
 
+        QByteArray compressedOctree;
         gzip(data.toByteArray(), compressedOctree);
 
         // write the compressed octree data to a special file
