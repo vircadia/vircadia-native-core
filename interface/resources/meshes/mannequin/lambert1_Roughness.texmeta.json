@@ -1,0 +1,8 @@
+{
+    "compressed": {
+        "COMPRESSED_R11_EAC": "../lambert1_Roughness_COMPRESSED_R11_EAC.ktx",
+        "COMPRESSED_RED_RGTC1": "../lambert1_Roughness_COMPRESSED_RED_RGTC1.ktx"
+    },
+    "original": "../lambert1_Roughness.png",
+    "uncompressed": ""
+}
