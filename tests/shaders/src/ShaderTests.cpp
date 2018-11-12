@@ -31,13 +31,27 @@
 #include <gpu/gl/GLShader.h>
 #include <gl/QOpenGLContextWrapper.h>
 
-#define RUNTIME_SHADER_COMPILE_TEST 0
+#define RUNTIME_SHADER_COMPILE_TEST 1
 
 #if RUNTIME_SHADER_COMPILE_TEST
+#include <spirv_cross.hpp>
 #include <glslang/Public/ShaderLang.h>
 #include <SPIRV/GlslangToSpv.h>
 #include <spirv-tools/libspirv.hpp>
 #include <spirv-tools/optimizer.hpp>
+#include <vulkan/vulkan.hpp>
+
+#ifdef DEBUG
+#define VCPKG_LIB_DIR "D:/hifi/vcpkg/hifi/installed/x64-windows/debug/lib/"
+#else
+#define VCPKG_LIB_DIR "D:/hifi/vcpkg/hifi/installed/x64-windows/lib/"
+#endif
+
+#pragma comment(lib, VCPKG_LIB_DIR "shaderc_combined.lib")
+#pragma comment(lib, VCPKG_LIB_DIR "spirv-cross-core.lib")
+#pragma comment(lib, VCPKG_LIB_DIR "spirv-cross-glsl.lib")
+#pragma comment(lib, VCPKG_LIB_DIR "spirv-cross-reflect.lib")
+
 #endif
 
 QTEST_MAIN(ShaderTests)
@@ -49,6 +63,7 @@ void ShaderTests::initTestCase() {
     if (!_context->makeCurrent()) {
         qFatal("Unable to make test GL context current");
     }
+    QOpenGLContextWrapper(_context->qglContext()).makeCurrent(_context->getWindow());
     gl::initModuleGl();
     if (!_context->makeCurrent()) {
         qFatal("Unable to make test GL context current");
@@ -94,6 +109,7 @@ bool isSubset(const C& parent, const C& child) {
     return true;
 }
 
+#if 0
 gpu::Shader::ReflectionMap mergeReflection(const std::initializer_list<const gpu::Shader::Source>& list) {
     gpu::Shader::ReflectionMap result;
     std::unordered_map<gpu::Shader::BindingType, std::unordered_map<uint32_t, std::string>> usedLocationsByType;
@@ -124,6 +140,22 @@ gpu::Shader::ReflectionMap mergeReflection(const std::initializer_list<const gpu
     }
     return result;
 }
+template <typename C>
+bool compareBindings(const C& actual, const gpu::Shader::LocationMap& expected) {
+    if (actual.size() != expected.size()) {
+        auto actualNames = toStringSet(actual, [](const auto& v) { return v.name; });
+        auto expectedNames = toStringSet(expected, [](const auto& v) { return v.first; });
+        if (!isSubset(expectedNames, actualNames)) {
+            qDebug() << "Found" << toQStringList(actualNames);
+            qDebug() << "Expected" << toQStringList(expectedNames);
+            return false;
+        }
+    }
+    return true;
+}
+
+#endif
+
 #endif
 
 template <typename K, typename V>
@@ -177,19 +209,6 @@ static void verifyInterface(const gpu::Shader::Source& vertexSource, const gpu::
 }
 
 #if RUNTIME_SHADER_COMPILE_TEST
-template <typename C>
-bool compareBindings(const C& actual, const gpu::Shader::LocationMap& expected) {
-    if (actual.size() != expected.size()) {
-        auto actualNames = toStringSet(actual, [](const auto& v) { return v.name; });
-        auto expectedNames = toStringSet(expected, [](const auto& v) { return v.first; });
-        if (!isSubset(expectedNames, actualNames)) {
-            qDebug() << "Found" << toQStringList(actualNames);
-            qDebug() << "Expected" << toQStringList(expectedNames);
-            return false;
-        }
-    }
-    return true;
-}
 
 void configureGLSLCompilerResources(TBuiltInResource* glslCompilerResources) {
     glslCompilerResources->maxLights = 32;
@@ -324,77 +343,40 @@ EShLanguage getShaderStage(const std::string& shaderName) {
     throw std::runtime_error("Invalid shader name");
 }
 
-const gpu::Shader::Source& loadShader(uint32_t shaderId);
+void rebuildSource(shader::Dialect dialect, shader::Variant variant, const shader::Source& source) {
+    try {
+        using namespace glslang;
+        static const EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
+        auto shaderName = source.name;
+        const std::string baseOutName = "d:/shaders/" + shaderName;
+        auto stage = getShaderStage(shaderName);
 
-bool compileSpirv(uint32_t shaderId, bool stereo) {
-    const gpu::Shader::Source& source = loadShader(shaderId);
-    using namespace glslang;
+        TShader shader(stage);
+        std::vector<const char*> strings;
+        const auto& dialectVariantSource = source.dialectSources.at(dialect).variantSources.at(variant);
+        strings.push_back(dialectVariantSource.scribe.c_str());
+        shader.setStrings(strings.data(), (int)strings.size());
+        shader.setEnvInput(EShSourceGlsl, stage, EShClientOpenGL, 450);
+        shader.setEnvClient(EShClientVulkan, EShTargetVulkan_1_1);
+        shader.setEnvTarget(EShTargetSpv, EShTargetSpv_1_3);
 
-    static const std::string CORE_HEADER(
-        R"SHADER(#version 450 core
-#define GPU_GL450
-#define BITFIELD int
-#define GPU_SSBO_TRANSFORM_OBJECT
-#define gl_VertexID gl_VertexIndex
-#define gl_InstanceID gl_InstanceIndex
-)SHADER");
+        bool success = shader.parse(&glslCompilerResources, 450, false, messages);
+        if (!success) {
+            qWarning() << "Failed to parse shader " << shaderName.c_str();
+            qWarning() << shader.getInfoLog();
+            qWarning() << shader.getInfoDebugLog();
+            throw std::runtime_error("Wrong");
+        }
 
-    static const std::string DOMAIN_HEADER[] = {
-        "#define GPU_VERTEX_SHADER\r\n",
-        "#define GPU_PIXEL_SHADER\r\n",
-        "#define GPU_GEOMETRY_SHADER\r\n",
-    };
-
-    static const std::string STEREO_HEADER(
-        R"SHADER(
-#define GPU_TRANSFORM_IS_STEREO
-#define GPU_TRANSFORM_STEREO_CAMERA
-#define GPU_TRANSFORM_STEREO_CAMERA_INSTANCED
-#define GPU_TRANSFORM_STEREO_SPLIT_SCREEN
-)SHADER");
-
-    static std::once_flag once;
-    static TBuiltInResource glslCompilerResources;
-    std::call_once(once, [&] { configureGLSLCompilerResources(&glslCompilerResources); });
-
-    static const EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
-    auto shaderName = shader::loadShaderName(shaderId);
-    auto stage = getShaderStage(shaderName);
-
-    TShader shader(stage);
-    std::vector<const char*> strings;
-    strings.push_back(CORE_HEADER.c_str());
-    strings.push_back(DOMAIN_HEADER[stage == EShLangVertex ? 0 : 1].c_str());
-    if (stereo) {
-        strings.push_back(STEREO_HEADER.c_str());
-    }
-    strings.push_back(source.getCode().c_str());
-    shader.setStrings(strings.data(), (int)strings.size());
-    shader.setEnvInput(EShSourceGlsl, stage, EShClientOpenGL, 450);
-    shader.setEnvClient(EShClientVulkan, EShTargetVulkan_1_1);
-    shader.setEnvTarget(EShTargetSpv, EShTargetSpv_1_3);
-    bool success = shader.parse(&glslCompilerResources, 450, false, messages);
-    if (!success) {
-        qWarning() << "Failed to parse shader " << shaderName.c_str();
-        qWarning() << shader.getInfoLog();
-        qWarning() << shader.getInfoDebugLog();
-        return false;
-    }
-
-    // Create and link a shader program containing the single shader
-    glslang::TProgram program;
-    program.addShader(&shader);
-    if (!program.link(messages)) {
-        qWarning() << "Failed to compile shader " << shaderName.c_str();
-        qWarning() << program.getInfoLog();
-        qWarning() << program.getInfoDebugLog();
-        return false;
-    }
-
-    std::string baseOutName = "d:/shaders/" + shaderName;
-    if (stereo) {
-        baseOutName += ".stereo";
-    }
+        // Create and link a shader program containing the single shader
+        glslang::TProgram program;
+        program.addShader(&shader);
+        if (!program.link(messages)) {
+            qWarning() << "Failed to compile shader " << shaderName.c_str();
+            qWarning() << program.getInfoLog();
+            qWarning() << program.getInfoDebugLog();
+            throw std::runtime_error("Wrong");
+        }
 
     // Output the SPIR-V code from the shader program
     std::vector<uint32_t> spirv;
@@ -429,9 +411,10 @@ bool compileSpirv(uint32_t shaderId, bool stereo) {
         throw std::runtime_error("bad disassembly");
     }
 
-    write(baseOutName + ".spv.txt", disassembly);
-
-    return true;
+        write(baseOutName + ".spv.txt", disassembly);
+    } catch (const std::runtime_error& error) {
+        qWarning() << error.what();
+    }
 }
 #endif
 
@@ -524,88 +507,10 @@ void ShaderTests::testShaderLoad() {
                            << fragmentSource.name.c_str();
                 QFAIL("Program link error");
             }
-#if RUNTIME_SHADER_COMPILE_TEST
-            auto expectedBindings = mergeReflection({ vertexSource, fragmentSource });
-            QVERIFY(glshader != nullptr);
-            for (const auto& shaderObject : glshader->_shaderObjects) {
-                const auto& program = shaderObject.glprogram;
-
-                // Uniforms
-                {
-                    auto uniforms = gl::Uniform::load(program);
-                    const auto& uniformRemap = shaderObject.uniformRemap;
-                    auto expectedUniforms = expectedBindings[gpu::Shader::BindingType::UNIFORM];
-                    if (!compareBindings(uniforms, expectedUniforms)) {
-                        qDebug() << "Uniforms mismatch";
-                    }
-                    for (const auto& uniform : uniforms) {
-                        if (0 != expectedUniforms.count(uniform.name)) {
-                            auto expectedLocation = expectedUniforms[uniform.name];
-                            if (0 != uniformRemap.count(expectedLocation)) {
-                                expectedLocation = uniformRemap.at(expectedLocation);
-                            }
-                            QVERIFY(expectedLocation == uniform.binding);
-                        }
-                    }
-                }
-
-                // Textures
-                {
-                    auto textures = gl::Uniform::loadTextures(program);
-                    auto expiredBegin =
-                        std::remove_if(textures.begin(), textures.end(), [&](const gl::Uniform& uniform) -> bool {
-                            return uniform.name == "transformObjectBuffer";
-                        });
-                    textures.erase(expiredBegin, textures.end());
-
-                    const auto expectedTextures = expectedBindings[gpu::Shader::BindingType::TEXTURE];
-                    if (!compareBindings(textures, expectedTextures)) {
-                        qDebug() << "Textures mismatch";
-                    }
-                    for (const auto& texture : textures) {
-                        if (0 != expectedTextures.count(texture.name)) {
-                            const auto& location = texture.binding;
-                            const auto& expectedUnit = expectedTextures.at(texture.name);
-                            GLint actualUnit = -1;
-                            glGetUniformiv(program, location, &actualUnit);
-                            QVERIFY(expectedUnit == actualUnit);
-                        }
-                    }
-                }
-
-                // UBOs
-                {
-                    auto ubos = gl::UniformBlock::load(program);
-                    auto expectedUbos = expectedBindings[gpu::Shader::BindingType::UNIFORM_BUFFER];
-                    if (!compareBindings(ubos, expectedUbos)) {
-                        qDebug() << "UBOs mismatch";
-                    }
-                    for (const auto& ubo : ubos) {
-                        if (0 != expectedUbos.count(ubo.name)) {
-                            QVERIFY(expectedUbos[ubo.name] == ubo.binding);
-                        }
-                    }
-                }
-
-                // FIXME add storage buffer validation
-            }
-#endif
         }
     } catch (const std::runtime_error& error) {
         QFAIL(error.what());
     }
-
-#if RUNTIME_SHADER_COMPILE_TEST
-    for (uint32_t i = 1; i <= maxShader; ++i) {
-        auto used = usedShaders.count(i);
-        if (0 != usedShaders.count(i)) {
-            continue;
-        }
-        auto reflectionJson = shader::loadShaderReflection(i);
-        auto name = QJsonDocument::fromJson(reflectionJson.c_str()).object()["name"].toString();
-        qDebug() << "Unused shader" << name;
-    }
-#endif
 
     qDebug() << "Completed all shaders";
 }
