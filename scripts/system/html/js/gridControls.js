@@ -130,16 +130,37 @@ function loaded() {
         EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
     });
 
+    const KEY_CODES = {
+        BACKSPACE: 8,
+        DELETE: 46
+    };
+
     document.addEventListener("keyup", function (keyUpEvent) {
         if (keyUpEvent.target.nodeName === "INPUT") {
             return;
         }
-        let {code, key, altKey, ctrlKey, shiftKey} = keyUpEvent;
+        let {code, key, keyCode, altKey, ctrlKey, shiftKey} = keyUpEvent;
+
+        let keyCodeString;
+        switch (keyCode) {
+            case KEY_CODES.DELETE:
+                keyCodeString = "Delete";
+                break;
+            case KEY_CODES.BACKSPACE:
+                keyCodeString = "Backspace";
+                break;
+            default:
+                keyCodeString = String.fromCharCode(keyUpEvent.keyCode);
+                break;
+        }
+
         EventBridge.emitWebEvent(JSON.stringify({
             type: 'keyUpEvent',
             keyUpEvent: {
                 code,
                 key,
+                keyCode,
+                keyCodeString,
                 altKey,
                 ctrlKey,
                 shiftKey

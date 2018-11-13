@@ -12,7 +12,8 @@
 
 /* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager,
    Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera,
-   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, OverlaySystemWindow */
+   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, OverlaySystemWindow,
+   keyUpEventFromUIWindow:true */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -2706,42 +2707,44 @@ mapping.from([Controller.Hardware.Keyboard.P])
     .when([Controller.Hardware.Keyboard.Control, !Controller.Hardware.Keyboard.Shift])
     .to(whenReleased(function() { parentSelectedEntities(); }));
 
-function keyUpEventFromUIWindow(keyUpEvent) {
+keyUpEventFromUIWindow = function(keyUpEvent) {
     var WANT_DEBUG_MISSING_SHORTCUTS = false;
 
     var pressedValue = 0.0;
-    // Note: For some reason the keyboardEvent for delete does not show a code, using key instead:
-    if ((!isOnMacPlatform && keyUpEvent.key === "Delete") || (isOnMacPlatform && keyUpEvent.code === "Backspace")) {
+
+    if ((!isOnMacPlatform && keyUpEvent.keyCodeString === "Delete")
+        || (isOnMacPlatform && keyUpEvent.keyCodeString === "Backspace")) {
+
         deleteKey(pressedValue);
-    } else if (keyUpEvent.code === "KeyT") {
+    } else if (keyUpEvent.keyCodeString === "T") {
         toggleKey(pressedValue);
-    } else if (keyUpEvent.code === "KeyF") {
+    } else if (keyUpEvent.keyCodeString === "F") {
         focusKey(pressedValue);
-    } else if (keyUpEvent.code === "KeyG") {
+    } else if (keyUpEvent.keyCodeString === "G") {
         gridKey(pressedValue);
-    } else if (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyX") {
+    } else if (keyUpEvent.ctrlKey && keyUpEvent.keyCodeString === "X") {
         selectionManager.cutSelectedEntities();
-    } else if (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyC") {
+    } else if (keyUpEvent.ctrlKey && keyUpEvent.keyCodeString === "C") {
         selectionManager.copySelectedEntities();
-    } else if (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyV") {
+    } else if (keyUpEvent.ctrlKey && keyUpEvent.keyCodeString === "V") {
         selectionManager.pasteEntities();
-    } else if (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyD") {
+    } else if (keyUpEvent.ctrlKey && keyUpEvent.keyCodeString === "D") {
         selectionManager.duplicateSelection();
-    } else if (keyUpEvent.ctrlKey && !keyUpEvent.shiftKey && keyUpEvent.code === "KeyZ") {
+    } else if (keyUpEvent.ctrlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") {
         undoHistory.undo();
-    } else if (keyUpEvent.ctrlKey && !keyUpEvent.shiftKey && keyUpEvent.code === "KeyP") {
+    } else if (keyUpEvent.ctrlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
         parentSelectedEntities();
-    } else if (keyUpEvent.ctrlKey && keyUpEvent.shiftKey && keyUpEvent.code === "KeyP") {
+    } else if (keyUpEvent.ctrlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
         unparentSelectedEntities();
     } else if (
-        (keyUpEvent.ctrlKey && keyUpEvent.shiftKey && keyUpEvent.code === "KeyZ") ||
-        (keyUpEvent.ctrlKey && keyUpEvent.code === "KeyY")) {
+        (keyUpEvent.ctrlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") ||
+        (keyUpEvent.ctrlKey && keyUpEvent.keyCodeString === "Y")) {
 
         undoHistory.redo();
     } else if (WANT_DEBUG_MISSING_SHORTCUTS) {
         console.warn("unhandled key event: " + JSON.stringify(keyUpEvent))
     }
-}
+};
 
 var propertyMenu = new PopupMenu();
 
@@ -2755,7 +2758,6 @@ propertyMenu.onSelectMenuItem = function (name) {
 var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
-
 
 selectionDisplay.onSpaceModeChange = function(spaceMode) {
     entityListTool.setSpaceMode(spaceMode);
