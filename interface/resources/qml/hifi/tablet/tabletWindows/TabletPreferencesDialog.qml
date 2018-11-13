@@ -242,6 +242,10 @@ Item {
         keyboardEnabled = HMD.active;
     }
 
+    Component.onDestruction: {
+        keyboard.raised = false;
+    }
+
     onKeyboardRaisedChanged: {
         if (keyboardEnabled && keyboardRaised) {
             var delta = mouseArea.mouseY - (dialog.height - footer.height - keyboard.raisedHeight -hifi.dimensions.controlLineHeight);
