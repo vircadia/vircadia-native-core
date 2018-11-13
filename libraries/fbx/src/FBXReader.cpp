@@ -2032,12 +2032,12 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
     // these are needed when we recompute the bindpose offsets on reset.
     for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
-        vector<glm::mat4> tempBindMat;
+        vector<glm::mat4> meshBindMatrices;
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const HFMCluster& cluster = mesh.clusters.at(j);
-            tempBindMat.push_back(cluster.inverseBindMatrix);
+            meshBindMatrices.push_back(cluster.inverseBindMatrix);
         }
-        hfmModel.clusterBindMatrixOriginalValues.push_back(tempBindMat);
+        hfmModel.clusterBindMatrixOriginalValues.push_back(meshBindMatrices);
     }
     return hfmModelPtr;
 }

@@ -35,12 +35,9 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
             // AJT: mutate bind pose! this allows us to oreint the skeleton back into the authored orientaiton before
             // rendering, with no runtime overhead.
             if (hfmModel.jointRotationOffsets.contains(cluster.jointIndex)) {
-                qCDebug(animation) << "found a cluster " << cluster.jointIndex;
                 AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
-                cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * hfmModel.clusterBindMatrixOriginalValues[i][j];
-                qCDebug(animation) << "the new bind matrix num: " << cluster.jointIndex << cluster.inverseBindMatrix;
-                if ((hfmModel.clusterBindMatrixOriginalValues.size() > i) && (hfmModel.clusterBindMatrixOriginalValues[i].size() > cluster.jointIndex)) {
-                    qCDebug(animation) << "the saved orig matrix num: " << cluster.jointIndex << hfmModel.clusterBindMatrixOriginalValues[i][j];
+                if ((hfmModel.clusterBindMatrixOriginalValues.size() > i) && (hfmModel.clusterBindMatrixOriginalValues[i].size() > j)) {
+                    cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * hfmModel.clusterBindMatrixOriginalValues[i][j];
                 }
                 cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
             }
@@ -215,30 +212,22 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
         qCDebug(animation) << "relative default pose for joint " << i << " " << relDefaultPose.trans() << " " << relDefaultPose.rot();
 
         int parentIndex = getParentIndex(i);
-        AnimPose newAbsPose;
         if (parentIndex >= 0) {
-            newAbsPose = _absoluteDefaultPoses[parentIndex] * relDefaultPose;
-            _absoluteDefaultPoses.push_back(newAbsPose);
+            _absoluteDefaultPoses.push_back(_absoluteDefaultPoses[parentIndex] * relDefaultPose);
         } else {
             _absoluteDefaultPoses.push_back(relDefaultPose);
         }
     }
 
     for (int k = 0; k < _jointsSize; k++) {
-        int parentIndex2 = getParentIndex(k);
         if (jointOffsets.contains(k)) {
             AnimPose localOffset(jointOffsets[k], glm::vec3());
             _absoluteDefaultPoses[k] = _absoluteDefaultPoses[k] * localOffset;
         }
-        if (parentIndex2 >= 0) {
-            _relativeDefaultPoses.push_back(_absoluteDefaultPoses[parentIndex2].inverse() * _absoluteDefaultPoses[k]);
-        } else {
-            _relativeDefaultPoses.push_back(_absoluteDefaultPoses[k]);
-        }
     }
     // re-compute relative poses
-    //_relativeDefaultPoses = _absoluteDefaultPoses;
-    //convertAbsolutePosesToRelative(_relativeDefaultPoses);
+    _relativeDefaultPoses = _absoluteDefaultPoses;
+    convertAbsolutePosesToRelative(_relativeDefaultPoses);
 
     for (int i = 0; i < _jointsSize; i++) {
         _jointIndicesByName[_joints[i].name] = i;
