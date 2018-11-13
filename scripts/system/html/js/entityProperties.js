@@ -1116,7 +1116,6 @@ const GROUPS = [
             },
             {
                 label: "Clone Lifetime",
-                indentedLabel: true,
                 type: "number",
                 unit: "s",
                 propertyID: "cloneLifetime",
@@ -1124,21 +1123,18 @@ const GROUPS = [
             },
             {
                 label: "Clone Limit",
-                indentedLabel: true,
                 type: "number",
                 propertyID: "cloneLimit",
                 showPropertyRule: { "cloneable": "true" },
             },
             {
                 label: "Clone Dynamic",
-                indentedLabel: true,
                 type: "bool",
                 propertyID: "cloneDynamic",
                 showPropertyRule: { "cloneable": "true" },
             },
             {
                 label: "Clone Avatar Entity",
-                indentedLabel: true,
                 type: "bool",
                 propertyID: "cloneAvatarEntity",
                 showPropertyRule: { "cloneable": "true" },
@@ -2193,7 +2189,7 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
         }
         default: {
             console.log("EntityProperties - Unknown property type " + 
-                propertyType + " set to property " + propertyID);
+						propertyType + " set to property " + propertyID);
             break;
         }
     }
