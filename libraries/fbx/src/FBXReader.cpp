@@ -1808,7 +1808,5 @@ HFMModel* readFBX(QIODevice* device, const QVariantHash& mapping, const QString&
     reader._loadLightmaps = loadLightmaps;
     reader._lightmapLevel = lightmapLevel;
 
-    qCDebug(modelformat) << "Reading FBX: " << url;
-
     return reader.extractHFMModel(mapping, url);
 }

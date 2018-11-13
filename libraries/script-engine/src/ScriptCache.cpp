@@ -37,9 +37,6 @@ ScriptCache::ScriptCache(QObject* parent) {
 
 void ScriptCache::clearCache() {
     Lock lock(_containerLock);
-    foreach(auto& url, _scriptCache.keys()) {
-        qCDebug(scriptengine) << "clearing cache: " << url;
-    }
     _scriptCache.clear();
 }
 
@@ -48,7 +45,6 @@ void ScriptCache::clearATPScriptsFromCache() {
     qCDebug(scriptengine) << "Clearing ATP scripts from ScriptCache";
     for (auto it = _scriptCache.begin(); it != _scriptCache.end();) {
         if (it.key().scheme() == "atp") {
-            qCDebug(scriptengine) << "Removing: " << it.key();
             it = _scriptCache.erase(it);
         } else {
             ++it;
@@ -60,7 +56,6 @@ void ScriptCache::deleteScript(const QUrl& unnormalizedURL) {
     QUrl url = DependencyManager::get<ResourceManager>()->normalizeURL(unnormalizedURL);
     Lock lock(_containerLock);
     if (_scriptCache.contains(url)) {
-        qCDebug(scriptengine) << "Delete script from cache:" << url.toString();
         _scriptCache.remove(url);
     }
 }
@@ -146,7 +141,6 @@ void ScriptCache::scriptContentAvailable(int maxRetries) {
                 _activeScriptRequests.remove(url);
 
                 _scriptCache[url] = scriptContent = req->getData();
-                qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
             } else {
                 auto result = req->getResult();
                 bool irrecoverable =
@@ -160,12 +154,12 @@ void ScriptCache::scriptContentAvailable(int maxRetries) {
 
                     int timeout = exp(scriptRequest.numRetries) * ScriptRequest::START_DELAY_BETWEEN_RETRIES;
                     int attempt = scriptRequest.numRetries;
-                    qCDebug(scriptengine) << QString("Script request failed [%1]: %2 (will retry %3 more times; attempt #%4 in %5ms...)")
-                        .arg(status).arg(url.toString()).arg(maxRetries - attempt + 1).arg(attempt).arg(timeout);
+                    qCDebug(scriptengine) << QString("Script request failed [%1]: (will retry %2 more times; attempt #%3 in %4ms...)")
+                        .arg(status).arg(maxRetries - attempt + 1).arg(attempt).arg(timeout);
 
                     QTimer::singleShot(timeout, this, [this, url, attempt, maxRetries]() {
-                        qCDebug(scriptengine) << QString("Retrying script request [%1 / %2]: %3")
-                            .arg(attempt).arg(maxRetries).arg(url.toString());
+                        qCDebug(scriptengine) << QString("Retrying script request [%1 / %2]")
+                            .arg(attempt).arg(maxRetries);
 
                         auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
                             nullptr, url, true, -1, "ScriptCache::scriptContentAvailable");
@@ -186,12 +180,10 @@ void ScriptCache::scriptContentAvailable(int maxRetries) {
                         scriptContent = _scriptCache[url];
                     }
                     _activeScriptRequests.remove(url);
-                    qCWarning(scriptengine) << "Error loading script from URL " << url << "(" << status <<")";
+                    qCWarning(scriptengine) << "Error loading script from URL (" << status <<")";
 
                 }
             }
-        } else {
-            qCWarning(scriptengine) << "Warning: scriptContentAvailable for inactive url: " << url;
         }
     }
 

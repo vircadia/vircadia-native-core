@@ -355,7 +355,7 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
                                 }
                             }
                         } else {
-                            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() <<
+                            qCDebug(entities) << "Call failed with error" << networkReply->error() <<
                                 "More info:" << networkReply->readAll();
                         }
 

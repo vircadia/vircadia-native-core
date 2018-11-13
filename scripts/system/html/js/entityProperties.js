@@ -1361,15 +1361,6 @@ var lastEntityID = null;
 var createAppTooltip = new CreateAppTooltip();
 let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
-function debugPrint(message) {
-    EventBridge.emitWebEvent(
-        JSON.stringify({
-            type: "print",
-            message: message
-        })
-    );
-}
-
 
 /**
  * GENERAL PROPERTY/GROUP FUNCTIONS

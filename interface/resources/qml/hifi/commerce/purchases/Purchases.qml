@@ -1070,7 +1070,7 @@ Rectangle {
                 http.handleHttpResponse(message);
             break;
             default:
-                console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
+                console.log('Purchases.qml: Unrecognized message from marketplaces.js');
         }
     }
     signal sendToScript(var message);

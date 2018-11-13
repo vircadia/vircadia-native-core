@@ -2327,11 +2327,7 @@ var PropertiesTool = function (opts) {
             return;
         }
         var i, properties, dY, diff, newPosition;
-        if (data.type === "print") {
-            if (data.message) {
-                print(data.message);
-            }
-        } else if (data.type === "update") {
+        if (data.type === "update") {
             selectionManager.saveProperties();
             if (selectionManager.selections.length > 1) {
                 for (i = 0; i < selectionManager.selections.length; i++) {
@@ -2728,7 +2724,7 @@ entityListTool.webView.webEventReceived.connect(function(data) {
     try {
         data = JSON.parse(data);
     } catch(e) {
-        print("edit.js: Error parsing JSON: " + e.name + " data " + data);
+        print("edit.js: Error parsing JSON");
         return;
     }
 

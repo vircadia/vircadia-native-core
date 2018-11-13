@@ -646,7 +646,7 @@ void Resource::attemptRequest() {
     _startedLoading = true;
 
     if (_attempts > 0) {
-        qCDebug(networking).noquote() << "Server unavailable for" << _url
+        qCDebug(networking).noquote() << "Server unavailable "
             << "- retrying asset load - attempt" << _attempts << " of " << MAX_ATTEMPTS;
     }
 
@@ -658,11 +658,9 @@ void Resource::attemptRequest() {
 
 void Resource::finishedLoading(bool success) {
     if (success) {
-        qCDebug(networking).noquote() << "Finished loading:" << _url.toDisplayString();
         _loadPriorities.clear();
         _loaded = true;
     } else {
-        qCDebug(networking).noquote() << "Failed to load:" << _url.toDisplayString();
         _failedToLoad = true;
     }
     emit finished(success);
@@ -692,7 +690,6 @@ void Resource::makeRequest() {
         this, _activeUrl, true, -1, "Resource::makeRequest");
 
     if (!_request) {
-        qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
         ResourceCache::requestCompleted(_self);
         finishedLoading(false);
         PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID));
@@ -702,7 +699,6 @@ void Resource::makeRequest() {
     _request->setByteRange(_requestByteRange);
     _request->setFailOnRedirect(_shouldFailOnRedirect);
 
-    qCDebug(resourceLog).noquote() << "Starting request for:" << _url.toDisplayString();
     emit loading();
 
     connect(_request, &ResourceRequest::progress, this, &Resource::onProgress);
@@ -746,8 +742,6 @@ void Resource::handleReplyFinished() {
 
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
-        auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
-        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_activeUrl.toDisplayString(), extraInfo);
 
         auto relativePathURL = _request->getRelativePathUrl();
         if (!relativePathURL.isEmpty()) {
@@ -770,7 +764,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
     bool willRetry = false;
     switch (result) {
         case ResourceRequest::Result::Timeout: {
-            qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
+            qCDebug(networking) << "Timed out loading: received " << _bytesReceived << " total " << _bytesTotal;
             // Fall through to other cases
         }
         // FALLTHRU
@@ -778,13 +772,13 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
             _attempts++;
             _attemptsRemaining--;
 
-            qCDebug(networking) << "Retryable error while loading" << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
+            qCDebug(networking) << "Retryable error while loading: attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
 
             // retry with increasing delays
             const int BASE_DELAY_MS = 1000;
             if (_attempts < MAX_ATTEMPTS) {
                 auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
-                qCDebug(networking).noquote() << "Server unavailable for" << _url << "- may retry in" << waitTime << "ms"
+                qCDebug(networking).noquote() << "Server unavailable for - may retry in" << waitTime << "ms"
                     << "if resource is still needed";
                 QTimer::singleShot(waitTime, this, &Resource::attemptRequest);
                 willRetry = true;
@@ -795,7 +789,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
         // FALLTHRU
         default: {
             _attemptsRemaining = 0;
-            qCDebug(networking) << "Error loading " << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
+            qCDebug(networking) << "Error loading, attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
             auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError
                                                               : QNetworkReply::UnknownNetworkError;
             emit failed(error);

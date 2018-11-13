@@ -165,7 +165,7 @@ function AppUi(properties) {
         var urlOfRequest = optionalParams.urlOfRequest;
 
         if (error || (response.status !== 'success')) {
-            print("Error: unable to get", urlOfRequest, error || response.status);
+            print("Error: unable to complete request from URL. Error:", error || response.status);
             startNotificationTimer(indexOfRequest);
             return;
         }
@@ -180,7 +180,7 @@ function AppUi(properties) {
             } else {
                 notificationData = that.notificationDataProcessPage[indexOfRequest](response);
             }
-            console.debug(that.buttonName, that.notificationPollEndpoint[indexOfRequest],
+            console.debug(that.buttonName,
                 'truncated notification data for processing:',
                 JSON.stringify(notificationData).substring(0, MAX_LOG_LENGTH_CHARACTERS));
             that.notificationPollCallback[indexOfRequest](notificationData);
@@ -225,8 +225,6 @@ function AppUi(properties) {
             url = url + "&since=" + lastPollTimestamp / MS_IN_SEC;
         }
         Settings.setValue(settingsKey, currentTimestamp);
-
-        console.debug(that.buttonName, 'polling for notifications at endpoint', url);
 
         request({
             json: true,
