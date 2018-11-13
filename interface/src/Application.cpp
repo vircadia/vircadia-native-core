@@ -3396,6 +3396,10 @@ void Application::showHelp() {
     static const QString HAND_CONTROLLER_NAME_OCULUS_TOUCH = "oculus";
     static const QString HAND_CONTROLLER_NAME_WINDOWS_MR = "windowsMR";
 
+    static const QString VIVE_PLUGIN_NAME = "HTC Vive";
+    static const QString OCULUS_RIFT_PLUGIN_NAME = "Oculus Rift";
+    static const QString WINDOWS_MR_PLUGIN_NAME = "WindowsMR";
+
     static const QString TAB_KEYBOARD_MOUSE = "kbm";
     static const QString TAB_GAMEPAD = "gamepad";
     static const QString TAB_HAND_CONTROLLERS = "handControllers";
@@ -3403,49 +3407,18 @@ void Application::showHelp() {
     QString handControllerName;
     QString defaultTab = TAB_KEYBOARD_MOUSE;
 
-    qDebug() << "Printing names...";
-    for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
-        qDebug() << inputPlugin->getName();
-        auto subdeviceNames = inputPlugin->getSubdeviceNames();
-        for (auto& subdeviceName : subdeviceNames) {
-            qDebug() << " -|" << subdeviceName;
-        }
-    }
-
-    qDebug() << "----------------------";
-
-    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
-    for (auto& displayPlugin : displayPlugins) {
-        qDebug() << displayPlugin->getName();
-    }
-
-    if (PluginUtils::isHMDAvailable("WindowsMR")) {
+    if (PluginUtils::isHMDAvailable(WINDOWS_MR_PLUGIN_NAME)) {
         defaultTab = TAB_HAND_CONTROLLERS;
         handControllerName = HAND_CONTROLLER_NAME_WINDOWS_MR;
-    //} else if (PluginUtils::isViveControllerAvailable()) {
-    } else if (PluginUtils::isHMDAvailable("HTC Vive")) {
+    } else if (PluginUtils::isHMDAvailable(VIVE_PLUGIN_NAME)) {
         defaultTab = TAB_HAND_CONTROLLERS;
         handControllerName = HAND_CONTROLLER_NAME_VIVE;
-    } else if (PluginUtils::isHMDAvailable("Oculus Rift")) {
+    } else if (PluginUtils::isHMDAvailable(OCULUS_RIFT_PLUGIN_NAME)) {
         defaultTab = TAB_HAND_CONTROLLERS;
         handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
     } else if (PluginUtils::isXboxControllerAvailable()) {
         defaultTab = TAB_GAMEPAD;
     }
-    //if (QString::compare(qApp->getActiveDisplayPlugin()->getName(), "WindowsMR") == 0) {
-    //    defaultTab = TAB_HAND_CONTROLLERS;
-    //    handControllerName = HAND_CONTROLLER_NAME_WINDOWS_MR;
-    ////} else if (PluginUtils::isViveControllerAvailable()) {
-    //} else if (QString::compare(qApp->getActiveDisplayPlugin()->getName(), "HTC Vive") == 0) {
-    //    defaultTab = TAB_HAND_CONTROLLERS;
-    //    handControllerName = HAND_CONTROLLER_NAME_VIVE;
-    //} else if (PluginUtils::isOculusTouchControllerAvailable()) {
-    //    defaultTab = TAB_HAND_CONTROLLERS;
-    //    handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
-    //} else if (PluginUtils::isXboxControllerAvailable()) {
-    //    defaultTab = TAB_GAMEPAD;
-    //}
-    // TODO need some way to detect windowsMR to load controls reference default tab in Help > Controls Reference menu.
 
     QUrlQuery queryString;
     queryString.addQueryItem("handControllerName", handControllerName);
