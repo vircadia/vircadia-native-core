@@ -246,6 +246,10 @@ void Nitpick::downloadFiles(const QStringList& URLs, const QString& directoryNam
     _ui.progressBar->setValue(0);
     _ui.progressBar->setVisible(true);
 
+    foreach (auto downloader, _downloaders) {
+        delete downloader;
+    }
+
     _downloaders.clear();
     for (int i = 0; i < _numberOfFilesToDownload; ++i) {
         downloadFile(URLs[i]);
@@ -272,10 +276,6 @@ void Nitpick::saveFile(int index) {
             _test->finishTestsEvaluation();
         } else if (_caller == _testRunner) {
             _testRunner->downloadComplete();
-        }
-
-        foreach (auto downloader, _downloaders) {
-            delete downloader;
         }
     } else {
         _ui.progressBar->setValue(_numberOfFilesDownloaded);
