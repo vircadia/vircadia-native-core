@@ -876,7 +876,6 @@ div.refresh input[type="button"] {
 }
 .rgb div.legend + * {
     clear: both;
-<<<<<<< HEAD
 }
 
 .draggable-number {
@@ -904,8 +903,6 @@ div.refresh input[type="button"] {
 .draggable-number input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     visibility: hidden;
-=======
->>>>>>> a787f55506f73c2617ce12e5fd6b2d129c9bb03e
 }
 
 .row .property {
@@ -1444,32 +1441,6 @@ th#entity-hasScript {
     display: inline-block;
 }
 
-<<<<<<< HEAD
-/*
-#properties-base #div-property-locked {
-    position: absolute;
-    top: 6px;
-    right: 140px;
-    display: table-cell;
-    vertical-align: middle;
-}
-
-#properties-base #div-property-visible {
-    position: absolute;
-    top: 26px;
-    right: 20px;
-    display: table-cell;
-    vertical-align: middle;
-}
-
-#properties-base #div-property-locked label,
-#properties-base #div-property-visible label {
-    background-position-y: 1px;
-}
-*/
-
-=======
->>>>>>> a787f55506f73c2617ce12e5fd6b2d129c9bb03e
 #properties-base .checkbox label span {
     font-family: HiFi-Glyphs;
     font-size: 20px;
@@ -1708,8 +1679,6 @@ input.number-slider {
 #toggle-space-mode.space-mode-world::before {
     content: "\e02c";
 }
-<<<<<<< HEAD
-=======
 
 .container {
     display: flex;
@@ -1808,4 +1777,3 @@ input.number-slider {
     display: flex;
     width: 100%;
 }
->>>>>>> a787f55506f73c2617ce12e5fd6b2d129c9bb03e

@@ -1390,11 +1390,6 @@ const COLOR_ELEMENTS = {
     BLUE_INPUT: 3,
 };
 
-const ICON_ELEMENTS = {
-    ICON: 0,
-    LABEL: 1,
-};
-
 const TEXTURE_ELEMENTS = {
     IMAGE: 0,
     TEXT_INPUT: 1,
@@ -1622,7 +1617,9 @@ function updateVisibleSpaceModeProperties() {
             let propertySpaceMode = property.spaceMode;
             if (propertySpaceMode !== PROPERTY_SPACE_MODE.ALL) {
                 showPropertyElement(propertyID, propertySpaceMode === currentSpaceMode);
-            }
+            } else {
+				showPropertyElement(propertyID, true);
+			}
         }
     }
 }
@@ -2189,9 +2186,7 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
             break;
         }
         case 'icon': {
-            let elIcon = createIconProperty(property, elProperty);
-            property.elSpan = elIcon[ICON_ELEMENTS.ICON];
-            property.elLabel = elIcon[ICON_ELEMENTS.LABEL];
+            property.elSpan = createIconProperty(property, elProperty);
             break;
         }
         case 'texture': {
@@ -2853,7 +2848,6 @@ function loaded() {
                         let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper.childNodes[0]);
                         property.isParticleProperty = group.id.includes("particles");
                         property.elContainer = elContainer;
-
                         property.spaceMode = propertySpaceMode;
                         
                         if (property.type !== 'placeholder') {
@@ -2978,7 +2972,6 @@ function loaded() {
                         let typeProperty = properties["type"];
                         typeProperty.elSpan.innerHTML = typeProperty.data.icons[type];
                         typeProperty.elSpan.style.display = "inline-block";
-                        typeProperty.elLabel.innerHTML = type + " (" + data.selections.length + ")";
                         
                         disableProperties();
                     } else {
@@ -3025,7 +3018,6 @@ function loaded() {
                             let isPropertyNotNumber = false;
                             switch (propertyData.type) {
                                 case 'number':
-                                case 'slider':
                                     isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
                                     break;
                                 case 'vec3':
@@ -3057,8 +3049,7 @@ function loaded() {
                                     }
                                     break;
                                 }
-                                case 'number':
-                                case 'slider': {
+                                case 'number': {
                                     let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
                                     let value = propertyValue / multiplier;
                                     if (propertyData.round !== undefined) {
@@ -3068,9 +3059,6 @@ function loaded() {
                                         property.elInput.value = value.toFixed(propertyData.decimals);
                                     } else {
                                         property.elInput.value = value;
-                                    }
-                                    if (property.elSlider !== undefined) {
-                                        property.elSlider.value = property.elInput.value;
                                     }
                                     break;
                                 }
