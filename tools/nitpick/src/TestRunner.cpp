@@ -173,9 +173,9 @@ void TestRunner::setWorkingFolder() {
     }
     
     script.write("#!/bin/sh\n\n");
-    script.write("echo resizing interface");
+    script.write("echo resizing interface\n");
     script.write(("osascript " + _workingFolder + "/setInterfaceSizeAndPosition.scpt\n").toStdString().c_str());
-    script.write("echo resize complete");
+    script.write("echo resize complete\n");
     script.close();
     script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
 #endif
