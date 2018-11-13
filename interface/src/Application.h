@@ -307,6 +307,7 @@ public:
 
     bool isServerlessMode() const;
     bool isInterstitialMode() const { return _interstitialMode; }
+    bool failedToConnectToEntityServer() const { return _failedToConnectToEntityServer; }
 
     void replaceDomainContent(const QString& url);
 
@@ -460,6 +461,7 @@ private slots:
 
     void loadSettings();
     void saveSettings() const;
+    void setFailedToConnectToEntityServer() { _failedToConnectToEntityServer = true; }
 
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
@@ -710,6 +712,7 @@ private:
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _isGLInitialized { false };
     bool _physicsEnabled { false };
+    bool _failedToConnectToEntityServer { false };
 
     bool _reticleClickPressed { false };
 
@@ -756,6 +759,7 @@ private:
     QStringList _addAssetToWorldInfoMessages;  // Info message
     QTimer _addAssetToWorldInfoTimer;
     QTimer _addAssetToWorldErrorTimer;
+    mutable QTimer _entityServerConnectionTimer;
 
     FileScriptingInterface* _fileDownload;
     AudioInjectorPointer _snapshotSoundInjector;
