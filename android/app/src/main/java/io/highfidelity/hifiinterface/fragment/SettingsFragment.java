@@ -7,12 +7,10 @@ import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 
+import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.R;
 
 public class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
-
-    public native void updateHifiSetting(String group, String key, boolean value);
-    public native boolean getHifiSettingBoolean(String group, String key, boolean defaultValue);
 
     private final String HIFI_SETTINGS_ANDROID_GROUP = "Android";
     private final String HIFI_SETTINGS_AEC_KEY = "aec";
@@ -29,12 +27,11 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
 
         if (!aecAvailable) {
             findPreference(PREFERENCE_KEY_AEC).setEnabled(false);
-            updateHifiSetting(HIFI_SETTINGS_ANDROID_GROUP, HIFI_SETTINGS_AEC_KEY, false);
+            HifiUtils.getInstance().updateHifiSetting(HIFI_SETTINGS_ANDROID_GROUP, HIFI_SETTINGS_AEC_KEY, false);
         }
 
         getPreferenceScreen().getSharedPreferences().edit().putBoolean(PREFERENCE_KEY_AEC,
-                aecAvailable && getHifiSettingBoolean(HIFI_SETTINGS_ANDROID_GROUP, HIFI_SETTINGS_AEC_KEY, DEFAULT_AEC_ENABLED)).commit();
-
+                aecAvailable && HifiUtils.getInstance().getHifiSettingBoolean(HIFI_SETTINGS_ANDROID_GROUP, HIFI_SETTINGS_AEC_KEY, DEFAULT_AEC_ENABLED)).commit();
     }
 
     public static SettingsFragment newInstance() {
@@ -57,8 +54,8 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         switch (key) {
-            case PREFERENCE_KEY_AEC:
-                updateHifiSetting(HIFI_SETTINGS_ANDROID_GROUP, HIFI_SETTINGS_AEC_KEY, sharedPreferences.getBoolean(key, DEFAULT_AEC_ENABLED));
+            case "aec":
+                HifiUtils.getInstance().updateHifiSetting(HIFI_SETTINGS_ANDROID_GROUP, HIFI_SETTINGS_AEC_KEY, sharedPreferences.getBoolean(key, false));
                 break;
             default:
                 break;

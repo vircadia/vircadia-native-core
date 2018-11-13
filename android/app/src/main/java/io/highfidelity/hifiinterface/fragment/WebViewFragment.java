@@ -4,9 +4,11 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.TextUtils;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -14,6 +16,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
+import android.webkit.CookieManager;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -25,6 +28,7 @@ import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import io.highfidelity.hifiinterface.BuildConfig;
 import io.highfidelity.hifiinterface.R;
 import io.highfidelity.hifiinterface.WebViewActivity;
 
@@ -32,6 +36,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
 
     public static final String URL = "url";
     public static final String TOOLBAR_VISIBLE = "toolbar_visible";
+    public static final String CLEAR_COOKIES = "clear_cookies";
     private static final long DELAY_HIDE_TOOLBAR_MILLIS = 3000;
     private static final long FADE_OUT_DURATION = 2000;
 
@@ -41,6 +46,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
     private ProgressBar mProgressBar;
     private String mUrl;
     private boolean mToolbarVisible;
+    private boolean mClearCookies;
 
     private OnWebViewInteractionListener mListener;
     private Runnable mCloseAction;
@@ -170,6 +176,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         if (getArguments() != null) {
             mUrl = getArguments().getString(URL);
             mToolbarVisible = getArguments().getBoolean(TOOLBAR_VISIBLE);
+            mClearCookies = getArguments().getBoolean(CLEAR_COOKIES);
         }
     }
 
@@ -179,6 +186,10 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         View rootView = inflater.inflate(R.layout.fragment_web_view, container, false);
         mProgressBar = rootView.findViewById(R.id.toolbarProgressBar);
         myWebView = rootView.findViewById(R.id.web_view);
+        if (mClearCookies) {
+            CookieManager.getInstance().removeAllCookies(null);
+        }
+
         mHandler = new Handler();
         gestureDetector = new GestureDetector(this);
         gestureDetector.setOnDoubleTapListener(new GestureDetector.OnDoubleTapListener() {
@@ -251,6 +262,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         void onWebLoaded(String url, SafenessLevel safenessLevel);
         void onTitleReceived(String title);
         void onExpand();
+        void onOAuthAuthorizeCallback(Uri uri);
     }
 
 
@@ -319,6 +331,18 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
             } else {
                 super.onLoadResource(view, url);
             }
+        }
+
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            if (!TextUtils.isEmpty(BuildConfig.OAUTH_REDIRECT_URI) &&
+                    request.getUrl().toString().startsWith(BuildConfig.OAUTH_REDIRECT_URI)) {
+                if (mListener != null) {
+                    mListener.onOAuthAuthorizeCallback(request.getUrl());
+                }
+                return true;
+            }
+            return super.shouldOverrideUrlLoading(view, request);
         }
     }
 
