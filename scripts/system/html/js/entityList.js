@@ -152,36 +152,59 @@ const ICON_FOR_TYPE = {
 };
 
 // List of all entities
-var entities = [];
+let entities = [];
 // List of all entities, indexed by Entity ID
-var entitiesByID = {};
+let entitiesByID = {};
 // The filtered and sorted list of entities passed to ListView
-var visibleEntities = [];
+let visibleEntities = [];
 // List of all entities that are currently selected
-var selectedEntities = [];
+let selectedEntities = [];
 
-var entityList = null; // The ListView
+let entityList = null; // The ListView
 
 /**
  * @type EntityListContextMenu
  */
-var entityListContextMenu = null;
+let entityListContextMenu = null;
 
-var currentSortColumn = null;
-var currentSortOrder = ASCENDING_SORT;
-var elSortOrders = {};
-var typeFilters = [];
-var isFilterInView = false;
+let currentSortColumn = null;
+let currentSortOrder = ASCENDING_SORT;
+let elSortOrders = {};
+let typeFilters = [];
+let isFilterInView = false;
 
-var columns = [];
-var columnsByID = {};
-var currentResizeEl = null;
-var startResizeEvent = null;
-var resizeColumnIndex = 0;
-var startThClick = null;
+let columns = [];
+let columnsByID = {};
+let currentResizeEl = null;
+let startResizeEvent = null;
+let resizeColumnIndex = 0;
+let startThClick = null;
+
+let elEntityTable,
+    elEntityTableBody,
+    elEntityTableScroll,
+    elEntityTableHeaderRow,
+    elRefresh,
+    elToggleLocked,
+    elToggleVisible,
+    elDelete,
+    elFilterTypeSelectBox,
+    elFilterTypeText,
+    elFilterTypeCheckboxes,
+    elFilterSearch,
+    elFilterInView,
+    elFilterRadius,
+    elExport,
+    elPal,
+    elInfoToggle,
+    elInfoToggleGlyph,
+    elSelectedEntitiesCount,
+    elVisibleEntitiesCount,
+    elNoEntitiesMessage,
+    elToggleSpaceMode;
 
 const ENABLE_PROFILING = false;
-var profileIndent = '';
+let profileIndent = '';
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
 } ;
@@ -214,7 +237,7 @@ function loaded() {
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeOptions = document.getElementById("filter-type-options");
         elFilterSearch = document.getElementById("filter-search");
-        elFilterInView = document.getElementById("filter-in-view")
+        elFilterInView = document.getElementById("filter-in-view");
         elFilterRadius = document.getElementById("filter-radius");
         elExport = document.getElementById("export");
         elPal = document.getElementById("pal");
@@ -223,6 +246,7 @@ function loaded() {
         elNoEntitiesMessage = document.getElementById("no-entities");
         elColumnsMultiselectBox = document.getElementById("entity-table-columns-multiselect-box");
         elColumnsOptions = document.getElementById("entity-table-columns-options");
+        elToggleSpaceMode = document.getElementById('toggle-space-mode');
         
         document.body.onclick = onBodyClick;
         elToggleLocked.onclick = function() {
@@ -240,8 +264,12 @@ function loaded() {
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         };
+        elToggleSpaceMode.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleSpaceMode' }));
+        };
         elRefresh.onclick = refreshEntities;
         elFilterTypeMultiselectBox.onclick = onToggleTypeDropdown;
+        elFilterTypeSelectBox.onclick = onToggleTypeDropdown;
         elFilterSearch.onkeyup = refreshEntityList;
         elFilterSearch.onsearch = refreshEntityList;
         elFilterInView.onclick = onToggleFilterInView;
@@ -756,6 +784,8 @@ function loaded() {
                 }
             }
 
+            elToggleSpaceMode.disabled = selectedIDs.length > 1;
+
             refreshFooter();
 
             return notFound;
@@ -1078,6 +1108,16 @@ function loaded() {
             ev.stopPropagation();
         }
 
+        function setSpaceMode(spaceMode) {
+            if (spaceMode === "local") {
+                elToggleSpaceMode.className = "space-mode-local hifi-edit-button";
+                elToggleSpaceMode.innerText = "Local";
+            } else {
+                elToggleSpaceMode.className = "space-mode-world hifi-edit-button";
+                elToggleSpaceMode.innerText = "World";
+            }
+        }
+    
         document.addEventListener("keydown", function (keyDownEvent) {
             if (keyDownEvent.target.nodeName === "INPUT") {
                 return;
@@ -1116,12 +1156,15 @@ function loaded() {
                                 updateSelectedEntities(data.selectedIDs, true);
                             }
                         }
+                        setSpaceMode(data.spaceMode);
                     });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
                     removeEntities(data.deletedIDs);
                     updateSelectedEntities(data.selectedIDs, true);
                 } else if (data.type === "deleted" && data.ids) {
                     removeEntities(data.ids);
+                } else if (data.type === "setSpaceMode") {
+                    setSpaceMode(data.spaceMode);
                 }
             });
         }

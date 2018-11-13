@@ -538,17 +538,25 @@ void MyAvatar::update(float deltaTime) {
 
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
-    if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid()) {
-        glm::vec3 handHipAzimuthWorldSpace = transformVectorFast(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
+    int spine2Index = _skeletonModel->getRig().indexOfJoint("Spine2");
+    if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid() && !(spine2Index < 0)) {
+
+        // use the spine for the azimuth origin.
+        glm::quat spine2Rot = getAbsoluteJointRotationInObjectFrame(spine2Index);
+        glm::vec3 handHipAzimuthAvatarSpace = spine2Rot * glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y);
+        glm::vec3 handHipAzimuthWorldSpace = transformVectorFast(getTransform().getMatrix(), handHipAzimuthAvatarSpace);
         glm::mat4 sensorToWorldMat = getSensorToWorldMatrix();
         glm::mat4 worldToSensorMat = glm::inverse(sensorToWorldMat);
         glm::vec3 handHipAzimuthSensorSpace = transformVectorFast(worldToSensorMat, handHipAzimuthWorldSpace);
         glm::vec2 normedHandHipAzimuthSensorSpace(0.0f, 1.0f);
         if (glm::length(glm::vec2(handHipAzimuthSensorSpace.x, handHipAzimuthSensorSpace.z)) > 0.0f) {
             normedHandHipAzimuthSensorSpace = glm::normalize(glm::vec2(handHipAzimuthSensorSpace.x, handHipAzimuthSensorSpace.z));
+            glm::vec2 headFacingPlusHandHipAzimuthMix = lerp(normedHandHipAzimuthSensorSpace, _headControllerFacing, PERCENTAGE_WEIGHT_HEAD_VS_SHOULDERS_AZIMUTH);
+            _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, headFacingPlusHandHipAzimuthMix, tau);
+        } else {
+            // use head facing if the chest arms vector is up or down.
+            _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, _headControllerFacing, tau);
         }
-        glm::vec2 headFacingPlusHandHipAzimuthMix = lerp(normedHandHipAzimuthSensorSpace, _headControllerFacing, PERCENTAGE_WEIGHT_HEAD_VS_SHOULDERS_AZIMUTH);
-        _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, headFacingPlusHandHipAzimuthMix, tau);
     } else {
         _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, _headControllerFacing, tau);
     }
@@ -979,35 +987,48 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 }
 
 // Find the vector halfway between the hip to hand azimuth vectors
-// This midpoint hand azimuth is in Avatar space
+// This midpoint hand azimuth is in Spine2 space
 glm::vec2 MyAvatar::computeHandAzimuth() const {
     controller::Pose leftHandPoseAvatarSpace = getLeftHandPose();
     controller::Pose rightHandPoseAvatarSpace = getRightHandPose();
     controller::Pose headPoseAvatarSpace = getControllerPoseInAvatarFrame(controller::Action::HEAD);
     const float HALFWAY = 0.50f;
+
     glm::vec2 latestHipToHandController = _hipToHandController;
 
-    if (leftHandPoseAvatarSpace.isValid() && rightHandPoseAvatarSpace.isValid() && headPoseAvatarSpace.isValid()) {
+    int spine2Index = _skeletonModel->getRig().indexOfJoint("Spine2");
+    if (leftHandPoseAvatarSpace.isValid() && rightHandPoseAvatarSpace.isValid() && headPoseAvatarSpace.isValid() && !(spine2Index < 0)) {
+
+        glm::vec3 spine2Position = getAbsoluteJointTranslationInObjectFrame(spine2Index);
+        glm::quat spine2Rotation = getAbsoluteJointRotationInObjectFrame(spine2Index);
+
+        glm::vec3 rightHandOffset = rightHandPoseAvatarSpace.translation - spine2Position;
+        glm::vec3 leftHandOffset = leftHandPoseAvatarSpace.translation - spine2Position;
+        glm::vec3 rightHandSpine2Space = glm::inverse(spine2Rotation) * rightHandOffset;
+        glm::vec3 leftHandSpine2Space = glm::inverse(spine2Rotation) * leftHandOffset;
+
         // we need the old azimuth reading to prevent flipping the facing direction 180
         // in the case where the hands go from being slightly less than 180 apart to slightly more than 180 apart.
         glm::vec2 oldAzimuthReading = _hipToHandController;
-        if ((glm::length(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)) > 0.0f) && (glm::length(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)) > 0.0f)) {
-            latestHipToHandController = lerp(glm::normalize(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)), glm::normalize(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)), HALFWAY);
+        if ((glm::length(glm::vec2(rightHandSpine2Space.x, rightHandSpine2Space.z)) > 0.0f) && (glm::length(glm::vec2(leftHandSpine2Space.x, leftHandSpine2Space.z)) > 0.0f)) {
+            latestHipToHandController = lerp(glm::normalize(glm::vec2(rightHandSpine2Space.x, rightHandSpine2Space.z)), glm::normalize(glm::vec2(leftHandSpine2Space.x, leftHandSpine2Space.z)), HALFWAY);
         } else {
-            latestHipToHandController = glm::vec2(0.0f, -1.0f);
+            latestHipToHandController = glm::vec2(0.0f, 1.0f);
         }
 
         glm::vec3 headLookAtAvatarSpace = transformVectorFast(headPoseAvatarSpace.getMatrix(), glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::vec2 headAzimuthAvatarSpace = glm::vec2(headLookAtAvatarSpace.x, headLookAtAvatarSpace.z);
-        if (glm::length(headAzimuthAvatarSpace) > 0.0f) {
-            headAzimuthAvatarSpace = glm::normalize(headAzimuthAvatarSpace);
+        glm::vec3 headLookAtSpine2Space = glm::inverse(spine2Rotation) * headLookAtAvatarSpace;
+
+        glm::vec2 headAzimuthSpine2Space = glm::vec2(headLookAtSpine2Space.x, headLookAtSpine2Space.z);
+        if (glm::length(headAzimuthSpine2Space) > 0.0f) {
+            headAzimuthSpine2Space = glm::normalize(headAzimuthSpine2Space);
         } else {
-            headAzimuthAvatarSpace = -latestHipToHandController;
+            headAzimuthSpine2Space = -latestHipToHandController;
         }
 
         // check the angular distance from forward and back
         float cosForwardAngle = glm::dot(latestHipToHandController, oldAzimuthReading);
-        float cosHeadShoulder = glm::dot(-latestHipToHandController, headAzimuthAvatarSpace);
+        float cosHeadShoulder = glm::dot(-latestHipToHandController, headAzimuthSpine2Space);
         // if we are now closer to the 180 flip of the previous chest forward
         // then we negate our computed latestHipToHandController to keep the chest from flipping.
         // also check the head to shoulder azimuth difference if we negate.
@@ -1893,8 +1914,6 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 bool isWearableEntity(const EntityItemPointer& entity) {
     return entity->isVisible()
-        && (entity->getParentJointIndex() != INVALID_JOINT_INDEX
-            || (entity->getType() == EntityTypes::Model && (std::static_pointer_cast<ModelEntityItem>(entity))->getRelayParentJoints()))
         && (entity->getParentID() == DependencyManager::get<NodeList>()->getSessionUUID()
             || entity->getParentID() == AVATAR_SELF_ID);
 }
@@ -3520,19 +3539,33 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 }
 
 glm::mat4 MyAvatar::getSpine2RotationRigSpace() const {
+    int spine2Index = _skeletonModel->getRig().indexOfJoint("Spine2");
+    glm::quat spine2Rot = Quaternions::IDENTITY;
+    if (!(spine2Index < 0)) {
+        // use the spine for the azimuth origin.
+        spine2Rot = getAbsoluteJointRotationInObjectFrame(spine2Index);
+    }
+    glm::vec3 spine2UpAvatarSpace = spine2Rot * glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 spine2FwdAvatarSpace = spine2Rot * glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y);
 
     // static const glm::quat RIG_CHANGE_OF_BASIS = Quaternions::Y_180;
     // RIG_CHANGE_OF_BASIS * AVATAR_TO_RIG_ROTATION * inverse(RIG_CHANGE_OF_BASIS) = Quaternions::Y_180; //avatar Space;
     const glm::quat AVATAR_TO_RIG_ROTATION = Quaternions::Y_180;
-    glm::vec3 hipToHandRigSpace = AVATAR_TO_RIG_ROTATION * glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y);
+    glm::vec3 spine2UpRigSpace = AVATAR_TO_RIG_ROTATION * spine2UpAvatarSpace;
+    glm::vec3 spine2FwdRigSpace = AVATAR_TO_RIG_ROTATION * spine2FwdAvatarSpace;
 
     glm::vec3 u, v, w;
-    if (glm::length(hipToHandRigSpace) > 0.0f) {
-        hipToHandRigSpace = glm::normalize(hipToHandRigSpace);
+    if (glm::length(spine2FwdRigSpace) > 0.0f) {
+        spine2FwdRigSpace = glm::normalize(spine2FwdRigSpace);
     } else {
-        hipToHandRigSpace = glm::vec3(0.0f, 0.0f, 1.0f);
+        spine2FwdRigSpace = glm::vec3(0.0f, 0.0f, 1.0f);
     }
-    generateBasisVectors(glm::vec3(0.0f,1.0f,0.0f), hipToHandRigSpace, u, v, w);
+    if (glm::length(spine2UpRigSpace) > 0.0f) {
+        spine2UpRigSpace = glm::normalize(spine2UpRigSpace);
+    } else {
+        spine2UpRigSpace = glm::vec3(0.0f, 1.0f, 0.0f);
+    }
+    generateBasisVectors(spine2UpRigSpace, spine2FwdRigSpace, u, v, w);
     glm::mat4 spine2RigSpace(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f));
     return spine2RigSpace;
 }

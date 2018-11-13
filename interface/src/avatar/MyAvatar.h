@@ -1731,7 +1731,7 @@ private:
     glm::vec2 _headControllerFacingMovingAverage { 0.0f, 0.0f };   // facing vector in xz plane (sensor space)
     glm::quat _averageHeadRotation { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    glm::vec2 _hipToHandController { 0.0f, -1.0f };  // spine2 facing vector in xz plane (avatar space)
+    glm::vec2 _hipToHandController { 0.0f, 1.0f };  // spine2 facing vector in xz plane (spine2 space)
 
     float _currentStandingHeight { 0.0f };
     bool _resetMode { true };

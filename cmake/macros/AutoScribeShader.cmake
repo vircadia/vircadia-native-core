@@ -14,13 +14,6 @@ macro(AUTOSCRIBE_APPEND_QRC)
     string(CONCAT SHADER_QRC "${SHADER_QRC}" "<file alias=\"${ARGV0}\">${ARGV1}</file>\n")
 endmacro()
 
-set(VULKAN_DIR $ENV{VULKAN_SDK})
-set(GLSLANG_EXEC  "${VULKAN_DIR}/Bin/glslangValidator.exe")
-set(SPIRV_CROSS_EXEC  "${VULKAN_DIR}/Bin/spirv-cross.exe")
-set(SPIRV_OPT_EXEC  "${VULKAN_DIR}/Bin/spirv-opt.exe")
-set(GLSLC_EXEC  "${VULKAN_DIR}/Bin/glslc.exe")
-set(SCRIBE_EXEC "D:/scribe.exe")
-
 macro(AUTOSCRIBE_PLATFORM_SHADER)
     set(AUTOSCRIBE_PLATFORM_PATH "${ARGV0}")
     string(REGEX MATCH "([0-9]+(es)?)(/stereo)?" PLATFORM_PATH_REGEX ${AUTOSCRIBE_PLATFORM_PATH})
@@ -75,36 +68,6 @@ macro(AUTOSCRIBE_PLATFORM_SHADER)
     list(APPEND SHADER_GEN_LINE ${TEMP_PATH})
     list(APPEND SHADER_GEN_LINE ${AUTOSCRIBE_SHADER_SEEN_LIBS})
     string(CONCAT AUTOSCRIBE_SHADERGEN_COMMANDS "${AUTOSCRIBE_SHADERGEN_COMMANDS}" "${SHADER_GEN_LINE}\n")
-
-    # # FIXME need better mechanism for determining the include files
-    # add_custom_command(
-    #     OUTPUT ${AUTOSCRIBE_OUTPUT_FILE}
-    #     COMMAND ${SCRIBE_COMMAND} ${SHADER_FILE} ${SCRIBE_ARGS} -o ${AUTOSCRIBE_OUTPUT_FILE} -h ${AUTOSCRIBE_DIALECT_HEADER} -h ${AUTOSCRIBE_VARIANT_HEADER}
-    #     DEPENDS ${SCRIBE_COMMAND} ${SHADER_FILE} ${AUTOSCRIBE_DIALECT_HEADER} ${AUTOSCRIBE_VARIANT_HEADER})
-
-    # # Generate the spirv file
-    # add_custom_command(
-    #     OUTPUT ${AUTOSCRIBE_SPIRV_FILE}
-    #     COMMAND ${GLSLANG_EXEC} -V110 -o ${AUTOSCRIBE_SPIRV_FILE} ${AUTOSCRIBE_OUTPUT_FILE}
-    #     DEPENDS ${AUTOSCRIBE_OUTPUT_FILE} ${GLSLANG_EXEC})
-
-    # # Generate the optimized spirv file
-    # add_custom_command(
-    #     OUTPUT ${AUTOSCRIBE_SPIRV_OPT_FILE}
-    #     COMMAND ${SPIRV_OPT_EXEC} -O ${AUTOSCRIBE_SPIRV_FILE} -o ${AUTOSCRIBE_SPIRV_OPT_FILE} 
-    #     DEPENDS ${AUTOSCRIBE_SPIRV_FILE} ${SPIRV_OPT_EXEC})
-
-    # # Generate the optimized GLSL file
-    # add_custom_command(
-    #     OUTPUT ${AUTOSCRIBE_SPIRV_GLSL_FILE}
-    #     COMMAND ${SPIRV_CROSS_EXEC} ${SPIRV_CROSS_ARGS} ${AUTOSCRIBE_SPIRV_OPT_FILE} --output ${AUTOSCRIBE_SPIRV_GLSL_FILE} 
-    #     DEPENDS ${AUTOSCRIBE_SPIRV_OPT_FILE} ${SPIRV_CROSS_EXEC})
-
-    # # Generate the optimized spirv file
-    # add_custom_command(
-    #     OUTPUT ${AUTOSCRIBE_SPIRV_JSON_FILE}
-    #     COMMAND ${SPIRV_CROSS_EXEC} --reflect json ${AUTOSCRIBE_SPIRV_OPT_FILE} --output ${AUTOSCRIBE_SPIRV_JSON_FILE} 
-    #     DEPENDS ${AUTOSCRIBE_SPIRV_OPT_FILE} ${SPIRV_CROSS_EXEC})
 endmacro()
 
 macro(AUTOSCRIBE_SHADER)
@@ -307,38 +270,16 @@ macro(AUTOSCRIBE_SHADER_LIBS)
     set(AUTOSCRIBE_SHADERGEN_COMMANDS_FILE ${CMAKE_CURRENT_BINARY_DIR}/shadergen.txt)
     file(WRITE ${AUTOSCRIBE_SHADERGEN_COMMANDS_FILE} "${AUTOSCRIBE_SHADERGEN_COMMANDS}")
 
-    # grab the SPIRV binaries we require
-    # note we don't use the normal ADD_DEPENDENCY_EXTERNAL_PROJECTS macro because only a custom command 
-    # depends on these, not any of our build artifacts, so there's no valid target for the add_dependencies
-    # call in ADD_DEPENDENCY_EXTERNAL_PROJECTS to use
-    add_subdirectory(${EXTERNAL_PROJECT_DIR}/spirv_binaries ${EXTERNALS_BINARY_DIR}/spirv_binaries)
-
-    target_python()
-
-    # A custom python script which will generate 
-    if (ANDROID)
-        add_custom_command(
-            OUTPUT ${SCRIBED_SHADERS} ${SPIRV_SHADERS} ${REFLECTED_SHADERS}
-            COMMENT "Generating/updating shaders"
-            COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_SOURCE_DIR}/tools/shadergen.py 
-                --commands ${AUTOSCRIBE_SHADERGEN_COMMANDS_FILE} 
-                --spirv-binaries ${SPIRV_BINARIES_DIR} 
-                --scribe ${NATIVE_SCRIBE}
-                --build-dir ${CMAKE_CURRENT_BINARY_DIR}
-                --source-dir ${CMAKE_SOURCE_DIR}
-            DEPENDS ${AUTOSCRIBE_SHADER_HEADERS} spirv_binaries ${CMAKE_SOURCE_DIR}/tools/shadergen.py ${ALL_SCRIBE_SHADERS})
-    else() 
-        add_custom_command(
-            OUTPUT ${SCRIBED_SHADERS} ${SPIRV_SHADERS} ${REFLECTED_SHADERS}
-            COMMENT "Generating/updating shaders"
-            COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_SOURCE_DIR}/tools/shadergen.py 
-                --commands ${AUTOSCRIBE_SHADERGEN_COMMANDS_FILE} 
-                --spirv-binaries ${SPIRV_BINARIES_DIR} 
-                --scribe $<TARGET_FILE:scribe>
-                --build-dir ${CMAKE_CURRENT_BINARY_DIR}
-                --source-dir ${CMAKE_SOURCE_DIR}
-            DEPENDS ${AUTOSCRIBE_SHADER_HEADERS} scribe spirv_binaries ${CMAKE_SOURCE_DIR}/tools/shadergen.py ${ALL_SCRIBE_SHADERS})
-    endif()
+    # A custom python script which will generate all our shader artifacts
+    add_custom_command(
+        OUTPUT ${SCRIBED_SHADERS} ${SPIRV_SHADERS} ${REFLECTED_SHADERS}
+        COMMENT "Generating/updating shaders"
+        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_SOURCE_DIR}/tools/shadergen.py 
+            --commands ${AUTOSCRIBE_SHADERGEN_COMMANDS_FILE} 
+            --tools-dir ${VCPKG_TOOLS_DIR}
+            --build-dir ${CMAKE_CURRENT_BINARY_DIR}
+            --source-dir ${CMAKE_SOURCE_DIR}
+        DEPENDS ${AUTOSCRIBE_SHADER_HEADERS} ${CMAKE_SOURCE_DIR}/tools/shadergen.py ${ALL_SCRIBE_SHADERS})
 
     add_custom_target(shadergen DEPENDS ${SCRIBED_SHADERS} ${SPIRV_SHADERS} ${REFLECTED_SHADERS})
     set_target_properties(shadergen PROPERTIES FOLDER "Shaders")
