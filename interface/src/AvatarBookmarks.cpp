@@ -58,7 +58,7 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
         EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, entityProperties);
 
         entityProperties.setParentID(myNodeID);
-        entityProperties.setClientOnly(true);
+        entityProperties.setEntityHost(EntityHost::AVATAR_ENTITY);
         entityProperties.setOwningAvatarID(myNodeID);
         entityProperties.setSimulationOwner(myNodeID, AVATAR_ENTITY_SIMULATION_PRIORITY);
         entityProperties.markAllChanged();

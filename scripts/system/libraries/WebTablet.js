@@ -97,9 +97,8 @@ cleanUpOldMaterialEntities = function() {
  * @param width [number] width in meters of the tablet model
  * @param dpi [number] dpi of web surface used to show the content.
  * @param hand [number] -1 indicates no hand, Controller.Standard.RightHand or Controller.Standard.LeftHand
- * @param clientOnly [bool] true indicates tablet model is only visible to client.
  */
-WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
+WebTablet = function (url, width, dpi, hand, location, visible) {
 
     var _this = this;
 

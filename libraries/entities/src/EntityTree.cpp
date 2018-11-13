@@ -541,7 +541,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         return nullptr;
     }
 
-    if (!properties.getClientOnly() && getIsClient() &&
+    if (properties.getEntityHost() == EntityHost::DOMAIN_ENTITY && getIsClient() &&
         !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
         !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified() && !_serverlessDomain && !isClone) {
         return nullptr;
@@ -2668,7 +2668,15 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             entityItemID = EntityItemID(QUuid::createUuid());
         }
 
-        if (properties.getClientOnly()) {
+        // Convert old clientOnly bool to new entityHost enum
+        // (must happen before setOwningAvatarID below)
+        if (contentVersion < (int)EntityVersion::EntityHosts) {
+            if (entityMap.contains("clientOnly")) {
+                properties.setEntityHost(entityMap["clientOnly"].toBool() ? EntityHost::AVATAR_ENTITY : EntityHost::DOMAIN_ENTITY);
+            }
+        }
+
+        if (properties.getEntityHost() == EntityHost::AVATAR_ENTITY) {
             auto nodeList = DependencyManager::get<NodeList>();
             const QUuid myNodeID = nodeList->getSessionUUID();
             properties.setOwningAvatarID(myNodeID);

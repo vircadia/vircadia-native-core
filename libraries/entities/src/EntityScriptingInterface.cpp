@@ -470,7 +470,7 @@ void synchronizeEditedGrabProperties(EntityItemProperties& properties, const QSt
 }
 
 
-QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
+QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, const QString& entityHostString) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     _activityTracking.addedEntityCount++;
@@ -479,8 +479,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     const auto sessionID = nodeList->getSessionUUID();
 
     EntityItemProperties propertiesWithSimID = properties;
-    if (clientOnly) {
-        propertiesWithSimID.setClientOnly(clientOnly);
+    propertiesWithSimID.setEntityHostFromString(entityHostString);
+    if (propertiesWithSimID.getEntityHost() == EntityHost::AVATAR_ENTITY) {
         propertiesWithSimID.setOwningAvatarID(sessionID);
     }
 
@@ -568,8 +568,11 @@ QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
     bool cloneAvatarEntity = properties.getCloneAvatarEntity();
     properties.convertToCloneProperties(entityIDToClone);
 
-    if (cloneAvatarEntity) {
-        return addEntity(properties, true);
+    if (properties.getEntityHost() == EntityHost::LOCAL_ENTITY) {
+        // Local entities are only cloned locally
+        return addEntity(properties, "local");
+    } else if (cloneAvatarEntity) {
+        return addEntity(properties, "avatar");
     } else {
         // setLastEdited timestamp to 0 to ensure this entity gets updated with the properties 
         // from the server-created entity, don't change this unless you know what you are doing
@@ -681,6 +684,10 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::ClientOnly);
         } else if (extendedPropertyString == "owningAvatarID") {
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::OwningAvatarID);
+        } else if (extendedPropertyString == "avatarEntity") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::AvatarEntity);
+        } else if (extendedPropertyString == "localEntity") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::LocalEntity);
         }
     };
 
@@ -784,7 +791,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             return;
         }
 
-        if (entity->getClientOnly() && entity->getOwningAvatarID() != sessionID) {
+        if (entity->isAvatarEntity() && entity->getOwningAvatarID() != sessionID) {
             // don't edit other avatar's avatarEntities
             properties = EntityItemProperties();
             return;
@@ -827,7 +834,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
 
         // set these to make EntityItemProperties::getScalesWithParent() work correctly
-        properties.setClientOnly(entity->getClientOnly());
+        properties.setEntityHost(entity->getEntityHost());
         properties.setOwningAvatarID(entity->getOwningAvatarID());
 
         // make sure the properties has a type, so that the encode can know which properties to include
@@ -952,7 +959,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
 
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
-                if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+                if (entity->isAvatarEntity() && entity->getOwningAvatarID() != myNodeID) {
                     // don't delete other avatar's avatarEntities
                     // If you actually own the entity but the onwership property is not set because of a domain switch
                     // The lines below makes sure the entity is deleted once its properties are set.
@@ -967,11 +974,11 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                     shouldSendDeleteToServer = false;
                 } else {
                     // only delete local entities, server entities will round trip through the server filters
-                    if (entity->getClientOnly() || _entityTree->isServerlessMode()) {
+                    if (entity->isAvatarEntity() || _entityTree->isServerlessMode()) {
                         shouldSendDeleteToServer = false;
                         _entityTree->deleteEntity(entityID);
 
-                        if (entity->getClientOnly() && getEntityPacketSender()->getMyAvatar()) {
+                        if (entity->isAvatarEntity() && getEntityPacketSender()->getMyAvatar()) {
                             getEntityPacketSender()->getMyAvatar()->clearAvatarEntity(entityID, false);
                         }
                     }
@@ -1638,14 +1645,14 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
             return;
         }
 
-        if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+        if (entity->isAvatarEntity() && entity->getOwningAvatarID() != myNodeID) {
             return;
         }
 
         doTransmit = actor(simulation, entity);
         _entityTree->entityChanged(entity);
         if (doTransmit) {
-            properties.setClientOnly(entity->getClientOnly());
+            properties.setEntityHost(entity->getEntityHost());
             properties.setOwningAvatarID(entity->getOwningAvatarID());
         }
     });

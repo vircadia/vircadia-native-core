@@ -79,7 +79,7 @@ void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
             _deadEntities.insert(entity);
         }
     }
-    if (entity->getClientOnly()) {
+    if (entity->isAvatarEntity()) {
         _deadAvatarEntities.insert(entity);
     }
 }
@@ -339,7 +339,7 @@ void PhysicalEntitySimulation::handleDeactivatedMotionStates(const VectorOfMotio
             EntityItemPointer entity = entityState->getEntity();
             _entitiesToSort.insert(entity);
             if (!serverlessMode) {
-                if (entity->getClientOnly()) {
+                if (entity->isAvatarEntity()) {
                     switch (entityState->getOwnershipState()) {
                         case EntityMotionState::OwnershipState::PendingBid:
                             _bids.removeFirst(entityState);

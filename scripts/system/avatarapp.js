@@ -328,8 +328,8 @@ function isGrabbable(entityID) {
         return false;
     }
 
-    var properties = Entities.getEntityProperties(entityID, ['clientOnly', 'grab.grabbable']);
-    if (properties.clientOnly) {
+    var properties = Entities.getEntityProperties(entityID, ['avatarEntity', 'grab.grabbable']);
+    if (properties.avatarEntity) {
         return properties.grab.grabbable;
     }
 
@@ -337,8 +337,8 @@ function isGrabbable(entityID) {
 }
 
 function setGrabbable(entityID, grabbable) {
-    var properties = Entities.getEntityProperties(entityID, ['clientOnly']);
-    if (properties.clientOnly) {
+    var properties = Entities.getEntityProperties(entityID, ['avatarEntity']);
+    if (properties.avatarEntity) {
         Entities.editEntity(entityID, { grab: { grabbable: grabbable }});
     }
 }

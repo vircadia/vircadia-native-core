@@ -911,8 +911,7 @@ void MyAvatar::simulate(float deltaTime) {
                         moveOperator.addEntityToMoveList(entity, newCube);
                     }
                     // send an edit packet to update the entity-server about the queryAABox
-                    // unless it is client-only
-                    if (packetSender && !entity->getClientOnly()) {
+                    if (packetSender && entity->isDomainEntity()) {
                         EntityItemProperties properties = entity->getProperties();
                         properties.setQueryAACubeDirty();
                         properties.setLastEdited(now);
@@ -923,7 +922,7 @@ void MyAvatar::simulate(float deltaTime) {
 
                         entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
                             EntityItemPointer entityDescendant = std::dynamic_pointer_cast<EntityItem>(descendant);
-                            if (entityDescendant && !entityDescendant->getClientOnly() && descendant->updateQueryAACube()) {
+                            if (entityDescendant && entityDescendant->isDomainEntity() && descendant->updateQueryAACube()) {
                                 EntityItemProperties descendantProperties;
                                 descendantProperties.setQueryAACube(descendant->getQueryAACube());
                                 descendantProperties.setLastEdited(now);
