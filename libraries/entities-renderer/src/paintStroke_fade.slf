@@ -48,6 +48,5 @@ void main(void) {
         interpolatedNormal * float(frontCondition),
         texel.a * varColor.a,
         polyline.color * texel.rgb + fadeEmissive,
-        vec3(0.01, 0.01, 0.01),
         10.0);
 }

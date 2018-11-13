@@ -1802,7 +1802,5 @@ HFMModel::Pointer FBXSerializer::read(const QByteArray& data, const QVariantHash
 
     _rootNode = parseFBX(&buffer);
 
-    qCDebug(modelformat) << "Reading FBX: " << url;
-
     return HFMModel::Pointer(extractHFMModel(mapping, url.toString()));
 }

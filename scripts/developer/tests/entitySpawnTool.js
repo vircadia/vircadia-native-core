@@ -33,7 +33,6 @@ ENTITY_SPAWNER = function (properties) {
 
     function makeEntity(properties) {
         var entity = Entities.addEntity(properties);
-        // print("spawning entity: " + JSON.stringify(properties));
 
         return {
             update: function (properties) {

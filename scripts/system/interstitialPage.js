@@ -62,11 +62,23 @@
 
     var DEFAULT_DIMENSIONS = { x: 24, y: 24, z: 24 };
 
+    var BLACK_SPHERE = Script.resolvePath("/~/system/assets/models/black-sphere.fbx");
+    var BUTTON = Script.resourcesPath() + "images/interstitialPage/button.png";
+    var BUTTON_HOVER = Script.resourcesPath() + "images/interstitialPage/button_hover.png";
+    var LOADING_BAR_PLACARD = Script.resourcesPath() + "images/loadingBar_placard.png";
+    var LOADING_BAR_PROGRESS = Script.resourcesPath() + "images/loadingBar_progress.png";
+
+    ModelCache.prefetch(BLACK_SPHERE);
+    TextureCache.prefetch(BUTTON);
+    TextureCache.prefetch(BUTTON_HOVER);
+    TextureCache.prefetch(LOADING_BAR_PLACARD);
+    TextureCache.prefetch(LOADING_BAR_PROGRESS);
+
     var loadingSphereID = Overlays.addOverlay("model", {
         name: "Loading-Sphere",
         position: Vec3.sum(Vec3.sum(MyAvatar.position, { x: 0.0, y: -1.0, z: 0.0 }), Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.95, z: 0 })),
         orientation: Quat.multiply(Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }), MyAvatar.orientation),
-        url: Script.resolvePath("/~/system/assets/models/black-sphere.fbx"),
+        url: BLACK_SPHERE,
         dimensions: DEFAULT_DIMENSIONS,
         alpha: 1,
         visible: isVisible,
@@ -157,7 +169,7 @@
     var loadingToTheSpotID = Overlays.addOverlay("image3d", {
         name: "Loading-Destination-Card-GoTo-Image",
         localPosition: { x: 0.0, y: -1.75, z: -0.3 },
-        url: Script.resourcesPath() + "images/interstitialPage/button.png",
+        url: BUTTON,
         alpha: 1,
         visible: isVisible,
         emissive: true,
@@ -171,7 +183,7 @@
     var loadingToTheSpotHoverID = Overlays.addOverlay("image3d", {
         name: "Loading-Destination-Card-GoTo-Image-Hover",
         localPosition: { x: 0.0, y: -1.75, z: -0.3 },
-        url: Script.resourcesPath() + "images/interstitialPage/button_hover.png",
+        url: BUTTON_HOVER,
         alpha: 1,
         visible: false,
         emissive: true,
@@ -186,7 +198,7 @@
     var loadingBarProgress = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Progress",
         localPosition: { x: 0.0, y: -0.86, z: 0.0 },
-        url: Script.resourcesPath() + "images/loadingBar_progress.png",
+        url: LOADING_BAR_PROGRESS,
         alpha: 1,
         dimensions: { x: TOTAL_LOADING_PROGRESS, y: 0.3},
         visible: isVisible,
@@ -202,7 +214,7 @@
     var loadingBarPlacard = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Placard",
         localPosition: { x: 0.0, y: -0.99, z: 0.4 },
-        url: Script.resourcesPath() + "images/loadingBar_placard.png",
+        url: LOADING_BAR_PLACARD,
         alpha: 1,
         dimensions: { x: 4, y: 2.8 },
         visible: isVisible,
@@ -273,12 +285,21 @@
         }
     }
 
+    function restartAudio() {
+        tune.ready.disconnect(restartAudio);
+        startAudio();
+    }
+
     function startAudio() {
-        sample = Audio.playSound(tune, {
-            localOnly: true,
-            position: MyAvatar.getHeadPosition(),
-            volume: VOLUME
-        });
+        if (tune.downloaded) {
+            sample = Audio.playSound(tune, {
+                localOnly: true,
+                position: MyAvatar.getHeadPosition(),
+                volume: VOLUME
+            });
+        } else {
+            tune.ready.connect(restartAudio);
+        }
     }
 
     function endAudio() {
@@ -612,6 +633,12 @@
         if (!HMD.active) {
             toolbar.writeProperty("visible", true);
         }
+    }
+
+    // location.hostname may already be set by the time the script is loaded.
+    // Show the interstitial page if the domain isn't loaded.
+    if (!location.isConnected) {
+        domainChanged(location.hostname);
     }
 
     Script.scriptEnding.connect(cleanup);

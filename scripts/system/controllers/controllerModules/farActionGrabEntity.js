@@ -83,7 +83,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.potentialEntityWithContextOverlay = false;
         this.entityWithContextOverlay = false;
         this.contextOverlayTimer = false;
-        this.previousCollisionStatus = false;
         this.locked = false;
         this.highlightedEntity = null;
         this.reticleMinX = MARGIN;

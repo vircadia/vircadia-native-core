@@ -260,7 +260,7 @@ uint16 KtxStorage::minAvailableMipLevel() const {
 
 void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& storage) {
     if (level != _minMipLevelAvailable - 1) {
-        qWarning() << "Invalid level to be stored, expected: " << (_minMipLevelAvailable - 1) << ", got: " << level << " " << _filename.c_str();
+        qWarning() << "Invalid level to be stored, expected: " << (_minMipLevelAvailable - 1) << ", got: " << level;
         return;
     }
 
@@ -278,13 +278,13 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     std::lock_guard<std::mutex> lock(*_cacheFileMutex);
     auto file = maybeOpenFile();
     if (!file) {
-        qWarning() << "Failed to open file to assign mip data " << QString::fromStdString(_filename);
+        qWarning() << "Failed to open file to assign mip data ";
         return;
     }
 
     auto fileData = file->mutableData();
     if (!fileData) {
-        qWarning() << "Failed to get mutable data for " << QString::fromStdString(_filename);
+        qWarning() << "Failed to get mutable data for ";
         return;
     }
 

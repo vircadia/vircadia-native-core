@@ -846,7 +846,7 @@ HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash
         preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
         QVector<QByteArray> extensions = { "jpg", "jpeg", "png", "tga" };
         QByteArray base = basename.toUtf8(), textName = "";
-        qCDebug(modelformat) << "OBJSerializer looking for default texture of" << _url;
+        qCDebug(modelformat) << "OBJSerializer looking for default texture";
         for (int i = 0; i < extensions.count(); i++) {
             QByteArray candidateString = base + extensions[i];
             if (isValidTexture(candidateString)) {
@@ -867,7 +867,7 @@ HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash
         foreach (QString libraryName, librariesSeen.keys()) {
             // Throw away any path part of libraryName, and merge against original url.
             QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
-            qCDebug(modelformat) << "OBJSerializer material library" << libraryName << "used in" << _url;
+            qCDebug(modelformat) << "OBJSerializer material library" << libraryName;
             bool success;
             QByteArray data;
             std::tie<bool, QByteArray>(success, data) = requestData(libraryUrl);
@@ -983,7 +983,7 @@ HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash
             modelMaterial->setMetallic(ILLUMINATION_MODEL_APPLY_NON_METALLIC);
         }
         if (fresnelOn) {
-            modelMaterial->setFresnel(glm::vec3(1.0f));
+            // TODO: how to turn fresnel on?
         }
 
         modelMaterial->setOpacity(hfmMaterial.opacity);

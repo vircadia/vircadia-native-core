@@ -134,15 +134,13 @@ void Animation::downloadFinished(const QByteArray& data) {
 }
 
 void Animation::animationParseSuccess(HFMModel::Pointer hfmModel) {
-
-    qCDebug(animation) << "Animation parse success" << _url.toDisplayString();
-
+    qCDebug(animation) << "Animation parse success";
     _hfmModel = hfmModel;
     finishedLoading(true);
 }
 
 void Animation::animationParseError(int error, QString str) {
-    qCCritical(animation) << "Animation failure parsing " << _url.toDisplayString() << "code =" << error << str;
+    qCCritical(animation) << "Animation parse error, code =" << error << str;
     emit failed(QNetworkReply::UnknownContentError);
     finishedLoading(false);
 }

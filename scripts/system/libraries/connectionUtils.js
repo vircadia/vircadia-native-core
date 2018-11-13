@@ -20,7 +20,7 @@ function requestJSON(url, callback) { // callback(data) if successfull. Logs oth
         uri: url
     }, function (error, response) {
         if (error || (response.status !== 'success')) {
-            print("Error: unable to get", url, error || response.status);
+            print("Error: unable to get URL", error || response.status);
             return;
         }
         callback(response.data);

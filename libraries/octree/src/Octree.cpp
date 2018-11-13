@@ -679,15 +679,12 @@ bool Octree::readFromFile(const char* fileName) {
     QFile file(qFileName);
 
     if (!file.open(QIODevice::ReadOnly)) {
-        qCritical() << "unable to open for reading: " << fileName;
         return false;
     }
 
     QDataStream fileInputStream(&file);
     QFileInfo fileInfo(qFileName);
     uint64_t fileLength = fileInfo.size();
-
-    qCDebug(octree) << "Loading file" << qFileName << "...";
 
     bool success = readFromStream(fileLength, fileInputStream);
 

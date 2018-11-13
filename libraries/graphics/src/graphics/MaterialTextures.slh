@@ -171,12 +171,12 @@ float fetchScatteringMap(vec2 uv) {
 <@endif@>
 <@endfunc@>
 
-<@func fetchMaterialTexturesCoord1(matKey, texcoord1, occlusion, lightmapVal)@>
+<@func fetchMaterialTexturesCoord1(matKey, texcoord1, occlusion, lightmap)@>
 <@if occlusion@>
     float <$occlusion$> = (((<$matKey$> & OCCLUSION_MAP_BIT) != 0) ? fetchOcclusionMap(<$texcoord1$>) : 1.0);
 <@endif@>
-<@if lightmapVal@>
-    vec3 <$lightmapVal$> = fetchLightmapMap(<$texcoord1$>);
+<@if lightmap@>
+    vec3 <$lightmap$> = fetchLightmapMap(<$texcoord1$>);
 <@endif@>
 <@endfunc@>
 
@@ -190,16 +190,6 @@ LAYOUT(binding=GRAPHICS_TEXTURE_MATERIAL_EMISSIVE_LIGHTMAP) uniform sampler2D em
 vec3 fetchLightmapMap(vec2 uv) {
     vec2 lightmapParams = getTexMapArray()._lightmapParams.xy;
     return (vec3(lightmapParams.x) + lightmapParams.y * texture(emissiveMap, uv).rgb);
-}
-<@endfunc@>
-
-<@func evalMaterialNormal(fetchedNormal, interpolatedNormal, interpolatedTangent, normal)@>
-{
-    vec3 normalizedNormal = normalize(<$interpolatedNormal$>.xyz);
-    vec3 normalizedTangent = normalize(<$interpolatedTangent$>.xyz);
-    vec3 normalizedBitangent = cross(normalizedNormal, normalizedTangent);
-    vec3 localNormal = <$fetchedNormal$>;
-    <$normal$> = vec3(normalizedBitangent * localNormal.x + normalizedNormal * localNormal.y + normalizedTangent * localNormal.z);
 }
 <@endfunc@>
 

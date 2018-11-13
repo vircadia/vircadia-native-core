@@ -30,6 +30,5 @@ void main(void) {
         float(frontCondition) * interpolatedNormal,
         texel.a * varColor.a,
         color * texel.rgb,
-        vec3(0.01, 0.01, 0.01),
         10.0);
 }

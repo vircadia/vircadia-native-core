@@ -765,8 +765,7 @@ TabletModalWindow {
                         return;
                     }
                 }
-
-                console.log("Selecting " + selection)
+				
                 selectedFile(selection);
                 root.destroy();
             }

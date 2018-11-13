@@ -15,6 +15,7 @@
 #include <QtQml/QQmlEngine>
 
 #include <QtGui/QOpenGLContext>
+#include <QPointer>
 
 #include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>
@@ -81,7 +82,6 @@ SharedObject::SharedObject() {
 SharedObject::~SharedObject() {
     // After destroy returns, the rendering thread should be gone
     destroy();
-
     // _renderTimer is created with `this` as the parent, so need no explicit destruction
 #ifndef DISABLE_QML
     // Destroy the event hand
@@ -95,6 +95,11 @@ SharedObject::~SharedObject() {
         _renderControl = nullptr;
     }
 #endif
+
+    // already deleted objects will be reset to null by QPointer so it should be safe just iterate here
+    for (auto qmlObject : _deletionList) {
+        delete qmlObject;
+    }
 
     if (_rootItem) {
         delete _rootItem;
@@ -410,6 +415,11 @@ bool SharedObject::fetchTexture(TextureAndFence& textureAndFence) {
     textureAndFence = { 0, 0 };
     std::swap(textureAndFence, _latestTextureAndFence);
     return true;
+}
+
+void hifi::qml::impl::SharedObject::addToDeletionList(QObject * object)
+{
+    _deletionList.append(QPointer<QObject>(object));
 }
 
 void SharedObject::setProxyWindow(QWindow* window) {

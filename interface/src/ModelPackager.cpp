@@ -87,7 +87,7 @@ bool ModelPackager::loadModel() {
             qWarning() << QString("ModelPackager::loadModel(): Could not open FST file %1").arg(_modelFile.filePath());
             return false;
         }
-        qCDebug(interfaceapp) << "Reading FST file : " << _modelFile.filePath();
+        qCDebug(interfaceapp) << "Reading FST file";
         _mapping = FSTReader::readMapping(fst.readAll());
         fst.close();
         
@@ -103,7 +103,7 @@ bool ModelPackager::loadModel() {
                              QString("ModelPackager::loadModel()"),
                              QString("Could not open FBX file %1").arg(_fbxInfo.filePath()),
                              QMessageBox::Ok);
-        qWarning() << QString("ModelPackager::loadModel(): Could not open FBX file %1").arg(_fbxInfo.filePath());
+        qWarning() << "ModelPackager::loadModel(): Could not open FBX file";
         return false;
     }
     try {
@@ -115,7 +115,7 @@ bool ModelPackager::loadModel() {
         // make sure we have some basic mappings
         populateBasicMapping(_mapping, _fbxInfo.filePath(), *_hfmModel);
     } catch (const QString& error) {
-        qCDebug(interfaceapp) << "Error reading " << _fbxInfo.filePath() << ": " << error;
+        qCDebug(interfaceapp) << "Error reading: " << error;
         return false;
     }
     return true;
@@ -133,7 +133,7 @@ bool ModelPackager::editProperties() {
         // Make sure that a mapping for the root joint has been specified
         QVariantHash joints = _mapping.value(JOINT_FIELD).toHash();
         if (!joints.contains("jointRoot")) {
-            qWarning() << QString("%1 root joint not configured for skeleton.").arg(_modelFile.fileName());
+            qWarning() << "root joint not configured for skeleton.";
         
             QString message = "Your did not configure a root joint for your skeleton model.\n\nPackaging will be canceled.";
             QMessageBox msgBox;

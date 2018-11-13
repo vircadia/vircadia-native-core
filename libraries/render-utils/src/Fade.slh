@@ -85,7 +85,11 @@ float evalFadeGradient(FadeObjectParams params, vec3 position) {
 }
 
 float evalFadeAlpha(FadeObjectParams params, vec3 position) {
-    return evalFadeGradient(params, position)-params.threshold;
+    float alpha = evalFadeGradient(params, position)-params.threshold;
+    if (fadeParameters[params.category]._isInverted != 0) {
+        alpha = -alpha;
+    }
+    return alpha;
 }
 
 void applyFadeClip(FadeObjectParams params, vec3 position) {
@@ -96,9 +100,6 @@ void applyFadeClip(FadeObjectParams params, vec3 position) {
 
 void applyFade(FadeObjectParams params, vec3 position, out vec3 emissive) {
     float alpha = evalFadeAlpha(params, position);
-    if (fadeParameters[params.category]._isInverted!=0) {
-        alpha = -alpha;
-    }
 
     if (alpha < 0.0) {
         discard;

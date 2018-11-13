@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  model_lightmap_fade.frag
-//  fragment shader
 //
 //  Created by Olivier Prat on 06/05/17.
 //  Copyright 2017 High Fidelity, Inc.
@@ -13,17 +11,15 @@
 //
 
 <@include DeferredBufferWrite.slh@>
-
 <@include graphics/Material.slh@>
-
 <@include graphics/MaterialTextures.slh@>
+<@include render-utils/ShaderConstants.h@>
+
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC)$>
 <$declareMaterialLightmap()$>
 
 <@include Fade.slh@>
 <$declareFadeFragment()$>
-
-<@include render-utils/ShaderConstants.h@>
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
@@ -35,21 +31,29 @@ layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
 void main(void) {
     vec3 fadeEmissive;
     FadeObjectParams fadeParams;
-
     <$fetchFadeObjectParams(fadeParams)$>
     applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness, _SCRIBE_NULL, metallicTex)$>
-    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmap)$>
+
+    vec3 albedo = getMaterialAlbedo(mat);
+    <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+    albedo *= _color.rgb;
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
+
+    float metallic = getMaterialMetallic(mat);
+    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
 
     packDeferredFragmentLightmap(
         normalize(_normalWS), 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
-        getMaterialAlbedo(mat) * albedo.rgb * _color.rgb,
-        getMaterialRoughness(mat) * roughness,
-        getMaterialMetallic(mat) * metallicTex,
-        /*metallicTex, // no use of */getMaterialFresnel(mat),
-        lightmapVal+fadeEmissive);
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedoTex.a),
+        albedo,
+        roughness,
+        metallic,
+        lightmap + fadeEmissive);
 }
