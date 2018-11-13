@@ -982,7 +982,7 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
             modelMaterial->setMetallic(ILLUMINATION_MODEL_APPLY_NON_METALLIC);
         }
         if (fresnelOn) {
-            modelMaterial->setFresnel(glm::vec3(1.0f));
+            // TODO: how to turn fresnel on?
         }
 
         modelMaterial->setOpacity(hfmMaterial.opacity);

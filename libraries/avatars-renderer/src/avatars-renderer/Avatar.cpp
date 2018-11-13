@@ -616,6 +616,8 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "entities");
         updateAvatarEntities();
     }
+
+    updateFadingStatus();
 }
 
 float Avatar::getSimulationRate(const QString& rateName) const {
@@ -761,8 +763,7 @@ void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
 
     if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
         transitionType = render::Transition::BUBBLE_ISECT_TRESPASSER;
-    }
-    else if (reason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+    } else if (reason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         transitionType = render::Transition::BUBBLE_ISECT_OWNER;
     }
     fade(transaction, transitionType);
@@ -779,14 +780,16 @@ void Avatar::fade(render::Transaction& transaction, render::Transition::Type typ
     _isFading = true;
 }
 
-void Avatar::updateFadingStatus(render::ScenePointer scene) {
-    render::Transaction transaction;
-    transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
-        if (transition == nullptr || transition->isFinished) {
-            _isFading = false;
-        }
-    });
-    scene->enqueueTransaction(transaction);
+void Avatar::updateFadingStatus() {
+    if (_isFading) {
+        render::Transaction transaction;
+        transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
+            if (!transition || transition->isFinished) {
+                _isFading = false;
+            }
+        });
+        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+    }
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
