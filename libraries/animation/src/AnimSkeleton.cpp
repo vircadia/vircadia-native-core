@@ -33,7 +33,7 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     // add offsets for spine2 and the neck
     static bool once = true;
     qCDebug(animation) << "the hfm model path is " << hfmModel.originalURL;
-    if (once && hfmModel.originalURL == "/angus/avatars/engineer_hifinames/engineer_hifinames/engineer_hifinames.fbx") {
+    //if (once && hfmModel.originalURL == "/angus/avatars/engineer_hifinames/engineer_hifinames/engineer_hifinames.fbx") {
     //if (once && hfmModel.originalURL == "/angus/avatars/pei_z_neckNexX_spine2NegY_fwd/pei_z_neckNexX_spine2NegY_fwd/pei_z_neckNexX_spine2NegY_fwd.fbx") {
         once = false;
         for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
@@ -51,11 +51,11 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
                     qCDebug(animation) << "found a joint offset to add " << cluster.jointIndex << " " << offset2 << " cluster " << cluster.jointIndex;
                     AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
                     //AnimPose localOffset(offset2, glm::vec3());
-                    cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
+                    cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * hfmModel.clusterBindMatrixOriginalValues[i][j];
                     qCDebug(animation) << "the new bind matrix num: " << cluster.jointIndex << cluster.inverseBindMatrix;
-                    //if ((hfmModel.clusterBindMatrixOriginalValues.size() > i) && (hfmModel.clusterBindMatrixOriginalValues[i].contains(cluster.jointIndex))) {
-                    //    qCDebug(animation) << "the saved orig matrix num: " << cluster.jointIndex << hfmModel.clusterBindMatrixOriginalValues[i][cluster.jointIndex];
-                    //}
+                    if ((hfmModel.clusterBindMatrixOriginalValues.size() > i) && (hfmModel.clusterBindMatrixOriginalValues[i].size() > cluster.jointIndex)) {
+                        qCDebug(animation) << "the saved orig matrix num: " << cluster.jointIndex << hfmModel.clusterBindMatrixOriginalValues[i][j];
+                    }
                     cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
                 }
 
@@ -80,7 +80,7 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
                 */
             }
         }
-    }
+    //}
 
     
     

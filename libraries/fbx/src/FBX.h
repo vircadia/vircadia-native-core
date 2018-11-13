@@ -349,7 +349,7 @@ public:
     Extents meshExtents;
 
     QVector<HFMAnimationFrame> animationFrames;
-    std::vector<QMap<int,glm::mat4>> clusterBindMatrixOriginalValues;
+    std::vector<std::vector<glm::mat4>> clusterBindMatrixOriginalValues;
 
     int getJointIndex(const QString& name) const { return jointIndices.value(name) - 1; }
     QStringList getJointNames() const;
