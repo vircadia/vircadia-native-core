@@ -90,7 +90,6 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
 
 // Called within Model::simulate call, below.
 void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-
     const HFMModel& hfmModel = getHFMModel();
 
     Head* head = _owningAvatar->getHead();
@@ -230,7 +229,6 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
 
         // set spine2 if we have hand controllers
-        //qCDebug(interfaceapp) << "spine 2 joint offset " << jointOffsetMap[13];
         if (myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid() &&
             myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() &&
             !(params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] & (uint8_t)Rig::ControllerFlags::Enabled)) {
@@ -241,7 +239,6 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             bool spine2Exists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Spine2"), currentSpine2Pose);
             bool headExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Head"), currentHeadPose);
             bool hipsExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Hips"), currentHipsPose);
-
             if (spine2Exists && headExists && hipsExists) {
 
                 AnimPose rigSpaceYaw(myAvatar->getSpine2RotationRigSpace());

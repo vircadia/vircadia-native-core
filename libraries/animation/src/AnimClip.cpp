@@ -101,10 +101,8 @@ void AnimClip::copyFromNetworkAnim() {
 
     // build a mapping from animation joint indices to skeleton joint indices.
     // by matching joints with the same name.
-
     const HFMModel& hfmModel = _networkAnim->getHFMModel();
     AnimSkeleton animSkeleton(hfmModel);
-
     const auto animJointCount = animSkeleton.getNumJoints();
     const auto skeletonJointCount = _skeleton->getNumJoints();
     std::vector<int> jointMap;

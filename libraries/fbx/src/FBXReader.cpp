@@ -632,14 +632,10 @@ QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
                 if (!isNaN(quatX) && !isNaN(quatY) && !isNaN(quatZ) && !isNaN(quatW)) {
                     glm::quat rotationOffset = glm::quat(quatW, quatX, quatY, quatZ);
                     jointRotationOffsets.insert(jointName, rotationOffset);
-                    
                 }
             }
-            qCDebug(modelformat) << "found an offset in fst";
         }
-        qCDebug(modelformat) << "found an offset in fst 2";
     }
-    qCDebug(modelformat) << "found an offset in fst 3";
     return jointRotationOffsets;
 }
 
@@ -2031,18 +2027,15 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
         }
         qCDebug(modelformat) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
     }
-    //hfmModel.jointRotationOffsets.insert(13, glm::quat(0.5f, 0.5f, 0.5f, -0.5f));
-    //hfmModel.jointRotationOffsets.insert(62, glm::quat(0.7071f, 0.0f, -0.7071f, 0.0f));
-    
+
+    // create a backup copy of the bindposes,
+    // these are needed when we recompute the bindpose offsets on reset.
     for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
         vector<glm::mat4> tempBindMat;
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const HFMCluster& cluster = mesh.clusters.at(j);
             tempBindMat.push_back(cluster.inverseBindMatrix);
-            //if(hfmModel.clusterBindMatrixOriginalValues[i])
-            //hfmModel.clusterBindMatrixOriginalValues[i].insert(cluster.jointIndex,Matrices::IDENTITY);//  cluster.inverseBindMatrix;
-            //glm::mat4 testMat = cluster.inverseBindMatrix;
         }
         hfmModel.clusterBindMatrixOriginalValues.push_back(tempBindMat);
     }
