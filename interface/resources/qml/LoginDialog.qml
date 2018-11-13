@@ -20,7 +20,8 @@ FocusScope {
     id: root
     HifiStylesUit.HifiConstants { id: hifi }
     objectName: "LoginDialog"
-    visible: true
+    property bool shown: true
+    visible: shown
 
     anchors.fill: parent
 
@@ -47,6 +48,13 @@ FocusScope {
         Loader {
             id: bodyLoader
         }
+    }
+
+    Image {
+        id: loginDialogBackground
+        source: "LoginDialog/background.png"
+        anchors.fill: parent
+        z: -2
     }
 
     Keys.onPressed: {

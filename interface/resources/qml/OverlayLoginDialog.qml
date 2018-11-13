@@ -50,6 +50,13 @@ FocusScope {
         }
     }
 
+    Image {
+        id: loginDialogBackground
+        source: "LoginDialog/background.png"
+        anchors.fill: parent
+        z: -2
+    }
+
     Timer {
         id: keyboardTimer
         repeat: false

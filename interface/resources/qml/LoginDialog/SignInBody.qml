@@ -215,6 +215,7 @@ Item {
                 }
                 onFocusChanged: {
                     root.text = "";
+                    root.isPassword = false;
                 }
             }
 
@@ -263,6 +264,7 @@ Item {
                 }
                 onFocusChanged: {
                     root.text = "";
+                    root.isPassword = false;
                 }
             }
             HifiControlsUit.TextField {
