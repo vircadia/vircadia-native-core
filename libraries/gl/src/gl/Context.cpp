@@ -314,12 +314,12 @@ void Context::create(QOpenGLContext* shareContext) {
             _hglrc = wglCreateContextAttribsARB(_hdc, shareHglrc, &contextAttribs[0]);
         }
 
-        if (0 != _hglrc) {
+        if (_hglrc != 0) {
             createWrapperContext();
         }
     } 
     
-    if (0 == _hglrc) {
+    if (_hglrc == 0) {
         // fallback, if the context creation failed, or USE_CUSTOM_CONTEXT is false
         qtCreate(shareContext);
     }
