@@ -23,7 +23,7 @@ $(document).ready(function(){
       var fileSize = file.size;
       var filename = file.name;
       
-      var CHUNK_SIZE = 65536;
+      var CHUNK_SIZE = 1048576; // 1 MiB
       
       var isFinal = Boolean(fileSize - offset <= CHUNK_SIZE);
       var nextChunkSize = Math.min(fileSize - offset, CHUNK_SIZE);
