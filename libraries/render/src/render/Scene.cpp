@@ -391,15 +391,17 @@ void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
 
         // Remove pre-existing transition, if need be
         if (!TransitionStage::isIndexInvalid(transitionId)) {
-            transitionStage->removeTransition(transitionId);
-            transitionId = TransitionStage::INVALID_INDEX;
+            resetItemTransition(itemId);
         }
+
         // Add a new one.
         if (transitionType != Transition::NONE) {
             transitionId = transitionStage->addTransition(itemId, transitionType, boundId);
-        }
 
-        setItemTransition(itemId, transitionId);
+            if (!TransitionStage::isIndexInvalid(transitionId)) {
+                setItemTransition(itemId, transitionId);
+            }
+        }
     }
 }
 
