@@ -49,6 +49,7 @@ Item {
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
     property int shadowHeight: 10;
     property bool hovered: false
+    property bool scrolling: false
 
     HifiConstants { id: hifi }
 
@@ -133,7 +134,7 @@ Item {
         }
         onStatusChanged: {
             if (status == Image.Error) {
-                console.log("source: " + source + ": failed to load " + hifiUrl);
+                console.log("source: " + source + ": failed to load");
                 source = defaultThumbnail;
             }
         }
@@ -236,11 +237,12 @@ Item {
     property var hoverThunk: function () { };
     property var unhoverThunk: function () { };
     Rectangle {
-        anchors.fill: parent;
-        visible: root.hovered
-        color: "transparent";
-        border.width: 4; border.color: hifiStyleConstants.colors.primaryHighlight;
-        z: 1;
+        anchors.fill: parent
+        visible: root.hovered && !root.scrolling
+        color: "transparent"
+        border.width: 4
+        border.color: hifiStyleConstants.colors.primaryHighlight
+        z: 1
     }
     MouseArea {
         anchors.fill: parent;
@@ -255,6 +257,12 @@ Item {
             hoverThunk();
         }
         onExited: unhoverThunk();
+        onCanceled: unhoverThunk();
+    }
+    MouseArea {
+        // This second mouse area causes onEntered to fire on the first if you scroll just a little and the cursor stays on
+        // the original card. I.e., the original card is re-highlighted if the cursor is on it after scrolling finishes.
+        anchors.fill: parent
     }
     StateImage {
         id: actionIcon;

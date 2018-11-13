@@ -1999,7 +1999,6 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     }
     
     _skeletonModelURL = expanded;
-    qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
     updateJointMappings();
 

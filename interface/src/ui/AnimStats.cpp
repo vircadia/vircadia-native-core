@@ -65,6 +65,35 @@ void AnimStats::updateStats(bool force) {
         arg(QString::number(localVelocity.z, 'f', 2));
     emit velocityTextChanged();
 
+    // print if we are recentering or not.
+    _recenterText = "Recenter: ";
+    if (myAvatar->isFollowActive(MyAvatar::FollowHelper::Rotation)) {
+        _recenterText += "Rotation ";
+    }
+    if (myAvatar->isFollowActive(MyAvatar::FollowHelper::Horizontal)) {
+        _recenterText += "Horizontal ";
+    }
+    if (myAvatar->isFollowActive(MyAvatar::FollowHelper::Vertical)) {
+        _recenterText += "Vertical ";
+    }
+    emit recenterTextChanged();
+
+    // print current standing vs sitting state.
+    if (myAvatar->getIsInSittingState()) {
+        _sittingText = "SittingState: Sit";
+    } else {
+        _sittingText = "SittingState: Stand";
+    }
+    emit sittingTextChanged();
+
+    // print current walking vs leaning state.
+    if (myAvatar->getIsInWalkingState()) {
+        _walkingText = "WalkingState: Walk";
+    } else {
+        _walkingText = "WalkingState: Lean";
+    }
+    emit walkingTextChanged();
+
     // update animation debug alpha values
     QStringList newAnimAlphaValues;
     qint64 now = usecTimestampNow();

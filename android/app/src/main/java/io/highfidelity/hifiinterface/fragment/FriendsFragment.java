@@ -23,8 +23,6 @@ import io.highfidelity.hifiinterface.view.UserListAdapter;
 
 public class FriendsFragment extends Fragment {
 
-    public native boolean nativeIsLoggedIn();
-
     public native String nativeGetAccessToken();
 
     private RecyclerView mUsersView;

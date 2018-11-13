@@ -124,7 +124,7 @@
      
     function fromQml(message) {
         tokens = message.split(' ')
-        print("Received '"+message+"' from hightlight.qml")
+        print("Received message from QML")
         if (tokens[0]=="highlight") {
             currentSelectionName = tokens[1];
             print("Switching to highlight name "+currentSelectionName)

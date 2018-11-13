@@ -127,7 +127,6 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
     }
 
     quint64 loadStarted = usecTimestampNow();
-    qCDebug(octree) << "loading Octrees from file: " << _filename << "...";
 
     if (hasValidOctreeData) {
         qDebug() << "Setting entity version info to: " << data.id << data.version;
@@ -147,7 +146,6 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
     _loadTimeUSecs = loadDone - loadStarted;
 
     _tree->clearDirtyBit(); // the tree is clean since we just loaded it
-    qCDebug(octree, "DONE loading Octrees from file... fileRead=%s", debug::valueOf(persistentFileRead));
 
     unsigned long nodeCount = OctreeElement::getNodeCount();
     unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();

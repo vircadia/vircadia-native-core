@@ -1406,21 +1406,11 @@ var lastEntityID = null;
 var createAppTooltip = new CreateAppTooltip();
 let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
-function debugPrint(message) {
-    EventBridge.emitWebEvent(
-        JSON.stringify({
-            type: "print",
-            message: message
-        })
-    );
-}
-
 function createElementFromHTML(htmlString) {
     let elTemplate = document.createElement('template');
     elTemplate.innerHTML = htmlString.trim();
     return elTemplate.content.firstChild;
 }
-
 
 /**
  * GENERAL PROPERTY/GROUP FUNCTIONS
@@ -1618,8 +1608,8 @@ function updateVisibleSpaceModeProperties() {
             if (propertySpaceMode !== PROPERTY_SPACE_MODE.ALL) {
                 showPropertyElement(propertyID, propertySpaceMode === currentSpaceMode);
             } else {
-				showPropertyElement(propertyID, true);
-			}
+                showPropertyElement(propertyID, true);
+            }
         }
     }
 }
@@ -2083,8 +2073,6 @@ function createButtonsProperty(property, elProperty, elLabel) {
     let propertyData = property.data;
     
     elProperty.className = "text";
-                        
-    let hasLabel = propertyData.label !== undefined;
 
     if (propertyData.buttons !== undefined) {
         addButtons(elProperty, elementID, propertyData.buttons, false);
