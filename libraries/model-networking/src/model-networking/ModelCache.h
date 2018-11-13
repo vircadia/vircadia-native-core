@@ -45,9 +45,9 @@ public:
     // Mutable, but must retain structure of vector
     using NetworkMaterials = std::vector<std::shared_ptr<NetworkMaterial>>;
 
-    bool isGeometryLoaded() const { return (bool)_fbxGeometry; }
+    bool isHFMModelLoaded() const { return (bool)_hfmModel; }
 
-    const FBXGeometry& getFBXGeometry() const { return *_fbxGeometry; }
+    const HFMModel& getHFMModel() const { return *_hfmModel; }
     const GeometryMeshes& getMeshes() const { return *_meshes; }
     const std::shared_ptr<NetworkMaterial> getShapeMaterial(int shapeID) const;
 
@@ -62,7 +62,7 @@ protected:
     friend class GeometryMappingResource;
 
     // Shared across all geometries, constant throughout lifetime
-    std::shared_ptr<const FBXGeometry> _fbxGeometry;
+    std::shared_ptr<const HFMModel> _hfmModel;
     std::shared_ptr<const GeometryMeshes> _meshes;
     std::shared_ptr<const GeometryMeshParts> _meshParts;
 
@@ -94,7 +94,7 @@ protected:
 
     // Geometries may not hold onto textures while cached - that is for the texture cache
     // Instead, these methods clear and reset textures from the geometry when caching/loading
-    bool shouldSetTextures() const { return _fbxGeometry && _materials.empty(); }
+    bool shouldSetTextures() const { return _hfmModel && _materials.empty(); }
     void setTextures();
     void resetTextures();
 
@@ -165,7 +165,7 @@ public:
     using MapChannel = graphics::Material::MapChannel;
 
     NetworkMaterial() : _textures(MapChannel::NUM_MAP_CHANNELS) {}
-    NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl);
+    NetworkMaterial(const HFMMaterial& material, const QUrl& textureBaseUrl);
     NetworkMaterial(const NetworkMaterial& material);
 
     void setAlbedoMap(const QUrl& url, bool useAlphaChannel);
@@ -201,8 +201,8 @@ protected:
 
 private:
     // Helpers for the ctors
-    QUrl getTextureUrl(const QUrl& baseUrl, const FBXTexture& fbxTexture);
-    graphics::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
+    QUrl getTextureUrl(const QUrl& baseUrl, const HFMTexture& hfmTexture);
+    graphics::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const HFMTexture& hfmTexture,
                                              image::TextureUsage::Type type, MapChannel channel);
     graphics::TextureMapPointer fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel);
 

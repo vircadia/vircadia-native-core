@@ -13,8 +13,8 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 
 // references XXX from root context
@@ -93,7 +93,7 @@ Item {
         // Text below helper text
         RalewayRegular {
             id: loginDetailText;
-            text: "To buy/sell items on the <b>Marketplace</b>, or to use your <b>Wallet</b>, you must first log in to High Fidelity.";
+            text: "To get items on the <b>Marketplace</b>, or to use your <b>Assets</b>, you must first log in to High Fidelity.";
             // Text size
             size: 18;
             // Anchors

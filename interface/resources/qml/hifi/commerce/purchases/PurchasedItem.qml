@@ -15,8 +15,8 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
 import TabletScriptingInterface 1.0
@@ -47,8 +47,7 @@ Item {
     property string wornEntityID;
     property string upgradeUrl;
     property string upgradeTitle;
-    property bool updateAvailable: root.upgradeUrl !== "" && !root.isShowingMyItems;
-    property bool isShowingMyItems;
+    property bool updateAvailable: root.upgradeUrl !== "";
     property bool valid;
 
     property string originalStatusText;
@@ -231,7 +230,7 @@ Item {
 
                 Loader {
                     id: giftButton;
-                    visible: !root.isShowingMyItems;
+                    visible: root.itemEdition > 0;
                     sourceComponent: contextCardButton;
                     anchors.right: parent.right;
                     anchors.top: parent.top;
@@ -345,6 +344,7 @@ Item {
 
             Rectangle {
                 id: permissionExplanationCard;
+                visible: false;
                 anchors.left: parent.left;
                 anchors.leftMargin: 30;
                 anchors.top: parent.top;

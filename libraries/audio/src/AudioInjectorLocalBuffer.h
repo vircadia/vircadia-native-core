@@ -14,7 +14,7 @@
 
 #include <QtCore/qiodevice.h>
 
-#include <glm/detail/func_common.hpp>
+#include <glm/common.hpp>
 
 class AudioInjectorLocalBuffer : public QIODevice {
     Q_OBJECT

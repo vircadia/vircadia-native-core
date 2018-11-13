@@ -272,6 +272,10 @@ bool shouldBeSkipped(MixableStream& stream, const Node& listener,
         return true;
     }
 
+    if (!listenerData.getSoloedNodes().empty()) {
+        return !contains(listenerData.getSoloedNodes(), stream.nodeStreamID.nodeID);
+    }
+
     bool shouldCheckIgnoreBox = (listenerAudioStream.isIgnoreBoxEnabled() ||
                                  stream.positionalStream->isIgnoreBoxEnabled());
     if (shouldCheckIgnoreBox &&
@@ -310,6 +314,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     memset(_mixSamples, 0, sizeof(_mixSamples));
 
     bool isThrottling = _numToRetain != -1;
+    bool isSoloing = !listenerData->getSoloedNodes().empty();
 
     auto& streams = listenerData->getStreams();
 
@@ -376,13 +381,14 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             stream.approximateVolume = approximateVolume(stream, listenerAudioStream);
         } else {
             if (shouldBeSkipped(stream, *listener, *listenerAudioStream, *listenerData)) {
-                addStream(stream, *listenerAudioStream, 0.0f);
+                addStream(stream, *listenerAudioStream, 0.0f, isSoloing);
                 streams.skipped.push_back(move(stream));
                 ++stats.activeToSkipped;
                 return true;
             }
 
-            addStream(stream, *listenerAudioStream, listenerData->getMasterAvatarGain());
+            addStream(stream, *listenerAudioStream, listenerData->getMasterAvatarGain(),
+                      isSoloing);
 
             if (shouldBeInactive(stream)) {
                 // To reduce artifacts we still call render to flush the HRTF for every silent
@@ -417,7 +423,8 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                 return true;
             }
 
-            addStream(stream, *listenerAudioStream, listenerData->getMasterAvatarGain());
+            addStream(stream, *listenerAudioStream, listenerData->getMasterAvatarGain(),
+                      isSoloing);
 
             if (shouldBeInactive(stream)) {
                 // To reduce artifacts we still call render to flush the HRTF for every silent
@@ -484,7 +491,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
 
 void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStream,
                                 AvatarAudioStream& listeningNodeStream,
-                                float masterListenerGain) {
+                                float masterListenerGain, bool isSoloing) {
     ++stats.totalMixes;
 
     auto streamToAdd = mixableStream.positionalStream;
@@ -495,8 +502,12 @@ void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStre
     glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream.getPosition();
 
     float distance = glm::max(glm::length(relativePosition), EPSILON);
-    float gain = computeGain(masterListenerGain, listeningNodeStream, *streamToAdd, relativePosition, distance, isEcho);
     float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
+
+    float gain = 1.0f;
+    if (!isSoloing) {
+        gain = computeGain(masterListenerGain, listeningNodeStream, *streamToAdd, relativePosition, distance, isEcho);
+    }
 
     const int HRTF_DATASET_INDEX = 1;
 

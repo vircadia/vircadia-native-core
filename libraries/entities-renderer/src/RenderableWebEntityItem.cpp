@@ -54,7 +54,7 @@ WebEntityRenderer::ContentType WebEntityRenderer::getContentType(const QString& 
 
     const QUrl url(urlString);
     auto scheme = url.scheme();
-    if (scheme == URL_SCHEME_ABOUT || scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS ||
+    if (scheme == HIFI_URL_SCHEME_ABOUT || scheme == HIFI_URL_SCHEME_HTTP || scheme == HIFI_URL_SCHEME_HTTPS ||
         urlString.toLower().endsWith(".htm") || urlString.toLower().endsWith(".html")) {
         return ContentType::HtmlContent;
     }
@@ -105,10 +105,6 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
     }
 
     if (_lastDPI != entity->getDPI()) {
-        return true;
-    }
-
-    if (_lastLocked != entity->getLocked()) {
         return true;
     }
 
@@ -203,7 +199,6 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                 }
 
                 _lastDPI = entity->getDPI();
-                _lastLocked = entity->getLocked();
 
                 glm::vec2 windowSize = getWindowSize(entity);
                 _webSurface->resize(QSize(windowSize.x, windowSize.y));
@@ -362,7 +357,7 @@ glm::vec2 WebEntityRenderer::getWindowSize(const TypedEntityPointer& entity) con
 }
 
 void WebEntityRenderer::hoverEnterEntity(const PointerEvent& event) {
-    if (!_lastLocked && _webSurface) {
+    if (_webSurface) {
         PointerEvent webEvent = event;
         webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
         _webSurface->hoverBeginEvent(webEvent, _touchDevice);
@@ -370,7 +365,7 @@ void WebEntityRenderer::hoverEnterEntity(const PointerEvent& event) {
 }
 
 void WebEntityRenderer::hoverLeaveEntity(const PointerEvent& event) {
-    if (!_lastLocked && _webSurface) {
+    if (_webSurface) {
         PointerEvent webEvent = event;
         webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
         _webSurface->hoverEndEvent(webEvent, _touchDevice);
@@ -378,8 +373,7 @@ void WebEntityRenderer::hoverLeaveEntity(const PointerEvent& event) {
 }
 
 void WebEntityRenderer::handlePointerEvent(const PointerEvent& event) {
-    // Ignore mouse interaction if we're locked
-    if (!_lastLocked && _webSurface) {
+    if (_webSurface) {
         PointerEvent webEvent = event;
         webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
         _webSurface->handlePointerEvent(webEvent, _touchDevice);

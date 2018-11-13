@@ -135,30 +135,6 @@ void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firs
     _animVars.set("userAnimB", clipNodeEnum == UserAnimState::B);
 }
 
-void Rig::triggerNetworkAnimation(const QString& animName) {
-    _networkVars.set("idleAnim", false);
-    _networkVars.set("preTransitAnim", false);
-    _networkVars.set("transitAnim", false);
-    _networkVars.set("postTransitAnim", false);
-    _sendNetworkNode = true;
-
-    if (animName == "idleAnim") {
-        _networkVars.set("idleAnim", true);
-        _networkAnimState.clipNodeEnum = NetworkAnimState::Idle;
-        _sendNetworkNode = false;
-    } else if (animName == "preTransitAnim") {
-        _networkVars.set("preTransitAnim", true);
-        _networkAnimState.clipNodeEnum = NetworkAnimState::PreTransit;
-    } else if (animName == "transitAnim") {
-        _networkVars.set("transitAnim", true);
-        _networkAnimState.clipNodeEnum = NetworkAnimState::Transit;
-    } else if (animName == "postTransitAnim") {
-        _networkVars.set("postTransitAnim", true);
-        _networkAnimState.clipNodeEnum = NetworkAnimState::PostTransit;
-    }
-    
-}
-
 void Rig::restoreAnimation() {
     if (_userAnimState.clipNodeEnum != UserAnimState::None) {
         _userAnimState.clipNodeEnum = UserAnimState::None;
@@ -170,13 +146,87 @@ void Rig::restoreAnimation() {
     }
 }
 
-void Rig::restoreNetworkAnimation() {
-    if (_networkAnimState.clipNodeEnum != NetworkAnimState::Idle) {
-        _networkAnimState.clipNodeEnum = NetworkAnimState::Idle;
+void Rig::overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
+
+    NetworkAnimState::ClipNodeEnum clipNodeEnum = NetworkAnimState::None;
+    if (_networkAnimState.clipNodeEnum == NetworkAnimState::None || _networkAnimState.clipNodeEnum == NetworkAnimState::B) {
+        clipNodeEnum = NetworkAnimState::A;
+    } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::A) {
+        clipNodeEnum = NetworkAnimState::B;
+    }
+
+    if (_networkNode) {
+        // find an unused AnimClip clipNode
+        std::shared_ptr<AnimClip> clip;
+        if (clipNodeEnum == NetworkAnimState::A) {
+            clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("userNetworkAnimA"));
+        } else {
+            clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("userNetworkAnimB"));
+        }
+        if (clip) {
+            // set parameters
+            clip->setLoopFlag(loop);
+            clip->setStartFrame(firstFrame);
+            clip->setEndFrame(lastFrame);
+            const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
+            float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
+            clip->setTimeScale(timeScale);
+            clip->loadURL(url);
+        }
+    }
+
+    // store current user anim state.
+    _networkAnimState = { clipNodeEnum, url, fps, loop, firstFrame, lastFrame };
+
+    // notify the userAnimStateMachine the desired state.
+    _networkVars.set("transitAnimStateMachine", false);
+    _networkVars.set("userNetworkAnimA", clipNodeEnum == NetworkAnimState::A);
+    _networkVars.set("userNetworkAnimB", clipNodeEnum == NetworkAnimState::B);
+    if (!_computeNetworkAnimation) {
+        _networkAnimState.blendTime = 0.0f;
+        _computeNetworkAnimation = true;
+    }
+}
+
+void Rig::triggerNetworkRole(const QString& role) {
+    _networkVars.set("transitAnimStateMachine", false);
+    _networkVars.set("idleAnim", false);
+    _networkVars.set("userNetworkAnimA", false);
+    _networkVars.set("userNetworkAnimB", false);
+    _networkVars.set("preTransitAnim", false);
+    _networkVars.set("preTransitAnim", false);
+    _networkVars.set("transitAnim", false);
+    _networkVars.set("postTransitAnim", false);
+    _computeNetworkAnimation = true;
+    if (role == "idleAnim") {
         _networkVars.set("idleAnim", true);
-        _networkVars.set("preTransitAnim", false);
-        _networkVars.set("transitAnim", false);
-        _networkVars.set("postTransitAnim", false);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::None;
+        _computeNetworkAnimation = false;
+        _networkAnimState.blendTime = 0.0f;
+    } else if (role == "preTransitAnim") {
+        _networkVars.set("preTransitAnim", true);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::PreTransit;
+        _networkAnimState.blendTime = 0.0f;
+    } else if (role == "transitAnim") {
+        _networkVars.set("transitAnim", true);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::Transit;
+    } else if (role == "postTransitAnim") {
+        _networkVars.set("postTransitAnim", true);
+        _networkAnimState.clipNodeEnum = NetworkAnimState::PostTransit;
+    }
+    
+}
+
+void Rig::restoreNetworkAnimation() {
+    if (_networkAnimState.clipNodeEnum != NetworkAnimState::None) {
+        if (_computeNetworkAnimation) {
+            _networkAnimState.blendTime = 0.0f;
+            _computeNetworkAnimation = false;
+        }
+        _networkAnimState.clipNodeEnum = NetworkAnimState::None;
+        _networkVars.set("transitAnimStateMachine", true);
+        _networkVars.set("userNetworkAnimA", false);
+        _networkVars.set("userNetworkAnimB", false);
     }
 }
 
@@ -260,14 +310,14 @@ void Rig::destroyAnimGraph() {
     _rightEyeJointChildren.clear();
 }
 
-void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset) {
-    _geometryOffset = AnimPose(geometry.offset);
+void Rig::initJointStates(const HFMModel& hfmModel, const glm::mat4& modelOffset) {
+    _geometryOffset = AnimPose(hfmModel.offset);
     _invGeometryOffset = _geometryOffset.inverse();
-    _geometryToRigTransform = modelOffset * geometry.offset;
+    _geometryToRigTransform = modelOffset * hfmModel.offset;
     _rigToGeometryTransform = glm::inverse(_geometryToRigTransform);
     setModelOffset(modelOffset);
 
-    _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
+    _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel);
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -293,24 +343,24 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
 
     buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
-    _rootJointIndex = geometry.rootJointIndex;
-    _leftEyeJointIndex = geometry.leftEyeJointIndex;
-    _rightEyeJointIndex = geometry.rightEyeJointIndex;
-    _leftHandJointIndex = geometry.leftHandJointIndex;
-    _leftElbowJointIndex = _leftHandJointIndex >= 0 ? geometry.joints.at(_leftHandJointIndex).parentIndex : -1;
-    _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? geometry.joints.at(_leftElbowJointIndex).parentIndex : -1;
-    _rightHandJointIndex = geometry.rightHandJointIndex;
-    _rightElbowJointIndex = _rightHandJointIndex >= 0 ? geometry.joints.at(_rightHandJointIndex).parentIndex : -1;
-    _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? geometry.joints.at(_rightElbowJointIndex).parentIndex : -1;
+    _rootJointIndex = hfmModel.rootJointIndex;
+    _leftEyeJointIndex = hfmModel.leftEyeJointIndex;
+    _rightEyeJointIndex = hfmModel.rightEyeJointIndex;
+    _leftHandJointIndex = hfmModel.leftHandJointIndex;
+    _leftElbowJointIndex = _leftHandJointIndex >= 0 ? hfmModel.joints.at(_leftHandJointIndex).parentIndex : -1;
+    _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? hfmModel.joints.at(_leftElbowJointIndex).parentIndex : -1;
+    _rightHandJointIndex = hfmModel.rightHandJointIndex;
+    _rightElbowJointIndex = _rightHandJointIndex >= 0 ? hfmModel.joints.at(_rightHandJointIndex).parentIndex : -1;
+    _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? hfmModel.joints.at(_rightElbowJointIndex).parentIndex : -1;
 
-    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.leftEyeJointIndex);
-    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.rightEyeJointIndex);
+    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.leftEyeJointIndex);
+    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.rightEyeJointIndex);
 }
 
-void Rig::reset(const FBXGeometry& geometry) {
-    _geometryOffset = AnimPose(geometry.offset);
+void Rig::reset(const HFMModel& hfmModel) {
+    _geometryOffset = AnimPose(hfmModel.offset);
     _invGeometryOffset = _geometryOffset.inverse();
-    _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
+    _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel);
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -338,18 +388,18 @@ void Rig::reset(const FBXGeometry& geometry) {
 
     buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
-    _rootJointIndex = geometry.rootJointIndex;
-    _leftEyeJointIndex = geometry.leftEyeJointIndex;
-    _rightEyeJointIndex = geometry.rightEyeJointIndex;
-    _leftHandJointIndex = geometry.leftHandJointIndex;
-    _leftElbowJointIndex = _leftHandJointIndex >= 0 ? geometry.joints.at(_leftHandJointIndex).parentIndex : -1;
-    _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? geometry.joints.at(_leftElbowJointIndex).parentIndex : -1;
-    _rightHandJointIndex = geometry.rightHandJointIndex;
-    _rightElbowJointIndex = _rightHandJointIndex >= 0 ? geometry.joints.at(_rightHandJointIndex).parentIndex : -1;
-    _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? geometry.joints.at(_rightElbowJointIndex).parentIndex : -1;
+    _rootJointIndex = hfmModel.rootJointIndex;
+    _leftEyeJointIndex = hfmModel.leftEyeJointIndex;
+    _rightEyeJointIndex = hfmModel.rightEyeJointIndex;
+    _leftHandJointIndex = hfmModel.leftHandJointIndex;
+    _leftElbowJointIndex = _leftHandJointIndex >= 0 ? hfmModel.joints.at(_leftHandJointIndex).parentIndex : -1;
+    _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? hfmModel.joints.at(_leftElbowJointIndex).parentIndex : -1;
+    _rightHandJointIndex = hfmModel.rightHandJointIndex;
+    _rightElbowJointIndex = _rightHandJointIndex >= 0 ? hfmModel.joints.at(_rightHandJointIndex).parentIndex : -1;
+    _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? hfmModel.joints.at(_rightElbowJointIndex).parentIndex : -1;
 
-    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.leftEyeJointIndex);
-    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.rightEyeJointIndex);
+    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.leftEyeJointIndex);
+    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.rightEyeJointIndex);
 
     if (!_animGraphURL.isEmpty()) {
         _animNode.reset();
@@ -1131,24 +1181,19 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         AnimVariantMap networkTriggersOut;
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         if (_networkNode) {
-            _networkPoseSet._relativePoses = _networkNode->evaluate(_networkVars, context, deltaTime, networkTriggersOut);
-            const float NETWORK_ANIMATION_BLEND_FRAMES = 6.0f;
+            // Manually blending networkPoseSet with internalPoseSet.
             float alpha = 1.0f;
-            std::shared_ptr<AnimClip> clip;
-            if (_networkAnimState.clipNodeEnum == NetworkAnimState::PreTransit) {
-                clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("preTransitAnim"));
-                if (clip) {
-                    alpha = (clip->getFrame() - clip->getStartFrame()) / NETWORK_ANIMATION_BLEND_FRAMES;
-                }
-            } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::PostTransit) {
-                clip = std::dynamic_pointer_cast<AnimClip>(_networkNode->findByName("postTransitAnim"));
-                if (clip) {
-                    alpha = (clip->getEndFrame() - clip->getFrame()) / NETWORK_ANIMATION_BLEND_FRAMES;
-                }
-            }
+            const float FRAMES_PER_SECOND = 30.0f;
+            const float TOTAL_BLEND_FRAMES = 6.0f;
+            const float TOTAL_BLEND_TIME = TOTAL_BLEND_FRAMES / FRAMES_PER_SECOND;
+            _sendNetworkNode = _computeNetworkAnimation || _networkAnimState.blendTime < TOTAL_BLEND_TIME;
             if (_sendNetworkNode) {
+                _networkPoseSet._relativePoses = _networkNode->evaluate(_networkVars, context, deltaTime, networkTriggersOut);
+                _networkAnimState.blendTime += deltaTime;
+                alpha = _computeNetworkAnimation ? (_networkAnimState.blendTime / TOTAL_BLEND_TIME) : (1.0f - (_networkAnimState.blendTime / TOTAL_BLEND_TIME));
+                alpha = glm::clamp(alpha, 0.0f, 1.0f);
                 for (size_t i = 0; i < _networkPoseSet._relativePoses.size(); i++) {
-                    _networkPoseSet._relativePoses[i].blend(_internalPoseSet._relativePoses[i], (alpha > 1.0f ? 1.0f : alpha));
+                    _networkPoseSet._relativePoses[i].blend(_internalPoseSet._relativePoses[i], alpha);
                 }
             }
         }
@@ -1253,7 +1298,7 @@ const glm::vec3 DOP14_NORMALS[DOP14_COUNT] = {
 // returns true if the given point lies inside of the k-dop, specified by shapeInfo & shapePose.
 // if the given point does lie within the k-dop, it also returns the amount of displacement necessary to push that point outward
 // such that it lies on the surface of the kdop.
-static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose, const FBXJointShapeInfo& shapeInfo, glm::vec3& displacementOut) {
+static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose, const HFMJointShapeInfo& shapeInfo, glm::vec3& displacementOut) {
 
     // transform point into local space of jointShape.
     glm::vec3 localPoint = shapePose.inverse().xformPoint(point);
@@ -1299,8 +1344,8 @@ static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& sh
     }
 }
 
-glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
-                                    const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) const {
+glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const HFMJointShapeInfo& hipsShapeInfo, const HFMJointShapeInfo& spineShapeInfo,
+                                    const HFMJointShapeInfo& spine1ShapeInfo, const HFMJointShapeInfo& spine2ShapeInfo) const {
     glm::vec3 position = handPosition;
     glm::vec3 displacement;
     int hipsJoint = indexOfJoint("Hips");
@@ -1349,8 +1394,8 @@ glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const FBXJoin
 void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
                       bool leftArmEnabled, bool rightArmEnabled, bool headEnabled, float dt,
                       const AnimPose& leftHandPose, const AnimPose& rightHandPose,
-                      const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
-                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo,
+                      const HFMJointShapeInfo& hipsShapeInfo, const HFMJointShapeInfo& spineShapeInfo,
+                      const HFMJointShapeInfo& spine1ShapeInfo, const HFMJointShapeInfo& spine2ShapeInfo,
                       const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
 
     const bool ENABLE_POLE_VECTORS = true;
@@ -1840,16 +1885,16 @@ void Rig::initAnimGraph(const QUrl& url) {
                 return;
             }
             _networkNode->setSkeleton(sharedSkeletonPtr);
-            if (_networkAnimState.clipNodeEnum != NetworkAnimState::Idle) {
+            if (_networkAnimState.clipNodeEnum != NetworkAnimState::None) {
                 // restore the user animation we had before reset.
                 NetworkAnimState origState = _networkAnimState;
-                _networkAnimState = { NetworkAnimState::Idle, "", 30.0f, false, 0.0f, 0.0f };
+                _networkAnimState = { NetworkAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
                 if (_networkAnimState.clipNodeEnum == NetworkAnimState::PreTransit) {
-                    triggerNetworkAnimation("preTransitAnim");
+                    triggerNetworkRole("preTransitAnim");
                 } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::Transit) {
-                    triggerNetworkAnimation("transitAnim");
+                    triggerNetworkRole("transitAnim");
                 } else if (_networkAnimState.clipNodeEnum == NetworkAnimState::PostTransit) {
-                    triggerNetworkAnimation("postTransitAnim");
+                    triggerNetworkRole("postTransitAnim");
                 }
             }
            
@@ -1938,7 +1983,7 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
             data.rotationIsDefaultPose = isEqual(data.rotation, defaultAbsRot);
 
             // translations are in relative frame but scaled so that they are in meters,
-            // instead of geometry units.
+            // instead of model units.
             glm::vec3 defaultRelTrans = _geometryOffset.scale() * _animSkeleton->getRelativeDefaultPose(i).trans();
             data.translation = _geometryOffset.scale() * (!_sendNetworkNode ? _internalPoseSet._relativePoses[i].trans() : _networkPoseSet._relativePoses[i].trans());
             data.translationIsDefaultPose = isEqual(data.translation, defaultRelTrans);
@@ -1963,7 +2008,7 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         return;
     }
 
-    // make a vector of rotations in absolute-geometry-frame
+    // make a vector of rotations in absolute-model-frame
     std::vector<glm::quat> rotations;
     rotations.reserve(numJoints);
     const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
@@ -1972,7 +2017,7 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         if (data.rotationIsDefaultPose) {
             rotations.push_back(absoluteDefaultPoses[i].rot());
         } else {
-            // JointData rotations are in absolute rig-frame so we rotate them to absolute geometry-frame
+            // JointData rotations are in absolute rig-frame so we rotate them to absolute model-frame
             rotations.push_back(rigToGeometryRot * data.rotation);
         }
     }
@@ -2008,7 +2053,7 @@ void Rig::computeExternalPoses(const glm::mat4& modelOffsetMat) {
 }
 
 void Rig::computeAvatarBoundingCapsule(
-        const FBXGeometry& geometry,
+        const HFMModel& hfmModel,
         float& radiusOut,
         float& heightOut,
         glm::vec3& localOffsetOut) const {
@@ -2041,7 +2086,7 @@ void Rig::computeAvatarBoundingCapsule(
     // from the head to the hips when computing the rest of the bounding capsule.
     int index = indexOfJoint("Head");
     while (index != -1) {
-        const FBXJointShapeInfo& shapeInfo = geometry.joints.at(index).shapeInfo;
+        const HFMJointShapeInfo& shapeInfo = hfmModel.joints.at(index).shapeInfo;
         AnimPose pose = _animSkeleton->getAbsoluteDefaultPose(index);
         if (shapeInfo.points.size() > 0) {
             for (auto& point : shapeInfo.points) {

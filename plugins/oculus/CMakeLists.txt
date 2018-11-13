@@ -8,9 +8,6 @@
 
 if (WIN32 AND (NOT USE_GLES))
 
-  # we're using static GLEW, so define GLEW_STATIC
-  add_definitions(-DGLEW_STATIC)
-
   # if we were passed an Oculus App ID for entitlement checks, send that along
   if (DEFINED ENV{OCULUS_APP_ID})
     add_definitions(-DOCULUS_APP_ID="$ENV{OCULUS_APP_ID}")
