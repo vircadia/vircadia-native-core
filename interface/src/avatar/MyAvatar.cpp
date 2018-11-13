@@ -1493,7 +1493,7 @@ void MyAvatar::loadData() {
     _yawSpeed = _yawSpeedSetting.get(_yawSpeed);
     _pitchSpeed = _pitchSpeedSetting.get(_pitchSpeed);
 
-    _prefOverrideAnimGraphUrl.set(_prefOverrideAnimGraphUrl.get().toString());
+    _prefOverrideAnimGraphUrl.set(_animGraphURLSetting.get().toString());
     _fullAvatarURLFromPreferences = _fullAvatarURLSetting.get(QUrl(AvatarData::defaultFullAvatarModelUrl()));
     _fullAvatarModelName = _fullAvatarModelNameSetting.get(DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
 
