@@ -73,6 +73,14 @@ void AndroidHelper::notifyHeadsetOn(bool pluggedIn) {
 #endif
 }
 
+void AndroidHelper::muteMic() {
+    auto audioClient = DependencyManager::get<AudioClient>();
+    if (audioClient) {
+        QMetaObject::invokeMethod(audioClient.data(), "setMuted", Q_ARG(bool, true), Q_ARG(bool, true));
+    }
+}
+
+
 void AndroidHelper::signup(QString email, QString username, QString password) {
     JSONCallbackParameters callbackParams;
     callbackParams.callbackReceiver = this;
