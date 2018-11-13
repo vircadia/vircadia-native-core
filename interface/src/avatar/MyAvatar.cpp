@@ -471,7 +471,7 @@ void MyAvatar::updateSitStandState(float newHeightReading, float dt) {
     const float STANDING_TIMEOUT = 0.3333f; // 1/3 second
     const float SITTING_UPPER_BOUND = 1.52f;
     if (!getIsSitStandStateLocked()) {
-        if (!getIsAway() && qApp->isHMDMode()) {
+        if (!getIsAway() && getControllerPoseInAvatarFrame(controller::Action::HEAD).isValid()) {
             if (getIsInSittingState()) {
                 if (newHeightReading > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
                     // if we recenter upwards then no longer in sitting state
@@ -726,6 +726,10 @@ void MyAvatar::forgetChild(SpatiallyNestablePointer newChild) const {
 
 void MyAvatar::recalculateChildCauterization() const {
     _cauterizationNeedsUpdate = true;
+}
+
+bool MyAvatar::isFollowActive(FollowHelper::FollowType followType) const {
+    return _follow.isActive(followType);
 }
 
 void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool cauterize) {
@@ -1088,9 +1092,9 @@ void MyAvatar::updateSensorToWorldMatrix() {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedRotation;
 
-    bool inHmd = qApp->isHMDMode();
+    bool hasHead = getControllerPoseInAvatarFrame(controller::Action::HEAD).isValid();
     bool playing = DependencyManager::get<recording::Deck>()->isPlaying();
-    if (inHmd && playing) {
+    if (hasHead && playing) {
         return;
     }
 
@@ -1124,7 +1128,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
     Head* head = getHead();
-    if (inHmd || playing) {
+    if (hasHead || playing) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
         head->setDeltaRoll(estimatedRotation.z);
@@ -3499,7 +3503,7 @@ void MyAvatar::triggerRotationRecenter() {
 
 // old school meat hook style
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
-    glm::vec3 headPosition;
+    glm::vec3 headPosition(0.0f, _userHeight.get(), 0.0f);
     glm::quat headOrientation;
     auto headPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
@@ -3832,7 +3836,7 @@ float MyAvatar::computeStandingHeightMode(const controller::Pose& head) {
         modeInMeters = ((float)mode) / CENTIMETERS_PER_METER;
         if (!(modeInMeters > getCurrentStandingHeight())) {
             // if not greater check for a reset
-            if (getResetMode() && qApp->isHMDMode()) {
+            if (getResetMode() && getControllerPoseInAvatarFrame(controller::Action::HEAD).isValid()) {
                 setResetMode(false);
                 float resetModeInCentimeters = glm::floor((head.getTranslation().y - MODE_CORRECTION_FACTOR)*CENTIMETERS_PER_METER);
                 modeInMeters = (resetModeInCentimeters / CENTIMETERS_PER_METER);

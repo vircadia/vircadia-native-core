@@ -213,12 +213,10 @@ private:
     bool isDesktopMode();
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };
-    bool _resetMatCalculated { false };
 
     bool _desktopMode { false };
     bool _hmdDesktopTracking { false };
-    
-    glm::mat4 _resetMat { glm::mat4() };
+
     graphics::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
 
