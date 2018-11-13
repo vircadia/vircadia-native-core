@@ -63,16 +63,11 @@ bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromFile(QString path) {
 QByteArray OctreeUtils::RawOctreeData::toByteArray() {
     QByteArray jsonString;
 
-    jsonString += QString(R"({
-  "DataVersion": %1,
-)").arg(dataVersion);
+    jsonString += QString("{\n  \"DataVersion\": %1,\n").arg(dataVersion);
 
     writeSubclassData(jsonString);
 
-    jsonString += QString(R"(,
-  "Id": "%1",
-  "Version": %2
-})").arg(id.toString()).arg(version);
+    jsonString += QString(",\n  \"Id\": \"%1\",\n  \"Version\": %2\n}").arg(id.toString()).arg(version);
 
     return jsonString;
 }

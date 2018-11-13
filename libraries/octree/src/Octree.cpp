@@ -904,9 +904,7 @@ bool Octree::toJSONString(QString& jsonString, const OctreeElementPointer& eleme
         top = _rootElement;
     }
 
-    jsonString += QString(R"({
-  "DataVersion": %1,
-  "Entities": [)").arg(_persistDataVersion);
+    jsonString += QString("{\n  \"DataVersion\": %1,\n  \"Entities\": [").arg(_persistDataVersion);
 
     writeToJSON(jsonString, top);
 
@@ -914,12 +912,7 @@ bool Octree::toJSONString(QString& jsonString, const OctreeElementPointer& eleme
     PacketType expectedType = expectedDataPacketType();
     PacketVersion expectedVersion = versionForPacketType(expectedType);
 
-    jsonString += QString(R"(
-    ],
-  "Id": "%1",
-  "Version": %2
-}
-)").arg(_persistID.toString()).arg((int)expectedVersion);
+    jsonString += QString("\n    ],\n  \"Id\": \"%1\",\n  \"Version\": %2\n}\n").arg(_persistID.toString()).arg((int)expectedVersion);
 
     return true;
 }
