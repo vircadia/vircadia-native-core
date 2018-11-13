@@ -584,7 +584,11 @@ void MyAvatar::update(float deltaTime) {
         upSpine2 = glm::normalize(upSpine2);
     }
     float angleSpine2 = glm::dot(upSpine2, glm::vec3(0.0f, 1.0f, 0.0f));
-    if (getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y < (headDefaultPositionAvatarSpace.y - SQUAT_THRESHOLD) && (angleSpine2 > COSINE_THIRTY_DEGREES)) {
+
+    if (getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y < (headDefaultPositionAvatarSpace.y - SQUAT_THRESHOLD) &&
+        (angleSpine2 > COSINE_THIRTY_DEGREES) &&
+        (getUserRecenterModel() != MyAvatar::SitStandModelType::ForceStand)) {
+
         _squatTimer += deltaTime;
         if (_squatTimer > SQUATTY_TIMEOUT) {
             _squatTimer = 0.0f;
