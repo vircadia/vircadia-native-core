@@ -1043,7 +1043,7 @@ const GROUPS = [
                 vec3Type: "pyr",
                 step: 0.1,
                 decimals: 4,
-                subLabels: [ "pitch", "yaw", "roll" ],
+                subLabels: [ "x", "y", "z" ],
                 unit: "deg",
                 propertyID: "localRotation",
                 spaceMode: PROPERTY_SPACE_MODE.LOCAL,
@@ -1421,7 +1421,7 @@ function debugPrint(message) {
 }
 
 function createElementFromHTML(htmlString) {
-    var elTemplate = document.createElement('template');
+    let elTemplate = document.createElement('template');
     elTemplate.innerHTML = htmlString.trim();
     return elTemplate.content.firstChild;
 }
@@ -1828,7 +1828,7 @@ function createNumberProperty(property, elProperty) {
     let propertyData = property.data;
     
     elProperty.className = "draggable-number";
-    
+
     let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step);
     
     let defaultValue = propertyData.defaultValue;   
@@ -1855,11 +1855,6 @@ function createVec3Property(property, elProperty) {
     let propertyData = property.data;
 
     elProperty.className = propertyData.vec3Type + " fstuple";
-    
-    //let elTuple = document.createElement('div');
-    //elTuple.className = "tuple";
-    
-    //elProperty.appendChild(elTuple);
     
     let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
                                            propertyData.min, propertyData.max, propertyData.step);
@@ -2030,9 +2025,7 @@ function createIconProperty(property, elProperty) {
 
     elProperty.appendChild(elSpan);
     
-    let elResult = [];
-    elResult[ICON_ELEMENTS.ICON] = elSpan;
-    return elResult;
+    return elSpan;
 }
 
 function createTextureProperty(property, elProperty) { 
@@ -2095,9 +2088,7 @@ function createButtonsProperty(property, elProperty, elLabel) {
     elProperty.className = "text";
                         
     let hasLabel = propertyData.label !== undefined;
-    if (hasLabel) {
-    }
-    
+
     if (propertyData.buttons !== undefined) {
         addButtons(elProperty, elementID, propertyData.buttons, false);
     }
@@ -2836,7 +2827,7 @@ function loaded() {
                 } else {
                     elContainer = document.getElementById(propertyData.replaceID);
                 }
-                
+
                 if (elLabel) {
                     createAppTooltip.registerTooltipElement(elLabel, propertyID);
                 }
@@ -2844,9 +2835,9 @@ function loaded() {
                 let elProperty = createElementFromHTML('<div style="width: 100%;"></div>');
                 elContainer.appendChild(elProperty);
 
-                if (propertyType == 'triple') {
+                if (propertyType === 'triple') {
                     elProperty.className = 'flex-row';
-                    for (var i = 0; i < propertyData.properties.length; ++i) {
+                    for (let i = 0; i < propertyData.properties.length; ++i) {
                         let innerPropertyData = propertyData.properties[i];
 
                         let elWrapper = createElementFromHTML('<div class="flex-column flex-center triple-item"><div></div></div>');
@@ -2862,6 +2853,8 @@ function loaded() {
                         let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper.childNodes[0]);
                         property.isParticleProperty = group.id.includes("particles");
                         property.elContainer = elContainer;
+
+                        property.spaceMode = propertySpaceMode;
                         
                         if (property.type !== 'placeholder') {
                             properties[propertyID] = property;
@@ -2869,10 +2862,9 @@ function loaded() {
                     }
                 } else {
                     let property = createProperty(propertyData, propertyElementID, propertyName, propertyID, elProperty);
-                    property.elementID = propertyElementID;
-                    property.name = propertyName;
                     property.isParticleProperty = group.id.includes("particles");
                     property.elContainer = elContainer;
+                    property.spaceMode = propertySpaceMode;
                     
                     if (property.type !== 'placeholder') {
                         properties[propertyID] = property;

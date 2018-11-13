@@ -876,6 +876,7 @@ div.refresh input[type="button"] {
 }
 .rgb div.legend + * {
     clear: both;
+<<<<<<< HEAD
 }
 
 .draggable-number {
@@ -903,6 +904,8 @@ div.refresh input[type="button"] {
 .draggable-number input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     visibility: hidden;
+=======
+>>>>>>> a787f55506f73c2617ce12e5fd6b2d129c9bb03e
 }
 
 .row .property {
@@ -1441,6 +1444,7 @@ th#entity-hasScript {
     display: inline-block;
 }
 
+<<<<<<< HEAD
 /*
 #properties-base #div-property-locked {
     position: absolute;
@@ -1464,6 +1468,8 @@ th#entity-hasScript {
 }
 */
 
+=======
+>>>>>>> a787f55506f73c2617ce12e5fd6b2d129c9bb03e
 #properties-base .checkbox label span {
     font-family: HiFi-Glyphs;
     font-size: 20px;
@@ -1489,9 +1495,11 @@ th#entity-hasScript {
 }
 
 input#property-scale-button-rescale {
+    margin-top: 6px;
     min-width: 50px;
 }
 input#property-scale-button-reset {
+    margin-top: 6px;
     margin-right: 0;
 }
 
@@ -1700,3 +1708,104 @@ input.number-slider {
 #toggle-space-mode.space-mode-world::before {
     content: "\e02c";
 }
+<<<<<<< HEAD
+=======
+
+.container {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-around;
+    margin-bottom: 8px;
+    min-height: 28px;
+}
+
+.container > label {
+    margin-top: 6px;
+    width: 200px;
+}
+
+.container > div.checkbox {
+    padding-top: 6px;
+}
+
+.container > .value {
+    width: 100%;
+}
+
+.container .row {
+    display: flex;
+    flex-flow: row nowrap;
+}
+
+.container.shrink {
+    width: min-content;
+}
+
+.fstuple {
+    display: flex;
+    flex-flow: row;
+}
+.fstuple input {
+    margin-left: 4px;
+    margin-right: 10px;
+}
+.fstuple label.red, .fstuple label.x {
+    color: #C62147;
+}
+.fstuple label.green, .fstuple label.y {
+    color: #359D85;
+}
+.fstuple label.blue, .fstuple label.z {
+    color: #0093C5;
+}
+
+.xyz.fstuple, .pyr.fstuple {
+    position: relative;
+    left: -12px;
+}
+
+.rgb.fstuple .tuple {
+    display: none;
+}
+
+input.number-slider {
+    background: #575757;
+    border-radius: 4px;
+    color: white;
+}
+
+.fstuple > div {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+}
+
+.flex-row {
+    display: flex;
+    flex-flow: row;
+}
+
+.flex-column {
+    display: flex;
+    flex-flow: column;
+}
+
+.flex-center {
+    align-items: center;
+}
+
+.flex-evenly-spaced {
+    flex: 1;
+}
+
+#property-serverScripts-status {
+    font-family: Raleway-Light;
+    font-size: 14px;
+    margin: 6px 0;
+}
+
+#property-name, #property-id {
+    display: flex;
+    width: 100%;
+}
+>>>>>>> a787f55506f73c2617ce12e5fd6b2d129c9bb03e
