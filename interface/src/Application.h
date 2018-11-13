@@ -319,8 +319,6 @@ public:
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
-    // is only ready when user has mounted their headset and user is in HMD mode.
-    void checkReadyToCreateLoginDialogOverlay();
     void createLoginDialogOverlay();
 
 #if defined(Q_OS_ANDROID)

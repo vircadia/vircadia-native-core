@@ -46,10 +46,9 @@ public slots:
     void hideAddressBar();
     void showFeed();
     void setDomainConnectionFailureVisibility(bool visible);
-    // toggles login screen that appears upon `File > Log In/Sign Up`.
     void toggleLoginDialog();
-    // shows login screen that appears upon `File > Log In/Sign Up`.
     void showLoginDialog();
+    void hideLoginDialog();
     void octreeStatsDetails();
     void lodTools();
     void hmdTools(bool showTools);

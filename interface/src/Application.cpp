@@ -1294,6 +1294,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
     });
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
+    connect(this, &Application::activeDisplayPluginChanged, this, [&](){
+        auto dialogsManager = DependencyManager::get<DialogsManager>();
+        if (getLoginDialogPoppedUp()) {
+            if (_loginDialogOverlayID.isNull()) {
+                // HMD mode.
+                dialogsManager->hideLoginDialog();
+                createLoginDialogOverlay();
+            } else {
+                // Desktop mode.
+                getOverlays().deleteOverlay(_loginDialogOverlayID);
+                _loginDialogOverlayID = OverlayID();
+                _loginPointerManager.tearDown();
+                dialogsManager->showLoginDialog();
+            }
+        }
+    });
 
     // Save avatar location immediately after a teleport.
     connect(myAvatar.get(), &MyAvatar::positionGoneTo,
@@ -2809,8 +2825,6 @@ void Application::initializeDisplayPlugins() {
         if (displayPlugin->isHmd()) {
             QObject::connect(dynamic_cast<HmdDisplayPlugin*>(displayPlugin.get()), &HmdDisplayPlugin::hmdMountedChanged,
                 DependencyManager::get<HMDScriptingInterface>().data(), &HMDScriptingInterface::mountedChanged);
-            QObject::connect(dynamic_cast<HmdDisplayPlugin*>(displayPlugin.get()), &HmdDisplayPlugin::hmdMountedChanged,
-                this, &Application::checkReadyToCreateLoginDialogOverlay);
         }
     }
 
@@ -8506,70 +8520,72 @@ void Application::setShowBulletConstraintLimits(bool value) {
     _physicsEngine->setShowBulletConstraintLimits(value);
 }
 
-void Application::checkReadyToCreateLoginDialogOverlay() {
-    if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible() &&
-    qApp->getLoginDialogPoppedUp() && _loginDialogOverlayID.isNull()) {
-        createLoginDialogOverlay();
-        _loginPointerManager.setUp();
-    } else if (qApp->getLoginDialogPoppedUp()) {
-        if (!qApp->isHMDMode()) {
-            _loginPointerManager.tearDown();
-        } else if (qApp->isHMDMode() && !_loginPointerManager.isSetUp()) {
-            _loginPointerManager.setUp();
-        }
-    }
-}
-
 void Application::createLoginDialogOverlay() {
-    auto avatarManager = DependencyManager::get<AvatarManager>();
     auto HMD = DependencyManager::get<HMDScriptingInterface>();
-    auto myAvatar = avatarManager->getMyAvatar();
     auto headInt = _controllerScriptingInterface->getActions()["Head"].toInt();
     auto headPose = _controllerScriptingInterface->getPoseValue(headInt);
     // reference vector for overlay to spawn.
     glm::vec3 refOverlayVec;
-    glm::quat refRotation = myAvatar->getWorldOrientation();
+    QVariantMap overlayProperties{};
+    Overlays& overlays = qApp->getOverlays();
+    // DEFAULT_DPI / tablet scale percentage
+    float overlayDpi = 31.0f / (75.0f / 100.0f);
+    glm::quat refRotation = getMyAvatar()->getWorldOrientation();
     if (headPose.isValid()) {
         refOverlayVec = headPose.translation;
     } else if (HMD->getPosition() != glm::vec3()) {
         refOverlayVec = HMD->getPosition();
     } else {
-        refOverlayVec = myAvatar->getHeadPosition();
+        refOverlayVec = getMyAvatar()->getHeadPosition();
     }
     //for non-play area position.
     refOverlayVec -= glm::vec3(0.0f, -0.1f, 1.0f);
 
     auto playArea = _displayPlugin->getPlayAreaRect();
     const glm::vec2 PLAY_AREA_OVERLAY_MODEL_DIMENSIONS{ 0.5f, 0.5f };
-    const float PLAY_AREA_FLOAT_ABOVE_FLOOR = 0.005f;
-    //const glm::vec3 PLAY_AREA_OVERLAY_OFFSET{ 0.0f, PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2 + PLAY_AREA_FLOAT_ABOVE_FLOOR, 0.0f };
     if (!(playArea.isEmpty())) {
-        auto playAreaCenterOffset = glm::vec3(playArea.x(), 1.6f, playArea.y());
-        auto sensorToWorldMatrix = myAvatar->getSensorToWorldMatrix();
+        auto playAreaCenterOffset = glm::vec3(playArea.center().x(), 1.6f, playArea.center().y());
+        auto sensorToWorldMatrix = getMyAvatar()->getSensorToWorldMatrix();
         auto sensorToWorldRotation = extractRotation(sensorToWorldMatrix);
-        auto position = sensorToWorldRotation * (myAvatar->getSensorToWorldScale() * (playAreaCenterOffset -
-           transformPoint(sensorToWorldMatrix, myAvatar->getWorldPosition())));
-        refOverlayVec = position;
-        refRotation = sensorToWorldRotation * glm::quat(1.0f, 0.0f, 1.0f, 0.0f);
+        //auto position = sensorToWorldRotation * (getMyAvatar()->getSensorToWorldScale() * (playAreaCenterOffset -
+        //   transformPoint(sensorToWorldMatrix, getMyAvatar()->getWorldPosition())));
+        //refOverlayVec = position;
+        refRotation = glm::quat(1.0f, 0.0f, 1.0f, 0.0f);
+        overlayProperties = {
+            { "name", "LoginDialogOverlay" },
+            { "url", OVERLAY_LOGIN_DIALOG_URL },
+            { "parentID", getMyAvatar()->getSessionUUID() },
+            { "parentJointIndex", "_SENSOR_TO_WORLD_MATRIX" },
+            { "localPosition", vec3toVariant(playAreaCenterOffset) },
+            { "localOrientation", quatToVariant(refRotation) },
+            { "isSolid", true },
+            { "grabbable", false },
+            { "ignorePickIntersection", false },
+            { "alpha", 1.0 },
+            { "dimensions", vec2ToVariant(PLAY_AREA_OVERLAY_MODEL_DIMENSIONS)},
+            { "dpi", overlayDpi },
+            { "visible", true }
+        };
+    } else {
+        overlayProperties = {
+            { "name", "LoginDialogOverlay" },
+            { "url", OVERLAY_LOGIN_DIALOG_URL },
+            { "position", vec3toVariant(refOverlayVec) },
+            { "orientation", quatToVariant(refRotation) },
+            { "isSolid", true },
+            { "grabbable", false },
+            { "ignorePickIntersection", false },
+            { "alpha", 1.0 },
+            { "dimensions", vec2ToVariant(PLAY_AREA_OVERLAY_MODEL_DIMENSIONS)},
+            { "dpi", overlayDpi },
+            { "visible", true }
+        };
     }
 
-    Overlays& overlays = qApp->getOverlays();
-    // DEFAULT_DPI / tablet scale percentage
-    float overlayDpi = 31.0f / (75.0f / 100.0f);
-    QVariantMap overlayProperties {
-        { "name", "LoginDialogOverlay" },
-        { "url", OVERLAY_LOGIN_DIALOG_URL },
-        { "position", vec3toVariant(refOverlayVec) },
-        { "orientation", quatToVariant(refRotation) },
-        { "isSolid", true },
-        { "grabbable", false },
-        { "ignorePickIntersection", false },
-        { "alpha", 1.0 },
-        { "dimensions", vec2ToVariant(PLAY_AREA_OVERLAY_MODEL_DIMENSIONS)},
-        { "dpi", overlayDpi },
-        { "visible", true }
-    };
-     _loginDialogOverlayID = overlays.addOverlay("web3d", overlayProperties);
+    _loginDialogOverlayID = overlays.addOverlay("web3d", overlayProperties);
+    if (!_loginPointerManager.isSetUp()) {
+        _loginPointerManager.setUp();
+    }
 }
 
 void Application::onDismissedLoginDialog() {
@@ -8579,6 +8595,7 @@ void Application::onDismissedLoginDialog() {
         // deleting overlay.
         qDebug() << "Deleting overlay";
         getOverlays().deleteOverlay(_loginDialogOverlayID);
+        _loginDialogOverlayID = OverlayID();
         _loginPointerManager.tearDown();
     }
     resumeAfterLoginDialogActionTaken();
