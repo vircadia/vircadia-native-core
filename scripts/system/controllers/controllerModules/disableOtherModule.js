@@ -58,18 +58,16 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             if (channel === 'Hifi-Hand-Disabler') {
                 if (message === 'left') {
                     leftDisableModules.disableModules = true;
-                }
-                if (message === 'right') {
+                } else if (message === 'right') {
                     rightDisableModules.disableModules = true;
-                }
-                if (message === 'both' || message === 'none') {
-                    if (message === 'both') {
-                        leftDisableModules.disableModules = true;
-                        rightDisableModules.disableModules = true;
-                    } else if (message === 'none') {
-                        leftDisableModules.disableModules = false;
-                        rightDisableModules.disableModules = false;
-                    }
+                } else if (message === 'both') {
+                    leftDisableModules.disableModules = true;
+                    rightDisableModules.disableModules = true;
+                } else if (message === 'none') {
+                    leftDisableModules.disableModules = false;
+                    rightDisableModules.disableModules = false;
+                } else {
+                    print("disableOtherModule -- unknown command: " + message);
                 }
             }
         }

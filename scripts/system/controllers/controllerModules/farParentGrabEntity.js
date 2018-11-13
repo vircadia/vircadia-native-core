@@ -10,34 +10,15 @@
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Quat, getEnabledModuleByName, makeRunningValues,
    Entities, enableDispatcherModule, disableDispatcherModule, entityIsGrabbable, makeDispatcherModuleParameters, MSECS_PER_SEC,
    HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, getControllerWorldLocation,
-   projectOntoEntityXYPlane, ContextOverlay, HMD, Picks, makeLaserLockInfo, Xform, makeLaserParams, AddressManager,
+   projectOntoEntityXYPlane, ContextOverlay, HMD, Picks, makeLaserLockInfo, makeLaserParams, AddressManager,
    getEntityParents, Selection, DISPATCHER_HOVERING_LIST, unhighlightTargetEntity, Messages, Uuid, findGroupParent,
-   worldPositionToRegistrationFrameMatrix
+   worldPositionToRegistrationFrameMatrix, DISPATCHER_PROPERTIES, findFarGrabJointChildEntities
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
-Script.include("/~/system/libraries/Xform.js");
 
 (function() {
-    var GRABBABLE_PROPERTIES = [
-        "position",
-        "registrationPoint",
-        "rotation",
-        "gravity",
-        "collidesWith",
-        "dynamic",
-        "collisionless",
-        "locked",
-        "name",
-        "shapeType",
-        "parentID",
-        "parentJointIndex",
-        "density",
-        "dimensions",
-        "userData"
-    ];
-
     var MARGIN = 25;
 
     function TargetObject(entityID, entityProps) {
@@ -68,6 +49,7 @@ Script.include("/~/system/libraries/Xform.js");
         this.hand = hand;
         this.targetEntityID = null;
         this.targetObject = null;
+        this.previouslyUnhooked = {};
         this.previousParentID = {};
         this.previousParentJointIndex = {};
         this.potentialEntityWithContextOverlay = false;
@@ -78,6 +60,7 @@ Script.include("/~/system/libraries/Xform.js");
         this.reticleMaxX = 0;
         this.reticleMinY = MARGIN;
         this.reticleMaxY = 0;
+        this.lastUnexpectedChildrenCheckTime = 0;
 
         var FAR_GRAB_JOINTS = [65527, 65528]; // FARGRAB_LEFTHAND_INDEX, FARGRAB_RIGHTHAND_INDEX
 
@@ -214,7 +197,7 @@ Script.include("/~/system/libraries/Xform.js");
             var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
             var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
-            var grabbedProperties = Entities.getEntityProperties(this.targetEntityID, GRABBABLE_PROPERTIES);
+            var grabbedProperties = Entities.getEntityProperties(this.targetEntityID, DISPATCHER_PROPERTIES);
             var now = Date.now();
             var deltaObjectTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
             this.currentObjectTime = now;
@@ -275,11 +258,13 @@ Script.include("/~/system/libraries/Xform.js");
         this.endFarParentGrab = function (controllerData) {
             this.hapticTargetID = null;
             // var endProps = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
-            var endProps = Entities.getEntityProperties(this.targetEntityID, GRABBABLE_PROPERTIES);
+            var endProps = Entities.getEntityProperties(this.targetEntityID, DISPATCHER_PROPERTIES);
             if (this.thisFarGrabJointIsParent(endProps)) {
                 Entities.editEntity(this.targetEntityID, {
                     parentID: this.previousParentID[this.targetEntityID],
-                    parentJointIndex: this.previousParentJointIndex[this.targetEntityID]
+                    parentJointIndex: this.previousParentJointIndex[this.targetEntityID],
+                    localVelocity: {x: 0, y: 0, z: 0},
+                    localAngularVelocity: {x: 0, y: 0, z: 0}
                 });
             }
 
@@ -313,7 +298,7 @@ Script.include("/~/system/libraries/Xform.js");
 
         this.notPointingAtEntity = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
-            var entityProperty = Entities.getEntityProperties(intersection.objectID);
+            var entityProperty = Entities.getEntityProperties(intersection.objectID, DISPATCHER_PROPERTIES);
             var entityType = entityProperty.type;
             var hudRayPick = controllerData.hudRayPicks[this.hand];
             var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
@@ -348,7 +333,7 @@ Script.include("/~/system/libraries/Xform.js");
             var worldControllerPosition = controllerLocation.position;
             var worldControllerRotation = controllerLocation.orientation;
 
-            var grabbedProperties = Entities.getEntityProperties(intersection.objectID, GRABBABLE_PROPERTIES);
+            var grabbedProperties = Entities.getEntityProperties(intersection.objectID, DISPATCHER_PROPERTIES);
             this.currentObjectPosition = grabbedProperties.position;
             this.grabRadius = intersection.distance;
 
@@ -369,8 +354,51 @@ Script.include("/~/system/libraries/Xform.js");
             }
         };
 
+        this.checkForUnexpectedChildren = function (controllerData) {
+            // sometimes things can get parented to a hand and this script is unaware.  Search for such entities and
+            // unhook them.
+
+            var now = Date.now();
+            var UNEXPECTED_CHILDREN_CHECK_TIME = 0.1; // seconds
+            if (now - this.lastUnexpectedChildrenCheckTime > MSECS_PER_SEC * UNEXPECTED_CHILDREN_CHECK_TIME) {
+                this.lastUnexpectedChildrenCheckTime = now;
+
+                var children = findFarGrabJointChildEntities(this.hand);
+                var _this = this;
+
+                children.forEach(function(childID) {
+                    // we appear to be holding something and this script isn't in a state that would be holding something.
+                    // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
+                    // works around some problems that happen when more than one hand or avatar is passing something around.
+                    if (_this.previousParentID[childID]) {
+                        var previousParentID = _this.previousParentID[childID];
+                        var previousParentJointIndex = _this.previousParentJointIndex[childID];
+
+                        // The main flaw with keeping track of previous parentage in individual scripts is:
+                        // (1) A grabs something (2) B takes it from A (3) A takes it from B (4) A releases it
+                        // now A and B will take turns passing it back to the other.  Detect this and stop the loop here...
+                        var UNHOOK_LOOP_DETECT_MS = 200;
+                        if (_this.previouslyUnhooked[childID]) {
+                            if (now - _this.previouslyUnhooked[childID] < UNHOOK_LOOP_DETECT_MS) {
+                                previousParentID = Uuid.NULL;
+                                previousParentJointIndex = -1;
+                            }
+                        }
+                        _this.previouslyUnhooked[childID] = now;
+
+                        Entities.editEntity(childID, {
+                            parentID: previousParentID,
+                            parentJointIndex: previousParentJointIndex
+                        });
+                    } else {
+                        Entities.editEntity(childID, { parentID: Uuid.NULL });
+                    }
+                });
+            }
+        };
+
         this.targetIsNull = function() {
-            var properties = Entities.getEntityProperties(this.targetEntityID, GRABBABLE_PROPERTIES);
+            var properties = Entities.getEntityProperties(this.targetEntityID, DISPATCHER_PROPERTIES);
             if (Object.keys(properties).length === 0 && this.distanceHolding) {
                 return true;
             }
@@ -380,7 +408,7 @@ Script.include("/~/system/libraries/Xform.js");
         this.getTargetProps = function (controllerData) {
             var targetEntity = controllerData.rayPicks[this.hand].objectID;
             if (targetEntity) {
-                var gtProps = Entities.getEntityProperties(targetEntity, GRABBABLE_PROPERTIES);
+                var gtProps = Entities.getEntityProperties(targetEntity, DISPATCHER_PROPERTIES);
                 if (entityIsGrabbable(gtProps)) {
                     // give haptic feedback
                     if (gtProps.id !== this.hapticTargetID) {
@@ -416,6 +444,7 @@ Script.include("/~/system/libraries/Xform.js");
                         return makeRunningValues(true, [], []);
                     }
                 } else {
+                    this.checkForUnexpectedChildren(controllerData);
                     this.destroyContextOverlay();
                     return makeRunningValues(false, [], []);
                 }
@@ -442,7 +471,8 @@ Script.include("/~/system/libraries/Xform.js");
                 this.hand === RIGHT_HAND ? "RightFarTriggerEntity" : "LeftFarTriggerEntity",
                 this.hand === RIGHT_HAND ? "RightNearActionGrabEntity" : "LeftNearActionGrabEntity",
                 this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity",
-                this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay"
+                this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay",
+                this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight"
             ];
 
             var nearGrabReadiness = [];
@@ -480,11 +510,7 @@ Script.include("/~/system/libraries/Xform.js");
                         var entityID = rayPickInfo.objectID;
                         Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", this.highlightedEntity);
                         this.highlightedEntity = null;
-                        var targetProps = Entities.getEntityProperties(entityID, [
-                            "dynamic", "shapeType", "position",
-                            "rotation", "dimensions", "density",
-                            "userData", "locked", "type", "href"
-                        ]);
+                        var targetProps = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
                         if (targetProps.href !== "") {
                             AddressManager.handleLookupString(targetProps.href);
                             return makeRunningValues(false, [], []);
@@ -533,11 +559,7 @@ Script.include("/~/system/libraries/Xform.js");
                         var targetEntityID = rayPickInfo.objectID;
                         if (this.highlightedEntity !== targetEntityID) {
                             Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", this.highlightedEntity);
-                            var selectionTargetProps = Entities.getEntityProperties(targetEntityID, [
-                                "dynamic", "shapeType", "position",
-                                "rotation", "dimensions", "density",
-                                "userData", "locked", "type", "href"
-                            ]);
+                            var selectionTargetProps = Entities.getEntityProperties(targetEntityID, DISPATCHER_PROPERTIES);
 
                             var selectionTargetObject = new TargetObject(targetEntityID, selectionTargetProps);
                             selectionTargetObject.parentProps = getEntityParents(selectionTargetProps);
@@ -567,7 +589,8 @@ Script.include("/~/system/libraries/Xform.js");
                                     if (!_this.entityWithContextOverlay &&
                                         _this.contextOverlayTimer &&
                                         _this.potentialEntityWithContextOverlay === rayPickInfo.objectID) {
-                                        var cotProps = Entities.getEntityProperties(rayPickInfo.objectID);
+                                        var cotProps = Entities.getEntityProperties(rayPickInfo.objectID,
+                                                                                    DISPATCHER_PROPERTIES);
                                         var pointerEvent = {
                                             type: "Move",
                                             id: _this.hand + 1, // 0 is reserved for hardware mouse

@@ -53,7 +53,8 @@ void ATPAssetMigrator::loadEntityServerFile() {
 
             auto migrateResources = [=](QUrl migrationURL, QJsonValueRef jsonValue, bool isModelURL) {
                 auto request =
-                        DependencyManager::get<ResourceManager>()->createResourceRequest(this, migrationURL);
+                        DependencyManager::get<ResourceManager>()->createResourceRequest(
+                            this, migrationURL, true, -1, "ATPAssetMigrator::loadEntityServerFile");
 
                 if (request) {
                     qCDebug(asset_migrator) << "Requesting" << migrationURL << "for ATP asset migration";
@@ -121,8 +122,8 @@ void ATPAssetMigrator::loadEntityServerFile() {
                                     QUrl migrationURL = QUrl(migrationURLString);
 
                                     if (!_ignoredUrls.contains(migrationURL)
-                                            && (migrationURL.scheme() == URL_SCHEME_HTTP || migrationURL.scheme() == URL_SCHEME_HTTPS
-                                                || migrationURL.scheme() == URL_SCHEME_FILE || migrationURL.scheme() == URL_SCHEME_FTP)) {
+                                            && (migrationURL.scheme() == HIFI_URL_SCHEME_HTTP || migrationURL.scheme() == HIFI_URL_SCHEME_HTTPS
+                                                || migrationURL.scheme() == HIFI_URL_SCHEME_FILE || migrationURL.scheme() == HIFI_URL_SCHEME_FTP)) {
 
                                         if (_pendingReplacements.contains(migrationURL)) {
                                             // we already have a request out for this asset, just store the QJsonValueRef

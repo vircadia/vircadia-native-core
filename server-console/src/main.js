@@ -247,15 +247,12 @@ process.on('uncaughtException', function(err) {
     log.error(err.stack);
 });
 
-var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) {
-    // Someone tried to run a second instance, focus the window (if there is one)
-    return true;
-});
+const gotTheLock = app.requestSingleInstanceLock()
 
-if (shouldQuit) {
-    log.warn("Another instance of the Sandbox is already running - this instance will quit.");
-    app.exit(0);
-    return;
+if (!gotTheLock) {
+  log.warn("Another instance of the Sandbox is already running - this instance will quit.");
+  app.exit(0);
+  return;
 }
 
 // Check command line arguments to see how to find binaries
@@ -338,13 +335,15 @@ const HifiNotificationType = hfNotifications.NotificationType;
 var pendingNotifications = {}
 var notificationState = NotificationState.UNNOTIFIED;
 
-function setNotificationState (notificationType, pending = true) {
-    pendingNotifications[notificationType] = pending;
-    notificationState = NotificationState.UNNOTIFIED;
-    for (var key in pendingNotifications) {
-        if (pendingNotifications[key]) {
-            notificationState = NotificationState.NOTIFIED;
-            break;
+function setNotificationState (notificationType, pending = undefined) {
+    if (pending !== undefined) {
+        pendingNotifications[notificationType] = pending;
+        notificationState = NotificationState.UNNOTIFIED;
+        for (var key in pendingNotifications) {
+            if (pendingNotifications[key]) {
+                notificationState = NotificationState.NOTIFIED;
+                break;
+            }
         }
     }
     updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
@@ -568,7 +567,42 @@ function updateLabels(serverState) {
     labels.people.icon = pendingNotifications[HifiNotificationType.PEOPLE] ? menuNotificationIcon : null;
     labels.wallet.icon = pendingNotifications[HifiNotificationType.WALLET] ? menuNotificationIcon : null;
     labels.marketplace.icon = pendingNotifications[HifiNotificationType.MARKETPLACE] ? menuNotificationIcon : null;
-
+    var onlineUsers = trayNotifications.getOnlineUsers();
+    delete labels.people.submenu;
+    if (onlineUsers) {
+        for (var name in onlineUsers) {
+            if(labels.people.submenu == undefined) {
+                labels.people.submenu = [];
+            }
+            labels.people.submenu.push({
+                label: name,
+                enabled: (onlineUsers[name].location != undefined),
+                click: function (item) {
+                    setNotificationState(HifiNotificationType.PEOPLE, false);
+                    if(onlineUsers[item.label] && onlineUsers[item.label].location) {
+                        StartInterface("hifi://" + onlineUsers[item.label].location.root.name + onlineUsers[item.label].location.path);
+                    }
+                }
+            });
+        }
+    }
+    var currentStories = trayNotifications.getCurrentStories();
+    delete labels.goto.submenu;
+    if (currentStories) {
+        for (var location in currentStories) {
+            if(labels.goto.submenu == undefined) {
+                labels.goto.submenu = [];
+            }
+            labels.goto.submenu.push({
+                label: "event in " + location,
+                location: location,
+                click: function (item) {
+                    setNotificationState(HifiNotificationType.GOTO, false);
+                    StartInterface("hifi://" + item.location + currentStories[item.location].path);
+                }
+            });
+        }
+    }
 }
 
 function updateTrayMenu(serverState) {
@@ -840,10 +874,6 @@ function onContentLoaded() {
                     hasShownUpdateNotification = true;
                 }
             });
-            notifier.on('click', function(notifierObject, options) {
-                log.debug("Got click", options.url);
-                shell.openExternal(options.url);
-            });
         }
 
         deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
@@ -919,6 +949,8 @@ app.on('ready', function() {
         trayNotifications.startPolling();
     }
     updateTrayMenu(ProcessGroupStates.STOPPED);
-
-    maybeInstallDefaultContentSet(onContentLoaded);
+    
+    if (isServerInstalled()) {
+        maybeInstallDefaultContentSet(onContentLoaded);
+    }
 });

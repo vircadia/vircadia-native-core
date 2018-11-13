@@ -22,6 +22,11 @@ MismatchWindow::MismatchWindow(QWidget *parent) : QDialog(parent) {
 }
 
 QPixmap MismatchWindow::computeDiffPixmap(QImage expectedImage, QImage resultImage) {
+    // Create an empty difference image if the images differ in size
+    if (expectedImage.height() != resultImage.height() || expectedImage.width() != resultImage.width()) {
+        return QPixmap();
+    }
+
 	// This is an optimization, as QImage.setPixel() is embarrassingly slow
     unsigned char* buffer = new unsigned char[expectedImage.height() * expectedImage.width() * 3];
 
@@ -55,20 +60,20 @@ QPixmap MismatchWindow::computeDiffPixmap(QImage expectedImage, QImage resultIma
     return resultPixmap;
 }
 
-void MismatchWindow::setTestFailure(TestFailure testFailure) {
-    errorLabel->setText("Similarity: " + QString::number(testFailure._error));
+void MismatchWindow::setTestResult(TestResult testResult) {
+    errorLabel->setText("Similarity: " + QString::number(testResult._error));
 
-    imagePath->setText("Path to test: " + testFailure._pathname);
+    imagePath->setText("Path to test: " + testResult._pathname);
 
-    expectedFilename->setText(testFailure._expectedImageFilename);
-    resultFilename->setText(testFailure._actualImageFilename);
+    expectedFilename->setText(testResult._expectedImageFilename);
+    resultFilename->setText(testResult._actualImageFilename);
 
-    QPixmap expectedPixmap = QPixmap(testFailure._pathname + testFailure._expectedImageFilename);
-    QPixmap actualPixmap = QPixmap(testFailure._pathname + testFailure._actualImageFilename);
+    QPixmap expectedPixmap = QPixmap(testResult._pathname + testResult._expectedImageFilename);
+    QPixmap actualPixmap = QPixmap(testResult._pathname + testResult._actualImageFilename);
 
     _diffPixmap = computeDiffPixmap(
-        QImage(testFailure._pathname + testFailure._expectedImageFilename), 
-        QImage(testFailure._pathname + testFailure._actualImageFilename)
+        QImage(testResult._pathname + testResult._expectedImageFilename), 
+        QImage(testResult._pathname + testResult._actualImageFilename)
     );
 
     expectedImage->setPixmap(expectedPixmap);

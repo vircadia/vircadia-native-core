@@ -37,7 +37,7 @@ public:
     void transferAssetToNode(const QString& hfc_key, const QString& nodeID, const QString& certificateID, const int& amount, const QString& optionalMessage);
     void transferAssetToUsername(const QString& hfc_key, const QString& username, const QString& certificateID, const int& amount, const QString& optionalMessage);
     void alreadyOwned(const QString& marketplaceId);
-    void getAvailableUpdates(const QString& itemId = "");
+    void getAvailableUpdates(const QString& itemId = "", const int& pageNumber = 1, const int& itemsPerPage = 10);
     void updateItem(const QString& hfc_key, const QString& certificate_id);
 
     enum CertificateStatus {

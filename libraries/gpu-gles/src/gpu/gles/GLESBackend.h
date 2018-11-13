@@ -27,11 +27,11 @@ class GLESBackend : public GLBackend {
     friend class Context;
 
 public:
-    static const GLint TRANSFORM_OBJECT_SLOT  { 31 };
     static const GLint RESOURCE_TRANSFER_TEX_UNIT { 32 };
     static const GLint RESOURCE_TRANSFER_EXTRA_TEX_UNIT { 33 };
     static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 34 };
     static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 35 };
+
     explicit GLESBackend(bool syncCache) : Parent(syncCache) {}
     GLESBackend() : Parent() {}
     virtual ~GLESBackend() {
@@ -126,6 +126,9 @@ public:
     };
 
 protected:
+
+    void draw(GLenum mode, uint32 numVertices, uint32 startVertex) override;
+
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 
@@ -163,7 +166,7 @@ protected:
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
     
-    std::string getBackendShaderHeader() const override;
+    shader::Dialect getShaderDialect() const override { return shader::Dialect::glsl310es; }
 };
 
 } }

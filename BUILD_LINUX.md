@@ -40,6 +40,11 @@ Install build tools:
 sudo apt-get install cmake
 ```
 
+Install Python 3:
+```bash
+sudo apt-get install python3.6
+```
+
 
 ### Get code and checkout the tag you need
 

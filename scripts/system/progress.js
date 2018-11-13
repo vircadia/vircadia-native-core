@@ -14,11 +14,11 @@
 //
 
 (function () { // BEGIN LOCAL_SCOPE
-
     function debug() {
         //print.apply(null, arguments);
     }
 
+    Script.include("/~/system/libraries/globals.js");
     var rawProgress = 100, // % raw value.
         displayProgress = 100, // % smoothed value to display.
         alpha = 0.0,
@@ -83,7 +83,9 @@
         // The initial delay cooldown keeps us from tracking progress before the allotted time
         // has passed.
         INITIAL_DELAY_COOLDOWN_TIME = 1000,
-        initialDelayCooldown = 0;
+        initialDelayCooldown = 0,
+
+        isInInterstitialMode = false;
 
     function fade() {
 
@@ -265,7 +267,7 @@
 
         // Update state
         if (!visible) { // Not visible because no recent downloads
-            if (displayProgress < 100 || gpuTextures > 0) { // Have started downloading so fade in
+            if ((displayProgress < 100 || gpuTextures > 0) && !isInInterstitialMode && !isInterstitialOverlaysVisible) { // Have started downloading so fade in
                 visible = true;
                 alphaDelta = ALPHA_DELTA_IN;
                 fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
@@ -305,10 +307,13 @@
             } else {
                 x = x * BAR_HMD_REPEAT;
             }
+            if (isInInterstitialMode || isInterstitialOverlaysVisible) {
+                visible = false;
+            }
 
             // Update progress bar
             Overlays.editOverlay(barDesktop.overlay, {
-                visible: !isHMD,
+                visible: !isHMD && visible,
                 bounds: {
                     x: barDesktop.repeat - x,
                     y: windowHeight - barDesktop.height,
@@ -318,7 +323,7 @@
             });
 
             Overlays.editOverlay(barHMD.overlay, {
-                visible: isHMD,
+                visible: isHMD && visible,
                 bounds: {
                     x: BAR_HMD_REPEAT - x,
                     y: windowHeight - BAR_HMD_HEIGHT,
@@ -328,11 +333,11 @@
             });
 
             Overlays.editOverlay(textDesktop.overlay, {
-                visible: !isHMD
+                visible: !isHMD && visible
             });
 
             Overlays.editOverlay(textHMD.overlay, {
-                visible: isHMD
+                visible: isHMD && visible
             });
 
             // Update 2D overlays to maintain positions at bottom middle of window
@@ -342,6 +347,10 @@
                 updateProgressBarLocation();
             }
         }
+    }
+
+    function interstitialModeChanged(inMode) {
+        isInInterstitialMode = inMode;
     }
 
     function setUp() {
@@ -369,6 +378,7 @@
     }
 
     setUp();
+    Window.interstitialModeChanged.connect(interstitialModeChanged);
     GlobalServices.downloadInfoChanged.connect(onDownloadInfoChanged);
     GlobalServices.updateDownloadInfo();
     Script.setInterval(update, 1000 / 60);

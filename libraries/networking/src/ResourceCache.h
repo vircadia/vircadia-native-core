@@ -62,25 +62,29 @@ static const qint64 MAX_UNUSED_MAX_SIZE = MAXIMUM_CACHE_SIZE;
 class ResourceCacheSharedItems : public Dependency  {
     SINGLETON_DEPENDENCY
 
-    using Mutex = std::mutex;
+    using Mutex = std::recursive_mutex;
     using Lock = std::unique_lock<Mutex>;
 
 public:
-    void appendPendingRequest(QWeakPointer<Resource> newRequest);
-    void appendActiveRequest(QWeakPointer<Resource> newRequest);
+    bool appendRequest(QWeakPointer<Resource> newRequest);
     void removeRequest(QWeakPointer<Resource> doneRequest);
-    QList<QSharedPointer<Resource>> getPendingRequests();
-    uint32_t getPendingRequestsCount() const;
-    QList<QSharedPointer<Resource>> getLoadingRequests();
+    void setRequestLimit(uint32_t limit);
+    uint32_t getRequestLimit() const;
+    QList<QSharedPointer<Resource>> getPendingRequests() const;
     QSharedPointer<Resource> getHighestPendingRequest();
+    uint32_t getPendingRequestsCount() const;
+    QList<QSharedPointer<Resource>> getLoadingRequests() const;
     uint32_t getLoadingRequestsCount() const;
+    void clear();
 
 private:
     ResourceCacheSharedItems() = default;
 
     mutable Mutex _mutex;
     QList<QWeakPointer<Resource>> _pendingRequests;
-    QList<QWeakPointer<Resource>> _loadingRequests;
+    QList<QSharedPointer<Resource>> _loadingRequests;
+    const uint32_t DEFAULT_REQUEST_LIMIT = 10;
+    uint32_t _requestLimit { DEFAULT_REQUEST_LIMIT };
 };
 
 /// Wrapper to expose resources to JS/QML
@@ -200,25 +204,20 @@ public:
 
     Q_INVOKABLE QVariantList getResourceList();
 
-    static void setRequestLimit(int limit);
-    static int getRequestLimit() { return _requestLimit; }
-
-    static int getRequestsActive() { return _requestsActive; }
+    static void setRequestLimit(uint32_t limit);
+    static uint32_t getRequestLimit() { return DependencyManager::get<ResourceCacheSharedItems>()->getRequestLimit(); }
     
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
     static QList<QSharedPointer<Resource>> getLoadingRequests();
-
-    static int getPendingRequestCount();
-
-    static int getLoadingRequestCount();
+    static uint32_t getPendingRequestCount();
+    static uint32_t getLoadingRequestCount();
 
     ResourceCache(QObject* parent = nullptr);
     virtual ~ResourceCache();
     
     void refreshAll();
-    void refresh(const QUrl& url);
     void clearUnusedResources();
 
 signals:
@@ -272,11 +271,11 @@ private:
     friend class ScriptableResourceCache;
 
     void reserveUnusedResource(qint64 resourceSize);
-    void resetResourceCounters();
     void removeResource(const QUrl& url, qint64 size = 0);
 
-    static int _requestLimit;
-    static int _requestsActive;
+    void resetTotalResourceCounter();
+    void resetUnusedResourceCounter();
+    void resetResourceCounters();
 
     // Resources
     QHash<QUrl, QWeakPointer<Resource>> _resources;
@@ -293,10 +292,6 @@ private:
 
     std::atomic<size_t> _numUnusedResources { 0 };
     std::atomic<qint64> _unusedResourcesSize { 0 };
-
-    // Pending resources
-    QQueue<QUrl> _resourcesToBeGotten;
-    QReadWriteLock _resourcesToBeGottenLock { QReadWriteLock::Recursive };
 };
 
 /// Wrapper to expose resource caches to JS/QML
@@ -455,7 +450,7 @@ protected:
     virtual void makeRequest();
 
     /// Checks whether the resource is cacheable.
-    virtual bool isCacheable() const { return true; }
+    virtual bool isCacheable() const { return _loaded; }
 
     /// Called when the download has finished.
     /// This should be overridden by subclasses that need to process the data once it is downloaded.

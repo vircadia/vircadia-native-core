@@ -329,7 +329,7 @@ _maxNumPixels(100)
 
 static bool isLocalUrl(const QUrl& url) {
     auto scheme = url.scheme();
-    return (scheme == URL_SCHEME_FILE || scheme == URL_SCHEME_QRC || scheme == RESOURCE_SCHEME);
+    return (scheme == HIFI_URL_SCHEME_FILE || scheme == URL_SCHEME_QRC || scheme == RESOURCE_SCHEME);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) :
@@ -456,7 +456,8 @@ void NetworkTexture::makeRequest() {
         // Add a fragment to the base url so we can identify the section of the ktx being requested when debugging
         // The actual requested url is _activeUrl and will not contain the fragment
         _url.setFragment("head");
-        _ktxHeaderRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(this, _activeUrl);
+        _ktxHeaderRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(
+            this, _activeUrl, true, -1, "NetworkTexture::makeRequest");
 
         if (!_ktxHeaderRequest) {
             qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
@@ -502,7 +503,7 @@ void NetworkTexture::handleLocalRequestCompleted() {
 void NetworkTexture::makeLocalRequest() {
     const QString scheme = _activeUrl.scheme();
     QString path;
-    if (scheme == URL_SCHEME_FILE) {
+    if (scheme == HIFI_URL_SCHEME_FILE) {
         path = PathUtils::expandToLocalDataAbsolutePath(_activeUrl).toLocalFile();
     } else {
         path = ":" + _activeUrl.path();
@@ -617,7 +618,8 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 
     bool isHighMipRequest = low == NULL_MIP_LEVEL && high == NULL_MIP_LEVEL;
 
-    _ktxMipRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(this, _activeUrl);
+    _ktxMipRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(
+        this, _activeUrl, true, -1, "NetworkTexture::startMipRangeRequest");
 
     if (!_ktxMipRequest) {
         qCWarning(networking).noquote() << "Failed to get request for" << _url.toDisplayString();

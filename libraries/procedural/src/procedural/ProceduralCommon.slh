@@ -14,18 +14,48 @@
  
 <$declareStandardCameraTransform()$>
 
-#define PROCEDURAL 1
+LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL0) uniform sampler2D iChannel0;
+LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL1) uniform sampler2D iChannel1;
+LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL2) uniform sampler2D iChannel2;
+LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL3) uniform sampler2D iChannel3;
 
-//PROCEDURAL_VERSION
+// DO NOT TOUCH
+// This block does not follow our normal rules of always using a struct and 
+// always using 16 byte aligned types like vec4 and mat4
+//
+// This is because this block must be EXACTLY how it is in order to maintain
+// comptability with existing procedural shaders that previously relied on these 
+// inputs as uniforms, not members of a UBO
 
-#ifdef PROCEDURAL_V1
+LAYOUT_STD140(binding=0) uniform standardInputsBuffer {
+    // Offset 0
+    vec4 date;
+    // Offset 16, acts as vec4 for alignment purposes
+    vec3 worldPosition;
+    // Offset 32, acts as vec4 for alignment purposes
+    vec3 worldScale;
+    // Offset 48
+    float globalTime;
+    // Offset 52
+    int frameCount;
+    // Offset 56
+    vec2 _spare1;
+    // Offset 64, acts as vec4[4] for alignment purposes
+    vec3 channelResolution[4];
+    // Offset 128, acts as vec4[3] for alignment purposes
+    // Also, each individual component is aligned as a vec4
+    mat3 worldOrientation;
+    // Offset 176
+    vec4 _spare2;
+} standardInputs;
 
-// shader playback time (in seconds)
-layout(location=PROCEDURAL_UNIFORM_TIME) uniform float iGlobalTime;
-// the dimensions of the object being rendered
-layout(location=PROCEDURAL_UNIFORM_SCALE) uniform vec3 iWorldScale;
-
-#else
+#define iDate standardInputs.date
+#define iWorldPosition standardInputs.worldPosition
+#define iWorldScale standardInputs.worldScale
+#define iGlobalTime standardInputs.globalTime
+#define iFrameCount standardInputs.frameCount
+#define iChannelResolution standardInputs.channelResolution
+#define iWorldOrientation standardInputs.worldOrientation
 
 // Unimplemented uniforms
 // Resolution doesn't make sense in the VR context
@@ -37,20 +67,9 @@ const float iSampleRate = 1.0;
 // No support for video input
 const vec4 iChannelTime = vec4(0.0);
 
+#define PROCEDURAL 1
 
-layout(location=PROCEDURAL_UNIFORM_TIME) uniform float iGlobalTime;                  // shader playback time (in seconds)
-layout(location=PROCEDURAL_UNIFORM_DATE) uniform vec4 iDate;
-layout(location=PROCEDURAL_UNIFORM_FRAME_COUNT) uniform int iFrameCount;
-layout(location=PROCEDURAL_UNIFORM_POSITION) uniform vec3 iWorldPosition;                // the position of the object being rendered
-layout(location=PROCEDURAL_UNIFORM_SCALE) uniform vec3 iWorldScale;                   // the dimensions of the object being rendered
-layout(location=PROCEDURAL_UNIFORM_ORIENTATION) uniform mat3 iWorldOrientation;             // the orientation of the object being rendered
-layout(location=PROCEDURAL_UNIFORM_CHANNEL_RESOLUTION) uniform vec3 iChannelResolution[4];
-layout(binding=PROCEDURAL_TEXTURE_CHANNEL0) uniform sampler2D iChannel0;
-layout(binding=PROCEDURAL_TEXTURE_CHANNEL1) uniform sampler2D iChannel1;
-layout(binding=PROCEDURAL_TEXTURE_CHANNEL2) uniform sampler2D iChannel2;
-layout(binding=PROCEDURAL_TEXTURE_CHANNEL3) uniform sampler2D iChannel3;
-
-#endif
+//PROCEDURAL_VERSION
 
 // hack comment for extra whitespace 
 

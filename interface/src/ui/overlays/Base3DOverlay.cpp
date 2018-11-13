@@ -191,8 +191,6 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
 
     if (properties["parentID"].isValid()) {
         setParentID(QUuid(properties["parentID"].toString()));
-        bool success;
-        getParentPointer(success); // call this to hook-up the parent's back-pointers to its child overlays
         needRenderItemUpdate = true;
     }
     if (properties["parentJointIndex"].isValid()) {
@@ -292,6 +290,7 @@ void Base3DOverlay::locationChanged(bool tellPhysics) {
     notifyRenderVariableChange();
 }
 
+// FIXME: Overlays shouldn't be deleted when their parents are
 void Base3DOverlay::parentDeleted() {
     qApp->getOverlays().deleteOverlay(getOverlayID());
 }

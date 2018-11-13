@@ -59,8 +59,6 @@ public:
     void setIsGrabbable(bool value) { _isGrabbable = value; }
     virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
 
-    virtual AABox getBounds() const override = 0;
-
     void update(float deltatime) override;
 
     void notifyRenderVariableChange() const;

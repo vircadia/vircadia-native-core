@@ -12,8 +12,8 @@ import QtQuick 2.5
 
 import "."
 import "./preferences"
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 
 Item {
     id: dialog
@@ -240,6 +240,10 @@ Item {
     Component.onCompleted: {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         keyboardEnabled = HMD.active;
+    }
+
+    Component.onDestruction: {
+        keyboard.raised = false;
     }
 
     onKeyboardRaisedChanged: {

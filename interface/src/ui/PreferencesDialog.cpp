@@ -147,7 +147,6 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
     }
     */
-
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
     {
@@ -257,6 +256,39 @@ void setupPreferences() {
         auto getter = [myAvatar]()->bool { return myAvatar->getShowPlayArea(); };
         auto setter = [myAvatar](bool value) { myAvatar->setShowPlayArea(value); };
         auto preference = new CheckPreference(VR_MOVEMENT, "Show room boundaries while teleporting", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->int {
+            switch (myAvatar->getUserRecenterModel()) {
+                case MyAvatar::SitStandModelType::Auto:
+                    default:
+                    return 0;
+                case MyAvatar::SitStandModelType::ForceSit:
+                    return 1;
+                case MyAvatar::SitStandModelType::DisableHMDLean:
+                    return 2;
+            }
+        };
+        auto setter = [myAvatar](int value) {
+            switch (value) {
+                case 0:
+                default:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::Auto);
+                    break;
+                case 1:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceSit);
+                    break;
+                case 2:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::DisableHMDLean);
+                    break;
+            }
+        };
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Disable Recenter", getter, setter);
+        QStringList items;
+        items << "Auto - turns on avatar leaning when standing in real world" << "Seated - disables all avatar leaning while sitting in real world" << "Disabled - allows avatar sitting on the floor [Experimental]";
+        preference->setHeading("Avatar leaning behavior");
+        preference->setItems(items);
         preferences->addPreference(preference);
     }
     {

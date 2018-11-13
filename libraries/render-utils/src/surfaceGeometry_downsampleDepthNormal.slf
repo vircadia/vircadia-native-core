@@ -15,8 +15,8 @@
 <@include gpu/PackedNormal.slh@>
 <@include render-utils/ShaderConstants.h@>
 
-layout(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D linearDepthMap;
-layout(binding=RENDER_UTILS_TEXTURE_SG_NORMAL) uniform sampler2D normalMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D linearDepthMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SG_NORMAL) uniform sampler2D normalMap;
 
 layout(location=0) in vec2 varTexCoord0;
 

@@ -86,6 +86,7 @@ struct BlendshapeOffsetUnpacked {
 };
 
 using BlendshapeOffset = BlendshapeOffsetPacked;
+using BlendShapeOperator = std::function<void(int, const QVector<BlendshapeOffset>&, const QVector<int>&, const render::ItemIDs&)>;
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
@@ -141,7 +142,14 @@ public:
     }
     bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction,
-                    render::Item::Status::Getters& statusGetters);
+                    BlendShapeOperator modelBlendshapeOperator) {
+        auto getters = render::Item::Status::Getters(0);
+        return addToScene(scene, transaction, getters, modelBlendshapeOperator);
+    }
+    bool addToScene(const render::ScenePointer& scene,
+                    render::Transaction& transaction,
+                    render::Item::Status::Getters& statusGetters,
+                    BlendShapeOperator modelBlendshapeOperator = nullptr);
     void removeFromScene(const render::ScenePointer& scene, render::Transaction& transaction);
     bool isRenderable() const;
 
@@ -155,10 +163,7 @@ public:
 
     bool maybeStartBlender();
 
-    /// Sets blended vertices computed in a separate thread.
-    void setBlendedVertices(int blendNumber, const QVector<BlendshapeOffset>& blendshapeOffsets);
-
-    bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
+    bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isHFMModelLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
 
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
@@ -179,8 +184,8 @@ public:
     Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
-    // And so that getGeometry() isn't chained everywhere
-    const FBXGeometry& getFBXGeometry() const { assert(isLoaded()); return _renderGeometry->getFBXGeometry(); }
+    // And so that getHFMModel() isn't chained everywhere
+    const HFMModel& getHFMModel() const { assert(isLoaded()); return _renderGeometry->getHFMModel(); }
 
     bool isActive() const { return isLoaded(); }
 
@@ -339,6 +344,7 @@ public:
 
     uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
     const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
+    BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
 
     void renderDebugMeshBoxes(gpu::Batch& batch);
 
@@ -432,24 +438,19 @@ protected:
 
     virtual void deleteGeometry();
 
-    QVector<float> _blendshapeCoefficients;
-
     QUrl _url;
 
-    std::unordered_map<int, gpu::BufferPointer> _blendshapeBuffers;
-    bool _blendshapeBuffersInitialized{ false };
-
-    QVector<QVector<QSharedPointer<Texture>>> _dilatedTextures;
-
+    BlendShapeOperator _modelBlendshapeOperator { nullptr };
+    QVector<float> _blendshapeCoefficients;
     QVector<float> _blendedBlendshapeCoefficients;
-    int _blendNumber;
-    int _appliedBlendNumber;
+    int _blendNumber { 0 };
+    bool _blendshapeOffsetsInitialized { false };
 
     mutable QMutex _mutex{ QMutex::Recursive };
 
     bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
-    void calculateTriangleSets(const FBXGeometry& geometry);
+    void calculateTriangleSets(const HFMModel& hfmModel);
     std::vector<std::vector<TriangleSet>> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
 
     virtual void createRenderItemSet();
@@ -459,7 +460,6 @@ protected:
 
     // debug rendering support
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
-
 
     static AbstractViewStateInterface* _viewState;
 
@@ -506,7 +506,7 @@ protected:
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
-    void initializeBlendshapes(const FBXMesh& mesh, int index);
+    void initializeBlendshapes(const HFMMesh& mesh, int index);
 
 private:
     float _loadingPriority { 0.0f };
@@ -533,7 +533,7 @@ public:
     bool shouldComputeBlendshapes() { return _computeBlendshapes; }
 
 public slots:
-    void setBlendedVertices(ModelPointer model, int blendNumber, QVector<BlendshapeOffset> blendshapeOffsets); 
+    void setBlendedVertices(ModelPointer model, int blendNumber, QVector<BlendshapeOffset> blendshapeOffsets, QVector<int> blendedMeshSizes);
     void setComputeBlendshapes(bool computeBlendshapes) { _computeBlendshapes = computeBlendshapes; }
 
 private:

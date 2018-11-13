@@ -65,6 +65,7 @@ public:
     void parsePerAvatarGainSet(ReceivedMessage& message, const SharedNodePointer& node);
     void parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
     void parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
+    void parseSoloRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
 
     // attempt to pop a frame from each audio stream, and return the number of streams from this client
     int checkBuffersBeforeFrameSend();
@@ -150,6 +151,9 @@ public:
 
     const Node::IgnoredNodeIDs& getIgnoringNodeIDs() const { return _ignoringNodeIDs; }
 
+
+    const std::vector<QUuid>& getSoloedNodes() const { return _soloedNodes; }
+
     bool getHasReceivedFirstMix() const { return _hasReceivedFirstMix; }
     void setHasReceivedFirstMix(bool hasReceivedFirstMix) { _hasReceivedFirstMix = hasReceivedFirstMix; }
 
@@ -172,7 +176,7 @@ private:
 
     void optionallyReplicatePacket(ReceivedMessage& packet, const Node& node);
 
-    void setGainForAvatar(QUuid nodeID, uint8_t gain);
+    void setGainForAvatar(QUuid nodeID, float gain);
 
     bool containsValidPosition(ReceivedMessage& message) const;
 
@@ -208,6 +212,8 @@ private:
     Node::IgnoredNodeIDs _ignoringNodeIDs;
 
     std::atomic_bool _isIgnoreRadiusEnabled { false };
+
+    std::vector<QUuid> _soloedNodes;
 
     bool _hasReceivedFirstMix { false };
 };

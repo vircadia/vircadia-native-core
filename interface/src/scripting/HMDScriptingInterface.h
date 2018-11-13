@@ -355,6 +355,8 @@ signals:
      */
     bool shouldShowHandControllersChanged();
 
+    void showTabletChanged(bool showTablet);
+
 public:
     HMDScriptingInterface();
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);

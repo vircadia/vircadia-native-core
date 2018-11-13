@@ -39,7 +39,7 @@ public:
                const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "");
     virtual ~ModelBaker();
 
-    bool compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback = nullptr);
+    bool compressMesh(HFMMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback = nullptr);
     QString compressTexture(QString textureFileName, image::TextureUsage::Type = image::TextureUsage::Type::DEFAULT_TEXTURE);
     virtual void setWasAborted(bool wasAborted) override;
 

@@ -140,8 +140,10 @@ void DomainHandler::hardReset() {
 }
 
 bool DomainHandler::isHardRefusal(int reasonCode) {
-    return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch || reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
-        reasonCode == (int)ConnectionRefusedReason::TimedOut);
+    return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch ||
+            reasonCode == (int)ConnectionRefusedReason::TooManyUsers ||
+            reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
+            reasonCode == (int)ConnectionRefusedReason::TimedOut);
 }
 
 bool DomainHandler::getInterstitialModeEnabled() const {
@@ -194,7 +196,7 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
         _sockAddr.clear();
 
         // if this is a file URL we need to see if it has a ~ for us to expand
-        if (domainURL.scheme() == URL_SCHEME_FILE) {
+        if (domainURL.scheme() == HIFI_URL_SCHEME_FILE) {
             domainURL = PathUtils::expandToLocalDataAbsolutePath(domainURL);
         }
     }
@@ -473,7 +475,7 @@ bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
         case ConnectionRefusedReason::LoginError:
         case ConnectionRefusedReason::NotAuthorized:
             return true;
-    
+
         default:
         case ConnectionRefusedReason::Unknown:
         case ConnectionRefusedReason::ProtocolMismatch:

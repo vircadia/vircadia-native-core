@@ -26,6 +26,11 @@ Script.include([
     "./utils.js"
 ]);
 
+
+function deepCopy(v) {
+    return JSON.parse(JSON.stringify(v));
+}
+
 SelectionManager = (function() {
     var that = {};
 
@@ -35,7 +40,7 @@ SelectionManager = (function() {
         Messages.messageReceived.connect(handleEntitySelectionToolUpdates);
     }
 
-    // FUNCTION: HANDLE ENTITY SELECTION TOOL UDPATES
+    // FUNCTION: HANDLE ENTITY SELECTION TOOL UPDATES
     function handleEntitySelectionToolUpdates(channel, message, sender) {
         if (channel !== 'entityToolUpdates') {
             return;
@@ -58,7 +63,7 @@ SelectionManager = (function() {
                 if (wantDebug) {
                     print("setting selection to " + messageParsed.entityID);
                 }
-                that.setSelections([messageParsed.entityID]);
+                that.setSelections([messageParsed.entityID], that);
             }
         } else if (messageParsed.method === "clearSelection") {
             if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
@@ -131,7 +136,7 @@ SelectionManager = (function() {
         return that.selections.length > 0;
     };
 
-    that.setSelections = function(entityIDs) {
+    that.setSelections = function(entityIDs, caller) {
         that.selections = [];
         for (var i = 0; i < entityIDs.length; i++) {
             var entityID = entityIDs[i];
@@ -139,10 +144,10 @@ SelectionManager = (function() {
             Selection.addToSelectedItemsList(HIGHLIGHT_LIST_NAME, "entity", entityID);
         }
 
-        that._update(true);
+        that._update(true, caller);
     };
 
-    that.addEntity = function(entityID, toggleSelection) {
+    that.addEntity = function(entityID, toggleSelection, caller) {
         if (entityID) {
             var idx = -1;
             for (var i = 0; i < that.selections.length; i++) {
@@ -160,7 +165,7 @@ SelectionManager = (function() {
             }
         }
 
-        that._update(true);
+        that._update(true, caller);
     };
 
     function removeEntityByID(entityID) {
@@ -171,21 +176,21 @@ SelectionManager = (function() {
         }
     }
 
-    that.removeEntity = function (entityID) {
+    that.removeEntity = function (entityID, caller) {
         removeEntityByID(entityID);
-        that._update(true);
+        that._update(true, caller);
     };
 
-    that.removeEntities = function(entityIDs) {
+    that.removeEntities = function(entityIDs, caller) {
         for (var i = 0, length = entityIDs.length; i < length; i++) {
             removeEntityByID(entityIDs[i]);
         }
-        that._update(true);
+        that._update(true, caller);
     };
 
-    that.clearSelections = function() {
+    that.clearSelections = function(caller) {
         that.selections = [];
-        that._update(true);
+        that._update(true, caller);
     };
     
     that.addChildrenEntities = function(parentEntityID, entityList) {
@@ -199,9 +204,11 @@ SelectionManager = (function() {
         }
     };
 
-    // Return true if the given entity with `properties` is being grabbed by an avatar.
+    // Determine if an entity is being grabbed.
     // This is mostly a heuristic - there is no perfect way to know if an entity is being
     // grabbed.
+    //
+    // @return {boolean} true if the given entity with `properties` is being grabbed by an avatar
     function nonDynamicEntityIsBeingGrabbedByAvatar(properties) {
         if (properties.dynamic || Uuid.isNull(properties.parentID)) {
             return false;
@@ -215,7 +222,9 @@ SelectionManager = (function() {
         var grabJointNames = [
             'RightHand', 'LeftHand',
             '_CONTROLLER_RIGHTHAND', '_CONTROLLER_LEFTHAND',
-            '_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND', '_CAMERA_RELATIVE_CONTROLLER_LEFTHAND'];
+            '_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND', '_CAMERA_RELATIVE_CONTROLLER_LEFTHAND',
+            '_FARGRAB_RIGHTHAND', '_FARGRAB_LEFTHAND', '_FARGRAB_MOUSE'
+        ];
 
         for (var i = 0; i < grabJointNames.length; ++i) {
             if (avatar.getJointIndex(grabJointNames[i]) === properties.parentJointIndex) {
@@ -225,6 +234,12 @@ SelectionManager = (function() {
 
         return false;
     }
+
+    var entityClipboard = {
+        entities: {}, // Map of id -> properties for copied entities
+        position: { x: 0, y: 0, z: 0 },
+        dimensions: { x: 0, y: 0, z: 0 },
+    };
 
     that.duplicateSelection = function() {
         var entitiesToDuplicate = [];
@@ -266,7 +281,7 @@ SelectionManager = (function() {
                     var actionArguments = Entities.getActionArguments(properties.id, actionID);
                     if (actionArguments) {
                         var type = actionArguments.type;
-                        if (type == 'hold' || type == 'far-grab') {
+                        if (type === 'hold' || type === 'far-grab') {
                             continue;
                         }
                         delete actionArguments.ttl;
@@ -303,7 +318,166 @@ SelectionManager = (function() {
         return duplicatedEntityIDs;
     };
 
-    that._update = function(selectionUpdated) {
+    // Create the entities in entityProperties, maintaining parent-child relationships.
+    // @param entityPropertites {array} - Array of entity property objects
+    that.createEntities = function(entityProperties) {
+        var entitiesToCreate = [];
+        var createdEntityIDs = [];
+        var createdChildrenWithOldParents = [];
+        var originalEntityToNewEntityID = [];
+
+        that.saveProperties();
+
+        for (var i = 0; i < entityProperties.length; ++i) {
+            var properties = entityProperties[i];
+            if (properties.parentID in originalEntityToNewEntityID) {
+                properties.parentID = originalEntityToNewEntityID[properties.parentID];
+            } else {
+                delete properties.parentID;
+            }
+
+            delete properties.actionData;
+            var newEntityID = Entities.addEntity(properties);
+
+            if (newEntityID) {
+                createdEntityIDs.push({
+                    entityID: newEntityID,
+                    properties: properties
+                });
+                if (properties.parentID !== Uuid.NULL) {
+                    createdChildrenWithOldParents[newEntityID] = properties.parentID;
+                }
+                originalEntityToNewEntityID[properties.id] = newEntityID;
+                properties.id = newEntityID;
+            }
+        }
+
+        return createdEntityIDs;
+    };
+
+    that.cutSelectedEntities = function() {
+        that.copySelectedEntities();
+        deleteSelectedEntities();
+    };
+
+    that.copySelectedEntities = function() {
+        var entityProperties = Entities.getMultipleEntityProperties(that.selections);
+        var entities = {};
+        entityProperties.forEach(function(props) {
+            entities[props.id] = props;
+        });
+
+        function appendChildren(entityID, entities) {
+            var childrenIDs = Entities.getChildrenIDs(entityID);
+            for (var i = 0; i < childrenIDs.length; ++i) {
+                var id = childrenIDs[i];
+                if (!(id in entities)) {
+                    entities[id] = Entities.getEntityProperties(id); 
+                    appendChildren(id, entities);
+                }
+            }
+        }
+
+        var len = entityProperties.length;
+        for (var i = 0; i < len; ++i) {
+            appendChildren(entityProperties[i].id, entities);
+        }
+
+        for (var id in entities) {
+            var parentID = entities[id].parentID;
+            entities[id].root = !(parentID in entities);
+        }
+
+        entityClipboard.entities = [];
+
+        var ids = Object.keys(entities);
+        while (ids.length > 0) {
+            // Go through all remaining entities.
+            // If an entity does not have a parent left, move it into the list
+            for (var i = 0; i < ids.length; ++i) {
+                var id = ids[i];
+                var parentID = entities[id].parentID;
+                if (parentID in entities) {
+                    continue;
+                }
+                entityClipboard.entities.push(entities[id]);
+                delete entities[id];
+            }
+            ids = Object.keys(entities);
+        }
+
+        // Calculate size
+        if (entityClipboard.entities.length === 0) {
+            entityClipboard.dimensions = { x: 0, y: 0, z: 0 };
+            entityClipboard.position = { x: 0, y: 0, z: 0 };
+        } else {
+            var properties = entityClipboard.entities;
+            var brn = properties[0].boundingBox.brn;
+            var tfl = properties[0].boundingBox.tfl;
+            for (var i = 1; i < properties.length; i++) {
+                var bb = properties[i].boundingBox;
+                brn.x = Math.min(bb.brn.x, brn.x);
+                brn.y = Math.min(bb.brn.y, brn.y);
+                brn.z = Math.min(bb.brn.z, brn.z);
+                tfl.x = Math.max(bb.tfl.x, tfl.x);
+                tfl.y = Math.max(bb.tfl.y, tfl.y);
+                tfl.z = Math.max(bb.tfl.z, tfl.z);
+            }
+            entityClipboard.dimensions = {
+                x: tfl.x - brn.x,
+                y: tfl.y - brn.y,
+                z: tfl.z - brn.z
+            };
+            entityClipboard.position = {
+                x: brn.x + entityClipboard.dimensions.x / 2,
+                y: brn.y + entityClipboard.dimensions.y / 2,
+                z: brn.z + entityClipboard.dimensions.z / 2
+            };
+        }
+    };
+
+    that.pasteEntities = function() {
+        var dimensions = entityClipboard.dimensions;
+        var maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
+        var pastePosition = getPositionToCreateEntity(maxDimension);
+        var deltaPosition = Vec3.subtract(pastePosition, entityClipboard.position);
+
+        var copiedProperties = [];
+        var ids = [];
+        entityClipboard.entities.forEach(function(originalProperties) {
+            var properties = deepCopy(originalProperties);
+            if (properties.root) {
+                properties.position = Vec3.sum(properties.position, deltaPosition);
+                delete properties.localPosition;
+            } else {
+                delete properties.position;
+            }
+            copiedProperties.push(properties);
+        });
+
+        var currentSelections = deepCopy(SelectionManager.selections);
+
+        function redo(copiedProperties) {
+            var created = that.createEntities(copiedProperties);
+            var ids = [];
+            for (var i = 0; i < created.length; ++i) {
+                ids.push(created[i].entityID);
+            }
+            SelectionManager.setSelections(ids);
+        }
+
+        function undo(copiedProperties) {
+            for (var i = 0; i < copiedProperties.length; ++i) {
+                Entities.deleteEntity(copiedProperties[i].id);
+            }
+            SelectionManager.setSelections(currentSelections);
+        }
+
+        redo(copiedProperties);
+        undoHistory.pushCommand(undo, copiedProperties, redo, copiedProperties);
+    };
+
+    that._update = function(selectionUpdated, caller) {
         var properties = null;
         if (that.selections.length === 0) {
             that.localDimensions = null;
@@ -326,7 +500,7 @@ SelectionManager = (function() {
             that.entityType = properties.type;
             
             if (selectionUpdated) {
-                SelectionDisplay.setSpaceMode(SPACE_LOCAL);
+                SelectionDisplay.useDesiredSpaceMode();
             }
         } else {
             properties = Entities.getEntityProperties(that.selections[0], ['type', 'boundingBox']);
@@ -363,12 +537,12 @@ SelectionManager = (function() {
             };
 
             // For 1+ selections we can only modify selections in world space
-            SelectionDisplay.setSpaceMode(SPACE_WORLD);
+            SelectionDisplay.setSpaceMode(SPACE_WORLD, false);
         }
 
         for (var j = 0; j < listeners.length; j++) {
             try {
-                listeners[j](selectionUpdated === true);
+                listeners[j](selectionUpdated === true, caller);
             } catch (e) {
                 print("ERROR: entitySelectionTool.update got exception: " + JSON.stringify(e));
             }
@@ -459,24 +633,26 @@ SelectionDisplay = (function() {
         ALL: 3
     };
 
-    const SCALE_DIRECTION = {
-        LBN: 0,
-        RBN: 1,
-        LBF: 2,
-        RBF: 3,
-        LTN: 4,
-        RTN: 5,
-        LTF: 6,
-        RTF: 7
-    };
-
     const ROTATE_DIRECTION = {
         PITCH: 0,
         YAW: 1,
         ROLL: 2
     };
 
+    /**
+     * The current space mode, this could have been a forced space mode since we do not support multi selection while in
+     * local space mode.
+     * @type {string} - should only be set to SPACE_LOCAL or SPACE_WORLD
+     */
     var spaceMode = SPACE_LOCAL;
+
+    /**
+     * The desired space mode, this is the user set space mode, which should be respected whenever it is possible. In the case
+     * of multi entity selection this space mode may differ from the actual spaceMode.
+     * @type {string} - should only be set to SPACE_LOCAL or SPACE_WORLD
+     */
+    var desiredSpaceMode = SPACE_LOCAL;
+
     var overlayNames = [];
     var lastControllerPoses = [
         getControllerWorldLocation(Controller.Standard.LeftHand, true),
@@ -811,7 +987,7 @@ SelectionDisplay = (function() {
     that.pressedHand = NO_HAND;
     that.triggered = function() {
         return that.triggeredHand !== NO_HAND;
-    }
+    };
     function pointingAtDesktopWindowOrTablet(hand) {
         var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
                                        SelectionManager.pointingAtDesktopWindowRight) ||
@@ -858,7 +1034,7 @@ SelectionDisplay = (function() {
     that.disableTriggerMapping = function() {
         that.triggerClickMapping.disable();
         that.triggerPressMapping.disable();
-    }
+    };
     Script.scriptEnding.connect(that.disableTriggerMapping);
 
     // FUNCTION DEF(s): Intersection Check Helpers
@@ -1060,7 +1236,7 @@ SelectionDisplay = (function() {
             if (wantDebug) {
                 print("    Trigger SelectionManager::update");
             }
-            SelectionManager._update();
+            SelectionManager._update(false, that);
 
             if (wantDebug) {
                 print("=============== eST::MouseMoveEvent END =======================");
@@ -1125,7 +1301,7 @@ SelectionDisplay = (function() {
             lastMouseEvent.isControl = event.isControl;
             lastMouseEvent.isAlt = event.isAlt;
             activeTool.onMove(lastMouseEvent);
-            SelectionManager._update();
+            SelectionManager._update(false, this);
         }
     };
 
@@ -1141,7 +1317,7 @@ SelectionDisplay = (function() {
             lastMouseEvent.isControl = event.isControl;
             lastMouseEvent.isAlt = event.isAlt;
             activeTool.onMove(lastMouseEvent);
-            SelectionManager._update();
+            SelectionManager._update(false, this);
         }
     };
 
@@ -1166,7 +1342,7 @@ SelectionDisplay = (function() {
         }
     };
 
-    function controllerComputePickRay(hand) {
+    function controllerComputePickRay() {
         var hand = that.triggered() ? that.triggeredHand : that.pressedHand;
         var controllerPose = getControllerWorldLocation(hand, true);
         if (controllerPose.valid) {
@@ -1226,8 +1402,21 @@ SelectionDisplay = (function() {
         that.updateHandles();
     };
 
+
+    /**
+     * This callback is used for spaceMode changes.
+     * @callback spaceModeChangedCallback
+     * @param {string} spaceMode
+     */
+
+    /**
+     * set this property with a callback to keep track of spaceMode changes.
+     * @type {spaceModeChangedCallback}
+     */
+    that.onSpaceModeChange = null;
+
     // FUNCTION: SET SPACE MODE
-    that.setSpaceMode = function(newSpaceMode) {
+    that.setSpaceMode = function(newSpaceMode, isDesiredChange) {
         var wantDebug = false;
         if (wantDebug) {
             print("======> SetSpaceMode called. ========");
@@ -1237,7 +1426,15 @@ SelectionDisplay = (function() {
             if (wantDebug) {
                 print("    Updating SpaceMode From: " + spaceMode + " To: " + newSpaceMode);
             }
+            if (isDesiredChange) {
+                desiredSpaceMode = newSpaceMode;
+            }
             spaceMode = newSpaceMode;
+
+            if (that.onSpaceModeChange !== null) {
+                that.onSpaceModeChange(newSpaceMode);
+            }
+
             that.updateHandles();
         } else if (wantDebug) {
             print("WARNING: entitySelectionTool.setSpaceMode - Can't update SpaceMode. CurrentMode: " + 
@@ -1263,12 +1460,34 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("PreToggle: " + spaceMode);
         }
-        spaceMode = (spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL;
-        that.updateHandles();
+        that.setSpaceMode((spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL, true);
         if (wantDebug) {
             print("PostToggle: " + spaceMode);        
             print("======== ToggleSpaceMode called. <=========");
         }
+    };
+
+    /**
+     * Switches the display mode back to the set desired display mode
+     */
+    that.useDesiredSpaceMode = function() {
+        var wantDebug = false;
+        if (wantDebug) {
+            print("========> UseDesiredSpaceMode called. =========");
+        }
+        that.setSpaceMode(desiredSpaceMode, false);
+        if (wantDebug) {
+            print("PostToggle: " + spaceMode);
+            print("======== UseDesiredSpaceMode called. <=========");
+        }
+    };
+
+    /**
+     * Get the currently set SpaceMode
+     * @returns {string} spaceMode
+     */
+    that.getSpaceMode = function() {
+        return spaceMode;
     };
 
     function addHandleTool(overlay, tool) {
@@ -1613,7 +1832,7 @@ SelectionDisplay = (function() {
                                                               !isActiveTool(handleRotateYawRing) &&
                                                               !isActiveTool(handleRotateRollRing)));
 
-        // keep duplicator always hidden for now since you can hold Alt to duplciate while  
+        // keep duplicator always hidden for now since you can hold Alt to duplicate while
         // translating an entity - we may bring duplicator back for HMD only later
         // that.setHandleDuplicatorVisible(!activeTool || isActiveTool(handleDuplicator));
 
@@ -2005,7 +2224,7 @@ SelectionDisplay = (function() {
                     }
                 }
 
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
@@ -2127,7 +2346,7 @@ SelectionDisplay = (function() {
                 
                 previousPickRay = pickRay;
     
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
@@ -2314,7 +2533,7 @@ SelectionDisplay = (function() {
                 
                 previousPickRay = pickRay;
         
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
@@ -2425,7 +2644,7 @@ SelectionDisplay = (function() {
                 
                 previousPickRay = pickRay;
         
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
