@@ -167,7 +167,7 @@ let entityList = null; // The ListView
  */
 let entityListContextMenu = null;
 
-let currentSortColumn = null;
+let currentSortColumn = 'type';
 let currentSortOrder = ASCENDING_SORT;
 let elSortOrders = {};
 let typeFilters = [];
@@ -181,6 +181,7 @@ let resizeColumnIndex = 0;
 let startThClick = null;
 
 let elEntityTable,
+    elEntityTableHeader,
     elEntityTableBody,
     elEntityTableScroll,
     elEntityTableHeaderRow,
@@ -188,19 +189,19 @@ let elEntityTable,
     elToggleLocked,
     elToggleVisible,
     elDelete,
-    elFilterTypeSelectBox,
+    elFilterTypeMultiselectBox,
     elFilterTypeText,
-    elFilterTypeCheckboxes,
+    elFilterTypeOptions,
     elFilterSearch,
     elFilterInView,
     elFilterRadius,
     elExport,
     elPal,
-    elInfoToggle,
-    elInfoToggleGlyph,
     elSelectedEntitiesCount,
     elVisibleEntitiesCount,
     elNoEntitiesMessage,
+    elColumnsMultiselectBox,
+    elColumnsOptions,
     elToggleSpaceMode;
 
 const ENABLE_PROFILING = false;
@@ -269,7 +270,6 @@ function loaded() {
         };
         elRefresh.onclick = refreshEntities;
         elFilterTypeMultiselectBox.onclick = onToggleTypeDropdown;
-        elFilterTypeSelectBox.onclick = onToggleTypeDropdown;
         elFilterSearch.onkeyup = refreshEntityList;
         elFilterSearch.onsearch = refreshEntityList;
         elFilterInView.onclick = onToggleFilterInView;
@@ -348,10 +348,7 @@ function loaded() {
             elTh.appendChild(elSortOrder);
             elHeaderTr.appendChild(elTh);
                         
-            elSortOrders[columnID] = document.querySelector('#' + thID + ' .sort-order');
-            if (currentSortColumn === null) {
-                currentSortColumn = columnID;
-            }
+            elSortOrders[columnID] = elSortOrder;
             
             // add column to columns dropdown if it is not set to be always shown
             if (columnData.alwaysShown !== true) { 
@@ -795,7 +792,7 @@ function loaded() {
             let elRow = document.createElement("tr");
             columns.forEach(function(column) {
                 let elRowColumn = document.createElement("td");
-                elRowColumn.className = getColumnClassName(column.columnID);
+                elRowColumn.className = createColumnClassName(column.columnID);
                 elRow.appendChild(elRowColumn);
             });
             elRow.oncontextmenu = onRowContextMenu;
@@ -815,7 +812,7 @@ function loaded() {
                     elCell.innerText = itemData[column.data.propertyID];
                 }
                 elCell.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
-                elCell.className = getColumnClassName(column.columnID);
+                elCell.className = createColumnClassName(column.columnID);
             }
 
             // if this entity was previously selected flag it's row as selected
@@ -890,7 +887,7 @@ function loaded() {
             return -1;
         }
         
-        function getColumnClassName(columnID) {
+        function createColumnClassName(columnID) {
             let column = columnsByID[columnID];
             let visible = column.elTh.style.visibility !== "hidden";
             let className = column.data.glyph ? "glyph" : "";
