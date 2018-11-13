@@ -235,7 +235,7 @@ bool ModelPackager::zipModel() {
     return true;
 }
 
-void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename, const HFMModel& hfmModel) {
+void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename, const hfm::Model& hfmModel) {
 
     bool isBodyType = _modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL;
 
