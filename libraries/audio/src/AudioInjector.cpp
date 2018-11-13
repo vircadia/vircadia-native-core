@@ -476,3 +476,49 @@ AudioInjectorPointer AudioInjector::playSound(SharedSoundPointer sound,  const A
         return injector;
     }
 }
+
+AudioInjectorPointer AudioInjector::playSoundAndDelete(AudioDataPointer audioData, const AudioInjectorOptions& options) {
+    AudioInjectorPointer injector = playSound(audioData, options);
+
+    if (injector) {
+        injector->_state |= AudioInjectorState::PendingDelete;
+    }
+
+    return injector;
+}
+
+AudioInjectorPointer AudioInjector::playSound(AudioDataPointer audioData, const AudioInjectorOptions& options) {
+    if (options.pitch == 1.0f) {
+        AudioInjectorPointer injector = AudioInjectorPointer::create(audioData, options);
+
+        if (!injector->inject(&AudioInjectorManager::threadInjector)) {
+            qWarning() << "AudioInjector::playSound failed to thread pitch-shifted injector";
+        }
+        return injector;
+    } else {
+        using AudioConstants::AudioSample;
+        using AudioConstants::SAMPLE_RATE;
+        const int standardRate = SAMPLE_RATE;
+        // limit to 4 octaves
+        const int pitch = glm::clamp(options.pitch, 1 / 16.0f, 16.0f);
+        const int resampledRate = SAMPLE_RATE / pitch;
+
+        auto numChannels = audioData->getNumChannels();
+        auto numFrames = audioData->getNumFrames();
+
+        AudioSRC resampler(standardRate, resampledRate, numChannels);
+
+        // create a resampled buffer that is guaranteed to be large enough
+        const int maxOutputFrames = resampler.getMaxOutput(numFrames);
+        const int maxOutputSize = maxOutputFrames * numChannels * sizeof(AudioSample);
+        QByteArray resampledBuffer(maxOutputSize, '\0');
+        auto bufferPtr = reinterpret_cast<AudioSample*>(resampledBuffer.data());
+
+        resampler.render(audioData->data(), bufferPtr, numFrames);
+
+        int numSamples = maxOutputFrames * numChannels;
+        auto newAudioData = AudioData::make(numSamples, numChannels, bufferPtr);
+
+        return  AudioInjector::playSound(newAudioData, options);
+    }
+}

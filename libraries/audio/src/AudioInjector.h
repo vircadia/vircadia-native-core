@@ -77,6 +77,8 @@ public:
 
     static AudioInjectorPointer playSoundAndDelete(SharedSoundPointer sound, const AudioInjectorOptions& options);
     static AudioInjectorPointer playSound(SharedSoundPointer sound, const AudioInjectorOptions& options);
+    static AudioInjectorPointer playSoundAndDelete(AudioDataPointer audioData, const AudioInjectorOptions& options);
+    static AudioInjectorPointer playSound(AudioDataPointer audioData, const AudioInjectorOptions& options);
 
 public slots:
     void restart();
