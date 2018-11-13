@@ -6071,9 +6071,7 @@ void Application::update(float deltaTime) {
     {
         PROFILE_RANGE_EX(app, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("overlays");
-        if (qApp->shouldPaint()) {
-            _overlays.update(deltaTime);
-        }
+        _overlays.update(deltaTime);
     }
 
     // Update _viewFrustum with latest camera and view frustum data...
@@ -6158,10 +6156,8 @@ void Application::update(float deltaTime) {
         PROFILE_RANGE_EX(app, "PostUpdateLambdas", 0xffff0000, (uint64_t)0);
         PerformanceTimer perfTimer("postUpdateLambdas");
         std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
-        if (qApp->shouldPaint()) {
-            for (auto& iter : _postUpdateLambdas) {
-                iter.second();
-            }
+        for (auto& iter : _postUpdateLambdas) {
+            iter.second();
         }
         _postUpdateLambdas.clear();
     }
