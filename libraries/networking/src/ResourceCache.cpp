@@ -699,7 +699,6 @@ void Resource::makeRequest() {
     _request->setByteRange(_requestByteRange);
     _request->setFailOnRedirect(_shouldFailOnRedirect);
 
-    qCDebug(resourceLog).noquote() << "Starting request for:" << _url.toDisplayString();
     emit loading();
 
     connect(_request, &ResourceRequest::progress, this, &Resource::onProgress);
@@ -765,7 +764,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
     bool willRetry = false;
     switch (result) {
         case ResourceRequest::Result::Timeout: {
-            qCDebug(networking) << "Timed out loading" << _url.fileName() << "received" << _bytesReceived << "total" << _bytesTotal;
+            qCDebug(networking) << "Timed out loading: received " << _bytesReceived << " total " << _bytesTotal;
             // Fall through to other cases
         }
         // FALLTHRU
