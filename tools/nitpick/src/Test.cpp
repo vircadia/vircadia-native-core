@@ -167,7 +167,7 @@ void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestRe
 
     // Create text file describing the failure
     QTextStream stream(&descriptionFile);
-    stream << "Test failed in folder " << testResult._pathname.left(testResult._pathname.length() - 1) << endl; // remove trailing '/'
+    stream << "Test in folder " << testResult._pathname.left(testResult._pathname.length() - 1) << endl; // remove trailing '/'
     stream << "Expected image was    " << testResult._expectedImageFilename << endl;
     stream << "Actual image was      " << testResult._actualImageFilename << endl;
     stream << "Similarity index was  " << testResult._error << endl;
