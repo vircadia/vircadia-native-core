@@ -633,6 +633,7 @@ private:
     Setting::Handle<float> _fieldOfView;
     Setting::Handle<float> _hmdTabletScale;
     Setting::Handle<float> _desktopTabletScale;
+    Setting::Handle<bool> _firstRun;
     Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
     Setting::Handle<bool> _preferStylusOverLaserSetting;

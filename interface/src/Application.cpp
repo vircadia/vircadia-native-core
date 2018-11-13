@@ -1009,6 +1009,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
     _hmdTabletScale("hmdTabletScale", DEFAULT_HMD_TABLET_SCALE_PERCENT),
     _desktopTabletScale("desktopTabletScale", DEFAULT_DESKTOP_TABLET_SCALE_PERCENT),
+    _firstRun(Settings::firstRun, true),
     _desktopTabletBecomesToolbarSetting("desktopTabletBecomesToolbar", DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR),
     _hmdTabletBecomesToolbarSetting("hmdTabletBecomesToolbar", DEFAULT_HMD_TABLET_BECOMES_TOOLBAR),
     _preferStylusOverLaserSetting("preferStylusOverLaser", DEFAULT_PREFER_STYLUS_OVER_LASER),
@@ -1505,9 +1506,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qDebug() << "Detected installer type:" << installerType;
     qDebug() << "Detected installer campaign:" << installerCampaign;
 
-    // add firstRun flag from settings to launch event
-    Setting::Handle<bool> firstRun { Settings::firstRun, true };
-
     auto& userActivityLogger = UserActivityLogger::getInstance();
     if (userActivityLogger.isEnabled()) {
         // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
@@ -1556,7 +1554,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
         }
 
-        properties["first_run"] = firstRun.get();
+        properties["first_run"] = _firstRun.get();
 
         // add the user's machine ID to the launch event
         QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
@@ -3477,8 +3475,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     bool isUsingHMD = _displayPlugin->isHmd();
     bool isUsingHMDAndHandControllers = hasHMD && hasHandControllers && isUsingHMD;
 
-    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
-
     qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
 
     // when --url in command line, teleport to location
@@ -3500,12 +3496,12 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     QString sentTo;
 
     // If this is a first run we short-circuit the address passed in
-    if (firstRun.get()) {
+    if (_firstRun.get()) {
 #if !defined(Q_OS_ANDROID)
         DependencyManager::get<AddressManager>()->goToEntry();
         sentTo = SENT_TO_ENTRY;
 #endif
-        firstRun.set(false);
+        _firstRun.set(false);
 
     } else {
 #if !defined(Q_OS_ANDROID)
@@ -5044,9 +5040,8 @@ void Application::loadSettings() {
         }
     }
 
-    Setting::Handle<bool> firstRun { Settings::firstRun, true };
     bool isFirstPerson = false;
-    if (firstRun.get()) {
+    if (_firstRun.get()) {
         // If this is our first run, and no preferred devices were set, default to
         // an HMD device if available.
         auto displayPlugins = pluginManager->getDisplayPlugins();
@@ -5221,7 +5216,6 @@ void Application::pauseUntilLoginDetermined() {
     if (_developerMenuVisible) {
         menu->getMenu("Developer")->setVisible(false);
     }
-
 }
 
 void Application::resumeAfterLoginDialogActionTaken() {
@@ -5241,6 +5235,11 @@ void Application::resumeAfterLoginDialogActionTaken() {
         scriptEngines->reloadLocalFiles();
 
         scriptEngines->loadScripts();
+    }
+
+    if (_firstRun.get()) {
+        // not first run anymore since action was taken.
+        _firstRun.set(false);
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -8545,11 +8544,6 @@ void Application::createLoginDialogOverlay() {
     const glm::vec2 PLAY_AREA_OVERLAY_MODEL_DIMENSIONS{ 0.5f, 0.5f };
     if (!(playArea.isEmpty())) {
         auto playAreaCenterOffset = glm::vec3(playArea.center().x(), 1.6f, playArea.center().y());
-        auto sensorToWorldMatrix = getMyAvatar()->getSensorToWorldMatrix();
-        auto sensorToWorldRotation = extractRotation(sensorToWorldMatrix);
-        //auto position = sensorToWorldRotation * (getMyAvatar()->getSensorToWorldScale() * (playAreaCenterOffset -
-        //   transformPoint(sensorToWorldMatrix, getMyAvatar()->getWorldPosition())));
-        //refOverlayVec = position;
         refRotation = glm::quat(1.0f, 0.0f, 1.0f, 0.0f);
         overlayProperties = {
             { "name", "LoginDialogOverlay" },
@@ -8557,7 +8551,7 @@ void Application::createLoginDialogOverlay() {
             { "parentID", getMyAvatar()->getSessionUUID() },
             { "parentJointIndex", "_SENSOR_TO_WORLD_MATRIX" },
             { "localPosition", vec3toVariant(playAreaCenterOffset) },
-            { "localOrientation", quatToVariant(refRotation) },
+            { "orientation", quatToVariant(refRotation) },
             { "isSolid", true },
             { "grabbable", false },
             { "ignorePickIntersection", false },
