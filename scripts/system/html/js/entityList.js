@@ -134,6 +134,8 @@ const FILTER_TYPES = [
     "Web",
     "Material",
     "ParticleEffect",
+    "PolyLine",
+    "PolyVox",
     "Text",
 ];
 
@@ -146,6 +148,8 @@ const ICON_FOR_TYPE = {
     Web: "q",
     Material: "&#xe00b;",
     ParticleEffect: "&#xe004;",
+    PolyLine: "&#xe01b;",
+    PolyVox: "&#xe005;",
     Text: "l",
 };
 
