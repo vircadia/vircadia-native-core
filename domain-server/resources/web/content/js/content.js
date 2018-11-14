@@ -14,17 +14,16 @@ $(document).ready(function(){
     return html;
   }
 
-  function uploadNextChunk(file, offset)
-  {
+  function uploadNextChunk(file, offset) {
       if (offset == undefined) {
           offset = 0;
       }
 
       var fileSize = file.size;
       var filename = file.name;
-      
+
       var CHUNK_SIZE = 1048576; // 1 MiB
-      
+
       var isFinal = Boolean(fileSize - offset <= CHUNK_SIZE);
       var nextChunkSize = Math.min(fileSize - offset, CHUNK_SIZE);
       var chunk = file.slice(offset, offset + CHUNK_SIZE, file.type);
@@ -33,29 +32,29 @@ $(document).ready(function(){
       var formItemName = isFinal ? 'restore-file-chunk-final' : 'restore-file-chunk';
       chunkFormData.append(formItemName, chunk, filename);
       var ajaxParams = {
-          url: '/content/upload',
-          type: 'POST',
-          timeout: 30000, // 30 s
-          cache: false,
-          processData: false,
-          contentType: false,
-          data: chunkFormData
-          };
-     
+        url: '/content/upload',
+        type: 'POST',
+        timeout: 30000, // 30 s
+        cache: false,
+        processData: false,
+        contentType: false,
+        data: chunkFormData
+      };
+
       var ajaxObject = $.ajax(ajaxParams);
       ajaxObject.fail(function(jqXHR, textStatus, errorThrown) {
-          showErrorMessage(
-            "Error",
-            "There was a problem restoring domain content.\n"
-            + "Please ensure that the content archive or entity file is valid and try again."
-          );
-        });
+        showErrorMessage(
+          "Error",
+          "There was a problem restoring domain content.\n"
+          + "Please ensure that the content archive or entity file is valid and try again."
+        );
+      });
 
       if (!isFinal) {
-          ajaxObject.done(function (data, textStatus, jqXHR)
-              {uploadNextChunk(file, offset + CHUNK_SIZE);});
+        ajaxObject.done(function (data, textStatus, jqXHR)
+          { uploadNextChunk(file, offset + CHUNK_SIZE); });
       } else {
-          ajaxObject.done(function(data, textStatus, jqXHR) {
+        ajaxObject.done(function(data, textStatus, jqXHR) {
           isRestoring = true;
 
           // immediately reload backup information since one should be restoring now
@@ -65,7 +64,7 @@ $(document).ready(function(){
         });
       }
       
-  }
+    }
   
   function setupBackupUpload() {
     // construct the HTML needed for the settings backup panel
@@ -106,7 +105,6 @@ $(document).ready(function(){
 
         showSpinnerAlert("Uploading content to restore");
 
-          
         uploadNextChunk(files[0]);
       }
     );
