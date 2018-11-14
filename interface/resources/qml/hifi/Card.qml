@@ -244,13 +244,9 @@ Item {
         z: 1
     }
     MouseArea {
-        anchors.fill: parent;
-        acceptedButtons: Qt.LeftButton;
-        onClicked: {
-            Tablet.playSound(TabletEnums.ButtonClick);
-            goFunction("hifi://" + hifiUrl);
-        }
-        hoverEnabled: true;
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: true
         onContainsMouseChanged: {
             // Use onContainsMouseChanged rather than onEntered and onExited because the latter aren't always
             // triggered correctly - e.g., if drag rightwards from right hand side of a card to the next card
@@ -261,6 +257,17 @@ Item {
             } else {
                 unhoverThunk();
             }
+        }
+    }
+    MouseArea {
+        // Separate MouseArea for click handling so that it doesn't interfere with hovering and interaction
+        // with containing ListView.
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: false
+        onClicked: {
+            Tablet.playSound(TabletEnums.ButtonClick);
+            goFunction("hifi://" + hifiUrl);
         }
     }
     StateImage {
