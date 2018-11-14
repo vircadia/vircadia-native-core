@@ -6299,6 +6299,15 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("enqueueFrame");
         getMain3DScene()->enqueueFrame();
     }
+
+    if (!_loginDialogOverlayID.isNull()) {
+        QVariantMap properties {
+            { "position", vec3toVariant(myAvatar->getHeadPosition()) },
+            { "orientation", quatToVariant(myAvatar->getHeadOrientation() * glm::quat(1.0f, 0.0f, 1.0f, 0.0f)) }
+        };
+
+        getOverlays().editOverlay(_loginDialogOverlayID, properties);
+    }
 }
 
 void Application::updateRenderArgs(float deltaTime) {
