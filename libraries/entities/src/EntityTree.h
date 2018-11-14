@@ -224,6 +224,8 @@ public:
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) override;
     virtual bool readFromMap(QVariantMap& entityDescription) override;
+    virtual bool writeToJSON(QString& jsonString, const OctreeElementPointer& element) override;
+
 
     glm::vec3 getContentsDimensions();
     float getContentsLargestDimension();
