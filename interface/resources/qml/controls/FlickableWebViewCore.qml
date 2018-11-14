@@ -26,6 +26,8 @@ Item {
 
     property bool interactive: false
 
+    property bool blurOnCtrlShift: true
+
     StylesUIt.HifiConstants {
         id: hifi
     }
@@ -180,8 +182,8 @@ Item {
     }
 
     Keys.onPressed: {
-        if ((event.modifiers & Qt.ShiftModifier) && (event.modifiers & Qt.ControlModifier)) {
-            webViewCore.focus = false;
+        if (blurOnCtrlShift && (event.modifiers & Qt.ShiftModifier) && (event.modifiers & Qt.ControlModifier)) {
+            webViewCore.focus = false; 
         }
     }
 }
