@@ -2722,23 +2722,23 @@ keyUpEventFromUIWindow = function(keyUpEvent) {
         focusKey(pressedValue);
     } else if (keyUpEvent.keyCodeString === "G") {
         gridKey(pressedValue);
-    } else if (keyUpEvent.ctrlKey && keyUpEvent.keyCodeString === "X") {
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "X") {
         selectionManager.cutSelectedEntities();
-    } else if (keyUpEvent.ctrlKey && keyUpEvent.keyCodeString === "C") {
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "C") {
         selectionManager.copySelectedEntities();
-    } else if (keyUpEvent.ctrlKey && keyUpEvent.keyCodeString === "V") {
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "V") {
         selectionManager.pasteEntities();
-    } else if (keyUpEvent.ctrlKey && keyUpEvent.keyCodeString === "D") {
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "D") {
         selectionManager.duplicateSelection();
-    } else if (keyUpEvent.ctrlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") {
+    } else if (keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") {
         undoHistory.undo();
-    } else if (keyUpEvent.ctrlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
+    } else if (keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
         parentSelectedEntities();
-    } else if (keyUpEvent.ctrlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
+    } else if (keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
         unparentSelectedEntities();
     } else if (
-        (keyUpEvent.ctrlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") ||
-        (keyUpEvent.ctrlKey && keyUpEvent.keyCodeString === "Y")) {
+        (keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") ||
+        (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "Y")) {
 
         undoHistory.redo();
     } else if (WANT_DEBUG_MISSING_SHORTCUTS) {

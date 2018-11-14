@@ -139,7 +139,9 @@ function loaded() {
         if (keyUpEvent.target.nodeName === "INPUT") {
             return;
         }
-        let {code, key, keyCode, altKey, ctrlKey, shiftKey} = keyUpEvent;
+        let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;
+
+        let controlKey = window.navigator.platform.startsWith("Mac") ? metaKey : ctrlKey;
 
         let keyCodeString;
         switch (keyCode) {
@@ -162,8 +164,8 @@ function loaded() {
                 keyCode,
                 keyCodeString,
                 altKey,
-                ctrlKey,
-                shiftKey
+                controlKey,
+                shiftKey,
             }
         }));
     }, false);

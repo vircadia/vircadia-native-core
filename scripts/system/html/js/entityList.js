@@ -1123,7 +1123,9 @@ function loaded() {
                 return;
             }
 
-            let {code, key, keyCode, altKey, ctrlKey, shiftKey} = keyUpEvent;
+            let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;
+
+            let controlKey = window.navigator.platform.startsWith("Mac") ? metaKey : ctrlKey;
 
             let keyCodeString;
             switch (keyCode) {
@@ -1138,7 +1140,7 @@ function loaded() {
                     break;
             }
 
-            if (ctrlKey && keyCodeString === "A") {
+            if (controlKey && keyCodeString === "A") {
                 let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
                 let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
                     return selectedEntities.includes(visibleEntityID);
@@ -1170,8 +1172,8 @@ function loaded() {
                     keyCode,
                     keyCodeString,
                     altKey,
-                    ctrlKey,
-                    shiftKey
+                    controlKey,
+                    shiftKey,
                 }
             }));
         }, false);
