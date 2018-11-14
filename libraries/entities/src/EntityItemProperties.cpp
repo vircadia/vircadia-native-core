@@ -3977,7 +3977,13 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
     setParentJointIndex(-1);
     setLifetime(getCloneLifetime());
     setDynamic(getCloneDynamic());
-    setEntityHost(getCloneAvatarEntity() ? EntityHost::AVATAR_ENTITY : EntityHost::DOMAIN_ENTITY);
+    if (getEntityHost() != EntityHost::LOCAL_ENTITY) {
+        setEntityHost(getCloneAvatarEntity() ? EntityHost::AVATAR_ENTITY : EntityHost::DOMAIN_ENTITY);
+    } else {
+        // Local Entities clone as local entities
+        setEntityHost(EntityHost::LOCAL_ENTITY);
+        setCollisionless(true);
+    }
     setCreated(usecTimestampNow());
     setLastEdited(usecTimestampNow());
     setCloneable(ENTITY_ITEM_DEFAULT_CLONEABLE);

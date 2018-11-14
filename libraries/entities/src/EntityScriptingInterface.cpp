@@ -482,6 +482,10 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     propertiesWithSimID.setEntityHostFromString(entityHostString);
     if (propertiesWithSimID.getEntityHost() == EntityHost::AVATAR_ENTITY) {
         propertiesWithSimID.setOwningAvatarID(sessionID);
+    } else if (propertiesWithSimID.getEntityHost() == EntityHost::LOCAL_ENTITY) {
+        // For now, local entities are always collisionless
+        // TODO: create a separate, local physics simulation that just handles local entities (and MyAvatar?)
+        propertiesWithSimID.setCollisionless(true);
     }
 
     propertiesWithSimID.setLastEditedBy(sessionID);
@@ -834,7 +838,11 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
 
         // set these to make EntityItemProperties::getScalesWithParent() work correctly
-        properties.setEntityHost(entity->getEntityHost());
+        EntityHost entityHost = entity->getEntityHost();
+        properties.setEntityHost(entityHost);
+        if (entityHost == EntityHost::LOCAL_ENTITY) {
+            properties.setCollisionless(true);
+        }
         properties.setOwningAvatarID(entity->getOwningAvatarID());
 
         // make sure the properties has a type, so that the encode can know which properties to include
