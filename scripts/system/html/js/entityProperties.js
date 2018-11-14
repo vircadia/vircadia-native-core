@@ -1342,6 +1342,8 @@ const GROUPS_PER_TYPE = {
   Material: [ 'base', 'material', 'spatial', 'behavior' ],
   ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 'particles_alpha', 
                     'particles_acceleration', 'particles_spin', 'particles_constraints', 'spatial', 'behavior', 'physics' ],
+  PolyLine: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
+  PolyVox: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   Multiple: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
 };
 
