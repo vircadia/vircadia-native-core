@@ -276,7 +276,7 @@ TabBar {
                 selectTab(message.params.id);
                 break;
             default:
-                console.warn('Unrecognized message:', JSON.stringify(message));
+                console.warn('EditToolsTabView.qml: Unrecognized message');
         }
     }
 

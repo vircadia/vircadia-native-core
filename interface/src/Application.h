@@ -228,6 +228,9 @@ public:
     bool getPreferAvatarFingerOverStylus() { return false; }
     void setPreferAvatarFingerOverStylus(bool value);
 
+    bool getMiniTabletEnabled() { return _miniTabletEnabledSetting.get(); }
+    void setMiniTabletEnabled(bool enabled);
+
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
 
@@ -338,6 +341,8 @@ signals:
 
     void loginDialogPoppedUp();
 
+    void miniTabletEnabledChanged(bool enabled);
+
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
@@ -381,6 +386,8 @@ public slots:
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
+
+    void hmdVisibleChanged(bool visible);
 
 #if (PR_BUILD || DEV_BUILD)
     void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
@@ -629,6 +636,7 @@ private:
     Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
     Setting::Handle<QString> _preferredCursor;
+    Setting::Handle<bool> _miniTabletEnabledSetting;
 
     float _scaleMirror;
     float _mirrorYawOffset;

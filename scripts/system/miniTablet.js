@@ -21,6 +21,7 @@
         ui = null,
         State,
         miniState = null,
+        miniTabletEnabled = true,
 
         // Hands.
         NO_HAND = -1,
@@ -1006,23 +1007,28 @@
                 return;
         }
 
-        if (message.grabbedEntity !== HMD.tabletID && message.grabbedEntity !== ui.getMiniTabletID()) {
+        if (miniState.getState() === miniState.MINI_DISABLED
+                || (message.grabbedEntity !== HMD.tabletID && message.grabbedEntity !== ui.getMiniTabletID())) {
             return;
         }
 
         if (message.action === "grab" && message.grabbedEntity === HMD.tabletID && HMD.active) {
             // Tablet may have been grabbed after it replaced expanded mini tablet.
-            miniState.setState(miniState.MINI_HIDDEN);
+            if (miniTabletEnabled) {
+                miniState.setState(miniState.MINI_HIDDEN);
+            }
         } else if (message.action === "grab" && miniState.getState() === miniState.MINI_VISIBLE) {
-            miniHand = miniState.getHand();
-            hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
-            miniState.setState(miniState.MINI_EXPANDING, { hand: hand, goto: false });
+            if (miniTabletEnabled) {
+                miniHand = miniState.getHand();
+                hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
+                miniState.setState(miniState.MINI_EXPANDING, { hand: hand, goto: false });
+            }
         }
     }
 
     function onWentAway() {
         // Mini tablet only available when user is not away.
-        if (HMD.active) {
+        if (HMD.active && miniTabletEnabled) {
             miniState.setState(miniState.MINI_HIDDEN);
         }
     }
@@ -1030,8 +1036,21 @@
     function onDisplayModeChanged() {
         // Mini tablet only available when HMD is active.
         if (HMD.active) {
-            miniState.setState(miniState.MINI_HIDDEN);
-        } else {
+            if (miniTabletEnabled && miniState.getState() !== miniState.MINI_HIDDEN) {
+                miniState.setState(miniState.MINI_HIDDEN);
+            }
+        } else if (miniState.getState() !== miniState.MINI_DISABLED) {
+            miniState.setState(miniState.MINI_DISABLED);
+        }
+    }
+
+    function onMiniTabletEnabledChanged(enabled) {
+        miniTabletEnabled = enabled;
+        if (miniTabletEnabled) {
+            if (HMD.active && miniState.getState() !== miniState.MINI_HIDDEN) {
+                miniState.setState(miniState.MINI_HIDDEN);
+            }
+        } else if (miniState.getState() !== miniState.MINI_DISABLED) {
             miniState.setState(miniState.MINI_DISABLED);
         }
     }
@@ -1040,12 +1059,16 @@
     function setUp() {
         miniState = new State();
 
+        HMD.miniTabletEnabledChanged.connect(onMiniTabletEnabledChanged);
+        miniTabletEnabled = HMD.miniTabletEnabled;
+
         Messages.subscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
         Messages.messageReceived.connect(onMessageReceived);
 
         MyAvatar.wentAway.connect(onWentAway);
         HMD.displayModeChanged.connect(onDisplayModeChanged);
-        if (HMD.active) {
+
+        if (HMD.active && miniTabletEnabled) {
             miniState.setState(miniState.MINI_HIDDEN);
         }
     }
@@ -1058,6 +1081,8 @@
 
         Messages.messageReceived.disconnect(onMessageReceived);
         Messages.unsubscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
+
+        HMD.miniTabletEnabledChanged.disconnect(onMiniTabletEnabledChanged);
 
         miniState.destroy();
         miniState = null;

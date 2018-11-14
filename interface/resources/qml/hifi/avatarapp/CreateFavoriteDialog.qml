@@ -96,9 +96,6 @@ Rectangle {
             AvatarThumbnail {
                 id: avatarThumbnail
                 avatarUrl: avatarImageUrl
-                onAvatarUrlChanged: {
-                    console.debug('CreateFavoritesDialog: onAvatarUrlChanged: ', avatarUrl);
-                }
 
                 wearablesCount: avatarWearablesCount
             }

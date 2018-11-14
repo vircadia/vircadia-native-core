@@ -69,7 +69,6 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
     QString filename = _mapping.value("filename").toString();
 
     if (filename.isNull()) {
-        qCDebug(modelnetworking) << "Mapping file" << _url << "has no \"filename\" field";
         finishedLoading(false);
     } else {
         QUrl url = _url.resolved(filename);
@@ -176,7 +175,6 @@ void GeometryReader::run() {
     });
 
     if (!_resource.data()) {
-        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; resource was deleted";
         return;
     }
 
@@ -239,10 +237,7 @@ void GeometryReader::run() {
         } else {
             throw QString("url is invalid");
         }
-    } catch (const QString& error) {
-
-        qCDebug(modelnetworking) << "Error parsing model for" << _url << ":" << error;
-
+    } catch (const std::exception&) {
         auto resource = _resource.toStrongRef();
         if (resource) {
             QMetaObject::invokeMethod(resource.data(), "finishedLoading",

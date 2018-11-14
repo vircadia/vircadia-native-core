@@ -68,6 +68,7 @@
 #define VOICE_COMMUNICATION "voicecommunication"
 
 #define SETTING_AEC_KEY "Android/aec"
+#define DEFAULT_AEC_ENABLED true
 #endif
 
 class QAudioInput;

@@ -18,6 +18,11 @@
     window.isKeyboardRaised = false;
     window.isNumericKeyboard = false;
     window.isPasswordField = false;
+    window.lastActiveElement = null;
+
+    function getActiveElement() {
+        return document.activeElement;
+    }
 
     function shouldSetPasswordField() {
         var nodeType = document.activeElement.type;
@@ -65,10 +70,11 @@
         var keyboardRaised = shouldRaiseKeyboard();
         var numericKeyboard = shouldSetNumeric();
         var passwordField = shouldSetPasswordField();
+        var activeElement = getActiveElement();
 
         if (isWindowFocused &&
             (keyboardRaised !== window.isKeyboardRaised || numericKeyboard !== window.isNumericKeyboard
-                || passwordField !== window.isPasswordField)) {
+                || passwordField !== window.isPasswordField || activeElement !== window.lastActiveElement)) {
 
             if (typeof EventBridge !== "undefined" && EventBridge !== null) {
                 EventBridge.emitWebEvent(
@@ -90,6 +96,7 @@
             window.isKeyboardRaised = keyboardRaised;
             window.isNumericKeyboard = numericKeyboard;
             window.isPasswordField = passwordField;
+            window.lastActiveElement = activeElement;
         }
     }, POLL_FREQUENCY);
 

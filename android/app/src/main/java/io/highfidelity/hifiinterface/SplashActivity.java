@@ -3,7 +3,6 @@ package io.highfidelity.hifiinterface;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.View;
 
 public class SplashActivity extends Activity {
@@ -37,7 +36,13 @@ public class SplashActivity extends Activity {
     }
 
     public void onAppLoadedComplete() {
-        startActivity(new Intent(this, MainActivity.class));
+        if (HifiUtils.getInstance().isUserLoggedIn()) {
+            startActivity(new Intent(this, MainActivity.class));
+        } else {
+            Intent menuIntent =  new Intent(this, LoginMenuActivity.class);
+            menuIntent.putExtra(LoginMenuActivity.EXTRA_FINISH_ON_BACK, true);
+            startActivity(menuIntent);
+        }
         SplashActivity.this.finish();
     }
 }

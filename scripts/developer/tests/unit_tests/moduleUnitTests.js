@@ -328,7 +328,6 @@ function instrumentTestrunner() {
                     return base;
                 }
                 var rel = base.replace(/[^\/]+$/, id);
-                console.info('rel', rel);
                 return require.resolve(rel);
             },
             require: function(mod) {
@@ -338,13 +337,13 @@ function instrumentTestrunner() {
         Script.require.cache = require.cache;
         Script.require.resolve = function(mod) {
             if (mod === '.' || /^\.\.($|\/)/.test(mod)) {
-                throw new Error("Cannot find module '"+mod+"' (is dir)");
+                throw new Error("Cannot find module (is dir)");
             }
             var path = require.resolve(mod);
             // console.info('node-require-reoslved', mod, path);
             try {
                 if (require('fs').lstatSync(path).isDirectory()) {
-                    throw new Error("Cannot find module '"+path+"' (is directory)");
+                    throw new Error("Cannot find module (is directory)");
                 }
                 // console.info('!path', path);
             } catch (e) {

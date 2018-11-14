@@ -12,8 +12,6 @@
 #ifndef hifi_FBXReader_h
 #define hifi_FBXReader_h
 
-#include "FBX.h"
-
 #include <QtGlobal>
 #include <QMetaType>
 #include <QSet>
@@ -27,6 +25,9 @@
 
 #include <Extents.h>
 #include <Transform.h>
+
+#include "FBX.h"
+#include <hfm/HFM.h>
 
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>

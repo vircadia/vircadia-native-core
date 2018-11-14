@@ -72,7 +72,7 @@ void Ledger::send(const QString& endpoint, const QString& success, const QString
     const QString URL = "/api/v1/commerce/";
     JSONCallbackParameters callbackParams(this, success, fail);
 #if defined(DEV_BUILD)  // Don't expose user's personal data in the wild. But during development this can be handy.
-    qCInfo(commerce) << "Sending" << endpoint << QJsonDocument(request).toJson(QJsonDocument::Compact);
+    qCInfo(commerce) << "Sending" << QJsonDocument(request).toJson(QJsonDocument::Compact);
 #endif
     accountManager->sendRequest(URL + endpoint,
         authType,

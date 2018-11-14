@@ -225,7 +225,6 @@ MiniPromise::Promise AssetClient::saveToCacheAsync(const QUrl& url, const QByteA
             if (ioDevice) {
                 ioDevice->write(data);
                 cache->insert(ioDevice);
-                qCDebug(asset_client) << url.toDisplayString() << "saved to disk cache ("<< data.size()<<" bytes)";
                 deferred->resolve({
                     { "url", url },
                     { "success", true },
@@ -235,7 +234,7 @@ MiniPromise::Promise AssetClient::saveToCacheAsync(const QUrl& url, const QByteA
                     { "lastModified", metaData.lastModified().toString().isEmpty() ? QDateTime() : metaData.lastModified() },
                 });
             } else {
-                auto error = QString("Could not save %1 to disk cache").arg(url.toDisplayString());
+                auto error = QString("Could not save to disk cache");
                 qCWarning(asset_client) << error;
                 deferred->reject(CACHE_ERROR_MESSAGE.arg(__FUNCTION__).arg(error));
             }

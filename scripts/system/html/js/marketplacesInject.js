@@ -546,18 +546,9 @@
                             data = {};
                         }
 
-                        // Extract status message.
-                        if (data.hasOwnProperty("message") && data.message !== null) {
-                            statusMessage = data.message;
-                            console.log("Clara.io FBX: " + statusMessage);
-                        }
-
                         // Extract zip file URL.
                         if (data.hasOwnProperty("files") && data.files.length > 0) {
                             zipFileURL = data.files[0].url;
-                            if (zipFileURL.slice(-4) !== ".zip") {
-                                console.log(JSON.stringify(data));  // Data for debugging.
-                            }
                         }
                     }
                 }
@@ -587,15 +578,11 @@
 
             var HTTP_OK = 200;
             if (this.status !== HTTP_OK) {
-                statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
-                console.log("ERROR: Clara.io FBX: " + statusMessage);
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_STATUS,
                     status: statusMessage
                 }));
             } else if (zipFileURL.slice(-4) !== ".zip") {
-                statusMessage = "Error creating zip file for download.";
-                console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_STATUS,
                     status: (statusMessage + ": " + zipFileURL)
@@ -604,15 +591,12 @@
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_DOWNLOAD
                 }));
-                console.log("Clara.io FBX: File download initiated for " + zipFileURL);
             }
 
             xmlHttpRequest = null;
         }
 
         isPreparing = true;
-
-        console.log("Clara.io FBX: Request zip file for " + uuid);
         EventBridge.emitWebEvent(JSON.stringify({
             type: CLARA_IO_STATUS,
             status: "Initiating download"

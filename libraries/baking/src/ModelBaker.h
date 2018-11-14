@@ -25,6 +25,7 @@
 #include <gpu/Texture.h> 
 
 #include <FBX.h>
+#include <hfm/HFM.h>
 
 using TextureBakerThreadGetter = std::function<QThread*()>;
 using GetMaterialIDCallback = std::function <int(int)>;

@@ -225,7 +225,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
         }
         const int32_t MAX_VERTICES_PER_STATIC_MESH = 1e6;
         if (totalNumVertices > MAX_VERTICES_PER_STATIC_MESH) {
-            qWarning() << "model" << resource->getURL() << "has too many vertices" << totalNumVertices << "and will collide as a box.";
+            qWarning() << "model" << "has too many vertices" << totalNumVertices << "and will collide as a box.";
             shapeInfo.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
             return;
         }
