@@ -1298,6 +1298,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &Application::activeDisplayPluginChanged, this, [&](){
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         if (getLoginDialogPoppedUp()) {
+            if (_firstRun.get()) {
+                // display mode changed.  Don't allow auto-switch to work after this session.
+                _firstRun.set(false);
+            }
             if (_loginDialogOverlayID.isNull()) {
                 // HMD mode.
                 dialogsManager->hideLoginDialog();
