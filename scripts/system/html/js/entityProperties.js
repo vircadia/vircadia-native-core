@@ -1288,24 +1288,36 @@ const GROUPS = [
             {
                 label: "Angular Damping",
                 type: "number",
+                min: 0,
+                max: 1,
+                step: 0.01,
                 decimals: 4,
                 propertyID: "angularDamping",
             },
             {
                 label: "Bounciness",
                 type: "number",
+                min: 0,
+                max: 1,
+                step: 0.01,
                 decimals: 4,
                 propertyID: "restitution",
             },
             {
                 label: "Friction",
                 type: "number",
+                min: 0,
+                max: 10,
+                step: 0.1,
                 decimals: 4,
                 propertyID: "friction",
             },
             {
                 label: "Density",
                 type: "number",
+                min: 100,
+                max: 10000,
+                step: 1,
                 decimals: 4,
                 propertyID: "density",
             },
@@ -1314,6 +1326,7 @@ const GROUPS = [
                 type: "vec3",
                 vec3Type: "xyz",
                 subLabels: [ "x", "y", "z" ],
+                decimals: 4,
                 unit: "m/s<sup>2</sup>",
                 propertyID: "gravity",
             },
@@ -2145,28 +2158,28 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
             break;
         }
         case 'number': {
-            property.elInput = createNumberProperty(property, elProperty);
+            property.elNumber = createNumberProperty(property, elProperty);
             break;
         }
         case 'vec3': {
             let elVec3 = createVec3Property(property, elProperty);  
-            property.elInputX = elVec3[VECTOR_ELEMENTS.X_INPUT];
-            property.elInputY = elVec3[VECTOR_ELEMENTS.Y_INPUT];
-            property.elInputZ = elVec3[VECTOR_ELEMENTS.Z_INPUT];
+            property.elNumberX = elVec3[VECTOR_ELEMENTS.X_NUMBER];
+            property.elNumberY = elVec3[VECTOR_ELEMENTS.Y_NUMBER];
+            property.elNumberZ = elVec3[VECTOR_ELEMENTS.Z_NUMBER];
             break;
         }
         case 'vec2': {
             let elVec2 = createVec2Property(property, elProperty);  
-            property.elInputX = elVec2[VECTOR_ELEMENTS.X_INPUT];
-            property.elInputY = elVec2[VECTOR_ELEMENTS.Y_INPUT];
+            property.elNumberX = elVec2[VECTOR_ELEMENTS.X_NUMBER];
+            property.elNumberY = elVec2[VECTOR_ELEMENTS.Y_NUMBER];
             break;
         }
         case 'color': {
             let elColor = createColorProperty(property, elProperty);  
             property.elColorPicker = elColor[COLOR_ELEMENTS.COLOR_PICKER];
-            property.elInputR = elColor[COLOR_ELEMENTS.RED_INPUT];
-            property.elInputG = elColor[COLOR_ELEMENTS.GREEN_INPUT];
-            property.elInputB = elColor[COLOR_ELEMENTS.BLUE_INPUT]; 
+            property.elNumberR = elColor[COLOR_ELEMENTS.RED_NUMBER];
+            property.elNumberG = elColor[COLOR_ELEMENTS.GREEN_NUMBER];
+            property.elNumberB = elColor[COLOR_ELEMENTS.BLUE_NUMBER]; 
             break;
         }
         case 'dropdown': {
@@ -2722,85 +2735,6 @@ function showParentMaterialNameBox(number, elNumber, elString) {
         $('#property-submeshToReplace').parent().hide();
         elNumber.value = 0;
     }
-}
-
-function createProperty(propertyData, propertyElementID, propertyName, propertyID, elProperty) {
-    let property = { 
-        data: propertyData, 
-        elementID: propertyElementID, 
-        name: propertyName,
-        elProperty: elProperty,
-    };
-    let propertyType = propertyData.type;
-
-    switch (propertyType) {
-        case 'string': {
-            property.elInput = createStringProperty(property, elProperty);
-            break;
-        }
-        case 'bool': {
-            property.elInput = createBoolProperty(property, elProperty);
-            break;
-        }
-        case 'number': {
-            property.elNumber = createNumberProperty(property, elProperty);
-            break;
-        }
-        case 'vec3': {
-            let elVec3 = createVec3Property(property, elProperty);  
-            property.elNumberX = elVec3[VECTOR_ELEMENTS.X_NUMBER];
-            property.elNumberY = elVec3[VECTOR_ELEMENTS.Y_NUMBER];
-            property.elNumberZ = elVec3[VECTOR_ELEMENTS.Z_NUMBER];
-            break;
-        }
-        case 'vec2': {
-            let elVec2 = createVec2Property(property, elProperty);  
-            property.elNumberX = elVec2[VECTOR_ELEMENTS.X_NUMBER];
-            property.elNumberY = elVec2[VECTOR_ELEMENTS.Y_NUMBER];
-            break;
-        }
-        case 'color': {
-            let elColor = createColorProperty(property, elProperty);  
-            property.elColorPicker = elColor[COLOR_ELEMENTS.COLOR_PICKER];
-            property.elNumberR = elColor[COLOR_ELEMENTS.RED_NUMBER];
-            property.elNumberG = elColor[COLOR_ELEMENTS.GREEN_NUMBER];
-            property.elNumberB = elColor[COLOR_ELEMENTS.BLUE_NUMBER]; 
-            break;
-        }
-        case 'dropdown': {
-            property.elInput = createDropdownProperty(property, propertyID, elProperty);
-            break;
-        }
-        case 'textarea': {
-            property.elInput = createTextareaProperty(property, elProperty);
-            break;
-        }
-        case 'icon': {
-            property.elSpan = createIconProperty(property, elProperty);
-            break;
-        }
-        case 'texture': {
-            let elTexture = createTextureProperty(property, elProperty);
-            property.elImage = elTexture[TEXTURE_ELEMENTS.IMAGE];
-            property.elInput = elTexture[TEXTURE_ELEMENTS.TEXT_INPUT];
-            break;
-        }
-        case 'buttons': {
-            property.elProperty = createButtonsProperty(property, elProperty);
-            break;
-        }
-        case 'placeholder':
-        case 'sub-header': {
-            break;
-        }
-        default: {
-            console.log("EntityProperties - Unknown property type " + 
-                propertyType + " set to property " + propertyID);
-            break;
-        }
-    }
-
-    return property;
 }
 
 
