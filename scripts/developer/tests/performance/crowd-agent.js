@@ -132,7 +132,7 @@ function messageHandler(channel, messageString, senderID) {
     try {
         message = JSON.parse(messageString);
     } catch (e) {
-        print(e);
+		
     }
     switch (message.key) {
     case "HELO":

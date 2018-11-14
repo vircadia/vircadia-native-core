@@ -120,17 +120,14 @@ Rectangle {
     }
 
     function loadScript(script) {
-        console.log("Load script " + script);
         scripts.loadOneScript(script);
     }
 
     function reloadScript(script) {
-        console.log("Reload script " + script);
         scripts.stopScript(script, true);
     }
 
     function stopScript(script) {
-        console.log("Stop script " + script);
         scripts.stopScript(script);
     }
 
@@ -158,7 +155,6 @@ Rectangle {
         console.log("Stop all scripts");
         for (var index = 0; index < runningScriptsModel.count; index++) {
             var url = runningScriptsModel.get(index).url;
-            console.log(url);
             var fileName = url.substring(url.lastIndexOf('/')+1);
             if (canEditScript(fileName)) {
                 scripts.stopScript(url);

@@ -653,7 +653,7 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         case 'giftAsset':
         break;
     default:
-        print('Unrecognized message from Checkout.qml: ' + JSON.stringify(message));
+        print('marketplaces.js: Unrecognized message from Checkout.qml');
     }
 };
 

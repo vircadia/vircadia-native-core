@@ -28,11 +28,18 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import io.highfidelity.hifiinterface.fragment.WebViewFragment;
+import io.highfidelity.hifiinterface.fragment.WebViewFragment.OnWebViewInteractionListener;
 
-public class WebViewActivity extends Activity implements WebViewFragment.OnWebViewInteractionListener {
+public class WebViewActivity extends Activity implements OnWebViewInteractionListener {
 
     public static final String WEB_VIEW_ACTIVITY_EXTRA_URL = "url";
+    public static final String WEB_VIEW_ACTIVITY_EXTRA_CLEAR_COOKIES = "clear_cookies";
+    public static final String RESULT_OAUTH_CODE = "code";
+    public static final String RESULT_OAUTH_STATE = "state";
+
     private static final String FRAGMENT_TAG = "WebViewActivity_WebFragment";
+    private static final String OAUTH_CODE = "code";
+    private static final String OAUTH_STATE = "state";
 
     private native void nativeProcessURL(String url);
 
@@ -47,14 +54,15 @@ public class WebViewActivity extends Activity implements WebViewFragment.OnWebVi
         mActionBar = getActionBar();
         mActionBar.setDisplayHomeAsUpEnabled(true);
 
-        loadWebViewFragment(getIntent().getStringExtra(WEB_VIEW_ACTIVITY_EXTRA_URL));
+        loadWebViewFragment(getIntent().getStringExtra(WEB_VIEW_ACTIVITY_EXTRA_URL), getIntent().getBooleanExtra(WEB_VIEW_ACTIVITY_EXTRA_CLEAR_COOKIES, false));
     }
 
-    private void loadWebViewFragment(String url) {
+    private void loadWebViewFragment(String url, boolean clearCookies) {
         WebViewFragment fragment = WebViewFragment.newInstance();
         Bundle bundle = new Bundle();
         bundle.putString(WebViewFragment.URL, url);
         bundle.putBoolean(WebViewFragment.TOOLBAR_VISIBLE, false);
+        bundle.putBoolean(WebViewFragment.CLEAR_COOKIES, clearCookies);
         fragment.setArguments(bundle);
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction ft = fragmentManager.beginTransaction();
@@ -130,5 +138,14 @@ public class WebViewActivity extends Activity implements WebViewFragment.OnWebVi
 
     @Override
     public void onExpand() { }
+
+    @Override
+    public void onOAuthAuthorizeCallback(Uri uri) {
+        Intent result = new Intent();
+        result.putExtra(RESULT_OAUTH_CODE, uri.getQueryParameter(OAUTH_CODE));
+        result.putExtra(RESULT_OAUTH_STATE, uri.getQueryParameter(OAUTH_STATE));
+        setResult(Activity.RESULT_OK, result);
+        finish();
+    }
 
 }

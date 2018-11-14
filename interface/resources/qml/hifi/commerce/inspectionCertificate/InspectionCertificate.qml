@@ -597,7 +597,7 @@ Rectangle {
                 resetCert(true);
             break;
             default:
-                console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
+                console.log('InspectionCertificate.qml: Unrecognized message from marketplaces.js');
         }
     }
     signal sendToScript(var message);

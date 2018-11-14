@@ -70,8 +70,8 @@ OriginalDesktop.Desktop {
         anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
         // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
         x: sysToolbar.x
-        buttonModel: tablet.buttons;
-        shown: tablet.toolbarMode;
+        buttonModel: tablet ? tablet.buttons : null;
+        shown: tablet ? tablet.toolbarMode : false;
     }
 
     Settings {
@@ -103,19 +103,14 @@ OriginalDesktop.Desktop {
     property bool autoAdd: false
 
     function initWebviewProfileHandlers(profile) {
-        console.log("The webview url in desktop is: " + currentUrl);
         downloadUrl = currentUrl;
         if (webViewProfileSetup) return;
         webViewProfileSetup = true;
 
         profile.downloadRequested.connect(function(download){
-            console.log("Download start: " + download.state);
             adaptedPath = File.convertUrlToPath(downloadUrl);
             tempDir = File.getTempDir();
-            console.log("Temp dir created: " + tempDir);
             download.path = tempDir + "/" + adaptedPath;
-            console.log("Path where object should download: " + download.path);
-            console.log("Auto add: " + autoAdd);
             download.accept();
             if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
                 console.log("download failed to complete");

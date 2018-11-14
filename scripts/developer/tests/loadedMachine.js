@@ -37,7 +37,7 @@ var scripts = scriptData.filter(function (datum) { return datum.name !== 'defaul
 // If defaultScripts.js is running, we leave it running, because restarting it safely is a mess.
 var otherScripts = scripts.filter(function (path) { return path !== thisPath; });
 var numberLeftRunning = scriptData.length - otherScripts.length;
-print('initially running', otherScripts.length, 'scripts. Leaving', numberLeftRunning, 'and stopping', otherScripts);
+print('initially running', otherScripts.length, 'scripts. Leaving', numberLeftRunning, 'and stopping otherScripts');
 var typedEntities = {Light: [], ParticleEffect: []};
 var interestingTypes = Object.keys(typedEntities);
 var propertiedEntities = {dynamic: []};

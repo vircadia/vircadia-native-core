@@ -24,7 +24,6 @@
 bool readOctreeFile(QString path, QJsonDocument* doc) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
-        qCritical() << "Cannot open json file for reading: " << path;
         return false;
     }
 

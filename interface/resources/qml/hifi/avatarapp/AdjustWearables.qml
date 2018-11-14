@@ -261,7 +261,6 @@ Rectangle {
                         anchors.right: parent.right
                         onLinkActivated: {
                             popup.showSpecifyWearableUrl(function(url) {
-                                console.debug('popup.showSpecifyWearableUrl: ', url);
                                 addWearable(root.avatarName, url);
                                 modified = true;
                             });
