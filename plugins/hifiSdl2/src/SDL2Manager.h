@@ -12,7 +12,7 @@
 #ifndef hifi__SDL2Manager_h
 #define hifi__SDL2Manager_h
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 #include <controllers/UserInputMapper.h>
 #include <input-plugins/InputPlugin.h>

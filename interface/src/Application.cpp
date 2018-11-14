@@ -186,6 +186,8 @@
 #include "scripting/RatesScriptingInterface.h"
 #include "scripting/SelectionScriptingInterface.h"
 #include "scripting/WalletScriptingInterface.h"
+#include "scripting/TTSScriptingInterface.h"
+#include "scripting/KeyboardScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -204,6 +206,7 @@
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/DomainConnectionModel.h"
+#include "ui/Keyboard.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
@@ -533,11 +536,11 @@ bool isDomainURL(QUrl url) {
     if (url.scheme() == URL_SCHEME_HIFI) {
         return true;
     }
-    if (url.scheme() != URL_SCHEME_FILE) {
+    if (url.scheme() != HIFI_URL_SCHEME_FILE) {
         // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
         // be loaded over http(s)
-        // && url.scheme() != URL_SCHEME_HTTP &&
-        // url.scheme() != URL_SCHEME_HTTPS
+        // && url.scheme() != HIFI_URL_SCHEME_HTTP &&
+        // url.scheme() != HIFI_URL_SCHEME_HTTPS
         return false;
     }
     if (url.path().endsWith(".json", Qt::CaseInsensitive) ||
@@ -948,9 +951,12 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
     DependencyManager::set<WalletScriptingInterface>();
+    DependencyManager::set<TTSScriptingInterface>();
 
     DependencyManager::set<FadeEffect>();
     DependencyManager::set<ResourceRequestObserver>();
+    DependencyManager::set<Keyboard>();
+    DependencyManager::set<KeyboardScriptingInterface>();
 
     return previousSessionCrashed;
 }
@@ -1032,8 +1038,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
                 // If the URL scheme is http(s) or ftp, then use as is, else - treat it as a local file
                 // This is done so as not break previous command line scripts
-                if (testScriptPath.left(URL_SCHEME_HTTP.length()) == URL_SCHEME_HTTP ||
-                    testScriptPath.left(URL_SCHEME_FTP.length()) == URL_SCHEME_FTP) {
+                if (testScriptPath.left(HIFI_URL_SCHEME_HTTP.length()) == HIFI_URL_SCHEME_HTTP ||
+                    testScriptPath.left(HIFI_URL_SCHEME_FTP.length()) == HIFI_URL_SCHEME_FTP) {
 
                     setProperty(hifi::properties::TEST, QUrl::fromUserInput(testScriptPath));
                 } else if (QFileInfo(testScriptPath).exists()) {
@@ -2325,6 +2331,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
+    DependencyManager::get<Keyboard>()->createKeyboard();
 
     _pendingIdleEvent = false;
     _pendingRenderEvent = false;
@@ -2337,23 +2344,29 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
 #else
-    static int CHECK_LOGIN_TIMER = 3000;
-    QTimer* checkLoginTimer = new QTimer(this);
-    checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
-    checkLoginTimer->setSingleShot(true);
-    connect(checkLoginTimer, &QTimer::timeout, this, []() {
-        auto accountManager = DependencyManager::get<AccountManager>();
-        auto dialogsManager = DependencyManager::get<DialogsManager>();
-        if (!accountManager->isLoggedIn()) {
-            Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
-            dialogsManager->showLoginDialog();
-            QJsonObject loginData = {};
-            loginData["action"] = "login dialog shown";
-            UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        }
-    });
-    Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
-    checkLoginTimer->start();
+    // Do not show login dialog if requested not to on the command line
+    const QString HIFI_NO_LOGIN_COMMAND_LINE_KEY = "--no-login-suggestion";
+    int index = arguments().indexOf(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
+    if (index == -1) {
+        // request not found
+        static int CHECK_LOGIN_TIMER = 3000;
+        QTimer* checkLoginTimer = new QTimer(this);
+        checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
+        checkLoginTimer->setSingleShot(true);
+        connect(checkLoginTimer, &QTimer::timeout, this, []() {
+            auto accountManager = DependencyManager::get<AccountManager>();
+            auto dialogsManager = DependencyManager::get<DialogsManager>();
+            if (!accountManager->isLoggedIn()) {
+                Setting::Handle<bool>{ "loginDialogPoppedUp", false }.set(true);
+                dialogsManager->showLoginDialog();
+                QJsonObject loginData = {};
+                loginData["action"] = "login dialog shown";
+                UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
+            }
+        });
+        Setting::Handle<bool>{ "loginDialogPoppedUp", false }.set(false);
+        checkLoginTimer->start();
+    }
 #endif
 }
 
@@ -2434,11 +2447,17 @@ QString Application::getUserAgent() {
 }
 
 void Application::toggleTabletUI(bool shouldOpen) const {
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     if (!(shouldOpen && hmd->getShouldShowTablet())) {
         auto HMD = DependencyManager::get<HMDScriptingInterface>();
         HMD->toggleShouldShowTablet();
+
+        if (!HMD->getShouldShowTablet()) {
+            DependencyManager::get<Keyboard>()->setRaised(false);
+            _window->activateWindow();
+            auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet(SYSTEM_TABLET);
+            tablet->unfocus();
+        }
     }
 }
 
@@ -2631,6 +2650,8 @@ void Application::cleanupBeforeQuit() {
     // it accesses the PickManager to delete its associated Pick
     DependencyManager::destroy<PointerManager>();
     DependencyManager::destroy<PickManager>();
+    DependencyManager::destroy<KeyboardScriptingInterface>();
+    DependencyManager::destroy<Keyboard>();
 
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
@@ -2788,6 +2809,7 @@ void Application::initializeGL() {
     }
 
     // Build a shared canvas / context for the QML rendering
+#if !defined(DISABLE_QML)
     {
         _qmlShareContext = new OffscreenGLCanvas();
         _qmlShareContext->setObjectName("QmlShareContext");
@@ -2801,6 +2823,8 @@ void Application::initializeGL() {
             qCWarning(interfaceapp, "Unable to make window context current");
         }
     }
+#endif
+
 
     _renderEventHandler = new RenderEventHandler();
 
@@ -2915,6 +2939,7 @@ void Application::initializeRenderEngine() {
 
         // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
         DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+        DependencyManager::get<Keyboard>()->registerKeyboardHighlighting();
     });
 }
 
@@ -2927,7 +2952,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
-    QmlContextCallback callback = [](QQmlContext* context) {
+    QmlContextCallback commerceCallback = [](QQmlContext* context) {
         context->setContextProperty("Commerce", new QmlCommerce());
     };
     OffscreenQmlSurface::addWhitelistContextHandler({
@@ -2953,7 +2978,13 @@ void Application::initializeUi() {
         QUrl{ "hifi/dialogs/security/SecurityImageChange.qml" },
         QUrl{ "hifi/dialogs/security/SecurityImageModel.qml" },
         QUrl{ "hifi/dialogs/security/SecurityImageSelection.qml" },
-    }, callback);
+    }, commerceCallback);
+    QmlContextCallback ttsCallback = [](QQmlContext* context) {
+        context->setContextProperty("TextToSpeech", DependencyManager::get<TTSScriptingInterface>().data());
+    };
+    OffscreenQmlSurface::addWhitelistContextHandler({
+        QUrl{ "hifi/tts/TTS.qml" }
+    }, ttsCallback);
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
     qmlRegisterType<WebBrowserSuggestionsEngine>("HifiWeb", 1, 0, "WebBrowserSuggestionsEngine");
@@ -3105,6 +3136,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("Vec3", new Vec3());
     surfaceContext->setContextProperty("Uuid", new ScriptUUID());
     surfaceContext->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
+    surfaceContext->setContextProperty("Keyboard", DependencyManager::get<KeyboardScriptingInterface>().data());
 
     surfaceContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
     surfaceContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
@@ -6839,6 +6871,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
 
     scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
+
+    scriptEngine->registerGlobalObject("Keyboard", DependencyManager::get<KeyboardScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Paths", DependencyManager::get<PathUtils>().data());
 

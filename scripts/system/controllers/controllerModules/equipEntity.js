@@ -485,7 +485,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
 
             var handJointIndex;
-            if (grabData.grabFollowsController) {
+            if (HMD.mounted && HMD.isHandControllerAvailable() && grabData.grabFollowsController) {
                 handJointIndex = this.controllerJointIndex;
             } else {
                 handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");

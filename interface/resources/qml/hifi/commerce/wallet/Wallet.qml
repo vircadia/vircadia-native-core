@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
 import "../common/sendAsset"
@@ -38,6 +38,10 @@ Rectangle {
     Image {
         anchors.fill: parent;
         source: "images/wallet-bg.jpg";
+    }
+
+    Component.onDestruction: {
+        KeyboardScriptingInterface.raised = false;
     }
 
     Connections {
