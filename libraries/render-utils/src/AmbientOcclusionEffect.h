@@ -208,7 +208,7 @@ private:
     void updateJitterSamples();
 
     int getDepthResolutionLevel() const;
-   
+
     AOParametersBuffer _aoParametersBuffer;
     FrameParametersBuffer _aoFrameParametersBuffer[SSAO_SPLIT_COUNT*SSAO_SPLIT_COUNT];
     BlurParametersBuffer _vblurParametersBuffer;
@@ -216,13 +216,13 @@ private:
     float _blurEdgeSharpness{ 0.0f };
 
     static const gpu::PipelinePointer& getOcclusionPipeline();
-	static const gpu::PipelinePointer& getBilateralBlurPipeline();
-	static const gpu::PipelinePointer& getMipCreationPipeline();
+    static const gpu::PipelinePointer& getBilateralBlurPipeline();
+    static const gpu::PipelinePointer& getMipCreationPipeline();
     static const gpu::PipelinePointer& getGatherPipeline();
     static const gpu::PipelinePointer& getBuildNormalsPipeline();
 
     static gpu::PipelinePointer _occlusionPipeline;
-	static gpu::PipelinePointer _bilateralBlurPipeline;
+    static gpu::PipelinePointer _bilateralBlurPipeline;
     static gpu::PipelinePointer _mipCreationPipeline;
     static gpu::PipelinePointer _gatherPipeline;
     static gpu::PipelinePointer _buildNormalsPipeline;
