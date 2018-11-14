@@ -33,6 +33,7 @@ class KeyboardScriptingInterface : public QObject, public Dependency {
 
 public:
     Q_INVOKABLE void loadKeyboardFile(const QString& string);
+
 private:
     bool isRaised();
     void setRaised(bool raised);

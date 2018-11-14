@@ -8541,9 +8541,10 @@ void Application::createLoginDialogOverlay() {
     refOverlayVec -= glm::vec3(0.0f, -0.1f, 1.0f);
 
     auto playArea = _displayPlugin->getPlayAreaRect();
-    const glm::vec2 PLAY_AREA_OVERLAY_MODEL_DIMENSIONS{ 0.5f, 0.5f };
+    const glm::vec2 LOGIN_OVERLAY_DIMENSIONS{ 0.5f, 0.5f };
     if (!(playArea.isEmpty())) {
-        auto playAreaCenterOffset = glm::vec3(playArea.center().x(), 1.6f, playArea.center().y());
+        // put it in the center of the play area with a default height.
+        auto playAreaCenterOffset = glm::vec3(0.0f, 1.6f, 0.0f);
         refRotation = glm::quat(1.0f, 0.0f, 1.0f, 0.0f);
         overlayProperties = {
             { "name", "LoginDialogOverlay" },
@@ -8551,12 +8552,12 @@ void Application::createLoginDialogOverlay() {
             { "parentID", getMyAvatar()->getSessionUUID() },
             { "parentJointIndex", "_SENSOR_TO_WORLD_MATRIX" },
             { "localPosition", vec3toVariant(playAreaCenterOffset) },
-            { "orientation", quatToVariant(refRotation) },
+            { "localOrientation", quatToVariant(refRotation) },
             { "isSolid", true },
             { "grabbable", false },
             { "ignorePickIntersection", false },
             { "alpha", 1.0 },
-            { "dimensions", vec2ToVariant(PLAY_AREA_OVERLAY_MODEL_DIMENSIONS)},
+            { "dimensions", vec2ToVariant(LOGIN_OVERLAY_DIMENSIONS)},
             { "dpi", overlayDpi },
             { "visible", true }
         };
@@ -8570,7 +8571,7 @@ void Application::createLoginDialogOverlay() {
             { "grabbable", false },
             { "ignorePickIntersection", false },
             { "alpha", 1.0 },
-            { "dimensions", vec2ToVariant(PLAY_AREA_OVERLAY_MODEL_DIMENSIONS)},
+            { "dimensions", vec2ToVariant(LOGIN_OVERLAY_DIMENSIONS)},
             { "dpi", overlayDpi },
             { "visible", true }
         };

@@ -99,6 +99,7 @@ public:
 
     void loadKeyboardFile(const QString& keyboardFile);
     QVector<OverlayID> getKeysID();
+    OverlayID getAnchorID();
 
 public slots:
     void handleTriggerBegin(const OverlayID& overlayID, const PointerEvent& event);

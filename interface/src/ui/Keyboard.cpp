@@ -847,6 +847,12 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
     request->send();
 }
 
+OverlayID Keyboard::getAnchorID() {
+    return _ignoreItemsLock.resultWithReadLock<OverlayID>([&] {
+        return _anchor.overlayID;
+    });
+}
+
 QVector<OverlayID> Keyboard::getKeysID() {
     return _ignoreItemsLock.resultWithReadLock<QVector<OverlayID>>([&] {
         return _itemsToIgnore;
