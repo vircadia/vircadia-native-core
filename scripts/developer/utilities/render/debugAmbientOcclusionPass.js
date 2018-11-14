@@ -1,38 +1,99 @@
+"use strict";
+
 //
-//  debugSurfaceGeometryPass.js
+//  debugAmbientOcclusionPass.js
+//  tablet-sample-app
 //
-//  Created by Sam Gateau on 6/6/2016
-//  Copyright 2016 High Fidelity, Inc.
+//  Created by Olivier Prat on April 19 2018.
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// Set up the qml ui
-var qml = Script.resolvePath('ambientOcclusionPass.qml');
-var window = new OverlayWindow({
-    title: 'Ambient Occlusion Pass',
-    source: qml,
-    width: 400, height: 300,
-});
-window.setPosition(Window.innerWidth - 420, 50 + 550 + 50);
-window.closed.connect(function() { Script.stop(); });
+(function() {
+    var TABLET_BUTTON_NAME = "AO";
+    var QMLAPP_URL = Script.resolvePath("./ambientOcclusionPass.qml");
 
+   
+    var onLuciScreen = false;
 
-var moveDebugCursor = false;
-Controller.mousePressEvent.connect(function (e) {
-	if (e.isMiddleButton) {
-      	moveDebugCursor = true;
-        setDebugCursor(e.x, e.y);
+    function onClicked() {
+        if (onLuciScreen) {
+            tablet.gotoHomeScreen();
+        } else {
+            tablet.loadQMLSource(QMLAPP_URL);
+        }
     }
-});
-Controller.mouseReleaseEvent.connect(function() { moveDebugCursor = false; });
-Controller.mouseMoveEvent.connect(function (e) { if (moveDebugCursor) setDebugCursor(e.x, e.y); });
+
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var button = tablet.addButton({
+         text: TABLET_BUTTON_NAME,
+        sortOrder: 1
+    });
+
+    var hasEventBridge = false;
+
+    function wireEventBridge(on) {
+        if (!tablet) {
+            print("Warning in wireEventBridge(): 'tablet' undefined!");
+            return;
+        }
+        if (on) {
+            if (!hasEventBridge) {
+                tablet.fromQml.connect(fromQml);
+                hasEventBridge = true;
+            }
+        } else {
+            if (hasEventBridge) {
+                tablet.fromQml.disconnect(fromQml);
+                hasEventBridge = false;
+            }
+        }
+    }
+
+    function onScreenChanged(type, url) {
+        if (url === QMLAPP_URL) {
+            onLuciScreen = true;
+        } else { 
+            onLuciScreen = false;
+        }
+        
+        button.editProperties({isActive: onLuciScreen});
+        wireEventBridge(onLuciScreen);
+    }
+
+    function fromQml(message) {
+    }
+        
+    button.clicked.connect(onClicked);
+    tablet.screenChanged.connect(onScreenChanged);
+
+    var moveDebugCursor = false;
+    Controller.mousePressEvent.connect(function (e) {
+        if (e.isMiddleButton) {
+            moveDebugCursor = true;
+            setDebugCursor(e.x, e.y);
+        }
+    });
+    Controller.mouseReleaseEvent.connect(function() { moveDebugCursor = false; });
+    Controller.mouseMoveEvent.connect(function (e) { if (moveDebugCursor) setDebugCursor(e.x, e.y); });
 
 
-function setDebugCursor(x, y) {
-    nx = (x / Window.innerWidth);
-    ny = 1.0 - ((y) / (Window.innerHeight - 32));
+    Script.scriptEnding.connect(function () {
+        if (onLuciScreen) {
+            tablet.gotoHomeScreen();
+        }
+        button.clicked.disconnect(onClicked);
+        tablet.screenChanged.disconnect(onScreenChanged);
+        tablet.removeButton(button);
+    });
 
-     Render.getConfig("RenderMainView").getConfig("DebugAmbientOcclusion").debugCursorTexcoord = { x: nx, y: ny };
-}
+    function setDebugCursor(x, y) {
+        nx = ((x + 0.5) / Window.innerWidth);
+        ny = 1.0 - ((y + 0.5) / (Window.innerHeight));
+
+         Render.getConfig("RenderMainView").getConfig("DebugAmbientOcclusion").debugCursorTexcoord = { x: nx, y: ny };
+    }
+
+}()); 

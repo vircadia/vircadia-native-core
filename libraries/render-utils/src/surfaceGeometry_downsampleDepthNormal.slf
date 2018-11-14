@@ -26,9 +26,7 @@ layout(location=1) out vec4 outNormal;
 void main(void) {
     // Gather 2 by 2 quads from texture and downsample
 
-    // Try different filters for Z
     vec4 Zeyes = textureGather(linearDepthMap, varTexCoord0, 0);
-   // float Zeye = texture(linearDepthMap, varTexCoord0).x;
 
     vec4 rawNormalsX = textureGather(normalMap, varTexCoord0, 0);
     vec4 rawNormalsY = textureGather(normalMap, varTexCoord0, 1);

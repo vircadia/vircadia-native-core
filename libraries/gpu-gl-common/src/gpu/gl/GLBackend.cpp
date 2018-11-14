@@ -177,6 +177,15 @@ void GLBackend::shutdown() {
     killShaderBinaryCache();
 }
 
+void GLBackend::do_draw(const Batch& batch, size_t paramOffset) {
+	Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
+	GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];
+	uint32 numVertices = batch._params[paramOffset + 1]._uint;
+	uint32 startVertex = batch._params[paramOffset + 0]._uint;
+
+	draw(mode, numVertices, startVertex);
+}
+
 void GLBackend::renderPassTransfer(const Batch& batch) {
     const size_t numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
