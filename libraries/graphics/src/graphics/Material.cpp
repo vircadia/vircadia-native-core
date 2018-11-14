@@ -58,7 +58,7 @@ Material& Material::operator= (const Material& material) {
 Material::~Material() {
 }
 
-void Material::setEmissive(const Color&  emissive, bool isSRGB) {
+void Material::setEmissive(const Color& emissive, bool isSRGB) {
     _key.setEmissive(glm::any(glm::greaterThan(emissive, Color(0.0f))));
     _schemaBuffer.edit<Schema>()._key = (uint32) _key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._emissive = (isSRGB ? ColorUtils::sRGBToLinearVec3(emissive) : emissive);
@@ -86,11 +86,6 @@ void Material::setRoughness(float roughness) {
     _key.setGlossy((roughness < 1.0f));
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._roughness = roughness;
-}
-
-void Material::setFresnel(const Color& fresnel, bool isSRGB) {
-    //_key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
-    _schemaBuffer.edit<Schema>()._fresnel = (isSRGB ? ColorUtils::sRGBToLinearVec3(fresnel) : fresnel);
 }
 
 void Material::setMetallic(float metallic) {

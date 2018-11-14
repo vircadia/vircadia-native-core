@@ -190,7 +190,6 @@
 
     function fromQml(message) {
         tokens = message.split('*')
-        //print("Received '"+message+"' from transition.qml")
         command = tokens[0].toLowerCase()
         if (command=="category") {
             editedCategory = parseInt(tokens[1])

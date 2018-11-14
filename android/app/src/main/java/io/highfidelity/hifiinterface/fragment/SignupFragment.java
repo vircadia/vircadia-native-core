@@ -1,42 +1,50 @@
 package io.highfidelity.hifiinterface.fragment;
 
-import android.app.Activity;
 import android.app.Fragment;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import org.qtproject.qt5.android.QtNative;
 
+import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.R;
 
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationActive;
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationInactive;
 
-public class SignupFragment extends Fragment {
+public class SignupFragment extends Fragment
+                            implements  OnBackPressedListener {
 
     private EditText mEmail;
     private EditText mUsername;
     private EditText mPassword;
     private TextView mError;
-    private TextView mCancelButton;
-
+    private TextView mActivityText;
     private Button mSignupButton;
+    private CheckBox mKeepMeLoggedInCheckbox;
 
-    private ProgressDialog mDialog;
+    private ViewGroup mSignupForm;
+    private ViewGroup mLoggingInFrame;
+    private ViewGroup mLoggedInFrame;
 
-    public native void nativeSignup(String email, String username, String password); // move to SignupFragment
-    public native void nativeCancelSignup();
-    public native void nativeLogin(String username, String password, Activity usernameChangedListener);
-    public native void nativeCancelLogin();
+    private boolean mLoginInProgress;
+    private boolean mSignupInProgress;
+    private boolean mSignupSuccess;
+
+    public native void signup(String email, String username, String password); // move to SignupFragment
+    public native void cancelSignup();
+    public native void login(String username, String password, boolean keepLoggedIn);
+    public native void cancelLogin();
 
     private SignupFragment.OnSignupInteractionListener mListener;
 
@@ -59,18 +67,23 @@ public class SignupFragment extends Fragment {
         mPassword = rootView.findViewById(R.id.password);
         mError = rootView.findViewById(R.id.error);
         mSignupButton = rootView.findViewById(R.id.signupButton);
-        mCancelButton = rootView.findViewById(R.id.cancelButton);
+        mActivityText = rootView.findViewById(R.id.activityText);
+        mKeepMeLoggedInCheckbox = rootView.findViewById(R.id.keepMeLoggedIn);
+
+        mSignupForm = rootView.findViewById(R.id.signupForm);
+        mLoggedInFrame = rootView.findViewById(R.id.loggedInFrame);
+        mLoggingInFrame = rootView.findViewById(R.id.loggingInFrame);
+
+        rootView.findViewById(R.id.cancel).setOnClickListener(view -> onCancelSignup());
 
         mSignupButton.setOnClickListener(view -> signup());
-        mCancelButton.setOnClickListener(view -> login());
-        mPassword.setOnEditorActionListener(
-                (textView, actionId, keyEvent) -> {
-                    if (actionId == EditorInfo.IME_ACTION_DONE) {
-                        mSignupButton.performClick();
-                        return true;
-                    }
-                    return false;
-                });
+
+        rootView.findViewById(R.id.getStarted).setOnClickListener(view -> onGetStartedClicked());
+
+        mPassword.setOnEditorActionListener((textView, actionId, keyEvent) -> onPasswordEditorAction(textView, actionId, keyEvent));
+
+        mKeepMeLoggedInCheckbox.setChecked(HifiUtils.getInstance().isKeepingLoggedIn());
+
         return rootView;
     }
 
@@ -101,15 +114,22 @@ public class SignupFragment extends Fragment {
     @Override
     public void onStop() {
         super.onStop();
-        cancelActivityIndicator();
         // Leave the Qt app paused
         QtNative.setApplicationState(ApplicationInactive);
         hideKeyboard();
     }
 
-    private void login() {
+    private boolean onPasswordEditorAction(TextView textView, int actionId, KeyEvent keyEvent) {
+        if (actionId == EditorInfo.IME_ACTION_DONE) {
+            mSignupButton.performClick();
+            return true;
+        }
+        return false;
+    }
+
+    private void onCancelSignup() {
         if (mListener != null) {
-            mListener.onLoginRequested();
+            mListener.onCancelSignup();
         }
     }
 
@@ -123,8 +143,11 @@ public class SignupFragment extends Fragment {
         } else {
             mSignupButton.setEnabled(false);
             hideError();
+            mActivityText.setText(R.string.creating_account);
             showActivityIndicator();
-            nativeSignup(email, username, password);
+            mSignupInProgress = true;
+            mSignupSuccess = false;
+            signup(email, username, password);
         }
     }
 
@@ -137,23 +160,21 @@ public class SignupFragment extends Fragment {
     }
 
     private void showActivityIndicator() {
-        if (mDialog == null) {
-            mDialog = new ProgressDialog(getContext());
-        }
-        mDialog.setMessage(getString(R.string.creating_account));
-        mDialog.setCancelable(true);
-        mDialog.setOnCancelListener(dialogInterface -> {
-            nativeCancelSignup();
-            cancelActivityIndicator();
-            mSignupButton.setEnabled(true);
-        });
-        mDialog.show();
+        mSignupForm.setVisibility(View.GONE);
+        mLoggedInFrame.setVisibility(View.GONE);
+        mLoggingInFrame.setVisibility(View.VISIBLE);
     }
 
-    private void cancelActivityIndicator() {
-        if (mDialog != null) {
-            mDialog.cancel();
-        }
+    private void showLoggedInMessage() {
+        mSignupForm.setVisibility(View.GONE);
+        mLoggingInFrame.setVisibility(View.GONE);
+        mLoggedInFrame.setVisibility(View.VISIBLE);
+    }
+
+    private void showSignupForm() {
+        mLoggingInFrame.setVisibility(View.GONE);
+        mLoggedInFrame.setVisibility(View.GONE);
+        mSignupForm.setVisibility(View.VISIBLE);
     }
     private void showError(String error) {
         mError.setText(error);
@@ -167,51 +188,73 @@ public class SignupFragment extends Fragment {
 
     public interface OnSignupInteractionListener {
         void onSignupCompleted();
-        void onLoginRequested();
+        void onCancelSignup();
     }
 
+    private void onGetStartedClicked() {
+        if (mListener != null) {
+            mListener.onSignupCompleted();
+        }
+    }
+
+
     public void handleSignupCompleted() {
+        mSignupInProgress = false;
         String username = mUsername.getText().toString().trim();
         String password = mPassword.getText().toString();
-        mDialog.setMessage(getString(R.string.logging_in));
-        mDialog.setCancelable(true);
-        mDialog.setOnCancelListener(dialogInterface -> {
-            nativeCancelLogin();
-            cancelActivityIndicator();
-            if (mListener != null) {
-                mListener.onLoginRequested();
-            }
+        getActivity().runOnUiThread(() -> {
+            mActivityText.setText(R.string.logging_in);
         });
-        mDialog.show();
-        nativeLogin(username, password, getActivity());
+        mLoginInProgress = true;
+        boolean keepUserLoggedIn = mKeepMeLoggedInCheckbox.isChecked();
+        login(username, password, keepUserLoggedIn);
     }
 
     public void handleSignupFailed(String error) {
+        mSignupInProgress = false;
         getActivity().runOnUiThread(() -> {
             mSignupButton.setEnabled(true);
-            cancelActivityIndicator();
+            showSignupForm();
             mError.setText(error);
             mError.setVisibility(View.VISIBLE);
         });
     }
 
     public void handleLoginCompleted(boolean success) {
+        mLoginInProgress = false;
         getActivity().runOnUiThread(() -> {
             mSignupButton.setEnabled(true);
-            cancelActivityIndicator();
-
             if (success) {
-                if (mListener != null) {
-                    mListener.onSignupCompleted();
-                }
+                mSignupSuccess = true;
+                showLoggedInMessage();
             } else {
                 // Registration was successful but login failed.
                 // Let the user to login manually
-                mListener.onLoginRequested();
+                mListener.onCancelSignup();
+                showSignupForm();
             }
         });
     }
 
+    @Override
+    public boolean doBack() {
+        if (mSignupInProgress) {
+           cancelSignup();
+        } else if (mLoginInProgress) {
+            cancelLogin();
+        }
 
-
+        if (mSignupInProgress || mLoginInProgress) {
+            showSignupForm();
+            mLoginInProgress = false;
+            mSignupInProgress = false;
+            mSignupButton.setEnabled(true);
+            return true;
+        } else if (mSignupSuccess) {
+            onGetStartedClicked();
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

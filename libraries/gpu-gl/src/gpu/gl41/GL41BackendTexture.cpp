@@ -69,12 +69,12 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
                 break;
 
             case TextureUsageType::STRICT_RESOURCE:
-                qCDebug(gpugllogging) << "Strict texture " << texture.source().c_str();
+                qCDebug(gpugllogging) << "Strict texture";
                 object = new GL41StrictResourceTexture(shared_from_this(), texture);
                 break;
 
             case TextureUsageType::RESOURCE:
-                qCDebug(gpugllogging) << "variable / Strict texture " << texture.source().c_str();
+                qCDebug(gpugllogging) << "variable / Strict texture";
                 object = new GL41ResourceTexture(shared_from_this(), texture);
                 _textureManagement._transferEngine->addMemoryManagedTexture(texturePointer);
                 break;

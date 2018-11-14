@@ -9,6 +9,7 @@
 -->
 <html>
     <head>
+        <title>Entity List</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
         <link rel="stylesheet" type="text/css" href="css/edit-style.css">
         <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
@@ -27,18 +28,19 @@
                 <input type="button" id="visible" class="glyph" value="&#xe007;" />
             </div>
             <input type="button" id="pal" class="glyph" value="&#xe00c;" />
-            <input type="button" class="red" id="delete" value="Delete" />
+            <button id="toggle-space-mode" class="hifi-edit-button space-mode-local">Local</button>
+            <input type="button" class="red glyph" id="delete" value="{" />
         </div>
         <div id="entity-list">
             <div id="filter-area">
-                <div class="multiselect">
-                    <div class="select-box" id="filter-type-select-box">
+                <div id="filter-type-multiselect" class="multiselect">
+                    <div id="filter-type-multiselect-box" class="multiselect-box">
                         <select>
                             <option id="filter-type-text">All Types</option>
                         </select>
                         <div class="over-select"></div>
                     </div>
-                    <div id="filter-type-checkboxes">
+                    <div id="filter-type-options" class="multiselect-options">
                         <!-- type options with checkbox, icon, and label are added at runtime in entityList -->
                     </div>
                 </div>
@@ -53,54 +55,21 @@
             </div>
             <div id="entity-table-scroll">
                 <table id="entity-table">
-                    <colgroup>
-                        <col span="1" id="col-type" />
-                        <col span="1" id="col-name" />
-                        <col span="1" id="col-url" />
-                        <col span="1" id="col-locked" />
-                        <col span="1" id="col-visible" />
-                        <col span="1" id="col-verticesCount" />
-                        <col span="1" id="col-texturesCount" />
-                        <col span="1" id="col-texturesSize" />
-                        <col span="1" id="col-hasTransparent" />
-                        <col span="1" id="col-isBaked" />
-                        <col span="1" id="col-drawCalls" />
-                        <col span="1" id="col-hasScript" />
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th id="entity-type">Type<span class="sort-order"></span><span id="info-toggle"><span class="glyph">D</span></span></th>
-                            <th id="entity-name">Name<span class="sort-order"></span></th>
-                            <th id="entity-url">File<span class="sort-order"></span></th>
-                            <th id="entity-locked"><span class="glyph">&#xe006;</span><span class="sort-order"></span></th>
-                            <th id="entity-visible"><span class="glyph">&#xe007;</span><span class="sort-order"></span></th>
-                            <th id="entity-verticesCount">Verts<span class="sort-order"></span></th>
-                            <th id="entity-texturesCount">Texts<span class="sort-order"></span></th>
-                            <th id="entity-texturesSize">Text MB<span class="sort-order"></span></th>
-                            <th id="entity-hasTransparent"><span class="glyph">&#xe00b;</span><span class="sort-order"></span></th>
-                            <th id="entity-isBaked">Baked<span class="sort-order"></span></th>
-                            <th id="entity-drawCalls">Draws<span class="sort-order"></span></th>
-                            <th colspan="1" id="entity-hasScript"><span class="glyph">k</span><span class="sort-order"></span></th>
-                        </tr>
-                    </thead>
-                    <tbody class="list" id="entity-table-body">
-                        <tr>
-                            <td class="type"></td>
-                            <td class="name"></td>
-                            <td class="url"><div class='outer'><div class='inner'></div></div></td>
-                            <td class="locked glyph"></td>
-                            <td class="visible glyph"></td>
-                            <td class="verticesCount"></td>
-                            <td class="texturesCount"></td>
-                            <td class="texturesSize"></td>
-                            <td class="hasTransparent glyph"></td>
-                            <td class="isBaked glyph"></td>
-                            <td class="drawCalls"></td>
-                            <td class="hasScript glyph"></td>
-                            <td class="id" style="display: none"></td>
-                        </tr>
-                    </tbody>
+                    <!-- rows and columns are added at runtime in entityList / listView -->
+                    <thead id="entity-table-header"/>
+                    <tbody class="list" id="entity-table-body"/>
                 </table>
+                <div id="entity-table-columns-multiselect" class="multiselect">
+                    <div id="entity-table-columns-multiselect-box" class="multiselect-box">
+                        <select>
+                            <option id="entity-table-columns-toggle"></option>
+                        </select>
+                        <div class="over-select"></div>
+                    </div>
+                    <div id="entity-table-columns-options" class="multiselect-options">
+                        <!-- column options are added at runtime in entityList -->
+                    </div>
+                </div>
                 <div id="no-entities">
                     There are no entities to display. Please check your filters or create an entity to begin.
                 </div>

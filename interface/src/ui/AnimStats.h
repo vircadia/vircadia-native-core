@@ -22,6 +22,9 @@ class AnimStats : public QQuickItem {
     Q_PROPERTY(QString positionText READ positionText NOTIFY positionTextChanged)
     Q_PROPERTY(QString rotationText READ rotationText NOTIFY rotationTextChanged)
     Q_PROPERTY(QString velocityText READ velocityText NOTIFY velocityTextChanged)
+    Q_PROPERTY(QString recenterText READ recenterText NOTIFY recenterTextChanged)
+    Q_PROPERTY(QString sittingText READ sittingText NOTIFY sittingTextChanged)
+    Q_PROPERTY(QString walkingText READ walkingText NOTIFY walkingTextChanged)
 
 public:
     static AnimStats* getInstance();
@@ -37,6 +40,9 @@ public:
     QString positionText() const { return _positionText; }
     QString rotationText() const { return _rotationText; }
     QString velocityText() const { return _velocityText; }
+    QString recenterText() const { return _recenterText; }
+    QString sittingText() const { return _sittingText; }
+    QString walkingText() const { return _walkingText; }
 
 public slots:
     void forceUpdateStats() { updateStats(true); }
@@ -49,6 +55,9 @@ signals:
     void positionTextChanged();
     void rotationTextChanged();
     void velocityTextChanged();
+    void recenterTextChanged();
+    void sittingTextChanged();
+    void walkingTextChanged();
 
 private:
     QStringList _animAlphaValues;
@@ -64,6 +73,9 @@ private:
     QString _positionText;
     QString _rotationText;
     QString _velocityText;
+    QString _recenterText;
+    QString _sittingText;
+    QString _walkingText;
 };
 
 #endif // hifi_AnimStats_h

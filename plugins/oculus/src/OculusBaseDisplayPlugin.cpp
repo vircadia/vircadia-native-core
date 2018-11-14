@@ -23,13 +23,14 @@ void OculusBaseDisplayPlugin::resetSensors() {
 }
 
 bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
-    ovrSessionStatus status{};
-    if (!OVR_SUCCESS(ovr_GetSessionStatus(_session, &status))) {
+    ovrResult getStatusResult;
+    ovrSessionStatus status = ovr::getStatus(getStatusResult);
+    if (!OVR_SUCCESS(getStatusResult)) {
         qCWarning(oculusLog) << "Unable to fetch Oculus session status" << ovr::getError();
         return false;
     }
 
-    if (ovr::quitRequested(status)) {
+    if (ovr::quitRequested(status) || ovr::displayLost(status) || !ovr::handleOVREvents()) {
         QMetaObject::invokeMethod(qApp, "quit");
         return false;
     }
@@ -40,11 +41,15 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         _hmdMounted = !_hmdMounted;
         emit hmdMountedChanged();
     }
+    if (ovr::isVisible(status) != _visible) {
+        _visible = !_visible;
+        emit hmdVisibleChanged(_visible);
+    }
 
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _currentRenderFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
-    auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
+    auto trackingState = ovr::getTrackingState(_currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
     _currentRenderFrameInfo.renderPose = ovr::toGlm(trackingState.HeadPose.ThePose);
     _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
 
@@ -167,7 +172,7 @@ void OculusBaseDisplayPlugin::updatePresentPose() {
     ovrTrackingState trackingState;
     _currentPresentFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _currentPresentFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, 0);
-    trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrFalse);
+    trackingState = ovr::getTrackingState(_currentRenderFrameInfo.predictedDisplayTime);
     _currentPresentFrameInfo.presentPose = ovr::toGlm(trackingState.HeadPose.ThePose);
     _currentPresentFrameInfo.renderPose = _currentPresentFrameInfo.presentPose;
 }

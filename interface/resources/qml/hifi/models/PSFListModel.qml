@@ -130,9 +130,9 @@ ListModel {
     // Check consistency and call processPage.
     function handlePage(error, response, cb) {
         var processed;
-        console.debug('handlePage', listModelName, additionalFirstPageRequested, error, JSON.stringify(response));
+        console.debug('handlePage', listModelName, additionalFirstPageRequested, error);
         function fail(message) {
-            console.warn("Warning page fail", listModelName, JSON.stringify(message));
+            console.warn("Warning page fail", listModelName);
             currentPageToRetrieve = -1;
             requestPending = false;
             delayedClear = false;

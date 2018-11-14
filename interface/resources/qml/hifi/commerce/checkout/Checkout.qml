@@ -1094,7 +1094,7 @@ Rectangle {
                 refreshBuyUI();
             break;
             default:
-                console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
+                console.log('Checkout.qml: Unrecognized message from marketplaces.js');
         }
     }
     signal sendToScript(var message);

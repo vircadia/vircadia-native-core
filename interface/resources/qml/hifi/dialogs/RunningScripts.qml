@@ -130,17 +130,14 @@ Windows.ScrollingWindow {
     }
 
     function loadScript(script) {
-        console.log("Load script " + script);
         scripts.loadOneScript(script);
     }
 
     function reloadScript(script) {
-        console.log("Reload script " + script);
         scripts.stopScript(script, true);
     }
 
     function stopScript(script) {
-        console.log("Stop script " + script);
         scripts.stopScript(script);
     }
 

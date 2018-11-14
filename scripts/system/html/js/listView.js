@@ -7,7 +7,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 const SCROLL_ROWS = 2; // number of rows used as scrolling buffer, each time we pass this number of rows we scroll
-const FIRST_ROW_INDEX = 3; // the first elRow element's index in the child nodes of the table body
+const FIRST_ROW_INDEX = 2; // the first elRow element's index in the child nodes of the table body
 
 debugPrint = function (message) {
     console.log(message);
@@ -284,18 +284,6 @@ ListView.prototype = {
             this.elTableBody.insertBefore(scrollRow, this.elBottomBuffer);
             this.elRows.push(scrollRow);
         }
-
-        let ths = this.elTableHeaderRow;
-        let tds = this.getNumRows() > 0 ? this.elRows[0].childNodes : [];
-        if (!ths) {
-            debugPrint("ListView.resize - no valid table header row");
-        } else if (tds.length !== ths.length) {
-            debugPrint("ListView.resize - td list size " + tds.length + " does not match th list size " + ths.length);
-        }
-        // update the widths of the header cells to match the body cells (using first body row)
-        for (let i = 0; i < ths.length; i++) {
-            ths[i].width = tds[i].offsetWidth;
-        }
         
         // restore the scroll point to the same scroll point from before above changes
         this.elTableScroll.scrollTop = prevScrollTop;
@@ -308,9 +296,6 @@ ListView.prototype = {
             debugPrint("ListView.initialize - no valid table body or table scroll element");
             return;
         }
-        
-        // delete initial blank row
-        this.elTableBody.deleteRow(0);
         
         this.elTopBuffer = document.createElement("tr");
         this.elTableBody.appendChild(this.elTopBuffer);

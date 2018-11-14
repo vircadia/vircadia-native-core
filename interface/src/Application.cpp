@@ -390,6 +390,9 @@ static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 static const QString KEEP_ME_LOGGED_IN_SETTING_NAME = "keepMeLoggedIn";
 
+#if defined(Q_OS_ANDROID)
+static const QString TESTER_FILE = "/sdcard/_hifi_test_device.txt";
+#endif
 const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
@@ -996,6 +999,7 @@ const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_PREFER_STYLUS_OVER_LASER = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 const QString DEFAULT_CURSOR_NAME = "DEFAULT";
+const bool DEFAULT_MINI_TABLET_ENABLED = true;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runningMarkerExisted) :
     QApplication(argc, argv),
@@ -1016,6 +1020,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _preferAvatarFingerOverStylusSetting("preferAvatarFingerOverStylus", DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _preferredCursor("preferredCursor", DEFAULT_CURSOR_NAME),
+    _miniTabletEnabledSetting("miniTabletEnabled", DEFAULT_MINI_TABLET_ENABLED),
     _scaleMirror(1.0f),
     _mirrorYawOffset(0.0f),
     _raiseMirror(0.0f),
@@ -1468,6 +1473,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
+    static const QString TESTER = "HIFI_TESTER";
+     bool isTester = false;
+#if defined (Q_OS_ANDROID)
+    // Since we cannot set environment variables in Android we use a file presence
+    // to denote that this is a testing device
+    QFileInfo check_tester_file(TESTER_FILE);
+    isTester = check_tester_file.exists() && check_tester_file.isFile();
+#endif
+
     constexpr auto INSTALLER_INI_NAME = "installer.ini";
     auto iniPath = QDir(applicationDirPath()).filePath(INSTALLER_INI_NAME);
     QFile installerFile { iniPath };
@@ -1519,7 +1533,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto glContextData = getGLContextData();
         QJsonObject properties = {
             { "version", applicationVersion() },
-            { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
+            { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) || isTester },
             { "installer_campaign", installerCampaign },
             { "installer_type", installerType },
             { "build_type", BuildInfo::BUILD_TYPE_STRING },
@@ -2770,6 +2784,7 @@ void Application::initializeGL() {
     }
 
     // Build a shared canvas / context for the QML rendering
+#if !defined(DISABLE_QML)
     {
         _qmlShareContext = new OffscreenGLCanvas();
         _qmlShareContext->setObjectName("QmlShareContext");
@@ -2783,6 +2798,8 @@ void Application::initializeGL() {
             qCWarning(interfaceapp, "Unable to make window context current");
         }
     }
+#endif
+
 
     _renderEventHandler = new RenderEventHandler();
 
@@ -2825,8 +2842,10 @@ void Application::initializeDisplayPlugins() {
             [this](const QSize& size) { resizeGL(); });
         QObject::connect(displayPlugin.get(), &DisplayPlugin::resetSensorsRequested, this, &Application::requestReset);
         if (displayPlugin->isHmd()) {
-            QObject::connect(dynamic_cast<HmdDisplayPlugin*>(displayPlugin.get()), &HmdDisplayPlugin::hmdMountedChanged,
+            auto hmdDisplayPlugin = dynamic_cast<HmdDisplayPlugin*>(displayPlugin.get());
+            QObject::connect(hmdDisplayPlugin, &HmdDisplayPlugin::hmdMountedChanged,
                 DependencyManager::get<HMDScriptingInterface>().data(), &HMDScriptingInterface::mountedChanged);
+            QObject::connect(hmdDisplayPlugin, &HmdDisplayPlugin::hmdVisibleChanged, this, &Application::hmdVisibleChanged);
         }
     }
 
@@ -3365,6 +3384,11 @@ void Application::setSettingConstrainToolbarPosition(bool setting) {
     DependencyManager::get<OffscreenUi>()->setConstrainToolbarToCenterX(setting);
 }
 
+void Application::setMiniTabletEnabled(bool enabled) {
+    _miniTabletEnabledSetting.set(enabled);
+    emit miniTabletEnabledChanged(enabled);
+}
+
 void Application::showHelp() {
     static const QString HAND_CONTROLLER_NAME_VIVE = "vive";
     static const QString HAND_CONTROLLER_NAME_OCULUS_TOUCH = "oculus";
@@ -3509,7 +3533,17 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     } else {
 #if !defined(Q_OS_ANDROID)
-        qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+        QString goingTo = "";
+        if (addressLookupString.isEmpty()) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::HomeLocation)) {
+                auto locationBookmarks = DependencyManager::get<LocationBookmarks>();
+                addressLookupString = locationBookmarks->addressForBookmark(LocationBookmarks::HOME_BOOKMARK);
+                goingTo = "home location";
+            } else {
+                goingTo = "previous location";
+            }
+        }
+        qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(!goingTo.isEmpty() ? goingTo : addressLookupString);
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         sentTo = SENT_TO_PREVIOUS_LOCATION;
 #endif
@@ -4028,21 +4062,23 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_P: {
-                AudioInjectorOptions options;
-                options.localOnly = true;
-                options.stereo = true;
-                Setting::Handle<bool> notificationSounds{ MenuOption::NotificationSounds, true};
-                Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true};
-                if (notificationSounds.get() && notificationSoundSnapshot.get()) {
-                    if (_snapshotSoundInjector) {
-                        _snapshotSoundInjector->setOptions(options);
-                        _snapshotSoundInjector->restart();
-                    } else {
-                        QByteArray samples = _snapshotSound->getByteArray();
-                        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                if (!isShifted && !isMeta && !isOption && !event->isAutoRepeat()) {
+                    AudioInjectorOptions options;
+                    options.localOnly = true;
+                    options.stereo = true;
+                    Setting::Handle<bool> notificationSounds{ MenuOption::NotificationSounds, true };
+                    Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true };
+                    if (notificationSounds.get() && notificationSoundSnapshot.get()) {
+                        if (_snapshotSoundInjector) {
+                            _snapshotSoundInjector->setOptions(options);
+                            _snapshotSoundInjector->restart();
+                        } else {
+                            QByteArray samples = _snapshotSound->getByteArray();
+                            _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                        }
                     }
+                    takeSnapshot(true);
                 }
-                takeSnapshot(true);
                 break;
             }
 
@@ -6184,9 +6220,7 @@ void Application::update(float deltaTime) {
     {
         PROFILE_RANGE_EX(app, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("overlays");
-        if (qApp->shouldPaint()) {
-            _overlays.update(deltaTime);
-        }
+        _overlays.update(deltaTime);
     }
 
     // Update _viewFrustum with latest camera and view frustum data...
@@ -6271,10 +6305,8 @@ void Application::update(float deltaTime) {
         PROFILE_RANGE_EX(app, "PostUpdateLambdas", 0xffff0000, (uint64_t)0);
         PerformanceTimer perfTimer("postUpdateLambdas");
         std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
-        if (qApp->shouldPaint()) {
-            for (auto& iter : _postUpdateLambdas) {
-                iter.second();
-            }
+        for (auto& iter : _postUpdateLambdas) {
+            iter.second();
         }
         _postUpdateLambdas.clear();
     }
@@ -6621,13 +6653,24 @@ void Application::copyDisplayViewFrustum(ViewFrustum& viewOut) const {
     viewOut = _displayViewFrustum;
 }
 
+// resentSensors() is a bit of vestigial feature. It used to be used for Oculus DK2 to recenter the view around
+// the current head orientation.  With the introduction of "room scale" tracking we no longer need that particular
+// feature.  However, we still use this to reset face trackers, eye trackers, audio and to optionally re-load the avatar
+// rig and animations from scratch.
 void Application::resetSensors(bool andReload) {
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
-    getActiveDisplayPlugin()->resetSensors();
     _overlayConductor.centerUI();
     getMyAvatar()->reset(true, andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
+}
+
+void Application::hmdVisibleChanged(bool visible) {
+    if (visible) {
+        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "start", Qt::QueuedConnection);
+    } else {
+        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop", Qt::QueuedConnection);
+    }
 }
 
 void Application::updateWindowTitle() const {
@@ -7123,7 +7166,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
                 getMyAvatar()->useFullAvatarURL(url, modelName);
                 emit fullAvatarURLChanged(url, modelName);
             } else {
-                qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
+                qCDebug(interfaceapp) << "Declined to use the avatar";
             }
         });
     };
@@ -7151,7 +7194,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
                     break;
                 }
             } else {
-                qCDebug(interfaceapp) << "Declined to agree to avatar license: " << url;
+                qCDebug(interfaceapp) << "Declined to agree to avatar license";
             }
 
             //auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -7188,7 +7231,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
             qCDebug(interfaceapp) << "Chose to run the script: " << fileName;
             DependencyManager::get<ScriptEngines>()->loadScript(fileName);
         } else {
-            qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
+            qCDebug(interfaceapp) << "Declined to run the script";
         }
         QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
     });
@@ -7246,7 +7289,7 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
                         attachmentDataVec.push_back(attachmentData);
                         myAvatar->setAttachmentData(attachmentDataVec);
                     } else {
-                        qCDebug(interfaceapp) << "User declined to wear the avatar attachment: " << url;
+                        qCDebug(interfaceapp) << "User declined to wear the avatar attachment";
                     }
                 });
             } else {
@@ -7265,7 +7308,7 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
 }
 
 void Application::replaceDomainContent(const QString& url) {
-    qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
+    qCDebug(interfaceapp) << "Attempting to replace domain content";
     QByteArray urlData(url.toUtf8());
     auto limitedNodeList = DependencyManager::get<NodeList>();
     const auto& domainHandler = limitedNodeList->getDomainHandler();
@@ -7393,7 +7436,6 @@ void Application::showAssetServerWidget(QString filePath) {
 }
 
 void Application::addAssetToWorldFromURL(QString url) {
-    qInfo(interfaceapp) << "Download model and add to world from" << url;
 
     QString filename;
     if (url.contains("filename")) {
@@ -7446,13 +7488,11 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     }
 
     if (result == ResourceRequest::Success) {
-        qInfo(interfaceapp) << "Downloaded model from" << url;
         QTemporaryDir temporaryDir;
         temporaryDir.setAutoRemove(false);
         if (temporaryDir.isValid()) {
             QString temporaryDirPath = temporaryDir.path();
             QString downloadPath = temporaryDirPath + "/" + filename;
-            qInfo(interfaceapp) << "Download path:" << downloadPath;
 
             QFile tempFile(downloadPath);
             if (tempFile.open(QIODevice::WriteOnly)) {

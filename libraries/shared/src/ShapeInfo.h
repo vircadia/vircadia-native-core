@@ -67,7 +67,7 @@ public:
     void setBox(const glm::vec3& halfExtents);
     void setSphere(float radius);
     void setPointCollection(const PointCollection& pointCollection);
-    void setCapsuleY(float radius, float halfHeight);
+    void setCapsuleY(float radius, float cylinderHalfHeight);
     void setOffset(const glm::vec3& offset);
 
     ShapeType getType() const { return _type; }

@@ -26,6 +26,8 @@
 
 #include "RenderCommonTask.h"
 
+#include "FadeEffect.h"
+
 // These values are used for culling the objects rendered in the shadow map
 // but are readjusted afterwards
 #define SHADOW_FRUSTUM_NEAR 1.0f
@@ -33,7 +35,7 @@
 
 using namespace render;
 
-extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
+extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 void RenderShadowTask::configure(const Config& configuration) {
     DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
@@ -49,7 +51,8 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
 
-        initZPassPipelines(*shapePlumber, state);
+        auto fadeEffect = DependencyManager::get<FadeEffect>();
+        initZPassPipelines(*shapePlumber, state, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
     }
 
     // FIXME: calling this here before the zones/lights are drawn during the deferred/forward passes means we're actually using the frames from the previous draw
@@ -222,7 +225,6 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     auto& fbo = cascade.framebuffer;
 
     RenderArgs* args = renderContext->args;
-    ShapeKey::Builder defaultKeyBuilder;
     auto adjustedShadowFrustum = args->getViewFrustum();
 
     // Adjust the frustum near and far depths based on the rendered items bounding box to have
@@ -253,53 +255,56 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
             batch.setProjectionTransform(projMat);
             batch.setViewTransform(viewMat, false);
 
-            auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
-            auto shadowDeformedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withDeformed());
-            auto shadowDeformedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withDeformed().withDualQuatSkinned());
+            const std::vector<ShapeKey::Builder> keys = {
+                ShapeKey::Builder(), ShapeKey::Builder().withFade(),
+                ShapeKey::Builder().withDeformed(), ShapeKey::Builder().withDeformed().withFade(),
+                ShapeKey::Builder().withDeformed().withDualQuatSkinned(), ShapeKey::Builder().withDeformed().withDualQuatSkinned().withFade(),
+                ShapeKey::Builder().withOwnPipeline(), ShapeKey::Builder().withOwnPipeline().withFade()
+            };
+            std::vector<std::vector<ShapeKey>> sortedShapeKeys(keys.size());
 
-            std::vector<ShapeKey> deformedShapeKeys{};
-            std::vector<ShapeKey> deformedDQShapeKeys{};
-            std::vector<ShapeKey> ownPipelineShapeKeys{};
-
-            // Iterate through all inShapes and render the unskinned
-            args->_shapePipeline = shadowPipeline;
-            batch.setPipeline(shadowPipeline->pipeline);
-            for (auto items : inShapes) {
+            const int OWN_PIPELINE_INDEX = 6;
+            for (const auto& items : inShapes) {
+                int index = items.first.hasOwnPipeline() ? OWN_PIPELINE_INDEX : 0;
                 if (items.first.isDeformed()) {
+                    index += 2;
                     if (items.first.isDualQuatSkinned()) {
-                        deformedDQShapeKeys.push_back(items.first);
-                    } else {
-                        deformedShapeKeys.push_back(items.first);
+                        index += 2;
                     }
-                } else if (!items.first.hasOwnPipeline()) {
-                    renderItems(renderContext, items.second);
-                } else {
-                    ownPipelineShapeKeys.push_back(items.first);
+                }
+
+                if (items.first.isFaded()) {
+                    index += 1;
+                }
+
+                sortedShapeKeys[index].push_back(items.first);
+            }
+
+            // Render non-withOwnPipeline things
+            for (size_t i = 0; i < OWN_PIPELINE_INDEX; i++) {
+                auto& shapeKeys = sortedShapeKeys[i];
+                if (shapeKeys.size() > 0) {
+                    const auto& shapePipeline = _shapePlumber->pickPipeline(args, keys[i]);
+                    args->_shapePipeline = shapePipeline;
+                    for (const auto& key : shapeKeys) {
+                        renderShapes(renderContext, _shapePlumber, inShapes.at(key));
+                    }
                 }
             }
 
-            // Reiterate to render the skinned
-            args->_shapePipeline = shadowDeformedPipeline;
-            batch.setPipeline(shadowDeformedPipeline->pipeline);
-            for (const auto& key : deformedShapeKeys) {
-                renderItems(renderContext, inShapes.at(key));
+            // Render withOwnPipeline things
+            for (size_t i = OWN_PIPELINE_INDEX; i < keys.size(); i++) {
+                auto& shapeKeys = sortedShapeKeys[i];
+                if (shapeKeys.size() > 0) {
+                    args->_shapePipeline = nullptr;
+                    for (const auto& key : shapeKeys) {
+                        args->_itemShapeKey = key._flags.to_ulong();
+                        renderShapes(renderContext, _shapePlumber, inShapes.at(key));
+                    }
+                }
             }
 
-            // Reiterate to render the DQ skinned
-            args->_shapePipeline = shadowDeformedDQPipeline;
-            batch.setPipeline(shadowDeformedDQPipeline->pipeline);
-            for (const auto& key : deformedDQShapeKeys) {
-                renderItems(renderContext, inShapes.at(key));
-            }
-
-            // Finally render the items with their own pipeline last to prevent them from breaking the
-            // render state. This is probably a temporary code as there is probably something better
-            // to do in the render call of objects that have their own pipeline.
             args->_shapePipeline = nullptr;
-            for (const auto& key : ownPipelineShapeKeys) {
-                args->_itemShapeKey = key._flags.to_ulong();
-                renderItems(renderContext, inShapes.at(key));
-            }
         }
 
         args->_batch = nullptr;
