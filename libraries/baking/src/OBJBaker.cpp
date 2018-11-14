@@ -143,9 +143,10 @@ void OBJBaker::bakeOBJ() {
 
     QByteArray objData = objFile.readAll();
 
-    bool combineParts = true; // set true so that OBJSerializer reads material info from material library
     OBJSerializer serializer;
-    auto geometry = serializer.read(objData, QVariantHash(), _modelURL);
+    QVariantHash mapping;
+    mapping["combineParts"] = true; // set true so that OBJSerializer reads material info from material library
+    auto geometry = serializer.read(objData, mapping, _modelURL);
 
     // Write OBJ Data as FBX tree nodes
     createFBXNodeTree(_rootNode, *geometry);
