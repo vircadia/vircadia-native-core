@@ -1450,10 +1450,11 @@ function disableChildren(el, selector) {
 }
 
 function enableProperties() {
-    enableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
+    enableChildren(document.getElementById("properties-list"),
+                   "input, textarea, checkbox, .dropdown dl, .color-picker , .draggable-number.text");
     enableChildren(document, ".colpick");
+    
     let elLocked = getPropertyInputElement("locked");
-
     if (elLocked.checked === false) {
         removeStaticUserData();
         removeStaticMaterialData();
@@ -1461,13 +1462,14 @@ function enableProperties() {
 }
 
 function disableProperties() {
-    disableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
+    disableChildren(document.getElementById("properties-list"),
+                    "input, textarea, checkbox, .dropdown dl, .color-picker, .draggable-number.text");
     disableChildren(document, ".colpick");
     for (let pickKey in colorPickers) {
         colorPickers[pickKey].colpickHide();
     }
+    
     let elLocked = getPropertyInputElement("locked");
-
     if (elLocked.checked === true) {
         if ($('#property-userData-editor').css('display') === "block") {
             showStaticUserData();
@@ -1797,10 +1799,12 @@ function createBoolProperty(property, elProperty) {
     let subPropertyOf = propertyData.subPropertyOf;
     if (subPropertyOf !== undefined) {
         elInput.addEventListener('change', function() {
-            updateCheckedSubProperty(subPropertyOf, selectedEntityProperties[subPropertyOf], elInput, propertyName, property.isParticleProperty);
+            updateCheckedSubProperty(subPropertyOf, selectedEntityProperties[subPropertyOf], 
+                                     elInput, propertyName, property.isParticleProperty);
         });
     } else {
-        elInput.addEventListener('change', createEmitCheckedPropertyUpdateFunction(propertyName, propertyData.inverse, property.isParticleProperty));
+        elInput.addEventListener('change', createEmitCheckedPropertyUpdateFunction(propertyName, propertyData.inverse, 
+                                                                                   property.isParticleProperty));
     }
     
     return elInput;
@@ -1813,14 +1817,16 @@ function createNumberProperty(property, elProperty) {
     
     elProperty.className = "draggable-number";
 
-    let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step);
+    let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, 
+                                                propertyData.step, propertyData.decimals);
     
     let defaultValue = propertyData.defaultValue;   
     if (defaultValue !== undefined) {   
         elDraggableNumber.elInput.value = defaultValue; 
     }
 
-    let valueChangeFunction = createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, property.isParticleProperty);
+    let valueChangeFunction = createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, 
+                                                                     property.isParticleProperty);
     elDraggableNumber.setValueChangeFunction(valueChangeFunction);
     
     elDraggableNumber.elInput.setAttribute("id", elementID);
@@ -1841,11 +1847,11 @@ function createVec3Property(property, elProperty) {
     elProperty.className = propertyData.vec3Type + " fstuple";
     
     let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER], 
-                                           propertyData.min, propertyData.max, propertyData.step);
+                                           propertyData.min, propertyData.max, propertyData.step, propertyData.decimals);
     let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER], 
-                                           propertyData.min, propertyData.max, propertyData.step);
+                                           propertyData.min, propertyData.max, propertyData.step, propertyData.decimals);
     let elNumberZ = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Z_NUMBER], 
-                                           propertyData.min, propertyData.max, propertyData.step);
+                                           propertyData.min, propertyData.max, propertyData.step, propertyData.decimals);
     
     let valueChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput, 
                                                                    elNumberZ.elInput, propertyData.multiplier, 
@@ -1874,9 +1880,9 @@ function createVec2Property(property, elProperty) {
     elProperty.appendChild(elTuple);
     
     let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER], 
-                                           propertyData.min, propertyData.max, propertyData.step);
+                                           propertyData.min, propertyData.max, propertyData.step, propertyData.decimals);
     let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER], 
-                                           propertyData.min, propertyData.max, propertyData.step);
+                                           propertyData.min, propertyData.max, propertyData.step, propertyData.decimals);
     
     let valueChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput,
                                                                    propertyData.multiplier, property.isParticleProperty);
@@ -2078,15 +2084,16 @@ function createButtonsProperty(property, elProperty, elLabel) {
     return elProperty;
 }
 
-function createTupleNumberInput(elTuple, propertyElementID, subLabel, min, max, step) {
+function createTupleNumberInput(elTuple, propertyElementID, subLabel, min, max, step, decimals) {
     let elementID = propertyElementID + "-" + subLabel.toLowerCase();
     
     let elLabel = document.createElement('label');
     elLabel.className = "sublabel " + subLabel;
     elLabel.innerText = subLabel[0].toUpperCase() + subLabel.slice(1);
     elLabel.setAttribute("for", elementID);
+    elLabel.style.visibility = "visible";
     
-    let elDraggableNumber = new DraggableNumber(min, max, step);
+    let elDraggableNumber = new DraggableNumber(min, max, step, decimals);
     elDraggableNumber.elInput.setAttribute("id", elementID);
     elDraggableNumber.elDiv.className += " fstuple";
     elDraggableNumber.elText.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
@@ -3119,11 +3126,7 @@ function loaded() {
                                     if (propertyData.round !== undefined) {
                                         value = Math.round(value.round) / propertyData.round;
                                     }
-                                    if (propertyData.decimals !== undefined) {
-                                        property.elNumber.setValue(value.toFixed(propertyData.decimals));
-                                    } else {
-                                        property.elNumber.setValue(value);
-                                    }
+                                    property.elNumber.setValue(value);
                                     break;
                                 }
                                 case 'vec3':

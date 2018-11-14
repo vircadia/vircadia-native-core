@@ -252,7 +252,7 @@ input.search:focus {
     box-shadow: 0 0 0 1px #00b4ef;
 }
 
-input:disabled, textarea:disabled {
+input:disabled, textarea:disabled, .draggable-number.text[disabled="disabled"] {
     background-color: #383838;
     color: #afafaf;
 }
@@ -1444,11 +1444,6 @@ input#property-scale-button-rescale {
 input#property-scale-button-reset {
     margin-right: 0;
     left: 250px;
-}
-
-#property-userData-button-edit,
-#property-materialData-button-clear {
-    margin: 6px 0 6px 0;
 }
 
 #property-userData-static,
