@@ -880,29 +880,75 @@ div.refresh input[type="button"] {
 
 .draggable-number {
     position: relative;
-    right: 10px;
+}
+.draggable-number div {
+    height: 28px;
+    width: 92px;
+}
+.draggable-number.text {
+    display: inline-block;
+    color: #afafaf;
+    background-color: #252525;
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;   
+    margin: 0;
+    padding: 0 16px;
+    height: 28px;
+    width: 100%;
+    line-height: 2;
+}
+.draggable-number.text:hover {
+    cursor: ew-resize;
 }
 .draggable-number span {
-    position: relative;
-    top: -2px;
+    position: absolute;
     display: inline-block;
-    font-family: hifi-glyphs;
+    font-family: HiFi-Glyphs;
     font-size: 20px;
     z-index: 2;
 }
+.draggable-number span:hover {
+    cursor: default;
+}
 .draggable-number.left-arrow {
-    left: 17px;
+    top: -5px;
+    right: 106px;
     transform: rotate(180deg);
 }
 .draggable-number.right-arrow {
-    right: 17px;
+    top: -5px;
+    left: 106px;
 }
-.draggable-number.fstuple span {
+.draggable-number input[type=number] {
+    position: absolute;
+    right: 0;
+    width: 100%;
+}
+.draggable-number input[type=button] {
+    position: absolute;
     top: 0;
 }
 .draggable-number input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     visibility: hidden;
+}
+.draggable-number.fstuple {
+    height: 28px;
+    width: 124px;
+    left: 12px;
+}
+.draggable-number.fstuple + .draggable-number.fstuple {
+    padding-left: 28px;
+}
+.draggable-number.fstuple input {
+    right: -10px;
+}
+.draggable-number.fstuple .sublabel {
+    position: absolute;
+    top: 0;
+    left: -16px;
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
 }
 
 .row .property {
@@ -921,10 +967,10 @@ div.refresh input[type="button"] {
 .property.texture {
     display: block;
 }
-.property.texture input{
+.property.texture input {
     margin: 0.4rem 0;
 }
-.texture-image img{
+.texture-image img {
     padding: 0;
     margin: 0;
     width: 100%;
@@ -1466,12 +1512,12 @@ th#entity-hasScript {
 }
 
 input#property-scale-button-rescale {
-    margin-top: 6px;
     min-width: 50px;
+    left: 152px;
 }
 input#property-scale-button-reset {
-    margin-top: 6px;
     margin-right: 0;
+    left: 250px;
 }
 
 #property-userData-button-edit,
@@ -1659,6 +1705,10 @@ input.number-slider {
 .flex-column {
     display: flex;
     flex-flow: column;
+}
+
+.flex-column + .flex-column {
+    padding-left: 50px;
 }
 
 .flex-center {

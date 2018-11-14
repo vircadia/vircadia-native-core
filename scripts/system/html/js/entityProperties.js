@@ -1374,16 +1374,16 @@ const PROPERTY_NAME_DIVISION = {
 };
 
 const VECTOR_ELEMENTS = {
-    X_INPUT: 0,
-    Y_INPUT: 1,
-    Z_INPUT: 2,
+    X_NUMBER: 0,
+    Y_NUMBER: 1,
+    Z_NUMBER: 2,
 };
 
 const COLOR_ELEMENTS = {
     COLOR_PICKER: 0,
-    RED_INPUT: 1,
-    GREEN_INPUT: 2,
-    BLUE_INPUT: 3,
+    RED_NUMBER: 1,
+    GREEN_NUMBER: 2,
+    BLUE_NUMBER: 3,
 };
 
 const TEXTURE_ELEMENTS = {
@@ -1417,16 +1417,17 @@ function getPropertyInputElement(propertyID) {
     switch (property.data.type) {
         case 'string':
         case 'bool':
-        case 'number':
         case 'dropdown':
         case 'textarea':
         case 'texture':
             return property.elInput;
+        case 'number':
+            return property.elNumber.elInput;
         case 'vec3': 
         case 'vec2':
-            return { x: property.elInputX, y: property.elInputY, z: property.elInputZ };
+            return { x: property.elNumberX.elInput, y: property.elNumberY.elInput, z: property.elNumberZ.elInput };
         case 'color':
-            return { red: property.elInputR, green: property.elInputG, blue: property.elInputB };
+            return { red: property.elNumberR.elInput, green: property.elNumberG.elInput, blue: property.elNumberB.elInput };
         case 'icon':
             return property.elLabel;
         default:
@@ -1498,26 +1499,26 @@ function resetProperties() {
             }
             case 'number': {
                 if (propertyData.defaultValue !== undefined) {
-                    property.elInput.value = propertyData.defaultValue;
+                    property.elNumber.setValue(propertyData.defaultValue);
                 } else { 
-                    property.elInput.value = "";
+                    property.elNumber.setValue("");
                 }
                 break;
             }
             case 'vec3': 
             case 'vec2': {
-                property.elInputX.value = "";
-                property.elInputY.value = "";
-                if (property.elInputZ !== undefined) {
-                    property.elInputZ.value = "";
+                property.elNumberX.setValue("");
+                property.elNumberY.setValue("");
+                if (property.elNumberZ !== undefined) {
+                    property.elNumberZ.setValue("");
                 }
                 break;
             }
             case 'color': {
                 property.elColorPicker.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
-                property.elInputR.value = "";
-                property.elInputG.value = "";
-                property.elInputB.value = "";
+                property.elNumberR.setValue("");
+                property.elNumberG.setValue("");
+                property.elNumberB.setValue("");
                 break;
             }
             case 'dropdown': {
@@ -1819,17 +1820,17 @@ function createNumberProperty(property, elProperty) {
         elDraggableNumber.elInput.value = defaultValue; 
     }
 
-    let inputChangeFunction = createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, propertyData.decimals, property.isParticleProperty);
-    elDraggableNumber.setInputChangeFunction(inputChangeFunction);
+    let valueChangeFunction = createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, property.isParticleProperty);
+    elDraggableNumber.setValueChangeFunction(valueChangeFunction);
     
     elDraggableNumber.elInput.setAttribute("id", elementID);
     elProperty.appendChild(elDraggableNumber.elDiv);
 
     if (propertyData.buttons !== undefined) {
-        addButtons(elDraggableNumber.elDiv, elementID, propertyData.buttons, false);
+        addButtons(elDraggableNumber.elText, elementID, propertyData.buttons, false);
     }
     
-    return elDraggableNumber.elInput;
+    return elDraggableNumber;
 }
 
 function createVec3Property(property, elProperty) {
@@ -1839,24 +1840,24 @@ function createVec3Property(property, elProperty) {
 
     elProperty.className = propertyData.vec3Type + " fstuple";
     
-    let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
+    let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER], 
                                            propertyData.min, propertyData.max, propertyData.step);
-    let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
+    let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER], 
                                            propertyData.min, propertyData.max, propertyData.step);
-    let elNumberZ = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Z_INPUT], 
+    let elNumberZ = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Z_NUMBER], 
                                            propertyData.min, propertyData.max, propertyData.step);
     
-    let inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput, 
+    let valueChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput, 
                                                                    elNumberZ.elInput, propertyData.multiplier, 
                                                                    property.isParticleProperty);    
-    elNumberX.setInputChangeFunction(inputChangeFunction);
-    elNumberY.setInputChangeFunction(inputChangeFunction);
-    elNumberZ.setInputChangeFunction(inputChangeFunction);
+    elNumberX.setValueChangeFunction(valueChangeFunction);
+    elNumberY.setValueChangeFunction(valueChangeFunction);
+    elNumberZ.setValueChangeFunction(valueChangeFunction);
     
     let elResult = [];
-    elResult[VECTOR_ELEMENTS.X_INPUT] = elNumberX.elInput;
-    elResult[VECTOR_ELEMENTS.Y_INPUT] = elNumberY.elInput;
-    elResult[VECTOR_ELEMENTS.Z_INPUT] = elNumberZ.elInput;
+    elResult[VECTOR_ELEMENTS.X_NUMBER] = elNumberX;
+    elResult[VECTOR_ELEMENTS.Y_NUMBER] = elNumberY;
+    elResult[VECTOR_ELEMENTS.Z_NUMBER] = elNumberZ;
     return elResult;
 }
 
@@ -1872,19 +1873,19 @@ function createVec2Property(property, elProperty) {
     
     elProperty.appendChild(elTuple);
     
-    let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
+    let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER], 
                                            propertyData.min, propertyData.max, propertyData.step);
-    let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
+    let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER], 
                                            propertyData.min, propertyData.max, propertyData.step);
     
-    let inputChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput,
+    let valueChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput,
                                                                    propertyData.multiplier, property.isParticleProperty);
-    elNumberX.setInputChangeFunction(inputChangeFunction);
-    elNumberY.setInputChangeFunction(inputChangeFunction);
+    elNumberX.setValueChangeFunction(valueChangeFunction);
+    elNumberY.setValueChangeFunction(valueChangeFunction);
     
     let elResult = [];
-    elResult[VECTOR_ELEMENTS.X_INPUT] = elNumberX.elInput;
-    elResult[VECTOR_ELEMENTS.Y_INPUT] = elNumberY.elInput;
+    elResult[VECTOR_ELEMENTS.X_NUMBER] = elNumberX;
+    elResult[VECTOR_ELEMENTS.Y_NUMBER] = elNumberY;
     return elResult;
 }
 
@@ -1908,11 +1909,11 @@ function createColorProperty(property, elProperty) {
     let elNumberG = createTupleNumberInput(elTuple, elementID, "green", COLOR_MIN, COLOR_MAX, COLOR_STEP);
     let elNumberB = createTupleNumberInput(elTuple, elementID, "blue", COLOR_MIN, COLOR_MAX, COLOR_STEP);
     
-    let inputChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elNumberR.elInput, elNumberG.elInput,
+    let valueChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elNumberR.elInput, elNumberG.elInput,
                                                                     elNumberB.elInput, property.isParticleProperty);
-    elNumberR.setInputChangeFunction(inputChangeFunction);
-    elNumberG.setInputChangeFunction(inputChangeFunction);
-    elNumberB.setInputChangeFunction(inputChangeFunction);
+    elNumberR.setValueChangeFunction(valueChangeFunction);
+    elNumberG.setValueChangeFunction(valueChangeFunction);
+    elNumberB.setValueChangeFunction(valueChangeFunction);
     
     let colorPickerID = "#" + elementID;
     colorPickers[colorPickerID] = $(colorPickerID).colpick({
@@ -1941,9 +1942,9 @@ function createColorProperty(property, elProperty) {
     
     let elResult = [];
     elResult[COLOR_ELEMENTS.COLOR_PICKER] = elColorPicker;
-    elResult[COLOR_ELEMENTS.RED_INPUT] = elNumberR.elInput;
-    elResult[COLOR_ELEMENTS.GREEN_INPUT] = elNumberG.elInput;
-    elResult[COLOR_ELEMENTS.BLUE_INPUT] = elNumberB.elInput;
+    elResult[COLOR_ELEMENTS.RED_NUMBER] = elNumberR;
+    elResult[COLOR_ELEMENTS.GREEN_NUMBER] = elNumberG;
+    elResult[COLOR_ELEMENTS.BLUE_NUMBER] = elNumberB;
     return elResult;
 }
 
@@ -2081,14 +2082,14 @@ function createTupleNumberInput(elTuple, propertyElementID, subLabel, min, max, 
     let elementID = propertyElementID + "-" + subLabel.toLowerCase();
     
     let elLabel = document.createElement('label');
-    elLabel.className = subLabel;
+    elLabel.className = "sublabel " + subLabel;
     elLabel.innerText = subLabel[0].toUpperCase() + subLabel.slice(1);
     elLabel.setAttribute("for", elementID);
     
     let elDraggableNumber = new DraggableNumber(min, max, step);
     elDraggableNumber.elInput.setAttribute("id", elementID);
     elDraggableNumber.elDiv.className += " fstuple";
-    elDraggableNumber.elDiv.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
+    elDraggableNumber.elText.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
     elTuple.appendChild(elDraggableNumber.elDiv);
     
     return elDraggableNumber;
@@ -2189,7 +2190,7 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
         }
         default: {
             console.log("EntityProperties - Unknown property type " + 
-						propertyType + " set to property " + propertyID);
+                        propertyType + " set to property " + propertyID);
             break;
         }
     }
@@ -2716,6 +2717,85 @@ function showParentMaterialNameBox(number, elNumber, elString) {
     }
 }
 
+function createProperty(propertyData, propertyElementID, propertyName, propertyID, elProperty) {
+    let property = { 
+        data: propertyData, 
+        elementID: propertyElementID, 
+        name: propertyName,
+        elProperty: elProperty,
+    };
+    let propertyType = propertyData.type;
+
+    switch (propertyType) {
+        case 'string': {
+            property.elInput = createStringProperty(property, elProperty);
+            break;
+        }
+        case 'bool': {
+            property.elInput = createBoolProperty(property, elProperty);
+            break;
+        }
+        case 'number': {
+            property.elNumber = createNumberProperty(property, elProperty);
+            break;
+        }
+        case 'vec3': {
+            let elVec3 = createVec3Property(property, elProperty);  
+            property.elNumberX = elVec3[VECTOR_ELEMENTS.X_NUMBER];
+            property.elNumberY = elVec3[VECTOR_ELEMENTS.Y_NUMBER];
+            property.elNumberZ = elVec3[VECTOR_ELEMENTS.Z_NUMBER];
+            break;
+        }
+        case 'vec2': {
+            let elVec2 = createVec2Property(property, elProperty);  
+            property.elNumberX = elVec2[VECTOR_ELEMENTS.X_NUMBER];
+            property.elNumberY = elVec2[VECTOR_ELEMENTS.Y_NUMBER];
+            break;
+        }
+        case 'color': {
+            let elColor = createColorProperty(property, elProperty);  
+            property.elColorPicker = elColor[COLOR_ELEMENTS.COLOR_PICKER];
+            property.elNumberR = elColor[COLOR_ELEMENTS.RED_NUMBER];
+            property.elNumberG = elColor[COLOR_ELEMENTS.GREEN_NUMBER];
+            property.elNumberB = elColor[COLOR_ELEMENTS.BLUE_NUMBER]; 
+            break;
+        }
+        case 'dropdown': {
+            property.elInput = createDropdownProperty(property, propertyID, elProperty);
+            break;
+        }
+        case 'textarea': {
+            property.elInput = createTextareaProperty(property, elProperty);
+            break;
+        }
+        case 'icon': {
+            property.elSpan = createIconProperty(property, elProperty);
+            break;
+        }
+        case 'texture': {
+            let elTexture = createTextureProperty(property, elProperty);
+            property.elImage = elTexture[TEXTURE_ELEMENTS.IMAGE];
+            property.elInput = elTexture[TEXTURE_ELEMENTS.TEXT_INPUT];
+            break;
+        }
+        case 'buttons': {
+            property.elProperty = createButtonsProperty(property, elProperty);
+            break;
+        }
+        case 'placeholder':
+        case 'sub-header': {
+            break;
+        }
+        default: {
+            console.log("EntityProperties - Unknown property type " + 
+                propertyType + " set to property " + propertyID);
+            break;
+        }
+    }
+
+    return property;
+}
+
 
 function loaded() {
     openEventBridge(function() {
@@ -3040,9 +3120,9 @@ function loaded() {
                                         value = Math.round(value.round) / propertyData.round;
                                     }
                                     if (propertyData.decimals !== undefined) {
-                                        property.elInput.value = value.toFixed(propertyData.decimals);
+                                        property.elNumber.setValue(value.toFixed(propertyData.decimals));
                                     } else {
-                                        property.elInput.value = value;
+                                        property.elNumber.setValue(value);
                                     }
                                     break;
                                 }
@@ -3058,16 +3138,16 @@ function loaded() {
                                         valueZ = Math.round(valueZ * propertyData.round) / propertyData.round;
                                     }
                                     if (propertyData.decimals !== undefined) {
-                                        property.elInputX.value = valueX.toFixed(propertyData.decimals);
-                                        property.elInputY.value = valueY.toFixed(propertyData.decimals);
-                                        if (property.elInputZ !== undefined) {
-                                            property.elInputZ.value = valueZ.toFixed(propertyData.decimals);
+                                        property.elNumberX.setValue(valueX.toFixed(propertyData.decimals));
+                                        property.elNumberY.setValue(valueY.toFixed(propertyData.decimals));
+                                        if (property.elNumberZ !== undefined) {
+                                            property.elNumberZ.setValue(valueZ.toFixed(propertyData.decimals));
                                         }
                                     } else {
-                                        property.elInputX.value = valueX;
-                                        property.elInputY.value = valueY;
-                                        if (property.elInputZ !== undefined) {
-                                            property.elInputZ.value = valueZ;
+                                        property.elNumberX.setValue(valueX);
+                                        property.elNumberY.setValue(valueY);
+                                        if (property.elNumberZ !== undefined) {
+                                            property.elNumberZ.setValue(valueZ);
                                         }
                                     }
                                     break;
@@ -3076,9 +3156,9 @@ function loaded() {
                                     property.elColorPicker.style.backgroundColor = "rgb(" + propertyValue.red + "," + 
                                                                                      propertyValue.green + "," + 
                                                                                      propertyValue.blue + ")";
-                                    property.elInputR.value = propertyValue.red;
-                                    property.elInputG.value = propertyValue.green;
-                                    property.elInputB.value = propertyValue.blue;
+                                    property.elNumberR.setValue(propertyValue.red);
+                                    property.elNumberG.setValue(propertyValue.green);
+                                    property.elNumberB.setValue(propertyValue.blue);
                                     break;
                                 }
                                 case 'dropdown': {
