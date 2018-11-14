@@ -117,6 +117,28 @@ bool OctreeEntitiesFileParser::parseEntities(QVariantMap& parsedEntities) {
             int versionValue = readInteger();
             parsedEntities["Version"] = versionValue;
             gotVersion = true;
+        } else if (key == "Paths") {
+            // Serverless JSON has optional Paths entry.
+            if (nextToken() != '{') {
+                _errorString = "Paths item is not an object";
+                return false;
+            }
+
+            int matchingBrace = findMatchingBrace();
+            if (matchingBrace < 0) {
+                _errorString = "Unterminated entity object";
+                return false;
+            }
+
+            QByteArray jsonObject = _entitiesContents.mid(_position - 1, matchingBrace - _position + 1);
+            QJsonDocument pathsObject = QJsonDocument::fromJson(jsonObject);
+            if (pathsObject.isNull()) {
+                _errorString = "Ill-formed paths entry";
+                return false;
+            }
+
+            parsedEntities["Paths"] = pathsObject.object();
+            _position = matchingBrace;
         } else {
             _errorString = "Unrecognized key name: " + key;
             return false;
