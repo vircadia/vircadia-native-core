@@ -180,9 +180,6 @@ void ViveControllerManager::setConfigurationSettings(const QJsonObject configura
     if (isSupported()) {
         if (configurationSettings.contains("desktopMode")) {
             _desktopMode = configurationSettings["desktopMode"].toBool();
-            if (!_desktopMode) {
-                _resetMatCalculated = false;
-            }
         }
 
         if (configurationSettings.contains("hmdDesktopTracking")) {
@@ -267,13 +264,8 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     }
 
     if (isDesktopMode() && _desktopMode) {
-        if (!_resetMatCalculated) {
-            _resetMat = calculateResetMat();
-            _resetMatCalculated = true;
-        }
-
         _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0, _nextSimPoseData.vrPoses, vr::k_unMaxTrackedDeviceCount);
-        _nextSimPoseData.update(_resetMat);
+        _nextSimPoseData.update(Matrices::IDENTITY);
     } else if (isDesktopMode()) {
         _nextSimPoseData.resetToInvalid();
     }

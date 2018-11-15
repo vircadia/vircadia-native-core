@@ -1,6 +1,7 @@
 set(TARGET_NAME entities)
 setup_hifi_library(Network Script)
 include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
+include_hifi_library_headers(hfm)
 include_hifi_library_headers(fbx)
 include_hifi_library_headers(gpu)
 include_hifi_library_headers(image)

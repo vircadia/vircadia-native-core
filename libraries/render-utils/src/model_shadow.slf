@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  model_shadow.frag
-//  fragment shader
 //
 //  Created by Andrzej Kapolka on 3/24/14.
 //  Copyright 2013 High Fidelity, Inc.

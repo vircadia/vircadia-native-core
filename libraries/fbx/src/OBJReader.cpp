@@ -28,7 +28,7 @@
 #include <ResourceManager.h>
 
 #include "FBXReader.h"
-#include "ModelFormatLogging.h"
+#include <hfm/ModelFormatLogging.h>
 #include <shared/PlatformHacks.h>
 
 QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as units", 1.0f / 100.0f},
@@ -845,7 +845,7 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
         preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
         QVector<QByteArray> extensions = { "jpg", "jpeg", "png", "tga" };
         QByteArray base = basename.toUtf8(), textName = "";
-        qCDebug(modelformat) << "OBJ Reader looking for default texture of" << url;
+        qCDebug(modelformat) << "OBJ Reader looking for default texture";
         for (int i = 0; i < extensions.count(); i++) {
             QByteArray candidateString = base + extensions[i];
             if (isValidTexture(candidateString)) {
@@ -866,7 +866,7 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
         foreach (QString libraryName, librariesSeen.keys()) {
             // Throw away any path part of libraryName, and merge against original url.
             QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
-            qCDebug(modelformat) << "OBJ Reader material library" << libraryName << "used in" << _url;
+            qCDebug(modelformat) << "OBJ Reader material library" << libraryName;
             bool success;
             QByteArray data;
             std::tie<bool, QByteArray>(success, data) = requestData(libraryUrl);
@@ -982,7 +982,7 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
             modelMaterial->setMetallic(ILLUMINATION_MODEL_APPLY_NON_METALLIC);
         }
         if (fresnelOn) {
-            modelMaterial->setFresnel(glm::vec3(1.0f));
+            // TODO: how to turn fresnel on?
         }
 
         modelMaterial->setOpacity(hfmMaterial.opacity);

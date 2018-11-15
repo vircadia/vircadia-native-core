@@ -71,6 +71,10 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Translucent.NoActionBar" />
 
+        <activity android:name=".LoginMenuActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Translucent.NoActionBar" />
+
         <service
             android:name=".BreakpadUploaderService"
             android:enabled="true"

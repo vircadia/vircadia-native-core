@@ -396,8 +396,7 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
     if (!DependencyManager::get<ScriptEngines>()->stopScript(scriptUrl.trimmed(), false)) {
-        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway. ScriptURL is:"
-                            << scriptUrl.trimmed();
+        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway.";
     }
 
     // Delete the .app.json from the filesystem

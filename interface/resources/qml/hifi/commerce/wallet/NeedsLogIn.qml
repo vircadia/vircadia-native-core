@@ -183,7 +183,7 @@ Item {
     function fromScript(message) {
         switch (message.method) {
             default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('NeedsLogIn.qml: Unrecognized message from wallet.js');
         }
     }
     signal sendSignalToWallet(var msg);

@@ -54,7 +54,7 @@ SelectionManager = (function() {
         try {
             messageParsed = JSON.parse(message);
         } catch (err) {
-            print("ERROR: entitySelectionTool.handleEntitySelectionToolUpdates - got malformed message: " + message);
+            print("ERROR: entitySelectionTool.handleEntitySelectionToolUpdates - got malformed message");
             return;
         }
 
