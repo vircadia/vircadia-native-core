@@ -12,7 +12,8 @@
 
 /* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager,
    Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera,
-   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, OverlaySystemWindow */
+   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, OverlaySystemWindow,
+   keyUpEventFromUIWindow:true */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -113,7 +114,6 @@ selectionManager.addEventListener(function () {
     entityIconOverlayManager.updatePositions();
 });
 
-var KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
 
@@ -466,7 +466,6 @@ const DEFAULT_ENTITY_PROPERTIES = {
         isSpotlight: false,
         exponent: 1.0,
         cutoff: 75.0,
-        dimensions: { x: 20, y: 20, z: 20 },
     },
 };
 
@@ -494,9 +493,9 @@ var toolBar = (function () {
         applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.All);
 
         var type = requestedProperties.type;
-        if (type == "Box" || type == "Sphere") {
+        if (type === "Box" || type === "Sphere") {
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
-        } else if (type == "Image") {
+        } else if (type === "Image") {
             requestedProperties.type = "Model";
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Image);
         } else {
@@ -1218,7 +1217,7 @@ function mouseClickEvent(event) {
     var result, properties, tabletClicked;
     if (isActive && event.isLeftButton) {
         result = findClickedEntity(event);
-        tabletOrEditHandleClicked = wasTabletOrEditHandleClicked(event);
+        var tabletOrEditHandleClicked = wasTabletOrEditHandleClicked(event);
         if (tabletOrEditHandleClicked) {
             return;
         }
@@ -1541,7 +1540,7 @@ function insideBox(center, dimensions, point) {
            (Math.abs(point.z - center.z) <= (dimensions.z / 2.0));
 }
 
-function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
+function selectAllEntitiesInCurrentSelectionBox(keepIfTouching) {
     if (selectionManager.hasSelection()) {
         // Get all entities touching the bounding box of the current selection
         var boundingBoxCorner = Vec3.subtract(selectionManager.worldPosition,
@@ -1820,9 +1819,9 @@ function handleMenuEvent(menuItem) {
             Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Select All Entities In Box") {
-        selectAllEtitiesInCurrentSelectionBox(false);
+        selectAllEntitiesInCurrentSelectionBox(false);
     } else if (menuItem === "Select All Entities Touching Box") {
-        selectAllEtitiesInCurrentSelectionBox(true);
+        selectAllEntitiesInCurrentSelectionBox(true);
     } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
         entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
@@ -1965,14 +1964,6 @@ var keyReleaseEvent = function (event) {
     if (isActive) {
         cameraManager.keyReleaseEvent(event);
     }
-    // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.key === KEY_P && event.isControl && !event.isAutoRepeat) {
-        if (event.isShifted) {
-            unparentSelectedEntities();
-        } else {
-            parentSelectedEntities();
-        }
-    }
 };
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
@@ -2108,14 +2099,14 @@ var DELETED_ENTITY_MAP = {};
 function applyEntityProperties(data) {
     var editEntities = data.editEntities;
     var selectedEntityIDs = [];
-    var selectEdits = data.createEntities.length == 0 || !data.selectCreated;
-    var i, entityID;
+    var selectEdits = data.createEntities.length === 0 || !data.selectCreated;
+    var i, entityID, entityProperties;
     for (i = 0; i < editEntities.length; i++) {
-        var entityID = editEntities[i].entityID;
+        entityID = editEntities[i].entityID;
         if (DELETED_ENTITY_MAP[entityID] !== undefined) {
             entityID = DELETED_ENTITY_MAP[entityID];
         }
-        var entityProperties = editEntities[i].properties;
+        entityProperties = editEntities[i].properties;
         if (entityProperties !== null) {
             Entities.editEntity(entityID, entityProperties);
         }
@@ -2125,7 +2116,7 @@ function applyEntityProperties(data) {
     }
     for (i = 0; i < data.createEntities.length; i++) {
         entityID = data.createEntities[i].entityID;
-        var entityProperties = data.createEntities[i].properties;
+        entityProperties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(entityProperties);
         recursiveAdd(newEntityID, data.createEntities[i]);
         DELETED_ENTITY_MAP[entityID] = newEntityID;
@@ -2261,9 +2252,17 @@ var PropertiesTool = function (opts) {
         });
     }
 
+    that.setSpaceMode = function(spaceMode) {
+        emitScriptEvent({
+            type: 'setSpaceMode',
+            spaceMode: spaceMode
+        })
+    };
+
     function updateSelections(selectionUpdated) {
         var data = {
-            type: 'update'
+            type: 'update',
+            spaceMode: selectionDisplay.getSpaceMode()
         };
 
         if (selectionUpdated) {
@@ -2293,6 +2292,9 @@ var PropertiesTool = function (opts) {
             if (entity.properties.rotation !== undefined) {
                 entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
             }
+            if (entity.properties.localRotation !== undefined) {
+                entity.properties.localRotation = Quat.safeEulerAngles(entity.properties.localRotation);
+            }
             if (entity.properties.emitOrientation !== undefined) {
                 entity.properties.emitOrientation = Quat.safeEulerAngles(entity.properties.emitOrientation);
             }
@@ -2316,11 +2318,7 @@ var PropertiesTool = function (opts) {
             return;
         }
         var i, properties, dY, diff, newPosition;
-        if (data.type === "print") {
-            if (data.message) {
-                print(data.message);
-            }
-        } else if (data.type === "update") {
+        if (data.type === "update") {
             selectionManager.saveProperties();
             if (selectionManager.selections.length > 1) {
                 for (i = 0; i < selectionManager.selections.length; i++) {
@@ -2329,11 +2327,14 @@ var PropertiesTool = function (opts) {
             } else if (data.properties) {
                 if (data.properties.dynamic === false) {
                     // this object is leaving dynamic, so we zero its velocities
-                    data.properties.velocity = Vec3.ZERO;
-                    data.properties.angularVelocity = Vec3.ZERO;
+                    data.properties.localVelocity = Vec3.ZERO;
+                    data.properties.localAngularVelocity = Vec3.ZERO;
                 }
                 if (data.properties.rotation !== undefined) {
                     data.properties.rotation = Quat.fromVec3Degrees(data.properties.rotation);
+                }
+                if (data.properties.localRotation !== undefined) {
+                    data.properties.localRotation = Quat.fromVec3Degrees(data.properties.localRotation);
                 }
                 if (data.properties.emitOrientation !== undefined) {
                     data.properties.emitOrientation = Quat.fromVec3Degrees(data.properties.emitOrientation);
@@ -2356,10 +2357,6 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update(false, this);
-        } else if (data.type === 'parent') {
-            parentSelectedEntities();
-        } else if (data.type === 'unparent') {
-            unparentSelectedEntities();
         } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
@@ -2583,7 +2580,7 @@ var PopupMenu = function () {
                 y: event.y
             });
             if (!pressingOverlay) {
-                if (hoveringOverlay !== null && hoveringOverlay !== null && overlay !== hoveringOverlay) {
+                if (hoveringOverlay !== null && overlay !== hoveringOverlay) {
                     Overlays.editOverlay(hoveringOverlay, {
                         backgroundColor: upColor
                     });
@@ -2672,9 +2669,14 @@ function whenReleased(fn) {
     };
 }
 
+var isOnMacPlatform = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+
 var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
-mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
+if (isOnMacPlatform) {
+    mapping.from([Controller.Hardware.Keyboard.Backspace]).to(deleteKey);
+} else {
+    mapping.from([Controller.Hardware.Keyboard.Delete]).to(deleteKey);
+}
 mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
 mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
 mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
@@ -2697,6 +2699,53 @@ mapping.from([Controller.Hardware.Keyboard.Z])
     .to(whenPressed(function() { undoHistory.redo() }));
 
 
+mapping.from([Controller.Hardware.Keyboard.P])
+    .when([Controller.Hardware.Keyboard.Control, Controller.Hardware.Keyboard.Shift])
+    .to(whenReleased(function() { unparentSelectedEntities(); }));
+
+mapping.from([Controller.Hardware.Keyboard.P])
+    .when([Controller.Hardware.Keyboard.Control, !Controller.Hardware.Keyboard.Shift])
+    .to(whenReleased(function() { parentSelectedEntities(); }));
+
+keyUpEventFromUIWindow = function(keyUpEvent) {
+    var WANT_DEBUG_MISSING_SHORTCUTS = false;
+
+    var pressedValue = 0.0;
+
+    if ((!isOnMacPlatform && keyUpEvent.keyCodeString === "Delete")
+        || (isOnMacPlatform && keyUpEvent.keyCodeString === "Backspace")) {
+
+        deleteKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "T") {
+        toggleKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "F") {
+        focusKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "G") {
+        gridKey(pressedValue);
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "X") {
+        selectionManager.cutSelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "C") {
+        selectionManager.copySelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "V") {
+        selectionManager.pasteEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "D") {
+        selectionManager.duplicateSelection();
+    } else if (keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") {
+        undoHistory.undo();
+    } else if (keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
+        parentSelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
+        unparentSelectedEntities();
+    } else if (
+        (keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") ||
+        (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "Y")) {
+
+        undoHistory.redo();
+    } else if (WANT_DEBUG_MISSING_SHORTCUTS) {
+        console.warn("unhandled key event: " + JSON.stringify(keyUpEvent))
+    }
+};
+
 var propertyMenu = new PopupMenu();
 
 propertyMenu.onSelectMenuItem = function (name) {
@@ -2710,19 +2759,9 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
 
-entityListTool.webView.webEventReceived.connect(function(data) {
-    try {
-        data = JSON.parse(data);
-    } catch(e) {
-        print("edit.js: Error parsing JSON: " + e.name + " data " + data);
-        return;
-    }
-
-    if (data.type === 'parent') {
-        parentSelectedEntities();
-    } else if (data.type === 'unparent') {
-        unparentSelectedEntities();
-    }
-});
+selectionDisplay.onSpaceModeChange = function(spaceMode) {
+    entityListTool.setSpaceMode(spaceMode);
+    propertiesTool.setSpaceMode(spaceMode);
+};
 
 }()); // END LOCAL_SCOPE

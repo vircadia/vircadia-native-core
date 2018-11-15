@@ -19,7 +19,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <glm/detail/func_common.hpp>
+#include <glm/common.hpp>
 
 #include <QElapsedTimer>
 #include <QThread>

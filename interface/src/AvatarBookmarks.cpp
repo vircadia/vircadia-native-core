@@ -180,7 +180,7 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
             myAvatar->removeWearableAvatarEntities();
             const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
             myAvatar->useFullAvatarURL(avatarUrl);
-            qCDebug(interfaceapp) << "Avatar On " << avatarUrl;
+            qCDebug(interfaceapp) << "Avatar On";
             const QList<QVariant>& attachments = bookmark.value(ENTRY_AVATAR_ATTACHMENTS, QList<QVariant>()).toList();
 
             qCDebug(interfaceapp) << "Attach " << attachments;

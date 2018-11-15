@@ -540,7 +540,7 @@ function fromQml(message) {
         // Handled elsewhere, don't log.
         break;
     default:
-        print('Unrecognized message from QML:', JSON.stringify(message));
+        print('wallet.js: Unrecognized message from QML');
     }
 }
 

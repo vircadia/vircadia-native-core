@@ -536,8 +536,8 @@ Rectangle {
             Rectangle {
                 id: exchangeMoneyMessagesWaitingLight;
                 visible: parent.messagesWaiting;
-                anchors.right: exchangeMoneyTabIcon.left;
-                anchors.rightMargin: 9;
+                anchors.left: parent.left;
+                anchors.leftMargin: 16;
                 anchors.top: exchangeMoneyTabIcon.top;
                 anchors.topMargin: 4;
                 height: 10;
@@ -803,7 +803,7 @@ Rectangle {
                 }
             break;
             default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('Wallet.qml: Unrecognized message from wallet.js');
         }
     }
     signal sendToScript(var message);

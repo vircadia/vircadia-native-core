@@ -270,7 +270,8 @@ AudioClient::AudioClient() :
 
     configureReverb();
 
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "processStreamStatsPacket");
     packetReceiver.registerListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
     packetReceiver.registerListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
@@ -278,6 +279,16 @@ AudioClient::AudioClient() :
     packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+
+    auto& domainHandler = nodeList->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this] {
+        _solo.reset();
+    });
+    connect(nodeList.data(), &NodeList::nodeActivated, this, [this](SharedNodePointer node) {
+        if (node->getType() == NodeType::AudioMixer) {
+            _solo.resend();
+        }
+    });
 }
 
 AudioClient::~AudioClient() {
@@ -472,7 +483,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 
 #if defined (Q_OS_ANDROID)
     if (mode == QAudio::AudioInput) {
-        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, false);
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, DEFAULT_AEC_ENABLED);
         bool aecEnabled = enableAEC.get();
         auto audioClient = DependencyManager::get<AudioClient>();
         bool headsetOn = audioClient? audioClient->isHeadsetPluggedIn() : false;
@@ -1680,7 +1691,7 @@ void AudioClient::setHeadsetPluggedIn(bool pluggedIn) {
             QThread::msleep(200);
         }
 
-        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, false);
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, DEFAULT_AEC_ENABLED);
         bool aecEnabled = enableAEC.get();
 
         if ((pluggedIn || !aecEnabled) && _inputDeviceInfo.deviceName() != VOICE_RECOGNITION) {

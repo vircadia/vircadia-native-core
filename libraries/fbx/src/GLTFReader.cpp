@@ -937,7 +937,6 @@ HFMModel* GLTFReader::readGLTF(QByteArray& data, const QVariantHash& mapping,
 bool GLTFReader::readBinary(const QString& url, QByteArray& outdata) {
     QUrl binaryUrl = _url.resolved(url);
 
-    qCDebug(modelformat) << "binaryUrl: " << binaryUrl << "  OriginalUrl: " << _url;
     bool success;
     std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
     
@@ -1006,8 +1005,6 @@ HFMTexture GLTFReader::getHFMTexture(const GLTFTexture& texture) {
         QString fname = QUrl(url).fileName();
         QUrl textureUrl = _url.resolved(url);
         qCDebug(modelformat) << "fname: " << fname;
-        qCDebug(modelformat) << "textureUrl: " << textureUrl;
-        qCDebug(modelformat) << "Url: " << _url;
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
     }
@@ -1289,14 +1286,6 @@ void GLTFReader::hfmDebugDump(const HFMModel& hfmModel) {
         qCDebug(modelformat) << "  normalTexture =" << mat.normalTexture.filename;
         qCDebug(modelformat) << "  albedoTexture =" << mat.albedoTexture.filename;
         qCDebug(modelformat) << "  opacityTexture =" << mat.opacityTexture.filename;
-        qCDebug(modelformat) << "  glossTexture =" << mat.glossTexture.filename;
-        qCDebug(modelformat) << "  roughnessTexture =" << mat.roughnessTexture.filename;
-        qCDebug(modelformat) << "  specularTexture =" << mat.specularTexture.filename;
-        qCDebug(modelformat) << "  metallicTexture =" << mat.metallicTexture.filename;
-        qCDebug(modelformat) << "  emissiveTexture =" << mat.emissiveTexture.filename;
-        qCDebug(modelformat) << "  occlusionTexture =" << mat.occlusionTexture.filename;
-        qCDebug(modelformat) << "  scatteringTexture =" << mat.scatteringTexture.filename;
-        qCDebug(modelformat) << "  lightmapTexture =" << mat.lightmapTexture.filename;
 
         qCDebug(modelformat) << "  lightmapParams =" << mat.lightmapParams;
 

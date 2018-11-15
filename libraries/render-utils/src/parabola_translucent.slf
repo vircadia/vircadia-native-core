@@ -14,5 +14,5 @@
 layout(location=0) in vec4 _color;
 
 void main(void) {
-    packDeferredFragmentTranslucent(vec3(1.0, 0.0, 0.0), _color.a, _color.rgb, DEFAULT_FRESNEL, DEFAULT_ROUGHNESS);
+    packDeferredFragmentTranslucent(vec3(1.0, 0.0, 0.0), _color.a, _color.rgb, DEFAULT_ROUGHNESS);
 }

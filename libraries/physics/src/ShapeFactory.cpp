@@ -307,21 +307,21 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
         case SHAPE_TYPE_CAPSULE_Y: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.x;
-            float height = 2.0f * halfExtents.y;
+            float height = 2.0f * (halfExtents.y - radius);
             shape = new btCapsuleShape(radius, height);
         }
         break;
         case SHAPE_TYPE_CAPSULE_X: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.y;
-            float height = 2.0f * halfExtents.x;
+            float height = 2.0f * (halfExtents.x - radius);
             shape = new btCapsuleShapeX(radius, height);
         }
         break;
         case SHAPE_TYPE_CAPSULE_Z: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.x;
-            float height = 2.0f * halfExtents.z;
+            float height = 2.0f * (halfExtents.z - radius);
             shape = new btCapsuleShapeZ(radius, height);
         }
         break;

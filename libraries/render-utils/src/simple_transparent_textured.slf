@@ -34,6 +34,5 @@ void main(void) {
         normalize(_normalWS),
         colorAlpha,
         _color.rgb * texel.rgb,
-        DEFAULT_FRESNEL,
         DEFAULT_ROUGHNESS);
 }

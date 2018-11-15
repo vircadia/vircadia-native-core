@@ -14,7 +14,7 @@
 
 #include <memory.h>
 #include <QtNetwork/QNetworkReply>
-#include "ModelFormatLogging.h"
+#include <hfm/ModelFormatLogging.h>
 #include "FBXReader.h"
 
 
@@ -361,9 +361,6 @@ struct GLTFImage {
     int bufferView;   //required (or)
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["uri"]) {
-            qCDebug(modelformat) << "uri: " << uri;
-        }
         if (defined["mimeType"]) {
             qCDebug(modelformat) << "mimeType: " << mimeType;
         }
