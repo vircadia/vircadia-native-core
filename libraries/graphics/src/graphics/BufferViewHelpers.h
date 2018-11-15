@@ -10,7 +10,6 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include <glm/gtc/packing.hpp>
-#include <glm/detail/type_vec.hpp>
 
 #include "GpuHelpers.h"
 #include "GLMHelpers.h"

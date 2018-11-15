@@ -2,9 +2,9 @@ import QtQuick 2.5
 import QtWebChannel 1.0
 import QtWebEngine 1.5
 
-import "controls-uit"
+import controlsUit 1.0
 import "styles" as HifiStyles
-import "styles-uit"
+import stylesUit 1.0
 import "windows"
 
 ScrollingWindow {
@@ -114,7 +114,6 @@ ScrollingWindow {
                     sourceSize: Qt.size(width, height);
                     verticalAlignment: Image.AlignVCenter;
                     horizontalAlignment: Image.AlignHCenter
-                    onSourceChanged: console.log("Icon url: " + source)
                 }
             }
 
@@ -247,10 +246,6 @@ ScrollingWindow {
                     addressBar.text = loadRequest.url
                 }
                 root.loadingChanged(loadRequest.status);
-            }
-
-            onIconChanged: {
-                console.log("New icon: " + icon)
             }
 
             onWindowCloseRequested: {

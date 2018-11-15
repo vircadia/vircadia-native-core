@@ -49,7 +49,7 @@ void GL41Backend::postLinkProgram(ShaderObject& programObject, const Shader& pro
         const auto resourceBufferUniforms = ::gl::Uniform::loadByName(glprogram, names);
         for (const auto& resourceBuffer : resourceBufferUniforms) {
             const auto& targetBinding = expectedResourceBuffers.at(resourceBuffer.name);
-            glProgramUniform1i(glprogram, resourceBuffer.binding, targetBinding + GL41Backend::RESOURCE_BUFFER_SLOT0_TEX_UNIT);
+            glProgramUniform1i(glprogram, resourceBuffer.binding, targetBinding);
         }
     }
 

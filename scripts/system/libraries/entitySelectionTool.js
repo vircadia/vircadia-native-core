@@ -54,7 +54,7 @@ SelectionManager = (function() {
         try {
             messageParsed = JSON.parse(message);
         } catch (err) {
-            print("ERROR: entitySelectionTool.handleEntitySelectionToolUpdates - got malformed message: " + message);
+            print("ERROR: entitySelectionTool.handleEntitySelectionToolUpdates - got malformed message");
             return;
         }
 
@@ -281,7 +281,7 @@ SelectionManager = (function() {
                     var actionArguments = Entities.getActionArguments(properties.id, actionID);
                     if (actionArguments) {
                         var type = actionArguments.type;
-                        if (type == 'hold' || type == 'far-grab') {
+                        if (type === 'hold' || type === 'far-grab') {
                             continue;
                         }
                         delete actionArguments.ttl;
@@ -500,7 +500,7 @@ SelectionManager = (function() {
             that.entityType = properties.type;
             
             if (selectionUpdated) {
-                SelectionDisplay.setSpaceMode(SPACE_LOCAL);
+                SelectionDisplay.useDesiredSpaceMode();
             }
         } else {
             properties = Entities.getEntityProperties(that.selections[0], ['type', 'boundingBox']);
@@ -537,7 +537,7 @@ SelectionManager = (function() {
             };
 
             // For 1+ selections we can only modify selections in world space
-            SelectionDisplay.setSpaceMode(SPACE_WORLD);
+            SelectionDisplay.setSpaceMode(SPACE_WORLD, false);
         }
 
         for (var j = 0; j < listeners.length; j++) {
@@ -633,24 +633,26 @@ SelectionDisplay = (function() {
         ALL: 3
     };
 
-    const SCALE_DIRECTION = {
-        LBN: 0,
-        RBN: 1,
-        LBF: 2,
-        RBF: 3,
-        LTN: 4,
-        RTN: 5,
-        LTF: 6,
-        RTF: 7
-    };
-
     const ROTATE_DIRECTION = {
         PITCH: 0,
         YAW: 1,
         ROLL: 2
     };
 
+    /**
+     * The current space mode, this could have been a forced space mode since we do not support multi selection while in
+     * local space mode.
+     * @type {string} - should only be set to SPACE_LOCAL or SPACE_WORLD
+     */
     var spaceMode = SPACE_LOCAL;
+
+    /**
+     * The desired space mode, this is the user set space mode, which should be respected whenever it is possible. In the case
+     * of multi entity selection this space mode may differ from the actual spaceMode.
+     * @type {string} - should only be set to SPACE_LOCAL or SPACE_WORLD
+     */
+    var desiredSpaceMode = SPACE_LOCAL;
+
     var overlayNames = [];
     var lastControllerPoses = [
         getControllerWorldLocation(Controller.Standard.LeftHand, true),
@@ -1340,7 +1342,7 @@ SelectionDisplay = (function() {
         }
     };
 
-    function controllerComputePickRay(hand) {
+    function controllerComputePickRay() {
         var hand = that.triggered() ? that.triggeredHand : that.pressedHand;
         var controllerPose = getControllerWorldLocation(hand, true);
         if (controllerPose.valid) {
@@ -1400,8 +1402,21 @@ SelectionDisplay = (function() {
         that.updateHandles();
     };
 
+
+    /**
+     * This callback is used for spaceMode changes.
+     * @callback spaceModeChangedCallback
+     * @param {string} spaceMode
+     */
+
+    /**
+     * set this property with a callback to keep track of spaceMode changes.
+     * @type {spaceModeChangedCallback}
+     */
+    that.onSpaceModeChange = null;
+
     // FUNCTION: SET SPACE MODE
-    that.setSpaceMode = function(newSpaceMode) {
+    that.setSpaceMode = function(newSpaceMode, isDesiredChange) {
         var wantDebug = false;
         if (wantDebug) {
             print("======> SetSpaceMode called. ========");
@@ -1411,7 +1426,15 @@ SelectionDisplay = (function() {
             if (wantDebug) {
                 print("    Updating SpaceMode From: " + spaceMode + " To: " + newSpaceMode);
             }
+            if (isDesiredChange) {
+                desiredSpaceMode = newSpaceMode;
+            }
             spaceMode = newSpaceMode;
+
+            if (that.onSpaceModeChange !== null) {
+                that.onSpaceModeChange(newSpaceMode);
+            }
+
             that.updateHandles();
         } else if (wantDebug) {
             print("WARNING: entitySelectionTool.setSpaceMode - Can't update SpaceMode. CurrentMode: " + 
@@ -1437,12 +1460,34 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("PreToggle: " + spaceMode);
         }
-        spaceMode = (spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL;
-        that.updateHandles();
+        that.setSpaceMode((spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL, true);
         if (wantDebug) {
             print("PostToggle: " + spaceMode);        
             print("======== ToggleSpaceMode called. <=========");
         }
+    };
+
+    /**
+     * Switches the display mode back to the set desired display mode
+     */
+    that.useDesiredSpaceMode = function() {
+        var wantDebug = false;
+        if (wantDebug) {
+            print("========> UseDesiredSpaceMode called. =========");
+        }
+        that.setSpaceMode(desiredSpaceMode, false);
+        if (wantDebug) {
+            print("PostToggle: " + spaceMode);
+            print("======== UseDesiredSpaceMode called. <=========");
+        }
+    };
+
+    /**
+     * Get the currently set SpaceMode
+     * @returns {string} spaceMode
+     */
+    that.getSpaceMode = function() {
+        return spaceMode;
     };
 
     function addHandleTool(overlay, tool) {
@@ -1787,7 +1832,7 @@ SelectionDisplay = (function() {
                                                               !isActiveTool(handleRotateYawRing) &&
                                                               !isActiveTool(handleRotateRollRing)));
 
-        // keep duplicator always hidden for now since you can hold Alt to duplciate while  
+        // keep duplicator always hidden for now since you can hold Alt to duplicate while
         // translating an entity - we may bring duplicator back for HMD only later
         // that.setHandleDuplicatorVisible(!activeTool || isActiveTool(handleDuplicator));
 

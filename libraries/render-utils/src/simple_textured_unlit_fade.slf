@@ -51,7 +51,6 @@ void main(void) {
             normalize(_normalWS),
             texel.a,
             texel.rgb + fadeEmissive,
-            DEFAULT_FRESNEL,
             DEFAULT_ROUGHNESS);
     } else {
         packDeferredFragmentUnlit(

@@ -13,8 +13,8 @@ import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
-import "../../styles-uit"
-import "../../controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 import "../../windows"
 import "../"
 
@@ -88,6 +88,10 @@ Rectangle {
         checkMenu.restart();
     }
 
+    Component.onDestruction: {
+        keyboard.raised = false;
+    }
+
     function updateRunningScripts() {
         function simplify(path) {
             // trim URI querystring/fragment
@@ -116,17 +120,14 @@ Rectangle {
     }
 
     function loadScript(script) {
-        console.log("Load script " + script);
         scripts.loadOneScript(script);
     }
 
     function reloadScript(script) {
-        console.log("Reload script " + script);
         scripts.stopScript(script, true);
     }
 
     function stopScript(script) {
-        console.log("Stop script " + script);
         scripts.stopScript(script);
     }
 
@@ -154,7 +155,6 @@ Rectangle {
         console.log("Stop all scripts");
         for (var index = 0; index < runningScriptsModel.count; index++) {
             var url = runningScriptsModel.get(index).url;
-            console.log(url);
             var fileName = url.substring(url.lastIndexOf('/')+1);
             if (canEditScript(fileName)) {
                 scripts.stopScript(url);

@@ -15,8 +15,8 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.6
 import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
-import "../../../../styles-uit"
-import "../../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../../controls" as HifiControls
 import "../" as HifiCommerceCommon
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
@@ -73,6 +73,10 @@ Item {
         }
 
         onTransferAssetToNodeResult: {
+            if (!root.visible) {
+                return;
+            }
+
             root.isCurrentlySendingAsset = false;
 
             if (result.status === 'success') {
@@ -92,6 +96,10 @@ Item {
         }
 
         onTransferAssetToUsernameResult: {
+            if (!root.visible) {
+                return;
+            }
+
             root.isCurrentlySendingAsset = false;
 
             if (result.status === 'success') {
@@ -1309,13 +1317,13 @@ Item {
 
         Rectangle {
             anchors.top: parent.top;
-            anchors.topMargin: root.assetName === "" ? 15 : 150;
+            anchors.topMargin: root.assetName === "" ? 15 : 125;
             anchors.left: parent.left;
             anchors.leftMargin: root.assetName === "" ? 15 : 50;
             anchors.right: parent.right;
             anchors.rightMargin: root.assetName === "" ? 15 : 50;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: root.assetName === "" ? 15 : 240;
+            anchors.bottomMargin: root.assetName === "" ? 15 : 125;
             color: "#FFFFFF";
 
             RalewaySemiBold {
@@ -1859,7 +1867,7 @@ Item {
                 sendAssetStep.selectedRecipientUserName = message.userName;
             break;
             default:
-                console.log('SendAsset: Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('SendAsset: Unrecognized message from wallet.js');
         }
     }
     signal sendSignalToParent(var msg);

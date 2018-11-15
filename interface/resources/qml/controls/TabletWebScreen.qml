@@ -1,5 +1,5 @@
 import QtQuick 2.7
-import "../controls-uit" as HiFiControls
+import controlsUit 1.0 as HiFiControls
 
 Item {
     id: root
@@ -13,6 +13,8 @@ Item {
     onKeyboardRaisedChanged: {
         if(!keyboardRaised) {
             webroot.unfocus();
+        } else {
+            webroot.stopUnfocus();
         }
     }
     property bool punctuationMode: false

@@ -86,8 +86,7 @@ float evalFadeGradient(FadeObjectParams params, vec3 position) {
 
 float evalFadeAlpha(FadeObjectParams params, vec3 position) {
     float alpha = evalFadeGradient(params, position) - params.threshold;
-    alpha *= mix(1.0, -1.0, float(fadeParameters[params.category]._isInverted != 0));
-
+    alpha *= 1.0 - 2.0 * fadeParameters[params.category]._isInverted;
     return alpha;
 }
 

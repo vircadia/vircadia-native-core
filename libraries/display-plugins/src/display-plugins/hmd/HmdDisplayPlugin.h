@@ -48,6 +48,7 @@ public:
 
 signals:
     void hmdMountedChanged();
+    void hmdVisibleChanged(bool visible);
 
 protected:
     virtual void hmdPresent() = 0;

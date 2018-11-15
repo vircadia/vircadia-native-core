@@ -63,10 +63,10 @@ int GLWidget::getDeviceHeight() const {
     return height() * (windowHandle() ? (float)windowHandle()->devicePixelRatio() : 1.0f);
 }
 
-void GLWidget::createContext() {
+void GLWidget::createContext(QOpenGLContext* shareContext) {
     _context = new gl::Context();
     _context->setWindow(windowHandle());
-    _context->create();
+    _context->create(shareContext);
     _context->makeCurrent();
     _context->clear();
     _context->doneCurrent();

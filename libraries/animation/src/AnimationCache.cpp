@@ -69,14 +69,14 @@ void AnimationReader::run() {
 
         if (urlValid) {
             // Parse the FBX directly from the QNetworkReply
-            FBXGeometry::Pointer fbxgeo;
+            HFMModel::Pointer hfmModel;
             if (_url.path().toLower().endsWith(".fbx")) {
-                fbxgeo.reset(readFBX(_data, QVariantHash(), _url.path()));
+                hfmModel.reset(readFBX(_data, QVariantHash(), _url.path()));
             } else {
                 QString errorStr("usupported format");
                 emit onError(299, errorStr);
             }
-            emit onSuccess(fbxgeo);
+            emit onSuccess(hfmModel);
         } else {
             throw QString("url is invalid");
         }
@@ -88,7 +88,7 @@ void AnimationReader::run() {
 }
 
 bool Animation::isLoaded() const {
-    return _loaded && _geometry;
+    return _loaded && _hfmModel;
 }
 
 QStringList Animation::getJointNames() const {
@@ -99,50 +99,48 @@ QStringList Animation::getJointNames() const {
         return result;
     }
     QStringList names;
-    if (_geometry) {
-        foreach (const FBXJoint& joint, _geometry->joints) {
+    if (_hfmModel) {
+        foreach (const HFMJoint& joint, _hfmModel->joints) {
             names.append(joint.name);
         }
     }
     return names;
 }
 
-QVector<FBXAnimationFrame> Animation::getFrames() const {
+QVector<HFMAnimationFrame> Animation::getFrames() const {
     if (QThread::currentThread() != thread()) {
-        QVector<FBXAnimationFrame> result;
+        QVector<HFMAnimationFrame> result;
         BLOCKING_INVOKE_METHOD(const_cast<Animation*>(this), "getFrames",
-            Q_RETURN_ARG(QVector<FBXAnimationFrame>, result));
+            Q_RETURN_ARG(QVector<HFMAnimationFrame>, result));
         return result;
     }
-    if (_geometry) {
-        return _geometry->animationFrames;
+    if (_hfmModel) {
+        return _hfmModel->animationFrames;
     } else {
-        return QVector<FBXAnimationFrame>();
+        return QVector<HFMAnimationFrame>();
     }
 }
 
-const QVector<FBXAnimationFrame>& Animation::getFramesReference() const {
-    return _geometry->animationFrames;
+const QVector<HFMAnimationFrame>& Animation::getFramesReference() const {
+    return _hfmModel->animationFrames;
 }
 
 void Animation::downloadFinished(const QByteArray& data) {
     // parse the animation/fbx file on a background thread.
     AnimationReader* animationReader = new AnimationReader(_url, data);
-    connect(animationReader, SIGNAL(onSuccess(FBXGeometry::Pointer)), SLOT(animationParseSuccess(FBXGeometry::Pointer)));
+    connect(animationReader, SIGNAL(onSuccess(HFMModel::Pointer)), SLOT(animationParseSuccess(HFMModel::Pointer)));
     connect(animationReader, SIGNAL(onError(int, QString)), SLOT(animationParseError(int, QString)));
     QThreadPool::globalInstance()->start(animationReader);
 }
 
-void Animation::animationParseSuccess(FBXGeometry::Pointer geometry) {
-
-    qCDebug(animation) << "Animation parse success" << _url.toDisplayString();
-
-    _geometry = geometry;
+void Animation::animationParseSuccess(HFMModel::Pointer hfmModel) {
+    qCDebug(animation) << "Animation parse success";
+    _hfmModel = hfmModel;
     finishedLoading(true);
 }
 
 void Animation::animationParseError(int error, QString str) {
-    qCCritical(animation) << "Animation failure parsing " << _url.toDisplayString() << "code =" << error << str;
+    qCCritical(animation) << "Animation parse error, code =" << error << str;
     emit failed(QNetworkReply::UnknownContentError);
     finishedLoading(false);
 }

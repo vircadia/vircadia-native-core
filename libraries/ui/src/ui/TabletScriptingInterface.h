@@ -232,6 +232,7 @@ public:
     const QString getName() const { return _name; }
     bool getToolbarMode() const { return _toolbarMode; }
     void setToolbarMode(bool toolbarMode);
+    void unfocus();
 
     /**jsdoc
      * @function TabletProxy#gotoMenuScreen

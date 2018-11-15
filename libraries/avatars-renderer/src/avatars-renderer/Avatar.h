@@ -409,7 +409,7 @@ public:
     void fadeIn(render::ScenePointer scene);
     void fadeOut(render::ScenePointer scene, KillAvatarReason reason);
     bool isFading() const { return _isFading; }
-    void updateFadingStatus(render::ScenePointer scene);
+    void updateFadingStatus();
 
     // JSDoc is in AvatarData.h.
     Q_INVOKABLE virtual float getEyeHeight() const override;
@@ -626,8 +626,8 @@ protected:
 
     LoadingStatus _loadingStatus { LoadingStatus::NoModel };
 
-    void metaBlendshapeOperator(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets, const QVector<int>& blendedMeshSizes,
-                                const render::ItemIDs& subItemIDs);
+    static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                       const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
 };
 
 #endif // hifi_Avatar_h

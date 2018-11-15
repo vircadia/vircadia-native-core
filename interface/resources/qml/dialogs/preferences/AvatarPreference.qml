@@ -10,7 +10,7 @@
 
 import QtQuick 2.5
 
-import "../../controls-uit"
+import controlsUit 1.0
 import "../../hifi/tablet/tabletWindows/preferences"
 
 Preference {
@@ -22,8 +22,6 @@ Preference {
 
     Component.onCompleted: {
         dataTextField.text = preference.value;
-        console.log("MyAvatar modelName " + MyAvatar.getFullAvatarModelName())
-        console.log("Application : " + ApplicationInterface)
         ApplicationInterface.fullAvatarURLChanged.connect(processNewAvatar);
     }
 

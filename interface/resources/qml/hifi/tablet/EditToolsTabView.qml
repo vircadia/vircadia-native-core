@@ -4,8 +4,8 @@ import QtWebChannel 1.0
 import "../../controls"
 import "../toolbars"
 import QtGraphicalEffects 1.0
-import "../../controls-uit" as HifiControls
-import "../../styles-uit"
+import controlsUit 1.0 as HifiControls
+import stylesUit 1.0
 
 TabBar {
     id: editTabView
@@ -18,7 +18,6 @@ TabBar {
         readonly property int create: 0
         readonly property int properties: 1
         readonly property int grid: 2
-        readonly property int particle: 3
     }
 
     readonly property HifiConstants hifi: HifiConstants {}
@@ -182,7 +181,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newParticleButton" }
                                 });
-                                editTabView.currentIndex = tabIndex.particle
+                                editTabView.currentIndex = tabIndex.properties
                             }
                         }
 
@@ -252,6 +251,7 @@ TabBar {
                 id: entityPropertiesWebView
                 url: Paths.defaultScripts + "/system/html/entityProperties.html"
                 enabled: true
+                blurOnCtrlShift: false
             }
         }
     }
@@ -267,21 +267,7 @@ TabBar {
                 id: gridControlsWebView
                 url: Paths.defaultScripts + "/system/html/gridControls.html"
                 enabled: true
-            }
-        }
-    }
-
-    EditTabButton {
-        title: "P"
-        active: true
-        enabled: true
-        property string originalUrl: ""
-
-        property Component visualItem: Component {
-            WebView {
-                id: particleExplorerWebView
-                url: Paths.defaultScripts + "/system/particle_explorer/particleExplorer.html"
-                enabled: true
+                blurOnCtrlShift: false
             }
         }
     }
@@ -292,14 +278,14 @@ TabBar {
                 selectTab(message.params.id);
                 break;
             default:
-                console.warn('Unrecognized message:', JSON.stringify(message));
+                console.warn('EditToolsTabView.qml: Unrecognized message');
         }
     }
 
     // Changes the current tab based on tab index or title as input
     function selectTab(id) {
         if (typeof id === 'number') {
-            if (id >= tabIndex.create && id <= tabIndex.particle) {
+            if (id >= tabIndex.create && id <= tabIndex.grid) {
                 editTabView.currentIndex = id;
             } else {
                 console.warn('Attempt to switch to invalid tab:', id);
@@ -314,9 +300,6 @@ TabBar {
                     break;
                 case 'grid':
                     editTabView.currentIndex = tabIndex.grid;
-                    break;
-                case 'particle':
-                    editTabView.currentIndex = tabIndex.particle;
                     break;
                 default:
                     console.warn('Attempt to switch to invalid tab:', id);

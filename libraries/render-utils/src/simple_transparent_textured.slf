@@ -37,6 +37,5 @@ void main(void) {
         normalize(_normalWS),
         texel.a,
         texel.rgb,
-        DEFAULT_FRESNEL,
         DEFAULT_ROUGHNESS);
 }

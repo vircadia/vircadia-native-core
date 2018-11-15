@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 
 // references XXX from root context
@@ -62,7 +62,7 @@ Item {
             isExpanded: false;
             question: "How can I get HFC?";
             answer: "High Fidelity commerce is in open beta right now. Want more HFC? \
-Get it by going to <br><br><b><font color='#0093C5'><a href='#bank'>BankOfHighFidelity.</a></font></b> and meeting with the banker!";
+Get it by going to <b><font color='#0093C5'><a href='#bank'>BankOfHighFidelity</a></font></b> and meeting with the banker!";
         }
         ListElement {
             isExpanded: false;
@@ -74,8 +74,7 @@ In your Wallet's Send Money tab, choose from your list of connections, or choose
             isExpanded: false;
             question: "What is a Security Pic?"
             answer: "Your Security Pic acts as an extra layer of Wallet security. \
-When you see your Security Pic, you know that your actions and data are securely making use of your account. \
-<br><br><b><font color='#0093C5'><a href='#securitypic'>Tap here to change your Security Pic.</a></font></b>";
+When you see your Security Pic, you know that your actions and data are securely making use of your account.";
         }
         ListElement {
             isExpanded: false;
@@ -137,7 +136,7 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
                 anchors.left: parent.left;
                 width: parent.width;
                 height: questionText.paintedHeight + 50;
-            
+
                 RalewaySemiBold {
                     id: plusMinusButton;
                     text: model.isExpanded ? "-" : "+";
@@ -217,8 +216,6 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
                             }
                         } else if (link === "#support") {
                             Qt.openUrlExternally("mailto:support@highfidelity.com");
-                        } else if (link === "#securitypic") {
-                            sendSignalToWallet({method: 'walletSecurity_changeSecurityImage'});
                         }
                     }
                 }
@@ -253,7 +250,7 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
     function fromScript(message) {
         switch (message.method) {
             default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('Help.qml: Unrecognized message from wallet.js');
         }
     }
     signal sendSignalToWallet(var msg);

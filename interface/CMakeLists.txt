@@ -190,8 +190,6 @@ if (WIN32)
     add_dependency_external_projects(sixense)
   endif ()
 
-  add_dependency_external_projects(sdl2)
-  add_dependency_external_projects(OpenVR)
   add_dependency_external_projects(neuron)
   add_dependency_external_projects(wasapi)
   add_dependency_external_projects(steamworks)
@@ -208,7 +206,7 @@ endif()
 link_hifi_libraries(
   shared workload task octree ktx gpu gl procedural graphics graphics-scripting render
   pointers
-  recording fbx networking model-networking entities avatars trackers
+  recording hfm fbx networking model-networking entities avatars trackers
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
