@@ -40,7 +40,7 @@ namespace gr {
 
 void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initForwardPipelines(ShapePlumber& plumber);
-void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
+void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 void addPlumberPipeline(ShapePlumber& plumber,
         const ShapeKey& key, int programId,
@@ -201,35 +201,10 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withTangents().withFade(),
         deformed_model_normal_map_translucent_fade_dq, batchSetter, itemSetter);
-
-    // Depth-only
-    addPipeline(
-        Key::Builder().withDepthOnly(),
-        model_shadow, nullptr, nullptr);
-    addPipeline(
-        Key::Builder().withDeformed().withDepthOnly(),
-        deformed_model_shadow, nullptr, nullptr);
-    // Same thing but with Fade on
-    addPipeline(
-        Key::Builder().withDepthOnly().withFade(),
-        model_shadow_fade, batchSetter, itemSetter);
-    addPipeline(
-        Key::Builder().withDeformed().withDepthOnly().withFade(),
-        deformed_model_shadow_fade, batchSetter, itemSetter);
-
-    // Now repeat for dual quaternion
-    // Depth-only
-    addPipeline(
-        Key::Builder().withDeformed().withDualQuatSkinned().withDepthOnly(),
-        deformed_model_shadow_dq, nullptr, nullptr);
-    // Same thing but with Fade on
-    addPipeline(
-        Key::Builder().withDeformed().withDualQuatSkinned().withDepthOnly().withFade(),
-        deformed_model_shadow_fade_dq, batchSetter, itemSetter);
 }
 
 void initForwardPipelines(ShapePlumber& plumber) {
-    using namespace shader::render_utils::program;
+    using namespace shader::render_utils;
 
     using Key = render::ShapeKey;
     auto addPipelineBind = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4);
@@ -244,33 +219,35 @@ void initForwardPipelines(ShapePlumber& plumber) {
     forceLightBatchSetter = true;
 
     // Simple Opaques
-    addPipeline(Key::Builder(), simple);
-    addPipeline(Key::Builder().withUnlit(), simpleUnlit);
+    addPipeline(Key::Builder(), program::forward_simple_textured);
+    addPipeline(Key::Builder().withUnlit(), program::forward_simple_textured_unlit);
 
     // Simple Translucents
-    addPipeline(Key::Builder().withTranslucent(), simpleTranslucent);
-    addPipeline(Key::Builder().withTranslucent().withUnlit(), simpleTranslucentUnlit);
+    addPipeline(Key::Builder().withTranslucent(), program::forward_simple_textured_transparent);
+    addPipeline(Key::Builder().withTranslucent().withUnlit(), program::simple_transparent_textured_unlit);
 
     // Opaques
-    addPipeline(Key::Builder().withMaterial(), forward_model);
-    addPipeline(Key::Builder().withMaterial().withUnlit(), forward_model_unlit);
-    addPipeline(Key::Builder().withMaterial().withTangents(), forward_model_translucent);
+    addPipeline(Key::Builder().withMaterial(), program::forward_model);
+    addPipeline(Key::Builder().withMaterial().withUnlit(), program::forward_model_unlit);
+    addPipeline(Key::Builder().withMaterial().withTangents(), program::forward_model_normal_map);
  
     // Deformed Opaques
-    addPipeline(Key::Builder().withMaterial().withDeformed(), forward_deformed_model);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTangents(), forward_deformed_model_normal_map);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withDualQuatSkinned(), forward_deformed_model_dq);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTangents().withDualQuatSkinned(), forward_deformed_model_normal_map_dq);
+    addPipeline(Key::Builder().withMaterial().withDeformed(), program::forward_deformed_model);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTangents(), program::forward_deformed_model_normal_map);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withDualQuatSkinned(), program::forward_deformed_model_dq);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTangents().withDualQuatSkinned(), program::forward_deformed_model_normal_map_dq);
 
     // Translucents
-    addPipeline(Key::Builder().withMaterial().withTranslucent(), forward_model_translucent);
-    addPipeline(Key::Builder().withMaterial().withTranslucent().withTangents(), forward_model_normal_map_translucent);
+    addPipeline(Key::Builder().withMaterial().withTranslucent(), program::forward_model_translucent);
+    addPipeline(Key::Builder().withMaterial().withTranslucent().withTangents(), program::forward_model_normal_map_translucent);
 
     // Deformed Translucents
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent(), forward_deformed_translucent);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents(), forward_deformed_translucent_normal_map);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withDualQuatSkinned(), forward_deformed_translucent_dq);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withDualQuatSkinned(), forward_deformed_translucent_normal_map_dq);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent(), program::forward_deformed_translucent);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents(), program::forward_deformed_translucent_normal_map);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withDualQuatSkinned(), program::forward_deformed_translucent_dq);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withDualQuatSkinned(), program::forward_deformed_translucent_normal_map_dq);
+
+    // FIXME: incorrent pipelines for normal mapped + translucent models
 
     forceLightBatchSetter = false;
 }
@@ -362,37 +339,29 @@ void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderAr
     }
 }
 
-void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state) {
+void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state, const render::ShapePipeline::BatchSetter& extraBatchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     using namespace shader::render_utils::program;
-    gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(model_shadow);
+
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutDeformed().withoutFade(),
-        modelProgram, state);
-
-    gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(deformed_model_shadow);
-    shapePlumber.addPipeline(
-        ShapeKey::Filter::Builder().withDeformed().withoutDualQuatSkinned().withoutFade(),
-        skinProgram, state);
-
-    gpu::ShaderPointer modelFadeProgram = gpu::Shader::createProgram(model_shadow_fade);
+        gpu::Shader::createProgram(model_shadow), state);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutDeformed().withFade(),
-        modelFadeProgram, state);
+        gpu::Shader::createProgram(model_shadow_fade), state, extraBatchSetter, itemSetter);
 
-    gpu::ShaderPointer skinFadeProgram = gpu::Shader::createProgram(deformed_model_shadow_fade);
+    shapePlumber.addPipeline(
+        ShapeKey::Filter::Builder().withDeformed().withoutDualQuatSkinned().withoutFade(),
+        gpu::Shader::createProgram(deformed_model_shadow), state);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withDeformed().withoutDualQuatSkinned().withFade(),
-        skinFadeProgram, state);
+        gpu::Shader::createProgram(deformed_model_shadow_fade), state, extraBatchSetter, itemSetter);
 
-    gpu::ShaderPointer skinModelShadowDualQuatProgram = gpu::Shader::createProgram(deformed_model_shadow_dq);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withDeformed().withDualQuatSkinned().withoutFade(),
-        skinModelShadowDualQuatProgram, state);
-
-    gpu::ShaderPointer skinModelShadowFadeDualQuatProgram = gpu::Shader::createProgram(deformed_model_shadow_fade_dq);
+        gpu::Shader::createProgram(deformed_model_shadow_dq), state);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withDeformed().withDualQuatSkinned().withFade(),
-        skinModelShadowFadeDualQuatProgram, state);
+        gpu::Shader::createProgram(deformed_model_shadow_fade_dq), state, extraBatchSetter, itemSetter);
 }
 
 // FIXME find a better way to setup the default textures

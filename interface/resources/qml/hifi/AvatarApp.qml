@@ -19,7 +19,7 @@ Rectangle {
     HifiControls.Keyboard {
         id: keyboard
         z: 1000
-        raised: parent.keyboardEnabled && parent.keyboardRaised
+        raised: parent.keyboardEnabled && parent.keyboardRaised && HMD.active
         numeric: parent.punctuationMode
         anchors {
             left: parent.left
@@ -62,7 +62,7 @@ Rectangle {
                     }
                 }
                 catch(err) {
-                    console.error(err);
+                    //console.error(err);
                 }
             }
         }
@@ -204,7 +204,8 @@ Rectangle {
 
     property bool isInManageState: false
 
-    Component.onCompleted: {
+    Component.onDestruction: {
+        keyboard.raised = false;
     }
 
     AvatarAppStyle {
@@ -235,6 +236,8 @@ Rectangle {
         avatarIconVisible: mainPageVisible
         settingsButtonVisible: mainPageVisible
         onSettingsClicked: {
+            displayNameInput.focus = false;
+            root.keyboardRaised = false;
             settings.open(currentAvatarSettings, currentAvatar.avatarScale);
         }
     }
@@ -343,6 +346,10 @@ Rectangle {
             onEditingFinished: {
                 emitSendToScript({'method' : 'changeDisplayName', 'displayName' : text})
                 focus = false;
+            }
+
+            onFocusChanged: {
+                root.keyboardRaised = focus;
             }
         }
 

@@ -39,7 +39,7 @@ struct HazeParams {
 };
 
 // See ShapePipeline::Slot::BUFFER in ShapePipeline.h
-layout(std140, binding=RENDER_UTILS_BUFFER_HAZE_PARAMS) uniform hazeBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_HAZE_PARAMS) uniform hazeBuffer {
     HazeParams hazeParams;
 };
 

@@ -17,6 +17,8 @@ Item {
     onKeyboardRaisedChanged: {
         if(!keyboardRaised) {
             webroot.unfocus();
+        } else {
+            webroot.stopUnfocus();
         }
     }
     property bool punctuationMode: false
@@ -193,6 +195,10 @@ Item {
     Component.onCompleted: {
         root.isDesktop = (typeof desktop !== "undefined");
         keyboardEnabled = HMD.active;
+    }
+
+    Component.onDestruction: {
+        keyboardRaised = false;
     }
 
     Keys.onPressed: {

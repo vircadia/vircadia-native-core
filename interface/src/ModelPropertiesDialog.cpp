@@ -26,11 +26,11 @@
 #include <OffscreenUi.h>
 
 
-ModelPropertiesDialog::ModelPropertiesDialog(const QVariantHash& originalMapping,
-                                             const QString& basePath, const FBXGeometry& geometry) :
+ModelPropertiesDialog::ModelPropertiesDialog(FSTReader::ModelType modelType, const QVariantHash& originalMapping,
+                                             const QString& basePath, const HFMModel& hfmModel) :
 _originalMapping(originalMapping),
 _basePath(basePath),
-_geometry(geometry)
+_hfmModel(hfmModel)
 {
     setWindowTitle("Set Model Properties");
 
@@ -85,8 +85,8 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
 
     // update the joint indices
     QVariantHash jointIndices;
-    for (int i = 0; i < _geometry.joints.size(); i++) {
-        jointIndices.insert(_geometry.joints.at(i).name, QString::number(i));
+    for (int i = 0; i < _hfmModel.joints.size(); i++) {
+        jointIndices.insert(_hfmModel.joints.at(i).name, QString::number(i));
     }
     mapping.insert(JOINT_INDEX_FIELD, jointIndices);
 
@@ -139,7 +139,7 @@ void ModelPropertiesDialog::reset() {
     }
     foreach (const QVariant& joint, _originalMapping.values(FREE_JOINT_FIELD)) {
         QString jointName = joint.toString();
-        if (_geometry.jointIndices.contains(jointName)) {
+        if (_hfmModel.jointIndices.contains(jointName)) {
             createNewFreeJoint(jointName);
         }
     }
@@ -195,8 +195,8 @@ QComboBox* ModelPropertiesDialog::createJointBox(bool withNone) const {
     if (withNone) {
         box->addItem("(none)");
     }
-    foreach (const FBXJoint& joint, _geometry.joints) {
-        if (joint.isSkeletonJoint || !_geometry.hasSkeletonJoints) {
+    foreach (const HFMJoint& joint, _hfmModel.joints) {
+        if (joint.isSkeletonJoint || !_hfmModel.hasSkeletonJoints) {
             box->addItem(joint.name);
         }
     }
@@ -212,7 +212,7 @@ QDoubleSpinBox* ModelPropertiesDialog::createTranslationBox() const {
 }
 
 void ModelPropertiesDialog::insertJointMapping(QVariantHash& joints, const QString& joint, const QString& name) const {
-    if (_geometry.jointIndices.contains(name)) {
+    if (_hfmModel.jointIndices.contains(name)) {
         joints.insert(joint, name);
     } else {
         joints.remove(joint);

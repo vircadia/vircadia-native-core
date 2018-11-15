@@ -29,9 +29,6 @@ Item {
             when: avatarUrl !== ''
             value: avatarUrl
         }
-        onSourceChanged: {
-            console.debug('avatarImage: source = ', source);
-        }
 
         visible: avatarImage.status !== Image.Loading && avatarImage.status !== Image.Error
     }

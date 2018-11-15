@@ -158,11 +158,12 @@ Script.include("/~/system/libraries/utils.js");
                 }
             }
 
-            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND
-                ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
-            if (nearOverlay) {
-                var nearOverlayReady = nearOverlay.isReady(controllerData);
-                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
+            // Tablet highlight and grabbing.
+            var tabletHighlight = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            if (tabletHighlight) {
+                var tabletHighlightReady = tabletHighlight.isReady(controllerData);
+                if (tabletHighlightReady.active) {
                     return this.exitModule();
                 }
             }
@@ -174,6 +175,23 @@ Script.include("/~/system/libraries/utils.js");
                     return this.exitModule();
                 }
             }
+
+            var stopRunning = false;
+
+            if ((controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0)) {
+                var stopRunning = false;
+                controllerData.nearbyOverlayIDs[this.hand].forEach(function(overlayID) {
+                    var overlayName = Overlays.getProperty(overlayID, "name");
+                    if (overlayName === "KeyboardAnchor") {
+                        stopRunning = true;
+                    }
+                });
+
+                if (stopRunning) {
+                    return this.exitModule();
+                }
+            }
+
             this.sendPickData(controllerData);
             return this.isReady(controllerData);
         };

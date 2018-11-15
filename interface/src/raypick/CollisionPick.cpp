@@ -131,7 +131,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
         // should never fall in here when collision model not fully loaded
         // TODO: assert that all geometries exist and are loaded
         //assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
-        const FBXGeometry& collisionGeometry = resource->getFBXGeometry();
+        const HFMModel& collisionModel = resource->getHFMModel();
 
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
@@ -139,15 +139,15 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
 
         // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
         // to find one actual "mesh" (with one or more meshParts in it), but we loop over the meshes, just in case.
-        foreach (const FBXMesh& mesh, collisionGeometry.meshes) {
+        foreach (const HFMMesh& mesh, collisionModel.meshes) {
             // each meshPart is a convex hull
-            foreach (const FBXMeshPart &meshPart, mesh.parts) {
+            foreach (const HFMMeshPart &meshPart, mesh.parts) {
                 pointCollection.push_back(QVector<glm::vec3>());
                 ShapeInfo::PointList& pointsInPart = pointCollection[i];
 
                 // run through all the triangles and (uniquely) add each point to the hull
                 uint32_t numIndices = (uint32_t)meshPart.triangleIndices.size();
-                // TODO: assert rather than workaround after we start sanitizing FBXMesh higher up
+                // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                 //assert(numIndices % TRIANGLE_STRIDE == 0);
                 numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
 
@@ -168,7 +168,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
 
                 // run through all the quads and (uniquely) add each point to the hull
                 numIndices = (uint32_t)meshPart.quadIndices.size();
-                // TODO: assert rather than workaround after we start sanitizing FBXMesh higher up
+                // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                 //assert(numIndices % QUAD_STRIDE == 0);
                 numIndices -= numIndices % QUAD_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
 
@@ -206,7 +206,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        glm::vec3 scaleToFit = dimensions / resource->getFBXGeometry().getUnscaledMeshExtents().size();
+        glm::vec3 scaleToFit = dimensions / resource->getHFMModel().getUnscaledMeshExtents().size();
         // multiply each point by scale
         for (int32_t i = 0; i < pointCollection.size(); i++) {
             for (int32_t j = 0; j < pointCollection[i].size(); j++) {
@@ -216,21 +216,21 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
         }
         shapeInfo.setParams(type, dimensions, resource->getURL().toString());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        const FBXGeometry& fbxGeometry = resource->getFBXGeometry();
-        int numFbxMeshes = fbxGeometry.meshes.size();
+        const HFMModel& hfmModel = resource->getHFMModel();
+        int numHFMMeshes = hfmModel.meshes.size();
         int totalNumVertices = 0;
-        for (int i = 0; i < numFbxMeshes; i++) {
-            const FBXMesh& mesh = fbxGeometry.meshes.at(i);
+        for (int i = 0; i < numHFMMeshes; i++) {
+            const HFMMesh& mesh = hfmModel.meshes.at(i);
             totalNumVertices += mesh.vertices.size();
         }
         const int32_t MAX_VERTICES_PER_STATIC_MESH = 1e6;
         if (totalNumVertices > MAX_VERTICES_PER_STATIC_MESH) {
-            qWarning() << "model" << resource->getURL() << "has too many vertices" << totalNumVertices << "and will collide as a box.";
+            qWarning() << "model" << "has too many vertices" << totalNumVertices << "and will collide as a box.";
             shapeInfo.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
             return;
         }
 
-        auto& meshes = resource->getFBXGeometry().meshes;
+        auto& meshes = resource->getHFMModel().meshes;
         int32_t numMeshes = (int32_t)(meshes.size());
 
         const int MAX_ALLOWED_MESH_COUNT = 1000;
@@ -285,12 +285,12 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
             if (type == SHAPE_TYPE_STATIC_MESH) {
                 // copy into triangleIndices
                 size_t triangleIndicesCount = 0;
-                for (const FBXMeshPart& meshPart : mesh.parts) {
+                for (const HFMMeshPart& meshPart : mesh.parts) {
                     triangleIndicesCount += meshPart.triangleIndices.count();
                 }
                 triangleIndices.reserve((int)triangleIndicesCount);
 
-                for (const FBXMeshPart& meshPart : mesh.parts) {
+                for (const HFMMeshPart& meshPart : mesh.parts) {
                     const int* indexItr = meshPart.triangleIndices.cbegin();
                     while (indexItr != meshPart.triangleIndices.cend()) {
                         triangleIndices.push_back(*indexItr);
@@ -299,11 +299,11 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
                 }
             } else if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
                 // for each mesh copy unique part indices, separated by special bogus (flag) index values
-                for (const FBXMeshPart& meshPart : mesh.parts) {
+                for (const HFMMeshPart& meshPart : mesh.parts) {
                     // collect unique list of indices for this part
                     std::set<int32_t> uniqueIndices;
                     auto numIndices = meshPart.triangleIndices.count();
-                    // TODO: assert rather than workaround after we start sanitizing FBXMesh higher up
+                    // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                     //assert(numIndices% TRIANGLE_STRIDE == 0);
                     numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
 

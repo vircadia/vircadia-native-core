@@ -51,8 +51,6 @@ void BatchLoader::start(int maxRetries) {
     for (const auto& rawURL : _urls) {
         QUrl url = expandScriptUrl(normalizeScriptURL(rawURL));
 
-        qCDebug(scriptengine) << "Loading script at " << url;
-
         auto scriptCache = DependencyManager::get<ScriptCache>();
 
         // Use a proxy callback to handle the call and emit the signal in a thread-safe way.
@@ -65,10 +63,8 @@ void BatchLoader::start(int maxRetries) {
             _status.insert(url, status);
             if (isURL && success) {
                 _data.insert(url, contents);
-                qCDebug(scriptengine) << "Loaded: " << url;
             } else {
                 _data.insert(url, QString());
-                qCDebug(scriptengine) << "Could not load: " << url << status;
             }
 
             if (!_finished && _urls.size() == _data.size()) {

@@ -22,7 +22,7 @@
 #include <QtCore/QFileInfo>
 
 #include <shared/NsightHelpers.h>
-#include "ModelFormatLogging.h"
+#include <hfm/ModelFormatLogging.h>
 
 template<class T>
 int streamSize() {

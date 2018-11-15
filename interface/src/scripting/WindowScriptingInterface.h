@@ -41,6 +41,8 @@
  *     <em>Read-only.</em>
  * @property {number} y - The y display coordinate of the top left corner of the drawable area of the Interface window. 
  *     <em>Read-only.</em>
+ * @property {boolean} interstitialModeEnabled=true - <code>true</code> if the interstitial graphics are displayed when the 
+ *     domain is loading, otherwise <code>false</code>.
  */
 
 class WindowScriptingInterface : public QObject, public Dependency {
@@ -620,9 +622,10 @@ signals:
     void redirectErrorStateChanged(bool isInErrorState);
 
     /**jsdoc
-     * Triggered when interstitial mode changes.
+     * Triggered when the interstitial mode changes.
      * @function Window.interstitialModeChanged
-     * @param {bool} interstitialMode - The mode of the interstitial is changed to.
+     * @param {bool} interstitialMode - The new interstitial mode value. If <code>true</code>, the interstitial graphics are 
+     * displayed when the domain is loading.
      * @returns {Signal}
      */
     void interstitialModeChanged(bool interstitialMode);

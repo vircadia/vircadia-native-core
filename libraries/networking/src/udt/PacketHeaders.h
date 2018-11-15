@@ -126,14 +126,13 @@ public:
         EntityScriptCallMethod,
         ChallengeOwnershipRequest,
         ChallengeOwnershipReply,
-
         OctreeDataFileRequest,
         OctreeDataFileReply,
         OctreeDataPersist,
-
         EntityClone,
         EntityQueryInitialResultsComplete,
         BulkAvatarTraits,
+        AudioSoloRequest,
 
         NUM_PACKET_TYPE
     };
@@ -297,7 +296,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     FarGrabJoints,
     MigrateSkeletonURLToTraits,
     MigrateAvatarEntitiesToTraits,
-    FarGrabJointsRedux
+    FarGrabJointsRedux,
+    JointTransScaled
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

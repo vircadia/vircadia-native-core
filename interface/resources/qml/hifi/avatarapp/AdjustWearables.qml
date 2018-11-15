@@ -48,16 +48,32 @@ Rectangle {
         refresh(avatar);
     }
 
+    function extractTitleFromUrl(url) {
+        for (var j = (url.length - 1); j >= 0; --j) {
+            if (url[j] === '/') {
+                return url.substring(j + 1);
+            }
+        }
+        return url;
+    }
+
     function refresh(avatar) {
         wearablesCombobox.model.clear();
         wearablesCombobox.currentIndex = -1;
 
         for (var i = 0; i < avatar.wearables.count; ++i) {
             var wearable = avatar.wearables.get(i).properties;
-            for (var j = (wearable.modelURL.length - 1); j >= 0; --j) {
-                if (wearable.modelURL[j] === '/') {
-                    wearable.text = wearable.modelURL.substring(j + 1);
-                    break;
+            if (wearable.modelURL) {
+                wearable.text = extractTitleFromUrl(wearable.modelURL);
+            } else if (wearable.materialURL) {
+                var materialUrlOrJson = '';
+                if (!wearable.materialURL.startsWith('materialData')) {
+                    materialUrlOrJson = extractTitleFromUrl(wearable.materialURL);
+                } else if (wearable.materialData) {
+                    materialUrlOrJson = JSON.stringify(JSON.parse(wearable.materialData))
+                }
+                if(materialUrlOrJson) {
+                    wearable.text = 'Material: ' + materialUrlOrJson;
                 }
             }
             wearablesCombobox.model.append(wearable);
@@ -245,7 +261,6 @@ Rectangle {
                         anchors.right: parent.right
                         onLinkActivated: {
                             popup.showSpecifyWearableUrl(function(url) {
-                                console.debug('popup.showSpecifyWearableUrl: ', url);
                                 addWearable(root.avatarName, url);
                                 modified = true;
                             });

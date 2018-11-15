@@ -290,6 +290,7 @@ void Base3DOverlay::locationChanged(bool tellPhysics) {
     notifyRenderVariableChange();
 }
 
+// FIXME: Overlays shouldn't be deleted when their parents are
 void Base3DOverlay::parentDeleted() {
     qApp->getOverlays().deleteOverlay(getOverlayID());
 }

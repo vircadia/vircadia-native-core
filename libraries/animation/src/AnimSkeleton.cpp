@@ -16,17 +16,17 @@
 
 #include "AnimationLogging.h"
 
-AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry) {
+AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     // convert to std::vector of joints
-    std::vector<FBXJoint> joints;
-    joints.reserve(fbxGeometry.joints.size());
-    for (auto& joint : fbxGeometry.joints) {
+    std::vector<HFMJoint> joints;
+    joints.reserve(hfmModel.joints.size());
+    for (auto& joint : hfmModel.joints) {
         joints.push_back(joint);
     }
     buildSkeletonFromJoints(joints);
 }
 
-AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
+AnimSkeleton::AnimSkeleton(const std::vector<HFMJoint>& joints) {
     buildSkeletonFromJoints(joints);
 }
 
@@ -166,7 +166,7 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
     }
 }
 
-void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) {
+void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints) {
     _joints = joints;
     _jointsSize = (int)joints.size();
     // build a cache of bind poses
@@ -177,7 +177,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
     _relativePreRotationPoses.reserve(_jointsSize);
     _relativePostRotationPoses.reserve(_jointsSize);
 
-    // iterate over FBXJoints and extract the bind pose information.
+    // iterate over HFMJoints and extract the bind pose information.
     for (int i = 0; i < _jointsSize; i++) {
 
         // build pre and post transforms
@@ -240,7 +240,7 @@ void AnimSkeleton::dump(bool verbose) const {
         qCDebug(animation) << "        absDefaultPose =" << getAbsoluteDefaultPose(i);
         qCDebug(animation) << "        relDefaultPose =" << getRelativeDefaultPose(i);
         if (verbose) {
-            qCDebug(animation) << "        fbxJoint =";
+            qCDebug(animation) << "        hfmJoint =";
             qCDebug(animation) << "            isFree =" << _joints[i].isFree;
             qCDebug(animation) << "            freeLineage =" << _joints[i].freeLineage;
             qCDebug(animation) << "            parentIndex =" << _joints[i].parentIndex;

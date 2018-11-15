@@ -822,11 +822,44 @@ Flickable {
                 }
             }
 
+            Row {
+                id: outOfRangeDataStrategyRow
+                anchors.top: viveInDesktop.bottom
+                anchors.topMargin: 5
+                anchors.left: openVrConfiguration.left
+                anchors.leftMargin: leftMargin + 10
+                spacing: 15
+
+                RalewayRegular {
+                    id: outOfRangeDataStrategyLabel
+                    size: 12
+                    text: "Out Of Range Data Strategy:"
+                    color: hifi.colors.lightGrayText
+                    topPadding: 5
+                }
+
+                HifiControls.ComboBox {
+                    id: outOfRangeDataStrategyComboBox
+
+                    height: 25
+                    width: 100
+
+                    editable: true
+                    colorScheme: hifi.colorSchemes.dark
+                    model: ["None", "Freeze", "Drop"]
+                    label: ""
+
+                    onCurrentIndexChanged: {
+                        sendConfigurationSettings();
+                    }
+                }
+            }
+
             RalewayBold {
                 id: viveDesktopText
-                size: 10
+                size: 12
                 text: "Use " + stack.selectedPlugin + " devices in desktop mode"
-                color: hifi.colors.white
+                color: hifi.colors.lightGrayText
 
                 anchors {
                     left: viveInDesktop.right
@@ -946,6 +979,7 @@ Flickable {
 
                 viveInDesktop.checked = desktopMode;
                 hmdInDesktop.checked = hmdDesktopPosition;
+                outOfRangeDataStrategyComboBox.currentIndex = outOfRangeDataStrategyComboBox.model.indexOf(settings.outOfRangeDataStrategy);
 
                 initializeButtonState();
                 updateCalibrationText();
@@ -1107,7 +1141,8 @@ Flickable {
                     "armCircumference": armCircumference.realValue,
                     "shoulderWidth": shoulderWidth.realValue,
                     "desktopMode": viveInDesktop.checked,
-                    "hmdDesktopTracking": hmdInDesktop.checked
+                    "hmdDesktopTracking": hmdInDesktop.checked,
+                    "outOfRangeDataStrategy": outOfRangeDataStrategyComboBox.model[outOfRangeDataStrategyComboBox.currentIndex]
                 }
 
                 return settingsObject;

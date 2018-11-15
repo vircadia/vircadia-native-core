@@ -16,11 +16,11 @@
 <@include render-utils/ShaderConstants.h@>
 <@include gpu/Color.slh@>
 
-layout(binding=RENDER_UTILS_TEXTURE_TAA_HISTORY) uniform sampler2D historyMap;
-layout(binding=RENDER_UTILS_TEXTURE_TAA_SOURCE) uniform sampler2D sourceMap;
-layout(binding=RENDER_UTILS_TEXTURE_TAA_VELOCITY) uniform sampler2D velocityMap;
-layout(binding=RENDER_UTILS_TEXTURE_TAA_DEPTH) uniform sampler2D depthMap;
-layout(binding=RENDER_UTILS_TEXTURE_TAA_NEXT) uniform sampler2D nextMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_TAA_HISTORY) uniform sampler2D historyMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_TAA_SOURCE) uniform sampler2D sourceMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_TAA_VELOCITY) uniform sampler2D velocityMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_TAA_DEPTH) uniform sampler2D depthMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_TAA_NEXT) uniform sampler2D nextMap;
 
 struct TAAParams
 {
@@ -33,7 +33,7 @@ struct TAAParams
     vec4 regionInfo;
 };
 
-layout(std140, binding=RENDER_UTILS_BUFFER_TAA_PARAMS) uniform taaParamsBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_TAA_PARAMS) uniform taaParamsBuffer {
     TAAParams params;
 };
 

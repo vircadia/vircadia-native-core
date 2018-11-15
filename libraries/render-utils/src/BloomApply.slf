@@ -12,11 +12,11 @@
 <@include BloomApply.shared.slh@>
 <@include render-utils/ShaderConstants.h@>
 
-layout(binding=0) uniform sampler2D blurMap0;
-layout(binding=1) uniform sampler2D blurMap1;
-layout(binding=2) uniform sampler2D blurMap2;
+LAYOUT(binding=0) uniform sampler2D blurMap0;
+LAYOUT(binding=1) uniform sampler2D blurMap1;
+LAYOUT(binding=2) uniform sampler2D blurMap2;
 
-layout(std140, binding=RENDER_UTILS_BUFFER_BLOOM_PARAMS) uniform parametersBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_BLOOM_PARAMS) uniform parametersBuffer {
     Parameters parameters;
 };
 

@@ -13,14 +13,14 @@
 <@include DeferredBufferWrite.slh@>
 <@include render-utils/ShaderConstants.h@>
 
-layout(binding=0) uniform sampler2D Font;
+LAYOUT(binding=0) uniform sampler2D Font;
 
 struct TextParams {
     vec4 color;
     vec4 outline;
 };
 
-layout(binding=0) uniform textParamsBuffer {
+LAYOUT(binding=0) uniform textParamsBuffer {
     TextParams params;
 };
 
@@ -60,6 +60,5 @@ void main() {
         normalize(_normalWS),
         a * params.color.a,
         params.color.rgb,
-        DEFAULT_FRESNEL,
         DEFAULT_ROUGHNESS);
 }

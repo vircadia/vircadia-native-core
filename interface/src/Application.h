@@ -228,6 +228,9 @@ public:
     bool getPreferAvatarFingerOverStylus() { return false; }
     void setPreferAvatarFingerOverStylus(bool value);
 
+    bool getMiniTabletEnabled() { return _miniTabletEnabledSetting.get(); }
+    void setMiniTabletEnabled(bool enabled);
+
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
 
@@ -338,11 +341,13 @@ signals:
 
     void loginDialogPoppedUp();
 
+    void miniTabletEnabledChanged(bool enabled);
+
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
-    bool importEntities(const QString& url);
+    bool importEntities(const QString& url, const bool isObservable = true, const qint64 callerId = -1);
     void updateThreadPoolCount() const;
     void updateSystemTabletMode();
     void goToErrorDomainURL(QUrl errorDomainURL);
@@ -381,6 +386,8 @@ public slots:
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
+
+    void hmdVisibleChanged(bool visible);
 
 #if (PR_BUILD || DEV_BUILD)
     void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
@@ -497,6 +504,8 @@ private slots:
     void setShowBulletContactPoints(bool value);
     void setShowBulletConstraints(bool value);
     void setShowBulletConstraintLimits(bool value);
+
+    void setShowTrackedObjects(bool value);
 
 private:
     void init();
@@ -627,6 +636,7 @@ private:
     Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
     Setting::Handle<QString> _preferredCursor;
+    Setting::Handle<bool> _miniTabletEnabledSetting;
 
     float _scaleMirror;
     float _mirrorYawOffset;
@@ -779,5 +789,8 @@ private:
     std::atomic<bool> _pendingRenderEvent { true };
 
     bool quitWhenFinished { false };
+
+    bool _showTrackedObjects { false };
+    bool _prevShowTrackedObjects { false };
 };
 #endif // hifi_Application_h

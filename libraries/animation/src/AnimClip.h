@@ -51,6 +51,8 @@ public:
     bool getMirrorFlag() const { return _mirrorFlag; }
     void setMirrorFlag(bool mirrorFlag) { _mirrorFlag = mirrorFlag; }
 
+    float getFrame() const { return _frame; }
+
     void loadURL(const QString& url);
 protected:
 

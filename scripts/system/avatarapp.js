@@ -28,9 +28,8 @@ function executeLater(callback) {
     Script.setTimeout(callback, 300);
 }
 
-var INVALID_JOINT_INDEX = -1
 function isWearable(avatarEntity) {
-    return avatarEntity.properties.visible === true && (avatarEntity.properties.parentJointIndex !== INVALID_JOINT_INDEX || avatarEntity.properties.relayParentJoints === true) &&
+    return avatarEntity.properties.visible === true &&
         (avatarEntity.properties.parentID === MyAvatar.sessionUUID || avatarEntity.properties.parentID === MyAvatar.SELF_ID);
 }
 
@@ -159,7 +158,7 @@ var selectedAvatarEntityGrabbable = false;
 var selectedAvatarEntityID = null;
 var grabbedAvatarEntityChangeNotifier = null;
 
-var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
+var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
 var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("html/js/marketplacesInject.js");
 
@@ -285,9 +284,9 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
     case 'navigate':
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system")
         if(message.url.indexOf('app://') === 0) {
-            if(message.url === 'app://marketplace') {
+            if (message.url === 'app://marketplace') {
                 tablet.gotoWebScreen(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
-            } else if(message.url === 'app://purchases') {
+            } else if (message.url === 'app://purchases') {
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
             }
 
@@ -320,7 +319,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         settings = getMyAvatarSettings();
         break;
     default:
-        print('Unrecognized message from AvatarApp.qml:', JSON.stringify(message));
+        print('Unrecognized message from AvatarApp.qml');
     }
 }
 

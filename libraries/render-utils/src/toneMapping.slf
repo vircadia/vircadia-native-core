@@ -26,7 +26,7 @@ const int ToneCurveGamma22 = 1;
 const int ToneCurveReinhard = 2;
 const int ToneCurveFilmic = 3;
 
-layout(binding=RENDER_UTILS_BUFFER_TM_PARAMS) uniform toneMappingParamsBuffer {
+LAYOUT(binding=RENDER_UTILS_BUFFER_TM_PARAMS) uniform toneMappingParamsBuffer {
     ToneMappingParams params;
 };
 float getTwoPowExposure() {
@@ -36,7 +36,7 @@ int getToneCurve() {
     return params._toneCurve_s0_s1_s2.x;
 }
 
-layout(binding=RENDER_UTILS_TEXTURE_TM_COLOR) uniform sampler2D colorMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_TM_COLOR) uniform sampler2D colorMap;
         
 layout(location=0) in vec2 varTexCoord0;
 layout(location=0) out vec4 outFragColor;

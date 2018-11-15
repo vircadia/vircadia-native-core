@@ -46,9 +46,6 @@ void FileResourceRequest::doSend() {
         QFileSelector fileSelector;
         fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
         filename = fileSelector.select(filename);
-        if (filename != originalFilename) {
-            qCDebug(resourceLog) << "Using" << filename << "instead of" << originalFilename;
-        }
     }
 
     if (!_byteRange.isValid()) {

@@ -56,10 +56,13 @@ StackView {
         Qt.callLater(function() {
             addressBarDialog.keyboardEnabled = HMD.active;
             addressLine.forceActiveFocus();
+            addressBarDialog.raised = true;
         })
     }
+
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
+        keyboard.raised = false;
     }
 
     function center() {
@@ -218,6 +221,11 @@ StackView {
                     leftMargin: 8;
                     verticalCenter: addressLineContainer.verticalCenter;
                 }
+
+                onFocusChanged: {
+                    addressBarDialog.raised = focus;
+                }
+
                 onTextChanged: {
                     updateLocationText(text.length > 0);
                 }

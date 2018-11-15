@@ -68,7 +68,7 @@ void Sound::downloadFinished(const QByteArray& data) {
 
 void Sound::soundProcessSuccess(QByteArray data, bool stereo, bool ambisonic, float duration) {
 
-    qCDebug(audio) << "Setting ready state for sound file" << _url.toDisplayString();
+    qCDebug(audio) << "Setting ready state for sound file";
 
     _byteArray = data;
     _isStereo = stereo;
@@ -81,14 +81,14 @@ void Sound::soundProcessSuccess(QByteArray data, bool stereo, bool ambisonic, fl
 }
 
 void Sound::soundProcessError(int error, QString str) {
-    qCCritical(audio) << "Failed to process sound file" << _url.toDisplayString() << "code =" << error << str;
+    qCCritical(audio) << "Failed to process sound file: code =" << error << str;
     emit failed(QNetworkReply::UnknownContentError);
     finishedLoading(false);
 }
 
 void SoundProcessor::run() {
 
-    qCDebug(audio) << "Processing sound file" << _url.toDisplayString();
+    qCDebug(audio) << "Processing sound file";
 
     // replace our byte array with the downloaded data
     QByteArray rawAudioByteArray = QByteArray(_data);
@@ -129,7 +129,7 @@ void SoundProcessor::run() {
         // since it's raw the only way for us to know that is if the file was called .stereo.raw
         if (fileName.toLower().endsWith("stereo.raw")) {
             _isStereo = true;
-            qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << _url << "as stereo audio file.";
+            qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes as stereo audio file.";
         }
 
         // Process as 48khz RAW file

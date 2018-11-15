@@ -260,38 +260,50 @@ Item {
             interactive: false;
             anchors.fill: parent;
             model: filterBarModel;
-            delegate: Rectangle {
-                id: dropDownButton;
-                color: hifi.colors.white;
+            delegate: Item {
                 width: parent.width;
                 height: 50;
+                Rectangle {
+                    id: dropDownButton;
+                    color: hifi.colors.white;
+                    width: parent.width;
+                    height: 50;
+                    visible: true;
 
-                RalewaySemiBold {
-                    id: dropDownButtonText;
-                    text: model.displayName;
-                    anchors.fill: parent;
-                    anchors.leftMargin: 12;
-                    color: hifi.colors.baseGray;
-                    horizontalAlignment: Text.AlignLeft;
-                    verticalAlignment: Text.AlignVCenter;
-                    size: 18;
+                    RalewaySemiBold {
+                        id: dropDownButtonText;
+                        text: model.displayName;
+                        anchors.fill: parent;
+                        anchors.topMargin: 2;
+                        anchors.leftMargin: 12;
+                        color: hifi.colors.baseGray;
+                        horizontalAlignment: Text.AlignLeft;
+                        verticalAlignment: Text.AlignVCenter;
+                        size: 18;
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent;
+                        hoverEnabled: true;
+                        propagateComposedEvents: false;
+                        onEntered: {
+                            dropDownButton.color = hifi.colors.blueHighlight;
+                        }
+                        onExited: {
+                            dropDownButton.color = hifi.colors.white;
+                        }
+                        onClicked: {
+                            textField.forceActiveFocus();
+                            root.primaryFilter_index = index;
+                            dropdownContainer.visible = false;
+                        }
+                    }
                 }
-
-                MouseArea {
-                    anchors.fill: parent;
-                    hoverEnabled: true;
-                    propagateComposedEvents: false;
-                    onEntered: {
-                        dropDownButton.color = hifi.colors.blueHighlight;
-                    }
-                    onExited: {
-                        dropDownButton.color = hifi.colors.white;
-                    }
-                    onClicked: {
-                        textField.forceActiveFocus();
-                        root.primaryFilter_index = index;
-                        dropdownContainer.visible = false;
-                    }
+                Rectangle {
+                    height: 2;
+                    width: parent.width;
+                    color: hifi.colors.lightGray;
+                    visible: model.separator
                 }
             }
         }

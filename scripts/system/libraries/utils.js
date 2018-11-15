@@ -102,7 +102,6 @@ getEntityUserData = function(id) {
             results = JSON.parse(properties.userData);
         } catch(err) {
             logDebug(err);
-            logDebug(properties.userData);
         }
     }
     return results ? results : {};

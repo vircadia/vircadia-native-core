@@ -362,7 +362,7 @@ Rectangle {
             spectatorCameraPreview.visible = message.setting;
         break;
         default:
-            console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));
+            console.log('Unrecognized message from spectatorCamera.js');
         }
     }
     signal sendToScript(var message);

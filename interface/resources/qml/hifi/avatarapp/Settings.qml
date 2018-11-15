@@ -14,6 +14,22 @@ Rectangle {
 
     signal scaleChanged(real scale);
 
+    property bool keyboardEnabled: true
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+
+    HifiControlsUit.Keyboard {
+        id: keyboard
+        z: 1000
+        raised: parent.keyboardEnabled && parent.keyboardRaised
+        numeric: parent.punctuationMode
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+    }
+
     property alias onSaveClicked: dialogButtons.onYesClicked
     property alias onCancelClicked: dialogButtons.onNoClicked
 
@@ -31,7 +47,7 @@ Rectangle {
 
         scaleSlider.notify = false;
         scaleSlider.value = Math.round(avatarScale * 10);
-        scaleSlider.notify = true;;
+        scaleSlider.notify = true;
 
         if (settings.dominantHand === 'left') {
             leftHandRadioButton.checked = true;
@@ -314,6 +330,10 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 placeholderText: 'user\\ﬁle\\dir'
+
+                onFocusChanged: {
+                    keyboardRaised = (avatarAnimationUrlInputText.focus || avatarCollisionSoundUrlInputText.focus);
+                }
             }
         }
 
@@ -340,6 +360,10 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 placeholderText: 'https://hifi-public.s3.amazonaws.com/sounds/Collisions-'
+
+                onFocusChanged: {
+                    keyboardRaised = (avatarAnimationUrlInputText.focus || avatarCollisionSoundUrlInputText.focus);
+                }
             }
         }
 

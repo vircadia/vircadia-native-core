@@ -16,6 +16,9 @@
 
 #include <QFutureWatcher>
 #include <QtConcurrent/QtConcurrentRun>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
 
 #include <shared/QtHelpers.h>
 #include <VariantMapToScriptValue.h>
@@ -37,6 +40,7 @@
 #include "WebEntityItem.h"
 #include <EntityScriptClient.h>
 #include <Profile.h>
+#include "GrabPropertyGroup.h"
 
 const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
 const QString NOT_GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":false}}";
@@ -237,6 +241,235 @@ EntityItemProperties convertPropertiesFromScriptSemantics(const EntityItemProper
 }
 
 
+void synchronizeSpatialKey(const GrabPropertyGroup& grabProperties, QJsonObject& grabbableKey, bool& userDataChanged) {
+    if (grabProperties.equippableLeftPositionChanged() ||
+        grabProperties.equippableRightPositionChanged() ||
+        grabProperties.equippableRightRotationChanged() ||
+        grabProperties.equippableIndicatorURLChanged() ||
+        grabProperties.equippableIndicatorScaleChanged() ||
+        grabProperties.equippableIndicatorOffsetChanged()) {
+
+        QJsonObject spatialKey = grabbableKey["spatialKey"].toObject();
+
+        if (grabProperties.equippableLeftPositionChanged()) {
+            if (grabProperties.getEquippableLeftPosition() == INITIAL_LEFT_EQUIPPABLE_POSITION) {
+                spatialKey.remove("leftRelativePosition");
+            } else {
+                spatialKey["leftRelativePosition"] =
+                    QJsonValue::fromVariant(vec3ToQMap(grabProperties.getEquippableLeftPosition()));
+            }
+        }
+        if (grabProperties.equippableRightPositionChanged()) {
+            if (grabProperties.getEquippableRightPosition() == INITIAL_RIGHT_EQUIPPABLE_POSITION) {
+                spatialKey.remove("rightRelativePosition");
+            } else {
+                spatialKey["rightRelativePosition"] =
+                    QJsonValue::fromVariant(vec3ToQMap(grabProperties.getEquippableRightPosition()));
+            }
+        }
+        if (grabProperties.equippableLeftRotationChanged()) {
+            spatialKey["relativeRotation"] =
+                QJsonValue::fromVariant(quatToQMap(grabProperties.getEquippableLeftRotation()));
+        } else if (grabProperties.equippableRightRotationChanged()) {
+            spatialKey["relativeRotation"] =
+                QJsonValue::fromVariant(quatToQMap(grabProperties.getEquippableRightRotation()));
+        }
+
+        grabbableKey["spatialKey"] = spatialKey;
+        userDataChanged = true;
+    }
+}
+
+
+void synchronizeGrabbableKey(const GrabPropertyGroup& grabProperties, QJsonObject& userData, bool& userDataChanged) {
+    if (grabProperties.triggerableChanged() ||
+        grabProperties.grabbableChanged() ||
+        grabProperties.grabFollowsControllerChanged() ||
+        grabProperties.grabKinematicChanged() ||
+        grabProperties.equippableChanged() ||
+        grabProperties.equippableLeftPositionChanged() ||
+        grabProperties.equippableRightPositionChanged() ||
+        grabProperties.equippableRightRotationChanged()) {
+
+        QJsonObject grabbableKey = userData["grabbableKey"].toObject();
+
+        if (grabProperties.triggerableChanged()) {
+            if (grabProperties.getTriggerable()) {
+                grabbableKey["triggerable"] = true;
+            } else {
+                grabbableKey.remove("triggerable");
+            }
+        }
+        if (grabProperties.grabbableChanged()) {
+            if (grabProperties.getGrabbable()) {
+                grabbableKey.remove("grabbable");
+            } else {
+                grabbableKey["grabbable"] = false;
+            }
+        }
+        if (grabProperties.grabFollowsControllerChanged()) {
+            if (grabProperties.getGrabFollowsController()) {
+                grabbableKey.remove("ignoreIK");
+            } else {
+                grabbableKey["ignoreIK"] = false;
+            }
+        }
+        if (grabProperties.grabKinematicChanged()) {
+            if (grabProperties.getGrabKinematic()) {
+                grabbableKey.remove("kinematic");
+            } else {
+                grabbableKey["kinematic"] = false;
+            }
+        }
+        if (grabProperties.equippableChanged()) {
+            if (grabProperties.getEquippable()) {
+                grabbableKey["equippable"] = true;
+            } else {
+                grabbableKey.remove("equippable");
+            }
+        }
+
+        if (grabbableKey.contains("spatialKey")) {
+            synchronizeSpatialKey(grabProperties, grabbableKey, userDataChanged);
+        }
+
+        userData["grabbableKey"] = grabbableKey;
+        userDataChanged = true;
+    }
+}
+
+void synchronizeGrabJoints(const GrabPropertyGroup& grabProperties, QJsonObject& joints) {
+    QJsonArray rightHand = joints["RightHand"].toArray();
+    QJsonObject rightHandPosition = rightHand.size() > 0 ? rightHand[0].toObject() : QJsonObject();
+    QJsonObject rightHandRotation = rightHand.size() > 1 ? rightHand[1].toObject() : QJsonObject();
+    QJsonArray leftHand = joints["LeftHand"].toArray();
+    QJsonObject leftHandPosition = leftHand.size() > 0 ? leftHand[0].toObject() : QJsonObject();
+    QJsonObject leftHandRotation = leftHand.size() > 1 ? leftHand[1].toObject() : QJsonObject();
+
+    if (grabProperties.equippableLeftPositionChanged()) {
+        leftHandPosition =
+            QJsonValue::fromVariant(vec3ToQMap(grabProperties.getEquippableLeftPosition())).toObject();
+    }
+    if (grabProperties.equippableRightPositionChanged()) {
+        rightHandPosition =
+            QJsonValue::fromVariant(vec3ToQMap(grabProperties.getEquippableRightPosition())).toObject();
+    }
+    if (grabProperties.equippableLeftRotationChanged()) {
+        leftHandRotation =
+            QJsonValue::fromVariant(quatToQMap(grabProperties.getEquippableLeftRotation())).toObject();
+    }
+    if (grabProperties.equippableRightRotationChanged()) {
+        rightHandRotation =
+            QJsonValue::fromVariant(quatToQMap(grabProperties.getEquippableRightRotation())).toObject();
+    }
+
+    rightHand = QJsonArray();
+    rightHand.append(rightHandPosition);
+    rightHand.append(rightHandRotation);
+    joints["RightHand"] = rightHand;
+    leftHand = QJsonArray();
+    leftHand.append(leftHandPosition);
+    leftHand.append(leftHandRotation);
+    joints["LeftHand"] = leftHand;
+}
+
+void synchronizeEquipHotspot(const GrabPropertyGroup& grabProperties, QJsonObject& userData, bool& userDataChanged) {
+    if (grabProperties.equippableLeftPositionChanged() ||
+        grabProperties.equippableRightPositionChanged() ||
+        grabProperties.equippableRightRotationChanged() ||
+        grabProperties.equippableIndicatorURLChanged() ||
+        grabProperties.equippableIndicatorScaleChanged() ||
+        grabProperties.equippableIndicatorOffsetChanged()) {
+
+        QJsonArray equipHotspots = userData["equipHotspots"].toArray();
+        QJsonObject equipHotspot = equipHotspots[0].toObject();
+        QJsonObject joints = equipHotspot["joints"].toObject();
+
+        synchronizeGrabJoints(grabProperties, joints);
+
+        if (grabProperties.equippableIndicatorURLChanged()) {
+            equipHotspot["modelURL"] = grabProperties.getEquippableIndicatorURL();
+        }
+        if (grabProperties.equippableIndicatorScaleChanged()) {
+            QJsonObject scale =
+                QJsonValue::fromVariant(vec3ToQMap(grabProperties.getEquippableIndicatorScale())).toObject();
+            equipHotspot["radius"] = scale;
+            equipHotspot["modelScale"] = scale;
+
+        }
+        if (grabProperties.equippableIndicatorOffsetChanged()) {
+            equipHotspot["position"] =
+                QJsonValue::fromVariant(vec3ToQMap(grabProperties.getEquippableIndicatorOffset())).toObject();
+        }
+
+        equipHotspot["joints"] = joints;
+        equipHotspots = QJsonArray();
+        equipHotspots.append(equipHotspot);
+        userData["equipHotspots"] = equipHotspots;
+        userDataChanged = true;
+    }
+}
+
+void synchronizeWearable(const GrabPropertyGroup& grabProperties, QJsonObject& userData, bool& userDataChanged) {
+    if (grabProperties.equippableLeftPositionChanged() ||
+        grabProperties.equippableRightPositionChanged() ||
+        grabProperties.equippableRightRotationChanged() ||
+        grabProperties.equippableIndicatorURLChanged() ||
+        grabProperties.equippableIndicatorScaleChanged() ||
+        grabProperties.equippableIndicatorOffsetChanged()) {
+
+        QJsonObject wearable = userData["wearable"].toObject();
+        QJsonObject joints = wearable["joints"].toObject();
+
+        synchronizeGrabJoints(grabProperties, joints);
+
+        wearable["joints"] = joints;
+        userData["wearable"] = wearable;
+        userDataChanged = true;
+    }
+}
+
+void synchronizeEditedGrabProperties(EntityItemProperties& properties, const QString& previousUserdata) {
+    // After sufficient warning to content creators, we should be able to remove this.
+
+    if (properties.grabbingRelatedPropertyChanged()) {
+        // This edit touches a new-style grab property, so make userData agree...
+        GrabPropertyGroup& grabProperties = properties.getGrab();
+
+        bool userDataChanged { false };
+
+        // if the edit changed userData, use the updated version coming along with the edit.  If not, use
+        // what was already in the entity.
+        QByteArray userDataString;
+        if (properties.userDataChanged()) {
+            userDataString = properties.getUserData().toUtf8();
+        } else {
+            userDataString = previousUserdata.toUtf8();;
+        }
+        QJsonObject userData = QJsonDocument::fromJson(userDataString).object();
+
+        if (userData.contains("grabbableKey")) {
+            synchronizeGrabbableKey(grabProperties, userData, userDataChanged);
+        }
+        if (userData.contains("equipHotspots")) {
+            synchronizeEquipHotspot(grabProperties, userData, userDataChanged);
+        }
+        if (userData.contains("wearable")) {
+            synchronizeWearable(grabProperties, userData, userDataChanged);
+        }
+
+        if (userDataChanged) {
+            properties.setUserData(QJsonDocument(userData).toJson());
+        }
+
+    } else if (properties.userDataChanged()) {
+        // This edit touches userData (and doesn't touch a new-style grab property).  Check for grabbableKey in the
+        // userdata and make the new-style grab properties agree
+        convertGrabUserDataToProperties(properties);
+    }
+}
+
+
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
@@ -257,6 +490,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     propertiesWithSimID = convertPropertiesFromScriptSemantics(propertiesWithSimID, scalesWithParent);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
+    synchronizeEditedGrabProperties(propertiesWithSimID, QString());
 
     EntityItemID id;
     // If we have a local entity tree set, then also update it.
@@ -559,6 +793,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         simulationOwner = entity->getSimulationOwner();
     });
 
+    QString previousUserdata;
     if (entity) {
         if (properties.hasSimulationRestrictedChanges()) {
             if (_bidOnSimulationOwnership) {
@@ -597,6 +832,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
         // make sure the properties has a type, so that the encode can know which properties to include
         properties.setType(entity->getType());
+
+        previousUserdata = entity->getUserData();
     } else if (_bidOnSimulationOwnership) {
         // bail when simulation participants don't know about entity
         return QUuid();
@@ -605,6 +842,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     // How to check for this cheaply?
 
     properties = convertPropertiesFromScriptSemantics(properties, properties.getScalesWithParent());
+    synchronizeEditedGrabProperties(properties, previousUserdata);
     properties.setLastEditedBy(sessionID);
 
     // done reading and modifying properties --> start write

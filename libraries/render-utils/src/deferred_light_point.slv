@@ -22,7 +22,7 @@
 
 <$declareLightBuffer(256)$>
 
-layout(binding=RENDER_UTILS_BUFFER_LIGHT_INDEX) uniform lightIndexBuffer {
+LAYOUT(binding=RENDER_UTILS_BUFFER_LIGHT_INDEX) uniform lightIndexBuffer {
     int lightIndex[256];
 };
 

@@ -10,35 +10,101 @@ const ASCENDING_SORT = 1;
 const DESCENDING_SORT = -1;
 const ASCENDING_STRING = '&#x25B4;';
 const DESCENDING_STRING = '&#x25BE;';
-const LOCKED_GLYPH = "&#xe006;";
-const VISIBLE_GLYPH = "&#xe007;";
-const TRANSPARENCY_GLYPH = "&#xe00b;";
-const BAKED_GLYPH = "&#xe01a;"
-const SCRIPT_GLYPH = "k";
 const BYTES_PER_MEGABYTE = 1024 * 1024;
 const IMAGE_MODEL_NAME = 'default-image-model.fbx';
 const COLLAPSE_EXTRA_INFO = "E";
 const EXPAND_EXTRA_INFO = "D";
 const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
 const WINDOW_NONVARIABLE_HEIGHT = 227;
-const NUM_COLUMNS = 12;
 const EMPTY_ENTITY_ID = "0";
-const DELETE = 46; // Key code for the delete key.
-const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
+const MAX_LENGTH_RADIUS = 9;
+const MINIMUM_COLUMN_WIDTH = 24;
+const SCROLLBAR_WIDTH = 20;
+const RESIZER_WIDTH = 10;
 
-const COLUMN_INDEX = {
-    TYPE: 0,
-    NAME: 1,
-    URL: 2,
-    LOCKED: 3,
-    VISIBLE: 4,
-    VERTICLES_COUNT: 5,
-    TEXTURES_COUNT: 6,
-    TEXTURES_SIZE: 7,
-    HAS_TRANSPARENT: 8,
-    IS_BAKED: 9,
-    DRAW_CALLS: 10,
-    HAS_SCRIPT: 11
+const COLUMNS = {
+    type: {
+        columnHeader: "Type",
+        propertyID: "type",
+        initialWidth: 0.16,
+        initiallyShown: true,
+        alwaysShown: true,
+    },
+    name: {
+        columnHeader: "Name",
+        propertyID: "name",
+        initialWidth: 0.34,
+        initiallyShown: true,
+        alwaysShown: true,
+    },
+    url: {
+        columnHeader: "File",
+        dropdownLabel: "File",
+        propertyID: "url",
+        initialWidth: 0.34,
+        initiallyShown: true,
+    },
+    locked: {
+        columnHeader: "&#xe006;",
+        glyph: true,
+        propertyID: "locked",
+        initialWidth: 0.08,
+        initiallyShown: true,
+        alwaysShown: true,
+    },
+    visible: {
+        columnHeader: "&#xe007;",
+        glyph: true,
+        propertyID: "visible",
+        initialWidth: 0.08,
+        initiallyShown: true,
+        alwaysShown: true,
+    },
+    verticesCount: {
+        columnHeader: "Verts",
+        dropdownLabel: "Vertices",
+        propertyID: "verticesCount",
+        initialWidth: 0.08,
+    },
+    texturesCount: {
+        columnHeader: "Texts",
+        dropdownLabel: "Textures",
+        propertyID: "texturesCount",
+        initialWidth: 0.08,
+    },
+    texturesSize: {
+        columnHeader: "Text MB",
+        dropdownLabel: "Texture Size",
+        propertyID: "texturesSize",
+        initialWidth: 0.10,
+    },
+    hasTransparent: {
+        columnHeader: "&#xe00b;",
+        glyph: true,
+        dropdownLabel: "Transparency",
+        propertyID: "hasTransparent",
+        initialWidth: 0.04,
+    },
+    isBaked: {
+        columnHeader: "&#xe01a;",
+        glyph: true,
+        dropdownLabel: "Baked",
+        propertyID: "isBaked",
+        initialWidth: 0.08,
+    },
+    drawCalls: {
+        columnHeader: "Draws",
+        dropdownLabel: "Draws",
+        propertyID: "drawCalls",
+        initialWidth: 0.08,
+    },
+    hasScript: {
+        columnHeader: "k",
+        glyph: true,
+        dropdownLabel: "Script",
+        propertyID: "hasScript",
+        initialWidth: 0.06,
+    },
 };
 
 const COMPARE_ASCENDING = function(a, b) {
@@ -54,29 +120,94 @@ const COMPARE_ASCENDING = function(a, b) {
     }
 
     return 1;
-}
+};
 const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
-}
+};
+
+const FILTER_TYPES = [
+    "Shape",
+    "Model",
+    "Image",
+    "Light",
+    "Zone",
+    "Web",
+    "Material",
+    "ParticleEffect",
+    "PolyLine",
+    "PolyVox",
+    "Text",
+];
+
+const ICON_FOR_TYPE = {
+    Shape: "n",
+    Model: "&#xe008;",
+    Image: "&#xe02a;",
+    Light: "p",
+    Zone: "o",
+    Web: "q",
+    Material: "&#xe00b;",
+    ParticleEffect: "&#xe004;",
+    PolyLine: "&#xe01b;",
+    PolyVox: "&#xe005;",
+    Text: "l",
+};
 
 // List of all entities
-var entities = [];
+let entities = [];
 // List of all entities, indexed by Entity ID
-var entitiesByID = {};
+let entitiesByID = {};
 // The filtered and sorted list of entities passed to ListView
-var visibleEntities = [];
+let visibleEntities = [];
 // List of all entities that are currently selected
-var selectedEntities = [];
+let selectedEntities = [];
 
-var entityList = null; // The ListView
+let entityList = null; // The ListView
 
-var currentSortColumn = 'type';
-var currentSortOrder = ASCENDING_SORT;
-var isFilterInView = false;
-var showExtraInfo = false;
+/**
+ * @type EntityListContextMenu
+ */
+let entityListContextMenu = null;
+
+let currentSortColumn = 'type';
+let currentSortOrder = ASCENDING_SORT;
+let elSortOrders = {};
+let typeFilters = [];
+let isFilterInView = false;
+
+let columns = [];
+let columnsByID = {};
+let currentResizeEl = null;
+let startResizeEvent = null;
+let resizeColumnIndex = 0;
+let startThClick = null;
+
+let elEntityTable,
+    elEntityTableHeader,
+    elEntityTableBody,
+    elEntityTableScroll,
+    elEntityTableHeaderRow,
+    elRefresh,
+    elToggleLocked,
+    elToggleVisible,
+    elDelete,
+    elFilterTypeMultiselectBox,
+    elFilterTypeText,
+    elFilterTypeOptions,
+    elFilterSearch,
+    elFilterInView,
+    elFilterRadius,
+    elExport,
+    elPal,
+    elSelectedEntitiesCount,
+    elVisibleEntitiesCount,
+    elNoEntitiesMessage,
+    elColumnsMultiselectBox,
+    elColumnsOptions,
+    elToggleSpaceMode;
 
 const ENABLE_PROFILING = false;
-var profileIndent = '';
+let profileIndent = '';
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
 } ;
@@ -98,103 +229,265 @@ debugPrint = function (message) {
 function loaded() {
     openEventBridge(function() {
         elEntityTable = document.getElementById("entity-table");
+        elEntityTableHeader = document.getElementById("entity-table-header");
         elEntityTableBody = document.getElementById("entity-table-body");
         elEntityTableScroll = document.getElementById("entity-table-scroll");
-        elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
         elRefresh = document.getElementById("refresh");
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
         elDelete = document.getElementById("delete");
-        elFilter = document.getElementById("filter");
-        elInView = document.getElementById("in-view")
-        elRadius = document.getElementById("radius");
+        elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
+        elFilterTypeText = document.getElementById("filter-type-text");
+        elFilterTypeOptions = document.getElementById("filter-type-options");
+        elFilterSearch = document.getElementById("filter-search");
+        elFilterInView = document.getElementById("filter-in-view");
+        elFilterRadius = document.getElementById("filter-radius");
         elExport = document.getElementById("export");
         elPal = document.getElementById("pal");
-        elInfoToggle = document.getElementById("info-toggle");
-        elInfoToggleGlyph = elInfoToggle.firstChild;
         elSelectedEntitiesCount = document.getElementById("selected-entities-count");
         elVisibleEntitiesCount = document.getElementById("visible-entities-count");
         elNoEntitiesMessage = document.getElementById("no-entities");
-        elNoEntitiesInView = document.getElementById("no-entities-in-view");
-        elNoEntitiesRadius = document.getElementById("no-entities-radius");
+        elColumnsMultiselectBox = document.getElementById("entity-table-columns-multiselect-box");
+        elColumnsOptions = document.getElementById("entity-table-columns-options");
+        elToggleSpaceMode = document.getElementById('toggle-space-mode');
         
-        document.getElementById("entity-name").onclick = function() {
-            setSortColumn('name');
-        };
-        document.getElementById("entity-type").onclick = function() {
-            setSortColumn('type');
-        };
-        document.getElementById("entity-url").onclick = function() {
-            setSortColumn('url');
-        };
-        document.getElementById("entity-locked").onclick = function () {
-            setSortColumn('locked');
-        };
-        document.getElementById("entity-visible").onclick = function () {
-            setSortColumn('visible');
-        };
-        document.getElementById("entity-verticesCount").onclick = function () {
-            setSortColumn('verticesCount');
-        };
-        document.getElementById("entity-texturesCount").onclick = function () {
-            setSortColumn('texturesCount');
-        };
-        document.getElementById("entity-texturesSize").onclick = function () {
-            setSortColumn('texturesSize');
-        };
-        document.getElementById("entity-hasTransparent").onclick = function () {
-            setSortColumn('hasTransparent');
-        };
-        document.getElementById("entity-isBaked").onclick = function () {
-            setSortColumn('isBaked');
-        };
-        document.getElementById("entity-drawCalls").onclick = function () {
-            setSortColumn('drawCalls');
-        };
-        document.getElementById("entity-hasScript").onclick = function () {
-            setSortColumn('hasScript');
-        };
-        elRefresh.onclick = function() {
-            refreshEntities();
-        }
+        document.body.onclick = onBodyClick;
         elToggleLocked.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
-        }
+        };
         elToggleVisible.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
-        }
+        };
         elExport.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
-        }
+        };
         elPal.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
-        }
+        };
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
-        }
-        elFilter.onkeyup = refreshEntityList;
-        elFilter.onpaste = refreshEntityList;
-        elFilter.onchange = onFilterChange;
-        elFilter.onblur = refreshFooter;
-        elInView.onclick = toggleFilterInView;
-        elRadius.onchange = onRadiusChange;
-        elInfoToggle.onclick = toggleInfo;
+        };
+        elToggleSpaceMode.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleSpaceMode' }));
+        };
+        elRefresh.onclick = refreshEntities;
+        elFilterTypeMultiselectBox.onclick = onToggleTypeDropdown;
+        elFilterSearch.onkeyup = refreshEntityList;
+        elFilterSearch.onsearch = refreshEntityList;
+        elFilterInView.onclick = onToggleFilterInView;
+        elFilterRadius.onkeyup = onRadiusChange;
+        elFilterRadius.onchange = onRadiusChange;
+        elColumnsMultiselectBox.onclick = onToggleColumnsDropdown;
         
-        elNoEntitiesInView.style.display = "none";
+        // create filter type dropdown checkboxes with label and icon for each type
+        for (let i = 0; i < FILTER_TYPES.length; ++i) {
+            let type = FILTER_TYPES[i];
+            let typeFilterID = "filter-type-" + type;
+            
+            let elDiv = document.createElement('div');
+            elDiv.onclick = onToggleTypeFilter;
+            elFilterTypeOptions.appendChild(elDiv);
+            
+            let elInput = document.createElement('input');
+            elInput.setAttribute("type", "checkbox");
+            elInput.setAttribute("id", typeFilterID);
+            elInput.setAttribute("filterType", type);
+            elInput.checked = true; // all types are checked initially
+            elDiv.appendChild(elInput);
+            
+            let elLabel = document.createElement('label');
+            elLabel.setAttribute("for", typeFilterID);
+            elLabel.innerText = type;
+            elDiv.appendChild(elLabel);
+            
+            let elSpan = document.createElement('span');
+            elSpan.setAttribute("class", "typeIcon");
+            elSpan.innerHTML = ICON_FOR_TYPE[type];
+
+            elLabel.insertBefore(elSpan, elLabel.childNodes[0]);
+            
+            toggleTypeFilter(elInput, false); // add all types to the initial types filter
+        }
+        
+        // create columns
+        elHeaderTr = document.createElement("tr");
+        elEntityTableHeader.appendChild(elHeaderTr);
+        let columnIndex = 0;
+        for (let columnID in COLUMNS) {
+            let columnData = COLUMNS[columnID];
+            
+            let thID = "entity-" + columnID;
+            let elTh = document.createElement("th");
+            elTh.setAttribute("id", thID);
+            elTh.setAttribute("data-resizable-column-id", thID);
+            if (columnData.glyph) {
+                let elGlyph = document.createElement("span");
+                elGlyph.className = "glyph";
+                elGlyph.innerHTML = columnData.columnHeader;
+                elTh.appendChild(elGlyph);
+            } else {
+                elTh.innerText = columnData.columnHeader;
+            }
+            elTh.onmousedown = function() {
+                startThClick = this;
+            };
+            elTh.onmouseup = function() {
+                if (startThClick === this) {
+                    setSortColumn(columnID);
+                }
+                startThClick = null;
+            };
+
+            let elResizer = document.createElement("span");
+            elResizer.className = "resizer";
+            elResizer.innerHTML = "&nbsp;";
+            elResizer.setAttribute("columnIndex", columnIndex);
+            elResizer.onmousedown = onStartResize;
+            elTh.appendChild(elResizer);
+
+            let elSortOrder = document.createElement("span");
+            elSortOrder.className = "sort-order";
+            elTh.appendChild(elSortOrder);
+            elHeaderTr.appendChild(elTh);
+                        
+            elSortOrders[columnID] = elSortOrder;
+            
+            // add column to columns dropdown if it is not set to be always shown
+            if (columnData.alwaysShown !== true) { 
+                let columnDropdownID = "entity-table-column-" + columnID;
+                
+                let elDiv = document.createElement('div');
+                elDiv.onclick = onToggleColumn;
+                elColumnsOptions.appendChild(elDiv);
+                
+                let elInput = document.createElement('input');
+                elInput.setAttribute("type", "checkbox");
+                elInput.setAttribute("id", columnDropdownID);
+                elInput.setAttribute("columnID", columnID);
+                elInput.checked = columnData.initiallyShown === true;
+                elDiv.appendChild(elInput);
+                
+                let elLabel = document.createElement('label');
+                elLabel.setAttribute("for", columnDropdownID);
+                elLabel.innerText = columnData.dropdownLabel;
+                elDiv.appendChild(elLabel);
+            }
+            
+            let initialWidth = columnData.initiallyShown === true ? columnData.initialWidth : 0;
+            columns.push({
+                columnID: columnID,
+                elTh: elTh,
+                elResizer: elResizer,
+                width: initialWidth,
+                data: columnData
+            });
+            columnsByID[columnID] = columns[columnIndex];
+            
+            ++columnIndex;
+        }
+        
+        elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
         
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
                                   createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
-        
+
+        entityListContextMenu = new EntityListContextMenu();
+
+        function startRenamingEntity(entityID) {
+            let entity = entitiesByID[entityID];
+            if (!entity || entity.locked || !entity.elRow) {
+                return;
+            }
+
+            let elCell = entity.elRow.childNodes[getColumnIndex("name")];
+            let elRenameInput = document.createElement("input");
+            elRenameInput.setAttribute('class', 'rename-entity');
+            elRenameInput.value = entity.name;
+            let ignoreClicks = function(event) {
+                event.stopPropagation();
+            };
+            elRenameInput.onclick = ignoreClicks;
+            elRenameInput.ondblclick = ignoreClicks;
+            elRenameInput.onkeyup = function(keyEvent) {
+                if (keyEvent.key === "Enter") {
+                    elRenameInput.blur();
+                }
+            };
+
+            elRenameInput.onblur = function(event) {
+                let value = elRenameInput.value;
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: 'rename',
+                    entityID: entityID,
+                    name: value
+                }));
+                entity.name = value;
+                elCell.innerText = value;
+            };
+
+            elCell.innerHTML = "";
+            elCell.appendChild(elRenameInput);
+
+            elRenameInput.select();
+        }
+
+        entityListContextMenu.setOnSelectedCallback(function(optionName, selectedEntityID) {
+            switch (optionName) {
+                case "Cut":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'cut' }));
+                    break;
+                case "Copy":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
+                    break;
+                case "Paste":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'paste' }));
+                    break;
+                case "Rename":
+                    startRenamingEntity(selectedEntityID);
+                    break;
+                case "Duplicate":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
+                    break;
+                case "Delete":
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+                    break;
+            }
+        });
+
+        function onRowContextMenu(clickEvent) {
+            let entityID = this.dataset.entityID;
+
+            if (!selectedEntities.includes(entityID)) {
+                let selection = [entityID];
+                updateSelectedEntities(selection);
+
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "selectionUpdate",
+                    focus: false,
+                    entityIds: selection,
+                }));
+            }
+
+            let enabledContextMenuItems = ['Copy', 'Paste', 'Duplicate'];
+            if (entitiesByID[entityID] && !entitiesByID[entityID].locked) {
+                enabledContextMenuItems.push('Cut');
+                enabledContextMenuItems.push('Rename');
+                enabledContextMenuItems.push('Delete');
+            }
+
+            entityListContextMenu.open(clickEvent, entityID, enabledContextMenuItems);
+        }
+
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
             let selection = [entityID];
-            
+
             if (clickEvent.ctrlKey) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
                     selection = [];
                     selection = selection.concat(selectedEntities);
-                    selection.splice(selectedIndex, 1)
+                    selection.splice(selectedIndex, 1);
                 } else {
                     selection = selection.concat(selectedEntities);
                 }
@@ -221,28 +514,29 @@ function loaded() {
                     }
                 }
             } else if (!clickEvent.ctrlKey && !clickEvent.shiftKey && selectedEntities.length === 1) {
-                // if reselecting the same entity then deselect it
+                // if reselecting the same entity then start renaming it
                 if (selectedEntities[0] === entityID) {
-                    selection = [];
+                    startRenamingEntity(entityID);
                 }
             }
             
-            updateSelectedEntities(selection);
+            updateSelectedEntities(selection, false);
 
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
                 focus: false,
                 entityIds: selection,
             }));
-
-            refreshFooter();
         }
 
         function onRowDoubleClicked() {
+            let selection = [this.dataset.entityID];
+            updateSelectedEntities(selection, false);
+
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
                 focus: true,
-                entityIds: [this.dataset.entityID],
+                entityIds: selection,
             }));
         }
         
@@ -289,7 +583,7 @@ function loaded() {
                         hasScript: entity.hasScript,
                         elRow: null, // if this entity has a visible row element assigned to it
                         selected: false // if this entity is selected for edit regardless of having a visible row
-                    }
+                    };
                     
                     entities.push(entityData);
                     entitiesByID[entityData.id] = entityData;
@@ -302,17 +596,16 @@ function loaded() {
         function refreshEntityList() {
             PROFILE("refresh-entity-list", function() {
                 PROFILE("filter", function() {
-                    let searchTerm = elFilter.value.toLowerCase();
-                    if (searchTerm === '') {
-                        visibleEntities = entities.slice(0);
-                    } else {
-                        visibleEntities = entities.filter(function(e) {
-                            return e.name.toLowerCase().indexOf(searchTerm) > -1
-                                || e.type.toLowerCase().indexOf(searchTerm) > -1
-                                || e.fullUrl.toLowerCase().indexOf(searchTerm) > -1
-                                || e.id.toLowerCase().indexOf(searchTerm) > -1;
-                        });
-                    }
+                    let searchTerm = elFilterSearch.value.toLowerCase();
+                    visibleEntities = entities.filter(function(e) {
+                        let type = e.type === "Box" || e.type === "Sphere" ? "Shape" : e.type;
+                        let typeFilter = typeFilters.indexOf(type) > -1;
+                        let searchFilter = searchTerm === '' || (e.name.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 e.type.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 e.fullUrl.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 e.id.toLowerCase().indexOf(searchTerm) > -1);
+                        return typeFilter && searchFilter;
+                    });
                 });
                 
                 PROFILE("sort", function() {
@@ -323,6 +616,7 @@ function loaded() {
                 PROFILE("update-dom", function() {
                     entityList.itemData = visibleEntities;
                     entityList.refresh();
+                    updateColumnWidths();
                 });
                 
                 refreshFooter();
@@ -405,26 +699,12 @@ function loaded() {
             refreshNoEntitiesMessage();
         }
 
-        var elSortOrder = {
-            name: document.querySelector('#entity-name .sort-order'),
-            type: document.querySelector('#entity-type .sort-order'),
-            url: document.querySelector('#entity-url .sort-order'),
-            locked: document.querySelector('#entity-locked .sort-order'),
-            visible: document.querySelector('#entity-visible .sort-order'),
-            verticesCount: document.querySelector('#entity-verticesCount .sort-order'),
-            texturesCount: document.querySelector('#entity-texturesCount .sort-order'),
-            texturesSize: document.querySelector('#entity-texturesSize .sort-order'),
-            hasTransparent: document.querySelector('#entity-hasTransparent .sort-order'),
-            isBaked: document.querySelector('#entity-isBaked .sort-order'),
-            drawCalls: document.querySelector('#entity-drawCalls .sort-order'),
-            hasScript: document.querySelector('#entity-hasScript .sort-order'),
-        }
         function setSortColumn(column) {
             PROFILE("set-sort-column", function() {
                 if (currentSortColumn === column) {
                     currentSortOrder *= -1;
                 } else {
-                    elSortOrder[currentSortColumn].innerHTML = "";
+                    elSortOrders[currentSortColumn].innerHTML = "";
                     currentSortColumn = column;
                     currentSortOrder = ASCENDING_SORT;
                 }
@@ -432,8 +712,9 @@ function loaded() {
                 refreshEntityList();
             });
         }
+        
         function refreshSortOrder() {
-            elSortOrder[currentSortColumn].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+            elSortOrders[currentSortColumn].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
         }
         
         function refreshEntities() {
@@ -453,7 +734,7 @@ function loaded() {
             }
         }
         
-        function updateSelectedEntities(selectedIDs) {
+        function updateSelectedEntities(selectedIDs, autoScroll) {
             let notFound = false;
             
             // reset all currently selected entities and their rows first
@@ -482,58 +763,60 @@ function loaded() {
                 }
             });
 
+            if (autoScroll && selectedIDs.length > 0) {
+                let firstItem = Number.MAX_VALUE;
+                let lastItem = -1;
+                let itemFound = false;
+                visibleEntities.forEach(function(entity, index) {
+                    if (selectedIDs.indexOf(entity.id) !== -1) {
+                        if (firstItem > index) {
+                            firstItem = index;
+                        }
+                        if (lastItem < index) {
+                            lastItem = index;
+                        }
+                        itemFound = true;
+                    }
+                });
+                if (itemFound) {
+                    entityList.scrollToRow(firstItem, lastItem);
+                }
+            }
+
+            elToggleSpaceMode.disabled = selectedIDs.length > 1;
+
             refreshFooter();
 
             return notFound;
         }
         
-        function isGlyphColumn(columnIndex) {
-            return columnIndex === COLUMN_INDEX.LOCKED || columnIndex === COLUMN_INDEX.VISIBLE || 
-                   columnIndex === COLUMN_INDEX.HAS_TRANSPARENT || columnIndex === COLUMN_INDEX.IS_BAKED || 
-                   columnIndex === COLUMN_INDEX.HAS_SCRIPT;
-        }
-        
         function createRow() {
-            let row = document.createElement("tr");
-            for (let i = 0; i < NUM_COLUMNS; i++) {
-                let column = document.createElement("td");
-                if (isGlyphColumn(i)) {
-                    column.className = 'glyph';
-                }
-                row.appendChild(column);
-            }
-            row.onclick = onRowClicked;
-            row.ondblclick = onRowDoubleClicked;
-            return row;
+            let elRow = document.createElement("tr");
+            columns.forEach(function(column) {
+                let elRowColumn = document.createElement("td");
+                elRowColumn.className = createColumnClassName(column.columnID);
+                elRow.appendChild(elRowColumn);
+            });
+            elRow.oncontextmenu = onRowContextMenu;
+            elRow.onclick = onRowClicked;
+            elRow.ondblclick = onRowDoubleClicked;
+            return elRow;
         }
         
         function updateRow(elRow, itemData) {
             // update all column texts and glyphs to this entity's data
-            let typeCell = elRow.childNodes[COLUMN_INDEX.TYPE];
-            typeCell.innerText = itemData.type;
-            let nameCell = elRow.childNodes[COLUMN_INDEX.NAME];
-            nameCell.innerText = itemData.name;
-            let urlCell = elRow.childNodes[COLUMN_INDEX.URL];
-            urlCell.innerText = itemData.url;
-            let lockedCell = elRow.childNodes[COLUMN_INDEX.LOCKED];
-            lockedCell.innerHTML = itemData.locked ? LOCKED_GLYPH : null;
-            let visibleCell = elRow.childNodes[COLUMN_INDEX.VISIBLE];
-            visibleCell.innerHTML = itemData.visible ? VISIBLE_GLYPH : null;
-            let verticesCountCell = elRow.childNodes[COLUMN_INDEX.VERTICLES_COUNT];
-            verticesCountCell.innerText = itemData.verticesCount;
-            let texturesCountCell = elRow.childNodes[COLUMN_INDEX.TEXTURES_COUNT];
-            texturesCountCell.innerText = itemData.texturesCount;
-            let texturesSizeCell = elRow.childNodes[COLUMN_INDEX.TEXTURES_SIZE];
-            texturesSizeCell.innerText = itemData.texturesSize;
-            let hasTransparentCell = elRow.childNodes[COLUMN_INDEX.HAS_TRANSPARENT];
-            hasTransparentCell.innerHTML = itemData.hasTransparent ? TRANSPARENCY_GLYPH : null;
-            let isBakedCell = elRow.childNodes[COLUMN_INDEX.IS_BAKED];
-            isBakedCell.innerHTML = itemData.isBaked ? BAKED_GLYPH : null;
-            let drawCallsCell = elRow.childNodes[COLUMN_INDEX.DRAW_CALLS];
-            drawCallsCell.innerText = itemData.drawCalls;
-            let hasScriptCell = elRow.childNodes[COLUMN_INDEX.HAS_SCRIPT];
-            hasScriptCell.innerHTML = itemData.hasScript ? SCRIPT_GLYPH : null;
-            
+            for (let i = 0; i < columns.length; ++i) {
+                let column = columns[i];
+                let elCell = elRow.childNodes[i];
+                if (column.data.glyph) {
+                    elCell.innerHTML = itemData[column.data.propertyID] ? column.data.columnHeader : null;
+                } else {
+                    elCell.innerText = itemData[column.data.propertyID];
+                }
+                elCell.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
+                elCell.className = createColumnClassName(column.columnID);
+            }
+
             // if this entity was previously selected flag it's row as selected
             if (itemData.selected) {
                 elRow.className = 'selected';
@@ -558,16 +841,16 @@ function loaded() {
         }
         
         function clearRow(elRow) {
-            // reset all texts and glyphs for each of the row's column
-            for (let i = 0; i < NUM_COLUMNS; i++) {
+            // reset all texts and glyphs for each of the row's columns
+            for (let i = 0; i < columns.length; ++i) {
                 let cell = elRow.childNodes[i];
-                if (isGlyphColumn(i)) {
+                if (columns[i].data.glyph) {
                     cell.innerHTML = "";
                 } else {
                     cell.innerText = "";
                 }
             }
-            
+
             // clear the row from any associated entity
             let entityID = elRow.dataset.entityID;
             if (entityID && entitiesByID[entityID]) {
@@ -579,60 +862,324 @@ function loaded() {
             elRow.dataset.entityID = EMPTY_ENTITY_ID;
         }
         
-        function toggleFilterInView() {
+        function onToggleFilterInView() {
             isFilterInView = !isFilterInView;
             if (isFilterInView) {
-                elInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
-                elNoEntitiesInView.style.display = "inline";
+                elFilterInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
             } else {
-                elInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
-                elNoEntitiesInView.style.display = "none";
+                elFilterInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
             }
             EventBridge.emitWebEvent(JSON.stringify({ type: "filterInView", filterInView: isFilterInView }));
             refreshEntities();
         }
         
-        function onFilterChange() {
-            refreshEntityList();
-            entityList.resize();
-        }
-        
         function onRadiusChange() {
-            elRadius.value = Math.max(elRadius.value, 0);
-            elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
-            elNoEntitiesMessage.style.display = "none";
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));
+            elFilterRadius.value = elFilterRadius.value.replace(/[^0-9]/g, '');
+            elFilterRadius.value = Math.max(elFilterRadius.value, 0);
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elFilterRadius.value }));
             refreshEntities();
         }
-
-        function toggleInfo(event) {
-            showExtraInfo = !showExtraInfo;
-            if (showExtraInfo) {
-                elEntityTable.className = "showExtraInfo";
-                elInfoToggleGlyph.innerHTML = COLLAPSE_EXTRA_INFO;
-            } else {
-                elEntityTable.className = "";
-                elInfoToggleGlyph.innerHTML = EXPAND_EXTRA_INFO;
-            }
-            entityList.resize();
-            event.stopPropagation();
-        }
-
-        document.addEventListener("keydown", function (keyDownEvent) {
-            if (keyDownEvent.target.nodeName === "INPUT") {
-                return;
-            }
-            let keyCode = keyDownEvent.keyCode;
-            if (keyCode === DELETE) {
-                EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
-            }
-            if (keyDownEvent.keyCode === KEY_P && keyDownEvent.ctrlKey) {
-                if (keyDownEvent.shiftKey) {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
-                } else {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+        
+        function getColumnIndex(columnID) {
+            for (let i = 0; i < columns.length; ++i) {
+                if (columns[i].columnID === columnID) {
+                    return i;
                 }
             }
+            return -1;
+        }
+        
+        function createColumnClassName(columnID) {
+            let column = columnsByID[columnID];
+            let visible = column.elTh.style.visibility !== "hidden";
+            let className = column.data.glyph ? "glyph" : "";
+            className += visible ? "" : " hidden";
+            return className;
+        }
+        
+        function isColumnsDropdownVisible() {
+            return elColumnsOptions.style.display === "block";
+        }
+        
+        function toggleColumnsDropdown() {
+            elColumnsOptions.style.display = isColumnsDropdownVisible() ? "none" : "block";
+        }
+        
+        function onToggleColumnsDropdown(event) {
+            toggleColumnsDropdown();
+            if (isTypeDropdownVisible()) {
+                toggleTypeDropdown();
+            }
+            event.stopPropagation();
+        }
+        
+        function toggleColumn(elInput, refresh) {
+            let columnID = elInput.getAttribute("columnID");
+            let columnChecked = elInput.checked;
+            
+            if (columnChecked) {
+                let widthNeeded = columnsByID[columnID].data.initialWidth;
+                
+                let numberVisibleColumns = 0;
+                for (let i = 0; i < columns.length; ++i) {
+                    let column = columns[i];
+                    if (column.columnID === columnID) {
+                        column.width = widthNeeded;
+                    } else if (column.width > 0) {
+                        ++numberVisibleColumns;
+                    }
+                }
+                
+                for (let i = 0; i < columns.length; ++i) {
+                    let column = columns[i];
+                    if (column.columnID !== columnID && column.width > 0) {
+                        column.width -= column.width * widthNeeded;
+                    }
+                }
+            } else {
+                let widthLoss = 0;
+                
+                let numberVisibleColumns = 0;
+                for (let i = 0; i < columns.length; ++i) {
+                    let column = columns[i];
+                    if (column.columnID === columnID) {
+                        widthLoss = column.width;
+                        column.width = 0;
+                    } else if (column.width > 0) {
+                        ++numberVisibleColumns;
+                    }
+                }
+                
+                for (let i = 0; i < columns.length; ++i) {
+                    let column = columns[i];
+                    if (column.columnID !== columnID && column.width > 0) {
+                        let newTotalWidth = (1 - widthLoss);
+                        column.width += (column.width / newTotalWidth) * widthLoss;
+                    }
+                }
+            }
+            
+            updateColumnWidths();
+        }
+        
+        function onToggleColumn(event) {
+            let elTarget = event.target;
+            if (elTarget instanceof HTMLInputElement) {
+                toggleColumn(elTarget, true);
+            }
+            event.stopPropagation();
+        }
+        
+        function isTypeDropdownVisible() {
+            return elFilterTypeOptions.style.display === "block";
+        }
+        
+        function toggleTypeDropdown() {
+            elFilterTypeOptions.style.display = isTypeDropdownVisible() ? "none" : "block";
+        }
+        
+        function onToggleTypeDropdown(event) {
+            toggleTypeDropdown();
+            if (isColumnsDropdownVisible()) {
+                toggleColumnsDropdown();
+            }
+            event.stopPropagation();
+        }
+        
+        function toggleTypeFilter(elInput, refresh) {
+            let type = elInput.getAttribute("filterType");
+            let typeChecked = elInput.checked;
+            
+            let typeFilterIndex = typeFilters.indexOf(type);
+            if (!typeChecked && typeFilterIndex > -1) {
+                typeFilters.splice(typeFilterIndex, 1);
+            } else if (typeChecked && typeFilterIndex === -1) {
+                typeFilters.push(type);
+            }
+            
+            if (typeFilters.length === 0) {
+                elFilterTypeText.innerText = "No Types";
+            } else if (typeFilters.length === FILTER_TYPES.length) {
+                elFilterTypeText.innerText = "All Types";
+            } else {
+                elFilterTypeText.innerText = "Types...";
+            }
+            
+            if (refresh) {
+                refreshEntityList();
+            }
+        }
+        
+        function onToggleTypeFilter(event) {
+            let elTarget = event.target;
+            if (elTarget instanceof HTMLInputElement) {
+                toggleTypeFilter(elTarget, true);
+            }
+            event.stopPropagation();
+        }
+        
+        function onBodyClick(event) {
+            // if clicking anywhere outside of the multiselect dropdowns (since click event bubbled up to onBodyClick and
+            // propagation wasn't stopped in the toggle type/column callbacks) and the dropdown is open then close it
+            if (isTypeDropdownVisible()) {
+                toggleTypeDropdown();
+            }
+            if (isColumnsDropdownVisible()) {
+                toggleColumnsDropdown();
+            }
+        }
+        
+        function onStartResize(event) {
+            startResizeEvent = event;
+            resizeColumnIndex = parseInt(this.getAttribute("columnIndex"));
+            event.stopPropagation();
+        }
+        
+        function updateColumnWidths() {
+            let fullWidth = elEntityTableBody.offsetWidth;
+            let remainingWidth = fullWidth;
+            let scrollbarVisible = elEntityTableScroll.scrollHeight > elEntityTableScroll.clientHeight;
+            let resizerRight = scrollbarVisible ? SCROLLBAR_WIDTH - RESIZER_WIDTH/2 : -RESIZER_WIDTH/2;
+            let visibleColumns = 0;
+                        
+            for (let i = columns.length - 1; i > 0; --i) {
+                let column = columns[i];
+                column.widthPx = Math.ceil(column.width * fullWidth);
+                column.elTh.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
+                let columnVisible = column.width > 0;
+                column.elTh.style.visibility = columnVisible ? "visible" : "hidden";
+                if (column.elResizer) {
+                    column.elResizer.style = "right:" + resizerRight + "px;";
+                    column.elResizer.style.visibility = columnVisible && visibleColumns > 0 ? "visible" : "hidden";
+                }
+                resizerRight += column.widthPx;
+                remainingWidth -= column.widthPx;
+                if (columnVisible) {
+                    ++visibleColumns;
+                }
+            }
+            
+            // assign all remaining space to the first column
+            let column = columns[0];
+            column.widthPx = remainingWidth;
+            column.width = remainingWidth / fullWidth;
+            column.elTh.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
+            let columnVisible = column.width > 0;
+            column.elTh.style.visibility = columnVisible ? "visible" : "hidden";
+            if (column.elResizer) {
+                column.elResizer.style = "right:" + resizerRight + "px;";
+                column.elResizer.style.visibility = columnVisible && visibleColumns > 0 ? "visible" : "hidden";
+            }
+            
+            entityList.refresh();
+        }
+        
+        document.onmousemove = function(ev) {
+            if (startResizeEvent) {
+                startTh = null;
+                
+                let column = columns[resizeColumnIndex];
+                
+                let nextColumnIndex = resizeColumnIndex + 1;
+                let nextColumn = columns[nextColumnIndex];
+                while (nextColumn.width === 0) {
+                    nextColumn = columns[++nextColumnIndex];
+                }
+
+                let fullWidth = elEntityTableBody.offsetWidth;
+                let dx = ev.clientX - startResizeEvent.clientX;
+                let dPct = dx / fullWidth;
+                
+                let newColWidth = column.width + dPct;
+                let newNextColWidth = nextColumn.width - dPct;
+                
+                if (newColWidth * fullWidth >= MINIMUM_COLUMN_WIDTH && newNextColWidth * fullWidth >= MINIMUM_COLUMN_WIDTH) {
+                    column.width += dPct;
+                    nextColumn.width -= dPct;
+                    updateColumnWidths();
+                    startResizeEvent = ev;
+                }
+            }
+        }
+        
+        document.onmouseup = function(ev) {
+            startResizeEvent = null;
+            ev.stopPropagation();
+        }
+
+        function setSpaceMode(spaceMode) {
+            if (spaceMode === "local") {
+                elToggleSpaceMode.className = "space-mode-local hifi-edit-button";
+                elToggleSpaceMode.innerText = "Local";
+            } else {
+                elToggleSpaceMode.className = "space-mode-world hifi-edit-button";
+                elToggleSpaceMode.innerText = "World";
+            }
+        }
+
+        const KEY_CODES = {
+            BACKSPACE: 8,
+            DELETE: 46
+        };
+    
+        document.addEventListener("keyup", function (keyUpEvent) {
+            if (keyUpEvent.target.nodeName === "INPUT") {
+                return;
+            }
+
+            let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;
+
+            let controlKey = window.navigator.platform.startsWith("Mac") ? metaKey : ctrlKey;
+
+            let keyCodeString;
+            switch (keyCode) {
+                case KEY_CODES.DELETE:
+                    keyCodeString = "Delete";
+                    break;
+                case KEY_CODES.BACKSPACE:
+                    keyCodeString = "Backspace";
+                    break;
+                default:
+                    keyCodeString = String.fromCharCode(keyUpEvent.keyCode);
+                    break;
+            }
+
+            if (controlKey && keyCodeString === "A") {
+                let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
+                let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
+                    return selectedEntities.includes(visibleEntityID);
+                });
+
+                let selection = [];
+
+                if (!selectionIncludesAllVisibleEntityIDs) {
+                    selection = visibleEntityIDs;
+                }
+
+                updateSelectedEntities(selection);
+
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "selectionUpdate",
+                    focus: false,
+                    entityIds: selection,
+                }));
+
+                return;
+            }
+
+
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: 'keyUpEvent',
+                keyUpEvent: {
+                    code,
+                    key,
+                    keyCode,
+                    keyCodeString,
+                    altKey,
+                    controlKey,
+                    shiftKey,
+                }
+            }));
         }, false);
         
         if (window.EventBridge !== undefined) {
@@ -641,7 +1188,7 @@ function loaded() {
                 if (data.type === "clearEntityList") {
                     clearEntities();
                 } else if (data.type === "selectionUpdate") {
-                    let notFound = updateSelectedEntities(data.selectedIDs);
+                    let notFound = updateSelectedEntities(data.selectedIDs, true);
                     if (notFound) {
                         refreshEntities();
                     }
@@ -653,27 +1200,39 @@ function loaded() {
                                 clearEntities();
                             } else {
                                 updateEntityData(newEntities);
-                                updateSelectedEntities(data.selectedIDs);
+                                updateSelectedEntities(data.selectedIDs, true);
                             }
                         }
+                        setSpaceMode(data.spaceMode);
                     });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
                     removeEntities(data.deletedIDs);
-                    updateSelectedEntities(data.selectedIDs);
+                    updateSelectedEntities(data.selectedIDs, true);
                 } else if (data.type === "deleted" && data.ids) {
                     removeEntities(data.ids);
+                } else if (data.type === "setSpaceMode") {
+                    setSpaceMode(data.spaceMode);
                 }
             });
         }
         
         refreshSortOrder();
         refreshEntities();
+        
+        window.onresize = updateColumnWidths;
     });
     
     augmentSpinButtons();
 
-    // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function (event) {
+        entityListContextMenu.close();
+
+        // Disable default right-click context menu which is not visible in the HMD and makes it seem like the app has locked
         event.preventDefault();
     }, false);
+
+    // close context menu when switching focus to another window
+    $(window).blur(function() {
+        entityListContextMenu.close();
+    });
 }

@@ -109,7 +109,7 @@ private slots:
 
 private:
     void setSystemBufferSizes();
-    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr);
+    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreation = false);
     bool socketMatchesNodeOrDomain(const HifiSockAddr& sockAddr);
    
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread

@@ -30,7 +30,7 @@ class ModelPropertiesDialog : public QDialog {
     
 public:
     ModelPropertiesDialog(const QVariantHash& originalMapping,
-                          const QString& basePath, const FBXGeometry& geometry);
+                          const QString& basePath, const HFMModel& hfmModel);
     
     QVariantHash getMapping() const;
     
@@ -48,7 +48,7 @@ private:
     
     QVariantHash _originalMapping;
     QString _basePath;
-    FBXGeometry _geometry;
+    HFMModel _hfmModel;
     QLineEdit* _name = nullptr;
     QPushButton* _textureDirectory = nullptr;
     QPushButton* _scriptDirectory = nullptr;

@@ -11,7 +11,7 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global getConnectionData */
+/* global getConnectionData getControllerWorldLocation openLoginWindow WalletScriptingInterface */
 
 (function () { // BEGIN LOCAL_SCOPE
 Script.include("/~/system/libraries/accountUtils.js");
@@ -19,7 +19,6 @@ Script.include("/~/system/libraries/connectionUtils.js");
 var AppUi = Script.require('appUi');
 
 var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
-
 
 // BEGIN AVATAR SELECTOR LOGIC
 var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6 };
@@ -48,7 +47,6 @@ ExtendedOverlay.prototype.editOverlay = function (properties) { // change displa
 function color(selected, hovering) {
     var base = hovering ? HOVER_COLOR : selected ? SELECTED_COLOR : UNSELECTED_COLOR;
     function scale(component) {
-        var delta = 0xFF - component;
         return component;
     }
     return { red: scale(base.red), green: scale(base.green), blue: scale(base.blue) };
@@ -105,7 +103,8 @@ ExtendedOverlay.unHover = function () { // calls hover(false) on lastHoveringId 
 // hit(overlay) on the one overlay intersected by pickRay, if any.
 // noHit() if no ExtendedOverlay was intersected (helps with hover)
 ExtendedOverlay.applyPickRay = function (pickRay, hit, noHit) {
-    var pickedOverlay = Overlays.findRayIntersection(pickRay); // Depends on nearer coverOverlays to extend closer to us than farther ones.
+    // Depends on nearer coverOverlays to extend closer to us than farther ones.
+    var pickedOverlay = Overlays.findRayIntersection(pickRay);
     if (!pickedOverlay.intersects) {
         if (noHit) {
             return noHit();
@@ -131,6 +130,7 @@ function addAvatarNode(id) {
 }
 
 var pingPong = true;
+var OVERLAY_SCALE = 0.032;
 function updateOverlays() {
     var eye = Camera.position;
     AvatarList.getAvatarIdentifiers().forEach(function (id) {
@@ -148,7 +148,8 @@ function updateOverlays() {
         var target = avatar.position;
         var distance = Vec3.distance(target, eye);
         var offset = 0.2;
-        var diff = Vec3.subtract(target, eye); // get diff between target and eye (a vector pointing to the eye from avatar position)
+        // get diff between target and eye (a vector pointing to the eye from avatar position)
+        var diff = Vec3.subtract(target, eye);
         var headIndex = avatar.getJointIndex("Head"); // base offset on 1/2 distance from hips to head if we can
         if (headIndex > 0) {
             offset = avatar.getAbsoluteJointTranslationInObjectFrame(headIndex).y / 2;
@@ -164,7 +165,7 @@ function updateOverlays() {
         overlay.editOverlay({
             color: color(ExtendedOverlay.isSelected(id), overlay.hovering),
             position: target,
-            dimensions: 0.032 * distance
+            dimensions: OVERLAY_SCALE * distance
         });
     });
     pingPong = !pingPong;
@@ -376,10 +377,35 @@ function deleteSendMoneyParticleEffect() {
 }
 
 function onUsernameChanged() {
-    if (Account.username !== Settings.getValue("wallet/savedUsername")) {
-        Settings.setValue("wallet/autoLogout", false);
-        Settings.setValue("wallet/savedUsername", "");
+    if (Account.username !== Settings.getValue("keepMeLoggedIn/savedUsername")) {
+        Settings.setValue("keepMeLoggedIn", false);
+        Settings.setValue("keepMeLoggedIn/savedUsername", "");
     }
+}    
+    
+var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
+var METAVERSE_SERVER_URL = Account.metaverseServerURL;
+var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?"; // Append "?" to signal injected script that it's the initial page.
+function openMarketplace(optionalItemOrUrl) {
+    // This is a bit of a kluge, but so is the whole file.
+    // If given a whole path, use it with no cta.
+    // If given an id, build the appropriate url and use the id as the cta.
+    // Otherwise, use home and 'marketplace cta'.
+    // AND... if call onMarketplaceOpen to setupWallet if we need to.
+    var url = optionalItemOrUrl || MARKETPLACE_URL_INITIAL;
+    // If optionalItemOrUrl contains the metaverse base, then it's a url, not an item id.
+    if (optionalItemOrUrl && optionalItemOrUrl.indexOf(METAVERSE_SERVER_URL) === -1) {
+        url = MARKETPLACE_URL + '/items/' + optionalItemOrUrl;
+    }
+    ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
+}
+
+function setCertificateInfo(itemCertificateId) {
+    ui.tablet.sendToQml({
+        method: 'inspectionCertificate_setCertificateId',
+        entityId: "",
+        certificateId: itemCertificateId
+    });
 }
 
 // Function Name: fromQml()
@@ -387,8 +413,6 @@ function onUsernameChanged() {
 // Description:
 //   -Called when a message is received from SpectatorCamera.qml. The "message" argument is what is sent from the QML
 //    in the format "{method, params}", like json-rpc. See also sendToQml().
-var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
-var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
 function fromQml(message) {
     switch (message.method) {
     case 'passphrasePopup_cancelClicked':
@@ -413,6 +437,7 @@ function fromQml(message) {
         }
         break;
     case 'needsLogIn_loginClicked':
+        ui.close();
         openLoginWindow();
         break;
     case 'disableHmdPreview':
@@ -421,10 +446,6 @@ function fromQml(message) {
         break; // do nothing here, handled in marketplaces.js
     case 'transactionHistory_linkClicked':
         ui.open(message.marketplaceLink, MARKETPLACES_INJECT_SCRIPT_URL);
-        break;
-    case 'goToPurchases_fromWalletHome':
-    case 'goToPurchases':
-        ui.open(MARKETPLACE_PURCHASES_QML_PATH);
         break;
     case 'goToMarketplaceMainPage':
         ui.open(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
@@ -450,22 +471,20 @@ function fromQml(message) {
         removeOverlays();
         break;
     case 'sendAsset_sendPublicly':
-        if (message.assetName === "") {
-            deleteSendMoneyParticleEffect();
-            sendMoneyRecipient = message.recipient;
-            var amount = message.amount;
-            var props = SEND_MONEY_PARTICLE_PROPERTIES;
-            props.parentID = MyAvatar.sessionUUID;
-            props.position = MyAvatar.position;
-            props.position.y += 0.2;
-            if (message.effectImage) {
-                props.textures = message.effectImage;
-            }
-            sendMoneyParticleEffect = Entities.addEntity(props, true);
-            particleEffectTimestamp = Date.now();
-            updateSendMoneyParticleEffect();
-            sendMoneyParticleEffectUpdateTimer = Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
+        deleteSendMoneyParticleEffect();
+        sendMoneyRecipient = message.recipient;
+        var props = SEND_MONEY_PARTICLE_PROPERTIES;
+        props.parentID = MyAvatar.sessionUUID;
+        props.position = MyAvatar.position;
+        props.position.y += 0.2;
+        if (message.effectImage) {
+            props.textures = message.effectImage;
         }
+        sendMoneyParticleEffect = Entities.addEntity(props, true);
+        particleEffectTimestamp = Date.now();
+        updateSendMoneyParticleEffect();
+        sendMoneyParticleEffectUpdateTimer =
+            Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
         break;
     case 'transactionHistory_goToBank':
         if (Account.metaverseServerURL.indexOf("staging") >= 0) {
@@ -474,49 +493,127 @@ function fromQml(message) {
             Window.location = "hifi://BankOfHighFidelity";
         }
         break;
+    case 'purchases_updateWearables':
+        var currentlyWornWearables = [];
+        var ATTACHMENT_SEARCH_RADIUS = 100; // meters (just in case)
+
+        var nearbyEntities = Entities.findEntitiesByType('Model', MyAvatar.position, ATTACHMENT_SEARCH_RADIUS);
+
+        for (var i = 0; i < nearbyEntities.length; i++) {
+            var currentProperties = Entities.getEntityProperties(
+                nearbyEntities[i], ['certificateID', 'editionNumber', 'parentID']
+            );
+            if (currentProperties.parentID === MyAvatar.sessionUUID) {
+                currentlyWornWearables.push({
+                    entityID: nearbyEntities[i],
+                    entityCertID: currentProperties.certificateID,
+                    entityEdition: currentProperties.editionNumber
+                });
+            }
+        }
+
+        ui.tablet.sendToQml({ method: 'updateWearables', wornWearables: currentlyWornWearables });
+        break;
+    case 'purchases_walletNotSetUp':
+        ui.tablet.sendToQml({
+            method: 'updateWalletReferrer',
+            referrer: "purchases"
+        });
+        break;
+    case 'purchases_openGoTo':
+        ui.open("hifi/tablet/TabletAddressDialog.qml");
+        break;
+    case 'purchases_itemInfoClicked':
+        var itemId = message.itemId;
+        if (itemId && itemId !== "") {
+            openMarketplace(itemId);
+        }
+        break;
+    case 'purchases_itemCertificateClicked':
+        setCertificateInfo(message.itemCertificateId);
+        break;
+    case 'clearShouldShowDotHistory':
+        shouldShowDotHistory = false;
+        ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
+        break;
     case 'http.request':
         // Handled elsewhere, don't log.
         break;
     default:
-        print('Unrecognized message from QML:', JSON.stringify(message));
+        print('wallet.js: Unrecognized message from QML');
     }
 }
 
+var isWired = false;
 function walletOpened() {
     Users.usernameFromIDReply.connect(usernameFromIDReply);
     Controller.mousePressEvent.connect(handleMouseEvent);
     Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
     triggerMapping.enable();
     triggerPressMapping.enable();
-    shouldShowDot = false;
-    ui.messagesWaiting(shouldShowDot);
+    isWired = true;
+
+    if (shouldShowDotHistory) {
+        ui.sendMessage({
+            method: 'updateRecentActivityMessageLight',
+            messagesWaiting: shouldShowDotHistory
+        });
+    }
 }
 
 function walletClosed() {
     off();
 }
 
-function notificationDataProcessPage(data) {
+function notificationDataProcessPageUpdates(data) {
+    return data.data.updates;
+}
+
+function notificationDataProcessPageHistory(data) {
     return data.data.history;
 }
 
-var shouldShowDot = false;
-function notificationPollCallback(historyArray) {
+var shouldShowDotUpdates = false;
+function notificationPollCallbackUpdates(updatesArray) {
+    shouldShowDotUpdates = shouldShowDotUpdates || updatesArray.length > 0;
+    ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
+
+    if (updatesArray.length > 0) {
+        var message;
+        if (!ui.notificationInitialCallbackMade[0]) {
+            message = updatesArray.length + " of your purchased items " +
+                (updatesArray.length === 1 ? "has an update " : "have updates ") +
+                "available. Open INVENTORY to update.";
+            ui.notificationDisplayBanner(message);
+
+            ui.notificationPollCaresAboutSince[0] = true;
+        } else {
+            for (var i = 0; i < updatesArray.length; i++) {
+                message = "Update available for \"" +
+                    updatesArray[i].base_item_title + "\"." +
+                    "Open INVENTORY to update.";
+                ui.notificationDisplayBanner(message);
+            }
+        }
+    }
+}
+var shouldShowDotHistory = false;
+function notificationPollCallbackHistory(historyArray) {
     if (!ui.isOpen) {
         var notificationCount = historyArray.length;
-        shouldShowDot = shouldShowDot || notificationCount > 0;
-        ui.messagesWaiting(shouldShowDot);
+        shouldShowDotHistory = shouldShowDotHistory || notificationCount > 0;
+        ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
 
         if (notificationCount > 0) {
             var message;
-            if (!ui.notificationInitialCallbackMade) {
-                message = "You have " + notificationCount + " unread wallet " +
-                    "transaction" + (notificationCount === 1 ? "" : "s") + ". Open WALLET to see all activity.";
+            if (!ui.notificationInitialCallbackMade[1]) {
+                message = "You have " + notificationCount + " unread recent " +
+                    "transaction" + (notificationCount === 1 ? "" : "s") + ". Open INVENTORY to see all activity.";
                 ui.notificationDisplayBanner(message);
             } else {
                 for (var i = 0; i < notificationCount; i++) {
                     message = '"' + (historyArray[i].message) + '" ' +
-                        "Open WALLET to see all activity.";
+                        "Open INVENTORY to see all activity.";
                     ui.notificationDisplayBanner(message);
                 }
             }
@@ -524,7 +621,12 @@ function notificationPollCallback(historyArray) {
     }
 }
 
-function isReturnedDataEmpty(data) {
+function isReturnedDataEmptyUpdates(data) {
+    var updatesArray = data.data.updates;
+    return updatesArray.length === 0;
+}
+
+function isReturnedDataEmptyHistory(data) {
     var historyArray = data.data.history;
     return historyArray.length === 0;
 }
@@ -559,10 +661,27 @@ function uninstallMarketplaceItemTester() {
     }
 }
 
-var BUTTON_NAME = "WALLET";
+var BUTTON_NAME = "INVENTORY";
 var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
+var NOTIFICATION_POLL_TIMEOUT = 300000;
 var ui;
 function startup() {
+    var notificationPollEndpointArray = ["/api/v1/commerce/available_updates?per_page=10"];
+    var notificationPollTimeoutMsArray = [NOTIFICATION_POLL_TIMEOUT];
+    var notificationDataProcessPageArray = [notificationDataProcessPageUpdates];
+    var notificationPollCallbackArray = [notificationPollCallbackUpdates];
+    var notificationPollStopPaginatingConditionMetArray = [isReturnedDataEmptyUpdates];
+    var notificationPollCaresAboutSinceArray = [false];
+
+    if (!WalletScriptingInterface.limitedCommerce) {
+        notificationPollEndpointArray[1] = "/api/v1/commerce/history?per_page=10";
+        notificationPollTimeoutMsArray[1] = NOTIFICATION_POLL_TIMEOUT;
+        notificationDataProcessPageArray[1] = notificationDataProcessPageHistory;
+        notificationPollCallbackArray[1] = notificationPollCallbackHistory;
+        notificationPollStopPaginatingConditionMetArray[1] = isReturnedDataEmptyHistory;
+        notificationPollCaresAboutSinceArray[1] = true;
+    }
+
     ui = new AppUi({
         buttonName: BUTTON_NAME,
         sortOrder: 10,
@@ -570,12 +689,12 @@ function startup() {
         onOpened: walletOpened,
         onClosed: walletClosed,
         onMessage: fromQml,
-        notificationPollEndpoint: "/api/v1/commerce/history?per_page=10",
-        notificationPollTimeoutMs: 300000,
-        notificationDataProcessPage: notificationDataProcessPage,
-        notificationPollCallback: notificationPollCallback,
-        notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
-        notificationPollCaresAboutSince: true
+        notificationPollEndpoint: notificationPollEndpointArray,
+        notificationPollTimeoutMs: notificationPollTimeoutMsArray,
+        notificationDataProcessPage: notificationDataProcessPageArray,
+        notificationPollCallback: notificationPollCallbackArray,
+        notificationPollStopPaginatingConditionMet: notificationPollStopPaginatingConditionMetArray,
+        notificationPollCaresAboutSince: notificationPollCaresAboutSinceArray
     });
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
     installMarketplaceItemTester();
@@ -583,11 +702,14 @@ function startup() {
 
 var isUpdateOverlaysWired = false;
 function off() {
-    Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-    Controller.mousePressEvent.disconnect(handleMouseEvent);
-    Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
-    triggerMapping.disable();
-    triggerPressMapping.disable();
+    if (isWired) {
+        Users.usernameFromIDReply.disconnect(usernameFromIDReply);
+        Controller.mousePressEvent.disconnect(handleMouseEvent);
+        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+        triggerMapping.disable();
+        triggerPressMapping.disable();
+        isWired = false;
+    }
 
     if (isUpdateOverlaysWired) {
         Script.update.disconnect(updateOverlays);

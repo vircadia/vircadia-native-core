@@ -14,7 +14,7 @@
 
 #include <memory.h>
 #include <QtNetwork/QNetworkReply>
-#include "ModelFormatLogging.h"
+#include <hfm/ModelFormatLogging.h>
 #include "FBXReader.h"
 
 
@@ -361,9 +361,6 @@ struct GLTFImage {
     int bufferView;   //required (or)
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["uri"]) {
-            qCDebug(modelformat) << "uri: " << uri;
-        }
         if (defined["mimeType"]) {
             qCDebug(modelformat) << "mimeType: " << mimeType;
         }
@@ -706,7 +703,7 @@ class GLTFReader : public QObject {
     Q_OBJECT
 public:
     GLTFReader();
-    FBXGeometry* readGLTF(QByteArray& model, const QVariantHash& mapping, 
+    HFMModel* readGLTF(QByteArray& data, const QVariantHash& mapping, 
                           const QUrl& url, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 private:
     GLTFFile _file;
@@ -714,8 +711,8 @@ private:
 
     glm::mat4 getModelTransform(const GLTFNode& node);
 
-    bool buildGeometry(FBXGeometry& geometry, const QUrl& url);
-    bool parseGLTF(const QByteArray& model);
+    bool buildGeometry(HFMModel& hfmModel, const QUrl& url);
+    bool parseGLTF(const QByteArray& data);
     
     bool getStringVal(const QJsonObject& object, const QString& fieldname, 
                       QString& value, QMap<QString, bool>&  defined);
@@ -778,9 +775,9 @@ private:
     bool doesResourceExist(const QString& url);
 
 
-    void setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& material);
-    FBXTexture getFBXTexture(const GLTFTexture& texture);
-    void fbxDebugDump(const FBXGeometry& fbxgeo);
+    void setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material);
+    HFMTexture getHFMTexture(const GLTFTexture& texture);
+    void hfmDebugDump(const HFMModel& hfmModel);
 };
 
 #endif // hifi_GLTFReader_h

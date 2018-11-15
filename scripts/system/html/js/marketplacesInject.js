@@ -27,6 +27,7 @@
     var xmlHttpRequest = null;
     var isPreparing = false; // Explicitly track download request status.
 
+    var limitedCommerce = false;
     var commerceMode = false;
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
@@ -59,7 +60,7 @@
         );
 
         // Footer.
-        var isInitialHiFiPage = location.href === marketplaceBaseURL + "/marketplace?";
+        var isInitialHiFiPage = location.href === (marketplaceBaseURL + "/marketplace?");
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
@@ -92,7 +93,7 @@
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
         $('#exploreHifiMarketplace').on('click', function () {
-            window.location = marketplaceBaseURL + "/marketplace";
+            window.location = marketplaceBaseURL + "/marketplace?";
         });
     }
 
@@ -169,7 +170,7 @@
 
             var span = document.createElement('span');
             span.style = "margin:10px;color:#1b6420;font-size:15px;";
-            span.innerHTML = "to purchase items from the Marketplace.";
+            span.innerHTML = "to get items from the Marketplace.";
 
             var xButton = document.createElement('a');
             xButton.id = "xButton";
@@ -192,40 +193,6 @@
             dummyRow.classList.add("row");
             dummyRow.style = "height:15px;";
             resultsElement.insertBefore(dummyRow, resultsElement.firstChild);
-        }
-    }
-
-    function maybeAddPurchasesButton() {
-        if (userIsLoggedIn) {
-            // Why isn't this an id?! This really shouldn't be a class on the website, but it is.
-            var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
-            var purchasesElement = document.createElement('a');
-            var dropDownElement = document.getElementById('user-dropdown');
-
-            $('#user-dropdown').find('.username')[0].style = "max-width:80px;white-space:nowrap;overflow:hidden;" +
-                "text-overflow:ellipsis;display:inline-block;position:relative;top:4px;";
-            $('#user-dropdown').find('.caret')[0].style = "position:relative;top:-3px;";
-
-            purchasesElement.id = "purchasesButton";
-            purchasesElement.setAttribute('href', "#");
-            purchasesElement.innerHTML = "";
-            if (messagesWaiting) {
-                purchasesElement.innerHTML += "<span style='width:10px;height:10px;background-color:red;border-radius:50%;display:inline-block;'></span> ";
-            }
-            purchasesElement.innerHTML += "My Purchases";
-            // FRONTEND WEBDEV RANT: The username dropdown should REALLY not be programmed to be on the same
-            //     line as the search bar, overlaid on top of the search bar, floated right, and then relatively bumped up using "top:-50px".
-            $('.navbar-brand').css('margin-right', '10px');
-            purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
-                "px;position:relative;z-index:999;";
-            navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
-            $('#purchasesButton').on('click', function () {
-                EventBridge.emitWebEvent(JSON.stringify({
-                    type: "PURCHASES",
-                    referrerURL: window.location.href,
-                    hasUpdates: messagesWaiting
-                }));
-            });
         }
     }
 
@@ -283,6 +250,7 @@
                 $(this).attr('href', '#');
             }
             cost = $(this).closest('.col-xs-3').find('.item-cost').text();
+            var costInt = parseInt(cost, 10);
 
             $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
             $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
@@ -312,11 +280,12 @@
             var getString = "GET";
             // Protection against the button getting stuck in the "BUY"/"GET" state.
             // That happens when the browser gets two MOUSEENTER events before getting a
-            // MOUSELEAVE event.
-            if ($this.text() === buyString || $this.text() === getString) {
-                return;
-            }
-            if ($this.text() === 'invalidated') {
+            // MOUSELEAVE event. Also, if not available for sale, just return.
+            if ($this.text() === buyString ||
+                $this.text() === getString ||
+                $this.text() === 'invalidated' ||
+                $this.text() === 'sold out' ||
+                $this.text() === 'not for sale' ) {
                 return;
             }
             $this.data('initialHtml', $this.html());
@@ -337,7 +306,10 @@
 
 
         $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
-            if ($(this).closest('.grid-item').find('.price').text() === 'invalidated') {
+            var price = $(this).closest('.grid-item').find('.price').text();
+            if (price === 'invalidated' ||
+                price === 'sold out' ||
+                price === 'not for sale') {
                 return false;
             }
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
@@ -398,7 +370,6 @@
                 // Try this here in case it works (it will if the user just pressed the "back" button,
                 //     since that doesn't trigger another AJAX request.
                 injectBuyButtonOnMainPage();
-                maybeAddPurchasesButton();
             }
         }
 
@@ -419,7 +390,12 @@
 
                 var href = purchaseButton.attr('href');
                 purchaseButton.attr('href', '#');
+                var cost = $('.item-cost').text();
+                var costInt = parseInt(cost, 10);
                 var availability = $.trim($('.item-availability').text());
+                if (limitedCommerce && (costInt > 0)) {
+                    availability = '';
+                }
                 if (availability === 'available') {
                     purchaseButton.css({
                         "background": "linear-gradient(#00b4ef, #0093C5)",
@@ -436,14 +412,13 @@
                     });
                 }
 
-                var cost = $('.item-cost').text();
                 var type = $('.item-type').text();
                 var isUpdating = window.location.href.indexOf('edition=') > -1;
                 var urlParams = new URLSearchParams(window.location.search);
                 if (isUpdating) {
                     purchaseButton.html('UPDATE FOR FREE');
                 } else if (availability !== 'available') {
-                    purchaseButton.html('UNAVAILABLE (' + availability + ')');
+                    purchaseButton.html('UNAVAILABLE ' + (availability ? ('(' + availability + ')') : ''));
                 } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
                     purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
                         'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
@@ -461,7 +436,6 @@
                             type);
                     }
                 });
-                maybeAddPurchasesButton();
             }
         }
 
@@ -572,18 +546,9 @@
                             data = {};
                         }
 
-                        // Extract status message.
-                        if (data.hasOwnProperty("message") && data.message !== null) {
-                            statusMessage = data.message;
-                            console.log("Clara.io FBX: " + statusMessage);
-                        }
-
                         // Extract zip file URL.
                         if (data.hasOwnProperty("files") && data.files.length > 0) {
                             zipFileURL = data.files[0].url;
-                            if (zipFileURL.slice(-4) !== ".zip") {
-                                console.log(JSON.stringify(data));  // Data for debugging.
-                            }
                         }
                     }
                 }
@@ -613,15 +578,11 @@
 
             var HTTP_OK = 200;
             if (this.status !== HTTP_OK) {
-                statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
-                console.log("ERROR: Clara.io FBX: " + statusMessage);
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_STATUS,
                     status: statusMessage
                 }));
             } else if (zipFileURL.slice(-4) !== ".zip") {
-                statusMessage = "Error creating zip file for download.";
-                console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_STATUS,
                     status: (statusMessage + ": " + zipFileURL)
@@ -630,15 +591,12 @@
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_DOWNLOAD
                 }));
-                console.log("Clara.io FBX: File download initiated for " + zipFileURL);
             }
 
             xmlHttpRequest = null;
         }
 
         isPreparing = true;
-
-        console.log("Clara.io FBX: Request zip file for " + uuid);
         EventBridge.emitWebEvent(JSON.stringify({
             type: CLARA_IO_STATUS,
             status: "Initiating download"
@@ -742,6 +700,7 @@
                 cancelClaraDownload();
             } else if (message.type === "marketplaces") {
                 if (message.action === "commerceSetting") {
+                    limitedCommerce = !!message.data.limitedCommerce;
                     commerceMode = !!message.data.commerceMode;
                     userIsLoggedIn = !!message.data.userIsLoggedIn;
                     walletNeedsSetup = !!message.data.walletNeedsSetup;

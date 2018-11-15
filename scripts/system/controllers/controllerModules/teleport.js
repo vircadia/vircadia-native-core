@@ -358,9 +358,9 @@ Script.include("/~/system/libraries/controllers.js");
 
             var sensorToWorldScale = MyAvatar.getSensorToWorldScale();
 
-            var radius = capsuleData.radius / sensorToWorldScale;
-            var height = (Vec3.distance(capsuleData.start, capsuleData.end) + (capsuleData.radius * 2.0)) / sensorToWorldScale;
-            var capsuleRatio = 10.0 * radius / height;
+            var diameter = 2.0 * capsuleData.radius / sensorToWorldScale;
+            var height = (Vec3.distance(capsuleData.start, capsuleData.end) + diameter) / sensorToWorldScale;
+            var capsuleRatio = 5.0 * diameter / height;
             var offset = _this.pickHeightOffset * capsuleRatio;
 
             _this.teleportHandCollisionPick = Picks.createPick(PickType.Collision, {
@@ -370,9 +370,9 @@ Script.include("/~/system/libraries/controllers.js");
                 shape: {
                     shapeType: "capsule-y",
                     dimensions: {
-                        x: radius * 2.0,
-                        y: height - (radius * 2.0),
-                        z: radius * 2.0
+                        x: diameter,
+                        y: height,
+                        z: diameter
                     }
                 },
                 position: { x: 0, y: offset + height * 0.5, z: 0 },
@@ -386,9 +386,9 @@ Script.include("/~/system/libraries/controllers.js");
                 shape: {
                     shapeType: "capsule-y",
                     dimensions: {
-                        x: radius * 2.0,
-                        y: height - (radius * 2.0),
-                        z: radius * 2.0
+                        x: diameter,
+                        y: height,
+                        z: diameter
                     }
                 },
                 position: { x: 0, y: offset + height * 0.5, z: 0 },
@@ -701,6 +701,10 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function(controllerData, deltaTime) {
+            if (Window.interstitialModeEnabled && !Window.isPhysicsEnabled()) {
+                return makeRunningValues(false, [], []);
+            }
+
             var otherModule = this.getOtherModule();
             if (!this.disabled && this.buttonValue !== 0 && !otherModule.active) {
                 this.active = true;

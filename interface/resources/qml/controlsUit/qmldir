@@ -6,6 +6,7 @@ CheckBox 1.0 CheckBox.qml
 CheckBoxQQC2 1.0 CheckBoxQQC2.qml
 ComboBox 1.0 ComboBox.qml
 ContentSection 1.0 ContentSection.qml
+FilterBar 1.0 FilterBar.qml
 GlyphButton 1.0 GlyphButton.qml
 HorizontalRule 1.0 HorizontalRule.qml
 HorizontalSpacer 1.0 HorizontalSpacer.qml
@@ -15,6 +16,7 @@ Keyboard 1.0 Keyboard.qml
 Label 1.0 Label.qml
 QueuedButton 1.0 QueuedButton.qml
 RadioButton 1.0 RadioButton.qml
+ScrollBar 1.0 ScrollBar.qml
 Separator 1.0 Separator.qml
 Slider 1.0 Slider.qml
 SpinBox 1.0 SpinBox.qml

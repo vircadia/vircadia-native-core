@@ -98,9 +98,13 @@ public:
 
     void removeAccountFromFile();
 
+    bool getLimitedCommerce() { return _limitedCommerce; }
+    void setLimitedCommerce(bool isLimited);
+
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
     void requestAccessTokenWithSteam(QByteArray authSessionTicket);
+    void requestAccessTokenWithAuthCode(const QString& authCode, const QString& clientId, const QString& clientSecret, const QString& redirectUri);
     void refreshAccessToken();
 
     void requestAccessTokenFinished();
@@ -121,6 +125,7 @@ signals:
     void loginFailed();
     void logoutComplete();
     void newKeypair();
+    void limitedCommerceChanged();
 
 private slots:
     void handleKeypairGenerationError();
@@ -150,6 +155,8 @@ private:
     QByteArray _pendingPrivateKey;
 
     QUuid _sessionID { QUuid::createUuid() };
+
+    bool _limitedCommerce { false };
 };
 
 #endif // hifi_AccountManager_h

@@ -22,8 +22,6 @@ Preference {
 
     Component.onCompleted: {
         dataTextField.text = preference.value;
-        console.log("MyAvatar modelName " + MyAvatar.getFullAvatarModelName())
-        console.log("Application : " + ApplicationInterface)
         ApplicationInterface.fullAvatarURLChanged.connect(processNewAvatar);
     }
 

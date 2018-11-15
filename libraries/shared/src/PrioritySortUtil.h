@@ -68,8 +68,14 @@ namespace PrioritySortUtil {
         void reserve(size_t num) {
             _vector.reserve(num);
         }
-        const std::vector<T>& getSortedVector() {
-            std::sort(_vector.begin(), _vector.end(), [](const T& left, const T& right) { return left.getPriority() > right.getPriority(); });
+        const std::vector<T>& getSortedVector(int numToSort = 0) {
+            if (numToSort == 0 || numToSort >= (int)_vector.size()) {
+                std::sort(_vector.begin(), _vector.end(),
+                    [](const T& left, const T& right) { return left.getPriority() > right.getPriority(); });
+            } else {
+                std::partial_sort(_vector.begin(), _vector.begin() + numToSort, _vector.end(),
+                    [](const T& left, const T& right) { return left.getPriority() > right.getPriority(); });
+            }
             return _vector;
         }
 
@@ -99,6 +105,9 @@ namespace PrioritySortUtil {
             float radius = glm::max(thing.getRadius(), MIN_RADIUS);
             // Other item's angle from view centre:
             float cosineAngle = glm::dot(offset, view.getDirection()) / distance;
+            if (cosineAngle > 0.0f) {
+                cosineAngle = std::sqrt(cosineAngle);
+            }
             float age = float((_usecCurrentTime - thing.getTimestamp()) / USECS_PER_SECOND);
 
             // the "age" term accumulates at the sum of all weights

@@ -93,7 +93,7 @@ Item {
         // Text below helper text
         RalewayRegular {
             id: loginDetailText;
-            text: "To buy/sell items on the <b>Marketplace</b>, or to use your <b>Wallet</b>, you must first log in to High Fidelity.";
+            text: "To get items on the <b>Marketplace</b>, or to use your <b>Assets</b>, you must first log in to High Fidelity.";
             // Text size
             size: 18;
             // Anchors
@@ -183,7 +183,7 @@ Item {
     function fromScript(message) {
         switch (message.method) {
             default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('NeedsLogIn.qml: Unrecognized message from wallet.js');
         }
     }
     signal sendSignalToWallet(var msg);

@@ -31,7 +31,7 @@
 #include <QFileInfo>
 #include <QHash>
 #include <LogHandler.h>
-#include "ModelFormatLogging.h"
+#include <hfm/ModelFormatLogging.h>
 
 #include "FBXReader.h"
 
@@ -42,9 +42,9 @@
 
 using vec2h = glm::tvec2<glm::detail::hdata>;
 
-#define FBX_PACK_COLORS 1
+#define HFM_PACK_COLORS 1
 
-#if FBX_PACK_COLORS
+#if HFM_PACK_COLORS
 using ColorType = glm::uint32;
 #define FBX_COLOR_ELEMENT gpu::Element::COLOR_RGBA_32
 #else
@@ -397,7 +397,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
             }
 
             // enumerate the vertices and construct the extracted mesh
-            for (int i = 0; i < numVertices; ++i) {
+            for (uint32_t i = 0; i < numVertices; ++i) {
                 draco::PointIndex vertexIndex(i);
 
                 if (positionAttribute) {
@@ -453,7 +453,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 }
             }
 
-            for (int i = 0; i < dracoMesh->num_faces(); ++i) {
+            for (uint32_t i = 0; i < dracoMesh->num_faces(); ++i) {
                 // grab the material ID and texture ID for this face, if we have it
                 auto& dracoFace = dracoMesh->face(draco::FaceIndex(i));
                 auto& firstCorner = dracoFace[0];
@@ -469,7 +469,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
                 QPair<int, int> materialTexture(materialID, 0);
 
-                // grab or setup the FBXMeshPart for the part this face belongs to
+                // grab or setup the HFMMeshPart for the part this face belongs to
                 int& partIndexPlusOne = materialTextureParts[materialTexture];
                 if (partIndexPlusOne == 0) {
                     data.extracted.partMaterialTextures.append(materialTexture);
@@ -478,7 +478,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 }
 
                 // give the mesh part this index
-                FBXMeshPart& part = data.extracted.mesh.parts[partIndexPlusOne - 1];
+                HFMMeshPart& part = data.extracted.mesh.parts[partIndexPlusOne - 1];
                 part.triangleIndices.append(firstCorner.value());
                 part.triangleIndices.append(dracoFace[1].value());
                 part.triangleIndices.append(dracoFace[2].value());
@@ -511,7 +511,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
                 partIndex = data.extracted.mesh.parts.size();
             }
-            FBXMeshPart& part = data.extracted.mesh.parts[partIndex - 1];
+            HFMMeshPart& part = data.extracted.mesh.parts[partIndex - 1];
 
             if (endIndex - beginIndex == 4) {
                 appendIndex(data, part.quadIndices, beginIndex++, deduplicate);
@@ -565,9 +565,9 @@ glm::vec3 FBXReader::normalizeDirForPacking(const glm::vec3& dir) {
     return dir;
 }
 
-void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
+void FBXReader::buildModelMesh(HFMMesh& extractedMesh, const QString& url) {
     unsigned int totalSourceIndices = 0;
-    foreach(const FBXMeshPart& part, extractedMesh.parts) {
+    foreach(const HFMMeshPart& part, extractedMesh.parts) {
         totalSourceIndices += (part.quadTrianglesIndices.size() + part.triangleIndices.size());
     }
 
@@ -583,17 +583,17 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         return;
     }
 
-    FBXMesh& fbxMesh = extractedMesh;
+    HFMMesh& hfmMesh = extractedMesh;
     graphics::MeshPointer mesh(new graphics::Mesh());
     int numVerts = extractedMesh.vertices.size();
 
-    if (!fbxMesh.normals.empty() && fbxMesh.tangents.empty()) {
+    if (!hfmMesh.normals.empty() && hfmMesh.tangents.empty()) {
         // Fill with a dummy value to force tangents to be present if there are normals
-        fbxMesh.tangents.reserve(fbxMesh.normals.size());
-        std::fill_n(std::back_inserter(fbxMesh.tangents), fbxMesh.normals.size(), Vectors::UNIT_X);
+        hfmMesh.tangents.reserve(hfmMesh.normals.size());
+        std::fill_n(std::back_inserter(hfmMesh.tangents), hfmMesh.normals.size(), Vectors::UNIT_X);
     }
     // Same thing with blend shapes
-    for (auto& blendShape : fbxMesh.blendshapes) {
+    for (auto& blendShape : hfmMesh.blendshapes) {
         if (!blendShape.normals.empty() && blendShape.tangents.empty()) {
             // Fill with a dummy value to force tangents to be present if there are normals
             blendShape.tangents.reserve(blendShape.normals.size());
@@ -609,8 +609,8 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     // Normal and tangent are always there together packed in normalized xyz32bits word (times 2)
     const auto normalElement = FBX_NORMAL_ELEMENT;
-    const int normalsSize = fbxMesh.normals.size() * normalElement.getSize();
-    const int tangentsSize = fbxMesh.tangents.size() * normalElement.getSize();
+    const int normalsSize = hfmMesh.normals.size() * normalElement.getSize();
+    const int tangentsSize = hfmMesh.tangents.size() * normalElement.getSize();
     // If there are normals then there should be tangents
     assert(normalsSize <= tangentsSize);
     if (tangentsSize > normalsSize) {
@@ -620,22 +620,22 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     // Color attrib
     const auto colorElement = FBX_COLOR_ELEMENT;
-    const int colorsSize = fbxMesh.colors.size() * colorElement.getSize();
+    const int colorsSize = hfmMesh.colors.size() * colorElement.getSize();
    
     // Texture coordinates are stored in 2 half floats
     const auto texCoordsElement = gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV);
-    const int texCoordsSize = fbxMesh.texCoords.size() * texCoordsElement.getSize();
-    const int texCoords1Size = fbxMesh.texCoords1.size() * texCoordsElement.getSize();
+    const int texCoordsSize = hfmMesh.texCoords.size() * texCoordsElement.getSize();
+    const int texCoords1Size = hfmMesh.texCoords1.size() * texCoordsElement.getSize();
 
     // Support for 4 skinning clusters:
     // 4 Indices are uint8 ideally, uint16 if more than 256.
-    const auto clusterIndiceElement = (fbxMesh.clusters.size() < UINT8_MAX ? gpu::Element(gpu::VEC4, gpu::UINT8, gpu::XYZW) : gpu::Element(gpu::VEC4, gpu::UINT16, gpu::XYZW));
+    const auto clusterIndiceElement = (hfmMesh.clusters.size() < UINT8_MAX ? gpu::Element(gpu::VEC4, gpu::UINT8, gpu::XYZW) : gpu::Element(gpu::VEC4, gpu::UINT16, gpu::XYZW));
     // 4 Weights are normalized 16bits
     const auto clusterWeightElement = gpu::Element(gpu::VEC4, gpu::NUINT16, gpu::XYZW);
 
     // Cluster indices and weights must be the same sizes
     const int NUM_CLUSTERS_PER_VERT = 4;
-    const int numVertClusters = (fbxMesh.clusterIndices.size() == fbxMesh.clusterWeights.size() ? fbxMesh.clusterIndices.size() / NUM_CLUSTERS_PER_VERT : 0);
+    const int numVertClusters = (hfmMesh.clusterIndices.size() == hfmMesh.clusterWeights.size() ? hfmMesh.clusterIndices.size() / NUM_CLUSTERS_PER_VERT : 0);
     const int clusterIndicesSize = numVertClusters * clusterIndiceElement.getSize();
     const int clusterWeightsSize = numVertClusters * clusterWeightElement.getSize();
 
@@ -660,9 +660,9 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     if (normalsSize > 0) {
         std::vector<NormalType> normalsAndTangents;
 
-        normalsAndTangents.reserve(fbxMesh.normals.size() + fbxMesh.tangents.size());
-        for (auto normalIt = fbxMesh.normals.constBegin(), tangentIt = fbxMesh.tangents.constBegin();
-            normalIt != fbxMesh.normals.constEnd();
+        normalsAndTangents.reserve(hfmMesh.normals.size() + hfmMesh.tangents.size());
+        for (auto normalIt = hfmMesh.normals.constBegin(), tangentIt = hfmMesh.tangents.constBegin();
+            normalIt != hfmMesh.normals.constEnd();
             ++normalIt, ++tangentIt) {
 #if FBX_PACK_NORMALS
             const auto normal = normalizeDirForPacking(*normalIt);
@@ -681,24 +681,24 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     // Pack colors
     if (colorsSize > 0) {
-#if FBX_PACK_COLORS
+#if HFM_PACK_COLORS
         std::vector<ColorType> colors;
 
-        colors.reserve(fbxMesh.colors.size());
-        for (const auto& color : fbxMesh.colors) {
+        colors.reserve(hfmMesh.colors.size());
+        for (const auto& color : hfmMesh.colors) {
             colors.push_back(glm::packUnorm4x8(glm::vec4(color, 1.0f)));
         }
         vertBuffer->setSubData(colorsOffset, colorsSize, (const gpu::Byte*) colors.data());
 #else
-        vertBuffer->setSubData(colorsOffset, colorsSize, (const gpu::Byte*) fbxMesh.colors.constData());
+        vertBuffer->setSubData(colorsOffset, colorsSize, (const gpu::Byte*) hfmMesh.colors.constData());
 #endif
     }
 
     // Pack Texcoords 0 and 1 (if exists)
     if (texCoordsSize > 0) {
         QVector<vec2h> texCoordData;
-        texCoordData.reserve(fbxMesh.texCoords.size());
-        for (auto& texCoordVec2f : fbxMesh.texCoords) {
+        texCoordData.reserve(hfmMesh.texCoords.size());
+        for (auto& texCoordVec2f : hfmMesh.texCoords) {
             vec2h texCoordVec2h;
 
             texCoordVec2h.x = glm::detail::toFloat16(texCoordVec2f.x);
@@ -709,8 +709,8 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     }
     if (texCoords1Size > 0) {
         QVector<vec2h> texCoordData;
-        texCoordData.reserve(fbxMesh.texCoords1.size());
-        for (auto& texCoordVec2f : fbxMesh.texCoords1) {
+        texCoordData.reserve(hfmMesh.texCoords1.size());
+        for (auto& texCoordVec2f : hfmMesh.texCoords1) {
             vec2h texCoordVec2h;
 
             texCoordVec2h.x = glm::detail::toFloat16(texCoordVec2f.x);
@@ -722,22 +722,22 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     // Clusters data
     if (clusterIndicesSize > 0) {
-        if (fbxMesh.clusters.size() < UINT8_MAX) {
+        if (hfmMesh.clusters.size() < UINT8_MAX) {
             // yay! we can fit the clusterIndices within 8-bits
-            int32_t numIndices = fbxMesh.clusterIndices.size();
+            int32_t numIndices = hfmMesh.clusterIndices.size();
             QVector<uint8_t> clusterIndices;
             clusterIndices.resize(numIndices);
             for (int32_t i = 0; i < numIndices; ++i) {
-                assert(fbxMesh.clusterIndices[i] <= UINT8_MAX);
-                clusterIndices[i] = (uint8_t)(fbxMesh.clusterIndices[i]);
+                assert(hfmMesh.clusterIndices[i] <= UINT8_MAX);
+                clusterIndices[i] = (uint8_t)(hfmMesh.clusterIndices[i]);
             }
             vertBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) clusterIndices.constData());
         } else {
-            vertBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) fbxMesh.clusterIndices.constData());
+            vertBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) hfmMesh.clusterIndices.constData());
         }
     }
     if (clusterWeightsSize > 0) {
-        vertBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (const gpu::Byte*) fbxMesh.clusterWeights.constData());
+        vertBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (const gpu::Byte*) hfmMesh.clusterWeights.constData());
     }
 
 
@@ -856,7 +856,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     // Index and Part Buffers
     unsigned int totalIndices = 0;
-    foreach(const FBXMeshPart& part, extractedMesh.parts) {
+    foreach(const HFMMeshPart& part, extractedMesh.parts) {
         totalIndices += (part.quadTrianglesIndices.size() + part.triangleIndices.size());
     }
 
@@ -875,7 +875,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     if (extractedMesh.parts.size() > 1) {
         indexNum = 0;
     }
-    foreach(const FBXMeshPart& part, extractedMesh.parts) {
+    foreach(const HFMMeshPart& part, extractedMesh.parts) {
         graphics::Mesh::Part modelPart(indexNum, 0, 0, graphics::Mesh::TRIANGLES);
         
         if (part.quadTrianglesIndices.size()) {

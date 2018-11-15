@@ -24,8 +24,12 @@
 
 static const int DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS = 5;
 
-AssetResourceRequest::AssetResourceRequest(const QUrl& url) :
-    ResourceRequest(url)
+AssetResourceRequest::AssetResourceRequest(
+    const QUrl& url,
+    const bool isObservable,
+    const qint64 callerId,
+    const QString& extra) :
+    ResourceRequest(url, isObservable, callerId, extra)
 {
     _lastProgressDebug = p_high_resolution_clock::now() - std::chrono::seconds(DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS);
 }
@@ -211,11 +215,6 @@ void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytes
 
     if (bytesReceived != bytesTotal
         && now - _lastProgressDebug > std::chrono::seconds(DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS)) {
-
-        int percentage =  roundf((float) bytesReceived / (float) bytesTotal * 100.0f);
-
-        qCDebug(networking).nospace() << "Progress for " << _url.path() << " - "
-            << bytesReceived << " of " << bytesTotal << " bytes - " << percentage << "%";
 
         _lastProgressDebug = now;
     }

@@ -14,14 +14,17 @@ using namespace gl;
 
 void Uniform::load(GLuint glprogram, int index) {
     this->index = index;
-    const GLint NAME_LENGTH = 256;
-    GLchar glname[NAME_LENGTH];
-    GLint length = 0;
-    glGetActiveUniform(glprogram, index, NAME_LENGTH, &length, &size, &type, glname);
-    // Length does NOT include the null terminator
-    // https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGetActiveUniform.xhtml
-    name = std::string(glname, length);
-    binding = glGetUniformLocation(glprogram, glname);
+    if (index >= 0) {
+        static const GLint NAME_LENGTH = 1024;
+        GLchar glname[NAME_LENGTH];
+        memset(glname, 0, NAME_LENGTH);
+        GLint length = 0;
+        glGetActiveUniform(glprogram, index, NAME_LENGTH, &length, &size, &type, glname);
+        // Length does NOT include the null terminator
+        // https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGetActiveUniform.xhtml
+        name = std::string(glname, length);
+        binding = glGetUniformLocation(glprogram, name.c_str());
+    }
 }
 
 bool isTextureType(GLenum type) {

@@ -35,6 +35,7 @@
 #include "RectangleOverlay.h"
 #include "Text3DOverlay.h"
 #include "Web3DOverlay.h"
+#include "ui/Keyboard.h"
 #include <QtQuick/QQuickWindow>
 
 #include <PointerManager.h>
@@ -582,7 +583,7 @@ ParabolaToOverlayIntersectionResult Overlays::findParabolaIntersectionVector(con
                                                                              bool visibleOnly, bool collidableOnly) {
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
-
+    const QVector<OverlayID> keyboardKeysToDiscard = DependencyManager::get<Keyboard>()->getKeysID();
     QMutexLocker locker(&_mutex);
     ParabolaToOverlayIntersectionResult result;
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
@@ -592,7 +593,8 @@ ParabolaToOverlayIntersectionResult Overlays::findParabolaIntersectionVector(con
         auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
 
         if ((overlaysToDiscard.size() > 0 && overlaysToDiscard.contains(thisID)) ||
-            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID))) {
+            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID)) ||
+            (keyboardKeysToDiscard.size() > 0 && keyboardKeysToDiscard.contains(thisID))) {
             continue;
         }
 
@@ -868,8 +870,13 @@ void Overlays::mousePressPointerEvent(const OverlayID& overlayID, const PointerE
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
     }
 
-    // emit to scripts
-    emit mousePressOnOverlay(overlayID, event);
+
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeysID().contains(overlayID)) {
+        // emit to scripts
+        emit mousePressOnOverlay(overlayID, event);
+    }
 }
 
 bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
@@ -902,8 +909,12 @@ void Overlays::hoverEnterPointerEvent(const OverlayID& overlayID, const PointerE
         QMetaObject::invokeMethod(thisOverlay.get(), "hoverEnterOverlay", Q_ARG(PointerEvent, event));
     }
 
-    // emit to scripts
-    emit hoverEnterOverlay(overlayID, event);
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeysID().contains(overlayID)) {
+        // emit to scripts
+        emit hoverEnterOverlay(overlayID, event);
+    }
 }
 
 void Overlays::hoverOverPointerEvent(const OverlayID& overlayID, const PointerEvent& event) {
@@ -917,8 +928,12 @@ void Overlays::hoverOverPointerEvent(const OverlayID& overlayID, const PointerEv
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
     }
 
-    // emit to scripts
-    emit hoverOverOverlay(overlayID, event);
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeysID().contains(overlayID)) {
+        // emit to scripts
+        emit hoverOverOverlay(overlayID, event);
+    }
 }
 
 void Overlays::hoverLeavePointerEvent(const OverlayID& overlayID, const PointerEvent& event) {
@@ -932,8 +947,12 @@ void Overlays::hoverLeavePointerEvent(const OverlayID& overlayID, const PointerE
         QMetaObject::invokeMethod(thisOverlay.get(), "hoverLeaveOverlay", Q_ARG(PointerEvent, event));
     }
 
-    // emit to scripts
-    emit hoverLeaveOverlay(overlayID, event);
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeysID().contains(overlayID)) {
+        // emit to scripts
+        emit hoverLeaveOverlay(overlayID, event);
+    }
 }
 
 bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
@@ -962,8 +981,12 @@ void Overlays::mouseReleasePointerEvent(const OverlayID& overlayID, const Pointe
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
     }
 
-    // emit to scripts
-    emit mouseReleaseOnOverlay(overlayID, event);
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeysID().contains(overlayID)) {
+        // emit to scripts
+        emit mouseReleaseOnOverlay(overlayID, event);
+    }
 }
 
 bool Overlays::mouseMoveEvent(QMouseEvent* event) {
@@ -1014,8 +1037,13 @@ void Overlays::mouseMovePointerEvent(const OverlayID& overlayID, const PointerEv
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
     }
 
-    // emit to scripts
-    emit mouseMoveOnOverlay(overlayID, event);
+    auto keyboard = DependencyManager::get<Keyboard>();
+
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeysID().contains(overlayID)) {
+        // emit to scripts
+        emit mouseMoveOnOverlay(overlayID, event);
+    }
 }
 
 QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
@@ -1034,8 +1062,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
         i.next();
         OverlayID thisID = i.key();
         auto overlay = std::dynamic_pointer_cast<Volume3DOverlay>(i.value());
-        // FIXME: this ignores overlays with ignorePickIntersection == true, which seems wrong
-        if (overlay && overlay->getVisible() && !overlay->getIgnorePickIntersection() && overlay->isLoaded()) {
+
+        if (overlay && overlay->getVisible() && overlay->isLoaded()) {
             // get AABox in frame of overlay
             glm::vec3 dimensions = overlay->getDimensions();
             glm::vec3 low = dimensions * -0.5f;
