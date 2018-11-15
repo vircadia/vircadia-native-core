@@ -275,7 +275,7 @@ public:
     size_t getMaxNumResourceTextureTables() const { return MAX_NUM_RESOURCE_TABLE_TEXTURES; }
 
     // Draw Stage
-    virtual void do_draw(const Batch& batch, size_t paramOffset);
+    virtual void do_draw(const Batch& batch, size_t paramOffset) = 0;
     virtual void do_drawIndexed(const Batch& batch, size_t paramOffset) = 0;
     virtual void do_drawInstanced(const Batch& batch, size_t paramOffset) = 0;
     virtual void do_drawIndexedInstanced(const Batch& batch, size_t paramOffset) = 0;
