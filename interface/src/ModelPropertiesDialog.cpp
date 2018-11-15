@@ -26,7 +26,7 @@
 #include <OffscreenUi.h>
 
 
-ModelPropertiesDialog::ModelPropertiesDialog(FSTReader::ModelType modelType, const QVariantHash& originalMapping,
+ModelPropertiesDialog::ModelPropertiesDialog(const QVariantHash& originalMapping,
                                              const QString& basePath, const HFMModel& hfmModel) :
 _originalMapping(originalMapping),
 _basePath(basePath),
