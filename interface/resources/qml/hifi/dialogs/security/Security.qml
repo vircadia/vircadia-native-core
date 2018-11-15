@@ -256,7 +256,7 @@ Rectangle {
                 color: hifi.colors.baseGrayHighlight;
 
                 HifiStylesUit.RalewaySemiBold {
-                    text: "Wallet";
+                    text: "Secure Transactions";
                     anchors.fill: parent;
                     anchors.leftMargin: 20;
                     color: hifi.colors.white;
@@ -287,7 +287,7 @@ Rectangle {
 
                 HifiStylesUit.RalewaySemiBold {
                     id: securityPictureText;
-                    text: "Wallet Security Picture";
+                    text: "Security Picture";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.bottom: parent.bottom;
