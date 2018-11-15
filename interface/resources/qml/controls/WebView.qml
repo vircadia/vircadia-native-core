@@ -22,6 +22,7 @@ Item {
     property bool punctuationMode: false
     property bool passwordField: false
     property alias flickable: webroot.interactive
+    property alias blurOnCtrlShift: webroot.blurOnCtrlShift
 
     function stop() {
         webroot.stop();

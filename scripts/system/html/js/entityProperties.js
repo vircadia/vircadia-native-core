@@ -1342,6 +1342,8 @@ const GROUPS_PER_TYPE = {
   Material: [ 'base', 'material', 'spatial', 'behavior' ],
   ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 'particles_alpha', 
                     'particles_acceleration', 'particles_spin', 'particles_constraints', 'spatial', 'behavior', 'physics' ],
+  PolyLine: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
+  PolyVox: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   Multiple: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
 };
 
@@ -1351,8 +1353,6 @@ const DEBOUNCE_TIMEOUT = 125;
 const COLOR_MIN = 0;
 const COLOR_MAX = 255;
 const COLOR_STEP = 1;
-
-const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 
 const MATERIAL_PREFIX_STRING = "mat::";
 
@@ -3494,16 +3494,46 @@ function loaded() {
             el.parentNode.removeChild(el);
             elDropdowns = document.getElementsByTagName("select");
         }
-            
-        document.addEventListener("keydown", function (keyDown) {
-            if (keyDown.keyCode === KEY_P && keyDown.ctrlKey) {
-                if (keyDown.shiftKey) {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
-                } else {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
-                }
+
+        const KEY_CODES = {
+            BACKSPACE: 8,
+            DELETE: 46
+        };
+
+        document.addEventListener("keyup", function (keyUpEvent) {
+            if (keyUpEvent.target.nodeName === "INPUT") {
+                return;
             }
-        });
+            let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;
+
+            let controlKey = window.navigator.platform.startsWith("Mac") ? metaKey : ctrlKey;
+
+            let keyCodeString;
+            switch (keyCode) {
+                case KEY_CODES.DELETE:
+                    keyCodeString = "Delete";
+                    break;
+                case KEY_CODES.BACKSPACE:
+                    keyCodeString = "Backspace";
+                    break;
+                default:
+                    keyCodeString = String.fromCharCode(keyUpEvent.keyCode);
+                    break;
+            }
+
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: 'keyUpEvent',
+                keyUpEvent: {
+                    code,
+                    key,
+                    keyCode,
+                    keyCodeString,
+                    altKey,
+                    controlKey,
+                    shiftKey,
+                }
+            }));
+        }, false);
         
         window.onblur = function() {
             // Fake a change event

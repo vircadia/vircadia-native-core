@@ -9,7 +9,8 @@
 //
 
 /* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
-   cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
+   cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible,
+   keyUpEventFromUIWindow */
 
 var PROFILING_ENABLED = false;
 var profileIndent = '';
@@ -298,6 +299,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
             SelectionManager._update();
         } else if (data.type === "toggleSpaceMode") {
             SelectionDisplay.toggleSpaceMode();
+        } else if (data.type === 'keyUpEvent') {
+            keyUpEventFromUIWindow(data.keyUpEvent);
         }
     };
 
