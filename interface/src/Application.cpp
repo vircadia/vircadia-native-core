@@ -4050,8 +4050,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                             _snapshotSoundInjector->setOptions(options);
                             _snapshotSoundInjector->restart();
                         } else {
-                            QByteArray samples = _snapshotSound->getByteArray();
-                            _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                            _snapshotSoundInjector = AudioInjector::playSound(_snapshotSound, options);
                         }
                     }
                     takeSnapshot(true);

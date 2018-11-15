@@ -485,7 +485,7 @@ void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent
         audioOptions.position = keyWorldPosition;
         audioOptions.volume = 0.1f;
 
-        AudioInjector::playSound(_keySound->getByteArray(), audioOptions);
+        AudioInjector::playSoundAndDelete(_keySound, audioOptions);
 
         int scanCode = key.getScanCode(_capsEnabled);
         QString keyString = key.getKeyString(_capsEnabled);

@@ -211,7 +211,7 @@ void TabletScriptingInterface::playSound(TabletAudioEvents aEvent) {
         options.ambisonic = sound->isAmbisonic();
         options.localOnly = true;
 
-        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound->getByteArray(), options);
+        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound, options);
     }
 }
 
