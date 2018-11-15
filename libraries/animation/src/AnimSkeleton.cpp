@@ -25,6 +25,8 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     }
     buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
 
+    // we make a copy of the inverseBindMatrices in order to prevent mutating the model bind pose
+    // when we are dealing with a joint offset in the model
     for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
         std::vector<HFMCluster> dummyClustersList;
@@ -39,12 +41,11 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
             localCluster.inverseBindMatrix = cluster.inverseBindMatrix;
             localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
 
-            // we make a copy of the inversebindMatrices in order to prevent mutating the model bind pose
+            // if we have a joint offset in the fst file then multiply its inverse by the
+            // model cluster inverse bind matrix
             if (hfmModel.jointRotationOffsets.contains(cluster.jointIndex)) {
                 AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
-                if ((hfmModel.clusterBindMatrixOriginalValues.size() > i) && (hfmModel.clusterBindMatrixOriginalValues[i].size() > j)) {
-                    localCluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * hfmModel.clusterBindMatrixOriginalValues[i][j];
-                }
+                localCluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
                 localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
             }
             dummyClustersList.push_back(localCluster);

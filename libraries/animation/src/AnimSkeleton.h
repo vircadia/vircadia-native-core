@@ -63,7 +63,7 @@ public:
     void dump(const AnimPoseVec& poses) const;
 
     std::vector<int> lookUpJointIndices(const std::vector<QString>& jointNames) const;
-    std::vector<std::vector<HFMCluster>> _clusterBindMatrixOriginalValues;
+    const HFMCluster getClusterBindMatricesOriginalValues(const int meshIndex, const int clusterIndex) const { return _clusterBindMatrixOriginalValues[meshIndex][clusterIndex]; }
 
 protected:
     void buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets);
@@ -78,6 +78,7 @@ protected:
     std::vector<int> _nonMirroredIndices;
     std::vector<int> _mirrorMap;
     QHash<QString, int> _jointIndicesByName;
+    std::vector<std::vector<HFMCluster>> _clusterBindMatrixOriginalValues;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;
