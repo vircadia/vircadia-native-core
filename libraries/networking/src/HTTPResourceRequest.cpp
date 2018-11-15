@@ -208,7 +208,7 @@ void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesT
 }
 
 void HTTPResourceRequest::onTimeout() {
-    qDebug() << "Timeout: " << _url << ":" << _reply->isFinished();
+    qDebug() << "Timeout: " << _reply->isFinished();
     Q_ASSERT(_state == InProgress);
     _reply->disconnect(this);
     _reply->abort();

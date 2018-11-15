@@ -27,8 +27,10 @@ struct ovr {
     static void releaseRenderSession(ovrSession session);
     static void withSession(const std::function<void(ovrSession)>& f);
     static ovrSessionStatus getStatus();
-    static ovrTrackingState getTrackingState();
+    static ovrSessionStatus getStatus(ovrResult& result);
+    static ovrTrackingState getTrackingState(double absTime = 0.0, ovrBool latencyMarker = ovrFalse);
     static QString getError();
+    static bool handleOVREvents();
 
     static inline bool quitRequested() { return quitRequested(getStatus()); }
     static inline bool reorientRequested() { return reorientRequested(getStatus()); }
@@ -36,6 +38,8 @@ struct ovr {
     static inline bool hasInputFocus() { return hasInputFocus(getStatus()); }
 
     static inline bool quitRequested(const ovrSessionStatus& status) { return status.ShouldQuit != ovrFalse; }
+    static inline bool displayLost(const ovrSessionStatus& status) { return status.DisplayLost != ovrFalse; }
+    static inline bool isVisible(const ovrSessionStatus& status) { return status.IsVisible != ovrFalse; }
     static inline bool reorientRequested(const ovrSessionStatus& status) { return status.ShouldRecenter != ovrFalse; }
     static inline bool hmdMounted(const ovrSessionStatus& status) { return status.HmdMounted != ovrFalse; }
     static inline bool hasInputFocus(const ovrSessionStatus& status) { return status.HasInputFocus != ovrFalse; }

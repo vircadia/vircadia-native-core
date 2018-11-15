@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  forward_model_unlit.frag
-//  fragment shader
 //
 //  Created by Sam Gateau on 5/5/2016.
 //  Copyright 2016 High Fidelity, Inc.
@@ -12,10 +10,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include LightingModel.slh@>
 <@include graphics/Material.slh@>
 <@include graphics/MaterialTextures.slh@>
 <@include render-utils/ShaderConstants.h@>
+
+<@include LightingModel.slh@>
 
 <$declareMaterialTextures(ALBEDO)$>
 
@@ -27,7 +26,6 @@ layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=0) out vec4 _fragColor0;
 
 void main(void) {
-
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
     <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
@@ -40,8 +38,5 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color.rgb;
 
-     if (opacity != 1.0) {
-        discard;
-    }
     _fragColor0 = vec4(albedo * isUnlitEnabled(), 1.0);
 }

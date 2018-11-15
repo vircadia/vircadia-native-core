@@ -27,6 +27,9 @@ HMDScriptingInterface::HMDScriptingInterface() {
     connect(qApp, &Application::activeDisplayPluginChanged, [this]{
         emit displayModeChanged(isHMDMode());
     });
+    connect(qApp, &Application::miniTabletEnabledChanged, [this](bool enabled) {
+        emit miniTabletEnabledChanged(enabled);
+    });
 }
 
 glm::vec3 HMDScriptingInterface::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const {
@@ -125,6 +128,15 @@ void HMDScriptingInterface::setShouldShowTablet(bool value) {
         emit showTabletChanged(value);
     }
 }
+
+void HMDScriptingInterface::setMiniTabletEnabled(bool enabled) {
+    qApp->setMiniTabletEnabled(enabled);
+}
+
+bool HMDScriptingInterface::getMiniTabletEnabled() {
+    return qApp->getMiniTabletEnabled();
+}
+
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 hudIntersection;

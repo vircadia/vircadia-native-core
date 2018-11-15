@@ -80,8 +80,6 @@ ModalWindow {
     property int clickedButton: OriginalDialogs.StandardButton.NoButton;
 	
     Component.onCompleted: {
-        console.log("Helper " + helper + " drives " + drives);
-
         fileDialogItem.keyboardEnabled = HMD.active;
 
         // HACK: The following lines force the model to initialize properly such that the go-up button
@@ -809,7 +807,6 @@ ModalWindow {
                     }
                 }
 
-                console.log("Selecting " + selection)
                 selectedFile(selection);
                 root.destroy();
             }

@@ -141,6 +141,7 @@ Column {
             textSizeSmall: root.textSizeSmall;
             stackShadowNarrowing: root.stackShadowNarrowing;
             shadowHeight: root.stackedCardShadowHeight;
+
             hoverThunk: function () { 
                 hovered = true;
                 if(root.autoScrollTimerEnabled) {

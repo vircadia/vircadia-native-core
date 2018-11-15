@@ -223,7 +223,7 @@ private:
                              KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
     void handleTransitAnimations(AvatarTransit::Status status);
 
-    QVector<AvatarSharedPointer> _avatarsToFade;
+    QVector<AvatarSharedPointer> _avatarsToFadeOut;
 
     using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
     SetOfOtherAvatars _avatarsToChangeInPhysics;
