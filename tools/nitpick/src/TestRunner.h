@@ -94,7 +94,7 @@ private:
 #elif defined(Q_OS_MAC)
     const QString INSTALLER_FILENAME_LATEST{ "HighFidelity-Beta-latest-dev.dmg" };
 #else
-    const QString INSTALLER_FILENAME_LATEST{ "just to pass compilation" };
+    const QString INSTALLER_FILENAME_LATEST{ "" };
 #endif
 
     QString _installerURL;

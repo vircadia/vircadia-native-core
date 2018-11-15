@@ -21,8 +21,7 @@ public:
 private:
 #ifdef Q_OS_WIN
     const QString _pythonExe{ "python.exe" };
-#endif
-#ifdef Q_OS_MACOS
+#elif
     const QString _pythonExe{ "python" };
 #endif
 
