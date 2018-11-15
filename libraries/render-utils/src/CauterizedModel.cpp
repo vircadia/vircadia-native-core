@@ -112,6 +112,7 @@ void CauterizedModel::updateClusterMatrices() {
     const HFMModel& hfmModel = getHFMModel();
 
     for (int i = 0; i < (int)_meshStates.size(); i++) {
+        qCDebug(renderutils) << "mesh states size " << _meshStates.size() << " mesh size " << hfmModel.meshes.size();
         Model::MeshState& state = _meshStates[i];
         const HFMMesh& mesh = hfmModel.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
@@ -120,12 +121,20 @@ void CauterizedModel::updateClusterMatrices() {
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
                 Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
                 Transform clusterTransform;
-                Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                Transform clusterTransform2;
+                //Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                Transform::mult(clusterTransform, jointTransform, _rig.getAnimSkeleton()->_clusterBindMatrixOriginalValues[i][j].inverseBindTransform);
+                Transform::mult(clusterTransform2, jointTransform, cluster.inverseBindTransform);
+                //qCDebug(renderutils) << "the animskel matrix i " << i << " j " << j << _rig.getAnimSkeleton()->_clusterBindMatrixOriginalValues[i][j].inverseBindTransform;
+                qCDebug(renderutils) << "the mesh state cluster matrix " << state.clusterMatrices[j];
+                //qCDebug(renderutils) << "cluster transform old way " << clusterTransform2;
+                //qCDebug(renderutils) << "cluster transform new way " << clusterTransform;
                 state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
                 state.clusterDualQuaternions[j].setCauterizationParameters(0.0f, jointPose.trans());
             } else {
                 auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                //glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                glm_mat4u_mul(jointMatrix, _rig.getAnimSkeleton()->_clusterBindMatrixOriginalValues[i][j].inverseBindMatrix, state.clusterMatrices[j]);
             }
         }
     }
@@ -157,7 +166,8 @@ void CauterizedModel::updateClusterMatrices() {
                     } else {
                         Transform jointTransform(cauterizePose.rot(), cauterizePose.scale(), cauterizePose.trans());
                         Transform clusterTransform;
-                        Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                        //Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                        Transform::mult(clusterTransform, jointTransform, _rig.getAnimSkeleton()->_clusterBindMatrixOriginalValues[i][j].inverseBindTransform);
                         state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
                         state.clusterDualQuaternions[j].setCauterizationParameters(1.0f, cauterizePose.trans());
                     }
@@ -166,7 +176,8 @@ void CauterizedModel::updateClusterMatrices() {
                         // not cauterized so just copy the value from the non-cauterized version.
                         state.clusterMatrices[j] = _meshStates[i].clusterMatrices[j];
                     } else {
-                        glm_mat4u_mul(cauterizeMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                        // glm_mat4u_mul(cauterizeMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                        glm_mat4u_mul(cauterizeMatrix, _rig.getAnimSkeleton()->_clusterBindMatrixOriginalValues[i][j].inverseBindMatrix, state.clusterMatrices[j]);
                     }
                 }
             }
@@ -231,6 +242,8 @@ void CauterizedModel::updateRenderItems() {
                     if (useDualQuaternionSkinning) {
                         data.updateClusterBuffer(meshState.clusterDualQuaternions,
                                                  cauterizedMeshState.clusterDualQuaternions);
+                        //qCDebug(renderutils) << "mesh cluster transform " << meshState.clusterDualQuaternions[0];
+                        //qCDebug(renderutils) << "cauterized mesh cluster transform " << cauterizedMeshState.clusterDualQuaternions[0];
                     } else {
                         data.updateClusterBuffer(meshState.clusterMatrices,
                                                  cauterizedMeshState.clusterMatrices);

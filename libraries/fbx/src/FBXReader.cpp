@@ -2029,7 +2029,7 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
     }
 
     // create a backup copy of the bindposes,
-    // these are needed when we recompute the bindpose offsets on reset.
+    // these are needed when we recompute the bindpose offsets in the AnimSkeleton constructor on mySkeleton->reset()
     for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
         vector<glm::mat4> meshBindMatrices;

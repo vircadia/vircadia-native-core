@@ -27,21 +27,32 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
 
     for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
         const HFMMesh& mesh = hfmModel.meshes.at(i);
-        for (int j = 0; j < mesh.clusters.size(); j++) {
+        std::vector<HFMCluster> dummyClustersList;
 
+        for (int j = 0; j < mesh.clusters.size(); j++) {
+            std::vector<glm::mat4> bindMatrices;
             // cast into a non-const reference, so we can mutate the FBXCluster
             HFMCluster& cluster = const_cast<HFMCluster&>(mesh.clusters.at(j));
-
+            
+            HFMCluster localCluster;
+            localCluster.jointIndex = cluster.jointIndex;
+            localCluster.inverseBindMatrix = cluster.inverseBindMatrix;
+            localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
+            //dummyClustersList.push_back(localCluster);
             // AJT: mutate bind pose! this allows us to oreint the skeleton back into the authored orientaiton before
             // rendering, with no runtime overhead.
             if (hfmModel.jointRotationOffsets.contains(cluster.jointIndex)) {
                 AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
                 if ((hfmModel.clusterBindMatrixOriginalValues.size() > i) && (hfmModel.clusterBindMatrixOriginalValues[i].size() > j)) {
-                    cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * hfmModel.clusterBindMatrixOriginalValues[i][j];
+                    localCluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * hfmModel.clusterBindMatrixOriginalValues[i][j];
+                    //cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * hfmModel.clusterBindMatrixOriginalValues[i][j];
                 }
-                cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
+                //cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
+                localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
             }
+            dummyClustersList.push_back(localCluster);
         }
+        _clusterBindMatrixOriginalValues.push_back(dummyClustersList);
     }
 }
 

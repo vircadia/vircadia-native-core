@@ -61,7 +61,8 @@ void SoftAttachmentModel::updateClusterMatrices() {
                 }
 
                 glm::mat4 m;
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+                //glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+                glm_mat4u_mul(jointMatrix, _rig.getAnimSkeleton()->_clusterBindMatrixOriginalValues[i][j].inverseBindMatrix, m);
                 state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(m);
             } else {
                 glm::mat4 jointMatrix;
@@ -70,8 +71,8 @@ void SoftAttachmentModel::updateClusterMatrices() {
                 } else {
                     jointMatrix = _rig.getJointTransform(cluster.jointIndex);
                 }
-
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                //glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                glm_mat4u_mul(jointMatrix, _rig.getAnimSkeleton()->_clusterBindMatrixOriginalValues[i][j].inverseBindMatrix, state.clusterMatrices[j]);
             }
         }
     }

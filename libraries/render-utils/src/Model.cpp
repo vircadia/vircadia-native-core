@@ -237,6 +237,10 @@ void Model::updateRenderItems() {
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
+            if (useDualQuaternionSkinning) {
+                qCDebug(renderutils) << "use dual quats value " << useDualQuaternionSkinning;
+            }
+
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
                                                                   invalidatePayloadShapeKey, isWireframe, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
@@ -1425,11 +1429,13 @@ void Model::updateClusterMatrices() {
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
                 Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
                 Transform clusterTransform;
-                Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                Transform::mult(clusterTransform, jointTransform, _rig.getAnimSkeleton()->_clusterBindMatrixOriginalValues[i][j].inverseBindTransform);
+                //Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
                 state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
             } else {
                 auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                glm_mat4u_mul(jointMatrix, _rig.getAnimSkeleton()->_clusterBindMatrixOriginalValues[i][j].inverseBindMatrix, state.clusterMatrices[j]);
+                // glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
             }
         }
     }
