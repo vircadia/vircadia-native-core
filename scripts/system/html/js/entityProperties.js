@@ -29,7 +29,7 @@ const ICON_FOR_TYPE = {
 
 const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
-const NO_SELECTION = "w";
+const NO_SELECTION = ",";
 
 const PROPERTY_SPACE_MODE = {
     ALL: 0,
@@ -1244,8 +1244,9 @@ const GROUPS = [
                 showPropertyRule: { "collisionless": "false" },
             },
             {
-                label: "Collision sound URL",
+                label: "Collision Sound",
                 type: "string",
+                placeholder: "URL",
                 propertyID: "collisionSoundURL",
                 showPropertyRule: { "collisionless": "false" },
             },
@@ -1500,7 +1501,7 @@ function disableProperties() {
 
 function showPropertyElement(propertyID, show) {
     let elProperty = properties[propertyID].elContainer;
-    elProperty.style.display = show ? "flex" : "none";
+    elProperty.style.display = show ? "" : "none";
 }
 
 function resetProperties() {
@@ -1622,10 +1623,11 @@ function updateVisibleSpaceModeProperties() {
         if (properties.hasOwnProperty(propertyID)) {
             let property = properties[propertyID];
             let propertySpaceMode = property.spaceMode;
-            if (propertySpaceMode !== PROPERTY_SPACE_MODE.ALL) {
-                showPropertyElement(propertyID, propertySpaceMode === currentSpaceMode);
+            let elProperty = properties[propertyID].elContainer;
+            if (propertySpaceMode !== PROPERTY_SPACE_MODE.ALL && propertySpaceMode !== currentSpaceMode) {
+                elProperty.classList.add('spacemode-hidden');
             } else {
-                showPropertyElement(propertyID, true);
+                elProperty.classList.remove('spacemode-hidden');
             }
         }
     }

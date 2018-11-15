@@ -1559,7 +1559,9 @@ input.rename-entity {
 
 .container > label {
     margin-top: 6px;
-    width: 200px;
+    width: 160px;
+    min-width: 160px;
+    max-width: 160px;
 }
 
 .container > div.checkbox {
@@ -1649,4 +1651,12 @@ input.number-slider {
 #property-name, #property-id {
     display: flex;
     width: 100%;
+}
+
+.spacemode-hidden {
+    display: none;
+}
+
+#placeholder-property-type {
+    min-width: 0px;
 }
