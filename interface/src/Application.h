@@ -342,8 +342,6 @@ signals:
 
     void interstitialModeChanged(bool isInInterstitialMode);
 
-    void loginDialogPoppedUp();
-
     void miniTabletEnabledChanged(bool enabled);
 
 public slots:
@@ -695,6 +693,7 @@ private:
     bool _loginDialogPoppedUp = false;
     // if visible before login popped up.
     bool _developerMenuVisible{ false };
+    CameraMode _previousCameraMode;
     OverlayID _loginDialogOverlayID;
     LoginPointerManager _loginPointerManager;
 

@@ -2268,6 +2268,23 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snapshot/snap.wav"));
 
+    QVariant testProperty = property(hifi::properties::TEST);
+    qDebug() << testProperty;
+    if (testProperty.isValid()) {
+        const auto testScript = property(hifi::properties::TEST).toUrl();
+        // Set last parameter to exit interface when the test script finishes, if so requested
+        DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
+        // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
+        if (arguments().contains("--url")) {
+            auto reply = SandboxUtils::getStatus();
+            connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
+        }
+    } else {
+        PROFILE_RANGE(render, "GetSandboxStatus");
+        auto reply = SandboxUtils::getStatus();
+        connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
+    }
+
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
     static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
     _addAssetToWorldResizeTimer.setInterval(ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS); // 1s, Qt::CoarseTimer acceptable
@@ -5238,8 +5255,7 @@ void Application::pauseUntilLoginDetermined() {
         return;
     }
 
-    auto myAvatar = qApp->getMyAvatar();
-    myAvatar->setEnableMeshVisible(false);
+    getMyAvatar()->setEnableMeshVisible(false);
 
     const auto& nodeList = DependencyManager::get<NodeList>();
     // save interstitial mode setting until resuming.
@@ -5256,6 +5272,9 @@ void Application::pauseUntilLoginDetermined() {
     if (_developerMenuVisible) {
         menu->getMenu("Developer")->setVisible(false);
     }
+    _previousCameraMode = _myCamera.getMode();
+    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+    cameraModeChanged();
 }
 
 void Application::resumeAfterLoginDialogActionTaken() {
@@ -5264,8 +5283,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
         return;
     }
 
-    auto myAvatar = qApp->getMyAvatar();
-    myAvatar->setEnableMeshVisible(true);
+    getMyAvatar()->setEnableMeshVisible(true);
 
     const auto& nodeList = DependencyManager::get<NodeList>();
     nodeList->getDomainHandler().setInterstitialModeEnabled(_interstitialModeEnabled);
@@ -5284,31 +5302,15 @@ void Application::resumeAfterLoginDialogActionTaken() {
 
     auto accountManager = DependencyManager::get<AccountManager>();
     auto addressManager = DependencyManager::get<AddressManager>();
-    if (!accountManager->isLoggedIn()) {
-        addressManager->goToEntry();
-    } else {
-        QVariant testProperty = property(hifi::properties::TEST);
-        qDebug() << testProperty;
-        if (testProperty.isValid()) {
-            const auto testScript = property(hifi::properties::TEST).toUrl();
-
-            // Set last parameter to exit interface when the test script finishes, if so requested
-            DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
-
-            // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
-            if (arguments().contains("--url")) {
-                auto reply = SandboxUtils::getStatus();
-                connect(reply, &QNetworkReply::finished, this, [this, reply] {
-                    handleSandboxStatus(reply);
-                });
-            }
-        } else {
-            addressManager->loadSettings();
-        }
-    }
 
     // restart domain handler.
     nodeList->getDomainHandler().resetting();
+
+    if (!accountManager->isLoggedIn()) {
+        addressManager->goToEntry();
+    } else {
+        addressManager->loadSettings();
+    }
 
     auto menu = Menu::getInstance();
     menu->getMenu("Edit")->setVisible(true);
@@ -5318,6 +5320,8 @@ void Application::resumeAfterLoginDialogActionTaken() {
     if (_developerMenuVisible) {
         menu->getMenu("Developer")->setVisible(true);
     }
+    _myCamera.setMode(_previousCameraMode);
+    cameraModeChanged();
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -6333,12 +6337,23 @@ void Application::update(float deltaTime) {
     }
 
     if (!_loginDialogOverlayID.isNull()) {
-        QVariantMap properties {
-            { "position", vec3toVariant(myAvatar->getHeadPosition()) },
-            { "orientation", quatToVariant(myAvatar->getHeadOrientation() * glm::quat(1.0f, 0.0f, 1.0f, 0.0f)) }
-        };
-
-        getOverlays().editOverlay(_loginDialogOverlayID, properties);
+        auto position = getOverlays().getProperty(_loginDialogOverlayID, "position");
+        auto positionVec = vec3FromVariant(position.value);
+        auto avatarHeadPosition = myAvatar->getHeadPosition();
+        auto avatarHeadOrientation = myAvatar->getHeadOrientation();
+        auto headLookVec = avatarHeadOrientation * Vectors::FRONT;
+        auto overlayToHeadVec = positionVec - avatarHeadPosition;
+        //auto lookAtQuat = glm::inverse(glm::quat_cast(glm::lookAt(positionVec, avatarHeadPosition, avatarHeadOrientation * Vectors::UNIT_Y)));
+        QVariantMap properties;
+        if (glm::all(glm::greaterThan(glm::abs(vec3FromVariant(position.value) - avatarHeadPosition), Vectors::ONE * 0.1f))) {
+            properties["position"] = vec3toVariant(getCamera().getPosition() - glm::vec3(0.0f, -0.1f, 1.0f));
+        }
+        if (fabs(angleBetween(headLookVec, overlayToHeadVec) * 180.0f / PI) > 30.0f) {
+            properties["orientation"] = quatToVariant(avatarHeadOrientation);
+        }
+        if (!properties.isEmpty()) {
+            getOverlays().editOverlay(_loginDialogOverlayID, properties);
+        }
     }
 }
 
@@ -8578,8 +8593,6 @@ void Application::createLoginDialogOverlay() {
     auto headPose = _controllerScriptingInterface->getPoseValue(headInt);
     // reference vector for overlay to spawn.
     glm::vec3 refOverlayVec;
-    QVariantMap overlayProperties{};
-    Overlays& overlays = qApp->getOverlays();
     // DEFAULT_DPI / tablet scale percentage
     float overlayDpi = 31.0f / (75.0f / 100.0f);
     glm::quat refRotation = getMyAvatar()->getWorldOrientation();
@@ -8595,42 +8608,21 @@ void Application::createLoginDialogOverlay() {
 
     auto playArea = _displayPlugin->getPlayAreaRect();
     const glm::vec2 LOGIN_OVERLAY_DIMENSIONS{ 0.5f, 0.5f };
-    if (!(playArea.isEmpty())) {
-        // put it in the center of the play area with a default height.
-        auto playAreaCenterOffset = glm::vec3(0.0f, 1.6f, 0.0f);
-        refRotation = glm::quat(1.0f, 0.0f, 1.0f, 0.0f);
-        overlayProperties = {
-            { "name", "LoginDialogOverlay" },
-            { "url", OVERLAY_LOGIN_DIALOG_URL },
-            { "parentID", getMyAvatar()->getSessionUUID() },
-            { "parentJointIndex", "_SENSOR_TO_WORLD_MATRIX" },
-            { "localPosition", vec3toVariant(playAreaCenterOffset) },
-            { "localOrientation", quatToVariant(refRotation) },
-            { "isSolid", true },
-            { "grabbable", false },
-            { "ignorePickIntersection", false },
-            { "alpha", 1.0 },
-            { "dimensions", vec2ToVariant(LOGIN_OVERLAY_DIMENSIONS)},
-            { "dpi", overlayDpi },
-            { "visible", true }
-        };
-    } else {
-        overlayProperties = {
-            { "name", "LoginDialogOverlay" },
-            { "url", OVERLAY_LOGIN_DIALOG_URL },
-            { "position", vec3toVariant(refOverlayVec) },
-            { "orientation", quatToVariant(refRotation) },
-            { "isSolid", true },
-            { "grabbable", false },
-            { "ignorePickIntersection", false },
-            { "alpha", 1.0 },
-            { "dimensions", vec2ToVariant(LOGIN_OVERLAY_DIMENSIONS)},
-            { "dpi", overlayDpi },
-            { "visible", true }
-        };
-    }
+    QVariantMap overlayProperties = {
+        { "name", "LoginDialogOverlay" },
+        { "url", OVERLAY_LOGIN_DIALOG_URL },
+        { "position", vec3toVariant(refOverlayVec) },
+        { "orientation", quatToVariant(refRotation) },
+        { "isSolid", true },
+        { "grabbable", false },
+        { "ignorePickIntersection", false },
+        { "alpha", 1.0 },
+        { "dimensions", vec2ToVariant(LOGIN_OVERLAY_DIMENSIONS)},
+        { "dpi", overlayDpi },
+        { "visible", true }
+    };
 
-    _loginDialogOverlayID = overlays.addOverlay("web3d", overlayProperties);
+    _loginDialogOverlayID = getOverlays().addOverlay("web3d", overlayProperties);
     if (!_loginPointerManager.isSetUp()) {
         _loginPointerManager.setUp();
     }
