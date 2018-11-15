@@ -550,6 +550,7 @@ private:
     void keyReleaseEvent(QKeyEvent* event);
 
     void focusOutEvent(QFocusEvent* event);
+    void synthesizeKeyReleasEvents();
     void focusInEvent(QFocusEvent* event);
 
     void mouseMoveEvent(QMouseEvent* event);
