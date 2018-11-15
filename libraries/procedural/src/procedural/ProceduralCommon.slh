@@ -32,8 +32,10 @@ LAYOUT_STD140(binding=0) uniform standardInputsBuffer {
     vec4 date;
     // Offset 16, acts as vec4 for alignment purposes
     vec3 worldPosition;
-    // Offset 32, acts as vec4 for alignment purposes
+    // Offset 32, acts as vec4 for alignment purposes (but not packing purposes)
     vec3 worldScale;
+    // We need this float here to keep globalTime from getting pulled to offset 44
+    float _spare0;
     // Offset 48
     float globalTime;
     // Offset 52
