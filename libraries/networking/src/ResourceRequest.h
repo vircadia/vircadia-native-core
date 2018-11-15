@@ -84,6 +84,7 @@ public:
     bool loadedFromCache() const { return _loadedFromCache; }
     bool getRangeRequestSuccessful() const { return _rangeRequestSuccessful; }
     bool getTotalSizeOfResource() const { return _totalSizeOfResource; }
+    QString getWebMediaType() const { return _webMediaType; }
     void setFailOnRedirect(bool failOnRedirect) { _failOnRedirect = failOnRedirect; }
 
     void setCacheEnabled(bool value) { _cacheEnabled = value; }
@@ -111,6 +112,7 @@ protected:
     ByteRange _byteRange;
     bool _rangeRequestSuccessful { false };
     uint64_t _totalSizeOfResource { 0 };
+    QString _webMediaType;
     int64_t _lastRecordedBytesDownloaded { 0 };
     bool _isObservable;
     qint64 _callerId;
