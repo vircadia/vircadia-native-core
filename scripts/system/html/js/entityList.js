@@ -153,6 +153,9 @@ const ICON_FOR_TYPE = {
     Text: "l",
 };
 
+const DOUBLE_CLICK_TIMEOUT = 300; // ms
+const RENAME_COOLDOWN = 400; // ms
+
 // List of all entities
 let entities = [];
 // List of all entities, indexed by Entity ID
@@ -181,6 +184,9 @@ let currentResizeEl = null;
 let startResizeEvent = null;
 let resizeColumnIndex = 0;
 let startThClick = null;
+let renameTimeout = null;
+let renameLastBlur = null;
+let renameLastEntityID = null;
 
 let elEntityTable,
     elEntityTableHeader,
@@ -394,6 +400,7 @@ function loaded() {
         entityListContextMenu = new EntityListContextMenu();
 
         function startRenamingEntity(entityID) {
+            renameLastEntityID = entityID;
             let entity = entitiesByID[entityID];
             if (!entity || entity.locked || !entity.elRow) {
                 return;
@@ -423,6 +430,8 @@ function loaded() {
                 }));
                 entity.name = value;
                 elCell.innerText = value;
+
+                renameLastBlur = Date.now();
             };
 
             elCell.innerHTML = "";
@@ -478,6 +487,13 @@ function loaded() {
             entityListContextMenu.open(clickEvent, entityID, enabledContextMenuItems);
         }
 
+        let clearRenameTimeout = () => {
+            if (renameTimeout !== null) {
+                window.clearTimeout(renameTimeout);
+                renameTimeout = null;
+            }
+        };
+
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
             let selection = [entityID];
@@ -516,7 +532,15 @@ function loaded() {
             } else if (!clickEvent.ctrlKey && !clickEvent.shiftKey && selectedEntities.length === 1) {
                 // if reselecting the same entity then start renaming it
                 if (selectedEntities[0] === entityID) {
-                    startRenamingEntity(entityID);
+                    if (renameLastBlur && renameLastEntityID === entityID && (Date.now() - renameLastBlur) < RENAME_COOLDOWN) {
+
+                        return;
+                    }
+                    clearRenameTimeout();
+                    renameTimeout = window.setTimeout(() => {
+                        renameTimeout = null;
+                        startRenamingEntity(entityID);
+                    }, DOUBLE_CLICK_TIMEOUT);
                 }
             }
             
@@ -530,6 +554,8 @@ function loaded() {
         }
 
         function onRowDoubleClicked() {
+            clearRenameTimeout();
+
             let selection = [this.dataset.entityID];
             updateSelectedEntities(selection, false);
 
@@ -1100,12 +1126,12 @@ function loaded() {
                     startResizeEvent = ev;
                 }
             }
-        }
+        };
         
         document.onmouseup = function(ev) {
             startResizeEvent = null;
             ev.stopPropagation();
-        }
+        };
 
         function setSpaceMode(spaceMode) {
             if (spaceMode === "local") {
