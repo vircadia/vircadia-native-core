@@ -3414,10 +3414,18 @@ void Application::showHelp() {
         defaultTab = TAB_HAND_CONTROLLERS;
         handControllerName = HAND_CONTROLLER_NAME_VIVE;
     } else if (PluginUtils::isHMDAvailable(OCULUS_RIFT_PLUGIN_NAME)) {
-        defaultTab = TAB_HAND_CONTROLLERS;
-        handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
+        if (PluginUtils::isOculusTouchControllerAvailable()) {
+            defaultTab = TAB_HAND_CONTROLLERS;
+            handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
+        } else if (PluginUtils::isXboxControllerAvailable()) {
+            defaultTab = TAB_GAMEPAD;
+        } else {
+            defaultTab = TAB_KEYBOARD_MOUSE;
+        }
     } else if (PluginUtils::isXboxControllerAvailable()) {
         defaultTab = TAB_GAMEPAD;
+    } else {
+        defaultTab = TAB_KEYBOARD_MOUSE;
     }
 
     QUrlQuery queryString;
