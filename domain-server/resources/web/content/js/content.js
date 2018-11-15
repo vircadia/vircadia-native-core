@@ -10,8 +10,18 @@ $(document).ready(function(){
   function progressBarHTML(extraClass, label) {
     var html = "<div class='progress'>";
     html += "<div class='" + extraClass + " progress-bar progress-bar-success progress-bar-striped active' role='progressbar' aria-valuemin='0' aria-valuemax='100'>";
-    html += label + "<span class='sr-only'></span></div></div>";
+    html += label + "<span class='ongoing-msg'></span></div></div>";
     return html;
+  }
+
+  function showUploadProgress(title) {
+    swal({
+      title: title,
+      text: progressBarHTML('upload-content-progress', 'Upload'),
+      html: true,
+      showConfirmButton: false,
+      allowEscapeKey: false
+    });
   }
 
   function uploadNextChunk(file, offset) {
@@ -26,7 +36,7 @@ $(document).ready(function(){
 
       var isFinal = Boolean(fileSize - offset <= CHUNK_SIZE);
       var nextChunkSize = Math.min(fileSize - offset, CHUNK_SIZE);
-      var chunk = file.slice(offset, offset + CHUNK_SIZE, file.type);
+      var chunk = file.slice(offset, offset + nextChunkSize, file.type);
       var chunkFormData = new FormData();
 
       var formItemName = isFinal ? 'restore-file-chunk-final' : 'restore-file-chunk';
@@ -49,6 +59,8 @@ $(document).ready(function(){
           + "Please ensure that the content archive or entity file is valid and try again."
         );
       });
+
+      updateProgressBars($('.upload-content-progress'), Math.round((offset + nextChunkSize) * 100 / fileSize));
 
       if (!isFinal) {
         ajaxObject.done(function (data, textStatus, jqXHR)
@@ -102,10 +114,10 @@ $(document).ready(function(){
       "Restore content",
       function() {
         var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
+        var file = files[0];
 
-        showSpinnerAlert("Uploading content to restore");
-
-        uploadNextChunk(files[0]);
+        showUploadProgress("Uploading " + file.name);
+        uploadNextChunk(file);
       }
     );
   });
@@ -196,6 +208,11 @@ $(document).ready(function(){
     checkBackupStatus();
   });
 
+  function updateProgressBars($progressBar, value) {
+    $progressBar.attr('aria-valuenow', value).attr('style', 'width: ' + value + '%');
+    $progressBar.find('.ongoing-msg').html(" " + value + "% Complete");
+  }
+
   function reloadBackupInformation() {
     // make a GET request to get backup information to populate the table
     $.ajax({
@@ -230,11 +247,6 @@ $(document).ready(function(){
           + "<li><a class='" + BACKUP_RESTORE_LINK_CLASS + "' href='#'>Restore from here</a></li><li class='divider'></li>"
           + "<li><a class='" + BACKUP_DOWNLOAD_LINK_CLASS + "' data-backup-id='" + backup.id + "' href='#'>Download</a></li><li class='divider'></li>"
           + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='#' target='_blank'>Delete</a></li></ul></div></td>";
-      }
-
-      function updateProgressBars($progressBar, value) {
-        $progressBar.attr('aria-valuenow', value).attr('style', 'width: ' + value + '%');
-        $progressBar.find('.sr-only').html(value + "% Complete");
       }
 
       // before we add any new rows and update existing ones
