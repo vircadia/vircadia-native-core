@@ -21,8 +21,6 @@ const MAX_LENGTH_RADIUS = 9;
 const MINIMUM_COLUMN_WIDTH = 24;
 const SCROLLBAR_WIDTH = 20;
 const RESIZER_WIDTH = 10;
-const DELETE = 46; // Key code for the delete key.
-const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 
 const COLUMNS = {
     type: {
@@ -136,6 +134,8 @@ const FILTER_TYPES = [
     "Web",
     "Material",
     "ParticleEffect",
+    "PolyLine",
+    "PolyVox",
     "Text",
 ];
 
@@ -148,6 +148,8 @@ const ICON_FOR_TYPE = {
     Web: "q",
     Material: "&#xe00b;",
     ParticleEffect: "&#xe004;",
+    PolyLine: "&#xe01b;",
+    PolyVox: "&#xe005;",
     Text: "l",
 };
 
@@ -1114,22 +1116,70 @@ function loaded() {
                 elToggleSpaceMode.innerText = "World";
             }
         }
+
+        const KEY_CODES = {
+            BACKSPACE: 8,
+            DELETE: 46
+        };
     
-        document.addEventListener("keydown", function (keyDownEvent) {
-            if (keyDownEvent.target.nodeName === "INPUT") {
+        document.addEventListener("keyup", function (keyUpEvent) {
+            if (keyUpEvent.target.nodeName === "INPUT") {
                 return;
             }
-            let keyCode = keyDownEvent.keyCode;
-            if (keyCode === DELETE) {
-                EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+
+            let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;
+
+            let controlKey = window.navigator.platform.startsWith("Mac") ? metaKey : ctrlKey;
+
+            let keyCodeString;
+            switch (keyCode) {
+                case KEY_CODES.DELETE:
+                    keyCodeString = "Delete";
+                    break;
+                case KEY_CODES.BACKSPACE:
+                    keyCodeString = "Backspace";
+                    break;
+                default:
+                    keyCodeString = String.fromCharCode(keyUpEvent.keyCode);
+                    break;
             }
-            if (keyDownEvent.keyCode === KEY_P && keyDownEvent.ctrlKey) {
-                if (keyDownEvent.shiftKey) {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
-                } else {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+
+            if (controlKey && keyCodeString === "A") {
+                let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
+                let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
+                    return selectedEntities.includes(visibleEntityID);
+                });
+
+                let selection = [];
+
+                if (!selectionIncludesAllVisibleEntityIDs) {
+                    selection = visibleEntityIDs;
                 }
+
+                updateSelectedEntities(selection);
+
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "selectionUpdate",
+                    focus: false,
+                    entityIds: selection,
+                }));
+
+                return;
             }
+
+
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: 'keyUpEvent',
+                keyUpEvent: {
+                    code,
+                    key,
+                    keyCode,
+                    keyCodeString,
+                    altKey,
+                    controlKey,
+                    shiftKey,
+                }
+            }));
         }, false);
         
         if (window.EventBridge !== undefined) {
