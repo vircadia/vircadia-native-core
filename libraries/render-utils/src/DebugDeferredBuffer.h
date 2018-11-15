@@ -91,6 +91,7 @@ protected:
         ScatteringDebugMode,
         AmbientOcclusionMode,
         AmbientOcclusionBlurredMode,
+        AmbientOcclusionNormalMode,
         VelocityMode,
         CustomMode,  // Needs to stay last
 

@@ -13,3 +13,4 @@ precision highp float;
 precision highp samplerBuffer;
 precision highp sampler2DShadow;
 precision highp sampler2DArrayShadow;
+precision lowp sampler2DArray;
