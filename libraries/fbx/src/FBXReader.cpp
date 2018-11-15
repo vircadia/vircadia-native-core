@@ -2028,17 +2028,6 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
         qCDebug(modelformat) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
     }
 
-    // create a backup copy of the bindposes,
-    // these are needed when we recompute the bindpose offsets in the AnimSkeleton constructor on mySkeleton->reset()
-    for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
-        const HFMMesh& mesh = hfmModel.meshes.at(i);
-        vector<glm::mat4> meshBindMatrices;
-        for (int j = 0; j < mesh.clusters.size(); j++) {
-            const HFMCluster& cluster = mesh.clusters.at(j);
-            meshBindMatrices.push_back(cluster.inverseBindMatrix);
-        }
-        hfmModel.clusterBindMatrixOriginalValues.push_back(meshBindMatrices);
-    }
     return hfmModelPtr;
 }
 

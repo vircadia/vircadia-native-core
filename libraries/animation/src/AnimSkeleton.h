@@ -78,7 +78,6 @@ protected:
     std::vector<int> _nonMirroredIndices;
     std::vector<int> _mirrorMap;
     QHash<QString, int> _jointIndicesByName;
-    // std::vector<std::vector<glm::mat4>> _clusterBindMatrixOriginalValues;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;

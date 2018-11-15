@@ -33,21 +33,18 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
             std::vector<glm::mat4> bindMatrices;
             // cast into a non-const reference, so we can mutate the FBXCluster
             HFMCluster& cluster = const_cast<HFMCluster&>(mesh.clusters.at(j));
-            
+
             HFMCluster localCluster;
             localCluster.jointIndex = cluster.jointIndex;
             localCluster.inverseBindMatrix = cluster.inverseBindMatrix;
             localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
-            //dummyClustersList.push_back(localCluster);
-            // AJT: mutate bind pose! this allows us to oreint the skeleton back into the authored orientaiton before
-            // rendering, with no runtime overhead.
+
+            // we make a copy of the inversebindMatrices in order to prevent mutating the model bind pose
             if (hfmModel.jointRotationOffsets.contains(cluster.jointIndex)) {
                 AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
                 if ((hfmModel.clusterBindMatrixOriginalValues.size() > i) && (hfmModel.clusterBindMatrixOriginalValues[i].size() > j)) {
                     localCluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * hfmModel.clusterBindMatrixOriginalValues[i][j];
-                    //cluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * hfmModel.clusterBindMatrixOriginalValues[i][j];
                 }
-                //cluster.inverseBindTransform.evalFromRawMatrix(cluster.inverseBindMatrix);
                 localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
             }
             dummyClustersList.push_back(localCluster);
@@ -220,7 +217,6 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
         // build relative and absolute default poses
         glm::mat4 relDefaultMat = glm::translate(_joints[i].translation) * preRotationTransform * glm::mat4_cast(_joints[i].rotation) * postRotationTransform;
         AnimPose relDefaultPose(relDefaultMat);
-        qCDebug(animation) << "relative default pose for joint " << i << " " << relDefaultPose.trans() << " " << relDefaultPose.rot();
 
         int parentIndex = getParentIndex(i);
         if (parentIndex >= 0) {

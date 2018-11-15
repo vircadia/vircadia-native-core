@@ -56,7 +56,6 @@ void SkeletonModel::setTextures(const QVariantMap& textures) {
 void SkeletonModel::initJointStates() {
     const HFMModel& hfmModel = getHFMModel();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
-
     _rig.initJointStates(hfmModel, modelOffset);
 
     {

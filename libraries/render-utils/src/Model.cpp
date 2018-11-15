@@ -237,10 +237,6 @@ void Model::updateRenderItems() {
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-            if (useDualQuaternionSkinning) {
-                qCDebug(renderutils) << "use dual quats value " << useDualQuaternionSkinning;
-            }
-
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
                                                                   invalidatePayloadShapeKey, isWireframe, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
