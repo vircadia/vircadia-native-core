@@ -21,6 +21,8 @@ const MAX_LENGTH_RADIUS = 9;
 const MINIMUM_COLUMN_WIDTH = 24;
 const SCROLLBAR_WIDTH = 20;
 const RESIZER_WIDTH = 10;
+const DELTA_X_MOVE_COLUMNS_THRESHOLD = 2;
+const DELTA_X_COLUMN_SWAP_POSITION = 5;
 
 const COLUMNS = {
     type: {
@@ -177,10 +179,12 @@ let isFilterInView = false;
 
 let columns = [];
 let columnsByID = {};
-let currentResizeEl = null;
-let startResizeEvent = null;
+let lastResizeEvent = null;
 let resizeColumnIndex = 0;
-let startThClick = null;
+let elTargetTh = null;
+let targetColumnIndex = 0;
+let lastColumnSwapPosition = -1;
+let initialThEvent = null;
 
 let elEntityTable,
     elEntityTableHeader,
@@ -319,7 +323,7 @@ function loaded() {
             let thID = "entity-" + columnID;
             let elTh = document.createElement("th");
             elTh.setAttribute("id", thID);
-            elTh.setAttribute("data-resizable-column-id", thID);
+            elTh.setAttribute("columnIndex", columnIndex);
             if (columnData.glyph) {
                 let elGlyph = document.createElement("span");
                 elGlyph.className = "glyph";
@@ -328,14 +332,10 @@ function loaded() {
             } else {
                 elTh.innerText = columnData.columnHeader;
             }
-            elTh.onmousedown = function() {
-                startThClick = this;
-            };
-            elTh.onmouseup = function() {
-                if (startThClick === this) {
-                    setSortColumn(columnID);
-                }
-                startThClick = null;
+            elTh.onmousedown = function(event) {
+                elTargetTh = event.target;
+                initialThEvent = event;
+                targetColumnIndex = parseInt(elTargetTh.getAttribute("columnIndex"));
             };
 
             let elResizer = document.createElement("span");
@@ -1030,7 +1030,7 @@ function loaded() {
         }
         
         function onStartResize(event) {
-            startResizeEvent = event;
+            lastResizeEvent = event;
             resizeColumnIndex = parseInt(this.getAttribute("columnIndex"));
             event.stopPropagation();
         }
@@ -1074,8 +1074,33 @@ function loaded() {
             entityList.refresh();
         }
         
-        document.onmousemove = function(ev) {
-            if (startResizeEvent) {
+        function swapColumns(columnAIndex, columnBIndex) {
+            let columnA = columns[columnAIndex];
+            let columnB = columns[columnBIndex];
+            let columnATh = columns[columnAIndex].elTh;
+            let columnBTh = columns[columnBIndex].elTh;
+            let columnThParent = columnATh.parentNode;
+            columnThParent.removeChild(columnBTh);
+            columnThParent.insertBefore(columnBTh, columnATh);
+            columnATh.setAttribute("columnIndex", columnBIndex);
+            columnBTh.setAttribute("columnIndex", columnAIndex);
+            columnA.elResizer.setAttribute("columnIndex", columnBIndex);
+            columnB.elResizer.setAttribute("columnIndex", columnAIndex);
+            
+            for (let i = 0; i < visibleEntities.length; ++i) {
+                let elRow = visibleEntities[i].elRow;
+                let columnACell = elRow.childNodes[columnAIndex];
+                let columnBCell = elRow.childNodes[columnBIndex];
+                elRow.removeChild(columnBCell);
+                elRow.insertBefore(columnBCell, columnACell);
+            }
+            
+            columns[columnAIndex] = columnB;
+            columns[columnBIndex] = columnA;
+        }
+        
+        document.onmousemove = function(event) {
+            if (lastResizeEvent) {
                 startTh = null;
                 
                 let column = columns[resizeColumnIndex];
@@ -1087,7 +1112,7 @@ function loaded() {
                 }
 
                 let fullWidth = elEntityTableBody.offsetWidth;
-                let dx = ev.clientX - startResizeEvent.clientX;
+                let dx = event.clientX - lastResizeEvent.clientX;
                 let dPct = dx / fullWidth;
                 
                 let newColWidth = column.width + dPct;
@@ -1097,14 +1122,46 @@ function loaded() {
                     column.width += dPct;
                     nextColumn.width -= dPct;
                     updateColumnWidths();
-                    startResizeEvent = ev;
+                    lastResizeEvent = event;
+                }
+            } else if (elTargetTh) {
+                let dxFromInitial = event.clientX - initialThEvent.clientX;
+                if (Math.abs(dxFromInitial) >= DELTA_X_MOVE_COLUMNS_THRESHOLD) {
+                    elTargetTh.className = "dragging";
+                }
+                if (targetColumnIndex < columns.length - 1) {
+                    let nextColumnIndex = targetColumnIndex + 1;
+                    let nextColumnTh = columns[nextColumnIndex].elTh;
+                    let nextColumnStartX = nextColumnTh.getBoundingClientRect().left;
+                    if (event.clientX >= nextColumnStartX && event.clientX - lastColumnSwapPosition >= DELTA_X_COLUMN_SWAP_POSITION) {
+                        swapColumns(targetColumnIndex, nextColumnIndex);
+                        targetColumnIndex = nextColumnIndex;
+                        lastColumnSwapPosition = event.clientX;
+                    }
+                }
+                if (targetColumnIndex >= 1) {
+                    let prevColumnIndex = targetColumnIndex - 1;
+                    let prevColumnTh = columns[prevColumnIndex].elTh;
+                    let prevColumnEndX = prevColumnTh.getBoundingClientRect().right;
+                    if (event.clientX <= prevColumnEndX && event.clientX - lastColumnSwapPosition >= DELTA_X_COLUMN_SWAP_POSITION) {
+                        swapColumns(prevColumnIndex, targetColumnIndex);
+                        targetColumnIndex = prevColumnIndex;    
+                    }
                 }
             }
         }
         
-        document.onmouseup = function(ev) {
-            startResizeEvent = null;
-            ev.stopPropagation();
+        document.onmouseup = function(event) {
+            if (elTargetTh) {
+                if (elTargetTh.className !== "dragging" && elTargetTh === event.target) {
+                    let columnID = columns[targetColumnIndex].columnID;
+                    setSortColumn(columnID);
+                }
+                elTargetTh.className = "";
+            }
+            lastResizeEvent = null;
+            elTargetTh = null;
+            initialThEvent = null;
         }
 
         function setSpaceMode(spaceMode) {
