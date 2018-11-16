@@ -101,9 +101,6 @@ public:
     QVector<OverlayID> getKeysID();
     OverlayID getAnchorID();
 
-signals:
-    void keyboardRaisedChanged(bool raised);
-
 public slots:
     void handleTriggerBegin(const OverlayID& overlayID, const PointerEvent& event);
     void handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& event);
