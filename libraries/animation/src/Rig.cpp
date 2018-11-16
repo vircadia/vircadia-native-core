@@ -363,7 +363,6 @@ void Rig::reset(const HFMModel& hfmModel) {
 
     _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel);
 
-
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
