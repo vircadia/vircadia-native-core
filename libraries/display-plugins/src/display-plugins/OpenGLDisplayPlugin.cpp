@@ -31,6 +31,7 @@
 
 #include <gpu/Texture.h>
 #include <shaders/Shaders.h>
+#include <gpu/gl/GLShader.h>
 #include <gpu/gl/GLShared.h>
 #include <gpu/gl/GLBackend.h>
 #include <GeometryCache.h>
@@ -637,6 +638,17 @@ void OpenGLDisplayPlugin::present() {
     auto frameId = (uint64_t)presentCount();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, frameId)
     uint64_t startPresent = usecTimestampNow();
+
+    if (!_allProgramsLoaded) {
+        const auto& programIDs = shader::allPrograms();
+        if (_currentLoadingProgramIndex < programIDs.size()) {
+            auto shader = gpu::Shader::createProgram(programIDs.at(_currentLoadingProgramIndex++));
+            gpu::gl::GLShader::sync(*getGLBackend(), *shader);
+        } else {
+            _allProgramsLoaded = true;
+        }
+    }
+
     {
         PROFILE_RANGE_EX(render, "updateFrameData", 0xff00ff00, frameId)
         updateFrameData();
@@ -829,6 +841,9 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
     _gpuContext->executeBatch(batch);
 }
 
+OpenGLDisplayPlugin::OpenGLDisplayPlugin() : DisplayPlugin() {
+    _allProgramsLoaded = false;
+}
 
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }

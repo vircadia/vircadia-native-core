@@ -38,6 +38,7 @@ protected:
     using Lock = std::unique_lock<Mutex>;
     using Condition = std::condition_variable;
 public:
+    OpenGLDisplayPlugin();
     ~OpenGLDisplayPlugin();
     // These must be final to ensure proper ordering of operations
     // between the main thread and the presentation thread
@@ -180,5 +181,7 @@ protected:
     // be serialized through this mutex
     mutable Mutex _presentMutex;
     float _hudAlpha{ 1.0f };
+
+    size_t _currentLoadingProgramIndex { 0 };
 };
 

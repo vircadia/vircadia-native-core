@@ -217,6 +217,8 @@ public:
 
     static const QString& MENU_PATH();
 
+    bool areAllProgramsLoaded() { return _allProgramsLoaded; }
+
 signals:
     void recommendedFramebufferSizeChanged(const QSize& size);
     void resetSensorsRequested();
@@ -232,6 +234,8 @@ protected:
     MovingAverage<float, 10> _movingAveragePresent;
 
     float _renderResolutionScale { 1.0f };
+
+    std::atomic<bool> _allProgramsLoaded { true };
 
 private:
     QMutex _presentMutex;

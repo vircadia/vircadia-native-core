@@ -2382,6 +2382,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         checkLoginTimer->start();
     }
 #endif
+
+    const QString SPLASH_SKYBOX { "{\"ProceduralEntity\":{ \"version\":2, \"shaderUrl\":\"qrc:///shaders/splashSkybox.frag\" } }" };
+    _splashScreen->parse(SPLASH_SKYBOX);
 }
 
 void Application::updateVerboseLogging() {
@@ -2862,8 +2865,6 @@ void Application::initializeGL() {
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
 }
 
-static const QString SPLASH_SKYBOX{ "{\"ProceduralEntity\":{ \"version\":2, \"shaderUrl\":\"qrc:///shaders/splashSkybox.frag\" } }" };
-
 void Application::initializeDisplayPlugins() {
     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
     Setting::Handle<QString> activeDisplayPluginSetting{ ACTIVE_DISPLAY_PLUGIN_SETTING_NAME, displayPlugins.at(0)->getName() };
@@ -2899,45 +2900,6 @@ void Application::initializeDisplayPlugins() {
 
     // Submit a default frame to render until the engine starts up
     updateRenderArgs(0.0f);
-
-#define ENABLE_SPLASH_FRAME 0
-#if ENABLE_SPLASH_FRAME
-    {
-        QMutexLocker viewLocker(&_renderArgsMutex);
-
-        if (_appRenderArgs._isStereo) {
-            _gpuContext->enableStereo(true);
-            _gpuContext->setStereoProjections(_appRenderArgs._eyeProjections);
-            _gpuContext->setStereoViews(_appRenderArgs._eyeOffsets);
-        }
-
-        // Frame resources
-        auto framebufferCache = DependencyManager::get<FramebufferCache>();
-        gpu::FramebufferPointer finalFramebuffer = framebufferCache->getFramebuffer();
-        std::shared_ptr<ProceduralSkybox> procedural = std::make_shared<ProceduralSkybox>();
-        procedural->parse(SPLASH_SKYBOX);
-
-        _gpuContext->beginFrame(_appRenderArgs._view, _appRenderArgs._headPose);
-        gpu::doInBatch("splashFrame", _gpuContext, [&](gpu::Batch& batch) {
-            batch.resetStages();
-            batch.enableStereo(false);
-            batch.setFramebuffer(finalFramebuffer);
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, { 0, 0, 0, 1 });
-            batch.enableSkybox(true);
-            batch.enableStereo(_appRenderArgs._isStereo);
-            batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
-            procedural->render(batch, _appRenderArgs._renderArgs.getViewFrustum());
-        });
-        auto frame = _gpuContext->endFrame();
-        frame->frameIndex = 0;
-        frame->framebuffer = finalFramebuffer;
-        frame->pose = _appRenderArgs._headPose;
-        frame->framebufferRecycler = [framebufferCache, procedural](const gpu::FramebufferPointer& framebuffer) {
-            framebufferCache->releaseFramebuffer(framebuffer);
-        };
-        _displayPlugin->submitFrame(frame);
-    }
-#endif
 }
 
 void Application::initializeRenderEngine() {

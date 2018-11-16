@@ -793,5 +793,7 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
+    std::shared_ptr<ProceduralSkybox> _splashScreen { std::make_shared<ProceduralSkybox>() };
 };
 #endif // hifi_Application_h

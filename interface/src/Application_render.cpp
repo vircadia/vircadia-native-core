@@ -62,6 +62,7 @@ void Application::paintGL() {
     glm::mat4  HMDSensorPose;
     glm::mat4  eyeToWorld;
     glm::mat4  sensorToWorld;
+    ViewFrustum viewFrustum;
 
     bool isStereo;
     glm::mat4  stereoEyeOffsets[2];
@@ -84,6 +85,7 @@ void Application::paintGL() {
             stereoEyeOffsets[eye] = _appRenderArgs._eyeOffsets[eye];
             stereoEyeProjections[eye] = _appRenderArgs._eyeProjections[eye];
         });
+        viewFrustum = _appRenderArgs._renderArgs.getViewFrustum();
     }
 
     {
@@ -94,21 +96,12 @@ void Application::paintGL() {
         gpu::doInBatch("Application_render::gpuContextReset", _gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
-    }
 
-
-    {
-        PROFILE_RANGE(render, "/renderOverlay");
-        PerformanceTimer perfTimer("renderOverlay");
-        // NOTE: There is no batch associated with this renderArgs
-        // the ApplicationOverlay class assumes it's viewport is setup to be the device size
-        renderArgs._viewport = glm::ivec4(0, 0, getDeviceSize());
-        _applicationOverlay.renderOverlay(&renderArgs);
-    }
-
-    {
-        PROFILE_RANGE(render, "/updateCompositor");
-        getApplicationCompositor().setFrameInfo(_renderFrameCount, eyeToWorld, sensorToWorld);
+        if (isStereo) {
+            renderArgs._context->enableStereo(true);
+            renderArgs._context->setStereoProjections(stereoEyeProjections);
+            renderArgs._context->setStereoViews(stereoEyeOffsets);
+        }
     }
 
     gpu::FramebufferPointer finalFramebuffer;
@@ -122,17 +115,38 @@ void Application::paintGL() {
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
-    {
-        if (isStereo) {
-            renderArgs._context->enableStereo(true);
-            renderArgs._context->setStereoProjections(stereoEyeProjections);
-            renderArgs._context->setStereoViews(stereoEyeOffsets);
+    if (!displayPlugin->areAllProgramsLoaded()) {
+        gpu::doInBatch("splashFrame", _gpuContext, [&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.setFramebuffer(finalFramebuffer);
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, { 0, 0, 0, 1 });
+            batch.enableSkybox(true);
+            batch.enableStereo(isStereo);
+            batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
+            _splashScreen->render(batch, viewFrustum);
+        });
+    } else {
+        {
+            PROFILE_RANGE(render, "/renderOverlay");
+            PerformanceTimer perfTimer("renderOverlay");
+            // NOTE: There is no batch associated with this renderArgs
+            // the ApplicationOverlay class assumes it's viewport is setup to be the device size
+            renderArgs._viewport = glm::ivec4(0, 0, getDeviceSize());
+            _applicationOverlay.renderOverlay(&renderArgs);
         }
 
-        renderArgs._hudOperator = displayPlugin->getHUDOperator();
-        renderArgs._hudTexture = _applicationOverlay.getOverlayTexture();
-        renderArgs._blitFramebuffer = finalFramebuffer;
-        runRenderFrame(&renderArgs);
+        {
+            PROFILE_RANGE(render, "/updateCompositor");
+            getApplicationCompositor().setFrameInfo(_renderFrameCount, eyeToWorld, sensorToWorld);
+        }
+
+        {
+            PROFILE_RANGE(render, "/runRenderFrame");
+            renderArgs._hudOperator = displayPlugin->getHUDOperator();
+            renderArgs._hudTexture = _applicationOverlay.getOverlayTexture();
+            renderArgs._blitFramebuffer = finalFramebuffer;
+            runRenderFrame(&renderArgs);
+        }
     }
 
     auto frame = _gpuContext->endFrame();
