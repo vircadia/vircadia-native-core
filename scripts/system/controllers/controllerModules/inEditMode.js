@@ -20,6 +20,7 @@ Script.include("/~/system/libraries/utils.js");
     var MARGIN = 25;
     function InEditMode(hand) {
         this.hand = hand;
+        this.running = false;
         this.triggerClicked = false;
         this.selectedTarget = null;
         this.reticleMinX = MARGIN;
@@ -62,25 +63,27 @@ Script.include("/~/system/libraries/utils.js");
             return point2d;
         };
 
+        this.ENTITY_TOOL_UPDATES_CHANNEL = "entityToolUpdates";
+
         this.sendPickData = function(controllerData) {
             if (controllerData.triggerClicks[this.hand]) {
                 var hand = this.hand === RIGHT_HAND ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
                 if (!this.triggerClicked) {
                     this.selectedTarget = controllerData.rayPicks[this.hand];
                     if (!this.selectedTarget.intersects) {
-                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                        Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
                             method: "clearSelection",
                             hand: hand
                         }));
                     } else {
                         if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
-                            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
                                 method: "selectEntity",
                                 entityID: this.selectedTarget.objectID,
                                 hand: hand
                             }));
                         } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
-                            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
                                 method: "selectOverlay",
                                 overlayID: this.selectedTarget.objectID,
                                 hand: hand
@@ -102,7 +105,7 @@ Script.include("/~/system/libraries/utils.js");
             var desktopWindow = Window.isPointOnDesktopWindow(point2d);
             var tablet = this.pointingAtTablet(rayPick.objectID);
             var rightHand = this.hand === RIGHT_HAND;
-            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+            Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
                 method: "pointingAt",
                 desktopWindow: desktopWindow,
                 tablet: tablet,
@@ -110,7 +113,27 @@ Script.include("/~/system/libraries/utils.js");
             }));
         };
 
+        this.runModule = function() {
+            if (!this.running) {
+                Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
+                    method: "moduleRunning",
+                    hand: this.hand,
+                    running: true
+                }));
+                this.running = true;
+            }
+            return makeRunningValues(true, [], []);
+        };
+
         this.exitModule = function() {
+            if (this.running) {
+                Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
+                    method: "moduleRunning",
+                    hand: this.hand,
+                    running: false
+                }));
+                this.running = false;
+            }
             return makeRunningValues(false, [], []);
         };
 
@@ -120,13 +143,15 @@ Script.include("/~/system/libraries/utils.js");
                     this.triggerClicked = false;
                 }
                 Messages.sendLocalMessage('Hifi-unhighlight-all', '');
-                return makeRunningValues(true, [], []);
+                return this.runModule();
             }
             this.triggerClicked = false;
-            return makeRunningValues(false, [], []);
+            return this.exitModule();
         };
 
         this.run = function(controllerData) {
+
+            // Tablet stylus.
             var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND
                 ? "RightTabletStylusInput" : "LeftTabletStylusInput");
             if (tabletStylusInput) {
@@ -136,6 +161,7 @@ Script.include("/~/system/libraries/utils.js");
                 }
             }
 
+            // Tablet surface.
             var webLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
                 ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
             if (webLaser) {
@@ -147,6 +173,7 @@ Script.include("/~/system/libraries/utils.js");
                 }
             }
 
+            // HUD overlay.
             if (!controllerData.triggerClicks[this.hand]) { // Don't grab if trigger pressed when laser starts intersecting.
                 var hudLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
                     ? "RightHudOverlayPointer" : "LeftHudOverlayPointer");
@@ -168,6 +195,7 @@ Script.include("/~/system/libraries/utils.js");
                 }
             }
 
+            // Teleport.
             var teleport = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightTeleporter" : "LeftTeleporter");
             if (teleport) {
                 var teleportReady = teleport.isReady(controllerData);
@@ -175,8 +203,6 @@ Script.include("/~/system/libraries/utils.js");
                     return this.exitModule();
                 }
             }
-
-            var stopRunning = false;
 
             if ((controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0)) {
                 var stopRunning = false;
