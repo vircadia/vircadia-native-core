@@ -187,7 +187,7 @@ let startThClick = null;
 let renameTimeout = null;
 let renameLastBlur = null;
 let renameLastEntityID = null;
-let isRenameFieldIsBeingMoved = false;
+let isRenameFieldBeingMoved = false;
 
 let elEntityTable,
     elEntityTableHeader,
@@ -397,7 +397,7 @@ function loaded() {
         elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
         
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
-                                  createRow, updateRow, clearRow, beforeUpdate, afterUpdate, WINDOW_NONVARIABLE_HEIGHT);
+                                  createRow, updateRow, clearRow, preRefresh, postRefresh, WINDOW_NONVARIABLE_HEIGHT);
 
         entityListContextMenu = new EntityListContextMenu();
 
@@ -424,7 +424,7 @@ function loaded() {
             };
 
             elRenameInput.onblur = function(event) {
-                if (isRenameFieldIsBeingMoved) {
+                if (isRenameFieldBeingMoved) {
                     return;
                 }
                 let value = elRenameInput.value;
@@ -446,18 +446,18 @@ function loaded() {
             elRenameInput.select();
         }
 
-        function beforeUpdate() {
+        function preRefresh() {
             // move the rename input to the body
             if (elRenameInput) {
-                isRenameFieldIsBeingMoved = true;
+                isRenameFieldBeingMoved = true;
                 document.body.appendChild(elRenameInput);
                 // keep the focus
                 elRenameInput.select();
             }
         }
 
-        function afterUpdate() {
-            if (!elRenameInput || !isRenameFieldIsBeingMoved) {
+        function postRefresh() {
+            if (!elRenameInput || !isRenameFieldBeingMoved) {
                 return;
             }
             let entity = entitiesByID[renameLastEntityID];
@@ -469,7 +469,7 @@ function loaded() {
             elCell.appendChild(elRenameInput);
             // keep the focus
             elRenameInput.select();
-            isRenameFieldIsBeingMoved = false;
+            isRenameFieldBeingMoved = false;
         }
 
         entityListContextMenu.setOnSelectedCallback(function(optionName, selectedEntityID) {

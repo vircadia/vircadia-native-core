@@ -14,7 +14,7 @@ debugPrint = function (message) {
 };
 
 function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunction, 
-                  updateRowFunction, clearRowFunction, beforeRefreshFunction, afterRefreshFunction, WINDOW_NONVARIABLE_HEIGHT) {
+                  updateRowFunction, clearRowFunction, preRefreshFunction, postRefreshFunction, WINDOW_NONVARIABLE_HEIGHT) {
     this.elTableBody = elTableBody;
     this.elTableScroll = elTableScroll;
     this.elTableHeaderRow = elTableHeaderRow;
@@ -25,8 +25,8 @@ function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunctio
     this.createRowFunction = createRowFunction;
     this.updateRowFunction = updateRowFunction;
     this.clearRowFunction = clearRowFunction;
-    this.beforeRefreshFunction = beforeRefreshFunction;
-    this.afterRefreshFunction = afterRefreshFunction;
+    this.preRefreshFunction = preRefreshFunction;
+    this.postRefreshFunction = postRefreshFunction;
     
     // the list of row elements created in the table up to max viewable height plus SCROLL_ROWS rows for scrolling buffer
     this.elRows = [];
@@ -175,7 +175,7 @@ ListView.prototype = {
     },
     
     refresh: function() {
-        this.beforeRefreshFunction();
+        this.preRefreshFunction();
         // block refreshing before rows are initialized
         let numRows = this.getNumRows();
         if (numRows === 0) {
@@ -214,7 +214,7 @@ ListView.prototype = {
                 this.lastRowShiftScrollTop = 0;
             }
         }
-        this.afterRefreshFunction();
+        this.postRefreshFunction();
     },
     
     refreshBuffers: function() {
