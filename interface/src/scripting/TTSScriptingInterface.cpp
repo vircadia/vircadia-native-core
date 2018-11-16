@@ -147,7 +147,11 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak) {
         _lastSoundAudioInjectorUpdateTimer.stop();
     }
 
-    _lastSoundAudioInjector = AudioInjector::playSoundAndDelete(_lastSoundByteArray, options);
+    uint32_t numChannels = 1;
+    uint32_t numSamples = (uint32_t)_lastSoundByteArray.size() / sizeof(AudioData::AudioSample);
+    auto samples = reinterpret_cast<AudioData::AudioSample*>(_lastSoundByteArray.data());
+    auto newAudioData = AudioData::make(numSamples, numChannels, samples);
+    _lastSoundAudioInjector = AudioInjector::playSoundAndDelete(newAudioData, options);
 
     _lastSoundAudioInjectorUpdateTimer.start(INJECTOR_INTERVAL_MS);
 #else

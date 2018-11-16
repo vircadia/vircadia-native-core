@@ -12,50 +12,92 @@
 <@def SSAO_SLH@>
 
 <@include render-utils/ShaderConstants.h@>
+<@include ssao_shared.h@>
 
 <@func declarePackOcclusionDepth()@>
 
-const float FAR_PLANE_Z = -300.0;
+float CSZToDepthKey(float z) {
+    return clamp(z * (-1.0 / SSAO_DEPTH_KEY_SCALE), 0.0, 1.0);
+}
 
-float CSZToDephtKey(float z) {
-    return clamp(z * (1.0 / FAR_PLANE_Z), 0.0, 1.0);
-}
-vec3 packOcclusionDepth(float occlusion, float depth) {
+vec4 packOcclusionOutput(float occlusion, float depth, vec3 eyeNormal) {
+    depth = CSZToDepthKey(depth);
+#if SSAO_BILATERAL_BLUR_USE_NORMAL    
+    return vec4(occlusion, depth, eyeNormal.xy / eyeNormal.z);
+#else
     // Round to the nearest 1/256.0
-    float temp = floor(depth * 256.0);
-    return vec3(occlusion, temp * (1.0 / 256.0), depth * 256.0 - temp);
+    depth *= 256.0;
+    float temp = floor(depth);
+    return vec4(occlusion, temp * (1.0 / 256.0), depth - temp, 0.0);
+#endif
 }
-vec2 unpackOcclusionDepth(vec3 raw) {
-    float z = raw.y * (256.0 / 257.0) + raw.z * (1.0 / 257.0);
-    return vec2(raw.x, z);
+
+struct UnpackedOcclusion {
+    vec3 normal;
+    float depth;
+    float occlusion;
+};
+
+void unpackOcclusionOutput(vec4 raw, out UnpackedOcclusion result) {
+    result.occlusion = raw.x;
+#if SSAO_BILATERAL_BLUR_USE_NORMAL    
+    result.depth = raw.y;
+    result.normal = normalize(vec3(raw.zw, 1.0));
+#else
+    result.depth = (raw.y + raw.z / 256.0);
+    result.normal = vec3(0.0, 0.0, 1.0);
+#endif
 }
+
+float unpackOcclusion(vec4 raw) {
+    return raw.x;
+}
+
 <@endfunc@>
 
 <@func declareAmbientOcclusion()@>
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
-struct AmbientOcclusionParams {
-    vec4 _resolutionInfo;
-    vec4 _radiusInfo;
-    vec4 _ditheringInfo;
-    vec4 _sampleInfo;
-    vec4 _blurInfo;
-    float _gaussianCoefs[8];
-};
-
 LAYOUT(binding=RENDER_UTILS_BUFFER_SSAO_PARAMS) uniform ambientOcclusionParamsBuffer {
     AmbientOcclusionParams params;
 };
 
+LAYOUT(binding=RENDER_UTILS_BUFFER_SSAO_FRAME_PARAMS) uniform ambientOcclusionFrameParamsBuffer {
+    AmbientOcclusionFrameParams frameParams;
+};
 
 float getPerspectiveScale() {
-    
     return (params._resolutionInfo.z);
 }
-int getResolutionLevel() {
-    
+int getResolutionLevel() { 
     return int(params._resolutionInfo.x);
+}
+
+bool isHorizonBased() {
+    return params._resolutionInfo.y!=0.0;
+}
+
+vec2 getNormalsSideSize() {
+    return params._sideSizes[0].xy;
+}
+int getNormalsResolutionLevel() {
+    return int(params._sideSizes[0].z);
+}
+int getDepthResolutionLevel() {
+    return int(params._sideSizes[0].w);
+}
+vec2 getOcclusionSideSize() {
+    return params._sideSizes[1].xy;
+}
+vec2 getOcclusionSplitSideSize() {
+    return params._sideSizes[1].zw;
+}
+
+ivec2 getWidthHeightRoundUp(int resolutionLevel) {
+    ivec2 fullRes = ivec2(getWidthHeight(0));
+    int resolutionDivisor = 1 << resolutionLevel;
+    return (fullRes + resolutionDivisor - 1) / resolutionDivisor;
 }
 
 float getRadius() {
@@ -65,24 +107,35 @@ float getRadius2() {
     return params._radiusInfo.y;
 }
 float getInvRadius6() {
+    return mix(params._radiusInfo.z, 1.0, isHorizonBased());
+}
+float getInvRadius2() {
     return params._radiusInfo.z;
 }
+
 float getObscuranceScaling() {
-    return params._radiusInfo.z * params._radiusInfo.w;
+    return getInvRadius6() * params._radiusInfo.w;
 }
 
 float isDitheringEnabled() {
     return params._ditheringInfo.x;
 }
-float getFrameDithering() {
-    return params._ditheringInfo.y;
-}
 float isBorderingEnabled() {
     return params._ditheringInfo.w;
 }
 
-float getFalloffBias() {
-    return params._ditheringInfo.z;
+float getFalloffCosAngle() {
+    return params._falloffInfo.x;
+}
+float getFalloffCosAngleScale() {
+    return params._falloffInfo.y;
+}
+
+float getFalloffSinAngle() {
+    return params._falloffInfo.z;
+}
+float getFalloffSinAngleScale() {
+    return params._falloffInfo.w;
 }
 
 float getNumSamples() {
@@ -99,37 +152,6 @@ int doFetchMips() {
     return int(params._sampleInfo.w);
 }
 
-float getBlurEdgeSharpness() {
-    return params._blurInfo.x;
-}
-
-#ifdef CONSTANT_GAUSSIAN
-const int BLUR_RADIUS = 4;
-const float gaussian[BLUR_RADIUS + 1] =
-// KEEP this dead code for eventual performance improvment
-//    float[](0.356642, 0.239400, 0.072410, 0.009869);
-//    float[](0.398943, 0.241971, 0.053991, 0.004432, 0.000134);  // stddev = 1.0
-float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // stddev = 2.0
-//float[](0.197413, 0.17467, 0.12098,0.065591,0.040059);
-//      float[](0.111220, 0.107798, 0.098151, 0.083953, 0.067458, 0.050920, 0.036108); // stddev = 3.0
-
-int getBlurRadius() {
-    return BLUR_RADIUS;
-}
-
-float getBlurCoef(int c) {
-    return gaussian[c];
-}
-#else
-int getBlurRadius() {
-    return int(params._blurInfo.y);
-}
-
-float getBlurCoef(int c) {
-    return params._gaussianCoefs[c];
-}
-#endif
-
 <@endfunc@>
 
 <@func declareSamplingDisk()@>
@@ -139,43 +161,57 @@ float getAngleDitheringWorldPos(in vec3 pixelWorldPos) {
 
     ivec3 pixelPos = ivec3(worldPosFract * 256.0);
 
-    return isDitheringEnabled() * float(((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) + (3 * pixelPos.y ^ pixelPos.z + pixelPos.x * pixelPos.z)) * 10) + getFrameDithering();
+    return isDitheringEnabled() * float(((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) + (3 * pixelPos.y ^ pixelPos.z + pixelPos.x * pixelPos.z)) * 10);
+}
+
+float getAngleDitheringSplit() {
+    return isDitheringEnabled() * frameParams._angleInfo.x;
 }
 
 float getAngleDithering(in ivec2 pixelPos) {
+#if SSAO_USE_QUAD_SPLIT
+    return getAngleDitheringSplit();
+#else
     // Hash function used in the AlchemyAO paper
-    return isDitheringEnabled() * float((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10) + getFrameDithering();
+    return getAngleDitheringPixelPos(pixelPos);
+#endif
 }
 
-float evalDiskRadius(float Zeye, vec2 imageSize) {
+float getAngleDitheringPixelPos(in ivec2 pixelPos) {
+    // Hash function used in the AlchemyAO paper
+    return isDitheringEnabled() *  float((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10);
+}
+
+float evalDiskRadius(float Zeye, vec2 sideImageSize) {
     // Choose the screen-space sample radius
     // proportional to the projected area of the sphere
-    float ssDiskRadius = -( getProjScale(getResolutionLevel()) * getRadius() / Zeye ) * getPerspectiveScale();
+    float diskPixelRadius = -( getProjScale(getResolutionLevel()) * getRadius() / Zeye ) * getPerspectiveScale();
 
     // clamp the disk to fit in the image otherwise too many unknown
-    ssDiskRadius = min(ssDiskRadius, imageSize.y * 0.5);
+    diskPixelRadius = min(diskPixelRadius, sideImageSize.y * 0.5);
 
-    return ssDiskRadius;
+    return diskPixelRadius;
 }
 
-const float TWO_PI = 6.28;
+const float PI = 3.1415926;
+const float TWO_PI = 6.2831852;
 
-vec3 getUnitTapLocation(int sampleNumber, float spinAngle){
+vec3 getUnitTapLocation(int sampleNumber, float spiralTurns, float spinAngle, float angleRange){
     // Radius relative to ssR
-    float alpha = (float(sampleNumber) + 0.5) * getInvNumSamples();
-    float angle = alpha * (getNumSpiralTurns() * TWO_PI) + spinAngle;
+    float alpha = float(sampleNumber) * getInvNumSamples();
+    float angle = alpha * (spiralTurns * angleRange) + spinAngle;
     return vec3(cos(angle), sin(angle), alpha);
 }
 
-vec3 getTapLocation(int sampleNumber, float spinAngle, float outerRadius) {
-    vec3 tap = getUnitTapLocation(sampleNumber, spinAngle);
+vec3 getTapLocationSSAO(int sampleNumber, float spinAngle, float outerRadius) {
+    vec3 tap = getUnitTapLocation(sampleNumber, getNumSpiralTurns(), spinAngle, TWO_PI);
     tap.xy *= tap.z;
     tap *= outerRadius;
     return tap;
 }
 
-vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius, vec2 pixelPos, vec2 imageSize) {
-    vec3 tap = getTapLocation(sampleNumber, spinAngle, outerRadius);
+vec3 getTapLocationClampedSSAO(int sampleNumber, float spinAngle, float outerRadius, vec2 pixelPos, vec2 sideImageSize) {
+    vec3 tap = getTapLocationSSAO(sampleNumber, spinAngle, outerRadius);
     vec2 tapPos = pixelPos + tap.xy;
 
     if (!(isBorderingEnabled() > 0.0)) {
@@ -186,36 +222,19 @@ vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius,
     if ((tapPos.x < 0.5)) {
         tapPos.x = -tapPos.x;
         redoTap = true;
-    } else if ((tapPos.x > imageSize.x - 0.5)) {
-        tapPos.x -= (imageSize.x - tapPos.x);
+    } else if ((tapPos.x > sideImageSize.x - 0.5)) {
+        tapPos.x -= (sideImageSize.x - tapPos.x);
         redoTap = true;
     }
 
     if ((tapPos.y < 0.5)) {
         tapPos.y = -tapPos.y;
         redoTap = true;
-    } else if ((tapPos.y > imageSize.y - 0.5)) {
-        tapPos.y -= (imageSize.y - tapPos.y);
-        redoTap = true;
-    }
-/*
-    if ((tapPos.x < 0.5)) {
-        tapPos.x = 0.5;
-        redoTap = true;
-    } else if ((tapPos.x > imageSize.x - 0.5)) {
-        tapPos.x = imageSize.x - 0.5;
+    } else if ((tapPos.y > sideImageSize.y - 0.5)) {
+        tapPos.y -= (sideImageSize.y - tapPos.y);
         redoTap = true;
     }
 
-    if ((tapPos.y < 0.5)) {
-        tapPos.y = 0.5;
-        redoTap = true;
-    } else if ((tapPos.y > imageSize.y - 0.5)) {
-        tapPos.y = imageSize.y - 0.5;
-        redoTap = true;
-    }
-*/
-   
     if (redoTap) {
         tap.xy = tapPos - pixelPos;
         tap.z = length(tap.xy);
@@ -230,153 +249,338 @@ vec3 getTapLocationClamped(int sampleNumber, float spinAngle, float outerRadius,
 
 <@func declareFetchDepthPyramidMap()@>
 
-
 // the depth pyramid texture
-LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_PYRAMID) uniform sampler2D pyramidMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_DEPTH) uniform sampler2D depthPyramidTex;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_NORMAL) uniform sampler2D normalTex;
 
-float getZEye(ivec2 pixel, int level) {
-    return -texelFetch(pyramidMap, pixel, level).x;
+vec2 getFramebufferUVFromSideUV(ivec4 side, vec2 uv) {
+    return mix(uv, vec2((uv.x + float(getStereoSide(side))) * 0.5, uv.y), float(isStereo()));
 }
 
-const int LOG_MAX_OFFSET = 3;
-const int MAX_MIP_LEVEL = 5;
+vec2 getSideUVFromFramebufferUV(ivec4 side, vec2 uv) {
+    return mix(uv, vec2(uv.x * 2.0 - float(getStereoSide(side)), uv.y), float(isStereo()));
+}
+
+vec2 getDepthTextureSize(int level) {
+    return vec2(textureSize(depthPyramidTex, level));
+}
+
+vec2 getDepthTextureSideSize(int level) {
+    ivec2 size = textureSize(depthPyramidTex, level);
+    size.x >>= int(isStereo()) & 1;
+    return vec2(size);
+}
+
+vec2 getStereoSideSizeRoundUp(int resolutionLevel) {
+    ivec2 fullRes = ivec2(getStereoSideSize(0));
+    int resolutionDivisor = 1 << resolutionLevel;
+    return vec2((fullRes + resolutionDivisor - 1) / resolutionDivisor);
+}
+
+float getZEyeAtUV(vec2 texCoord, float level) {
+    return -textureLod(depthPyramidTex, texCoord, level).x;
+}
+
+<@func getZEyeAtUVOffset(texCoord, level, texelOffset)@>
+-textureLodOffset(depthPyramidTex, <$texCoord$>, <$level$>, <$texelOffset$>).x;
+<@endfunc@>
+
+float getZEyeAtUV(ivec4 side, vec2 texCoord, float level) {
+    texCoord = getFramebufferUVFromSideUV(side, texCoord);
+    return getZEyeAtUV(texCoord, level);
+}
+
+vec3 packNormal(vec3 normal) {
+    vec3 absNormal = abs(normal);
+    return 0.5 + normal * 0.5 / max(absNormal.x, max(absNormal.y, absNormal.z));
+}
+
+vec3 unpackNormal(vec3 packedNormal) {
+    return normalize(packedNormal*2.0 - 1.0);
+}
+
+vec3 getNormalEyeAtUV(vec2 texCoord, float level) {
+    return unpackNormal(textureLod(normalTex, texCoord, level).xyz);
+}
+
+vec3 getNormalEyeAtUV(ivec4 side, vec2 texCoord, float level) {
+    texCoord = getFramebufferUVFromSideUV(side, texCoord);
+    return getNormalEyeAtUV(texCoord, level);
+}
+
+vec2 snapToTexel(vec2 uv, vec2 pixelSize) {
+	return (floor(uv * pixelSize - 0.5) + 0.5) / pixelSize;
+}
+
 int evalMipFromRadius(float radius) {
-    //  mipLevel = floor(log(ssR / MAX_OFFSET));
+    const int LOG_MAX_OFFSET = 2;
+    const int MAX_MIP_LEVEL = 5;
     return clamp(findMSB(int(radius)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
 }
 
+vec2 fetchTap(ivec4 side, vec2 tapUV, float tapRadius) {
+    int mipLevel = evalMipFromRadius(tapRadius * float(doFetchMips()));
 
-vec3 fetchTapUnfiltered(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
-    ivec2 ssP = ivec2(tap.xy) + ssC;
-    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
+    vec2 fetchUV = clamp(tapUV, vec2(0), vec2(1));
+    fetchUV = getFramebufferUVFromSideUV(side, fetchUV);
 
-
-    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
-
-    vec2 fetchUV = vec2(tapUV.x + float(side.w) * 0.5 * (float(side.x) - tapUV.x), tapUV.y);
-
-    vec3 P;
-    P.xy = tapUV;
-    P.z = -texture(pyramidMap, fetchUV).x;
-
-   return P;
+    vec2 P;
+    P.x = float(mipLevel);
+    P.y = -textureLod(depthPyramidTex, fetchUV, P.x).x;
+    return P;
 }
 
-vec3 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
-    int mipLevel = evalMipFromRadius(tap.z * float(doFetchMips()));
-
-    ivec2 ssP = ivec2(tap.xy) + ssC;
-    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
-
-    // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
-    // Manually clamp to the texture size because texelFetch bypasses the texture unit
-   //  ivec2 mipSize = textureSize(pyramidMap, mipLevel);
-   ivec2 mipSize = max(ivec2(imageSize) >> mipLevel, ivec2(1));
-
-    ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), mipSize - ivec2(1));
-   
-    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
-    vec2 fetchUV = vec2(tapUV.x + float(side.w) * 0.5 * (float(side.x) - tapUV.x), tapUV.y);
-    // vec2 tapUV = (vec2(mipP) + vec2(0.5)) / vec2(mipSize);
-
-    vec3 P;
-    P.xy = tapUV;
-  //  P.z = -texelFetch(pyramidMap, mipP, mipLevel).x;
-    P.z = -textureLod(pyramidMap, fetchUV, float(mipLevel)).x;
-
-   return P;
+vec3 buildPosition(ivec4 side, vec2 fragUVPos) {
+    float Zeye = getZEyeAtUV(side, fragUVPos, 0.0);
+    return evalEyePositionFromZeye(side.x, Zeye, fragUVPos);
 }
 
+<@func buildPositionOffset(side, fragUVPos, sideFragUVPos, texelOffset, deltaUV, position)@>
+{
+    float Zeye = <$getZEyeAtUVOffset($sideFragUVPos$, 0.0, $texelOffset$)$>
+    <$position$> = evalEyePositionFromZeye(<$side$>.x, Zeye, <$fragUVPos$> + vec2(<$texelOffset$>)*<$deltaUV$>);
+}
+<@endfunc@>
 
+vec3 getMinDelta(vec3 centralPoint, vec3 offsetPointPos, vec3 offsetPointNeg) {
+    vec3 delta0 = offsetPointPos - centralPoint;
+    vec3 delta1 = centralPoint - offsetPointNeg;
+    float sqrLength0 = dot(delta0, delta0);
+    float sqrLength1 = dot(delta1, delta1);
+
+    return mix(delta1, delta0, float(sqrLength0 < sqrLength1));
+}
+
+const ivec2 UV_RIGHT = ivec2(1,0);
+const ivec2 UV_LEFT = ivec2(-1,0);
+const ivec2 UV_TOP = ivec2(0,1);
+const ivec2 UV_BOTTOM = ivec2(0,-1);
+
+vec3 buildNormal(ivec4 side, vec2 fragUVPos, vec3 fragPosition, vec2 deltaDepthUV) {
+    vec2 fullUVPos = getFramebufferUVFromSideUV(side, fragUVPos);
+
+    vec3 fragPositionDxPos;
+    vec3 fragPositionDxNeg;
+    vec3 fragPositionDyPos;
+    vec3 fragPositionDyNeg;
+
+    <$buildPositionOffset(side, fragUVPos, fullUVPos, UV_RIGHT, deltaDepthUV, fragPositionDxPos)$>
+    <$buildPositionOffset(side, fragUVPos, fullUVPos, UV_LEFT, deltaDepthUV, fragPositionDxNeg)$>
+    <$buildPositionOffset(side, fragUVPos, fullUVPos, UV_TOP, deltaDepthUV, fragPositionDyPos)$>
+    <$buildPositionOffset(side, fragUVPos, fullUVPos, UV_BOTTOM, deltaDepthUV, fragPositionDyNeg)$>
+
+    vec3 fragDeltaDx = getMinDelta(fragPosition, fragPositionDxPos, fragPositionDxNeg);
+    vec3 fragDeltaDy = getMinDelta(fragPosition, fragPositionDyPos, fragPositionDyNeg);
+
+    return normalize( cross(fragDeltaDx, fragDeltaDy) );
+}
+
+void buildTangentBinormal(ivec4 side, vec2 fragUVPos, vec3 fragPosition, vec3 fragNormal, vec2 deltaDepthUV,
+                          out vec3 fragTangent, out vec3 fragBinormal) {
+    vec2 fullUVPos = getFramebufferUVFromSideUV(side, fragUVPos);
+
+    vec3 fragPositionDxPos;
+    vec3 fragPositionDxNeg;
+    vec3 fragPositionDyPos;
+    vec3 fragPositionDyNeg;
+
+    <$buildPositionOffset(side, fragUVPos, fullUVPos, UV_RIGHT, deltaDepthUV, fragPositionDxPos)$>
+    <$buildPositionOffset(side, fragUVPos, fullUVPos, UV_LEFT, deltaDepthUV, fragPositionDxNeg)$>
+    <$buildPositionOffset(side, fragUVPos, fullUVPos, UV_TOP, deltaDepthUV, fragPositionDyPos)$>
+    <$buildPositionOffset(side, fragUVPos, fullUVPos, UV_BOTTOM, deltaDepthUV, fragPositionDyNeg)$>
+
+    vec3 fragDeltaDx = getMinDelta(fragPosition, fragPositionDxPos, fragPositionDxNeg);
+    vec3 fragDeltaDy = getMinDelta(fragPosition, fragPositionDyPos, fragPositionDyNeg);
+
+    //fragTangent = normalize( cross(fragDeltaDy, fragNormal) );
+    //fragBinormal = normalize( cross(fragNormal, fragDeltaDx) );
+
+    fragTangent = fragDeltaDx;
+    fragBinormal = fragDeltaDy;
+}
 
 <@endfunc@>
 
 
 <@func declareEvalObscurance()@>
 
-float evalAO(in vec3 C, in vec3 n_C, in vec3 Q) {
-    vec3 v = Q - C;
-    float vv = dot(v, v);
-    float vn = dot(v, n_C);
+struct TBNFrame {
+    vec3 tangent;
+    vec3 binormal;
+    vec3 normal;
+};
 
-    // Fall off function as recommended in SAO paper
+vec3 fastAcos(vec3 x) {
+	// [Eberly2014] GPGPU Programming for Games and Science
+	vec3 absX = abs(x);
+	vec3 res = absX * (-0.156583) + vec3(PI / 2.0);
+	res *= sqrt(vec3(1.0) - absX);
+	return mix(res, vec3(PI) - res, greaterThanEqual(x, vec3(0)));
+}
+
+float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 tapPosition) {
+    vec3 v = tapPosition - centerPosition;
+    float vv = dot(v, v);
+    float vn = dot(v, centerNormal);
+
+    // Falloff function as recommended in SSAO paper
     const float epsilon = 0.01;
     float f = max(getRadius2() - vv, 0.0);
-    return f * f * f * max((vn - getFalloffBias()) / (epsilon + vv), 0.0);
+    return f * f * f * max((vn - getFalloffCosAngle()) / (epsilon + vv), 0.0);
 }
 
+#define HBAO_USE_COS_ANGLE 1
+#define HBAO_USE_OVERHANG_HACK 0
+
+float computeWeightForHorizon(float horizonLimit, float distanceSquared) {
+    return max(0.0, 1.0 - distanceSquared * getInvRadius2());
+}
+
+float computeWeightedHorizon(float horizonLimit, float distanceSquared) {
+    float radiusFalloff = computeWeightForHorizon(horizonLimit, distanceSquared);
+
+#if !HBAO_USE_COS_ANGLE
+    horizonLimit = getFalloffSinAngle() - horizonLimit;
+#endif
+    horizonLimit *= radiusFalloff;
+#if !HBAO_USE_COS_ANGLE
+    horizonLimit = getFalloffSinAngle() - horizonLimit;
+#endif
+
+    return horizonLimit;
+}
+
+<@func computeHorizon()@>
+        if (tapUVPos.x<0.0 || tapUVPos.y<0.0 || tapUVPos.x>=1.0 || tapUVPos.y>=1.0) {
+            // Early exit because we've hit the borders of the frame
+            break;
+        }
+        vec2 tapMipZ = fetchTap(side, tapUVPos, radius);
+        vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapMipZ.y, tapUVPos);
+        vec3 deltaVec = tapPositionES - fragPositionES;
+        float distanceSquared = dot(deltaVec, deltaVec);
+        float deltaDotNormal = dot(deltaVec, fragFrameES.normal);
+#if HBAO_USE_COS_ANGLE
+        float tapHorizonLimit = deltaDotNormal;
+#else
+        float tapHorizonLimit = dot(deltaVec, fragFrameES.tangent);
+#endif
+        tapHorizonLimit *= inversesqrt(distanceSquared);
+
+        if (distanceSquared < getRadius2() && deltaDotNormal>0.0) {
+#if HBAO_USE_COS_ANGLE
+            float weight = computeWeightForHorizon(tapHorizonLimit, distanceSquared);
+            if (tapHorizonLimit > horizonLimit) {
+                occlusion += weight * (tapHorizonLimit - horizonLimit);
+                horizonLimit = tapHorizonLimit;
+            }
+#if HBAO_USE_OVERHANG_HACK 
+            else if (dot(deltaVec, fragFrameES.tangent) < 0.0) {
+                // This is a hack to try to handle the case where the occlusion angle is
+                // greater than 90°
+                occlusion = mix(occlusion, (occlusion+1.0) * 0.5, weight);
+            }
+#endif
+#else   
+            if (tapHorizonLimit < horizonLimit) {
+                tapHorizonLimit = computeWeightedHorizon(tapHorizonLimit, distanceSquared);
+                horizonLimit = min(horizonLimit, tapHorizonLimit);
+            }
+#endif
+        }
 <@endfunc@>
 
-<@func declareBlurPass(axis)@>
+#define HBAO_HORIZON_SEARCH_CONSTANT_STEP 0
 
-<$declarePackOcclusionDepth()$>
-<$declareAmbientOcclusion()$>
+float computeOcclusion(ivec4 side, vec2 fragUVPos, vec3 fragPositionES, TBNFrame fragFrameES, vec2 searchDir, float searchRadius, int stepCount) {
+    float occlusion = 0.0;
+#if HBAO_USE_COS_ANGLE
+    float horizonLimit = getFalloffCosAngle();
+#else
+    float horizonLimit = getFalloffSinAngle();
+#endif
 
-// the source occlusion texture
-LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2D occlusionMap;
+    if (stepCount>0) {
+        vec2 deltaTapUV = searchDir / float(stepCount);
+        vec2 tapUVPos;
+        float deltaRadius = searchRadius / float(stepCount);
+        vec2 sideDepthSize = getDepthTextureSideSize(0);
 
-vec2 fetchOcclusionDepthRaw(ivec2 coords, out vec3 raw) {
-    raw = texelFetch(occlusionMap, coords, 0).xyz;
-    return unpackOcclusionDepth(raw);
-}
+#if HBAO_HORIZON_SEARCH_CONSTANT_STEP
+        float radius = 0.0;
+        int stepIndex;
 
-vec2 fetchOcclusionDepth(ivec2 coords) {
-    return unpackOcclusionDepth(texelFetch(occlusionMap, coords, 0).xyz);
-}
+        for (stepIndex=0 ; stepIndex<stepCount ; stepIndex++) {
+            fragUVPos += deltaTapUV;
+            radius += deltaRadius;
+            tapUVPos = snapToTexel(fragUVPos, sideDepthSize);
 
-const int RADIUS_SCALE = 1;
-const float BLUR_WEIGHT_OFFSET = 0.05;
-const float BLUR_EDGE_SCALE = 2000.0;
+            <$computeHorizon()$>
+        }
+#else
+        // Step is adapted to Mip level
+        float radius = deltaRadius;
+        float mipLevel = float(evalMipFromRadius(radius * float(doFetchMips())));
 
-vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
-    ivec2 tapOffset = <$axis$> * (r * RADIUS_SCALE);
-    ivec2 ssP = (ssC + tapOffset);
+        while (radius<=searchRadius) {
+            fragUVPos += deltaTapUV;
+            tapUVPos = snapToTexel(fragUVPos, sideDepthSize);
 
-    if ((ssP.x < side.y || ssP.x >= side.z + side.y) || (ssP.y < 0 || ssP.y >= int(getWidthHeight(getResolutionLevel()).y))) {
-        return vec2(0.0);
-    }
-    vec2 tapOZ = fetchOcclusionDepth(ssC + tapOffset);
+            <$computeHorizon()$>
 
-    // spatial domain: offset gaussian tap
-    float weight = BLUR_WEIGHT_OFFSET + getBlurCoef(abs(r));
-
-    // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
-    weight *= max(0.0, 1.0 - (getBlurEdgeSharpness() * BLUR_EDGE_SCALE) * abs(tapOZ.y - key));
-    
-    return vec2(tapOZ.x * weight, weight);
-}
-
-vec3 getBlurredOcclusion(vec2 coord) {
-    ivec2 ssC = ivec2(coord);
-
-    // Stereo side info
-    ivec4 side = getStereoSideInfo(ssC.x, getResolutionLevel());
-
-    vec3 rawSample;
-    vec2 occlusionDepth = fetchOcclusionDepthRaw(ssC, rawSample);
-    float key = occlusionDepth.y;
-    
-    // Central pixel contribution
-    float mainWeight = getBlurCoef(0);
-    vec2 weightedSums = vec2(occlusionDepth.x * mainWeight, mainWeight);
-
-    // Accumulate weighted contributions along the bluring axis in the [-radius, radius] range
-    int blurRadius = getBlurRadius();
-    // negative side first
-    for (int r = -blurRadius; r <= -1; ++r) {
-        weightedSums += evalTapWeightedValue(side.xyz, r, ssC, key);
-    }
-    // then positive side
-    for (int r = 1; r <= blurRadius; ++r) {
-        weightedSums += evalTapWeightedValue(side.xyz, r, ssC, key);
+            if (tapMipZ.x != mipLevel) {
+                mipLevel = tapMipZ.x;
+                deltaRadius *= 2.0;
+                deltaTapUV *= 2.0;
+                sideDepthSize = getDepthTextureSideSize(int(mipLevel));
+            }
+            radius += deltaRadius;
+        }
+#endif
     }
 
-    // Final normalization
-    const float epsilon = 0.0001;
-    float result = weightedSums.x / (weightedSums.y + epsilon);
-    
-    rawSample.x = result;
-    return rawSample;
+#if HBAO_USE_COS_ANGLE
+    occlusion = min(occlusion * getFalloffCosAngleScale(), 1.0);
+#else
+    occlusion = horizonLimit * mix(1.0, getFalloffSinAngleScale(), horizonLimit > 0.0);
+#endif
+
+    return occlusion;
+}
+
+float evalVisibilityHBAO(ivec4 side, vec2 fragUVPos, vec2 invSideImageSize, vec2 deltaTap, float diskPixelRadius, 
+                         vec3 fragPositionES, vec3 fragNormalES) {
+    vec2 pixelSearchVec = deltaTap * diskPixelRadius;
+	vec2 searchDir = pixelSearchVec * invSideImageSize;
+    vec2 deltaTapUV = deltaTap * invSideImageSize;
+	float obscuranceH1 = 0.0;
+	float obscuranceH2 = 0.0;
+    pixelSearchVec = abs(pixelSearchVec);
+    int stepCount = int(ceil(max(pixelSearchVec.x, pixelSearchVec.y)));
+    TBNFrame fragFrameES;
+
+    fragFrameES.tangent = vec3(0.0);
+    fragFrameES.binormal = vec3(0.0);
+    fragFrameES.normal = fragNormalES;
+
+#if HBAO_USE_OVERHANG_HACK || !HBAO_USE_COS_ANGLE
+    vec3 positionPos = buildPosition(side, fragUVPos + deltaTapUV);
+    vec3 positionNeg = buildPosition(side, fragUVPos - deltaTapUV);
+
+    fragFrameES.tangent = getMinDelta(fragPositionES, positionPos, positionNeg);
+    fragFrameES.tangent -= dot(fragNormalES, fragFrameES.tangent) * fragNormalES;
+    fragFrameES.tangent = normalize(fragFrameES.tangent);
+#endif
+    // Forward search for h1
+    obscuranceH1 = computeOcclusion(side, fragUVPos, fragPositionES, fragFrameES, searchDir, diskPixelRadius, stepCount);
+
+    // Backward search for h2
+#if HBAO_USE_OVERHANG_HACK || !HBAO_USE_COS_ANGLE
+    fragFrameES.tangent = -fragFrameES.tangent;
+#endif
+    obscuranceH2 = computeOcclusion(side, fragUVPos, fragPositionES, fragFrameES, -searchDir, diskPixelRadius, stepCount);
+
+	return obscuranceH1 + obscuranceH2;
 }
 
 <@endfunc@>
