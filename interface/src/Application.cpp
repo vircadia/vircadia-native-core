@@ -371,6 +371,8 @@ static const QString INFO_HELP_PATH = "html/tabletHelp.html";
 
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
+static const int ENTITY_SERVER_ADDED_TIMEOUT = 5000;
+static const int ENTITY_SERVER_CONNECTION_TIMEOUT = 5000;
 
 static const uint32_t INVALID_FRAME = UINT32_MAX;
 
@@ -1229,6 +1231,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         getOverlays().deleteOverlay(getTabletScreenID());
         getOverlays().deleteOverlay(getTabletHomeButtonID());
         getOverlays().deleteOverlay(getTabletFrameID());
+        _failedToConnectToEntityServer = false;
+    });
+
+    _entityServerConnectionTimer.setSingleShot(true);
+    connect(&_entityServerConnectionTimer, &QTimer::timeout, this, &Application::setFailedToConnectToEntityServer);
+
+    connect(&domainHandler, &DomainHandler::connectedToDomain, this, [this]() {
+        if (!isServerlessMode()) {
+            _entityServerConnectionTimer.setInterval(ENTITY_SERVER_ADDED_TIMEOUT);
+            _entityServerConnectionTimer.start();
+            _failedToConnectToEntityServer = false;
+        }
     });
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
 
@@ -5732,6 +5746,7 @@ void Application::update(float deltaTime) {
         quint64 now = usecTimestampNow();
         if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
             bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+
             if (gpuTextureMemSizeStable() || !enableInterstitial) {
                 // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
                 _lastPhysicsCheckTime = now;
@@ -6663,7 +6678,13 @@ void Application::resettingDomain() {
 }
 
 void Application::nodeAdded(SharedNodePointer node) const {
-    // nothing to do here
+    if (node->getType() == NodeType::EntityServer) {
+        if (!_failedToConnectToEntityServer) {
+            _entityServerConnectionTimer.stop();
+            _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
+            _entityServerConnectionTimer.start();
+        }
+    }
 }
 
 void Application::nodeActivated(SharedNodePointer node) {
@@ -6691,6 +6712,10 @@ void Application::nodeActivated(SharedNodePointer node) {
     if (node->getType() == NodeType::EntityServer) {
         _queryExpiry = SteadyClock::now();
         _octreeQuery.incrementConnectionID();
+
+        if  (!_failedToConnectToEntityServer) {
+            _entityServerConnectionTimer.stop();
+        }
     }
 
     if (node->getType() == NodeType::AudioMixer && !isInterstitialMode()) {
