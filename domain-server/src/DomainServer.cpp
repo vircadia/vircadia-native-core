@@ -2521,33 +2521,37 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
 bool DomainServer::processPendingContent(HTTPConnection* connection, QString itemName, QString filename, QByteArray dataChunk) {
     if (filename.endsWith(".zip", Qt::CaseInsensitive)) {
         static const QString TEMPORARY_CONTENT_FILEPATH { QDir::tempPath() + "/hifiUploadContent_XXXXXX.zip" };
+        const auto peerAddressHash = qHash(connection->socket()->peerAddress());
 
-        if (!_pendingFileContent) {
-            _pendingFileContent = std::make_unique<QTemporaryFile>(TEMPORARY_CONTENT_FILEPATH);
+        if (_pendingContentFiles.find(peerAddressHash) == _pendingContentFiles.end()) {
+            _pendingContentFiles.emplace(peerAddressHash, TEMPORARY_CONTENT_FILEPATH);
         }
-        if (!_pendingFileContent->open()) {
-            _pendingFileContent = nullptr;
+
+        QTemporaryFile& _pendingFileContent = _pendingContentFiles[peerAddressHash];
+        if (!_pendingFileContent.open()) {
+            _pendingContentFiles.erase(peerAddressHash);
             connection->respond(HTTPConnection::StatusCode400);
             return false;
         }
-        _pendingFileContent->seek(_pendingFileContent->size());
-        _pendingFileContent->write(dataChunk);
-        _pendingFileContent->close();
+        _pendingFileContent.seek(_pendingFileContent.size());
+        _pendingFileContent.write(dataChunk);
+        _pendingFileContent.close();
         
         // Respond immediately - will timeout if we wait for restore.
         connection->respond(HTTPConnection::StatusCode200);
         if (itemName == "restore-file-chunk-final" || itemName == "restore-file") {
             auto deferred = makePromise("recoverFromUploadedBackup");
 
-            deferred->then([this](QString error, QVariantMap result) {
-                _pendingFileContent = nullptr;
+            deferred->then([this, peerAddressHash](QString error, QVariantMap result) {
+                _pendingContentFiles.erase(peerAddressHash);
             });
 
-            _contentManager->recoverFromUploadedFile(deferred, _pendingFileContent->fileName());
-        } else {
+            _contentManager->recoverFromUploadedFile(deferred, _pendingFileContent.fileName());
         }
     } else if (filename.endsWith(".json", Qt::CaseInsensitive)
         || filename.endsWith(".json.gz", Qt::CaseInsensitive)) {
+        auto peerAddressHash = qHash(connection->socket()->peerAddress());
+        QByteArray& _pendingUploadedContent = _pendingUploadedContents[peerAddressHash];
         _pendingUploadedContent += dataChunk;
         connection->respond(HTTPConnection::StatusCode200);
 
@@ -2555,7 +2559,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
             // invoke our method to hand the new octree file off to the octree server
             QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
                 Qt::QueuedConnection, Q_ARG(QByteArray, _pendingUploadedContent));
-            _pendingUploadedContent.clear();
+            _pendingUploadedContents.erase(peerAddressHash);
         }
     } else {
         connection->respond(HTTPConnection::StatusCode400);

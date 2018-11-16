@@ -20,6 +20,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QThread>
 #include <QtCore/QUrl>
+#include <QHostAddress>
 #include <QAbstractNativeEventFilter>
 
 #include <Assignment.h>
@@ -283,8 +284,8 @@ private:
 
     QHash<QUuid, QPointer<HTTPSConnection>> _pendingOAuthConnections;
 
-    QByteArray _pendingUploadedContent;
-    std::unique_ptr<QTemporaryFile> _pendingFileContent;
+    std::unordered_map<uint, QByteArray> _pendingUploadedContents;
+    std::unordered_map<uint, QTemporaryFile> _pendingContentFiles;
 
     QThread _assetClientThread;
 };
