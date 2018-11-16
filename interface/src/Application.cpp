@@ -3431,26 +3431,37 @@ void Application::showHelp() {
     static const QString HAND_CONTROLLER_NAME_OCULUS_TOUCH = "oculus";
     static const QString HAND_CONTROLLER_NAME_WINDOWS_MR = "windowsMR";
 
+    static const QString VIVE_PLUGIN_NAME = "HTC Vive";
+    static const QString OCULUS_RIFT_PLUGIN_NAME = "Oculus Rift";
+    static const QString WINDOWS_MR_PLUGIN_NAME = "WindowsMR";
+
     static const QString TAB_KEYBOARD_MOUSE = "kbm";
     static const QString TAB_GAMEPAD = "gamepad";
     static const QString TAB_HAND_CONTROLLERS = "handControllers";
 
-    QString handControllerName = HAND_CONTROLLER_NAME_VIVE;
+    QString handControllerName;
     QString defaultTab = TAB_KEYBOARD_MOUSE;
 
-    if (PluginUtils::isViveControllerAvailable()) {
-        defaultTab = TAB_HAND_CONTROLLERS;
-        handControllerName = HAND_CONTROLLER_NAME_VIVE;
-    } else if (PluginUtils::isOculusTouchControllerAvailable()) {
-        defaultTab = TAB_HAND_CONTROLLERS;
-        handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
-    } else if (qApp->getActiveDisplayPlugin()->getName() == "WindowMS") {
+    if (PluginUtils::isHMDAvailable(WINDOWS_MR_PLUGIN_NAME)) {
         defaultTab = TAB_HAND_CONTROLLERS;
         handControllerName = HAND_CONTROLLER_NAME_WINDOWS_MR;
+    } else if (PluginUtils::isHMDAvailable(VIVE_PLUGIN_NAME)) {
+        defaultTab = TAB_HAND_CONTROLLERS;
+        handControllerName = HAND_CONTROLLER_NAME_VIVE;
+    } else if (PluginUtils::isHMDAvailable(OCULUS_RIFT_PLUGIN_NAME)) {
+        if (PluginUtils::isOculusTouchControllerAvailable()) {
+            defaultTab = TAB_HAND_CONTROLLERS;
+            handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
+        } else if (PluginUtils::isXboxControllerAvailable()) {
+            defaultTab = TAB_GAMEPAD;
+        } else {
+            defaultTab = TAB_KEYBOARD_MOUSE;
+        }
     } else if (PluginUtils::isXboxControllerAvailable()) {
         defaultTab = TAB_GAMEPAD;
+    } else {
+        defaultTab = TAB_KEYBOARD_MOUSE;
     }
-    // TODO need some way to detect windowsMR to load controls reference default tab in Help > Controls Reference menu.
 
     QUrlQuery queryString;
     queryString.addQueryItem("handControllerName", handControllerName);
