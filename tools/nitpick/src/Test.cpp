@@ -19,8 +19,8 @@
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
 
-#include "ui/AutoTester.h"
-extern AutoTester* autoTester;
+#include "ui/Nitpick.h"
+extern Nitpick* nitpick;
 
 #include <math.h>
 
@@ -30,9 +30,9 @@ Test::Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode) {
 
     _mismatchWindow.setModal(true);
 
-    if (autoTester) {
-        autoTester->setUserText(GIT_HUB_DEFAULT_USER);
-        autoTester->setBranchText(GIT_HUB_DEFAULT_BRANCH);
+    if (nitpick) {
+        nitpick->setUserText(GIT_HUB_DEFAULT_USER);
+        nitpick->setBranchText(GIT_HUB_DEFAULT_BRANCH);
     }
 }
 
@@ -167,7 +167,7 @@ void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestRe
 
     // Create text file describing the failure
     QTextStream stream(&descriptionFile);
-    stream << "Test failed in folder " << testResult._pathname.left(testResult._pathname.length() - 1) << endl; // remove trailing '/'
+    stream << "Test in folder " << testResult._pathname.left(testResult._pathname.length() - 1) << endl; // remove trailing '/'
     stream << "Expected image was    " << testResult._expectedImageFilename << endl;
     stream << "Actual image was      " << testResult._actualImageFilename << endl;
     stream << "Similarity index was  " << testResult._error << endl;
@@ -240,8 +240,8 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
     _expectedImagesFilenames.clear();
     _expectedImagesFullFilenames.clear();
 
-    QString branch = (branchFromCommandLine.isNull()) ? autoTester->getSelectedBranch() : branchFromCommandLine;
-    QString user = (userFromCommandLine.isNull()) ? autoTester->getSelectedUser() : userFromCommandLine;
+    QString branch = (branchFromCommandLine.isNull()) ? nitpick->getSelectedBranch() : branchFromCommandLine;
+    QString user = (userFromCommandLine.isNull()) ? nitpick->getSelectedUser() : userFromCommandLine;
 
     foreach(QString currentFilename, sortedTestResultsFilenames) {
         QString fullCurrentFilename = _snapshotDirectory + "/" + currentFilename;
@@ -268,7 +268,7 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
         }
     }
 
-    autoTester->downloadFiles(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames, (void *)this);
+    nitpick->downloadFiles(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames, (void *)this);
 }
 void Test::finishTestsEvaluation() {
     int numberOfFailures = compareImageLists();
@@ -288,7 +288,7 @@ void Test::finishTestsEvaluation() {
     }
 
     if (_isRunningInAutomaticTestRun) {
-        autoTester->automaticTestRunEvaluationComplete(zippedFolderName, numberOfFailures);
+        nitpick->automaticTestRunEvaluationComplete(zippedFolderName, numberOfFailures);
     }
 }
 
@@ -429,22 +429,22 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     QString line = stream.readLine();
 
     // Name of test is the string in the following line:
-    //        autoTester.perform("Apply Material Entities to Avatars", Script.resolvePath("."), function(testType) {...
+    //        nitpick.perform("Apply Material Entities to Avatars", Script.resolvePath("."), function(testType) {...
     const QString ws("\\h*");    //white-space character
-    const QString functionPerformName(ws + "autoTester" + ws + "\\." + ws + "perform");
+    const QString functionPerformName(ws + "nitpick" + ws + "\\." + ws + "perform");
     const QString quotedString("\\\".+\\\"");
     QString regexTestTitle(ws + functionPerformName + "\\(" + quotedString);
     QRegularExpression lineContainingTitle = QRegularExpression(regexTestTitle);
 
 
     // Each step is either of the following forms:
-    //        autoTester.addStepSnapshot("Take snapshot"...
-    //        autoTester.addStep("Clean up after test"...
-    const QString functionAddStepSnapshotName(ws + "autoTester" + ws + "\\." + ws + "addStepSnapshot");
+    //        nitpick.addStepSnapshot("Take snapshot"...
+    //        nitpick.addStep("Clean up after test"...
+    const QString functionAddStepSnapshotName(ws + "nitpick" + ws + "\\." + ws + "addStepSnapshot");
     const QString regexStepSnapshot(ws + functionAddStepSnapshotName + ws + "\\(" + ws + quotedString + ".*");
     const QRegularExpression lineStepSnapshot = QRegularExpression(regexStepSnapshot);
 
-    const QString functionAddStepName(ws + "autoTester" + ws + "\\." + ws + "addStep");
+    const QString functionAddStepName(ws + "nitpick" + ws + "\\." + ws + "addStep");
     const QString regexStep(ws + functionAddStepName + ws + "\\(" + ws + quotedString + ".*");
     const QRegularExpression lineStep = QRegularExpression(regexStep);
 
@@ -620,7 +620,7 @@ void Test::createTestAutoScript() {
     } 
     
     if (createTestAutoScript(_testDirectory)) {
-        QMessageBox::information(0, "Success", "'autoTester.js` script has been created");
+        QMessageBox::information(0, "Success", "'nitpick.js` script has been created");
     }
 }
 
@@ -653,7 +653,7 @@ void Test::createAllTestAutoScripts() {
         }
     }
 
-    QMessageBox::information(0, "Success", "'autoTester.js' scripts have been created");
+    QMessageBox::information(0, "Success", "'nitpick.js' scripts have been created");
 }
 
 bool Test::createTestAutoScript(const QString& directory) {
@@ -677,8 +677,8 @@ bool Test::createTestAutoScript(const QString& directory) {
 
     stream << "if (typeof PATH_TO_THE_REPO_PATH_UTILS_FILE === 'undefined') PATH_TO_THE_REPO_PATH_UTILS_FILE = 'https://raw.githubusercontent.com/highfidelity/hifi_tests/master/tests/utils/branchUtils.js';\n";
     stream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);\n";
-    stream << "var autoTester = createAutoTester(Script.resolvePath('.'));\n\n";
-    stream << "autoTester.enableAuto();\n\n";
+    stream << "var nitpick = createAutoTester(Script.resolvePath('.'));\n\n";
+    stream << "nitpick.enableAuto();\n\n";
     stream << "Script.include('./test.js?raw=true');\n";
 
     testAutoScriptFile.close();
@@ -751,29 +751,29 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     textStream << "// This is an automatically generated file, created by auto-tester" << endl;
 
     // Include 'autoTest.js'
-    QString branch = autoTester->getSelectedBranch();
-    QString user = autoTester->getSelectedUser();
+    QString branch = nitpick->getSelectedBranch();
+    QString user = nitpick->getSelectedUser();
 
     textStream << "PATH_TO_THE_REPO_PATH_UTILS_FILE = \"https://raw.githubusercontent.com/" + user + "/hifi_tests/" + branch +
                       "/tests/utils/branchUtils.js\";"
                << endl;
     textStream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);" << endl;
-    textStream << "var autoTester = createAutoTester(Script.resolvePath(\".\"));" << endl << endl;
+    textStream << "var nitpick = createAutoTester(Script.resolvePath(\".\"));" << endl << endl;
 
-    textStream << "var testsRootPath = autoTester.getTestsRootPath();" << endl << endl;
+    textStream << "var testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
 
     // Wait 10 seconds before starting
     textStream << "if (typeof Test !== 'undefined') {" << endl;
     textStream << "    Test.wait(10000);" << endl;
     textStream << "};" << endl << endl;
 
-    textStream << "autoTester.enableRecursive();" << endl;
-    textStream << "autoTester.enableAuto();" << endl << endl;
+    textStream << "nitpick.enableRecursive();" << endl;
+    textStream << "nitpick.enableAuto();" << endl << endl;
 
     // This is used to verify that the recursive test contains at least one test
     bool testFound{ false };
 
-    // Directories are included in reverse order.  The autoTester scripts use a stack mechanism,
+    // Directories are included in reverse order.  The nitpick scripts use a stack mechanism,
     // so this ensures that the tests run in alphabetical order (a convenience when debugging)
     QStringList directories;
 
@@ -819,7 +819,7 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     }
 
     textStream << endl;
-    textStream << "autoTester.runRecursive();" << endl;
+    textStream << "nitpick.runRecursive();" << endl;
 
     allTestsFilename.close();
 }
@@ -881,7 +881,7 @@ void Test::createTestsOutline() {
         // The directory name appears after the last slash (we are assured there is at least 1).
         QString directoryName = directory.right(directory.length() - directory.lastIndexOf("/") - 1);
 
-        // autoTester is run on a clone of the repository.  We use relative paths, so we can use both local disk and GitHub
+        // nitpick is run on a clone of the repository.  We use relative paths, so we can use both local disk and GitHub
         // For a test in "D:/GitHub/hifi_tests/tests/content/entity/zone/ambientLightInheritance" the
         // GitHub URL  is "./content/entity/zone/ambientLightInheritance?raw=true"
         QString partialPath = directory.right(directory.length() - (directory.lastIndexOf("/tests/") + QString("/tests").length() + 1));
@@ -937,11 +937,11 @@ void Test::createTestRailTestCases() {
     }
 
     if (_testRailCreateMode == PYTHON) {
-        _testRailInterface.createTestSuitePython(_testDirectory, outputDirectory, autoTester->getSelectedUser(),
-                                              autoTester->getSelectedBranch());
+        _testRailInterface.createTestSuitePython(_testDirectory, outputDirectory, nitpick->getSelectedUser(),
+                                              nitpick->getSelectedBranch());
     } else {
-        _testRailInterface.createTestSuiteXML(_testDirectory, outputDirectory, autoTester->getSelectedUser(),
-                                           autoTester->getSelectedBranch());
+        _testRailInterface.createTestSuiteXML(_testDirectory, outputDirectory, nitpick->getSelectedUser(),
+                                           nitpick->getSelectedBranch());
     }
 }
 
@@ -1052,11 +1052,11 @@ void Test::createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit) {
         return;
     }
 
-    QString tempDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store temporary files in",
+    QString snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store temporary files in",
                                                               nullptr, QFileDialog::ShowDirsOnly);
-    if (tempDirectory.isNull()) {
+    if (snapshotDirectory.isNull()) {
         return;
     }
 
-    _awsInterface.createWebPageFromResults(testResults, tempDirectory, updateAWSCheckBox, urlLineEdit);
+    _awsInterface.createWebPageFromResults(testResults, snapshotDirectory, updateAWSCheckBox, urlLineEdit);
 }

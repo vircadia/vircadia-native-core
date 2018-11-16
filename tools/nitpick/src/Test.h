@@ -146,7 +146,7 @@ private:
 
     const QString DATETIME_FORMAT{ "yyyy-MM-dd_hh-mm-ss" };
 
-    // NOTE: these need to match the appropriate var's in autoTester.js
+    // NOTE: these need to match the appropriate var's in nitpick.js
     //    var advanceKey = "n";
     //    var pathSeparator = ".";
     const QString ADVANCE_KEY{ "n" };
