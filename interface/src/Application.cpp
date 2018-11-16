@@ -6243,7 +6243,7 @@ void Application::update(float deltaTime) {
         auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
         auto upVec = myAvatar->getWorldOrientation() * Vectors::UNIT_Y;
         auto offset = headLookVec * 1.0f;
-        auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
+        auto newOverlayPositionVec = (cameraPositionVec + offset);
         auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
 
         if (pointAngle > 30.0f) {
@@ -6702,7 +6702,7 @@ void Application::keyboardRaisedChanged(bool raised) {
     if (raised && !_loginDialogOverlayID.isNull()) {
         QVariantMap properties {
             { "parentID", _loginDialogOverlayID },
-            { "localPosition", vec3toVariant(glm::vec3(0.0f, 1.0f, -0.2f)) }
+            { "localPosition", vec3toVariant(glm::vec3(-0.3f, -0.3f, 0.2f)) }
         };
         getOverlays().editOverlay(keyboard->getAnchorID(), properties);
     }
@@ -8077,9 +8077,9 @@ void Application::loadDomainConnectionDialog() {
 }
 
 void Application::toggleLogDialog() {
-    //if (getLoginDialogPoppedUp()) {
-    //    return;
-    //}
+    if (getLoginDialogPoppedUp()) {
+        return;
+    }
     if (! _logDialog) {
         _logDialog = new LogDialog(nullptr, getLogger());
     }
