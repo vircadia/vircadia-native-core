@@ -2524,10 +2524,11 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
         const auto peerAddressHash = qHash(connection->socket()->peerAddress());
 
         if (_pendingContentFiles.find(peerAddressHash) == _pendingContentFiles.end()) {
-            _pendingContentFiles.emplace(peerAddressHash, TEMPORARY_CONTENT_FILEPATH);
+            std::unique_ptr<QTemporaryFile> newTemp(new QTemporaryFile(TEMPORARY_CONTENT_FILEPATH));
+            _pendingContentFiles[peerAddressHash] = std::move(newTemp);
         }
 
-        QTemporaryFile& _pendingFileContent = _pendingContentFiles[peerAddressHash];
+        QTemporaryFile& _pendingFileContent = *_pendingContentFiles[peerAddressHash];
         if (!_pendingFileContent.open()) {
             _pendingContentFiles.erase(peerAddressHash);
             connection->respond(HTTPConnection::StatusCode400);

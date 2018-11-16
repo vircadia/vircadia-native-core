@@ -285,7 +285,7 @@ private:
     QHash<QUuid, QPointer<HTTPSConnection>> _pendingOAuthConnections;
 
     std::unordered_map<uint, QByteArray> _pendingUploadedContents;
-    std::unordered_map<uint, QTemporaryFile> _pendingContentFiles;
+    std::unordered_map<uint, std::unique_ptr<QTemporaryFile>> _pendingContentFiles;
 
     QThread _assetClientThread;
 };
