@@ -15,64 +15,88 @@ logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 remote_name = "upstream"
 remote_master_branch = "{}/master".format(remote_name)
 
+
+class VersionParser:
+    """A parser for version numbers"""
+    def __init__(self, versionString):
+        # Validate that user passed a valid version
+        VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
+        match = VERSION_RE.match(versionString)
+        if not match:
+            raise ValueError("Invalid version (should be X.Y.Z)")
+
+        # Parse the version component and build proper version strings
+        self.major = int(match.group(1))
+        self.minor = int(match.group(2))
+        self.patch = int(match.group(3))
+        self.version = "v{}.{}.{}".format(self.major, self.minor, self.patch) # clean up version
+
+        self.is_major_release = False
+        self.is_minor_release = False
+        self.is_patch_release = False
+        if self.patch != 0:
+            self.is_patch_release = True
+            self.previous_version = "v{}.{}.{}".format(self.major, self.minor, self.patch - 1)
+        elif self.minor != 0:
+            self.is_minor_release = True
+            self.previous_version = "v{}.{}.{}".format(self.major, self.minor - 1, 0)
+        else:
+            self.is_major_release = True
+            self.previous_version = "v{}.{}.{}".format(self.major - 1, 0, 0)
+            raise ValueError("Major releases not yet supported")
+
+        # Build the branch names
+        self.previous_rc_branch = "{}-rc".format(self.previous_version)
+        self.base_branch = "{}-rc-base".format(self.version)
+        self.rc_branch = "{}-rc".format(self.version)
+        self.remote_previous_rc_branch = "{}/{}".format(remote_name, self.previous_rc_branch)
+        self.remote_base_branch = "{}/{}".format(remote_name, self.base_branch)
+        self.remote_rc_branch = "{}/{}".format(remote_name, self.rc_branch)
+
+
 def checkVersionBranches(version):
     """Check that the branches for a given version were created properly."""
 
+    parser = VersionParser(version)
+    major = parser.major
+    minor = parser.minor
+    patch = parser.patch
+    previous_version = parser.previous_version
+    version = parser.version
+
+    is_major_release = parser.is_major_release
+    is_minor_release = parser.is_minor_release
+    is_patch_release = parser.is_patch_release
+
+    remote_previous_rc_branch = parser.remote_previous_rc_branch
+    remote_base_branch = parser.remote_base_branch
+    remote_rc_branch = parser.remote_rc_branch
+
     repo = git.Repository(git.Repository.get_base_directory())
 
-    # Validate that user passed a valid version
-    VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
-    match = VERSION_RE.match(version)
-    if not match:
-        raise ValueError("Invalid version (should be X.Y.Z)")
-
-    # Parse the version component and build proper version strings
-    major = int(match.group(1))
-    minor = int(match.group(2))
-    patch = int(match.group(3))
-    version = "v{}.{}.{}".format(major, minor, patch) # clean up version
-
-    is_major_release = False
-    is_minor_release = False
-    is_patch_release = False
-    if patch != 0:
-        is_patch_release = True
-        previous_version = "v{}.{}.{}".format(major, minor, patch - 1)
-    elif minor != 0:
-        is_minor_release = True
-        previous_version = "v{}.{}.{}".format(major, minor - 1, 0)
-    else:
-        is_major_release = True
-        raise ValueError("Major releases not yet supported")
-
-    # Build the branch names
-    previous_rc_branch = "{}/{}-rc".format(remote_name, previous_version)
-    base_branch = "{}/{}-rc-base".format(remote_name, version)
-    rc_branch = "{}/{}-rc".format(remote_name, version)
-
     # Verify the branches' existance
-    if not repo.does_branch_exist(previous_rc_branch):
-        raise ValueError("Previous RC branch not found: {}".format(previous_rc_branch))
+    if not repo.does_branch_exist(remote_previous_rc_branch):
+        raise ValueError("Previous RC branch not found: {}".format(remote_previous_rc_branch))
 
-    if not repo.does_branch_exist(base_branch):
-        raise ValueError("Base branch not found: {}".format(base_branch))
+    if not repo.does_branch_exist(remote_base_branch):
+        raise ValueError("Base branch not found: {}".format(remote_base_branch))
 
-    if not repo.does_branch_exist(rc_branch):
-        raise ValueError("RC branch not found: {}".format(rc_branch))
+    if not repo.does_branch_exist(remote_rc_branch):
+        raise ValueError("RC branch not found: {}".format(remote_rc_branch))
 
     # Figure out SHA for each of the branches
-    previous_rc_commit = repo.git_rev_parse([previous_rc_branch])
-    base_commit = repo.git_rev_parse([base_branch])
-    rc_commit = repo.git_rev_parse([rc_branch])
+    previous_rc_commit = repo.git_rev_parse([remote_previous_rc_branch])
+    base_commit = repo.git_rev_parse([remote_base_branch])
+    rc_commit = repo.git_rev_parse([remote_rc_branch])
 
     # Check the base branch is an ancestor of the rc branch
     if not repo.is_ancestor(base_commit, rc_commit):
-        raise ValueError("{} is not an ancesctor of {}".format(base_branch, rc_branch))
+        raise ValueError("{} is not an ancesctor of {}".format(remote_base_branch, remote_rc_branch))
 
     # Check that the base branch is the merge base of the previous and current RCs
     merge_base = repo.get_merge_base(previous_rc_commit, rc_commit)
     if base_commit != merge_base:
-        raise ValueError("Base branch is not the merge base between {} and {}".format(previous_rc_branch, rc_branch))
+        raise ValueError("Base branch is not the merge base between {} and {}".format(remote_previous_rc_branch, remote_rc_branch))
 
     # For patch releases, warn if the base commit is not the previous RC commit
     if is_patch_release:
@@ -86,12 +110,30 @@ def checkVersionBranches(version):
         # Check base branch is part of the previous RC
         previous_rc_base_commit = repo.get_merge_base(previous_rc_commit, remote_master_branch)
         if repo.is_ancestor(base_commit, previous_rc_base_commit):
-            raise ValueError("{} is older than {}".format(base_branch, rc_branch))
+            raise ValueError("{} is older than {}".format(remote_base_branch, remote_rc_branch))
 
     print("[SUCCESS] Checked {}".format(version))
 
 def createVersionBranches(version):
     """Create the branches for a given version."""
+
+    parser = VersionParser(version)
+    major = parser.major
+    minor = parser.minor
+    patch = parser.patch
+    previous_version = parser.previous_version
+    version = parser.version
+
+    is_major_release = parser.is_major_release
+    is_minor_release = parser.is_minor_release
+    is_patch_release = parser.is_patch_release
+
+    previous_rc_branch = parser.previous_rc_branch
+    base_branch = parser.base_branch
+    rc_branch = parser.rc_branch
+    remote_previous_rc_branch = parser.remote_previous_rc_branch
+    remote_base_branch = parser.remote_base_branch
+    remote_rc_branch = parser.remote_rc_branch
 
     repo = git.Repository(git.Repository.get_base_directory())
 
@@ -102,39 +144,6 @@ def createVersionBranches(version):
     # Validate the user has no pending changes
     if repo.is_working_tree_dirty():
         raise ValueError("Your working tree has pending changes. You must have a clean working tree before proceeding.")
-
-    # Validate that user passed a valid version
-    VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
-    match = VERSION_RE.match(version)
-    if not match:
-        raise ValueError("Invalid version (should be X.Y.Z)")
-
-    # Parse the version component and build proper version strings
-    major = int(match.group(1))
-    minor = int(match.group(2))
-    patch = int(match.group(3))
-    version = "v{}.{}.{}".format(major, minor, patch) # clean up version
-
-    is_major_release = False
-    is_minor_release = False
-    is_patch_release = False
-    if patch != 0:
-        is_patch_release = True
-        previous_version = "v{}.{}.{}".format(major, minor, patch - 1)
-    elif minor != 0:
-        is_minor_release = True
-        previous_version = "v{}.{}.{}".format(major, minor - 1, 0)
-    else:
-        is_major_release = True
-        raise ValueError("Major releases not yet supported")
-
-    # Build the branch names
-    previous_rc_branch = "{}-rc".format(previous_version)
-    base_branch = "{}-rc-base".format(version)
-    rc_branch = "{}-rc".format(version)
-    remote_previous_rc_branch = "{}/{}".format(remote_name, previous_rc_branch)
-    remote_base_branch = "{}/{}".format(remote_name, base_branch)
-    remote_rc_branch = "{}/{}".format(remote_name, rc_branch)
 
     # Make sure the remote is up to date
     repo.git_fetch([remote_name])
@@ -200,6 +209,8 @@ def createVersionBranches(version):
     print("[SUCCESS] Created {} and {}".format(base_branch, rc_branch))
     print("[SUCCESS] You can make the PR from the following webpage:")
     print("[SUCCESS] https://github.com/highfidelity/hifi/compare/{}...{}".format(base_branch, rc_branch))
+    if is_patch_release:
+        print("[SUCCESS] NOTE: You will have to wait for the first fix to be merged into the RC branch to be able to create the PR")
 
 def usage():
     """Print usage."""
