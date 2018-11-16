@@ -141,7 +141,7 @@ namespace MenuOption {
     const QString OpenVrThreadedSubmit = "OpenVR Threaded Submit"; 
     const QString OutputMenu = "Display";
     const QString Overlays = "Show Overlays";
-    const QString PackageModel = "Package Model as .fst...";
+    const QString PackageModel = "Package Avatar as .fst...";
     const QString Pair = "Pair";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
     const QString VerboseLogging = "Verbose Logging";

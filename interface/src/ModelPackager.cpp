@@ -68,7 +68,6 @@ bool ModelPackager::selectModel() {
     ModelSelector selector;
     if(selector.exec() == QDialog::Accepted) {
         _modelFile = selector.getFileInfo();
-        _modelType = selector.getModelType();
         return true;
     }
     return false;
@@ -122,28 +121,26 @@ bool ModelPackager::loadModel() {
 
 bool ModelPackager::editProperties() {
     // open the dialog to configure the rest
-    ModelPropertiesDialog properties(_modelType, _mapping, _modelFile.path(), *_hfmModel);
+    ModelPropertiesDialog properties(_mapping, _modelFile.path(), *_hfmModel);
     if (properties.exec() == QDialog::Rejected) {
         return false;
     }
     _mapping = properties.getMapping();
 
-    if (_modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL) {
-        // Make sure that a mapping for the root joint has been specified
-        QVariantHash joints = _mapping.value(JOINT_FIELD).toHash();
-        if (!joints.contains("jointRoot")) {
-            qWarning() << "root joint not configured for skeleton.";
+    // Make sure that a mapping for the root joint has been specified
+    QVariantHash joints = _mapping.value(JOINT_FIELD).toHash();
+    if (!joints.contains("jointRoot")) {
+        qWarning() << "root joint not configured for skeleton.";
         
-            QString message = "Your did not configure a root joint for your skeleton model.\n\nPackaging will be canceled.";
-            QMessageBox msgBox;
-            msgBox.setWindowTitle("Model Packager");
-            msgBox.setText(message);
-            msgBox.setStandardButtons(QMessageBox::Ok);
-            msgBox.setIcon(QMessageBox::Warning);
-            msgBox.exec();
+        QString message = "Your did not configure a root joint for your skeleton model.\n\nPackaging will be canceled.";
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("Model Packager");
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
         
-            return false;
-        }
+        return false;
     }
     
     return true;
@@ -237,8 +234,6 @@ bool ModelPackager::zipModel() {
 
 void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename, const hfm::Model& hfmModel) {
 
-    bool isBodyType = _modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL;
-
     // mixamo files - in the event that a mixamo file was edited by some other tool, it's likely the applicationName will
     // be rewritten, so we detect the existence of several different blendshapes which indicate we're likely a mixamo file
     bool likelyMixamoFile = hfmModel.applicationName == "mixamo.com" ||
@@ -279,19 +274,17 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
         joints.insert("jointNeck", hfmModel.jointIndices.contains("jointNeck") ? "jointNeck" : "Neck");
     }
     
-    if (isBodyType) {
-        if (!joints.contains("jointRoot")) {
-            joints.insert("jointRoot", "Hips");
-        }
-        if (!joints.contains("jointLean")) {
-            joints.insert("jointLean", "Spine");
-        }
-        if (!joints.contains("jointLeftHand")) {
-            joints.insert("jointLeftHand", "LeftHand");
-        }
-        if (!joints.contains("jointRightHand")) {
-            joints.insert("jointRightHand", "RightHand");
-        }
+    if (!joints.contains("jointRoot")) {
+        joints.insert("jointRoot", "Hips");
+    }
+    if (!joints.contains("jointLean")) {
+        joints.insert("jointLean", "Spine");
+    }
+    if (!joints.contains("jointLeftHand")) {
+        joints.insert("jointLeftHand", "LeftHand");
+    }
+    if (!joints.contains("jointRightHand")) {
+        joints.insert("jointRightHand", "RightHand");
     }
     
     if (!joints.contains("jointHead")) {
@@ -301,13 +294,11 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
 
     mapping.insert(JOINT_FIELD, joints);
 
-    if (isBodyType) {
-        if (!mapping.contains(FREE_JOINT_FIELD)) {
-            mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
-            mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
-            mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
-            mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
-        }
+    if (!mapping.contains(FREE_JOINT_FIELD)) {
+        mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
+        mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
+        mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
+        mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
     }
     
     // If there are no blendshape mappings, and we detect that this is likely a mixamo file,

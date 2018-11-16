@@ -1276,7 +1276,7 @@ function loaded() {
         refreshSortOrder();
         refreshEntities();
         
-        window.onresize = updateColumnWidths;
+        window.addEventListener("resize", updateColumnWidths);
     });
     
     augmentSpinButtons();

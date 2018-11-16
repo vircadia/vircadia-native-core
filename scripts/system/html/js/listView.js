@@ -72,11 +72,6 @@ ListView.prototype = {
         }
     },
 
-    onScroll: function()  {
-        var that = this.listView;
-        that.scroll();
-    },
-
     scroll: function() {
         let scrollTop = this.elTableScroll.scrollTop;       
         let scrollHeight = this.getScrollHeight();
@@ -244,18 +239,13 @@ ListView.prototype = {
         }
     },
 
-    onResize: function() {
-        var that = this.listView;
-        that.resize();
-    },
-    
     resize: function() {        
         if (!this.elTableBody || !this.elTableScroll) {
             debugPrint("ListView.resize - no valid table body or table scroll element");
             return;
         }
 
-        let prevScrollTop = this.elTableScroll.scrollTop;         
+        let prevScrollTop = this.elTableScroll.scrollTop;  
 
         // take up available window space
         this.elTableScroll.style.height = window.innerHeight - WINDOW_NONVARIABLE_HEIGHT;
@@ -305,10 +295,10 @@ ListView.prototype = {
         this.elTableBody.appendChild(this.elBottomBuffer);
         this.elBottomBuffer.setAttribute("height", 0);
 
-        this.elTableScroll.listView = this;
-        this.elTableScroll.onscroll = this.onScroll;
-        window.listView = this;
-        window.onresize = this.onResize;
+        this.onScroll = this.scroll.bind(this);
+        this.elTableScroll.addEventListener("scroll", this.onScroll);
+        this.onResize = this.resize.bind(this);
+        window.addEventListener("resize", this.onResize);
 
         // initialize all row elements
         this.resize();
