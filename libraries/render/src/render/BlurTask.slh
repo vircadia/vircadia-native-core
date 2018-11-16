@@ -25,7 +25,7 @@ LAYOUT(binding=0) uniform blurParamsBuffer {
     BlurParameters parameters;
 };
 
-vec2 getViewportInvWidthHeight() {
+vec2 getInvWidthHeight() {
     return parameters.resolutionInfo.zw;
 }
 

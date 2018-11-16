@@ -1,0 +1,28 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  ssao_mip_depth.frag
+//  fragment shader
+//
+//  Created by Olivier Prat on 4/18/18.
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@include gpu/ShaderConstants.h@>
+
+LAYOUT(binding=GPU_TEXTURE_MIP_CREATION_INPUT) uniform sampler2D depthTexture;
+
+layout(location=0) in vec2 varTexCoord0;
+
+layout(location=0) out vec4 outFragColor;
+
+void main(void) {
+	vec4 depths = textureGather(depthTexture, varTexCoord0);
+	// Keep the minimum depth
+	float outZ = min(depths.w, min(depths.z, min(depths.x, depths.y)));
+
+    outFragColor = vec4(vec3(outZ), 1.0);
+}

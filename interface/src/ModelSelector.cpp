@@ -27,17 +27,10 @@ ModelSelector::ModelSelector() {
     
     setWindowTitle("Select Model");
     setLayout(form);
-    
+    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     _browseButton = new QPushButton("Browse", this);
     connect(_browseButton, &QPushButton::clicked, this, &ModelSelector::browse);
     form->addRow("Model File:", _browseButton);
-    
-    _modelType = new QComboBox(this);
-
-    _modelType->addItem(AVATAR_HEAD_AND_BODY_STRING);
-    _modelType->addItem(AVATAR_ATTACHEMENT_STRING);
-    _modelType->addItem(ENTITY_MODEL_STRING);
-    form->addRow("Model Type:", _modelType);
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     connect(buttons, &QDialogButtonBox::accepted, this, &ModelSelector::accept);
@@ -47,19 +40,6 @@ ModelSelector::ModelSelector() {
 
 QFileInfo ModelSelector::getFileInfo() const {
     return _modelFile;
-}
-
-FSTReader::ModelType ModelSelector::getModelType() const {
-    QString text = _modelType->currentText();
-    
-if (text == AVATAR_HEAD_AND_BODY_STRING) {
-        return FSTReader::HEAD_AND_BODY_MODEL;
-    } else if (text == AVATAR_ATTACHEMENT_STRING) {
-        return FSTReader::ATTACHMENT_MODEL;
-    } else if (text == ENTITY_MODEL_STRING) {
-        return FSTReader::ENTITY_MODEL;
-    } 
-    Q_UNREACHABLE();
 }
 
 void ModelSelector::accept() {

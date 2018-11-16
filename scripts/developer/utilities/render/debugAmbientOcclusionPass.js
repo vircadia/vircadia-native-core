@@ -1,38 +1,53 @@
+"use strict";
+
 //
-//  debugSurfaceGeometryPass.js
+//  debugAmbientOcclusionPass.js
+//  tablet-sample-app
 //
-//  Created by Sam Gateau on 6/6/2016
-//  Copyright 2016 High Fidelity, Inc.
+//  Created by Olivier Prat on April 19 2018.
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// Set up the qml ui
-var qml = Script.resolvePath('ambientOcclusionPass.qml');
-var window = new OverlayWindow({
-    title: 'Ambient Occlusion Pass',
-    source: qml,
-    width: 400, height: 300,
-});
-window.setPosition(Window.innerWidth - 420, 50 + 550 + 50);
-window.closed.connect(function() { Script.stop(); });
+(function() {
+    var AppUi = Script.require('appUi');
 
+    var onMousePressEvent = function (e) {
+    };
+    Controller.mousePressEvent.connect(onMousePressEvent);
 
-var moveDebugCursor = false;
-Controller.mousePressEvent.connect(function (e) {
-	if (e.isMiddleButton) {
-      	moveDebugCursor = true;
-        setDebugCursor(e.x, e.y);
+    var onMouseReleaseEvent = function () {
+    };
+    Controller.mouseReleaseEvent.connect(onMouseReleaseEvent);
+
+    var onMouseMoveEvent = function (e) {
+    };
+    Controller.mouseMoveEvent.connect(onMouseMoveEvent);
+
+    function fromQml(message) {
+   
     }
-});
-Controller.mouseReleaseEvent.connect(function() { moveDebugCursor = false; });
-Controller.mouseMoveEvent.connect(function (e) { if (moveDebugCursor) setDebugCursor(e.x, e.y); });
 
-
-function setDebugCursor(x, y) {
-    nx = (x / Window.innerWidth);
-    ny = 1.0 - ((y) / (Window.innerHeight - 32));
-
-     Render.getConfig("RenderMainView").getConfig("DebugAmbientOcclusion").debugCursorTexcoord = { x: nx, y: ny };
-}
+    var ui;
+    function startup() {
+        ui = new AppUi({
+            buttonName: "AO",
+            home: Script.resolvePath("ambientOcclusionPass.qml"),
+            onMessage: fromQml,
+            //normalButton: Script.resolvePath("../../../system/assets/images/ao-i.svg"),
+            //activeButton: Script.resolvePath("../../../system/assets/images/ao-a.svg")
+        });
+    }
+    startup();
+    Script.scriptEnding.connect(function () {
+        Controller.mousePressEvent.disconnect(onMousePressEvent);
+        Controller.mouseReleaseEvent.disconnect(onMouseReleaseEvent);
+        Controller.mouseMoveEvent.disconnect(onMouseMoveEvent);
+        pages.clear();
+        // killEngineInspectorView();
+        // killCullInspectorView();
+        // killEngineLODWindow();
+    });
+}()); 
