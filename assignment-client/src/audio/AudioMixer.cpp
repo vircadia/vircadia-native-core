@@ -552,8 +552,18 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
         const QString THROTTLE_START_KEY = "throttle_start";
         const QString THROTTLE_BACKOFF_KEY = "throttle_backoff";
 
-        _throttleStartTarget = audioThreadingGroupObject[THROTTLE_START_KEY].toDouble(_throttleStartTarget);
-        _throttleBackoffTarget = audioThreadingGroupObject[THROTTLE_BACKOFF_KEY].toDouble(_throttleBackoffTarget);
+        float settingsThrottleStart = audioThreadingGroupObject[THROTTLE_START_KEY].toDouble(_throttleStartTarget);
+        float settingsThrottleBackoff = audioThreadingGroupObject[THROTTLE_BACKOFF_KEY].toDouble(_throttleBackoffTarget);
+
+        if (settingsThrottleBackoff > settingsThrottleStart) {
+            qCWarning(audio) << "Throttle backoff target cannot be higher than throttle start target. Using default values.";
+        } else if (settingsThrottleBackoff < 0.0f || settingsThrottleStart > 1.0f) {
+            qCWarning(audio) << "Throttle start and backoff targets must be greater than or equal to 0.0"
+                << "and lesser than or equal to 1.0. Using default values.";
+        } else {
+            _throttleStartTarget = settingsThrottleStart;
+            _throttleBackoffTarget = settingsThrottleBackoff;
+        }
 
         qCDebug(audio) << "Throttle Start:" << _throttleStartTarget << "Throttle Backoff:" << _throttleBackoffTarget;
     }
