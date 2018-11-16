@@ -2268,23 +2268,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snapshot/snap.wav"));
 
-    QVariant testProperty = property(hifi::properties::TEST);
-    qDebug() << testProperty;
-    if (testProperty.isValid()) {
-        const auto testScript = property(hifi::properties::TEST).toUrl();
-        // Set last parameter to exit interface when the test script finishes, if so requested
-        DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
-        // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
-        if (arguments().contains("--url")) {
-            auto reply = SandboxUtils::getStatus();
-            connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
-        }
-    } else {
-        PROFILE_RANGE(render, "GetSandboxStatus");
-        auto reply = SandboxUtils::getStatus();
-        connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
-    }
-
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
     static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
     _addAssetToWorldResizeTimer.setInterval(ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS); // 1s, Qt::CoarseTimer acceptable
@@ -2347,6 +2330,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
     DependencyManager::get<Keyboard>()->createKeyboard();
+
+    connect(DependencyManager::get<Keyboard>().data(), SIGNAL(keyboardRaisedChanged(bool)), this, SLOT(onKeyboardRaisedChanged(bool)));
 
     _pendingIdleEvent = false;
     _pendingRenderEvent = false;
@@ -5266,8 +5251,7 @@ void Application::pauseUntilLoginDetermined() {
     // save interstitial mode setting until resuming.
     _interstitialModeEnabled = nodeList->getDomainHandler().getInterstitialModeEnabled();
     nodeList->getDomainHandler().setInterstitialModeEnabled(false);
-    // disconnect domain handler.
-    nodeList->getDomainHandler().disconnect();
+
     auto menu = Menu::getInstance();
     menu->getMenu("Edit")->setVisible(false);
     menu->getMenu("View")->setVisible(false);
@@ -5280,6 +5264,9 @@ void Application::pauseUntilLoginDetermined() {
     _previousCameraMode = _myCamera.getMode();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
     cameraModeChanged();
+
+    // disconnect domain handler.
+    nodeList->getDomainHandler().disconnect();
 }
 
 void Application::resumeAfterLoginDialogActionTaken() {
@@ -5314,7 +5301,20 @@ void Application::resumeAfterLoginDialogActionTaken() {
     if (!accountManager->isLoggedIn()) {
         addressManager->goToEntry();
     } else {
-        addressManager->loadSettings();
+        QVariant testProperty = property(hifi::properties::TEST);
+        qDebug() << testProperty;
+        if (testProperty.isValid()) {
+            const auto testScript = property(hifi::properties::TEST).toUrl();
+            // Set last parameter to exit interface when the test script finishes, if so requested
+            DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
+            // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
+            if (arguments().contains("--url")) {
+                auto reply = SandboxUtils::getStatus();
+                connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
+            }
+        } else {
+            addressManager->loadSettings();
+        }
     }
 
     auto menu = Menu::getInstance();
@@ -5935,10 +5935,6 @@ void Application::update(float deltaTime) {
         if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
             keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData);
         }
-        if (!_loginDialogOverlayID.isNull()) {
-            _loginPointerManager.update();
-        }
-
         // Transfer the user inputs to the driveKeys
         // FIXME can we drop drive keys and just have the avatar read the action states directly?
         myAvatar->clearDriveKeys();
@@ -6231,6 +6227,36 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
     }
+    if (!_loginDialogOverlayID.isNull()) {
+        _loginPointerManager.update();
+    }
+
+    if (!_loginDialogOverlayID.isNull()) {
+        auto overlayPosition = getOverlays().getProperty(_loginDialogOverlayID, "position");
+        auto overlayPositionVec = vec3FromVariant(overlayPosition.value);
+        //auto avatarHeadPosition = myAvatar->getHeadPosition();
+        //auto avatarHeadOrientation = myAvatar->getHeadOrientation();
+        //auto headLookVec = avatarHeadOrientation * Vectors::FRONT;
+        //auto overlayToHeadVec = positionVec - avatarHeadPosition;
+        auto cameraPositionVec = _myCamera.getPosition();
+        auto cameraOrientation = _myCamera.getOrientation();
+        auto headLookVec = (cameraOrientation * Vectors::FRONT);
+        auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
+        //auto lookAtQuat = glm::inverse(glm::quat_cast(glm::lookAt(positionVec, avatarHeadPosition, avatarHeadOrientation * Vectors::UNIT_Y)));
+        auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
+        auto upVec = myAvatar->getWorldOrientation() * Vectors::UNIT_Y;
+        auto offset = headLookVec * 1.0f;
+        auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
+        auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
+
+        if (pointAngle > 30.0f) {
+            QVariantMap properties {
+                {"position", vec3toVariant(newOverlayPositionVec)},
+                {"orientation", quatToVariant(newOverlayOrientation)}
+            };
+            getOverlays().editOverlay(_loginDialogOverlayID, properties);
+        }
+    }
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -6339,26 +6365,6 @@ void Application::update(float deltaTime) {
     { // Game loop is done, mark the end of the frame for the scene transactions and the render loop to take over
         PerformanceTimer perfTimer("enqueueFrame");
         getMain3DScene()->enqueueFrame();
-    }
-
-    if (!_loginDialogOverlayID.isNull()) {
-        auto position = getOverlays().getProperty(_loginDialogOverlayID, "position");
-        auto positionVec = vec3FromVariant(position.value);
-        auto avatarHeadPosition = myAvatar->getHeadPosition();
-        auto avatarHeadOrientation = myAvatar->getHeadOrientation();
-        auto headLookVec = avatarHeadOrientation * Vectors::FRONT;
-        auto overlayToHeadVec = positionVec - avatarHeadPosition;
-        //auto lookAtQuat = glm::inverse(glm::quat_cast(glm::lookAt(positionVec, avatarHeadPosition, avatarHeadOrientation * Vectors::UNIT_Y)));
-        QVariantMap properties;
-        if (glm::all(glm::greaterThan(glm::abs(vec3FromVariant(position.value) - avatarHeadPosition), Vectors::ONE * 0.1f))) {
-            properties["position"] = vec3toVariant(getCamera().getPosition() - glm::vec3(0.0f, -0.1f, 1.0f));
-        }
-        if (fabs(angleBetween(headLookVec, overlayToHeadVec) * 180.0f / PI) > 30.0f) {
-            properties["orientation"] = quatToVariant(avatarHeadOrientation);
-        }
-        if (!properties.isEmpty()) {
-            getOverlays().editOverlay(_loginDialogOverlayID, properties);
-        }
     }
 }
 
@@ -6690,6 +6696,18 @@ void Application::hmdVisibleChanged(bool visible) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "start", Qt::QueuedConnection);
     } else {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop", Qt::QueuedConnection);
+    }
+}
+
+void Application::onKeyboardRaisedChanged(bool raised) {
+    auto keyboard = DependencyManager::get<Keyboard>().data();
+    auto keyboardParentID = getOverlays().getProperty(keyboard->getAnchorID(), "parentID");
+    if (raised && !_loginDialogOverlayID.isNull()) {
+        QVariantMap properties {
+            { "parentID", _loginDialogOverlayID },
+            { "localPosition", vec3toVariant(glm::vec3(0.0f, 1.0f, -0.2f)) }
+        };
+        getOverlays().editOverlay(keyboard->getAnchorID(), properties);
     }
 }
 
@@ -8062,9 +8080,9 @@ void Application::loadDomainConnectionDialog() {
 }
 
 void Application::toggleLogDialog() {
-    if (getLoginDialogPoppedUp()) {
-        return;
-    }
+    //if (getLoginDialogPoppedUp()) {
+    //    return;
+    //}
     if (! _logDialog) {
         _logDialog = new LogDialog(nullptr, getLogger());
     }
@@ -8593,31 +8611,21 @@ void Application::setShowBulletConstraintLimits(bool value) {
 }
 
 void Application::createLoginDialogOverlay() {
-    auto HMD = DependencyManager::get<HMDScriptingInterface>();
-    auto headInt = _controllerScriptingInterface->getActions()["Head"].toInt();
-    auto headPose = _controllerScriptingInterface->getPoseValue(headInt);
-    // reference vector for overlay to spawn.
-    glm::vec3 refOverlayVec;
+    auto cameraPosition = _myCamera.getPosition();
+    auto cameraOrientation = _myCamera.getOrientation();
+    auto upVec = getMyAvatar()->getWorldOrientation() * Vectors::UNIT_Y;
+    auto headLookVec = (cameraOrientation * Vectors::FRONT);
     // DEFAULT_DPI / tablet scale percentage
     float overlayDpi = 31.0f / (75.0f / 100.0f);
-    glm::quat refRotation = getMyAvatar()->getWorldOrientation();
-    if (headPose.isValid()) {
-        refOverlayVec = headPose.translation;
-    } else if (HMD->getPosition() != glm::vec3()) {
-        refOverlayVec = HMD->getPosition();
-    } else {
-        refOverlayVec = getMyAvatar()->getHeadPosition();
-    }
-    //for non-play area position.
-    refOverlayVec -= glm::vec3(0.0f, -0.1f, 1.0f);
+    auto offset = headLookVec * 1.0f;
+    auto overlayPosition = (cameraPosition + offset) + (upVec * -0.1f);
 
-    auto playArea = _displayPlugin->getPlayAreaRect();
     const glm::vec2 LOGIN_OVERLAY_DIMENSIONS{ 0.5f, 0.5f };
     QVariantMap overlayProperties = {
         { "name", "LoginDialogOverlay" },
         { "url", OVERLAY_LOGIN_DIALOG_URL },
-        { "position", vec3toVariant(refOverlayVec) },
-        { "orientation", quatToVariant(refRotation) },
+        { "position", vec3toVariant(overlayPosition) },
+        { "orientation", quatToVariant(cameraOrientation) },
         { "isSolid", true },
         { "grabbable", false },
         { "ignorePickIntersection", false },
@@ -8636,7 +8644,12 @@ void Application::createLoginDialogOverlay() {
 void Application::onDismissedLoginDialog() {
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
+    auto keyboard = DependencyManager::get<Keyboard>().data();
     if (!_loginDialogOverlayID.isNull()) {
+        QVariantMap properties{
+            { "parentID", QUuid() }
+        };
+        getOverlays().editOverlay(keyboard->getAnchorID(), properties);
         // deleting overlay.
         qDebug() << "Deleting overlay";
         getOverlays().deleteOverlay(_loginDialogOverlayID);

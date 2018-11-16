@@ -20,7 +20,8 @@
 
 void StandAloneJSConsole::toggleConsole()  {
     QMainWindow* mainWindow = qApp->getWindow();
-    if (!_jsConsole && !qApp->getLoginDialogPoppedUp()) {
+    //if (!_jsConsole && !qApp->getLoginDialogPoppedUp()) {
+    if (!_jsConsole) {
         QDialog* dialog = new QDialog(mainWindow, Qt::WindowStaysOnTopHint);
         QVBoxLayout* layout = new QVBoxLayout(dialog);
         dialog->setLayout(layout);
