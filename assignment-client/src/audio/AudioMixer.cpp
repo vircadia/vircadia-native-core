@@ -488,11 +488,8 @@ void AudioMixer::throttle(chrono::microseconds duration, int frame) {
 
     // target different mix and backoff ratios (they also have different backoff rates)
     // this is to prevent oscillation, and encourage throttling to find a steady state
-    const float TARGET = 0.9f;
-    // on a "regular" machine with 100 avatars, this is the largest value where
-    // - overthrottling can be recovered
-    // - oscillations will not occur after the recovery
-    const float BACKOFF_TARGET = 0.44f;
+    const float TARGET = _throttleStartTarget;
+    const float BACKOFF_TARGET = _throttleBackoffTarget;
 
     // the mixer is known to struggle at about 80 on a "regular" machine
     // so throttle 2/80 the streams to ensure smooth audio (throttling is linear)
@@ -551,6 +548,14 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
                 _slavePool.setNumThreads(numThreads);
             }
         }
+
+        const QString THROTTLE_START_KEY = "throttle_start";
+        const QString THROTTLE_BACKOFF_KEY = "throttle_backoff";
+
+        _throttleStartTarget = audioThreadingGroupObject[THROTTLE_START_KEY].toDouble(_throttleStartTarget);
+        _throttleBackoffTarget = audioThreadingGroupObject[THROTTLE_BACKOFF_KEY].toDouble(_throttleBackoffTarget);
+
+        qCDebug(audio) << "Throttle Start:" << _throttleStartTarget << "Throttle Backoff:" << _throttleBackoffTarget;
     }
 
     if (settingsObject.contains(AUDIO_BUFFER_GROUP_KEY)) {
