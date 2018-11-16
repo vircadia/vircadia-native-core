@@ -14,7 +14,7 @@ Nitpick has 5 functions, separated into 4 tabs:
 
 ## Installation
 ### Executable
-1. On Windows: download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/nitpick/Nitpick-Installer-v6.6.exe>).
+1. On Windows: download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/nitpick/nitpick-installer-v1.0.exe>).
 2. Double click on the installer and install to a convenient location  
 ![](./setup_7z.PNG)
 3. To run nitpick, double click **nitpick.exe**.
