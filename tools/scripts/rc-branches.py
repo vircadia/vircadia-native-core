@@ -16,7 +16,7 @@ remote_name = "upstream"
 remote_master_branch = "{}/master".format(remote_name)
 
 def checkVersionBranches(version):
-    """Check the branches for a given version were created properly."""
+    """Check that the branches for a given version were created properly."""
 
     repo = git.Repository(git.Repository.get_base_directory())
 
@@ -77,7 +77,7 @@ def checkVersionBranches(version):
     # For patch releases, warn if the base commit is not the previous RC commit
     if is_patch_release:
         if not repo.does_tag_exist(version):
-            logging.warning("The tag {} does not exist, which suggests {} hasn't yet been cut.".format(version, version))
+            logging.warning("The tag {} does not exist, which suggests {} has not been released.".format(version, version))
 
         if base_commit != previous_rc_commit:
             logging.warning("Previous version has commits not in this patch");
@@ -164,9 +164,9 @@ def createVersionBranches(version):
 
         # Check tag exists, if it doesn't, print warning and ask for comfirmation
         if not repo.does_tag_exist(version):
-            logging.warning("The tag {} does not exist, which suggests {} hasn't yet been cut.".format(version, version))
-            logging.warning("Creating the branches now means that they will diverge from {} if anything is merge into it.".format(previous_version))
-            logging.warning("This is not recommanded unless necessary.")
+            logging.warning("The tag {} does not exist, which suggests {} has not yet been released.".format(version, version))
+            logging.warning("Creating the branches now means that {} will diverge from {} if anything is merged into {}.".format(version, previous_version, previous_version))
+            logging.warning("This is not recommended unless necessary.")
 
             validAnswer = False
             askCount = 0
