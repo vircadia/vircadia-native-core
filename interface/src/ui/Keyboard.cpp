@@ -292,6 +292,7 @@ void Keyboard::setRaised(bool raised) {
             _capsEnabled = false;
             _typedCharacters.clear();
         });
+        emit keyboardRaisedChanged(raised);
 
         updateTextDisplay();
     }
