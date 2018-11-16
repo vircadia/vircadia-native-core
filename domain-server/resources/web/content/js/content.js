@@ -60,7 +60,7 @@ $(document).ready(function(){
         );
       });
 
-      updateProgressBars($('.upload-content-progress'), Math.round((offset + nextChunkSize) * 100 / fileSize));
+      updateProgressBars($('.upload-content-progress'), (offset + nextChunkSize) * 100 / fileSize);
 
       if (!isFinal) {
         ajaxObject.done(function (data, textStatus, jqXHR)
@@ -210,7 +210,7 @@ $(document).ready(function(){
 
   function updateProgressBars($progressBar, value) {
     $progressBar.attr('aria-valuenow', value).attr('style', 'width: ' + value + '%');
-    $progressBar.find('.ongoing-msg').html(" " + value + "% Complete");
+    $progressBar.find('.ongoing-msg').html(" " + Math.round(value) + "% Complete");
   }
 
   function reloadBackupInformation() {

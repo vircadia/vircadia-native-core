@@ -209,7 +209,7 @@ private:
 
     HTTPSConnection* connectionFromReplyWithState(QNetworkReply* reply);
 
-    void readPendingContent(HTTPConnection* connection, QString filename);
+    bool processPendingContent(HTTPConnection* connection, QString itemName, QString filename, QByteArray dataChunk);
 
     bool forwardMetaverseAPIRequest(HTTPConnection* connection,
                                     const QString& metaversePath,
@@ -284,6 +284,7 @@ private:
     QHash<QUuid, QPointer<HTTPSConnection>> _pendingOAuthConnections;
 
     QByteArray _pendingUploadedContent;
+    std::unique_ptr<QTemporaryFile> _pendingFileContent;
 
     QThread _assetClientThread;
 };
