@@ -11,8 +11,6 @@
 
 #include <render/ShapePipeline.h>
 
-class FBXGeometry;
-
 class TestFbx : public GpuTestBase {
     size_t _partCount { 0 };
     graphics::Material _material;

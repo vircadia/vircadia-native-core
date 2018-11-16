@@ -25,8 +25,8 @@ struct WorkloadProxy {
     vec4 region;
 };
 
-#if defined(GPU_GL410)
-layout(binding=0) uniform samplerBuffer workloadProxiesBuffer;
+#if !defined(GPU_SSBO_TRANSFORM_OBJECT)
+LAYOUT(binding=GPU_RESOURCE_BUFFER_SLOT0_TEXTURE) uniform samplerBuffer workloadProxiesBuffer;
 WorkloadProxy getWorkloadProxy(int i) {
     int offset = 2 * i;
     WorkloadProxy proxy;
@@ -35,7 +35,7 @@ WorkloadProxy getWorkloadProxy(int i) {
     return proxy;
 }
 #else
-layout(std140, binding=0) buffer workloadProxiesBuffer {
+LAYOUT_STD140(binding=GPU_RESOURCE_BUFFER_SLOT0_STORAGE) buffer workloadProxiesBuffer {
     WorkloadProxy _proxies[];
 };
 WorkloadProxy getWorkloadProxy(int i) {
@@ -57,17 +57,23 @@ struct WorkloadView {
     vec4 regions[3];
 };
 
-#if defined(GPU_GL410)
-layout(binding=1) uniform samplerBuffer workloadViewsBuffer;
+#if !defined(GPU_SSBO_TRANSFORM_OBJECT)
+LAYOUT(binding=GPU_RESOURCE_BUFFER_SLOT1_TEXTURE) uniform samplerBuffer workloadViewsBuffer;
 WorkloadView getWorkloadView(int i) {
-    int offset = 2 * i;
+    int offset = 8 * i;
     WorkloadView view;
-    view.origin = texelFetch(workloadViewsBuffer, offset);
-    view.radiuses = texelFetch(workloadViewsBuffer, offset + 1);
+    view.direction_far = texelFetch(workloadViewsBuffer, offset + 0);
+    view.fov = texelFetch(workloadViewsBuffer, offset + 1);
+    view.origin = texelFetch(workloadViewsBuffer, offset + 2);
+    view.backFront[0] = texelFetch(workloadViewsBuffer, offset + 3);
+    view.backFront[1] = texelFetch(workloadViewsBuffer, offset + 4);
+    view.regions[0] = texelFetch(workloadViewsBuffer, offset + 5);
+    view.regions[1] = texelFetch(workloadViewsBuffer, offset + 6);
+    view.regions[2] = texelFetch(workloadViewsBuffer, offset + 7);
     return view;
 }
 #else
-layout(std140, binding=1) buffer workloadViewsBuffer {
+LAYOUT_STD140(binding=GPU_RESOURCE_BUFFER_SLOT1_STORAGE) buffer workloadViewsBuffer {
     WorkloadView _views[];
 };
 WorkloadView getWorkloadView(int i) {

@@ -1,0 +1,82 @@
+//
+//  Created by Sam Gondelman on 9/13/2018
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@if not BLENDSHAPE_SLH@>
+<@def BLENDSHAPE_SLH@>
+
+<@func declareBlendshape(USE_NORMAL, USE_TANGENT)@>
+
+#if !defined(GPU_SSBO_TRANSFORM_OBJECT)
+LAYOUT(binding=GPU_RESOURCE_BUFFER_SLOT0_TEXTURE) uniform samplerBuffer blendshapeOffsetsBuffer;
+uvec4 getPackedBlendshapeOffset(int i) {
+    return floatBitsToUint(texelFetch(blendshapeOffsetsBuffer, i));
+}
+#else
+LAYOUT_STD140(binding=GPU_RESOURCE_BUFFER_SLOT0_STORAGE) buffer blendshapeOffsetsBuffer {
+    uvec4 _packedBlendshapeOffsets[];
+};
+uvec4 getPackedBlendshapeOffset(int i) {
+    return _packedBlendshapeOffsets[i];
+}
+#endif
+
+struct BlendshapeOffset {
+    vec3 position;
+<@if USE_NORMAL@>
+    vec3 normal;
+<@endif@>
+<@if USE_TANGENT@>
+    vec3 tangent;
+<@endif@>
+};
+
+vec3 unpackSnorm3x10_1x2(int packedValue) {
+    const float oneOver511 = 1.0 / 511.0;
+    return vec3(
+           clamp( float( bitfieldExtract(packedValue, 0, 10)) * oneOver511, -1.0, 1.0),
+           clamp( float( bitfieldExtract(packedValue, 10, 10)) * oneOver511, -1.0, 1.0),
+           clamp( float( bitfieldExtract(packedValue, 20, 10)) * oneOver511, -1.0, 1.0)
+        );
+}
+
+BlendshapeOffset unpackBlendshapeOffset(uvec4 packedValue) {
+    BlendshapeOffset unpacked;
+    unpacked.position = unpackSnorm3x10_1x2(int(packedValue.y)).xyz * uintBitsToFloat(packedValue.x);
+<@if USE_NORMAL@>
+    unpacked.normal = unpackSnorm3x10_1x2(int(packedValue.z)).xyz;
+<@endif@>
+<@if USE_TANGENT@>
+    unpacked.tangent = unpackSnorm3x10_1x2(int(packedValue.w)).xyz;
+<@endif@>
+    return unpacked;
+}
+
+BlendshapeOffset getBlendshapeOffset(int i) {
+    return unpackBlendshapeOffset(getPackedBlendshapeOffset(i));
+}
+
+void evalBlendshape(int i, vec4 inPosition, out vec4 position
+<@if USE_NORMAL@>
+                           , vec3 inNormal, out vec3 normal
+<@endif@>
+<@if USE_TANGENT@>
+                           , vec3 inTangent, out vec3 tangent
+<@endif@>
+) {
+    BlendshapeOffset blendshapeOffset = getBlendshapeOffset(i);
+    position = inPosition + vec4(blendshapeOffset.position, 0.0);
+<@if USE_NORMAL@>
+    normal = normalize(inNormal + blendshapeOffset.normal.xyz);
+<@endif@>
+<@if USE_TANGENT@>
+    tangent = normalize(inTangent + blendshapeOffset.tangent.xyz);
+<@endif@>
+}
+
+<@endfunc@>
+
+<@endif@> // if not BLENDSHAPE_SLH

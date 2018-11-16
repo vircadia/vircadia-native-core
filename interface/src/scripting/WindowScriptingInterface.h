@@ -41,6 +41,8 @@
  *     <em>Read-only.</em>
  * @property {number} y - The y display coordinate of the top left corner of the drawable area of the Interface window. 
  *     <em>Read-only.</em>
+ * @property {boolean} interstitialModeEnabled=true - <code>true</code> if the interstitial graphics are displayed when the 
+ *     domain is loading, otherwise <code>false</code>.
  */
 
 class WindowScriptingInterface : public QObject, public Dependency {
@@ -49,6 +51,7 @@ class WindowScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int innerHeight READ getInnerHeight)
     Q_PROPERTY(int x READ getX)
     Q_PROPERTY(int y READ getY)
+    Q_PROPERTY(bool interstitialModeEnabled READ getInterstitialModeEnabled WRITE setInterstitialModeEnabled)
 
 public:
     WindowScriptingInterface();
@@ -492,6 +495,13 @@ public slots:
     glm::vec2 getDeviceSize() const;
 
     /**jsdoc
+     * Gets the last domain connection error when a connection is refused.
+     * @function Window.getLastDomainConnectionError
+     * @returns {Window.ConnectionRefusedReason} Integer number that enumerates the last domain connection refused.
+     */
+    int getLastDomainConnectionError() const;
+
+    /**jsdoc
      * Open a non-modal message box that can have a variety of button combinations. See also, 
      * {@link Window.updateMessageBox|updateMessageBox} and {@link Window.closeMessageBox|closeMessageBox}.
      * @function Window.openMessageBox
@@ -561,6 +571,8 @@ public slots:
      */
     void closeMessageBox(int id);
 
+    float domainLoadingProgress();
+
 private slots:
     void onWindowGeometryChanged(const QRect& geometry);
     void onMessageBoxSelected(int button);
@@ -600,6 +612,23 @@ signals:
      * @returns {Signal}
      */
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode, const QString& extraInfo);
+
+    /**jsdoc
+     * Triggered when you try to visit a domain but are redirected into the error state.
+     * @function Window.redirectErrorStateChanged
+     * @param {boolean} isInErrorState - If <code>true</code>, the user has been redirected to the error URL.
+     * @returns {Signal}
+     */
+    void redirectErrorStateChanged(bool isInErrorState);
+
+    /**jsdoc
+     * Triggered when the interstitial mode changes.
+     * @function Window.interstitialModeChanged
+     * @param {bool} interstitialMode - The new interstitial mode value. If <code>true</code>, the interstitial graphics are 
+     * displayed when the domain is loading.
+     * @returns {Signal}
+     */
+    void interstitialModeChanged(bool interstitialMode);
 
     /**jsdoc
      * Triggered when a still snapshot has been taken by calling {@link Window.takeSnapshot|takeSnapshot} with 
@@ -748,6 +777,9 @@ private:
 
     QString getPreviousBrowseAssetLocation() const;
     void setPreviousBrowseAssetLocation(const QString& location);
+
+    bool getInterstitialModeEnabled() const;
+    void setInterstitialModeEnabled(bool enableInterstitialMode);
 
     void ensureReticleVisible() const;
 

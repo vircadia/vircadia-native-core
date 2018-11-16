@@ -6,8 +6,6 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 macro(TARGET_JSON)
-    add_dependency_external_projects(json)
-    find_package(JSON REQUIRED)
-    message("JSON_INCLUDE_DIRS ${JSON_INCLUDE_DIRS}") 
-    target_include_directories(${TARGET_NAME} PUBLIC ${JSON_INCLUDE_DIRS})
+	# We use vcpkg for both json and glm, so we just re-use the target_glm macro here
+    target_glm()
 endmacro()

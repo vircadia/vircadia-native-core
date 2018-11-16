@@ -16,7 +16,6 @@
 #include "Application.h"
 #include "Menu.h"
 #include "SceneScriptingInterface.h"
-#include "SafeLanding.h"
 
 OctreePacketProcessor::OctreePacketProcessor():
     _safeLanding(new SafeLanding())
@@ -92,7 +91,9 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
         return; // bail since piggyback version doesn't match
     }
 
-    qApp->trackIncomingOctreePacket(*message, sendingNode, wasStatsPacket);
+    if (packetType != PacketType::EntityQueryInitialResultsComplete) {
+        qApp->trackIncomingOctreePacket(*message, sendingNode, wasStatsPacket);
+    }
     
     // seek back to beginning of packet after tracking
     message->seek(0);
@@ -132,8 +133,4 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
 
 void OctreePacketProcessor::startEntitySequence() {
     _safeLanding->startEntitySequence(qApp->getEntities());
-}
-
-bool OctreePacketProcessor::isLoadSequenceComplete() const {
-    return _safeLanding->isLoadSequenceComplete();
 }

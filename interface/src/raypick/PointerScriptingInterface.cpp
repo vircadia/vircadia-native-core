@@ -16,6 +16,11 @@
 #include "LaserPointer.h"
 #include "StylusPointer.h"
 #include "ParabolaPointer.h"
+#include "StylusPick.h"
+
+static const glm::quat X_ROT_NEG_90{ 0.70710678f, -0.70710678f, 0.0f, 0.0f };
+static const glm::vec3 DEFAULT_POSITION_OFFSET{0.0f, 0.0f, -StylusPick::WEB_STYLUS_LENGTH / 2.0f};
+static const glm::vec3 DEFAULT_MODEL_DIMENSIONS{0.01f, 0.01f, StylusPick::WEB_STYLUS_LENGTH};
 
 void PointerScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) const {
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
@@ -50,7 +55,17 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
  * @typedef {object} Pointers.StylusPointerProperties
  * @property {boolean} [hover=false] If this pointer should generate hover events.
  * @property {boolean} [enabled=false]
+ * @property {Vec3} [tipOffset] The specified offset of the from the joint index.
+ * @property {Pointers.StylusPointerProperties.model} [model] Data to replace the default model url, positionOffset and rotationOffset.
  */
+ /**jsdoc
+  * properties defining stylus pick model that can be included to {@link Pointers.StylusPointerProperties}
+  * @typedef {object} Pointers.StylusPointerProperties.model
+  * @property {string} [url] url to the model
+  * @property {Vec3} [dimensions] the dimensions of the model
+  * @property {Vec3} [positionOffset] the position offset of the model from the stylus tip.
+  * @property {Vec3} [rotationOffset] the rotation offset of the model from the parent joint index
+  */
 unsigned int PointerScriptingInterface::createStylus(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
 
@@ -64,7 +79,28 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
         enabled = propertyMap["enabled"].toBool();
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(properties, StylusPointer::buildStylusOverlay(propertyMap), hover, enabled));
+    glm::vec3 modelPositionOffset = DEFAULT_POSITION_OFFSET;
+    glm::quat modelRotationOffset = X_ROT_NEG_90;
+    glm::vec3 modelDimensions = DEFAULT_MODEL_DIMENSIONS;
+
+    if (propertyMap["model"].isValid()) {
+        QVariantMap modelData = propertyMap["model"].toMap();
+
+        if (modelData["positionOffset"].isValid()) {
+            modelPositionOffset = vec3FromVariant(modelData["positionOffset"]);
+        }
+
+        if (modelData["rotationOffset"].isValid()) {
+            modelRotationOffset = quatFromVariant(modelData["rotationOffset"]);
+        }
+
+        if (modelData["dimensions"].isValid()) {
+            modelDimensions = vec3FromVariant(modelData["dimensions"]);
+        }
+    }
+
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(properties, StylusPointer::buildStylusOverlay(propertyMap), hover, enabled, modelPositionOffset,
+                                                                                                modelRotationOffset, modelDimensions));
 }
 
 /**jsdoc
@@ -76,16 +112,19 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * @property {number} distance The distance at which to render the end of this Ray Pointer, if one is defined.
  */
 /**jsdoc
- * A set of properties used to define the visual aspect of a Ray Pointer in the case that the Pointer is intersecting something.
+ * A set of properties which define the visual aspect of a Ray Pointer in the case that the Pointer is intersecting something.
  *
  * @typedef {object} Pointers.RayPointerRenderState
- * @property {string} name The name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
- * @property {Overlays.OverlayProperties} [start] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
- * An overlay to represent the beginning of the Ray Pointer, if desired.
- * @property {Overlays.OverlayProperties} [path] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field), which <b>must</b> be <code>"line3d"</code>.
- * An overlay to represent the path of the Ray Pointer, if desired.
- * @property {Overlays.OverlayProperties} [end] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
- * An overlay to represent the end of the Ray Pointer, if desired.
+ * @property {string} name When using {@link Pointers.createPointer}, the name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
+ * @property {Overlays.OverlayProperties|QUuid} [start] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the beginning of the Ray Pointer,
+ * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+ * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
+ * @property {Overlays.OverlayProperties|QUuid} [path] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the path of the Ray Pointer,
+ * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field), which <b>must</b> be <code>"line3d"</code>.
+ * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
+ * @property {Overlays.OverlayProperties|QUuid} [end] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the end of the Ray Pointer,
+ * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+ * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
  */
 /**jsdoc
  * A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer. Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.
@@ -94,13 +133,17 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
  * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the pointer is pointing.
  * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
- * @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
+ * @property {boolean} [scaleWithParent=false] If true, the width of the Pointer's path will scale linearly with the pick parent's scale. scaleWithAvatar is an alias but is deprecated.
  * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
  * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
  * the normal will follow exactly.
  * @property {boolean} [enabled=false]
- * @property {Pointers.RayPointerRenderState[]} [renderStates] A list of different visual states to switch between.
- * @property {Pointers.DefaultRayPointerRenderState[]} [defaultRenderStates] A list of different visual states to use if there is no intersection.
+ * @property {Pointers.RayPointerRenderState[]|Object.<string, Pointers.RayPointerRenderState>} [renderStates] A collection of different visual states to switch between.
+ * When using {@link Pointers.createPointer}, a list of RayPointerRenderStates.
+ * When returned from {@link Pointers.getPointerProperties}, a map between render state names and RayPointRenderStates.
+ * @property {Pointers.DefaultRayPointerRenderState[]|Object.<string, Pointers.DefaultRayPointerRenderState>} [defaultRenderStates] A collection of different visual states to use if there is no intersection.
+ * When using {@link Pointers.createPointer}, a list of DefaultRayPointerRenderStates.
+ * When returned from {@link Pointers.getPointerProperties}, a map between render state names and DefaultRayPointRenderStates.
  * @property {boolean} [hover=false] If this Pointer should generate hover events.
  * @property {Pointers.Trigger[]} [triggers] A list of different triggers mechanisms that control this Pointer's click event generation.
  */
@@ -127,9 +170,11 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
         distanceScaleEnd = propertyMap["distanceScaleEnd"].toBool();
     }
 
-    bool scaleWithAvatar = false;
-    if (propertyMap["scaleWithAvatar"].isValid()) {
-        scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
+    bool scaleWithParent = false;
+    if (propertyMap["scaleWithParent"].isValid()) {
+        scaleWithParent = propertyMap["scaleWithParent"].toBool();
+    } else if (propertyMap["scaleWithAvatar"].isValid()) {
+        scaleWithParent = propertyMap["scaleWithAvatar"].toBool();
     }
 
     bool followNormal = false;
@@ -200,7 +245,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
                                                                                                faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd,
-                                                                                               distanceScaleEnd, scaleWithAvatar, enabled));
+                                                                                               distanceScaleEnd, scaleWithParent, enabled));
 }
 
 /**jsdoc
@@ -211,6 +256,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * @property {number} alpha=1.0 The alpha of the parabola.
 * @property {number} width=0.01 The width of the parabola, in meters.
 * @property {boolean} isVisibleInSecondaryCamera=false The width of the parabola, in meters.
+* @property {boolean} drawInFront=false If <code>true</code>, the parabola is rendered in front of other items in the scene.
 */
 /**jsdoc
 * A set of properties used to define the visual aspect of a Parabola Pointer in the case that the Pointer is not intersecting something.  Same as a {@link Pointers.ParabolaPointerRenderState},
@@ -224,12 +270,15 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * A set of properties used to define the visual aspect of a Parabola Pointer in the case that the Pointer is intersecting something.
 *
 * @typedef {object} Pointers.ParabolaPointerRenderState
-* @property {string} name The name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
-* @property {Overlays.OverlayProperties} [start] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
-* An overlay to represent the beginning of the Parabola Pointer, if desired.
-* @property {Pointers.ParabolaProperties} [path] The rendering properties of the parabolic path defined by the Parabola Pointer.
-* @property {Overlays.OverlayProperties} [end] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
-* An overlay to represent the end of the Parabola Pointer, if desired.
+* @property {string} name When using {@link Pointers.createPointer}, the name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
+* @property {Overlays.OverlayProperties|QUuid} [start] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the beginning of the Parabola Pointer,
+* using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+* When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
+* @property {Pointers.ParabolaProperties} [path]  When using {@link Pointers.createPointer}, the optionally defined rendering properties of the parabolic path defined by the Parabola Pointer.
+* Not defined in {@link Pointers.getPointerProperties}.
+* @property {Overlays.OverlayProperties|QUuid} [end] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the end of the Parabola Pointer,
+* using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+* When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
 */
 /**jsdoc
 * A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer. Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.
@@ -238,13 +287,17 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
 * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the pointer is pointing.
 * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
-* @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
+* @property {boolean} [scaleWithParent=true] If true, the width of the Pointer's path will scale linearly with the pick parent's scale. scaleWithAvatar is an alias but is deprecated.
 * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
 * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
 * the normal will follow exactly.
 * @property {boolean} [enabled=false]
-* @property {Pointers.ParabolaPointerRenderState[]} [renderStates] A list of different visual states to switch between.
-* @property {Pointers.DefaultParabolaPointerRenderState[]} [defaultRenderStates] A list of different visual states to use if there is no intersection.
+* @property {Pointers.ParabolaPointerRenderState[]|Object.<string, Pointers.ParabolaPointerRenderState>} [renderStates] A collection of different visual states to switch between.
+* When using {@link Pointers.createPointer}, a list of ParabolaPointerRenderStates.
+* When returned from {@link Pointers.getPointerProperties}, a map between render state names and ParabolaPointerRenderStates.
+* @property {Pointers.DefaultParabolaPointerRenderState[]|Object.<string, Pointers.DefaultParabolaPointerRenderState>} [defaultRenderStates] A collection of different visual states to use if there is no intersection.
+* When using {@link Pointers.createPointer}, a list of DefaultParabolaPointerRenderStates.
+* When returned from {@link Pointers.getPointerProperties}, a map between render state names and DefaultParabolaPointerRenderStates.
 * @property {boolean} [hover=false] If this Pointer should generate hover events.
 * @property {Pointers.Trigger[]} [triggers] A list of different triggers mechanisms that control this Pointer's click event generation.
 */
@@ -271,9 +324,11 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
         distanceScaleEnd = propertyMap["distanceScaleEnd"].toBool();
     }
 
-    bool scaleWithAvatar = false;
-    if (propertyMap["scaleWithAvatar"].isValid()) {
-        scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
+    bool scaleWithParent = true;
+    if (propertyMap["scaleWithParent"].isValid()) {
+        scaleWithParent = propertyMap["scaleWithParent"].toBool();
+    } else if (propertyMap["scaleWithAvatar"].isValid()) {
+        scaleWithParent = propertyMap["scaleWithAvatar"].toBool();
     }
 
     bool followNormal = false;
@@ -344,7 +399,7 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
 
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<ParabolaPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
                                                                                                   faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd, distanceScaleEnd,
-                                                                                                  scaleWithAvatar, enabled));
+                                                                                                  scaleWithParent, enabled));
 }
 
 void PointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {
@@ -375,4 +430,8 @@ QVariantMap PointerScriptingInterface::getPrevPickResult(unsigned int uid) const
         result = pickResult->toVariantMap();
     }
     return result;
+}
+
+QVariantMap PointerScriptingInterface::getPointerProperties(unsigned int uid) const {
+    return DependencyManager::get<PointerManager>()->getPointerProperties(uid);
 }

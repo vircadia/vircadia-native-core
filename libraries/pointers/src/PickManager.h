@@ -16,7 +16,10 @@
 
 #include <NumericalConstants.h>
 
-class PickManager : public Dependency, protected ReadWriteLockable {
+#include <QObject>
+
+class PickManager : public QObject, public Dependency, protected ReadWriteLockable {
+    Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
@@ -40,6 +43,9 @@ public:
     void setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignore) const;
     void setIncludeItems(unsigned int uid, const QVector<QUuid>& include) const;
 
+    Transform getParentTransform(unsigned int uid) const;
+    Transform getResultTransform(unsigned int uid) const;
+
     bool isLeftHand(unsigned int uid);
     bool isRightHand(unsigned int uid);
     bool isMouse(unsigned int uid);
@@ -53,7 +59,19 @@ public:
     unsigned int getPerFrameTimeBudget() const { return _perFrameTimeBudget; }
     void setPerFrameTimeBudget(unsigned int numUsecs) { _perFrameTimeBudget = numUsecs; }
 
+    bool getForceCoarsePicking() { return _forceCoarsePicking; }
+
+    const std::vector<QVector4D>& getUpdatedPickCounts() { return _updatedPickCounts; }
+    const std::vector<int>& getTotalPickCounts() { return _totalPickCounts; }
+
+public slots:
+    void setForceCoarsePicking(bool forceCoarsePicking) { _forceCoarsePicking = forceCoarsePicking; }
+
 protected:
+    std::vector<QVector4D> _updatedPickCounts { PickQuery::NUM_PICK_TYPES };
+    std::vector<int> _totalPickCounts { 0, 0, 0, 0 };
+
+    bool _forceCoarsePicking { false };
     std::function<bool()> _shouldPickHUDOperator;
     std::function<glm::vec2(const glm::vec3&)> _calculatePos2DFromHUDOperator;
 

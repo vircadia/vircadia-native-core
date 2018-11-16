@@ -1,12 +1,14 @@
 set(TARGET_NAME native-lib)
 setup_hifi_library()
-link_hifi_libraries(shared task networking gl gpu qml image fbx render-utils physics entities octree ${PLATFORM_GL_BACKEND})
+link_hifi_libraries(shared task networking gl gpu qml image fbx hfm render-utils physics entities octree ${PLATFORM_GL_BACKEND})
 target_opengl()
 target_bullet()
 
 set(INTERFACE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../interface")
 add_subdirectory("${INTERFACE_DIR}" "libraries/interface")
 include_directories("${INTERFACE_DIR}/src")
+set(HIFI_CODEC_PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../plugins/hifiCodec")
+add_subdirectory("${HIFI_CODEC_PLUGIN_DIR}" "libraries/hifiCodecPlugin")
 
 target_link_libraries(native-lib android log m interface)
 

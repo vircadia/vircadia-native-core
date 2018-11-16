@@ -31,6 +31,7 @@
 #include <NumericalConstants.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
+#include <Gzip.h>
 
 #include "OctreeLogging.h"
 #include "OctreeUtils.h"
@@ -72,14 +73,27 @@ void OctreePersistThread::start() {
 
     OctreeUtils::RawOctreeData data;
     qCDebug(octree) << "Reading octree data from" << _filename;
-    if (data.readOctreeDataInfoFromFile(_filename)) {
-        qCDebug(octree) << "Current octree data: ID(" << data.id << ") DataVersion(" << data.version << ")";
-        packet->writePrimitive(true);
-        auto id = data.id.toRfc4122();
-        packet->write(id);
-        packet->writePrimitive(data.version);
+    QFile file(_filename);
+    if (file.open(QIODevice::ReadOnly)) {
+        QByteArray jsonData(file.readAll());
+        file.close();
+        if (!gunzip(jsonData, _cachedJSONData)) {
+            _cachedJSONData = jsonData;
+        }
+
+        if (data.readOctreeDataInfoFromData(_cachedJSONData)) {
+            qCDebug(octree) << "Current octree data: ID(" << data.id << ") DataVersion(" << data.version << ")";
+            packet->writePrimitive(true);
+            auto id = data.id.toRfc4122();
+            packet->write(id);
+            packet->writePrimitive(data.version);
+        } else {
+            _cachedJSONData.clear();
+            qCWarning(octree) << "No octree data found";
+            packet->writePrimitive(false);
+        }
     } else {
-        qCWarning(octree) << "No octree data found";
+        qCWarning(octree) << "Couldn't access file" << _filename << file.errorString();
         packet->writePrimitive(false);
     }
 
@@ -99,6 +113,7 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
     OctreeUtils::RawOctreeData data;
     bool hasValidOctreeData { false };
     if (includesNewData) {
+        _cachedJSONData.clear();
         replacementData = message->readAll();
         replaceData(replacementData);
         hasValidOctreeData = data.readOctreeDataInfoFromFile(_filename);
@@ -108,7 +123,7 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
         
         OctreeUtils::RawEntityData data;
         qCDebug(octree) << "Reading octree data from" << _filename;
-        if (data.readOctreeDataInfoFromFile(_filename)) {
+        if (data.readOctreeDataInfoFromData(_cachedJSONData)) {
             hasValidOctreeData = true;
             if (data.id.isNull()) {
                 qCDebug(octree) << "Current octree data has a null id, updating";
@@ -127,7 +142,6 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
     }
 
     quint64 loadStarted = usecTimestampNow();
-    qCDebug(octree) << "loading Octrees from file: " << _filename << "...";
 
     if (hasValidOctreeData) {
         qDebug() << "Setting entity version info to: " << data.id << data.version;
@@ -139,15 +153,20 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
     _tree->withWriteLock([&] {
         PerformanceWarning warn(true, "Loading Octree File", true);
 
-        persistentFileRead = _tree->readFromFile(_filename.toLocal8Bit().constData());
+        if (_cachedJSONData.isEmpty()) {
+            persistentFileRead = _tree->readFromFile(_filename.toLocal8Bit().constData());
+        } else {
+            QDataStream jsonStream(_cachedJSONData);
+            persistentFileRead = _tree->readFromStream(-1, jsonStream);
+        }
         _tree->pruneTree();
     });
 
+    _cachedJSONData.clear();
     quint64 loadDone = usecTimestampNow();
     _loadTimeUSecs = loadDone - loadStarted;
 
     _tree->clearDirtyBit(); // the tree is clean since we just loaded it
-    qCDebug(octree, "DONE loading Octrees from file... fileRead=%s", debug::valueOf(persistentFileRead));
 
     unsigned long nodeCount = OctreeElement::getNodeCount();
     unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();

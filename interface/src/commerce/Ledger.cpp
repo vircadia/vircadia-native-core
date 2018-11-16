@@ -31,7 +31,9 @@
 QJsonObject Ledger::apiResponse(const QString& label, QNetworkReply* reply) {
     QByteArray response = reply->readAll();
     QJsonObject data = QJsonDocument::fromJson(response).object();
+#if defined(DEV_BUILD)  // Don't expose user's personal data in the wild. But during development this can be handy.
     qInfo(commerce) << label << "response" << QJsonDocument(data).toJson(QJsonDocument::Compact);
+#endif
     return data;
 }
 // Non-200 responses are not json:
@@ -69,7 +71,9 @@ void Ledger::send(const QString& endpoint, const QString& success, const QString
     auto accountManager = DependencyManager::get<AccountManager>();
     const QString URL = "/api/v1/commerce/";
     JSONCallbackParameters callbackParams(this, success, fail);
-    qCInfo(commerce) << "Sending" << endpoint << QJsonDocument(request).toJson(QJsonDocument::Compact);
+#if defined(DEV_BUILD)  // Don't expose user's personal data in the wild. But during development this can be handy.
+    qCInfo(commerce) << "Sending" << QJsonDocument(request).toJson(QJsonDocument::Compact);
+#endif
     accountManager->sendRequest(URL + endpoint,
         authType,
         method,
@@ -117,7 +121,7 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure", controlled_failure);
 }
 
-bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
+bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key, const QByteArray& locker) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";
@@ -125,9 +129,23 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
         emit receiveAtResult(result);
         return false; // We know right away that we will fail, so tell the caller.
     }
-
-    signedSend("public_key", hfc_key.toUtf8(), signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
+    QJsonObject transaction;
+    transaction["public_key"] = hfc_key;
+    transaction["locker"] = QString::fromUtf8(locker);
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    signedSend("text", transactionString, signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
+}
+
+bool Ledger::receiveAt() {
+    auto wallet = DependencyManager::get<Wallet>();
+    auto keys = wallet->listPublicKeys();
+    if (keys.isEmpty()) {
+        return false;
+    }
+    auto key = keys.first();
+    return receiveAt(key, key, wallet->getWallet());
 }
 
 void Ledger::balance(const QStringList& keys) {
@@ -201,7 +219,11 @@ QString transactionString(const QJsonObject& valueObject) {
         if (!message.isEmpty()) {
             result += QString("<br>with memo: <i>\"%1\"</i>").arg(message);
         }
-    } else if (sentMoney <= 0 && receivedMoney <= 0 && (sentCerts > 0 || receivedCerts > 0) && !KNOWN_USERS.contains(valueObject["sender_name"].toString())) {
+    } else if (sentMoney <= 0 && receivedMoney <= 0 && 
+               (sentCerts > 0 || receivedCerts > 0) && 
+               !KNOWN_USERS.contains(valueObject["sender_name"].toString()) &&
+               !KNOWN_USERS.contains(valueObject["recipient_name"].toString())
+        ) {
         // this is a non-HFC asset transfer.
         if (sentCerts > 0) {
             QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
@@ -222,7 +244,6 @@ QString transactionString(const QJsonObject& valueObject) {
     return result;
 }
 
-static const QString MARKETPLACE_ITEMS_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
 void Ledger::historySuccess(QNetworkReply* reply) {
     // here we send a historyResult with some extra stuff in it
     // Namely, the styled text we'd like to show.  The issue is the
@@ -283,24 +304,30 @@ void Ledger::accountSuccess(QNetworkReply* reply) {
     auto iv = QByteArray::fromBase64(data["iv"].toString().toUtf8());
     auto ckey = QByteArray::fromBase64(data["ckey"].toString().toUtf8());
     QString remotePublicKey = data["public_key"].toString();
+    const QByteArray locker = data["locker"].toString().toUtf8();
     bool isOverride = wallet->wasSoftReset();
 
     wallet->setSalt(salt);
     wallet->setIv(iv);
     wallet->setCKey(ckey);
+    if (!locker.isEmpty()) {
+        wallet->setWallet(locker);
+        wallet->setPassphrase("ACCOUNT"); // We only locker wallets that have been converted to account-based auth.
+    }
 
     QString keyStatus = "ok";
     QStringList localPublicKeys = wallet->listPublicKeys();
     if (remotePublicKey.isEmpty() || isOverride) {
-        if (!localPublicKeys.isEmpty()) {
-            QString key = localPublicKeys.first();
-            receiveAt(key, key);
+        if (!localPublicKeys.isEmpty()) { // Let the metaverse know about a local wallet.
+            receiveAt();
         }
     } else {
         if (localPublicKeys.isEmpty()) {
             keyStatus = "preexisting";
         } else if (localPublicKeys.first() != remotePublicKey) {
             keyStatus = "conflicting";
+        } else if (locker.isEmpty()) { // Matches metaverse data, but we haven't lockered it yet.
+            receiveAt();
         }
     }
 
@@ -427,7 +454,7 @@ void Ledger::alreadyOwned(const QString& marketplaceId) {
     }
 }
 
-void Ledger::getAvailableUpdates(const QString& itemId) {
+void Ledger::getAvailableUpdates(const QString& itemId, const int& pageNumber, const int& itemsPerPage) {
     auto wallet = DependencyManager::get<Wallet>();
     QString endpoint = "available_updates";
     QJsonObject request;
@@ -435,6 +462,8 @@ void Ledger::getAvailableUpdates(const QString& itemId) {
     if (!itemId.isEmpty()) {
         request["marketplace_item_id"] = itemId;
     }
+    request["per_page"] = itemsPerPage;
+    request["page"] = pageNumber;
     send(endpoint, "availableUpdatesSuccess", "availableUpdatesFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 

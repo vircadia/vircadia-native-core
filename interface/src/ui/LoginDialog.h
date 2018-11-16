@@ -27,7 +27,10 @@ public:
 
     LoginDialog(QQuickItem* parent = nullptr);
 
+    ~LoginDialog();
+
     static void showWithSelection();
+
 signals:
     void handleLoginCompleted();
     void handleLoginFailed();
@@ -62,7 +65,6 @@ protected slots:
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 
     Q_INVOKABLE void openUrl(const QString& url) const;
-
 };
 
 #endif // hifi_LoginDialog_h

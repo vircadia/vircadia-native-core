@@ -21,7 +21,7 @@ struct LineData {
     float width;
 };
 
-layout(std140, binding=0) uniform LineDataBuffer {
+LAYOUT_STD140(binding=0) uniform LineDataBuffer {
     LineData _lineData;
 };
 

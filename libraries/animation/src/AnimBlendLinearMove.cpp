@@ -62,9 +62,7 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
         speed = animVars.lookup("moveForwardSpeed", speed);
     }
     _alpha = calculateAlpha(speed, _characteristicSpeeds);
-    float parentAlpha = _animStack[_id];
-
-    _animStack["speed"] = speed;
+    float parentDebugAlpha = context.getDebugAlpha(_id);
 
     if (_children.size() == 0) {
         for (auto&& pose : _poses) {
@@ -77,7 +75,7 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
         float prevDeltaTime, nextDeltaTime;
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
-        _animStack[_children[0]->getID()] = parentAlpha;
+        context.setDebugAlpha(_children[0]->getID(), parentDebugAlpha, _children[0]->getType());
     } else {
         auto clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
         auto prevPoseIndex = glm::floor(clampedAlpha);
@@ -87,17 +85,11 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
 
-        // weights are for animation stack debug purposes only.
-        float weight1 = 0.0f;
-        float weight2 = 0.0f;
         if (prevPoseIndex == nextPoseIndex) {
-            weight2 = 1.0f;
-            _animStack[_children[nextPoseIndex]->getID()] = weight2 * parentAlpha;
+            context.setDebugAlpha(_children[nextPoseIndex]->getID(), parentDebugAlpha, _children[nextPoseIndex]->getType());
         } else {
-            weight2 = alpha;
-            weight1 = 1.0f - weight2;
-            _animStack[_children[prevPoseIndex]->getID()] = weight1 * parentAlpha;
-            _animStack[_children[nextPoseIndex]->getID()] = weight2 * parentAlpha;
+            context.setDebugAlpha(_children[prevPoseIndex]->getID(), (1.0f - alpha) * parentDebugAlpha, _children[prevPoseIndex]->getType());
+            context.setDebugAlpha(_children[nextPoseIndex]->getID(), alpha * parentDebugAlpha, _children[nextPoseIndex]->getType());
         }
     }
 
@@ -156,6 +148,10 @@ void AnimBlendLinearMove::setFrameAndPhase(float dt, float alpha, int prevPoseIn
     // integrate phase forward in time.
     _phase += omega * dt;
 
+    if (_phase < 0.0f) {
+        _phase = 0.0f;
+    }
+    
     // detect loop trigger events
     if (_phase >= 1.0f) {
         triggersOut.setTrigger(_id + "Loop");

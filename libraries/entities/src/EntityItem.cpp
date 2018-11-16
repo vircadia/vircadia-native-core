@@ -131,6 +131,10 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_CLONE_AVATAR_ENTITY;
     requestedProperties += PROP_CLONE_ORIGIN_ID;
 
+    withReadLock([&] {
+        requestedProperties += _grabProperties.getEntityProperties(params);
+    });
+
     return requestedProperties;
 }
 
@@ -167,6 +171,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
+
+    requestedProperties -= PROP_CLIENT_ONLY;
+    requestedProperties -= PROP_OWNING_AVATAR_ID;
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
@@ -300,7 +307,12 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, getCloneLimit());
         APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, getCloneDynamic());
         APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, getCloneAvatarEntity());
-        APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID()); 
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID());
+
+        withReadLock([&] {
+            _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+                                               propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        });
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -661,7 +673,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
 
-    // pack SimulationOwner and terse update properties near each other
+    // pack SimulationOwner, transform, and velocity properties near each other
     // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
     // even when we would otherwise ignore the rest of the packet.
 
@@ -892,7 +904,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_CLONE_LIMIT, float, setCloneLimit);
     READ_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
     READ_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
-    READ_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID); 
+    READ_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID);
+
+    withWriteLock([&] {
+        int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+                                                                             propertyFlags, overwriteLocalData,
+                                                                             somethingChanged);
+        bytesRead += bytesFromGrab;
+        dataAt += bytesFromGrab;
+    });
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
@@ -1251,9 +1271,10 @@ quint64 EntityItem::getExpiry() const {
     return getCreated() + (quint64)(getLifetime() * (float)USECS_PER_SECOND);
 }
 
-EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EncodeBitstreamParams params; // unknown
-    EntityPropertyFlags propertyFlags = desiredProperties.isEmpty() ? getEntityProperties(params) : desiredProperties;
+    const EntityPropertyFlags propertyFlags = !allowEmptyDesiredProperties && desiredProperties.isEmpty() ?
+        getEntityProperties(params) : desiredProperties;
     EntityItemProperties properties(propertyFlags);
     properties._id = getID();
     properties._idSet = true;
@@ -1328,13 +1349,16 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneAvatarEntity, getCloneAvatarEntity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneOriginID, getCloneOriginID);
 
+    withReadLock([&] {
+        _grabProperties.getProperties(properties);
+    });
+
     properties._defaultSettings = false;
 
     return properties;
 }
 
-void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) const {
-    // a TerseUpdate includes the transform and its derivatives
+void EntityItem::getTransformAndVelocityProperties(EntityItemProperties& properties) const {
     if (!properties._positionChanged) {
         properties._position = getLocalPosition();
     }
@@ -1358,8 +1382,11 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._accelerationChanged = true;
 }
 
-void EntityItem::setScriptSimulationPriority(uint8_t priority) {
-    uint8_t newPriority = stillHasGrabActions() ? glm::max(priority, SCRIPT_GRAB_SIMULATION_PRIORITY) : priority;
+void EntityItem::upgradeScriptSimulationPriority(uint8_t priority) {
+    uint8_t newPriority = glm::max(priority, _scriptSimulationPriority);
+    if (newPriority < SCRIPT_GRAB_SIMULATION_PRIORITY && stillHasGrabActions()) {
+        newPriority = SCRIPT_GRAB_SIMULATION_PRIORITY;
+    }
     if (newPriority != _scriptSimulationPriority) {
         // set the dirty flag to trigger a bid or ownership update
         markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
@@ -1394,7 +1421,7 @@ bool EntityItem::stillWaitingToTakeOwnership(uint64_t timestamp) const {
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
-    // these affect TerseUpdate properties
+    // these affect transform and velocity properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPosition);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
@@ -1463,6 +1490,11 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneDynamic, setCloneDynamic);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneAvatarEntity, setCloneAvatarEntity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneOriginID, setCloneOriginID);
+
+    withWriteLock([&] {
+        bool grabPropertiesChanged = _grabProperties.setProperties(properties);
+        somethingChanged |= grabPropertiesChanged;
+    });
 
     if (updateQueryAACube()) {
         somethingChanged = true;
@@ -1781,6 +1813,12 @@ void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
             _queryAACubeSet = false;
         });
     }
+}
+
+glm::vec3 EntityItem::getUnscaledDimensions() const {
+   return resultWithReadLock<glm::vec3>([&] {
+        return _unscaledDimensions;
+    });
 }
 
 void EntityItem::setRotation(glm::quat rotation) {
@@ -3196,4 +3234,50 @@ void EntityItem::setCloneIDs(const QVector<QUuid>& cloneIDs) {
     withWriteLock([&] {
         _cloneIDs = cloneIDs;
     });
+}
+
+bool EntityItem::shouldPreloadScript() const {
+    return !_script.isEmpty() && ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp));
+}
+
+void EntityItem::scriptHasPreloaded() {
+    _loadedScript = _script;
+    _loadedScriptTimestamp = _scriptTimestamp;
+}
+
+void EntityItem::scriptHasUnloaded() {
+    _loadedScript = "";
+    _loadedScriptTimestamp = 0;
+    _scriptPreloadFinished = false;
+}
+
+void EntityItem::setScriptHasFinishedPreload(bool value) {
+    _scriptPreloadFinished = value;
+}
+
+bool EntityItem::isScriptPreloadFinished() {
+    return _scriptPreloadFinished;
+}
+
+void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properties, uint64_t now, uint8_t priority) {
+    if (dynamicDataNeedsTransmit()) {
+        setDynamicDataNeedsTransmit(false);
+        properties.setActionData(getDynamicData());
+    }
+
+    if (updateQueryAACube()) {
+        // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+        properties.setQueryAACube(getQueryAACube());
+    }
+
+    // set the LastEdited of the properties but NOT the entity itself
+    properties.setLastEdited(now);
+
+    clearScriptSimulationPriority();
+    properties.setSimulationOwner(Physics::getSessionUUID(), priority);
+    setPendingOwnershipPriority(priority);
+
+    properties.setClientOnly(getClientOnly());
+    properties.setOwningAvatarID(getOwningAvatarID());
+    setLastBroadcast(now); // for debug/physics status icons
 }

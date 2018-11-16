@@ -480,8 +480,8 @@ public:
 protected:
     PayloadPointer _payload;
     ItemKey _key;
-    ItemCell _cell{ INVALID_CELL };
-    Index _transitionId{ INVALID_INDEX };
+    ItemCell _cell { INVALID_CELL };
+    Index _transitionId { INVALID_INDEX };
 
     friend class Scene;
 };
@@ -531,6 +531,7 @@ public:
     typedef UpdateFunctor<T> Updater;
 
     Payload(const DataPointer& data) : _data(data) {}
+    virtual ~Payload() = default;
 
     // Payload general interface
     virtual const ItemKey getKey() const override { return payloadGetKey<T>(_data); }

@@ -15,8 +15,8 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
 import TabletScriptingInterface 1.0
@@ -47,8 +47,7 @@ Item {
     property string wornEntityID;
     property string upgradeUrl;
     property string upgradeTitle;
-    property bool updateAvailable: root.upgradeUrl !== "" && !root.isShowingMyItems;
-    property bool isShowingMyItems;
+    property bool updateAvailable: root.upgradeUrl !== "";
     property bool valid;
 
     property string originalStatusText;
@@ -59,7 +58,7 @@ Item {
 
     Connections {
         target: Commerce;
-        
+
         onContentSetChanged: {
             if (contentSetHref === root.itemHref) {
                 showConfirmation = true;
@@ -135,7 +134,7 @@ Item {
                 anchors.topMargin: 8;
                 width: 30;
                 height: width;
-            
+
                 HiFiGlyphs {
                     id: closeContextMenuGlyph;
                     text: hifi.glyphs.close;
@@ -231,7 +230,7 @@ Item {
 
                 Loader {
                     id: giftButton;
-                    visible: !root.isShowingMyItems;
+                    visible: root.itemEdition > 0;
                     sourceComponent: contextCardButton;
                     anchors.right: parent.right;
                     anchors.top: parent.top;
@@ -345,6 +344,7 @@ Item {
 
             Rectangle {
                 id: permissionExplanationCard;
+                visible: false;
                 anchors.left: parent.left;
                 anchors.leftMargin: 30;
                 anchors.top: parent.top;
@@ -376,7 +376,7 @@ Item {
                 }
             }
         }
-        
+
         transform: Rotation {
             id: rotation;
             origin.x: flipable.width/2;
@@ -509,7 +509,7 @@ Item {
                     }
                 verticalAlignment: Text.AlignTop;
             }
-        
+
             HiFiGlyphs {
                 id: statusIcon;
                 text: {
@@ -588,7 +588,7 @@ Item {
                 border.width: 1;
                 border.color: "#E2334D";
             }
-            
+
             HiFiGlyphs {
                 id: contextMenuGlyph;
                 text: hifi.glyphs.verticalEllipsis;
@@ -615,7 +615,7 @@ Item {
                 }
             }
         }
-        
+
         Rectangle {
             id: rezzedNotifContainer;
             z: 998;
@@ -663,13 +663,13 @@ Item {
                     Tablet.playSound(TabletEnums.ButtonHover);
                 }
             }
-    
+
             onFocusChanged: {
                 if (focus) {
                     Tablet.playSound(TabletEnums.ButtonHover);
                 }
             }
-            
+
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
                 if (root.itemType === "contentSet") {
@@ -775,7 +775,7 @@ Item {
             // Style
             color: hifi.colors.redAccent;
             horizontalAlignment: Text.AlignRight;
-            
+
             MouseArea {
                 anchors.fill: parent;
                 hoverEnabled: true;

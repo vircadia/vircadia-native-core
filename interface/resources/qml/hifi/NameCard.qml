@@ -13,8 +13,8 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
-import "../styles-uit"
-import "../controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 import "toolbars"
 
 // references Users, UserActivityLogger, MyAvatar, Vec3, Quat, AddressManager, Account from root context
@@ -530,9 +530,7 @@ Item {
         maximumValue: 20.0
         stepSize: 5
         updateValueWhileDragging: true
-        Component.onCompleted: {
-            value = Users.getAvatarGain(uuid);
-        }
+        value: Users.getAvatarGain(uuid)
         onValueChanged: {
             updateGainFromQML(uuid, value, false);
         }

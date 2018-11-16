@@ -16,8 +16,8 @@ import QtQuick.Controls 1.4 as QQC1
 import QtQuick.Controls 2.3
 
 import ".."
-import "../controls-uit"
-import "../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 import "../windows"
 
 import "fileDialog"
@@ -765,8 +765,7 @@ TabletModalWindow {
                         return;
                     }
                 }
-
-                console.log("Selecting " + selection)
+				
                 selectedFile(selection);
                 root.destroy();
             }

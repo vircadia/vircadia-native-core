@@ -140,8 +140,7 @@ int TabletButtonsProxyModel::buttonIndex(const QString &uuid) {
     return -1;
 }
 
-void TabletButtonsProxyModel::setPageIndex(int pageIndex)
-{
+void TabletButtonsProxyModel::setPageIndex(int pageIndex) {
     if (_pageIndex == pageIndex)
         return;
 
@@ -212,7 +211,7 @@ void TabletScriptingInterface::playSound(TabletAudioEvents aEvent) {
         options.ambisonic = sound->isAmbisonic();
         options.localOnly = true;
 
-        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound->getByteArray(), options);
+        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound, options);
     }
 }
 
@@ -464,6 +463,9 @@ void TabletProxy::onTabletShown() {
         if (_showRunningScripts) {
             _showRunningScripts = false;
             pushOntoStack("hifi/dialogs/TabletRunningScripts.qml");
+        }
+        if (_currentPathLoaded == TABLET_HOME_SOURCE_URL) {
+            loadHomeScreen(true);
         }
     }
 }
@@ -884,6 +886,12 @@ OffscreenQmlSurface* TabletProxy::getTabletSurface() {
 
 void TabletProxy::desktopWindowClosed() {
     gotoHomeScreen();
+}
+
+void TabletProxy::unfocus() {
+    if (_qmlOffscreenSurface) {
+        _qmlOffscreenSurface->lowerKeyboard();
+    }
 }
 
 

@@ -60,6 +60,7 @@ public:
     virtual void applyDynamicChanges() override;
 
     virtual void takeDeadEntities(SetOfEntities& deadEntities) override;
+    void takeDeadAvatarEntities(SetOfEntities& deadEntities);
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -112,6 +113,7 @@ private:
 
     VectorOfEntityMotionStates _owned;
     VectorOfEntityMotionStates _bids;
+    SetOfEntities _deadAvatarEntities;
     workload::SpacePointer _space;
     uint64_t _nextBidExpiry;
     uint32_t _lastStepSendPackets { 0 };

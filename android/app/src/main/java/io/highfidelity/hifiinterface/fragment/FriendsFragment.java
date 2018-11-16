@@ -23,8 +23,6 @@ import io.highfidelity.hifiinterface.view.UserListAdapter;
 
 public class FriendsFragment extends Fragment {
 
-    public native boolean nativeIsLoggedIn();
-
     public native String nativeGetAccessToken();
 
     private RecyclerView mUsersView;
@@ -98,13 +96,17 @@ public class FriendsFragment extends Fragment {
 
         mUsersAdapter.setListener(new UserListAdapter.AdapterListener() {
             @Override
-            public void onEmptyAdapter() {
-                mSwipeRefreshLayout.setRefreshing(false);
+            public void onEmptyAdapter(boolean shouldStopRefreshing) {
+                if (shouldStopRefreshing) {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
             }
 
             @Override
-            public void onNonEmptyAdapter() {
-                mSwipeRefreshLayout.setRefreshing(false);
+            public void onNonEmptyAdapter(boolean shouldStopRefreshing) {
+                if (shouldStopRefreshing) {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
             }
 
             @Override
@@ -114,6 +116,8 @@ public class FriendsFragment extends Fragment {
         });
 
         mUsersView.setAdapter(mUsersAdapter);
+
+        mUsersAdapter.startLoad();
 
         mSlidingUpPanelLayout.setFadeOnClickListener(new View.OnClickListener() {
             @Override

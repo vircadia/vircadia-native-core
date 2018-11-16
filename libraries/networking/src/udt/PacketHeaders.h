@@ -126,14 +126,13 @@ public:
         EntityScriptCallMethod,
         ChallengeOwnershipRequest,
         ChallengeOwnershipReply,
-
         OctreeDataFileRequest,
         OctreeDataFileReply,
         OctreeDataPersist,
-
         EntityClone,
         EntityQueryInitialResultsComplete,
         BulkAvatarTraits,
+        AudioSoloRequest,
 
         NUM_PACKET_TYPE
     };
@@ -241,7 +240,11 @@ enum class EntityVersion : PacketVersion {
     CollisionMask16Bytes,
     YieldSimulationOwnership,
     ParticleEntityFix,
-    ParticleSpin
+    ParticleSpin,
+    BloomEffect,
+    GrabProperties,
+    ScriptGlmVectors,
+    FixedLightSerialization
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -292,7 +295,9 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     ProceduralFaceMovementFlagsAndBlendshapes,
     FarGrabJoints,
     MigrateSkeletonURLToTraits,
-    MigrateAvatarEntitiesToTraits
+    MigrateAvatarEntitiesToTraits,
+    FarGrabJointsRedux,
+    JointTransScaled
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

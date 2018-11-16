@@ -15,8 +15,8 @@ import QtQuick 2.5
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
-import "../../styles-uit"
-import "../../controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 import "../../windows"
 import "./" as AudioControls
 
@@ -26,7 +26,7 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     property var eventBridge;
-    property string title: "Audio Settings - " + AudioScriptingInterface.context;
+    property string title: "Audio Settings"
     signal sendToScript(var message);
 
     color: hifi.colors.baseGray;

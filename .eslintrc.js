@@ -36,6 +36,7 @@ module.exports = {
         "GlobalServices": false,
         "GooglePoly": false,
         "Graphics": false,
+        "HifiAbout": false,
         "HMD": false,
         "LaserPointers": false,
         "location": true,

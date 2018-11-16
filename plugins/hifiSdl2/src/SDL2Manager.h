@@ -12,7 +12,7 @@
 #ifndef hifi__SDL2Manager_h
 #define hifi__SDL2Manager_h
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 #include <controllers/UserInputMapper.h>
 #include <input-plugins/InputPlugin.h>
@@ -26,7 +26,7 @@ public:
     bool isSupported() const override;
     const QString getName() const override { return NAME; }
     const QString getID() const override { return SDL2_ID_STRING; }
-
+    bool isRunning() const override { return _active && _enabled; }
     QStringList getSubdeviceNames() override;
 
     void init() override;
@@ -81,7 +81,6 @@ private:
     int buttonRelease() const { return SDL_RELEASED; }
 
     QMap<SDL_JoystickID, Joystick::Pointer> _openJoysticks;
-    bool _isEnabled { false };
     bool _isInitialized { false };
     static const char* NAME;
     static const char* SDL2_ID_STRING;

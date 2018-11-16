@@ -19,7 +19,7 @@ namespace controller {
 class TranslateFilter : public Filter {
     REGISTER_FILTER_CLASS(TranslateFilter);
 public:
-    TranslateFilter() { }
+    TranslateFilter() = default;
     TranslateFilter(glm::vec3 translate) : _translate(translate) {}
 
     virtual float apply(float value) const override { return value; }

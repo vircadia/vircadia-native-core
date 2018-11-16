@@ -26,7 +26,8 @@ class Ledger : public QObject, public Dependency {
 
 public:
     void buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const bool controlled_failure = false);
-    bool receiveAt(const QString& hfc_key, const QString& signing_key);
+    bool receiveAt(const QString& hfc_key, const QString& signing_key, const QByteArray& locker);
+    bool receiveAt();
     void balance(const QStringList& keys);
     void inventory(const QString& editionFilter, const QString& typeFilter, const QString& titleFilter, const int& page, const int& perPage);
     void history(const QStringList& keys, const int& pageNumber, const int& itemsPerPage);
@@ -36,7 +37,7 @@ public:
     void transferAssetToNode(const QString& hfc_key, const QString& nodeID, const QString& certificateID, const int& amount, const QString& optionalMessage);
     void transferAssetToUsername(const QString& hfc_key, const QString& username, const QString& certificateID, const int& amount, const QString& optionalMessage);
     void alreadyOwned(const QString& marketplaceId);
-    void getAvailableUpdates(const QString& itemId = "");
+    void getAvailableUpdates(const QString& itemId = "", const int& pageNumber = 1, const int& itemsPerPage = 10);
     void updateItem(const QString& hfc_key, const QString& certificate_id);
 
     enum CertificateStatus {

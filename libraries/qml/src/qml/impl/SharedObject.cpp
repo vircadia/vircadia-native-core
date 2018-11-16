@@ -19,6 +19,7 @@
 #include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>
 #include <gl/QOpenGLContextWrapper.h>
+#include <gl/GLHelpers.h>
 
 #include "../OffscreenSurface.h"
 #include "../Logging.h"
@@ -67,6 +68,7 @@ SharedObject::SharedObject() {
     //       so we wait until after its ctor to move object/context to this thread.
     QQuickWindow::setDefaultAlphaBuffer(true);
     _quickWindow = new QQuickWindow(_renderControl);
+    _quickWindow->setFormat(getDefaultOpenGLSurfaceFormat());
     _quickWindow->setColor(QColor(255, 255, 255, 0));
     _quickWindow->setClearBeforeRendering(true);
 

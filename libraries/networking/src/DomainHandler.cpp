@@ -15,6 +15,10 @@
 
 #include <PathUtils.h>
 
+#include <shared/QtHelpers.h>
+
+#include <QThread>
+
 #include <QtCore/QJsonDocument>
 #include <QtCore/QDataStream>
 
@@ -55,6 +59,9 @@ DomainHandler::DomainHandler(QObject* parent) :
 
     // stop the refresh timer if we connect to a domain
     connect(this, &DomainHandler::connectedToDomain, &_apiRefreshTimer, &QTimer::stop);
+
+    // stop the refresh timer if redirected to the error domain
+    connect(this, &DomainHandler::redirectToErrorDomainURL, &_apiRefreshTimer, &QTimer::stop);
 }
 
 void DomainHandler::disconnect() {
@@ -106,13 +113,17 @@ void DomainHandler::softReset() {
     QMetaObject::invokeMethod(&_settingsTimer, "stop");
 
     // restart the API refresh timer in case we fail to connect and need to refresh information
-    QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
+    if (!_isInErrorState) {
+        QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
+    }
 }
 
 void DomainHandler::hardReset() {
     emit resetting();
 
     softReset();
+    _isInErrorState = false;
+    emit redirectErrorStateChanged(_isInErrorState);
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
     _pendingDomainID = QUuid();
@@ -126,6 +137,30 @@ void DomainHandler::hardReset() {
 
     // clear any pending path we may have wanted to ask the previous DS about
     _pendingPath.clear();
+}
+
+bool DomainHandler::isHardRefusal(int reasonCode) {
+    return (reasonCode == (int)ConnectionRefusedReason::ProtocolMismatch ||
+            reasonCode == (int)ConnectionRefusedReason::TooManyUsers ||
+            reasonCode == (int)ConnectionRefusedReason::NotAuthorized ||
+            reasonCode == (int)ConnectionRefusedReason::TimedOut);
+}
+
+bool DomainHandler::getInterstitialModeEnabled() const {
+    return _interstitialModeSettingLock.resultWithReadLock<bool>([&] {
+        return _enableInterstitialMode.get();
+    });
+}
+
+void DomainHandler::setInterstitialModeEnabled(bool enableInterstitialMode) {
+    _interstitialModeSettingLock.withWriteLock([&] {
+        _enableInterstitialMode.set(enableInterstitialMode);
+    });
+}
+
+void DomainHandler::setErrorDomainURL(const QUrl& url) {
+    _errorDomainURL = url;
+    return;
 }
 
 void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname) {
@@ -161,7 +196,7 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
         _sockAddr.clear();
 
         // if this is a file URL we need to see if it has a ~ for us to expand
-        if (domainURL.scheme() == URL_SCHEME_FILE) {
+        if (domainURL.scheme() == HIFI_URL_SCHEME_FILE) {
             domainURL = PathUtils::expandToLocalDataAbsolutePath(domainURL);
         }
     }
@@ -171,7 +206,8 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
         domainPort = DEFAULT_DOMAIN_SERVER_PORT;
     }
 
-    if (_domainURL != domainURL || _sockAddr.getPort() != domainPort) {
+    // if it's in the error state, reset and try again.
+    if ((_domainURL != domainURL || _sockAddr.getPort() != domainPort) || _isInErrorState) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
 
@@ -206,7 +242,8 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
 
-    if (_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) {
+    // if it's in the error state, reset and try again.
+    if ((_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) || _isInErrorState) {
         // re-set the domain info to connect to new domain
         hardReset();
 
@@ -298,6 +335,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
         _isConnected = isConnected;
 
         if (_isConnected) {
+            _lastDomainConnectionError = -1;
             emit connectedToDomain(_domainURL);
 
             if (_domainURL.scheme() == URL_SCHEME_HIFI && !_domainURL.host().isEmpty()) {
@@ -314,6 +352,30 @@ void DomainHandler::setIsConnected(bool isConnected) {
 void DomainHandler::connectedToServerless(std::map<QString, QString> namedPaths) {
     _namedPaths = namedPaths;
     setIsConnected(true);
+}
+
+void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
+    auto lookup = namedPaths.find("/");
+    QString viewpoint;
+    if (lookup != namedPaths.end()) {
+        viewpoint = lookup->second;
+    } else {
+        viewpoint = DOMAIN_SPAWNING_POINT;
+    }
+    DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, QString());
+}
+
+void DomainHandler::setRedirectErrorState(QUrl errorUrl, QString reasonMessage, int reasonCode, const QString& extraInfo) {
+    _lastDomainConnectionError = reasonCode;
+    if (getInterstitialModeEnabled() && isHardRefusal(reasonCode)) {
+        _errorDomainURL = errorUrl;
+        _isInErrorState = true;
+        qCDebug(networking) << "Error connecting to domain: " << reasonMessage;
+        emit redirectErrorStateChanged(_isInErrorState);
+        emit redirectToErrorDomainURL(_errorDomainURL);
+    } else {
+        emit domainConnectionRefused(reasonMessage, reasonCode, extraInfo);
+    }
 }
 
 void DomainHandler::requestDomainSettings() {
@@ -413,7 +475,7 @@ bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
         case ConnectionRefusedReason::LoginError:
         case ConnectionRefusedReason::NotAuthorized:
             return true;
-    
+
         default:
         case ConnectionRefusedReason::Unknown:
         case ConnectionRefusedReason::ProtocolMismatch:
@@ -451,7 +513,13 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 
     if (!_domainConnectionRefusals.contains(reasonMessage)) {
         _domainConnectionRefusals.insert(reasonMessage);
+#if defined(Q_OS_ANDROID)
         emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
+#else
+
+        // ingest the error - this is a "hard" connection refusal.
+        setRedirectErrorState(_errorDomainURL, reasonMessage, (int)reasonCode, extraInfo);
+#endif
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();

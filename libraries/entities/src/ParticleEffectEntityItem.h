@@ -20,9 +20,9 @@
 namespace particle {
     static const float SCRIPT_MAXIMUM_PI = 3.1416f;  // Round up so that reasonable property values work
     static const float UNINITIALIZED = NAN;
-    static const vec3 DEFAULT_COLOR = { 255, 255, 255 };
+    static const u8vec3 DEFAULT_COLOR = { 255, 255, 255 };
     static const vec3 DEFAULT_COLOR_UNINITIALIZED = { UNINITIALIZED, UNINITIALIZED, UNINITIALIZED };
-    static const vec3 DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
+    static const u8vec3 DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
     static const float DEFAULT_ALPHA = 1.0f;
     static const float DEFAULT_ALPHA_SPREAD = 0.0f;
     static const float DEFAULT_ALPHA_START = UNINITIALIZED;
@@ -42,8 +42,8 @@ namespace particle {
     static const float MINIMUM_EMIT_SPEED = -1000.0f;
     static const float MAXIMUM_EMIT_SPEED = 1000.0f;  // Approx mach 3
     static const float DEFAULT_SPEED_SPREAD = 1.0f;
-    static const glm::quat DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_X);  // Vertical
-    static const glm::vec3 DEFAULT_EMIT_DIMENSIONS = Vectors::ZERO;  // Emit from point
+    static const quat DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_X);  // Vertical
+    static const vec3 DEFAULT_EMIT_DIMENSIONS = Vectors::ZERO;  // Emit from point
     static const float MINIMUM_EMIT_DIMENSION = 0.0f;
     static const float MAXIMUM_EMIT_DIMENSION = (float)TREE_SCALE;
     static const float DEFAULT_EMIT_RADIUS_START = 1.0f;  // Emit from surface (when emitDimensions > 0)
@@ -57,10 +57,10 @@ namespace particle {
     static const float MAXIMUM_AZIMUTH = SCRIPT_MAXIMUM_PI;
     static const float DEFAULT_AZIMUTH_START = -PI;  // Emit full circumference (when polarFinish > 0)
     static const float DEFAULT_AZIMUTH_FINISH = PI;  // ""
-    static const glm::vec3 DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
+    static const vec3 DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
     static const float MINIMUM_EMIT_ACCELERATION = -100.0f; // ~ 10g
     static const float MAXIMUM_EMIT_ACCELERATION = 100.0f;
-    static const glm::vec3 DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
+    static const vec3 DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
     static const float MINIMUM_ACCELERATION_SPREAD = 0.0f;
     static const float MAXIMUM_ACCELERATION_SPREAD = 100.0f;
     static const float DEFAULT_PARTICLE_RADIUS = 0.025f;
@@ -177,9 +177,10 @@ namespace particle {
         Properties& operator =(const Properties& other) {
             color = other.color;
             alpha = other.alpha;
+            radiusStart = other.radiusStart;
+            radius = other.radius;
             spin = other.spin;
             rotateWithEntity = other.rotateWithEntity;
-            radius = other.radius;
             lifespan = other.lifespan;
             maxParticles = other.maxParticles;
             emission = other.emission;
@@ -189,10 +190,10 @@ namespace particle {
             return *this;
         }
 
-        vec4 getColorStart() const { return vec4(ColorUtils::sRGBToLinearVec3(color.range.start / 255.0f), alpha.range.start); }
-        vec4 getColorMiddle() const { return vec4(ColorUtils::sRGBToLinearVec3(color.gradient.target / 255.0f), alpha.gradient.target); }
-        vec4 getColorFinish() const { return vec4(ColorUtils::sRGBToLinearVec3(color.range.finish / 255.0f), alpha.range.finish); }
-        vec4 getColorSpread() const { return vec4(ColorUtils::sRGBToLinearVec3(color.gradient.spread / 255.0f), alpha.gradient.spread); }
+        vec4 getColorStart() const { return vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.range.start)), alpha.range.start); }
+        vec4 getColorMiddle() const { return vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.gradient.target)), alpha.gradient.target); }
+        vec4 getColorFinish() const { return vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.range.finish)), alpha.range.finish); }
+        vec4 getColorSpread() const { return vec4(ColorUtils::sRGBToLinearVec3(toGlm(color.gradient.spread)), alpha.gradient.spread); }
     };
 } // namespace particles
 
@@ -210,7 +211,7 @@ public:
     ParticleEffectEntityItem(const EntityItemID& entityItemID);
 
     // methods for getting/setting all properties of this entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -228,11 +229,8 @@ public:
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
-    xColor getXColor() const;
-    vec3 getColor() const { return _particleProperties.color.gradient.target; }
-
-    void setColor(const vec3& value);
-    void setColor(const xColor& value);
+    void setColor(const glm::u8vec3& value);
+    glm::u8vec3 getColor() const { return _particleProperties.color.gradient.target; }
 
     void setColorStart(const vec3& colorStart);
     vec3 getColorStart() const { return _particleProperties.color.range.start; }
@@ -240,8 +238,8 @@ public:
     void setColorFinish(const vec3& colorFinish);
     vec3 getColorFinish() const { return _particleProperties.color.range.finish; }
 
-    void setColorSpread(const xColor& colorSpread);
-    xColor getColorSpread() const;
+    void setColorSpread(const glm::u8vec3& colorSpread);
+    glm::u8vec3 getColorSpread() const { return _particleProperties.color.gradient.spread; }
 
     void setAlpha(float alpha);
     float getAlpha() const { return _particleProperties.alpha.gradient.target; }
@@ -343,9 +341,6 @@ public:
     virtual bool supportsDetailedIntersection() const override { return false; }
 
     particle::Properties getParticleProperties() const;
-
-    static const xColor DEFAULT_XCOLOR;
-    static const xColor DEFAULT_XCOLOR_SPREAD;
 
 protected:
     particle::Properties _particleProperties;

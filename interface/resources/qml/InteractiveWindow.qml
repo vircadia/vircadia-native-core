@@ -12,9 +12,9 @@ import QtQuick 2.3
 
 import "windows" as Windows
 import "controls"
-import "controls-uit" as Controls
+import controlsUit 1.0 as Controls
 import "styles"
-import "styles-uit"
+import stylesUit 1.0
 
 Windows.Window {
     id: root;
@@ -146,7 +146,8 @@ Windows.Window {
             Qt.WindowCloseButtonHint |
             Qt.WindowMaximizeButtonHint |
             Qt.WindowMinimizeButtonHint;
-        if ((flags & Desktop.ALWAYS_ON_TOP) === Desktop.ALWAYS_ON_TOP) {
+        // only use the always on top feature for non Windows OS
+        if (Qt.platform.os !== "windows" && (flags & Desktop.ALWAYS_ON_TOP)) {
             nativeWindowFlags |= Qt.WindowStaysOnTopHint;
         }
         nativeWindow.flags = nativeWindowFlags;

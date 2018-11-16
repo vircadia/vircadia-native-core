@@ -11,8 +11,8 @@
 import Hifi 1.0
 import QtQuick 2.4
 
-import "controls-uit"
-import "styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 import "windows"
 
 import "LoginDialog"
@@ -23,6 +23,7 @@ ModalWindow {
     objectName: "LoginDialog"
     implicitWidth: 520
     implicitHeight: 320
+    closeButtonVisible: true
     destroyOnCloseButton: true
     destroyOnHidden: true
     visible: true

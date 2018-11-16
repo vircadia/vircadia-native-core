@@ -20,6 +20,7 @@ unsigned int PickManager::addPick(PickQuery::PickType type, const std::shared_pt
             id = _nextPickID++;
             _picks[type][id] = pick;
             _typeMap[id] = type;
+            _totalPickCounts[type]++;
         }
     });
     return id;
@@ -37,10 +38,11 @@ std::shared_ptr<PickQuery> PickManager::findPick(unsigned int uid) const {
 
 void PickManager::removePick(unsigned int uid) {
     withWriteLock([&] {
-        auto type = _typeMap.find(uid);
-        if (type != _typeMap.end()) {
-            _picks[type->second].erase(uid);
-            _typeMap.erase(uid);
+        auto typeIt = _typeMap.find(uid);
+        if (typeIt != _typeMap.end()) {
+            _picks[typeIt->second].erase(uid);
+            _totalPickCounts[typeIt->second]--;
+            _typeMap.erase(typeIt);
         }
     });
 }
@@ -88,6 +90,25 @@ void PickManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& includ
     }
 }
 
+Transform PickManager::getParentTransform(unsigned int uid) const {
+    auto pick = findPick(uid);
+    if (pick) {
+        auto parentTransform = pick->parentTransform;
+        if (parentTransform) {
+            return parentTransform->getTransform();
+        }
+    }
+    return Transform();
+}
+
+Transform PickManager::getResultTransform(unsigned int uid) const {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->getResultTransform();
+    }
+    return Transform();
+}
+
 void PickManager::update() {
     uint64_t expiry = usecTimestampNow() + _perFrameTimeBudget;
     std::unordered_map<PickQuery::PickType, std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>> cachedPicks;
@@ -96,12 +117,12 @@ void PickManager::update() {
     });
 
     bool shouldPickHUD = _shouldPickHUDOperator();
-    // we pass the same expiry to both updates, but the stylus updates are relatively cheap
-    // and the rayPicks updae will ALWAYS update at least one ray even when there is no budget
-    _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], _nextPickToUpdate[PickQuery::Stylus], expiry, false);
-    _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], _nextPickToUpdate[PickQuery::Ray], expiry, shouldPickHUD);
-    _parabolaPickCacheOptimizer.update(cachedPicks[PickQuery::Parabola], _nextPickToUpdate[PickQuery::Parabola], expiry, shouldPickHUD);
-    _collisionPickCacheOptimizer.update(cachedPicks[PickQuery::Collision], _nextPickToUpdate[PickQuery::Collision], expiry, false);
+    // FIXME: give each type its own expiry
+    // Each type will update at least one pick, regardless of the expiry
+    _updatedPickCounts[PickQuery::Stylus] = _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], _nextPickToUpdate[PickQuery::Stylus], expiry, false);
+    _updatedPickCounts[PickQuery::Ray] = _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], _nextPickToUpdate[PickQuery::Ray], expiry, shouldPickHUD);
+    _updatedPickCounts[PickQuery::Parabola] = _parabolaPickCacheOptimizer.update(cachedPicks[PickQuery::Parabola], _nextPickToUpdate[PickQuery::Parabola], expiry, shouldPickHUD);
+    _updatedPickCounts[PickQuery::Collision] = _collisionPickCacheOptimizer.update(cachedPicks[PickQuery::Collision], _nextPickToUpdate[PickQuery::Collision], expiry, false);
 }
 
 bool PickManager::isLeftHand(unsigned int uid) {

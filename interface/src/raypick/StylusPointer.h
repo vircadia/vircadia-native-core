@@ -21,7 +21,8 @@ class StylusPointer : public Pointer {
     using Ptr = std::shared_ptr<StylusPointer>;
 
 public:
-    StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled);
+    StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled,
+                  const glm::vec3& modelPositionOffset, const glm::quat& modelRotationOffset, const glm::vec3& modelDimensions);
     ~StylusPointer();
 
     void updateVisuals(const PickResultPointer& pickResult) override;
@@ -33,6 +34,8 @@ public:
     void setRenderState(const std::string& state) override;
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override {}
 
+    QVariantMap toVariantMap() const override;
+
     static OverlayID buildStylusOverlay(const QVariantMap& properties);
 
 protected:
@@ -40,6 +43,7 @@ protected:
     Buttons getPressedButtons(const PickResultPointer& pickResult) override;
     bool shouldHover(const PickResultPointer& pickResult) override;
     bool shouldTrigger(const PickResultPointer& pickResult) override;
+    virtual PickResultPointer getPickResultCopy(const PickResultPointer& pickResult) const override;
 
     PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button = "", bool hover = true) override;
 
@@ -75,6 +79,12 @@ private:
     static bool isWithinBounds(float distance, float min, float max, float hysteresis);
     static glm::vec3 findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction);
     static glm::vec2 findPos2D(const PickedObject& pickedObject, const glm::vec3& origin);
+
+    bool _showing { true };
+
+    glm::vec3 _modelPositionOffset;
+    glm::vec3 _modelDimensions;
+    glm::quat _modelRotationOffset;
 
 };
 

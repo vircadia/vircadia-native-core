@@ -19,11 +19,11 @@ struct LightingModel {
     vec4 _ScatteringDiffuseSpecularAlbedo;
     vec4 _AmbientDirectionalPointSpot;
     vec4 _ShowContourObscuranceWireframe;
-    vec4 _Haze_spareyzw;
+    vec4 _HazeBloomSkinningBlendshape;
 };
 
 // See DeferredShader_BufferSlot in DeferredLightingEffect.cpp
-layout(binding=RENDER_UTILS_BUFFER_LIGHT_MODEL) uniform lightingModelBuffer{
+LAYOUT(binding=RENDER_UTILS_BUFFER_LIGHT_MODEL) uniform lightingModelBuffer{
     LightingModel lightingModel;
 };
 
@@ -78,7 +78,16 @@ float isWireframeEnabled() {
 }
 
 float isHazeEnabled() {
-    return lightingModel._Haze_spareyzw.x;
+    return lightingModel._HazeBloomSkinningBlendshape.x;
+}
+float isBloomEnabled() {
+    return lightingModel._HazeBloomSkinningBlendshape.y;
+}
+float isSkinningEnabled() {
+    return lightingModel._HazeBloomSkinningBlendshape.z;
+}
+float isBlendshapeEnabled() {
+    return lightingModel._HazeBloomSkinningBlendshape.w;
 }
 
 <@endfunc@>

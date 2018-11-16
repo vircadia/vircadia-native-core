@@ -268,6 +268,9 @@ public:
 
     typedef glm::vec3 Color;
 
+    // Texture Map Array Schema
+    static const int NUM_TEXCOORD_TRANSFORMS{ 2 };
+
     typedef MaterialKey::MapChannel MapChannel;
     typedef std::map<MapChannel, TextureMapPointer> TextureMaps;
     typedef std::bitset<MaterialKey::NUM_MAP_CHANNELS> MapFlags;
@@ -291,9 +294,6 @@ public:
     void setAlbedo(const Color& albedo, bool isSRGB = true);
     Color getAlbedo(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_schemaBuffer.get<Schema>()._albedo) : _schemaBuffer.get<Schema>()._albedo); }
 
-    void setFresnel(const Color& fresnel, bool isSRGB = true);
-    Color getFresnel(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_schemaBuffer.get<Schema>()._fresnel) : _schemaBuffer.get<Schema>()._fresnel); }
-
     void setMetallic(float metallic);
     float getMetallic() const { return _schemaBuffer.get<Schema>()._metallic; }
 
@@ -306,22 +306,31 @@ public:
     // Schema to access the attribute values of the material
     class Schema {
     public:
-        glm::vec3 _emissive{ 0.0f }; // No Emissive
-        float _opacity{ 1.0f }; // Opacity = 1 => Not Transparent
+        glm::vec3 _emissive { 0.0f }; // No Emissive
+        float _opacity { 1.0f }; // Opacity = 1 => Not Transparent
 
-        glm::vec3 _albedo{ 0.5f }; // Grey albedo => isAlbedo
-        float _roughness{ 1.0f }; // Roughness = 1 => Not Glossy
+        glm::vec3 _albedo { 0.5f }; // Grey albedo => isAlbedo
+        float _roughness { 1.0f }; // Roughness = 1 => Not Glossy
 
-        glm::vec3 _fresnel{ 0.03f }; // Fresnel value for a default non metallic
-        float _metallic{ 0.0f }; // Not Metallic
+        float _metallic { 0.0f }; // Not Metallic
+        float _scattering { 0.0f }; // Scattering info
+#if defined(__clang__)
+        __attribute__((unused))
+#endif
+        glm::vec2 _spare { 0.0f }; // Padding
 
-        float _scattering{ 0.0f }; // Scattering info
-
-        glm::vec2 _spare{ 0.0f };
-
-        uint32_t _key{ 0 }; // a copy of the materialKey
+        uint32_t _key { 0 }; // a copy of the materialKey
+#if defined(__clang__)
+        __attribute__((unused))
+#endif
+        glm::vec3 _spare2 { 0.0f };
 
         // for alignment beauty, Material size == Mat4x4
+
+        // Texture Coord Transform Array
+        glm::mat4 _texcoordTransforms[NUM_TEXCOORD_TRANSFORMS];
+
+        glm::vec4 _lightmapParams{ 0.0, 1.0, 0.0, 0.0 };
 
         Schema() {}
     };
@@ -339,17 +348,6 @@ public:
 
     // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }
-
-    // Texture Map Array Schema
-    static const int NUM_TEXCOORD_TRANSFORMS{ 2 };
-    class TexMapArraySchema {
-    public:
-        glm::mat4 _texcoordTransforms[NUM_TEXCOORD_TRANSFORMS];
-        glm::vec4 _lightmapParams{ 0.0, 1.0, 0.0, 0.0 };
-        TexMapArraySchema() {}
-    };
-
-    const UniformBufferView& getTexMapArrayBuffer() const { return _texMapArrayBuffer; }
 
     int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
@@ -370,7 +368,6 @@ protected:
 private:
     mutable MaterialKey _key;
     mutable UniformBufferView _schemaBuffer;
-    mutable UniformBufferView _texMapArrayBuffer;
     mutable gpu::TextureTablePointer _textureTable{ std::make_shared<gpu::TextureTable>() };
 
     TextureMaps _textureMaps;

@@ -273,6 +273,7 @@ void NodeList::reset(bool skipDomainHandlerReset) {
 
     // refresh the owner UUID to the NULL UUID
     setSessionUUID(QUuid());
+    setSessionLocalID(Node::NULL_LOCAL_ID);
 
     // if we setup the DTLS socket, also disconnect from the DTLS socket readyRead() so it can handle handshaking
     if (_dtlsSocket) {
@@ -331,7 +332,6 @@ void NodeList::sendDomainServerCheckIn() {
                 qCDebug(networking) << "Local domain-server port read from shared memory (or default) is" << domainPort;
                 _domainHandler.setPort(domainPort);
             }
-
         }
 
         // check if we're missing a keypair we need to verify ourselves with the domain-server
@@ -427,8 +427,10 @@ void NodeList::sendDomainServerCheckIn() {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
         // Send duplicate check-ins in the exponentially increasing sequence 1, 1, 2, 4, ...
+        static const int MAX_CHECKINS_TOGETHER = 20;
         int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
         int checkinCount = outstandingCheckins > 1 ? std::pow(2, outstandingCheckins - 2) : 1;
+        checkinCount = std::min(checkinCount, MAX_CHECKINS_TOGETHER);
         for (int i = 1; i < checkinCount; ++i) {
             auto packetCopy = domainPacket->createCopy(*domainPacket);
             sendPacket(std::move(packetCopy), _domainHandler.getSockAddr());
@@ -647,6 +649,23 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     Node::LocalID newLocalID;
     packetStream >> newUUID;
     packetStream >> newLocalID;
+
+    // when connected, if the session ID or local ID were not null and changed, we should reset
+    auto currentLocalID = getSessionLocalID();
+    auto currentSessionID = getSessionUUID();
+    if (_domainHandler.isConnected() &&
+        ((currentLocalID != Node::NULL_LOCAL_ID && newLocalID != currentLocalID) ||
+        (!currentSessionID.isNull() && newUUID != currentSessionID))) {
+            qCDebug(networking) << "Local ID or Session ID changed while connected to domain - forcing NodeList reset";
+
+            // reset the nodelist, but don't do a domain handler reset since we're about to process a good domain list
+            reset(true);
+
+            // tell the domain handler that we're no longer connected so that below
+            // it can re-perform actions as if we just connected
+            _domainHandler.setIsConnected(false);
+    }
+
     setSessionLocalID(newLocalID);
     setSessionUUID(newUUID);
 

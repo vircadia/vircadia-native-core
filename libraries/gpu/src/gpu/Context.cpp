@@ -14,6 +14,7 @@
 
 #include "Frame.h"
 #include "GPULogging.h"
+#include <shaders/Shaders.h>
 
 using namespace gpu;
 
@@ -84,6 +85,7 @@ void Context::appendFrameBatch(const BatchPointer& batch) {
 }
 
 FramePointer Context::endFrame() {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     assert(_frameActive);
     auto result = _currentFrame;
     _currentFrame.reset();
@@ -101,10 +103,12 @@ void Context::executeBatch(Batch& batch) const {
 }
 
 void Context::recycle() const {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     _backend->recycle();
 }
 
 void Context::consumeFrameUpdates(const FramePointer& frame) const {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     frame->preRender();
 }
 
@@ -328,10 +332,19 @@ Size Context::getTextureResourcePopulatedGPUMemSize() {
     return Backend::textureResourcePopulatedGPUMemSize.getValue();
 }
 
+PipelinePointer Context::createMipGenerationPipeline(const ShaderPointer& ps) {
+    auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawViewportQuadTransformTexcoord);
+	static gpu::StatePointer state(new gpu::State());
+
+	gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+	// Good to go add the brand new pipeline
+	return gpu::Pipeline::create(program, state);
+}
+
 Size Context::getTextureResourceIdealGPUMemSize() {
     return Backend::textureResourceIdealGPUMemSize.getValue();
 }
-
 
 BatchPointer Context::acquireBatch(const char* name) {
     Batch* rawBatch = nullptr;

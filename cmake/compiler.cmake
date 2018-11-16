@@ -6,6 +6,10 @@ if (NOT "${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
   message( FATAL_ERROR "Only 64 bit builds supported." )
 endif()
 
+if (USE_CCACHE OR "$ENV{USE_CCACHE}")
+  configure_ccache()
+endif()
+
 if (WIN32)
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
 
@@ -88,7 +92,7 @@ if (APPLE)
   set(OSX_SDK "${OSX_VERSION}" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
 
   # set our OS X deployment target
-  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.9)
 
   # find the SDK path for the desired SDK
   find_path(

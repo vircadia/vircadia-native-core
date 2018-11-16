@@ -65,14 +65,37 @@ public:
     void setDoesFade(bool doesFade) { _doesFade = doesFade; }
 
     gpu::Shader::Source _vertexSource;
-    gpu::Shader::Source _opaquefragmentSource;
-    gpu::Shader::Source _transparentfragmentSource;
+    gpu::Shader::Source _opaqueFragmentSource;
+    gpu::Shader::Source _transparentFragmentSource;
 
     gpu::StatePointer _opaqueState { std::make_shared<gpu::State>() };
     gpu::StatePointer _transparentState { std::make_shared<gpu::State>() };
 
 
 protected:
+    // DO NOT TOUCH
+    // We have to pack these in a particular way to match the ProceduralCommon.slh
+    // layout.  
+    struct StandardInputs {
+        vec4 date;
+        vec4 position; 
+        vec4 scale;
+        float time;
+        int frameCount;
+        vec2 _spare1;
+        vec4 resolution[4];
+        mat4 orientation;
+    };
+
+    static_assert(0 == offsetof(StandardInputs, date), "ProceduralOffsets");
+    static_assert(16 == offsetof(StandardInputs, position), "ProceduralOffsets");
+    static_assert(32 == offsetof(StandardInputs, scale), "ProceduralOffsets");
+    static_assert(48 == offsetof(StandardInputs, time), "ProceduralOffsets");
+    static_assert(52 == offsetof(StandardInputs, frameCount), "ProceduralOffsets");
+    static_assert(56 == offsetof(StandardInputs, _spare1), "ProceduralOffsets");
+    static_assert(64 == offsetof(StandardInputs, resolution), "ProceduralOffsets");
+    static_assert(128 == offsetof(StandardInputs, orientation), "ProceduralOffsets");
+
     // Procedural metadata
     ProceduralData _data;
 
@@ -88,13 +111,14 @@ protected:
     bool _dirty { false };
     bool _shaderDirty { true };
     bool _uniformsDirty { true };
-    bool _channelsDirty { true };
 
     // Rendering objects
     UniformLambdas _uniforms;
     NetworkTexturePointer _channels[MAX_PROCEDURAL_TEXTURE_CHANNELS];
     gpu::PipelinePointer _opaquePipeline;
     gpu::PipelinePointer _transparentPipeline;
+    StandardInputs _standardInputs;
+    gpu::BufferPointer _standardInputsBuffer;
     gpu::ShaderPointer _vertexShader;
     gpu::ShaderPointer _opaqueFragmentShader;
     gpu::ShaderPointer _transparentFragmentShader;
@@ -109,9 +133,6 @@ protected:
 private:
     // This should only be called from the render thread, as it shares data with Procedural::prepare
     void setupUniforms(bool transparent);
-    void setupChannels(bool shouldCreate, bool transparent);
-
-    std::string replaceProceduralBlock(const std::string& fragmentSource);
 
     mutable quint64 _fadeStartTime { 0 };
     mutable bool _hasStartedFade { false };

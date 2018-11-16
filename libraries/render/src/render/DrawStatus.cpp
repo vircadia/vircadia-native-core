@@ -170,13 +170,45 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
         batch.setPipeline(getDrawItemStatusPipeline());
 
         if (_showNetwork) {
-            for (size_t i = 0; i < itemBounds.size(); i++) {
-                batch._glUniform3fv(gpu::slot::uniform::Extra0, 1, (const float*)&itemBounds[i].bound.getCorner());
-                batch._glUniform3fv(gpu::slot::uniform::Extra1, 1, ((const float*)&itemBounds[i].bound.getScale()));
-                batch._glUniform4iv(gpu::slot::uniform::Extra2, 1, (const int*)&(itemStatus[i].first));
-                batch._glUniform4iv(gpu::slot::uniform::Extra3, 1, (const int*)&(itemStatus[i].second));
-                batch.draw(gpu::TRIANGLES, 24 * NUM_STATUS_VEC4_PER_ITEM, 0);
+            if (!_instanceBuffer) {
+                _instanceBuffer = std::make_shared<gpu::Buffer>();
             }
+
+            struct InstanceData {
+                vec4 boundPos;
+                vec4 boundDim;
+                ivec4 status0;
+                ivec4 status1;
+            };
+
+            if (!_vertexFormat) {
+                _vertexFormat = std::make_shared<gpu::Stream::Format>();
+                _vertexFormat->setAttribute(0, 0, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW), offsetof(InstanceData, boundPos), gpu::Stream::PER_INSTANCE);
+                _vertexFormat->setAttribute(1, 0, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW), offsetof(InstanceData, boundDim), gpu::Stream::PER_INSTANCE);
+                _vertexFormat->setAttribute(2, 0, gpu::Element(gpu::VEC4, gpu::INT32, gpu::XYZW), offsetof(InstanceData, status0), gpu::Stream::PER_INSTANCE);
+                _vertexFormat->setAttribute(3, 0, gpu::Element(gpu::VEC4, gpu::INT32, gpu::XYZW), offsetof(InstanceData, status1), gpu::Stream::PER_INSTANCE);
+            }
+
+            batch.setInputFormat(_vertexFormat);
+            std::vector<InstanceData> instanceData;
+            instanceData.resize(itemBounds.size());
+            for (size_t i = 0; i < itemBounds.size(); i++) {
+                InstanceData& item = instanceData[i];
+                const auto& bound = itemBounds[i].bound;
+                const auto& status = itemStatus[i];
+                item.boundPos = vec4(bound.getCorner(), 1.0f);
+                item.boundDim = vec4(bound.getScale(), 1.0f);
+                item.status0 = status.first;
+                item.status1 = status.second;
+            }
+
+            auto instanceBufferSize = sizeof(InstanceData) * instanceData.size();
+            if (_instanceBuffer->getSize() < instanceBufferSize) {
+                _instanceBuffer->resize(instanceBufferSize);
+            }
+            _instanceBuffer->setSubData(0, instanceData);
+            batch.setInputBuffer(0, _instanceBuffer, 0, sizeof(InstanceData));
+            batch.drawInstanced((uint32_t)instanceData.size(), gpu::TRIANGLES, 24 * NUM_STATUS_VEC4_PER_ITEM);
         }
         batch.setResourceTexture(0, 0);
     });

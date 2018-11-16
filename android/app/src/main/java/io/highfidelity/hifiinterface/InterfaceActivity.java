@@ -13,6 +13,7 @@ package io.highfidelity.hifiinterface;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -38,8 +39,10 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.highfidelity.hifiinterface.fragment.WebViewFragment;
+import io.highfidelity.hifiinterface.receiver.HeadsetStateReceiver;
 
 /*import com.google.vr.cardboard.DisplaySynchronizer;
 import com.google.vr.cardboard.DisplayUtils;
@@ -55,6 +58,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     private static final int NORMAL_DPI = 160;
 
     private Vibrator mVibrator;
+    private HeadsetStateReceiver headsetStateReceiver;
 
     //public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
@@ -65,13 +69,14 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     private native void nativeEnterBackground();
     private native void nativeEnterForeground();
     private native long nativeOnExitVr();
+    private native void nativeInitAfterAppLoaded();
 
     private AssetManager assetManager;
 
     private static boolean inVrMode;
 
     private boolean nativeEnterBackgroundCallEnqueued = false;
-    private SlidingDrawer webSlidingDrawer;
+    private SlidingDrawer mWebSlidingDrawer;
 //    private GvrApi gvrApi;
     // Opaque native pointer to the Application C++ object.
     // This object is owned by the InterfaceActivity instance and passed to the native methods.
@@ -111,17 +116,6 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         //nativeGvrApi =
             nativeOnCreate(this, assetManager /*, gvrApi.getNativeGvrContext()*/);
 
-        Point size = new Point();
-        getWindowManager().getDefaultDisplay().getRealSize(size);
-
-        try {
-            PackageInfo pInfo = this.getPackageManager().getPackageInfo(getPackageName(), 0);
-            String version = pInfo.versionName;
-//            setAppVersion(version);
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.e("GVR", "Error getting application version", e);
-        }
-
         final View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
 
         // This is a workaround to hide the menu bar when the virtual keyboard is shown from Qt
@@ -132,25 +126,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         });
         startActivity(new Intent(this, SplashActivity.class));
         mVibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
-
-        FrameLayout mainLayout = findViewById(android.R.id.content);
-        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        webSlidingDrawer = (SlidingDrawer) inflater.inflate(R.layout.web_drawer, mainLayout, false);
-        QtLayout qtLayout = (QtLayout) mainLayout.getChildAt(0);
-        QtLayout.LayoutParams layoutParams = new QtLayout.LayoutParams(webSlidingDrawer.getLayoutParams());
-        webSlidingDrawer.setOnDrawerCloseListener(() -> {
-            WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
-            webViewFragment.close();
-        });
-        int widthPx = Math.max(size.x, size.y);
-        int heightPx = Math.min(size.x, size.y);
-
-        layoutParams.x = (int) (widthPx - WEB_DRAWER_RIGHT_MARGIN * getResources().getDisplayMetrics().xdpi / NORMAL_DPI);
-        layoutParams.y = (int) (heightPx - WEB_DRAWER_BOTTOM_MARGIN * getResources().getDisplayMetrics().ydpi / NORMAL_DPI);
-
-        layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        qtLayout.addView(webSlidingDrawer, layoutParams);
-        webSlidingDrawer.setVisibility(View.GONE);
+        headsetStateReceiver = new HeadsetStateReceiver();
     }
 
     @Override
@@ -161,6 +137,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         } else {
             nativeEnterBackground();
         }
+        unregisterReceiver(headsetStateReceiver);
         //gvrApi.pauseTracking();
     }
 
@@ -183,6 +160,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         nativeEnterForeground();
         surfacesWorkaround();
         keepInterfaceRunning = false;
+        registerReceiver(headsetStateReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
         //gvrApi.resumeTracking();
     }
 
@@ -280,12 +258,45 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if (intent.hasExtra(DOMAIN_URL)) {
-            webSlidingDrawer.setVisibility(View.GONE);
+            hideWebDrawer();
             nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
         } else if (intent.hasExtra(EXTRA_GOTO_USERNAME)) {
-            webSlidingDrawer.setVisibility(View.GONE);
+            hideWebDrawer();
             nativeGoToUser(intent.getStringExtra(EXTRA_GOTO_USERNAME));
         }
+    }
+
+    private void hideWebDrawer() {
+        if (mWebSlidingDrawer != null) {
+            mWebSlidingDrawer.setVisibility(View.GONE);
+        }
+    }
+
+    public void showWebDrawer() {
+        if (mWebSlidingDrawer == null) {
+            FrameLayout mainLayout = findViewById(android.R.id.content);
+            LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            QtLayout qtLayout = (QtLayout) mainLayout.getChildAt(0);
+            mWebSlidingDrawer = (SlidingDrawer) inflater.inflate(R.layout.web_drawer, mainLayout, false);
+
+            QtLayout.LayoutParams layoutParams = new QtLayout.LayoutParams(mWebSlidingDrawer.getLayoutParams());
+            mWebSlidingDrawer.setOnDrawerCloseListener(() -> {
+                WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
+                webViewFragment.close();
+            });
+
+            Point size = new Point();
+            getWindowManager().getDefaultDisplay().getRealSize(size);
+            int widthPx = Math.max(size.x, size.y);
+            int heightPx = Math.min(size.x, size.y);
+
+            layoutParams.x = (int) (widthPx - WEB_DRAWER_RIGHT_MARGIN * getResources().getDisplayMetrics().xdpi / NORMAL_DPI);
+            layoutParams.y = (int) (heightPx - WEB_DRAWER_BOTTOM_MARGIN * getResources().getDisplayMetrics().ydpi / NORMAL_DPI);
+
+            layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            qtLayout.addView(mWebSlidingDrawer, layoutParams);
+        }
+        mWebSlidingDrawer.setVisibility(View.VISIBLE);
     }
 
     public void openAndroidActivity(String activityName, boolean backToScene) {
@@ -296,29 +307,37 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         switch (activityName) {
             case "Home":
             case "Privacy Policy":
-            case "Login": {
                 nativeBeforeEnterBackground();
                 Intent intent = new Intent(this, MainActivity.class);
                 intent.putExtra(MainActivity.EXTRA_FRAGMENT, activityName);
                 intent.putExtra(MainActivity.EXTRA_BACK_TO_SCENE, backToScene);
                 startActivity(intent);
                 break;
-            }
+            case "Login":
+                nativeBeforeEnterBackground();
+                Intent loginIntent = new Intent(this, LoginMenuActivity.class);
+                loginIntent.putExtra(LoginMenuActivity.EXTRA_BACK_TO_SCENE, backToScene);
+                loginIntent.putExtra(LoginMenuActivity.EXTRA_BACK_ON_SKIP, true);
+                if (args != null && args.containsKey(DOMAIN_URL)) {
+                    loginIntent.putExtra(LoginMenuActivity.EXTRA_DOMAIN_URL, (String) args.get(DOMAIN_URL));
+                }
+                startActivity(loginIntent);
+                break;
             case "WebView":
                 runOnUiThread(() -> {
-                    webSlidingDrawer.setVisibility(View.VISIBLE);
-                    if (!webSlidingDrawer.isOpened()) {
-                        webSlidingDrawer.animateOpen();
+                    showWebDrawer();
+                    if (!mWebSlidingDrawer.isOpened()) {
+                        mWebSlidingDrawer.animateOpen();
                     }
                     if (args != null && args.containsKey(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL)) {
                         WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
                         webViewFragment.loadUrl((String) args.get(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL), true);
                         webViewFragment.setToolbarVisible(true);
                         webViewFragment.setCloseAction(() -> {
-                            if (webSlidingDrawer.isOpened()) {
-                                webSlidingDrawer.animateClose();
+                            if (mWebSlidingDrawer.isOpened()) {
+                                mWebSlidingDrawer.animateClose();
                             }
-                            webSlidingDrawer.setVisibility(View.GONE);
+                            hideWebDrawer();
                         });
                     }
                 });
@@ -335,6 +354,9 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         if (nativeEnterBackgroundCallEnqueued) {
             nativeEnterBackground();
         }
+        runOnUiThread(() -> {
+            nativeInitAfterAppLoaded();
+        });
     }
 
     public void performHapticFeedback(int duration) {
@@ -361,4 +383,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     public void onExpand() {
         keepInterfaceRunning = true;
     }
+
+    @Override
+    public void onOAuthAuthorizeCallback(Uri uri) { }
 }

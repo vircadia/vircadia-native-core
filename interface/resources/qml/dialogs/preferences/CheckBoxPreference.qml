@@ -11,7 +11,7 @@
 import QtQuick 2.5
 import TabletScriptingInterface 1.0
 
-import "../../controls-uit"
+import controlsUit 1.0
 
 Preference {
     id: root
@@ -34,7 +34,7 @@ Preference {
             left: parent.left
             right: parent.right
         }
-        height: isFirstCheckBox ? hifi.dimensions.controlInterlineHeight : 0
+        height: isFirstCheckBox && !preference.indented ? 16 : 2
     }
 
     CheckBox {
@@ -54,6 +54,7 @@ Preference {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
+            leftMargin: preference.indented ? 20 : 0
         }
         text: root.label
         colorScheme: hifi.colorSchemes.dark

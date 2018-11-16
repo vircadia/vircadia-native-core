@@ -1,5 +1,6 @@
 package io.highfidelity.hifiinterface;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
@@ -31,12 +32,12 @@ import com.squareup.picasso.Picasso;
 
 import io.highfidelity.hifiinterface.fragment.FriendsFragment;
 import io.highfidelity.hifiinterface.fragment.HomeFragment;
-import io.highfidelity.hifiinterface.fragment.LoginFragment;
 import io.highfidelity.hifiinterface.fragment.PolicyFragment;
+import io.highfidelity.hifiinterface.fragment.SettingsFragment;
+import io.highfidelity.hifiinterface.fragment.SignupFragment;
 import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
-                                                                LoginFragment.OnLoginInteractionListener,
                                                                 HomeFragment.OnHomeInteractionListener,
                                                                 FriendsFragment.OnHomeInteractionListener {
 
@@ -44,12 +45,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public static final String DEFAULT_FRAGMENT = "Home";
     public static final String EXTRA_FRAGMENT = "fragment";
     public static final String EXTRA_BACK_TO_SCENE = "backToScene";
+    public static final String EXTRA_BACK_TO_URL = "url";
 
     private String TAG = "HighFidelity";
 
-    public native boolean nativeIsLoggedIn();
-    public native void nativeLogout();
-    public native String nativeGetDisplayName();
+    public native void logout();
+    public native void setUsernameChangedListener(Activity usernameChangedListener);
+    public native String getUsername();
 
     private DrawerLayout mDrawerLayout;
     private NavigationView mNavigationView;
@@ -61,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private MenuItem mPeopleMenuItem;
 
     private boolean backToScene;
+    private String backToUrl;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,6 +82,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mProfilePicture = mNavigationView.getHeaderView(0).findViewById(R.id.profilePicture);
 
         mPeopleMenuItem = mNavigationView.getMenu().findItem(R.id.action_people);
+
+        updateDebugMenu(mNavigationView.getMenu());
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitleTextAppearance(this, R.style.HomeActionBarTitleStyle);
@@ -102,17 +107,23 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 loadFragment(DEFAULT_FRAGMENT);
             }
 
-            if (getIntent().hasExtra(EXTRA_BACK_TO_SCENE)) {
-                backToScene = getIntent().getBooleanExtra(EXTRA_BACK_TO_SCENE, false);
+            backToScene = getIntent().getBooleanExtra(EXTRA_BACK_TO_SCENE, false);
+            backToUrl = getIntent().getStringExtra(EXTRA_BACK_TO_URL);
+        }
+    }
+
+    private void updateDebugMenu(Menu menu) {
+        if (BuildConfig.DEBUG) {
+            for (int i=0; i < menu.size(); i++) {
+                if (menu.getItem(i).getItemId() == R.id.action_debug_settings) {
+                    menu.getItem(i).setVisible(true);
+                }
             }
         }
     }
 
     private void loadFragment(String fragment) {
         switch (fragment) {
-            case "Login":
-                loadLoginFragment();
-                break;
             case "Home":
                 loadHomeFragment(true);
                 break;
@@ -130,28 +141,35 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void loadHomeFragment(boolean addToBackStack) {
         Fragment fragment = HomeFragment.newInstance();
-        loadFragment(fragment, getString(R.string.home), getString(R.string.tagFragmentHome), addToBackStack);
+        loadFragment(fragment, getString(R.string.home), getString(R.string.tagFragmentHome), addToBackStack, true);
     }
 
-    private void loadLoginFragment() {
-        Fragment fragment = LoginFragment.newInstance();
-
-        loadFragment(fragment, getString(R.string.login), getString(R.string.tagFragmentLogin), true);
+    private void startLoginMenuActivity() {
+        Intent intent = new Intent(this, LoginMenuActivity.class);
+        intent.putExtra(LoginMenuActivity.EXTRA_BACK_ON_SKIP, true);
+        startActivity(intent);
     }
 
     private void loadPrivacyPolicyFragment() {
         Fragment fragment = PolicyFragment.newInstance();
 
-        loadFragment(fragment, getString(R.string.privacyPolicy), getString(R.string.tagFragmentPolicy), true);
+        loadFragment(fragment, getString(R.string.privacyPolicy), getString(R.string.tagFragmentPolicy), true, true);
     }
 
     private void loadPeopleFragment() {
         Fragment fragment = FriendsFragment.newInstance();
 
-        loadFragment(fragment, getString(R.string.people), getString(R.string.tagFragmentPeople), true);
+        loadFragment(fragment, getString(R.string.people), getString(R.string.tagFragmentPeople), true, true);
     }
 
-    private void loadFragment(Fragment fragment, String title, String tag, boolean addToBackStack) {
+    private void loadSettingsFragment() {
+        SettingsFragment fragment = SettingsFragment.newInstance();
+
+        loadFragment(fragment, getString(R.string.settings), getString(R.string.tagSettings), true, true);
+    }
+
+
+    private void loadFragment(Fragment newFragment, String title, String tag, boolean addToBackStack, boolean goBackUntilHome) {
         FragmentManager fragmentManager = getFragmentManager();
 
         // check if it's the same fragment
@@ -163,17 +181,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return; // cancel as we are already in that fragment
         }
 
-        // go back until first transaction
-        int backStackEntryCount = fragmentManager.getBackStackEntryCount();
-        for (int i = 0; i < backStackEntryCount - 1; i++) {
-            fragmentManager.popBackStackImmediate();
+        if (goBackUntilHome) {
+            // go back until first transaction
+            int backStackEntryCount = fragmentManager.getBackStackEntryCount();
+            for (int i = 0; i < backStackEntryCount - 1; i++) {
+                fragmentManager.popBackStackImmediate();
+            }
         }
 
         // this case is when we wanted to go home.. rollback already did that!
         // But asking for a new Home fragment makes it easier to have an updated list so we let it to continue
 
         FragmentTransaction ft = fragmentManager.beginTransaction();
-        ft.replace(R.id.content_frame, fragment, tag);
+        ft.replace(R.id.content_frame, newFragment, tag);
 
         if (addToBackStack) {
             ft.addToBackStack(title);
@@ -185,7 +205,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     
     private void updateLoginMenu() {
-        if (nativeIsLoggedIn()) {
+        if (HifiUtils.getInstance().isUserLoggedIn()) {
             mLoginPanel.setVisibility(View.GONE);
             mProfilePanel.setVisibility(View.VISIBLE);
             mLogoutOption.setVisibility(View.VISIBLE);
@@ -201,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void updateProfileHeader() {
-        updateProfileHeader(nativeGetDisplayName());
+        updateProfileHeader(getUsername());
     }
     private void updateProfileHeader(String username) {
         if (!username.isEmpty()) {
@@ -241,6 +261,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case R.id.action_people:
                 loadPeopleFragment();
                 return true;
+            case R.id.action_debug_settings:
+                loadSettingsFragment();
+                return true;
         }
         return false;
     }
@@ -248,15 +271,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onStart() {
         super.onStart();
+        setUsernameChangedListener(this);
         updateLoginMenu();
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        setUsernameChangedListener(null);
+    }
+
     public void onLoginClicked(View view) {
-        loadLoginFragment();
+        startLoginMenuActivity();
     }
 
     public void onLogoutClicked(View view) {
-        nativeLogout();
+        logout();
         updateLoginMenu();
         exitLoggedInFragment();
 
@@ -278,7 +308,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void goToLastLocation() {
-        goToDomain("");
+        goToDomain(backToUrl != null? backToUrl : "");
     }
 
     private void goToDomain(String domainUrl) {
@@ -295,16 +325,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         finish();
         intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
-    }
-
-    @Override
-    public void onLoginCompleted() {
-        loadHomeFragment(false);
-        updateLoginMenu();
-        if (backToScene) {
-            backToScene = false;
-            goToLastLocation();
-        }
     }
 
     public void handleUsernameChanged(String username) {
@@ -351,7 +371,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void onBackPressed() {
         // if a fragment needs to internally manage back presses..
         FragmentManager fm = getFragmentManager();
-        Log.d("[BACK]", "getBackStackEntryCount " + fm.getBackStackEntryCount());
         Fragment friendsFragment = fm.findFragmentByTag(getString(R.string.tagFragmentPeople));
         if (friendsFragment != null && friendsFragment instanceof FriendsFragment) {
             if (((FriendsFragment) friendsFragment).onBackPressed()) {

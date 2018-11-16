@@ -45,8 +45,10 @@ public:
     virtual void onTimeout() {}
 
     virtual void onPacketSent(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {}
+    virtual void onPacketReSent(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {}
 
     virtual int estimatedTimeout() const = 0;
+
 protected:
     void setMSS(int mss) { _mss = mss; }
     virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) = 0;

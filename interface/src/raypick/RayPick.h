@@ -70,13 +70,18 @@ public:
 class RayPick : public Pick<PickRay> {
 
 public:
-    RayPick(const PickFilter& filter, float maxDistance, bool enabled) : Pick(filter, maxDistance, enabled) {}
+    RayPick(glm::vec3 position, glm::vec3 direction, const PickFilter& filter, float maxDistance, bool enabled) :
+        Pick(PickRay(position, direction), filter, maxDistance, enabled) {
+    }
+
+    PickRay getMathematicalPick() const override;
 
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override { return std::make_shared<RayPickResult>(pickVariant); }
     PickResultPointer getEntityIntersection(const PickRay& pick) override;
     PickResultPointer getOverlayIntersection(const PickRay& pick) override;
     PickResultPointer getAvatarIntersection(const PickRay& pick) override;
     PickResultPointer getHUDIntersection(const PickRay& pick) override;
+    Transform getResultTransform() const override;
 
     // These are helper functions for projecting and intersecting rays
     static glm::vec3 intersectRayWithEntityXYPlane(const QUuid& entityID, const glm::vec3& origin, const glm::vec3& direction);

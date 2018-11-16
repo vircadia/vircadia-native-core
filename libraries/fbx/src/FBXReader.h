@@ -12,8 +12,6 @@
 #ifndef hifi_FBXReader_h
 #define hifi_FBXReader_h
 
-#include "FBX.h"
-
 #include <QtGlobal>
 #include <QMetaType>
 #include <QSet>
@@ -28,33 +26,22 @@
 #include <Extents.h>
 #include <Transform.h>
 
+#include "FBX.h"
+#include <hfm/HFM.h>
+
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
 
 class QIODevice;
 class FBXNode;
 
-#if defined(Q_OS_ANDROID)
-#define FBX_PACK_NORMALS 0
-#else
-#define FBX_PACK_NORMALS 1
-#endif
-
-#if FBX_PACK_NORMALS
-using NormalType = glm::uint32;
-#define FBX_NORMAL_ELEMENT gpu::Element::VEC4F_NORMALIZED_XYZ10W2
-#else
-using NormalType = glm::vec3;
-#define FBX_NORMAL_ELEMENT gpu::Element::VEC3F_XYZ
-#endif
-
-/// Reads FBX geometry from the supplied model and mapping data.
+/// Reads HFMModel from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+HFMModel* readFBX(const QByteArray& data, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
-/// Reads FBX geometry from the supplied model and mapping data.
+/// Reads HFMModel from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+HFMModel* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 class TextureParam {
 public:
@@ -117,20 +104,20 @@ class ExtractedMesh;
 
 class FBXReader {
 public:
-    FBXGeometry* _fbxGeometry;
+    HFMModel* _hfmModel;
 
     FBXNode _rootNode;
     static FBXNode parseFBX(QIODevice* device);
 
-    FBXGeometry* extractFBXGeometry(const QVariantHash& mapping, const QString& url);
+    HFMModel* extractHFMModel(const QVariantHash& mapping, const QString& url);
 
     static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate = true);
     QHash<QString, ExtractedMesh> meshes;
-    static void buildModelMesh(FBXMesh& extractedMesh, const QString& url);
+    static void buildModelMesh(HFMMesh& extractedMesh, const QString& url);
 
     static glm::vec3 normalizeDirForPacking(const glm::vec3& dir);
 
-    FBXTexture getTexture(const QString& textureID);
+    HFMTexture getTexture(const QString& textureID);
 
     QHash<QString, QString> _textureNames;
     // Hashes the original RelativeFilename of textures
@@ -156,9 +143,9 @@ public:
     QHash<QString, QString> ambientFactorTextures;
     QHash<QString, QString> occlusionTextures;
 
-    QHash<QString, FBXMaterial> _fbxMaterials;
+    QHash<QString, HFMMaterial> _hfmMaterials;
 
-    void consolidateFBXMaterials(const QVariantHash& mapping);
+    void consolidateHFMMaterials(const QVariantHash& mapping);
 
     bool _loadLightmaps = true;
     float _lightmapOffset = 0.0f;

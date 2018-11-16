@@ -11,13 +11,14 @@
 import QtQuick 2.5
 import Qt.labs.settings 1.0
 
-import "../../styles-uit"
-import "../../controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 import "../../windows"
 
 Rectangle {
     id: root
     objectName: "EntityStatistics"
+    property string title: "Entity Statistics"
 
     signal sendToScript(var message);
     property bool isHMD: false
@@ -40,6 +41,7 @@ Rectangle {
         id: scrollView
         width: parent.width
         anchors.top: parent.top
+        anchors.topMargin: hifi.dimensions.contentMargin.y
         anchors.bottom: parent.bottom
         anchors.bottomMargin: hifi.dimensions.tabletMenuHeader
         contentWidth: column.implicitWidth
@@ -48,10 +50,15 @@ Rectangle {
 
         Column {
             id: column
-            anchors.margins: 10
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            y: hifi.dimensions.tabletMenuHeader //-bgNavBar
+            anchors {
+                topMargin: 0
+                leftMargin: 10
+                rightMargin: 10
+                bottomMargin: 0
+            }
             spacing: 20
 
             TabletEntityStatisticsItem {

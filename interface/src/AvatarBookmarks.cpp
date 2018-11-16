@@ -78,8 +78,10 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
-                // since we're creating this object we will immediately volunteer to own its simulation
-                entity->setScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                if (entityProperties.getDynamic()) {
+                    // since we're creating a dynamic object we volunteer immediately to own its simulation
+                    entity->upgradeScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                }
                 entityProperties.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "AvatarEntitiesBookmark failed to add new Entity to local Octree";
@@ -108,6 +110,9 @@ AvatarBookmarks::AvatarBookmarks() {
 
         if (!QFile::copy(defaultBookmarksFilename, _bookmarksFilename)) {
             qDebug() << "failed to copy" << defaultBookmarksFilename << "to" << _bookmarksFilename;
+        } else {
+            QFile bookmarksFile(_bookmarksFilename);
+            bookmarksFile.setPermissions(bookmarksFile.permissions() | QFile::WriteUser);
         }
     }
     readFromFile();
@@ -145,20 +150,9 @@ void AvatarBookmarks::removeBookmark(const QString& bookmarkName) {
     emit bookmarkDeleted(bookmarkName);
 }
 
-bool isWearableEntity(const EntityItemPointer& entity) {
-    return entity->isVisible() && (entity->getParentJointIndex() != INVALID_JOINT_INDEX || (entity->getType() == EntityTypes::Model && (std::static_pointer_cast<ModelEntityItem>(entity))->getRelayParentJoints()))
-        && (entity->getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || entity->getParentID() == DependencyManager::get<AvatarManager>()->getMyAvatar()->getSelfID());
-}
-
 void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    myAvatar->removeAvatarEntities([&](const QUuid& entityID) {
-        auto entity = entityTree->findEntityByID(entityID);
-        return entity && isWearableEntity(entity);
-    });
-
+    myAvatar->removeWearableAvatarEntities();
     addAvatarEntities(avatarEntities);
 }
 
@@ -183,13 +177,10 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
             EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-            myAvatar->removeAvatarEntities([&](const QUuid& entityID) {
-                auto entity = entityTree->findEntityByID(entityID);
-                return entity && isWearableEntity(entity);
-            });
+            myAvatar->removeWearableAvatarEntities();
             const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
             myAvatar->useFullAvatarURL(avatarUrl);
-            qCDebug(interfaceapp) << "Avatar On " << avatarUrl;
+            qCDebug(interfaceapp) << "Avatar On";
             const QList<QVariant>& attachments = bookmark.value(ENTRY_AVATAR_ATTACHMENTS, QList<QVariant>()).toList();
 
             qCDebug(interfaceapp) << "Attach " << attachments;

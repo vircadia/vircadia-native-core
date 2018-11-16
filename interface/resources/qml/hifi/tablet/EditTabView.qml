@@ -4,8 +4,8 @@ import QtWebChannel 1.0
 import "../../controls"
 import "../toolbars"
 import QtGraphicalEffects 1.0
-import "../../controls-uit" as HifiControls
-import "../../styles-uit"
+import controlsUit 1.0 as HifiControls
+import stylesUit 1.0
 
 TabBar {
     id: editTabView
@@ -175,7 +175,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newParticleButton" }
                                 });
-                                editTabView.currentIndex = 4
+                                editTabView.currentIndex = 2
                             }
                         }
 
@@ -245,6 +245,7 @@ TabBar {
                 id: entityListToolWebView
                 url: Paths.defaultScripts + "/system/html/entityList.html"
                 enabled: true
+                blurOnCtrlShift: false
             }
         }
     }
@@ -260,6 +261,7 @@ TabBar {
                 id: entityPropertiesWebView
                 url: Paths.defaultScripts + "/system/html/entityProperties.html"
                 enabled: true
+                blurOnCtrlShift: false
             }
         }
     }
@@ -275,21 +277,7 @@ TabBar {
                 id: gridControlsWebView
                 url: Paths.defaultScripts + "/system/html/gridControls.html"
                 enabled: true
-            }
-        }
-    }
-
-    EditTabButton {
-        title: "P"
-        active: true
-        enabled: true
-        property string originalUrl: ""
-
-        property Component visualItem: Component {
-            WebView {
-                id: particleExplorerWebView
-                url: Paths.defaultScripts + "/system/particle_explorer/particleExplorer.html"
-                enabled: true
+                blurOnCtrlShift: false
             }
         }
     }
@@ -300,7 +288,7 @@ TabBar {
                 selectTab(message.params.id);
                 break;
             default:
-                console.warn('Unrecognized message:', JSON.stringify(message));
+                console.warn('EditTabView.qml: Unrecognized message');
         }
     }
 
@@ -325,9 +313,6 @@ TabBar {
                     break;
                 case 'grid':
                     editTabView.currentIndex = 3;
-                    break;
-                case 'particle':
-                    editTabView.currentIndex = 4;
                     break;
                 default:
                     console.warn('Attempt to switch to invalid tab:', id);

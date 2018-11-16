@@ -32,7 +32,7 @@
         range: DEFAULT_RANGE,
         maxVolume: DEFAULT_VOLUME,
         disabled: true,
-        grabbableKey: { wantsTrigger: true },
+        grab: { triggerable: true }
     };
 
     var soundURL = "";
@@ -71,13 +71,13 @@
             try {
                 var data = JSON.parse(props.userData);
             } catch(e) {
-                debugPrint("unable to parse userData JSON string: " + props.userData);
+                debugPrint("unable to parse userData JSON string");
                 this.cleanup();
                 return;
             }
             if (data.soundURL && !(soundURL === data.soundURL)) {
                 soundURL = data.soundURL;
-                debugPrint("Read ambient sound URL: " + soundURL);
+                debugPrint("Read ambient sound URL");
             }
             if (data.range && !(range === data.range)) {
                 range = data.range;
@@ -113,7 +113,7 @@
                         ambientSound = SoundCache.getSound(soundURL);
                     } else if (resource.state === Resource.State.FAILED) {
                         resource.stateChanged.disconnect(onStateChanged);
-                        debugPrint("Failed to download ambient sound: " + soundURL);
+                        debugPrint("Failed to download ambient sound");
                     }
                 }
                 resource.stateChanged.connect(onStateChanged);
@@ -151,7 +151,7 @@
         var data = JSON.parse(props.userData);
         data.disabled = !data.disabled;
 
-        debugPrint(hint + " -- triggering ambient sound " + (data.disabled ? "OFF" : "ON") + " (" + data.soundURL + ")");
+        debugPrint(hint + " -- triggering ambient sound " + (data.disabled ? "OFF" : "ON"));
 
         this.cleanup();
 
@@ -182,7 +182,7 @@
         entity = entityID;
         _this = this;
 
-        var props = Entities.getEntityProperties(entity, [ "userData" ]);
+        var props = Entities.getEntityProperties(entity, [ "userData", "grab.triggerable" ]);
         var data = {};
         if (props.userData) {
             data = JSON.parse(props.userData);
@@ -194,14 +194,15 @@
                 changed = true;
             }
         }
-        if (!data.grabbableKey.wantsTrigger) {
-            data.grabbableKey.wantsTrigger = true;
-            changed = true;
-        }
         if (changed) {
             debugPrint("applying default values to userData");
             Entities.editEntity(entity, { userData: JSON.stringify(data) });
         }
+
+        if (!props.grab.triggerable) {
+            Entities.editEntity(entity, { grab: { triggerable: true } });
+        }
+
         this._updateColor(data.disabled);
         this.updateSettings();
 
@@ -235,7 +236,7 @@
             soundOptions.orientation = rotation;
             soundOptions.volume = volume;
             if (!soundPlaying && ambientSound && ambientSound.downloaded) {
-                debugPrint("Starting ambient sound: " + soundURL + " (duration: " + ambientSound.duration + ")");
+                debugPrint("Starting ambient sound: (duration: " + ambientSound.duration + ")");
                 soundPlaying = Audio.playSound(ambientSound, soundOptions);
             } else if (soundPlaying && soundPlaying.playing) {
                 soundPlaying.setOptions(soundOptions);
@@ -243,7 +244,7 @@
         } else if (soundPlaying && soundPlaying.playing && (distance > range * HYSTERESIS_FRACTION)) {
             soundPlaying.stop();
             soundPlaying = false;
-            debugPrint("Out of range, stopping ambient sound: " + soundURL);
+            debugPrint("Out of range, stopping ambient sound");
         }
     };
 

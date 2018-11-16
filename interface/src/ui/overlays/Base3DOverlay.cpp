@@ -191,8 +191,6 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
 
     if (properties["parentID"].isValid()) {
         setParentID(QUuid(properties["parentID"].toString()));
-        bool success;
-        getParentPointer(success); // call this to hook-up the parent's back-pointers to its child overlays
         needRenderItemUpdate = true;
     }
     if (properties["parentJointIndex"].isValid()) {
@@ -238,7 +236,9 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
  */
 QVariant Base3DOverlay::getProperty(const QString& property) {
     if (property == "name") {
-        return _name;
+        return _nameLock.resultWithReadLock<QString>([&] {
+            return _name;
+        });
     }
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
         return vec3toVariant(getWorldPosition());
@@ -290,6 +290,7 @@ void Base3DOverlay::locationChanged(bool tellPhysics) {
     notifyRenderVariableChange();
 }
 
+// FIXME: Overlays shouldn't be deleted when their parents are
 void Base3DOverlay::parentDeleted() {
     qApp->getOverlays().deleteOverlay(getOverlayID());
 }
@@ -345,6 +346,20 @@ void Base3DOverlay::setVisible(bool visible) {
     Parent::setVisible(visible);
     notifyRenderVariableChange();
 }
+
+QString Base3DOverlay::getName() const {
+    return _nameLock.resultWithReadLock<QString>([&] {
+        return QString("Overlay:") + _name;
+    });
+}
+
+void Base3DOverlay::setName(QString name) {
+    _nameLock.withWriteLock([&] {
+        _name = name;
+    });
+}
+
+
 
 render::ItemKey Base3DOverlay::getKey() {
     auto builder = render::ItemKey::Builder(Overlay::getKey());

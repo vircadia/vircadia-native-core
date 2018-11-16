@@ -218,6 +218,8 @@ public:
     // Same as above but grabbed at every end of a frame
     void getFrameStats(ContextStats& stats) const;
 
+	static PipelinePointer createMipGenerationPipeline(const ShaderPointer& pixelShader);
+
     double getFrameTimerGPUAverage() const;
     double getFrameTimerBatchAverage() const;
 

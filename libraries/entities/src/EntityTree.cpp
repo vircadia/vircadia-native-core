@@ -35,6 +35,7 @@
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
+#include "RecurseOctreeToJSONOperator.h"
 #include "LogHandler.h"
 #include "EntityEditFilters.h"
 #include "EntityDynamicFactoryInterface.h"
@@ -48,6 +49,7 @@ public:
     // Inputs
     glm::vec3 origin;
     glm::vec3 direction;
+    glm::vec3 invDirection;
     const QVector<EntityItemID>& entityIdsToInclude;
     const QVector<EntityItemID>& entityIdsToDiscard;
     bool visibleOnly;
@@ -667,7 +669,7 @@ void EntityTree::unhookChildAvatar(const EntityItemID entityID) {
 void EntityTree::cleanupCloneIDs(const EntityItemID& entityID) {
     EntityItemPointer entity = findEntityByEntityItemID(entityID);
     if (entity) {
-        // remove clone ID from it's clone origin's clone ID list if clone origin exists
+        // remove clone ID from its clone origin's clone ID list if clone origin exists
         const QUuid& cloneOriginID = entity->getCloneOriginID();
         if (!cloneOriginID.isNull()) {
             EntityItemPointer cloneOrigin = findEntityByID(cloneOriginID);
@@ -825,13 +827,36 @@ bool findRayIntersectionOp(const OctreeElementPointer& element, void* extraData)
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    EntityItemID entityID = entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
+    EntityItemID entityID = entityTreeElementPointer->findRayIntersection(args->origin, args->direction,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->extraInfo, args->precisionPicking);
     if (!entityID.isNull()) {
         args->entityID = entityID;
+        // We recurse OctreeElements in order, so if we hit something, we can stop immediately
+        keepSearching = false;
     }
     return keepSearching;
+}
+
+float findRayIntersectionSortingOp(const OctreeElementPointer& element, void* extraData) {
+    RayArgs* args = static_cast<RayArgs*>(extraData);
+    EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
+    float distance = FLT_MAX;
+    // If origin is inside the cube, always check this element first
+    if (entityTreeElementPointer->getAACube().contains(args->origin)) {
+        distance = 0.0f;
+    } else {
+        float boundDistance = FLT_MAX;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
+        if (entityTreeElementPointer->getAACube().findRayIntersection(args->origin, args->direction, args->invDirection, boundDistance, face, surfaceNormal)) {
+            // Don't add this cell if it's already farther than our best distance so far
+            if (boundDistance < args->distance) {
+                distance = boundDistance;
+            }
+        }
+    }
+    return distance;
 }
 
 EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -840,13 +865,13 @@ EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm:
                                     OctreeElementPointer& element, float& distance,
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
-    RayArgs args = { origin, direction, entityIdsToInclude, entityIdsToDiscard,
+    RayArgs args = { origin, direction, 1.0f / direction, entityIdsToInclude, entityIdsToDiscard,
             visibleOnly, collidableOnly, precisionPicking, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;
     bool lockResult = withReadLock([&]{
-        recurseTreeWithOperation(findRayIntersectionOp, &args);
+        recurseTreeWithOperationSorted(findRayIntersectionOp, findRayIntersectionSortingOp, &args);
     }, requireLock);
 
     if (accurateResult) {
@@ -860,13 +885,36 @@ bool findParabolaIntersectionOp(const OctreeElementPointer& element, void* extra
     ParabolaArgs* args = static_cast<ParabolaArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    EntityItemID entityID = entityTreeElementPointer->findParabolaIntersection(args->origin, args->velocity, args->acceleration, keepSearching,
+    EntityItemID entityID = entityTreeElementPointer->findParabolaIntersection(args->origin, args->velocity, args->acceleration,
         args->element, args->parabolicDistance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->extraInfo, args->precisionPicking);
     if (!entityID.isNull()) {
         args->entityID = entityID;
+        // We recurse OctreeElements in order, so if we hit something, we can stop immediately
+        keepSearching = false;
     }
     return keepSearching;
+}
+
+float findParabolaIntersectionSortingOp(const OctreeElementPointer& element, void* extraData) {
+    ParabolaArgs* args = static_cast<ParabolaArgs*>(extraData);
+    EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
+    float distance = FLT_MAX;
+    // If origin is inside the cube, always check this element first
+    if (entityTreeElementPointer->getAACube().contains(args->origin)) {
+        distance = 0.0f;
+    } else {
+        float boundDistance = FLT_MAX;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
+        if (entityTreeElementPointer->getAACube().findParabolaIntersection(args->origin, args->velocity, args->acceleration, boundDistance, face, surfaceNormal)) {
+            // Don't add this cell if it's already farther than our best distance so far
+            if (boundDistance < args->parabolicDistance) {
+                distance = boundDistance;
+            }
+        }
+    }
+    return distance;
 }
 
 EntityItemID EntityTree::findParabolaIntersection(const PickParabola& parabola,
@@ -882,7 +930,7 @@ EntityItemID EntityTree::findParabolaIntersection(const PickParabola& parabola,
 
     bool requireLock = lockType == Octree::Lock;
     bool lockResult = withReadLock([&] {
-        recurseTreeWithOperation(findParabolaIntersectionOp, &args);
+        recurseTreeWithOperationSorted(findParabolaIntersectionOp, findParabolaIntersectionSortingOp, &args);
     }, requireLock);
 
     if (accurateResult) {
@@ -1886,6 +1934,14 @@ void EntityTree::fixupNeedsParentFixups() {
                 }
             });
             entity->locationChanged(true);
+
+            // Update our parent's bounding box
+            bool success = false;
+            auto parent = entity->getParentPointer(success);
+            if (success && parent) {
+                parent->updateQueryAACube();
+            }
+
             entity->postParentFixup();
         } else if (getIsServer() || _avatarIDs.contains(entity->getParentID())) {
             // this is a child of an avatar, which the entity server will never have
@@ -2438,6 +2494,118 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
     return true;
 }
 
+void convertGrabUserDataToProperties(EntityItemProperties& properties) {
+    GrabPropertyGroup& grabProperties = properties.getGrab();
+    QJsonObject userData = QJsonDocument::fromJson(properties.getUserData().toUtf8()).object();
+
+    QJsonValue grabbableKeyValue = userData["grabbableKey"];
+    if (grabbableKeyValue.isObject()) {
+        QJsonObject grabbableKey = grabbableKeyValue.toObject();
+
+        QJsonValue wantsTrigger = grabbableKey["wantsTrigger"];
+        if (wantsTrigger.isBool()) {
+            grabProperties.setTriggerable(wantsTrigger.toBool());
+        }
+        QJsonValue triggerable = grabbableKey["triggerable"];
+        if (triggerable.isBool()) {
+            grabProperties.setTriggerable(triggerable.toBool());
+        }
+        QJsonValue grabbable = grabbableKey["grabbable"];
+        if (grabbable.isBool()) {
+            grabProperties.setGrabbable(grabbable.toBool());
+        }
+        QJsonValue ignoreIK = grabbableKey["ignoreIK"];
+        if (ignoreIK.isBool()) {
+            grabProperties.setGrabFollowsController(ignoreIK.toBool());
+        }
+        QJsonValue kinematic = grabbableKey["kinematic"];
+        if (kinematic.isBool()) {
+            grabProperties.setGrabKinematic(kinematic.toBool());
+        }
+        QJsonValue equippable = grabbableKey["equippable"];
+        if (equippable.isBool()) {
+            grabProperties.setEquippable(equippable.toBool());
+        }
+
+        if (grabbableKey["spatialKey"].isObject()) {
+            QJsonObject spatialKey = grabbableKey["spatialKey"].toObject();
+            grabProperties.setEquippable(true);
+            if (spatialKey["leftRelativePosition"].isObject()) {
+                grabProperties.setEquippableLeftPosition(qMapToVec3(spatialKey["leftRelativePosition"].toVariant()));
+            }
+            if (spatialKey["rightRelativePosition"].isObject()) {
+                grabProperties.setEquippableRightPosition(qMapToVec3(spatialKey["rightRelativePosition"].toVariant()));
+            }
+            if (spatialKey["relativeRotation"].isObject()) {
+                grabProperties.setEquippableLeftRotation(qMapToQuat(spatialKey["relativeRotation"].toVariant()));
+                grabProperties.setEquippableRightRotation(qMapToQuat(spatialKey["relativeRotation"].toVariant()));
+            }
+        }
+    }
+
+    QJsonValue wearableValue = userData["wearable"];
+    if (wearableValue.isObject()) {
+        QJsonObject wearable = wearableValue.toObject();
+        QJsonObject joints = wearable["joints"].toObject();
+        if (joints["LeftHand"].isArray()) {
+            QJsonArray leftHand = joints["LeftHand"].toArray();
+            if (leftHand.size() == 2) {
+                grabProperties.setEquippable(true);
+                grabProperties.setEquippableLeftPosition(qMapToVec3(leftHand[0].toVariant()));
+                grabProperties.setEquippableLeftRotation(qMapToQuat(leftHand[1].toVariant()));
+            }
+        }
+        if (joints["RightHand"].isArray()) {
+            QJsonArray rightHand = joints["RightHand"].toArray();
+            if (rightHand.size() == 2) {
+                grabProperties.setEquippable(true);
+                grabProperties.setEquippableRightPosition(qMapToVec3(rightHand[0].toVariant()));
+                grabProperties.setEquippableRightRotation(qMapToQuat(rightHand[1].toVariant()));
+            }
+        }
+    }
+
+    QJsonValue equipHotspotsValue = userData["equipHotspots"];
+    if (equipHotspotsValue.isArray()) {
+        QJsonArray equipHotspots = equipHotspotsValue.toArray();
+        if (equipHotspots.size() > 0) {
+            // just take the first one
+            QJsonObject firstHotSpot = equipHotspots[0].toObject();
+            QJsonObject joints = firstHotSpot["joints"].toObject();
+            if (joints["LeftHand"].isArray()) {
+                QJsonArray leftHand = joints["LeftHand"].toArray();
+                if (leftHand.size() == 2) {
+                    grabProperties.setEquippableLeftPosition(qMapToVec3(leftHand[0].toVariant()));
+                    grabProperties.setEquippableLeftRotation(qMapToQuat(leftHand[1].toVariant()));
+                }
+            }
+            if (joints["RightHand"].isArray()) {
+                QJsonArray rightHand = joints["RightHand"].toArray();
+                if (rightHand.size() == 2) {
+                    grabProperties.setEquippable(true);
+                    grabProperties.setEquippableRightPosition(qMapToVec3(rightHand[0].toVariant()));
+                    grabProperties.setEquippableRightRotation(qMapToQuat(rightHand[1].toVariant()));
+                }
+            }
+            QJsonValue indicatorURL = firstHotSpot["modelURL"];
+            if (indicatorURL.isString()) {
+                grabProperties.setEquippableIndicatorURL(indicatorURL.toString());
+            }
+            QJsonValue indicatorScale = firstHotSpot["modelScale"];
+            if (indicatorScale.isDouble()) {
+                grabProperties.setEquippableIndicatorScale(glm::vec3((float)indicatorScale.toDouble()));
+            } else if (indicatorScale.isObject()) {
+                grabProperties.setEquippableIndicatorScale(qMapToVec3(indicatorScale.toVariant()));
+            }
+            QJsonValue indicatorOffset = firstHotSpot["position"];
+            if (indicatorOffset.isObject()) {
+                grabProperties.setEquippableIndicatorOffset(qMapToVec3(indicatorOffset.toVariant()));
+            }
+        }
+    }
+}
+
+
 bool EntityTree::readFromMap(QVariantMap& map) {
     // These are needed to deal with older content (before adding inheritance modes)
     int contentVersion = map["Version"].toInt();
@@ -2511,7 +2679,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
             // The legacy version had no keylight mode - this is set to on
             properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
-            
+
             // The ambient URL has been moved from "keyLight" to "ambientLight"
             if (entityMap.contains("keyLight")) {
                 QVariantMap keyLightObject = entityMap["keyLight"].toMap();
@@ -2582,6 +2750,11 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             }
         }
 
+        // convert old grab-related userData to new grab properties
+        if (contentVersion < (int)EntityVersion::GrabProperties) {
+            convertGrabUserDataToProperties(properties);
+        }
+
         // Zero out the spread values that were fixed in version ParticleEntityFix so they behave the same as before
         if (contentVersion < (int)EntityVersion::ParticleEntityFix) {
             properties.setRadiusSpread(0.0f);
@@ -2595,9 +2768,11 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             success = false;
         }
 
-        const QUuid& cloneOriginID = entity->getCloneOriginID();
-        if (!cloneOriginID.isNull()) {
-            cloneIDs[cloneOriginID].push_back(entity->getEntityItemID());
+        if (entity) {
+            const QUuid& cloneOriginID = entity->getCloneOriginID();
+            if (!cloneOriginID.isNull()) {
+                cloneIDs[cloneOriginID].push_back(entity->getEntityItemID());
+            }
         }
     }
 
@@ -2609,6 +2784,17 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     }
 
     return success;
+}
+
+bool EntityTree::writeToJSON(QString& jsonString, const OctreeElementPointer& element) {
+    QScriptEngine scriptEngine;
+    RecurseOctreeToJSONOperator theOperator(element, &scriptEngine, jsonString);
+    withReadLock([&] {
+        recurseTreeWithOperator(&theOperator);
+    });
+
+    jsonString = theOperator.getJson();
+    return true;
 }
 
 void EntityTree::resetClientEditStats() {

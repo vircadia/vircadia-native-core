@@ -152,9 +152,6 @@ public:
      * @property {CollisionRegion} collisionRegion The CollisionRegion that was used. Valid even if there was no intersection.
      */
 
-    // TODO: Add this to the CollisionPickResult jsdoc once model collision picks are working
-    //* @property {boolean} loaded If the CollisionRegion was successfully loaded (may be false if a model was used)
-
     /**jsdoc
     * Information about the Collision Pick's intersection with an object
     *
@@ -170,6 +167,7 @@ public:
      * @typedef {object} CollisionContact
      * @property {Vec3} pointOnPick A point representing a penetration of the object's surface into the volume of the pick, in world space.
      * @property {Vec3} pointOnObject A point representing a penetration of the pick's surface into the volume of the found object, in world space.
+     * @property {Vec3} normalOnPick The normalized vector pointing away from the pick, representing the direction of collision.
      */
 
     /**jsdoc
@@ -320,6 +318,9 @@ public slots:
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
+
+protected:
+    static void setParentTransform(std::shared_ptr<PickQuery> pick, const QVariantMap& propMap);
 };
 
 #endif // hifi_PickScriptingInterface_h

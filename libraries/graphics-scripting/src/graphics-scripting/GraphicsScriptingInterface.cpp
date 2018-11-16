@@ -367,8 +367,8 @@ namespace scriptable {
         obj.setProperty("metallic", material.metallic);
         obj.setProperty("scattering", material.scattering);
         obj.setProperty("unlit", material.unlit);
-        obj.setProperty("emissive", vec3toScriptValue(engine, material.emissive));
-        obj.setProperty("albedo", vec3toScriptValue(engine, material.albedo));
+        obj.setProperty("emissive", vec3ColorToScriptValue(engine, material.emissive));
+        obj.setProperty("albedo", vec3ColorToScriptValue(engine, material.albedo));
         obj.setProperty("emissiveMap", material.emissiveMap);
         obj.setProperty("albedoMap", material.albedoMap);
         obj.setProperty("opacityMap", material.opacityMap);
@@ -445,5 +445,3 @@ void GraphicsScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
 
     Q_UNUSED(metaTypeIds);
 }
-
-#include "GraphicsScriptingInterface.moc"

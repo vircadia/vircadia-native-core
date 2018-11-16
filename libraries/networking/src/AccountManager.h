@@ -96,15 +96,20 @@ public:
 
     QUrl getMetaverseServerURL() { return NetworkingConstants::METAVERSE_SERVER_URL(); }
 
+    void removeAccountFromFile();
+
+    bool getLimitedCommerce() { return _limitedCommerce; }
+    void setLimitedCommerce(bool isLimited);
+
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
     void requestAccessTokenWithSteam(QByteArray authSessionTicket);
+    void requestAccessTokenWithAuthCode(const QString& authCode, const QString& clientId, const QString& clientSecret, const QString& redirectUri);
     void refreshAccessToken();
 
     void requestAccessTokenFinished();
     void refreshAccessTokenFinished();
     void requestProfileFinished();
-    void requestAccessTokenError(QNetworkReply::NetworkError error);
     void refreshAccessTokenError(QNetworkReply::NetworkError error);
     void requestProfileError(QNetworkReply::NetworkError error);
     void logout();
@@ -120,6 +125,7 @@ signals:
     void loginFailed();
     void logoutComplete();
     void newKeypair();
+    void limitedCommerceChanged();
 
 private slots:
     void handleKeypairGenerationError();
@@ -133,7 +139,6 @@ private:
     void operator=(AccountManager const& other) = delete;
 
     void persistAccountToFile();
-    void removeAccountFromFile();
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
@@ -150,6 +155,8 @@ private:
     QByteArray _pendingPrivateKey;
 
     QUuid _sessionID { QUuid::createUuid() };
+
+    bool _limitedCommerce { false };
 };
 
 #endif // hifi_AccountManager_h

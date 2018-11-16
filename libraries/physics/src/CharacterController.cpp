@@ -701,7 +701,7 @@ void CharacterController::updateState() {
     const btScalar GROUND_TO_FLY_THRESHOLD = 0.8f * _radius + _halfHeight;
     const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
     const btScalar MIN_HOVER_HEIGHT = _scaleFactor * DEFAULT_AVATAR_MIN_HOVER_HEIGHT;
-    const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
+    const quint64 JUMP_TO_HOVER_PERIOD = _scaleFactor < 1.0f ? _scaleFactor * 1100 * MSECS_PER_SECOND : 1100 * MSECS_PER_SECOND;
 
     // scan for distant floor
     // rayStart is at center of bottom sphere
@@ -766,14 +766,16 @@ void CharacterController::updateState() {
                 SET_STATE(State::InAir, "takeoff done");
 
                 // compute jumpSpeed based on the scaled jump height for the default avatar in default gravity.
-                float jumpSpeed = sqrtf(2.0f * DEFAULT_AVATAR_GRAVITY * _scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT);
+                const float jumpHeight = std::max(_scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT, DEFAULT_AVATAR_MIN_JUMP_HEIGHT);
+                const float jumpSpeed = sqrtf(2.0f * -DEFAULT_AVATAR_GRAVITY * jumpHeight);
                 velocity += jumpSpeed * _currentUp;
                 _rigidBody->setLinearVelocity(velocity);
             }
             break;
         case State::InAir: {
-            const float JUMP_SPEED = _scaleFactor * DEFAULT_AVATAR_JUMP_SPEED;
-            if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
+            const float jumpHeight = std::max(_scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT, DEFAULT_AVATAR_MIN_JUMP_HEIGHT);
+            const float jumpSpeed = sqrtf(2.0f * -DEFAULT_AVATAR_GRAVITY * jumpHeight);
+            if ((velocity.dot(_currentUp) <= (jumpSpeed / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
             } else if (_flyingAllowed) {
                 btVector3 desiredVelocity = _targetVelocity;

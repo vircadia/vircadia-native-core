@@ -22,7 +22,6 @@ public: \
 private: \
     type _##name{ initialValue };
 
-
 /**jsdoc
  * @namespace Stats
  *
@@ -49,6 +48,7 @@ private: \
  * @property {number} presentdroprate - <em>Read-only.</em>
  * @property {number} gameLoopRate - <em>Read-only.</em>
  * @property {number} avatarCount - <em>Read-only.</em>
+ * @property {number} physicsObjectCount - <em>Read-only.</em>
  * @property {number} updatedAvatarCount - <em>Read-only.</em>
  * @property {number} notUpdatedAvatarCount - <em>Read-only.</em>
  * @property {number} packetInCount - <em>Read-only.</em>
@@ -93,7 +93,6 @@ private: \
  * @property {number} processing - <em>Read-only.</em>
  * @property {number} processingPending - <em>Read-only.</em>
  * @property {number} triangles - <em>Read-only.</em>
- * @property {number} quads - <em>Read-only.</em>
  * @property {number} materialSwitches - <em>Read-only.</em>
  * @property {number} itemConsidered - <em>Read-only.</em>
  * @property {number} itemOutOfView - <em>Read-only.</em>
@@ -135,7 +134,6 @@ private: \
  * @property {number} batchFrameTime - <em>Read-only.</em>
  * @property {number} engineFrameTime - <em>Read-only.</em>
  * @property {number} avatarSimulationTime - <em>Read-only.</em>
- * @property {string[]} animStackNames - <em>Read-only.</em>
  *
  *
  * @property {number} x
@@ -168,6 +166,15 @@ private: \
  * @property {number} implicitHeight
  *
  * @property {object} layer - <em>Read-only.</em>
+
+ * @property {number} stylusPicksCount - <em>Read-only.</em>
+ * @property {number} rayPicksCount - <em>Read-only.</em>
+ * @property {number} parabolaPicksCount - <em>Read-only.</em>
+ * @property {number} collisionPicksCount - <em>Read-only.</em>
+ * @property {Vec4} stylusPicksUpdated - <em>Read-only.</em>
+ * @property {Vec4} rayPicksUpdated - <em>Read-only.</em>
+ * @property {Vec4} parabolaPicksUpdated - <em>Read-only.</em>
+ * @property {Vec4} collisionPicksUpdated - <em>Read-only.</em>
  */
 // Properties from x onwards are QQuickItem properties.
 
@@ -195,6 +202,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, presentdroprate, 0)
     STATS_PROPERTY(int, gameLoopRate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
+    STATS_PROPERTY(int, physicsObjectCount, 0)
     STATS_PROPERTY(int, updatedAvatarCount, 0)
     STATS_PROPERTY(int, notUpdatedAvatarCount, 0)
     STATS_PROPERTY(int, packetInCount, 0)
@@ -239,7 +247,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, processing, 0)
     STATS_PROPERTY(int, processingPending, 0)
     STATS_PROPERTY(int, triangles, 0)
-    STATS_PROPERTY(int, quads, 0)
+    STATS_PROPERTY(int, drawcalls, 0)
     STATS_PROPERTY(int, materialSwitches, 0)
     STATS_PROPERTY(int, itemConsidered, 0)
     STATS_PROPERTY(int, itemOutOfView, 0)
@@ -283,7 +291,15 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, batchFrameTime, 0)
     STATS_PROPERTY(float, engineFrameTime, 0)
     STATS_PROPERTY(float, avatarSimulationTime, 0)
-    Q_PROPERTY(QStringList animStackNames READ animStackNames NOTIFY animStackNamesChanged)
+
+    STATS_PROPERTY(int, stylusPicksCount, 0)
+    STATS_PROPERTY(int, rayPicksCount, 0)
+    STATS_PROPERTY(int, parabolaPicksCount, 0)
+    STATS_PROPERTY(int, collisionPicksCount, 0)
+    STATS_PROPERTY(QVector4D, stylusPicksUpdated, QVector4D(0, 0, 0, 0))
+    STATS_PROPERTY(QVector4D, rayPicksUpdated, QVector4D(0, 0, 0, 0))
+    STATS_PROPERTY(QVector4D, parabolaPicksUpdated, QVector4D(0, 0, 0, 0))
+    STATS_PROPERTY(QVector4D, collisionPicksUpdated, QVector4D(0, 0, 0, 0))
 
 public:
     static Stats* getInstance();
@@ -308,7 +324,6 @@ public:
     }
 
     QStringList downloadUrls () { return _downloadUrls; }
-    QStringList animStackNames() { return _animStackNames; }
 
 public slots:
     void forceUpdateStats() { updateStats(true); }
@@ -405,6 +420,13 @@ signals:
      * @returns {Signal}
      */
     void gameLoopRateChanged();
+
+    /**jsdoc
+     * Trigered when
+     * @function Stats.numPhysicsBodiesChanged
+     * @returns {Signal}
+     */
+    void physicsObjectCountChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>avatarCount</code> property changes.
@@ -709,11 +731,12 @@ signals:
     void trianglesChanged();
 
     /**jsdoc
-     * Triggered when the value of the <code>quads</code> property changes.
-     * @function Stats.quadsChanged
-     * @returns {Signal}
-     */
-    void quadsChanged();
+    * Triggered when the value of the <code>drawcalls</code> property changes.
+    * This 
+    * @function Stats.drawcallsChanged
+    * @returns {Signal}
+    */
+    void drawcallsChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>materialSwitches</code> property changes.
@@ -1003,13 +1026,6 @@ signals:
     void avatarSimulationTimeChanged();
 
     /**jsdoc
-    * Triggered when the value of the <code>animStackNames</code> property changes.
-    * @function Stats.animStackNamesChanged
-    * @returns {Signal}
-    */
-    void animStackNamesChanged();
-
-    /**jsdoc
      * Triggered when the value of the <code>rectifiedTextureCount</code> property changes.
      * @function Stats.rectifiedTextureCountChanged
      * @returns {Signal}
@@ -1023,7 +1039,6 @@ signals:
      */
     void decimatedTextureCountChanged();
 
-    
     // QQuickItem signals.
 
     /**jsdoc
@@ -1245,6 +1260,62 @@ signals:
      * @function Stats.update
      */
 
+    /**jsdoc
+     * Triggered when the value of the <code>stylusPicksCount</code> property changes.
+     * @function Stats.stylusPicksCountChanged
+     * @returns {Signal}
+     */
+    void stylusPicksCountChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>rayPicksCount</code> property changes.
+     * @function Stats.rayPicksCountChanged
+     * @returns {Signal}
+     */
+    void rayPicksCountChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>parabolaPicksCount</code> property changes.
+     * @function Stats.parabolaPicksCountChanged
+     * @returns {Signal}
+     */
+    void parabolaPicksCountChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>collisionPicksCount</code> property changes.
+     * @function Stats.collisionPicksCountChanged
+     * @returns {Signal}
+     */
+    void collisionPicksCountChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>stylusPicksUpdated</code> property changes.
+     * @function Stats.stylusPicksUpdatedChanged
+     * @returns {Signal}
+     */
+    void stylusPicksUpdatedChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>rayPicksUpdated</code> property changes.
+     * @function Stats.rayPicksUpdatedChanged
+     * @returns {Signal}
+     */
+    void rayPicksUpdatedChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>parabolaPicksUpdated</code> property changes.
+     * @function Stats.parabolaPicksUpdatedChanged
+     * @returns {Signal}
+     */
+    void parabolaPicksUpdatedChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>collisionPicksUpdated</code> property changes.
+     * @function Stats.collisionPicksUpdatedChanged
+     * @returns {Signal}
+     */
+    void collisionPicksUpdatedChanged();
+
 private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process
     bool _resetRecentMaxPacketsSoon{ true };
@@ -1254,7 +1325,6 @@ private:
     QString _monospaceFont;
     const AudioIOStats* _audioStats;
     QStringList _downloadUrls = QStringList();
-    QStringList _animStackNames = QStringList();
 };
 
 #endif // hifi_Stats_h

@@ -46,6 +46,10 @@ Script.include("/~/system/libraries/utils.js");
             return this.getOtherModule().thisHandIsParent(props);
         };
 
+        this.isGrabbedThingVisible = function() {
+            return Overlays.getProperty(this.grabbedThingID, "visible");
+        };
+
         this.thisHandIsParent = function(props) {
             if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== MyAvatar.SELF_ID) {
                 return false;
@@ -163,7 +167,10 @@ Script.include("/~/system/libraries/utils.js");
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(overlayPosition, handPosition);
                 if (distance <= NEAR_GRAB_RADIUS * sensorScaleFactor) {
-                    return overlays[i];
+                    if (overlays[i] !== HMD.miniTabletID || controllerData.secondaryValues[this.hand] === 0) {
+                        // Don't grab mini tablet with grip.
+                        return overlays[i];
+                    }
                 }
             }
             return null;
@@ -195,7 +202,7 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
+            if ((controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) || !this.isGrabbedThingVisible()) {
                 this.endNearParentingGrabOverlay();
                 this.robbed = false;
                 return makeRunningValues(false, [], []);

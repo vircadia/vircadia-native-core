@@ -23,7 +23,7 @@ class LineEntityItem : public EntityItem {
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -41,11 +41,8 @@ class LineEntityItem : public EntityItem {
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
-    const rgbColor& getColor() const;
-    xColor getXColor() const;
-
-    void setColor(const rgbColor& value);
-    void setColor(const xColor& value);
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
 
     void setLineWidth(float lineWidth);
     float getLineWidth() const;
@@ -76,7 +73,7 @@ class LineEntityItem : public EntityItem {
     static const int MAX_POINTS_PER_LINE;
 
  private:
-    rgbColor _color;
+    glm::u8vec3 _color;
     float _lineWidth { DEFAULT_LINE_WIDTH };
     QVector<glm::vec3> _points;
     bool _pointsChanged { true };

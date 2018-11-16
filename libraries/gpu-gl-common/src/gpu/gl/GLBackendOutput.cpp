@@ -27,12 +27,12 @@ void GLBackend::syncOutputStateCache() {
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentFBO);
 
     _output._drawFBO = currentFBO;
-    _output._framebuffer.reset();
+    reset(_output._framebuffer);
 }
 
 void GLBackend::resetOutputStage() {
-    if (_output._framebuffer) {
-        _output._framebuffer.reset();
+    if (valid(_output._framebuffer)) {
+        reset(_output._framebuffer);
         _output._drawFBO = 0;
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
@@ -41,7 +41,7 @@ void GLBackend::resetOutputStage() {
 }
 
 void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
-    auto framebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
+    const auto& framebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
     setFramebuffer(framebuffer);
 }
 
@@ -55,13 +55,13 @@ void GLBackend::do_setFramebufferSwapChain(const Batch& batch, size_t paramOffse
 }
 
 void GLBackend::setFramebuffer(const FramebufferPointer& framebuffer) {
-    if (_output._framebuffer != framebuffer) {
+    if (!compare(_output._framebuffer, framebuffer)) {
         auto newFBO = getFramebufferID(framebuffer);
         if (_output._drawFBO != newFBO) {
             _output._drawFBO = newFBO;
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, newFBO);
         }
-        _output._framebuffer = framebuffer;
+        assign(_output._framebuffer, framebuffer);
     }
 }
 
@@ -114,8 +114,9 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     }
 
     std::vector<GLenum> drawBuffers;
+    auto framebuffer = acquire(_output._framebuffer);
     if (masks & Framebuffer::BUFFER_COLORS) {
-        if (_output._framebuffer) {
+        if (framebuffer) {
             for (unsigned int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
                 if (masks & (1 << i)) {
                     drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
@@ -163,8 +164,8 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     }
     
     // Restore the color draw buffers only if a frmaebuffer is bound
-    if (_output._framebuffer && !drawBuffers.empty()) {
-        auto glFramebuffer = syncGPUObject(*_output._framebuffer);
+    if (framebuffer && !drawBuffers.empty()) {
+        auto glFramebuffer = syncGPUObject(*framebuffer);
         if (glFramebuffer) {
             glDrawBuffers((GLsizei)glFramebuffer->_colorBuffers.size(), glFramebuffer->_colorBuffers.data());
         }

@@ -155,7 +155,7 @@ void FetchSpatialTree::run(const RenderContextPointer& renderContext, const Inpu
         // Octree selection!
         float threshold = 0.0f;
         if (queryFrustum.isPerspective()) {
-            threshold = getPerspectiveAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust);
+            threshold = args->_lodAngleHalfTan;
             if (frustumResolution.y > 0) {
                 threshold = glm::max(queryFrustum.getFieldOfView() / frustumResolution.y, threshold);
             }
@@ -205,7 +205,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
     if (!srcFilter.selectsNothing()) {
         auto filter = render::ItemFilter::Builder(srcFilter).withoutSubMetaCulled().build();
 
-            // Now get the bound, and
+        // Now get the bound, and
         // filter individually against the _filter
         // visibility cull if partially selected ( octree cell contianing it was partial)
         // distance cull if was a subcell item ( octree cell is way bigger than the item bound itself, so now need to test per item)
@@ -445,7 +445,7 @@ void ApplyCullFunctorOnItemBounds::run(const RenderContextPointer& renderContext
     }
 }
 
-void FetchSpatialSelection::run(const RenderContextPointer& renderContext,
+void FilterSpatialSelection::run(const RenderContextPointer& renderContext,
                                const Inputs& inputs, ItemBounds& outItems) {
     assert(renderContext->args);
     auto& scene = renderContext->_scene;

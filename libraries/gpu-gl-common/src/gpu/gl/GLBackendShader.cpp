@@ -25,120 +25,53 @@ static const std::array<GLenum, NUM_SHADER_DOMAINS> SHADER_DOMAINS{ {
     GL_GEOMETRY_SHADER,
 } };
 
-// Domain specific defines
-// Must match the order of type specified in gpu::Shader::Type
-static const std::array<std::string, NUM_SHADER_DOMAINS> DOMAIN_DEFINES{ {
-    "#define GPU_VERTEX_SHADER",
-    "#define GPU_PIXEL_SHADER",
-    "#define GPU_GEOMETRY_SHADER",
-} };
-
-// Stereo specific defines
-static const std::string stereoVersion{
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-R"SHADER(
-#define GPU_TRANSFORM_IS_STEREO
-#define GPU_TRANSFORM_STEREO_CAMERA
-#define GPU_TRANSFORM_STEREO_CAMERA_INSTANCED
-#define GPU_TRANSFORM_STEREO_SPLIT_SCREEN
-)SHADER"
-#endif
-#ifdef GPU_STEREO_DRAWCALL_DOUBLED
-#ifdef GPU_STEREO_CAMERA_BUFFER
-R"SHADER(
-#define GPU_TRANSFORM_IS_STEREO
-#define GPU_TRANSFORM_STEREO_CAMERA
-#define GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED
-)SHADER"
-#else
-R"SHADER(
-#define GPU_TRANSFORM_IS_STEREO
-)SHADER"
-#endif
-#endif
-};
-
-// TextureTable specific defines
-static const std::string textureTableVersion {
-    "#extension GL_ARB_bindless_texture : require\n#define GPU_TEXTURE_TABLE_BINDLESS\n"
-};
-
-// Versions specific of the shader
-static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
-    "",
-    stereoVersion
-} };
-
-static std::string getShaderTypeString(Shader::Type type) {
-    switch (type) {
-    case Shader::Type::VERTEX:
-        return "vertex";
-    case Shader::Type::PIXEL:
-        return "pixel";
-    case Shader::Type::GEOMETRY:
-        return "geometry";
-    case Shader::Type::PROGRAM:
-        return "program";
-    default:
-        qFatal("Unexpected shader type %d", type);
-        Q_UNREACHABLE();
-    }
-}
-
-std::string GLBackend::getShaderSource(const Shader& shader, int version) {
+std::string GLBackend::getShaderSource(const Shader& shader, shader::Variant variant) {
     if (shader.isProgram()) {
         std::string result;
-        result.append("// VERSION " + std::to_string(version));
         for (const auto& subShader : shader.getShaders()) {
-            result.append("//-------- ");
-            result.append(getShaderTypeString(subShader->getType()));
-            result.append("\n");
-            result.append(subShader->getSource().getCode());
+            if (subShader) {
+                result += subShader->getSource().getSource(getShaderDialect(), variant);
+            }
         }
         return result;
-    } 
-
-    std::string shaderDefines = getBackendShaderHeader() + "\n"
-        + (supportsBindless() ? textureTableVersion : "\n")
-        + DOMAIN_DEFINES[shader.getType()] + "\n"
-        + VERSION_DEFINES[version];
-
-    return shaderDefines + "\n" + shader.getSource().getCode();
+    }
+    return shader.getSource().getSource(getShaderDialect(), variant);
 }
 
 GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler) {
     // Any GLSLprogram ? normally yes...
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
     GLShader::ShaderObjects shaderObjects;
-    Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
+    const auto& variants = shader::allVariants();
+    Shader::CompilationLogs compilationLogs(variants.size());
     shader.incrementCompilationAttempt();
-
-    for (int version = 0; version < GLShader::NumVersions; version++) {
-        auto& shaderObject = shaderObjects[version];
-        auto shaderSource = getShaderSource(shader, version);
+    for (const auto& variant : variants) {
+        auto index = static_cast<uint32_t>(variant);
+        auto shaderSource = getShaderSource(shader, variant);
+        auto& shaderObject = shaderObjects[index];
         if (handler) {
             bool retest = true;
             std::string currentSrc = shaderSource;
             // When a Handler is specified, we can try multiple times to build the shader and let the handler change the source if the compilation fails.
-            // The retest bool is set to false as soon as the compilation succeed to wexit the while loop.
+            // The retest bool is set to false as soon as the compilation succeed to exit the while loop.
             // The handler tells us if we should retry or not while returning a modified version of the source.
             while (retest) {
-                bool result = ::gl::compileShader(shaderDomain, currentSrc, shaderObject.glshader, compilationLogs[version].message);
-                compilationLogs[version].compiled = result;
+                bool result = ::gl::compileShader(shaderDomain, currentSrc, shaderObject.glshader, compilationLogs[index].message);
+                compilationLogs[index].compiled = result;
                 if (!result) {
                     std::string newSrc;
-                    retest = handler(shader, currentSrc, compilationLogs[version], newSrc);
+                    retest = handler(shader, currentSrc, compilationLogs[index], newSrc);
                     currentSrc = newSrc;
                 } else {
                     retest = false;
                 }
             }
         } else {
-            compilationLogs[version].compiled = ::gl::compileShader(shaderDomain, shaderSource, shaderObject.glshader, compilationLogs[version].message);
+            compilationLogs[index].compiled = ::gl::compileShader(shaderDomain, shaderSource, shaderObject.glshader, compilationLogs[index].message);
         }
 
-        if (!compilationLogs[version].compiled) {
-            qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Shader didn't compile:\n" << compilationLogs[version].message.c_str();
+        if (!compilationLogs[index].compiled) {
+            qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Shader didn't compile:\n" << compilationLogs[index].message.c_str();
             shader.setCompilationLogs(compilationLogs);
             return nullptr;
         }
@@ -162,11 +95,13 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
 
     GLShader::ShaderObjects programObjects;
     program.incrementCompilationAttempt();
-    Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
+    const auto& variants = shader::allVariants();
+    Shader::CompilationLogs compilationLogs(variants.size());
 
-    for (int version = 0; version < GLShader::NumVersions; version++) {
-        auto& programObject = programObjects[version];
-        auto programSource = getShaderSource(program, version);
+    for (const auto& variant : variants) {
+        auto index = static_cast<uint32_t>(variant);
+        auto& programObject = programObjects[index];
+        auto programSource = getShaderSource(program, variant);
         auto hash = ::gl::getShaderHash(programSource);
 
         CachedShader cachedBinary;
@@ -199,11 +134,11 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
             for (auto subShader : program.getShaders()) {
                 auto object = GLShader::sync((*this), *subShader, handler);
                 if (object) {
-                    shaderGLObjects.push_back(object->_shaderObjects[version].glshader);
+                    shaderGLObjects.push_back(object->_shaderObjects[index].glshader);
                 } else {
                     qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - One of the shaders of the program is not compiled?";
-                    compilationLogs[version].compiled = false;
-                    compilationLogs[version].message = std::string("Failed to compile, one of the shaders of the program is not compiled ?");
+                    compilationLogs[index].compiled = false;
+                    compilationLogs[index].message = std::string("Failed to compile, one of the shaders of the program is not compiled ?");
                     program.setCompilationLogs(compilationLogs);
                     return nullptr;
                 }
@@ -211,9 +146,9 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
 
             glprogram = ::gl::buildProgram(shaderGLObjects);
 
-            if (!::gl::linkProgram(glprogram, compilationLogs[version].message)) {
-                qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Program didn't link:\n" << compilationLogs[version].message.c_str();
-                compilationLogs[version].compiled = false;                
+            if (!::gl::linkProgram(glprogram, compilationLogs[index].message)) {
+                qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Program didn't link:\n" << compilationLogs[index].message.c_str();
+                compilationLogs[index].compiled = false;                
                 glDeleteProgram(glprogram);
                 glprogram = 0;
                 return nullptr;
@@ -228,12 +163,12 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
         }
 
         if (glprogram == 0) {
-            qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Program didn't link:\n" << compilationLogs[version].message.c_str(); 
+            qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Program didn't link:\n" << compilationLogs[index].message.c_str(); 
             program.setCompilationLogs(compilationLogs);
             return nullptr;
         }
 
-        compilationLogs[version].compiled = true;
+        compilationLogs[index].compiled = true;
         programObject.glprogram = glprogram;
         postLinkProgram(programObject, program);
     }
@@ -249,7 +184,10 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
 static const GLint INVALID_UNIFORM_INDEX = -1;
 
 GLint GLBackend::getRealUniformLocation(GLint location) const {
-    auto& shader = _pipeline._programShader->_shaderObjects[(GLShader::Version)isStereo()];
+    auto variant = isStereo() ? shader::Variant::Stereo : shader::Variant::Mono;
+    auto index = static_cast<uint32_t>(variant);
+
+    auto& shader = _pipeline._programShader->_shaderObjects[index];
     auto itr = shader.uniformRemap.find(location);
     if (itr == shader.uniformRemap.end()) {
         // This shouldn't happen, because we use reflection to determine all the possible 
@@ -264,20 +202,23 @@ GLint GLBackend::getRealUniformLocation(GLint location) const {
 
 void GLBackend::postLinkProgram(ShaderObject& shaderObject, const Shader& program) const {
     const auto& glprogram = shaderObject.glprogram;
-    const auto& expectedUniforms = program.getUniforms();
-    const auto expectedLocationsByName = expectedUniforms.getLocationsByName();
-    const auto uniforms = ::gl::Uniform::load(glprogram, expectedUniforms.getNames());
-    auto& uniformRemap = shaderObject.uniformRemap;
+    const auto& expectedUniforms = program.getReflection().uniforms;
 
-    // Pre-initialize all the uniforms with an invalid location
-    for (const auto& entry : expectedLocationsByName) {
+    auto& uniformRemap = shaderObject.uniformRemap;
+    // initialize all the uniforms with an invalid location
+    for (const auto& entry : expectedUniforms) {
         uniformRemap[entry.second] = INVALID_UNIFORM_INDEX;
     }
 
-    // Now load up all the actual found uniform location
+
+    // Get the actual uniform locations from the shader
+    const auto names = Shader::Reflection::getNames(expectedUniforms);
+    const auto uniforms = ::gl::Uniform::load(glprogram, names);
+
+    // Now populate the remapping with the found locations
     for (const auto& uniform : uniforms) {
         const auto& name = uniform.name;
-        const auto& expectedLocation = expectedLocationsByName.at(name);
+        const auto& expectedLocation = expectedUniforms.at(name);
         const auto& location = uniform.binding;
         uniformRemap[expectedLocation] = location;
     }
@@ -462,3 +403,4 @@ void GLBackend::initShaderBinaryCache() {
 void GLBackend::killShaderBinaryCache() {
     ::gl::saveShaderCache(_shaderBinaryCache._binaries);
 }
+

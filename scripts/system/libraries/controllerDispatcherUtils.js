@@ -5,7 +5,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform,
+/* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform, Mat4,
    Selection, Uuid,
    MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
@@ -48,6 +48,7 @@
    BUMPER_ON_VALUE:true,
    getEntityParents:true,
    findHandChildEntities:true,
+   findFarGrabJointChildEntities:true,
    makeLaserParams:true,
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
@@ -58,7 +59,8 @@
    highlightTargetEntity:true,
    clearHighlightedEntities:true,
    unhighlightTargetEntity:true,
-   distanceBetweenEntityLocalPositionAndBoundingBox: true
+   distanceBetweenEntityLocalPositionAndBoundingBox: true,
+   worldPositionToRegistrationFrameMatrix: true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -126,13 +128,25 @@ DISPATCHER_PROPERTIES = [
     "parentJointIndex",
     "density",
     "dimensions",
-    "userData",
     "type",
     "href",
     "cloneable",
     "cloneDynamic",
     "localPosition",
-    "localRotation"
+    "localRotation",
+    "grab.grabbable",
+    "grab.grabKinematic",
+    "grab.grabFollowsController",
+    "grab.triggerable",
+    "grab.equippable",
+    "grab.equippableLeftPosition",
+    "grab.equippableLeftRotation",
+    "grab.equippableRightPosition",
+    "grab.equippableRightRotation",
+    "grab.equippableIndicatorURL",
+    "grab.equippableIndicatorScale",
+    "grab.equippableIndicatorOffset",
+    "userData"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -214,25 +228,56 @@ getGrabbableData = function (ggdProps) {
     } catch (err) {
         userDataParsed = {};
     }
+
     if (userDataParsed.grabbableKey) {
         grabbableData = userDataParsed.grabbableKey;
+    } else {
+        grabbableData = ggdProps.grab;
     }
+
+    // extract grab-related properties, provide defaults if any are missing
     if (!grabbableData.hasOwnProperty("grabbable")) {
         grabbableData.grabbable = true;
     }
-    if (!grabbableData.hasOwnProperty("ignoreIK")) {
-        grabbableData.ignoreIK = true;
+    // kinematic has been renamed to grabKinematic
+    if (!grabbableData.hasOwnProperty("grabKinematic") &&
+        !grabbableData.hasOwnProperty("kinematic")) {
+        grabbableData.grabKinematic = true;
     }
-    if (!grabbableData.hasOwnProperty("kinematic")) {
-        grabbableData.kinematic = true;
+    if (!grabbableData.hasOwnProperty("grabKinematic")) {
+        grabbableData.grabKinematic = grabbableData.kinematic;
     }
-    if (!grabbableData.hasOwnProperty("wantsTrigger")) {
-        grabbableData.wantsTrigger = false;
+    // ignoreIK has been renamed to grabFollowsController
+    if (!grabbableData.hasOwnProperty("grabFollowsController") &&
+        !grabbableData.hasOwnProperty("ignoreIK")) {
+        grabbableData.grabFollowsController = true;
     }
-    if (!grabbableData.hasOwnProperty("triggerable")) {
+    if (!grabbableData.hasOwnProperty("grabFollowsController")) {
+        grabbableData.grabFollowsController = grabbableData.ignoreIK;
+    }
+    // wantsTrigger has been renamed to triggerable
+    if (!grabbableData.hasOwnProperty("triggerable") &&
+        !grabbableData.hasOwnProperty("wantsTrigger")) {
         grabbableData.triggerable = false;
     }
-
+    if (!grabbableData.hasOwnProperty("triggerable")) {
+        grabbableData.triggerable = grabbableData.wantsTrigger;
+    }
+    if (!grabbableData.hasOwnProperty("equippable")) {
+        grabbableData.equippable = false;
+    }
+    if (!grabbableData.hasOwnProperty("equippableLeftPosition")) {
+        grabbableData.equippableLeftPosition = { x: 0, y: 0, z: 0 };
+    }
+    if (!grabbableData.hasOwnProperty("equippableLeftRotation")) {
+        grabbableData.equippableLeftPosition = { x: 0, y: 0, z: 0, w: 1 };
+    }
+    if (!grabbableData.hasOwnProperty("equippableRightPosition")) {
+        grabbableData.equippableRightPosition = { x: 0, y: 0, z: 0 };
+    }
+    if (!grabbableData.hasOwnProperty("equippableRightRotation")) {
+        grabbableData.equippableRightPosition = { x: 0, y: 0, z: 0, w: 1 };
+    }
     return grabbableData;
 };
 
@@ -416,6 +461,18 @@ findHandChildEntities = function(hand) {
     });
 };
 
+findFarGrabJointChildEntities = function(hand) {
+    // find children of avatar's far-grab joint
+    var farGrabJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ? "_FARGRAB_RIGHTHAND" : "_FARGRAB_LEFTHAND");
+    var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, farGrabJointIndex);
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, farGrabJointIndex));
+
+    return children.filter(function (childID) {
+        var childType = Entities.getNestableType(childID);
+        return childType == "entity";
+    });
+};
+
 distanceBetweenEntityLocalPositionAndBoundingBox = function(entityProps, jointGrabOffset) {
     var DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
     var rotInv = Quat.inverse(entityProps.localRotation);
@@ -487,6 +544,30 @@ entityIsFarGrabbedByOther = function(entityID) {
     return false;
 };
 
+
+worldPositionToRegistrationFrameMatrix = function(wptrProps, pos) {
+    // get world matrix for intersection point
+    var intersectionMat = new Xform({ x: 0, y: 0, z:0, w: 1 }, pos);
+
+    // calculate world matrix for registrationPoint addjusted entity
+    var DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
+    var regRatio = Vec3.subtract(DEFAULT_REGISTRATION_POINT, wptrProps.registrationPoint);
+    var regOffset = Vec3.multiplyVbyV(regRatio, wptrProps.dimensions);
+    var regOffsetRot = Vec3.multiplyQbyV(wptrProps.rotation, regOffset);
+    var modelMat = new Xform(wptrProps.rotation, Vec3.sum(wptrProps.position, regOffsetRot));
+
+    // get inverse of model matrix
+    var modelMatInv = modelMat.inv();
+
+    // transform world intersection point into object's registrationPoint frame
+    var xformMat = Xform.mul(modelMatInv, intersectionMat);
+
+    // convert to Mat4
+    var offsetMat = Mat4.createFromRotAndTrans(xformMat.rot, xformMat.pos);
+    return offsetMat;
+};
+
+
 if (typeof module !== 'undefined') {
     module.exports = {
         makeDispatcherModuleParameters: makeDispatcherModuleParameters,
@@ -508,6 +589,7 @@ if (typeof module !== 'undefined') {
         projectOntoEntityXYPlane: projectOntoEntityXYPlane,
         TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
         TRIGGER_ON_VALUE: TRIGGER_ON_VALUE,
-        DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST
+        DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST,
+        worldPositionToRegistrationFrameMatrix: worldPositionToRegistrationFrameMatrix
     };
 }

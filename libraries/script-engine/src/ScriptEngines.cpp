@@ -112,7 +112,7 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
 
             QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
             if (!defaultScriptsLoc.isParentOf(url)) {
-                qCWarning(scriptengine) << "Script.include() ignoring file path" << rawScriptURL
+                qCWarning(scriptengine) << "Script.include() ignoring file path"
                                         << "-- outside of standard libraries: "
                                         << url.path()
                                         << defaultScriptsLoc.path();
@@ -393,7 +393,6 @@ void ScriptEngines::stopAllScripts(bool restart) {
         }
 
         // stop all scripts
-        qCDebug(scriptengine) << "stopping script..." << it.key();
         scriptEngine->stop();
         removeScriptEngine(scriptEngine);
     }
@@ -403,11 +402,8 @@ void ScriptEngines::stopAllScripts(bool restart) {
         for(const auto &scriptName : toReload) {
             auto scriptEngine = getScriptEngine(scriptName);
             if (scriptEngine && !scriptEngine->isFinished()) {
-                qCDebug(scriptengine) << "waiting on script:" << scriptName;
                 scriptEngine->waitTillDoneRunning();
-                qCDebug(scriptengine) << "done waiting on script:" << scriptName;
             }
-            qCDebug(scriptengine) << "reloading script..." << scriptName;
             reloadScript(scriptName);
         }
         if (restart) {
@@ -445,7 +441,6 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
             scriptEngine->stop();
             removeScriptEngine(scriptEngine);
             stoppedScript = true;
-            qCDebug(scriptengine) << "stopping script..." << scriptURL;
         }
     }
     return stoppedScript;
