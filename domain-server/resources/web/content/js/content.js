@@ -10,7 +10,7 @@ $(document).ready(function(){
   function progressBarHTML(extraClass, label) {
     var html = "<div class='progress'>";
     html += "<div class='" + extraClass + " progress-bar progress-bar-success progress-bar-striped active' role='progressbar' aria-valuemin='0' aria-valuemax='100'>";
-    html += label + "<span class='ongoing-msg'></span></div></div>";
+    html += "<span class='ongoing-msg'></span></div></div>";
     return html;
   }
 
@@ -24,9 +24,13 @@ $(document).ready(function(){
     });
   }
 
-  function uploadNextChunk(file, offset) {
+  function uploadNextChunk(file, offset, id) {
       if (offset == undefined) {
           offset = 0;
+      }
+      if (id == undefined) {
+          // Identify this upload session
+          id = Math.round(Math.random() * 2147483647);
       }
 
       var fileSize = file.size;
@@ -45,6 +49,7 @@ $(document).ready(function(){
         url: '/content/upload',
         type: 'POST',
         timeout: 30000, // 30 s
+        headers: {"X-Session-Id": id},
         cache: false,
         processData: false,
         contentType: false,
@@ -64,7 +69,7 @@ $(document).ready(function(){
 
       if (!isFinal) {
         ajaxObject.done(function (data, textStatus, jqXHR)
-          { uploadNextChunk(file, offset + CHUNK_SIZE); });
+          { uploadNextChunk(file, offset + CHUNK_SIZE, id); });
       } else {
         ajaxObject.done(function(data, textStatus, jqXHR) {
           isRestoring = true;
@@ -210,7 +215,7 @@ $(document).ready(function(){
 
   function updateProgressBars($progressBar, value) {
     $progressBar.attr('aria-valuenow', value).attr('style', 'width: ' + value + '%');
-    $progressBar.find('.ongoing-msg').html(" " + Math.round(value) + "% Complete");
+    $progressBar.find('.ongoing-msg').html(" " + Math.round(value) + "%");
   }
 
   function reloadBackupInformation() {
