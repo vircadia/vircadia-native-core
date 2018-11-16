@@ -14,7 +14,7 @@ debugPrint = function (message) {
 };
 
 function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunction, 
-                  updateRowFunction, clearRowFunction, WINDOW_NONVARIABLE_HEIGHT) {   
+                  updateRowFunction, clearRowFunction, beforeRefreshFunction, afterRefreshFunction, WINDOW_NONVARIABLE_HEIGHT) {
     this.elTableBody = elTableBody;
     this.elTableScroll = elTableScroll;
     this.elTableHeaderRow = elTableHeaderRow;
@@ -25,6 +25,8 @@ function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunctio
     this.createRowFunction = createRowFunction;
     this.updateRowFunction = updateRowFunction;
     this.clearRowFunction = clearRowFunction;
+    this.beforeRefreshFunction = beforeRefreshFunction;
+    this.afterRefreshFunction = afterRefreshFunction;
     
     // the list of row elements created in the table up to max viewable height plus SCROLL_ROWS rows for scrolling buffer
     this.elRows = [];
@@ -173,6 +175,7 @@ ListView.prototype = {
     },
     
     refresh: function() {
+        this.beforeRefreshFunction();
         // block refreshing before rows are initialized
         let numRows = this.getNumRows();
         if (numRows === 0) {
@@ -211,6 +214,7 @@ ListView.prototype = {
                 this.lastRowShiftScrollTop = 0;
             }
         }
+        this.afterRefreshFunction();
     },
     
     refreshBuffers: function() {
@@ -230,7 +234,7 @@ ListView.prototype = {
     
     refreshRowOffset: function() {
         // make sure the row offset isn't causing visible rows to pass the end of the item list and is clamped to 0
-        var numRows = this.getNumRows();
+        let numRows = this.getNumRows();
         if (this.rowOffset + numRows > this.itemData.length) {
             this.rowOffset = this.itemData.length - numRows;
         }

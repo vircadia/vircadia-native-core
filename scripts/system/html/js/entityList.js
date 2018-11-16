@@ -187,6 +187,7 @@ let startThClick = null;
 let renameTimeout = null;
 let renameLastBlur = null;
 let renameLastEntityID = null;
+let isRenameFieldIsBeingMoved = false;
 
 let elEntityTable,
     elEntityTableHeader,
@@ -210,7 +211,8 @@ let elEntityTable,
     elNoEntitiesMessage,
     elColumnsMultiselectBox,
     elColumnsOptions,
-    elToggleSpaceMode;
+    elToggleSpaceMode,
+    elRenameInput;
 
 const ENABLE_PROFILING = false;
 let profileIndent = '';
@@ -395,7 +397,7 @@ function loaded() {
         elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
         
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
-                                  createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
+                                  createRow, updateRow, clearRow, beforeUpdate, afterUpdate, WINDOW_NONVARIABLE_HEIGHT);
 
         entityListContextMenu = new EntityListContextMenu();
 
@@ -407,7 +409,7 @@ function loaded() {
             }
 
             let elCell = entity.elRow.childNodes[getColumnIndex("name")];
-            let elRenameInput = document.createElement("input");
+            elRenameInput = document.createElement("input");
             elRenameInput.setAttribute('class', 'rename-entity');
             elRenameInput.value = entity.name;
             let ignoreClicks = function(event) {
@@ -422,6 +424,9 @@ function loaded() {
             };
 
             elRenameInput.onblur = function(event) {
+                if (isRenameFieldIsBeingMoved) {
+                    return;
+                }
                 let value = elRenameInput.value;
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: 'rename',
@@ -429,15 +434,42 @@ function loaded() {
                     name: value
                 }));
                 entity.name = value;
-                elCell.innerText = value;
+                elRenameInput.parentElement.innerText = value;
 
                 renameLastBlur = Date.now();
+                elRenameInput = null;
             };
 
             elCell.innerHTML = "";
             elCell.appendChild(elRenameInput);
 
             elRenameInput.select();
+        }
+
+        function beforeUpdate() {
+            // move the rename input to the body
+            if (elRenameInput) {
+                isRenameFieldIsBeingMoved = true;
+                document.body.appendChild(elRenameInput);
+                // keep the focus
+                elRenameInput.select();
+            }
+        }
+
+        function afterUpdate() {
+            if (!elRenameInput || !isRenameFieldIsBeingMoved) {
+                return;
+            }
+            let entity = entitiesByID[renameLastEntityID];
+            if (!entity || entity.locked || !entity.elRow) {
+                return;
+            }
+            let elCell = entity.elRow.childNodes[getColumnIndex("name")];
+            elCell.innerHTML = "";
+            elCell.appendChild(elRenameInput);
+            // keep the focus
+            elRenameInput.select();
+            isRenameFieldIsBeingMoved = false;
         }
 
         entityListContextMenu.setOnSelectedCallback(function(optionName, selectedEntityID) {
@@ -464,6 +496,11 @@ function loaded() {
         });
 
         function onRowContextMenu(clickEvent) {
+            if (elRenameInput) {
+                // disallow the context menu from popping up while renaming
+                return;
+            }
+
             let entityID = this.dataset.entityID;
 
             if (!selectedEntities.includes(entityID)) {
