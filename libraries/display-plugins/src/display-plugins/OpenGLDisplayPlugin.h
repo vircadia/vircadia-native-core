@@ -38,7 +38,6 @@ protected:
     using Lock = std::unique_lock<Mutex>;
     using Condition = std::condition_variable;
 public:
-    OpenGLDisplayPlugin();
     ~OpenGLDisplayPlugin();
     // These must be final to ensure proper ordering of operations
     // between the main thread and the presentation thread
@@ -83,6 +82,8 @@ public:
     int getRequiredThreadCount() const override { return 3; }
 
     void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target, GLsync* fenceSync) override;
+
+    bool areAllProgramsLoaded() const override;
 
 protected:
     friend class PresentThread;
@@ -182,6 +183,7 @@ protected:
     mutable Mutex _presentMutex;
     float _hudAlpha{ 1.0f };
 
-    size_t _currentLoadingProgramIndex { 0 };
+    static std::atomic<bool> _allProgramsLoaded;
+    static unsigned int _currentLoadingProgramIndex;
 };
 

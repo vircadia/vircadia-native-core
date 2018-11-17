@@ -31,7 +31,6 @@
 
 #include <gpu/Texture.h>
 #include <shaders/Shaders.h>
-#include <gpu/gl/GLShader.h>
 #include <gpu/gl/GLShared.h>
 #include <gpu/gl/GLBackend.h>
 #include <GeometryCache.h>
@@ -634,18 +633,26 @@ void OpenGLDisplayPlugin::internalPresent() {
     _presentRate.increment();
 }
 
+std::atomic<bool> OpenGLDisplayPlugin::_allProgramsLoaded { false };
+unsigned int OpenGLDisplayPlugin::_currentLoadingProgramIndex { 0 };
+
+bool OpenGLDisplayPlugin::areAllProgramsLoaded() const {
+    return OpenGLDisplayPlugin::_allProgramsLoaded.load();
+}
+
 void OpenGLDisplayPlugin::present() {
     auto frameId = (uint64_t)presentCount();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, frameId)
     uint64_t startPresent = usecTimestampNow();
 
-    if (!_allProgramsLoaded) {
+    if (!OpenGLDisplayPlugin::_allProgramsLoaded.load()) {
         const auto& programIDs = shader::allPrograms();
-        if (_currentLoadingProgramIndex < programIDs.size()) {
-            auto shader = gpu::Shader::createProgram(programIDs.at(_currentLoadingProgramIndex++));
-            gpu::gl::GLShader::sync(*getGLBackend(), *shader);
+        if (OpenGLDisplayPlugin::_currentLoadingProgramIndex < programIDs.size()) {
+            gpu::doInBatch("createAndSyncProgram", _gpuContext, [&programIDs](gpu::Batch& batch) {
+                batch.createAndSyncProgram(programIDs.at(OpenGLDisplayPlugin::_currentLoadingProgramIndex++));
+            });
         } else {
-            _allProgramsLoaded = true;
+            OpenGLDisplayPlugin::_allProgramsLoaded.store(true);
         }
     }
 
@@ -839,10 +846,6 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
     gpu::Batch batch;
     f(batch);
     _gpuContext->executeBatch(batch);
-}
-
-OpenGLDisplayPlugin::OpenGLDisplayPlugin() : DisplayPlugin() {
-    _allProgramsLoaded = false;
 }
 
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {

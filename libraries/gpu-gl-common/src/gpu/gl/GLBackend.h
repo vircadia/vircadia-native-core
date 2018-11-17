@@ -380,6 +380,8 @@ public:
     virtual void do_setStateBlendFactor(const Batch& batch, size_t paramOffset) final;
     virtual void do_setStateScissorRect(const Batch& batch, size_t paramOffset) final;
 
+    virtual void do_createAndSyncProgram(const Batch& batch, size_t paramOffset) final;
+
     virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) = 0;
     virtual GLuint getTextureID(const TexturePointer& texture) final;
     virtual GLuint getBufferID(const Buffer& buffer) = 0;

@@ -102,6 +102,8 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::gl::GLBackend::do_pushProfileRange),
     (&::gpu::gl::GLBackend::do_popProfileRange),
+
+    (&::gpu::gl::GLBackend::do_createAndSyncProgram),
 };
 
 #define GL_GET_INTEGER(NAME) glGetIntegerv(GL_##NAME, &const_cast<GLint&>(NAME)); 
@@ -704,6 +706,11 @@ void GLBackend::do_glColor4f(const Batch& batch, size_t paramOffset) {
         _input._hadColorAttribute = (newColor != glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
     (void)CHECK_GL_ERROR();
+}
+
+void GLBackend::do_createAndSyncProgram(const Batch& batch, size_t paramOffset) {
+    auto shader = gpu::Shader::createProgram(batch._params[paramOffset + 0]._uint);
+    gpu::gl::GLShader::sync(*this, *shader);
 }
 
 void GLBackend::releaseBuffer(GLuint id, Size size) const {

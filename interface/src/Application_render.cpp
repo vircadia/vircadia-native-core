@@ -117,9 +117,7 @@ void Application::paintGL() {
 
     if (!displayPlugin->areAllProgramsLoaded()) {
         gpu::doInBatch("splashFrame", _gpuContext, [&](gpu::Batch& batch) {
-            batch.enableStereo(false);
             batch.setFramebuffer(finalFramebuffer);
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, { 0, 0, 0, 1 });
             batch.enableSkybox(true);
             batch.enableStereo(isStereo);
             batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
