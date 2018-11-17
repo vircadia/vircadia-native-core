@@ -8,11 +8,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include <QtWidgets/QApplication>
-#include "ui/AutoTester.h"
+#include "ui/Nitpick.h"
 
 #include <iostream>
 
-AutoTester* autoTester;
+Nitpick* nitpick;
 
 int main(int argc, char *argv[]) {
     // If no parameters then run in interactive mode
@@ -62,13 +62,13 @@ int main(int argc, char *argv[]) {
 
     QApplication application(argc, argv);
 
-    autoTester = new AutoTester();
-    autoTester->setup();
+    nitpick = new Nitpick();
+    nitpick->setup();
 
     if (!testFolder.isNull()) {
-        autoTester->startTestsEvaluation(true ,false, testFolder, branch, user);
+        nitpick->startTestsEvaluation(true ,false, testFolder, branch, user);
     } else {
-        autoTester->show();
+        nitpick->show();
     }
 
     return application.exec();

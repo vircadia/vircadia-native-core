@@ -1,5 +1,5 @@
 //
-//  AutoTester.cpp
+//  Nitpick.cpp
 //  zone/ambientLightInheritence
 //
 //  Created by Nissim Hadar on 2 Nov 2017.
@@ -8,14 +8,14 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "AutoTester.h"
+#include "Nitpick.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <shellapi.h>
 #endif
 
-AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
+Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
     _ui.setupUi(this);
 
     _ui.checkBoxInteractiveMode->setChecked(true);
@@ -24,9 +24,9 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
 
     _signalMapper = new QSignalMapper();
 
-    connect(_ui.actionClose, &QAction::triggered, this, &AutoTester::on_closeButton_clicked);
-    connect(_ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
-    connect(_ui.actionContent, &QAction::triggered, this, &AutoTester::content);
+    connect(_ui.actionClose, &QAction::triggered, this, &Nitpick::on_closeButton_clicked);
+    connect(_ui.actionAbout, &QAction::triggered, this, &Nitpick::about);
+    connect(_ui.actionContent, &QAction::triggered, this, &Nitpick::content);
 
     // The second tab hides and shows the Windows task bar
 #ifndef Q_OS_WIN
@@ -36,13 +36,13 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
    _ui.statusLabel->setText("");
    _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Auto Tester - v6.7");
+   setWindowTitle("Nitpick - v1.0");
 
-   // Coming soon to an auto-tester near you...
+   // Coming soon to a nitpick near you...
    //// _helpWindow.textBrowser->setText()
 }
 
-AutoTester::~AutoTester() {
+Nitpick::~Nitpick() {
     delete _signalMapper;
 
     if (_test) {
@@ -54,7 +54,7 @@ AutoTester::~AutoTester() {
     }
 }
 
-void AutoTester::setup() {
+void Nitpick::setup() {
     if (_test) {
         delete _test;
     }
@@ -87,7 +87,7 @@ void AutoTester::setup() {
     _testRunner = new TestRunner(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlLineEdit, _ui.runNowButton);
 }
 
-void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
+void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,
                                       const bool isRunningInAutomaticTestRun,
                                       const QString& snapshotDirectory,
                                       const QString& branch,
@@ -96,8 +96,13 @@ void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
     _test->startTestsEvaluation(isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
 }
 
-void AutoTester::on_tabWidget_currentChanged(int index) {
+void Nitpick::on_tabWidget_currentChanged(int index) {
+// Enable the GitHub edit boxes as required
+#ifdef Q_OS_WIN
     if (index == 0 || index == 2 || index == 3) {
+#else
+    if (index == 0 || index == 1 || index == 2) {
+#endif
         _ui.userLineEdit->setDisabled(false);
         _ui.branchLineEdit->setDisabled(false);
     } else {
@@ -106,73 +111,73 @@ void AutoTester::on_tabWidget_currentChanged(int index) {
     }
 }
 
-void AutoTester::on_evaluateTestsButton_clicked() {
+void Nitpick::on_evaluateTestsButton_clicked() {
     _test->startTestsEvaluation(false, false);
 }
 
-void AutoTester::on_createRecursiveScriptButton_clicked() {
+void Nitpick::on_createRecursiveScriptButton_clicked() {
     _test->createRecursiveScript();
 }
 
-void AutoTester::on_createAllRecursiveScriptsButton_clicked() {
+void Nitpick::on_createAllRecursiveScriptsButton_clicked() {
     _test->createAllRecursiveScripts();
 }
 
-void AutoTester::on_createTestsButton_clicked() {
+void Nitpick::on_createTestsButton_clicked() {
     _test->createTests();
 }
 
-void AutoTester::on_createMDFileButton_clicked() {
+void Nitpick::on_createMDFileButton_clicked() {
     _test->createMDFile();
 }
 
-void AutoTester::on_createAllMDFilesButton_clicked() {
+void Nitpick::on_createAllMDFilesButton_clicked() {
     _test->createAllMDFiles();
 }
 
-void AutoTester::on_createTestAutoScriptButton_clicked() {
+void Nitpick::on_createTestAutoScriptButton_clicked() {
     _test->createTestAutoScript();
 }
 
-void AutoTester::on_createAllTestAutoScriptsButton_clicked() {
+void Nitpick::on_createAllTestAutoScriptsButton_clicked() {
     _test->createAllTestAutoScripts();
 }
 
-void AutoTester::on_createTestsOutlineButton_clicked() {
+void Nitpick::on_createTestsOutlineButton_clicked() {
     _test->createTestsOutline();
 }
 
-void AutoTester::on_createTestRailTestCasesButton_clicked() {
+void Nitpick::on_createTestRailTestCasesButton_clicked() {
     _test->createTestRailTestCases();
 }
 
-void AutoTester::on_createTestRailRunButton_clicked() {
+void Nitpick::on_createTestRailRunButton_clicked() {
     _test->createTestRailRun();
 }
 
-void AutoTester::on_setWorkingFolderButton_clicked() {
+void Nitpick::on_setWorkingFolderButton_clicked() {
     _testRunner->setWorkingFolder();
 }
 
-void AutoTester::enableRunTabControls() {
+void Nitpick::enableRunTabControls() {
     _ui.runNowButton->setEnabled(true);
     _ui.daysGroupBox->setEnabled(true);
     _ui.timesGroupBox->setEnabled(true);
 }
 
-void AutoTester::on_runNowButton_clicked() {
+void Nitpick::on_runNowButton_clicked() {
     _testRunner->run();
 }
 
-void AutoTester::on_checkBoxRunLatest_clicked() {
+void Nitpick::on_checkBoxRunLatest_clicked() {
     _ui.urlLineEdit->setEnabled(!_ui.checkBoxRunLatest->isChecked());
 }
 
-void AutoTester::automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures) {
+void Nitpick::automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures) {
     _testRunner->automaticTestRunEvaluationComplete(zippedFolderName, numberOfFailures);
 }
 
-void AutoTester::on_updateTestRailRunResultsButton_clicked() {
+void Nitpick::on_updateTestRailRunResultsButton_clicked() {
     _test->updateTestRailRunResult();
 }
 
@@ -180,7 +185,7 @@ void AutoTester::on_updateTestRailRunResultsButton_clicked() {
 //   if (uState & ABS_AUTOHIDE) on_showTaskbarButton_clicked();
 //   else on_hideTaskbarButton_clicked();
 //
-void AutoTester::on_hideTaskbarButton_clicked() {
+void Nitpick::on_hideTaskbarButton_clicked() {
 #ifdef Q_OS_WIN
     APPBARDATA abd = { sizeof abd };
     UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
@@ -190,7 +195,7 @@ void AutoTester::on_hideTaskbarButton_clicked() {
 #endif
 }
 
-void AutoTester::on_showTaskbarButton_clicked() {
+void Nitpick::on_showTaskbarButton_clicked() {
 #ifdef Q_OS_WIN
     APPBARDATA abd = { sizeof abd };
     UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
@@ -200,23 +205,23 @@ void AutoTester::on_showTaskbarButton_clicked() {
 #endif
 }
 
-void AutoTester::on_closeButton_clicked() {
+void Nitpick::on_closeButton_clicked() {
     exit(0);
 }
 
-void AutoTester::on_createPythonScriptRadioButton_clicked() {
+void Nitpick::on_createPythonScriptRadioButton_clicked() {
     _test->setTestRailCreateMode(PYTHON);
 }
 
-void AutoTester::on_createXMLScriptRadioButton_clicked() {
+void Nitpick::on_createXMLScriptRadioButton_clicked() {
     _test->setTestRailCreateMode(XML);
 }
 
-void AutoTester::on_createWebPagePushButton_clicked() {
+void Nitpick::on_createWebPagePushButton_clicked() {
     _test->createWebPage(_ui.updateAWSCheckBox, _ui.awsURLLineEdit);
 }
 
-void AutoTester::downloadFile(const QUrl& url) {
+void Nitpick::downloadFile(const QUrl& url) {
     _downloaders.emplace_back(new Downloader(url, this));
     connect(_downloaders[_index], SIGNAL(downloaded()), _signalMapper, SLOT(map()));
 
@@ -225,7 +230,7 @@ void AutoTester::downloadFile(const QUrl& url) {
     ++_index;
 }
 
-void AutoTester::downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void *caller) {
+void Nitpick::downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void *caller) {
     connect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
     
     _directoryName = directoryName;
@@ -251,7 +256,7 @@ void AutoTester::downloadFiles(const QStringList& URLs, const QString& directory
     }
 }
 
-void AutoTester::saveFile(int index) {
+void Nitpick::saveFile(int index) {
     try {
         QFile file(_directoryName + "/" + _filenames[index]);
         file.open(QIODevice::WriteOnly);
@@ -277,34 +282,34 @@ void AutoTester::saveFile(int index) {
     }
 }
 
-void AutoTester::about() {
+void Nitpick::about() {
     QMessageBox::information(0, "About", QString("Built ") + __DATE__ + ", " + __TIME__);
 }
 
-void AutoTester::content() {
+void Nitpick::content() {
     _helpWindow.show();
 }
 
-void AutoTester::setUserText(const QString& user) {
+void Nitpick::setUserText(const QString& user) {
     _ui.userLineEdit->setText(user);
 }
 
-QString AutoTester::getSelectedUser() {
+QString Nitpick::getSelectedUser() {
     return _ui.userLineEdit->text();
 }
 
-void AutoTester::setBranchText(const QString& branch) {
+void Nitpick::setBranchText(const QString& branch) {
     _ui.branchLineEdit->setText(branch);
 }
 
-QString AutoTester::getSelectedBranch() {
+QString Nitpick::getSelectedBranch() {
     return _ui.branchLineEdit->text();
 }
 
-void AutoTester::updateStatusLabel(const QString& status) {
+void Nitpick::updateStatusLabel(const QString& status) {
     _ui.statusLabel->setText(status);
 }
 
-void AutoTester::appendLogWindow(const QString& message) {
+void Nitpick::appendLogWindow(const QString& message) {
     _ui.plainTextEdit->appendPlainText(message);
 }
