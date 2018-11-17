@@ -110,8 +110,8 @@ const COLUMNS = {
 };
 
 const COMPARE_ASCENDING = function(a, b) {
-    let va = a[currentSortColumn];
-    let vb = b[currentSortColumn];
+    let va = a[currentSortColumnID];
+    let vb = b[currentSortColumnID];
 
     if (va < vb) {
         return -1;
@@ -171,7 +171,7 @@ let entityList = null; // The ListView
  */
 let entityListContextMenu = null;
 
-let currentSortColumn = 'type';
+let currentSortColumnID = 'type';
 let currentSortOrder = ASCENDING_SORT;
 let elSortOrders = {};
 let typeFilters = [];
@@ -182,6 +182,7 @@ let columnsByID = {};
 let lastResizeEvent = null;
 let resizeColumnIndex = 0;
 let elTargetTh = null;
+let elTargetSpan = null;
 let targetColumnIndex = 0;
 let lastColumnSwapPosition = -1;
 let initialThEvent = null;
@@ -224,10 +225,6 @@ const PROFILE = !ENABLE_PROFILING ? PROFILE_NOOP : function(name, fn, args) {
     let delta = Date.now() - before;
     profileIndent = previousIndent;
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
-};
-
-debugPrint = function (message) {
-    console.log(message);
 };
 
 function loaded() {
@@ -320,10 +317,11 @@ function loaded() {
         for (let columnID in COLUMNS) {
             let columnData = COLUMNS[columnID];
             
-            let thID = "entity-" + columnID;
             let elTh = document.createElement("th");
+            let thID = "entity-" + columnID;
             elTh.setAttribute("id", thID);
             elTh.setAttribute("columnIndex", columnIndex);
+            elTh.setAttribute("columnID", columnID);
             if (columnData.glyph) {
                 let elGlyph = document.createElement("span");
                 elGlyph.className = "glyph";
@@ -333,15 +331,19 @@ function loaded() {
                 elTh.innerText = columnData.columnHeader;
             }
             elTh.onmousedown = function(event) {
-                elTargetTh = event.target;
+                if (event.target.nodeName === 'TH') {
+                    elTargetTh = event.target;
+                    targetColumnIndex = parseInt(elTargetTh.getAttribute("columnIndex"));
+                    lastColumnSwapPosition = event.clientX;
+                } else if (event.target.nodeName === 'SPAN') {
+                    elTargetSpan = event.target;
+                }
                 initialThEvent = event;
-                targetColumnIndex = parseInt(elTargetTh.getAttribute("columnIndex"));
             };
 
             let elResizer = document.createElement("span");
             elResizer.className = "resizer";
             elResizer.innerHTML = "&nbsp;";
-            elResizer.setAttribute("columnIndex", columnIndex);
             elResizer.onmousedown = onStartResize;
             elTh.appendChild(elResizer);
 
@@ -699,13 +701,13 @@ function loaded() {
             refreshNoEntitiesMessage();
         }
 
-        function setSortColumn(column) {
+        function setSortColumn(columnID) {
             PROFILE("set-sort-column", function() {
-                if (currentSortColumn === column) {
+                if (currentSortColumnID === columnID) {
                     currentSortOrder *= -1;
                 } else {
-                    elSortOrders[currentSortColumn].innerHTML = "";
-                    currentSortColumn = column;
+                    elSortOrders[currentSortColumnID].innerHTML = "";
+                    currentSortColumnID = columnID;
                     currentSortOrder = ASCENDING_SORT;
                 }
                 refreshSortOrder();
@@ -714,7 +716,7 @@ function loaded() {
         }
         
         function refreshSortOrder() {
-            elSortOrders[currentSortColumn].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+            elSortOrders[currentSortColumnID].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
         }
         
         function refreshEntities() {
@@ -1031,7 +1033,7 @@ function loaded() {
         
         function onStartResize(event) {
             lastResizeEvent = event;
-            resizeColumnIndex = parseInt(this.getAttribute("columnIndex"));
+            resizeColumnIndex = parseInt(this.parentNode.getAttribute("columnIndex"));
             event.stopPropagation();
         }
         
@@ -1089,14 +1091,18 @@ function loaded() {
             
             for (let i = 0; i < visibleEntities.length; ++i) {
                 let elRow = visibleEntities[i].elRow;
-                let columnACell = elRow.childNodes[columnAIndex];
-                let columnBCell = elRow.childNodes[columnBIndex];
-                elRow.removeChild(columnBCell);
-                elRow.insertBefore(columnBCell, columnACell);
+                if (elRow) {
+                    let columnACell = elRow.childNodes[columnAIndex];
+                    let columnBCell = elRow.childNodes[columnBIndex];
+                    elRow.removeChild(columnBCell);
+                    elRow.insertBefore(columnBCell, columnACell);
+                }
             }
             
             columns[columnAIndex] = columnB;
             columns[columnBIndex] = columnA;
+            
+            updateColumnWidths();
         }
         
         document.onmousemove = function(event) {
@@ -1143,10 +1149,20 @@ function loaded() {
                     let prevColumnIndex = targetColumnIndex - 1;
                     let prevColumnTh = columns[prevColumnIndex].elTh;
                     let prevColumnEndX = prevColumnTh.getBoundingClientRect().right;
-                    if (event.clientX <= prevColumnEndX && event.clientX - lastColumnSwapPosition >= DELTA_X_COLUMN_SWAP_POSITION) {
+                    if (event.clientX <= prevColumnEndX && lastColumnSwapPosition - event.clientX >= DELTA_X_COLUMN_SWAP_POSITION) {
                         swapColumns(prevColumnIndex, targetColumnIndex);
-                        targetColumnIndex = prevColumnIndex;    
+                        targetColumnIndex = prevColumnIndex;
+                        lastColumnSwapPosition = event.clientX;
                     }
+                }
+            } else if (elTargetSpan) {
+                let dxFromInitial = event.clientX - initialThEvent.clientX;
+                if (Math.abs(dxFromInitial) >= DELTA_X_MOVE_COLUMNS_THRESHOLD) {
+                    elTargetTh = elTargetSpan.parentNode;
+                    elTargetTh.className = "dragging";
+                    targetColumnIndex = parseInt(elTargetTh.getAttribute("columnIndex"));
+                    lastColumnSwapPosition = event.clientX;
+                    elTargetSpan = null;
                 }
             }
         }
@@ -1154,13 +1170,17 @@ function loaded() {
         document.onmouseup = function(event) {
             if (elTargetTh) {
                 if (elTargetTh.className !== "dragging" && elTargetTh === event.target) {
-                    let columnID = columns[targetColumnIndex].columnID;
+                    let columnID = elTargetTh.getAttribute("columnID");
                     setSortColumn(columnID);
                 }
                 elTargetTh.className = "";
+            } else if (elTargetSpan) {
+                let columnID = elTargetSpan.parentNode.getAttribute("columnID");
+                setSortColumn(columnID);
             }
             lastResizeEvent = null;
             elTargetTh = null;
+            elTargetSpan = null;
             initialThEvent = null;
         }
 
