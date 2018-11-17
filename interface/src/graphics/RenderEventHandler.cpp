@@ -25,7 +25,7 @@ RenderEventHandler::RenderEventHandler(CheckCall checkCall, RenderCall renderCal
     // Transfer to a new thread
     moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
         hifi::qt::addBlockingForbiddenThread("Render", renderThread);
-        _renderContext->moveToThreadWithContext(renderThread);
+        //_renderContext->moveToThreadWithContext(renderThread);
         _lastTimeRendered.start();
     }, std::bind(&RenderEventHandler::initialize, this), QThread::HighestPriority);
 }
