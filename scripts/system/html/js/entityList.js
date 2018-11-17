@@ -396,8 +396,8 @@ function loaded() {
         
         elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
         
-        entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
-                                  createRow, updateRow, clearRow, preRefresh, postRefresh, WINDOW_NONVARIABLE_HEIGHT);
+        entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow, createRow, updateRow,
+                                  clearRow, preRefresh, postRefresh, preRefresh, WINDOW_NONVARIABLE_HEIGHT);
 
         entityListContextMenu = new EntityListContextMenu();
 
@@ -448,7 +448,7 @@ function loaded() {
 
         function preRefresh() {
             // move the rename input to the body
-            if (elRenameInput) {
+            if (!isRenameFieldBeingMoved && elRenameInput) {
                 isRenameFieldBeingMoved = true;
                 document.body.appendChild(elRenameInput);
                 // keep the focus

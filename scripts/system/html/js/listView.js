@@ -13,8 +13,8 @@ debugPrint = function (message) {
     console.log(message);
 };
 
-function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunction, 
-                  updateRowFunction, clearRowFunction, preRefreshFunction, postRefreshFunction, WINDOW_NONVARIABLE_HEIGHT) {
+function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunction, updateRowFunction, clearRowFunction,
+                  preRefreshFunction, postRefreshFunction, preResizeFunction, WINDOW_NONVARIABLE_HEIGHT) {
     this.elTableBody = elTableBody;
     this.elTableScroll = elTableScroll;
     this.elTableHeaderRow = elTableHeaderRow;
@@ -27,6 +27,7 @@ function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunctio
     this.clearRowFunction = clearRowFunction;
     this.preRefreshFunction = preRefreshFunction;
     this.postRefreshFunction = postRefreshFunction;
+    this.preResizeFunction = preResizeFunction;
     
     // the list of row elements created in the table up to max viewable height plus SCROLL_ROWS rows for scrolling buffer
     this.elRows = [];
@@ -248,7 +249,7 @@ ListView.prototype = {
             debugPrint("ListView.resize - no valid table body or table scroll element");
             return;
         }
-
+        this.preResizeFunction();
         let prevScrollTop = this.elTableScroll.scrollTop;  
 
         // take up available window space
