@@ -417,6 +417,21 @@ QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
     return filepath.mid(filepath.lastIndexOf('/') + 1);
 }
 
+QMap<QString, QString> getJointNameMapping(const QVariantHash& mapping) {
+    static const QString JOINT_NAME_MAPPING_FIELD = "jointMap";
+    QMap<QString, QString> fbxToHifiJointNameMap;
+    if (!mapping.isEmpty() && mapping.contains(JOINT_NAME_MAPPING_FIELD) && mapping[JOINT_NAME_MAPPING_FIELD].type() == QVariant::Hash) {
+        auto jointNames = mapping[JOINT_NAME_MAPPING_FIELD].toHash();
+        for (auto itr = jointNames.begin(); itr != jointNames.end(); itr++) {
+            qCDebug(modelformat) << "found a joint mapping field key " << itr.key() << " value " << itr.value().toString();
+            fbxToHifiJointNameMap.insert(itr.key(), itr.value().toString());
+            qCDebug(modelformat) << "the mapped key (Head) has a value of " << fbxToHifiJointNameMap[itr.key()];
+        }
+    
+    }
+    return fbxToHifiJointNameMap;
+}
+
 QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
     QMap<QString, glm::quat> jointRotationOffsets;
     static const QString JOINT_ROTATION_OFFSET_FIELD = "jointRotationOffset";
@@ -1829,6 +1844,9 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
         }
         qCDebug(modelformat) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
     }
+
+    hfmModel.fbxToHifiJointNameMapping.clear();
+    hfmModel.fbxToHifiJointNameMapping = getJointNameMapping(mapping);
 
     return hfmModelPtr;
 }
