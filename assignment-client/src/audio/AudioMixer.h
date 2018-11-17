@@ -144,10 +144,12 @@ private:
     static std::map<QString, CodecPluginPointer> _availableCodecs;
     static QStringList _codecPreferenceOrder;
 
-
     static std::vector<ZoneDescription> _audioZones;
     static std::vector<ZoneSettings> _zoneSettings;
     static std::vector<ReverbSettings> _zoneReverbSettings;
+
+    float _throttleStartTarget = 0.9f;
+    float _throttleBackoffTarget = 0.44f;
 
     AudioMixerSlave::SharedData _workerSharedData;
 };
