@@ -519,12 +519,6 @@ QVector<bool> ModelEntityItem::getJointTranslationsSet() const {
     return result;
 }
 
-bool ModelEntityItem::isWearable() const
-{
-    return isVisible() && (getParentJointIndex() != INVALID_JOINT_INDEX || getRelayParentJoints())
-        && (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
-}
-
 bool ModelEntityItem::hasModel() const { 
     return resultWithReadLock<bool>([&] {
         return !_modelURL.isEmpty();
