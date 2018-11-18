@@ -329,7 +329,7 @@ _maxNumPixels(100)
 
 static bool isLocalUrl(const QUrl& url) {
     auto scheme = url.scheme();
-    return (scheme == URL_SCHEME_FILE || scheme == URL_SCHEME_QRC || scheme == RESOURCE_SCHEME);
+    return (scheme == HIFI_URL_SCHEME_FILE || scheme == URL_SCHEME_QRC || scheme == RESOURCE_SCHEME);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) :
@@ -503,7 +503,7 @@ void NetworkTexture::handleLocalRequestCompleted() {
 void NetworkTexture::makeLocalRequest() {
     const QString scheme = _activeUrl.scheme();
     QString path;
-    if (scheme == URL_SCHEME_FILE) {
+    if (scheme == HIFI_URL_SCHEME_FILE) {
         path = PathUtils::expandToLocalDataAbsolutePath(_activeUrl).toLocalFile();
     } else {
         path = ":" + _activeUrl.path();
@@ -576,7 +576,6 @@ bool NetworkTexture::handleFailedRequest(ResourceRequest::Result result) {
 
         auto newPath = _request->getRelativePathUrl();
         if (newPath.fileName().endsWith(".ktx")) {
-            qDebug() << "Redirecting to" << newPath << "from" << _url;
             _currentlyLoadingResourceType = ResourceType::KTX;
             _activeUrl = newPath;
             _shouldFailOnRedirect = false;
@@ -622,7 +621,6 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
         this, _activeUrl, true, -1, "NetworkTexture::startMipRangeRequest");
 
     if (!_ktxMipRequest) {
-        qCWarning(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
 
         PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID));
         return;
@@ -681,12 +679,6 @@ void NetworkTexture::ktxInitialDataRequestFinished() {
 
     if (result == ResourceRequest::Success) {
 
-// This is an expensive operation that we do not want in release.
-#ifdef DEBUG
-        auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
-        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
-#endif
-
         _ktxHeaderData = _ktxHeaderRequest->getData();
         _ktxHighMipData = _ktxMipRequest->getData();
         handleFinishedInitialLoad();
@@ -731,8 +723,6 @@ void NetworkTexture::ktxMipRequestFinished() {
 
     auto result = _ktxMipRequest->getResult();
     if (result == ResourceRequest::Success) {
-        auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
-        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
 
         if (_ktxResourceState == REQUESTING_MIP) {
             Q_ASSERT(_ktxMipLevelRangeInFlight.first != NULL_MIP_LEVEL);
@@ -835,7 +825,6 @@ void NetworkTexture::handleFinishedInitialLoad() {
         auto header = reinterpret_cast<const ktx::Header*>(ktxHeaderData.data());
 
         if (!ktx::checkIdentifier(header->identifier)) {
-            qWarning() << "Cannot load " << url << ", invalid header identifier";
             QMetaObject::invokeMethod(resource.data(), "setImage",
                 Q_ARG(gpu::TexturePointer, nullptr),
                 Q_ARG(int, 0),
@@ -845,7 +834,6 @@ void NetworkTexture::handleFinishedInitialLoad() {
 
         auto kvSize = header->bytesOfKeyValueData;
         if (kvSize > (ktxHeaderData.size() - ktx::KTX_HEADER_SIZE)) {
-            qWarning() << "Cannot load " << url << ", did not receive all kv data with initial request";
             QMetaObject::invokeMethod(resource.data(), "setImage",
                 Q_ARG(gpu::TexturePointer, nullptr),
                 Q_ARG(int, 0),
@@ -857,7 +845,6 @@ void NetworkTexture::handleFinishedInitialLoad() {
 
         auto imageDescriptors = header->generateImageDescriptors();
         if (imageDescriptors.size() == 0) {
-            qWarning(networking) << "Failed to process ktx file " << url;
             QMetaObject::invokeMethod(resource.data(), "setImage",
                 Q_ARG(gpu::TexturePointer, nullptr),
                 Q_ARG(int, 0),
@@ -987,7 +974,6 @@ void NetworkTexture::loadMetaContent(const QByteArray& content) {
 
     TextureMeta meta;
     if (!TextureMeta::deserialize(content, &meta)) {
-        qWarning() << "Failed to read texture meta from " << _url;
         return;
     }
 
@@ -999,7 +985,6 @@ void NetworkTexture::loadMetaContent(const QByteArray& content) {
             if (backend->supportedTextureFormat(elFormat)) {
                 auto url = pair.second;
                 if (url.fileName().endsWith(TEXTURE_META_EXTENSION)) {
-                    qWarning() << "Found a texture meta URL inside of the texture meta file at" << _activeUrl;
                     continue;
                 }
 
@@ -1044,7 +1029,6 @@ void NetworkTexture::loadMetaContent(const QByteArray& content) {
         return;
     }
 
-    qWarning() << "Failed to find supported texture type in " << _activeUrl;
     Resource::handleFailedRequest(ResourceRequest::NotFound);
 }
 
@@ -1135,7 +1119,6 @@ void ImageReader::run() {
 void ImageReader::read() {
     auto resource = _resource.lock(); // to ensure the resource is still needed
     if (!resource) {
-        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
         return;
     }
     auto networkTexture = resource.staticCast<NetworkTexture>();
@@ -1195,7 +1178,6 @@ void ImageReader::read() {
         texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
 
         if (!texture) {
-            qCWarning(modelnetworking) << "Could not process:" << _url;
             QMetaObject::invokeMethod(resource.data(), "setImage",
                                       Q_ARG(gpu::TexturePointer, texture),
                                       Q_ARG(int, 0),
@@ -1217,13 +1199,9 @@ void ImageReader::read() {
             size_t length = memKtx->_storage->size();
             auto& ktxCache = textureCache->_ktxCache;
             auto file = ktxCache->writeFile(data, KTXCache::Metadata(hash, length));
-            if (!file) {
-                qCWarning(modelnetworking) << _url << "file cache failed";
-            } else {
+            if (file) {
                 texture->setKtxBacking(file);
             }
-        } else {
-            qCWarning(modelnetworking) << "Unable to serialize texture to KTX " << _url;
         }
 
         // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different

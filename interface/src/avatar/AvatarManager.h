@@ -184,11 +184,11 @@ public:
      * than iterating over each avatar and obtaining data about them in JavaScript, as that method
      * locks and unlocks each avatar's data structure potentially hundreds of times per update tick.
      * @function AvatarManager.getPalData
-     * @param {string[]} [specificAvatarIdentifiers] - A list of specific Avatar Identifiers about
-     * which you want to get PAL data
-     * @returns {object}
+     * @param {string[]} [specificAvatarIdentifiers=[]] - The list of IDs of the avatars you want the PAL data for.
+     * If an empty list, the PAL data for all nearby avatars is returned.
+     * @returns {object[]} An array of objects, each object being the PAL data for an avatar.
      */
-    Q_INVOKABLE QVariantMap getPalData(const QList<QString> specificAvatarIdentifiers = QList<QString>());
+    Q_INVOKABLE QVariantMap getPalData(const QStringList& specificAvatarIdentifiers = QStringList());
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
     int getIdentityRequestsSent() const { return _identityRequestsSent; }
@@ -223,7 +223,7 @@ private:
                              KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
     void handleTransitAnimations(AvatarTransit::Status status);
 
-    QVector<AvatarSharedPointer> _avatarsToFade;
+    QVector<AvatarSharedPointer> _avatarsToFadeOut;
 
     using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
     SetOfOtherAvatars _avatarsToChangeInPhysics;

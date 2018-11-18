@@ -35,7 +35,6 @@ SharedSoundPointer SoundCache::getSound(const QUrl& url) {
 
 QSharedPointer<Resource> SoundCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
     const void* extra) {
-    qCDebug(audio) << "Requesting sound at" << url.toString();
     auto resource = QSharedPointer<Resource>(new Sound(url), &Resource::deleter);
     resource->setLoadPriority(this, SOUNDS_LOADING_PRIORITY);
     return resource;

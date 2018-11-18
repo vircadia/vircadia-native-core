@@ -153,7 +153,7 @@ void OBJBaker::bakeOBJ() {
     checkIfTexturesFinished();
 }
 
-void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
+void OBJBaker::createFBXNodeTree(FBXNode& rootNode, HFMModel& hfmModel) {
     // Generating FBX Header Node
     FBXNode headerNode;
     headerNode.name = FBX_HEADER_EXTENSION;
@@ -199,7 +199,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     // Compress the mesh information and store in dracoNode
     bool hasDeformers = false; // No concept of deformers for an OBJ
     FBXNode dracoNode;
-    compressMesh(geometry.meshes[0], hasDeformers, dracoNode);
+    compressMesh(hfmModel.meshes[0], hasDeformers, dracoNode);
     geometryNode.children.append(dracoNode);
 
     // Generating Object node's child - Model node
@@ -214,17 +214,17 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     objectNode.children = { geometryNode, modelNode };
 
     // Generating Objects node's child - Material node
-    auto& meshParts = geometry.meshes[0].parts;
+    auto& meshParts = hfmModel.meshes[0].parts;
     for (auto& meshPart : meshParts) {
         FBXNode materialNode;
         materialNode.name = MATERIAL_NODE_NAME;
-        if (geometry.materials.size() == 1) {
+        if (hfmModel.materials.size() == 1) {
             // case when no material information is provided, OBJReader considers it as a single default material
-            for (auto& materialID : geometry.materials.keys()) {
-                setMaterialNodeProperties(materialNode, materialID, geometry);
+            for (auto& materialID : hfmModel.materials.keys()) {
+                setMaterialNodeProperties(materialNode, materialID, hfmModel);
             }
         } else {
-            setMaterialNodeProperties(materialNode, meshPart.materialID, geometry);
+            setMaterialNodeProperties(materialNode, meshPart.materialID, hfmModel);
         }
 
         objectNode.children.append(materialNode);
@@ -235,7 +235,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     auto size = meshParts.size();
     for (int i = 0; i < size; i++) {
         QString material = meshParts[i].materialID;
-        FBXMaterial currentMaterial = geometry.materials[material];
+        HFMMaterial currentMaterial = hfmModel.materials[material];
         if (!currentMaterial.albedoTexture.filename.isEmpty() || !currentMaterial.specularTexture.filename.isEmpty()) {
             auto textureID = nextNodeID();
             _mapTextureMaterial.emplace_back(textureID, i);
@@ -325,12 +325,12 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
 }
 
 // Set properties for material nodes
-void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material, FBXGeometry& geometry) {
+void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material, HFMModel& hfmModel) {
     auto materialID = nextNodeID();
     _materialIDs.push_back(materialID);
     materialNode.properties = { materialID, material, MESH };
 
-    FBXMaterial currentMaterial = geometry.materials[material];
+    HFMMaterial currentMaterial = hfmModel.materials[material];
 
     // Setting the hierarchy: Material -> Properties70 -> P -> Properties
     FBXNode properties70Node;

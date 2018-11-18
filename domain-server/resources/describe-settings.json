@@ -1012,6 +1012,24 @@
           "placeholder": "1",
           "default": "1",
           "advanced": true
+        },
+        {
+          "name": "throttle_start",
+          "type": "double",
+          "label": "Throttle Start Target",
+          "help": "Target percentage of frame time to start throttling",
+          "placeholder": "0.9",
+          "default": 0.9,
+          "advanced": true
+        },
+        {
+          "name": "throttle_backoff",
+          "type": "double",
+          "label": "Throttle Backoff Target",
+          "help": "Target percentage of frame time to backoff throttling",
+          "placeholder": "0.44",
+          "default": 0.44,
+          "advanced": true
         }
       ]
     },

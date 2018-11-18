@@ -391,15 +391,22 @@ void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
 
         // Remove pre-existing transition, if need be
         if (!TransitionStage::isIndexInvalid(transitionId)) {
-            transitionStage->removeTransition(transitionId);
-            transitionId = TransitionStage::INVALID_INDEX;
+            // Only remove if:
+            // transitioning to something other than none or we're transitioning to none from ELEMENT_LEAVE_DOMAIN or USER_LEAVE_DOMAIN
+            const auto& oldTransitionType = transitionStage->getTransition(transitionId).eventType;
+            if (transitionType != Transition::NONE || !(oldTransitionType == Transition::ELEMENT_LEAVE_DOMAIN || oldTransitionType == Transition::USER_LEAVE_DOMAIN)) {
+                resetItemTransition(itemId);
+            }
         }
+
         // Add a new one.
         if (transitionType != Transition::NONE) {
             transitionId = transitionStage->addTransition(itemId, transitionType, boundId);
-        }
 
-        setItemTransition(itemId, transitionId);
+            if (!TransitionStage::isIndexInvalid(transitionId)) {
+                setItemTransition(itemId, transitionId);
+            }
+        }
     }
 }
 

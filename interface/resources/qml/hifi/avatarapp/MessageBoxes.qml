@@ -63,8 +63,8 @@ MessageBox {
         popup.dialogButtons.yesButton.fontCapitalization = Font.MixedCase;
         popup.button1text = 'CANCEL'
         popup.titleText = 'Get Wearables'
-        popup.bodyText = 'Buy wearables from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
-                'Wear wearable from <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
+        popup.bodyText = 'Get wearables from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
+                'Wear wearable from <b><a href="app://purchases">Inventory.</a></b>' + '<br/>' + '<br/>' +
                 'Visit “AvatarIsland” to get wearables'
 
         popup.imageSource = getWearablesUrl;
@@ -89,7 +89,7 @@ MessageBox {
 
     function showDeleteFavorite(favoriteName, callback) {
         popup.titleText = 'Delete Favorite: {AvatarName}'.replace('{AvatarName}', favoriteName)
-        popup.bodyText = 'This will delete your favorite. You will retain access to the wearables and avatar that made up the favorite from My Purchases.'
+        popup.bodyText = 'This will delete your favorite. You will retain access to the wearables and avatar that made up the favorite from Inventory.'
         popup.imageSource = null;
         popup.button1text = 'CANCEL'
         popup.button2text = 'DELETE'
@@ -128,8 +128,8 @@ MessageBox {
         popup.button1text = 'CANCEL'
         popup.titleText = 'Get Avatars'
 
-        popup.bodyText = 'Buy avatars from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
-                         'Wear avatars in <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
+        popup.bodyText = 'Get avatars from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
+                         'Wear avatars in <b><a href="app://purchases">Inventory.</a></b>' + '<br/>' + '<br/>' +
                          'Visit “BodyMart” to get free avatars.'
 
         popup.imageSource = getAvatarsUrl;

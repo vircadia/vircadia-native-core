@@ -170,16 +170,6 @@ public slots:
     */
     QString getOperatingSystemType();
 
-    /**jsdoc
-    * Sets the position and size of the window on desktop.  All units are pixels
-    * @function Test.setGeometry
-    * @param {int} x - Distance of window from left edge
-    * @param {int} y - Distance of window from top edge
-    * @param {int} width - Width of window
-    * @param {int} height - Height of window
-    */
-    void setGeometry(int x, int y, int width, int height);
-
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
     QString _testResultsLocation;

@@ -9,9 +9,9 @@
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
 
-import "../../styles-uit"
+import stylesUit 1.0
 import "../../controls"
-import "../../controls-uit" as HifiControls
+import controlsUit 1.0 as HifiControls
 import "."
 
 
@@ -32,6 +32,18 @@ Flickable {
         }
     }
 
+    function bringToView(item) {
+        var yTop = item.mapToItem(contentItem, 0, 0).y;
+        var yBottom = yTop + item.height;
+
+        var surfaceTop = contentY;
+        var surfaceBottom = contentY + height;
+
+        if(yTop < surfaceTop || yBottom > surfaceBottom) {
+            contentY = yTop - height / 2 + item.height
+        }
+    }
+
     Component.onCompleted: {
         page = config.createObject(flick.contentItem);
     }
@@ -39,6 +51,8 @@ Flickable {
         id: config
         Rectangle {
             id: openVrConfiguration
+            anchors.fill: parent
+
             property int leftMargin: 75
             property int countDown: 0
             property string pluginName: ""
@@ -200,6 +214,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
@@ -217,6 +232,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -309,6 +325,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
@@ -325,6 +342,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -550,13 +568,15 @@ Flickable {
                     width: 160
                     suffix: " cm"
                     label: "Arm Circumference"
-                    minimumValue: 0
+                    minimumValue: 10.0
+                    maximumValue: 50.0
                     realStepSize: 1.0
                     colorScheme: hifi.colorSchemes.dark
                     realValue: 33.0
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
@@ -565,7 +585,8 @@ Flickable {
                     width: 160
                     label: "Shoulder Width"
                     suffix: " cm"
-                    minimumValue: 0
+                    minimumValue: 25.0
+                    maximumValue: 50.0
                     realStepSize: 1.0
                     decimals: 1
                     colorScheme: hifi.colorSchemes.dark
@@ -573,6 +594,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -743,14 +765,17 @@ Flickable {
                 anchors.left: parent.left
                 anchors.leftMargin: leftMargin
 
-                minimumValue: 5
+                minimumValue: 0
+                maximumValue: 5
                 realValue: 5
+                realStepSize: 1.0
                 colorScheme: hifi.colorSchemes.dark
 
                 onEditingFinished: {
                     calibrationTimer.interval = realValue * 1000;
                     openVrConfiguration.countDown = realValue;
                     numberAnimation.duration = calibrationTimer.interval;
+                    openVrConfiguration.forceActiveFocus();
                 }
             }
 

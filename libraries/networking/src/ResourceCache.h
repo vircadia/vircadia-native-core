@@ -62,7 +62,7 @@ static const qint64 MAX_UNUSED_MAX_SIZE = MAXIMUM_CACHE_SIZE;
 class ResourceCacheSharedItems : public Dependency  {
     SINGLETON_DEPENDENCY
 
-    using Mutex = std::mutex;
+    using Mutex = std::recursive_mutex;
     using Lock = std::unique_lock<Mutex>;
 
 public:
@@ -82,7 +82,7 @@ private:
 
     mutable Mutex _mutex;
     QList<QWeakPointer<Resource>> _pendingRequests;
-    QList<QSharedPointer<Resource>> _loadingRequests;
+    QList<QWeakPointer<Resource>> _loadingRequests;
     const uint32_t DEFAULT_REQUEST_LIMIT = 10;
     uint32_t _requestLimit { DEFAULT_REQUEST_LIMIT };
 };

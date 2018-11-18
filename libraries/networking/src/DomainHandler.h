@@ -231,7 +231,11 @@ private:
     QString _pendingPath;
     QTimer _settingsTimer;
     mutable ReadWriteLockable _interstitialModeSettingLock;
-    Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", true };
+#ifdef Q_OS_ANDROID
+    Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", false };
+#else
+    Setting::Handle<bool> _enableInterstitialMode { "enableInterstitialMode", false };
+#endif
 
     QSet<QString> _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };

@@ -1,5 +1,6 @@
 package io.highfidelity.hifiinterface;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
@@ -29,23 +30,16 @@ import android.widget.TextView;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import io.highfidelity.hifiinterface.fragment.FriendsFragment;
 import io.highfidelity.hifiinterface.fragment.HomeFragment;
-import io.highfidelity.hifiinterface.fragment.LoginFragment;
 import io.highfidelity.hifiinterface.fragment.PolicyFragment;
 import io.highfidelity.hifiinterface.fragment.SettingsFragment;
-import io.highfidelity.hifiinterface.fragment.SignedInFragment;
-import io.highfidelity.hifiinterface.fragment.SignupFragment;import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
+import io.highfidelity.hifiinterface.fragment.SignupFragment;
+import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
-                                                                LoginFragment.OnLoginInteractionListener,
                                                                 HomeFragment.OnHomeInteractionListener,
-                                                                FriendsFragment.OnHomeInteractionListener,
-                                                                SignupFragment.OnSignupInteractionListener,
-                                                                SignedInFragment.OnSignedInInteractionListener {
+                                                                FriendsFragment.OnHomeInteractionListener {
 
     private static final int PROFILE_PICTURE_PLACEHOLDER = R.drawable.default_profile_avatar;
     public static final String DEFAULT_FRAGMENT = "Home";
@@ -55,9 +49,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private String TAG = "HighFidelity";
 
-    public native boolean nativeIsLoggedIn();
-    public native void nativeLogout();
-    public native String nativeGetDisplayName();
+    public native void logout();
+    public native void setUsernameChangedListener(Activity usernameChangedListener);
+    public native String getUsername();
 
     private DrawerLayout mDrawerLayout;
     private NavigationView mNavigationView;
@@ -130,9 +124,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void loadFragment(String fragment) {
         switch (fragment) {
-            case "Login":
-                loadLoginFragment();
-                break;
             case "Home":
                 loadHomeFragment(true);
                 break;
@@ -153,19 +144,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         loadFragment(fragment, getString(R.string.home), getString(R.string.tagFragmentHome), addToBackStack, true);
     }
 
-    private void loadLoginFragment() {
-        Fragment fragment = LoginFragment.newInstance();
-        loadFragment(fragment, getString(R.string.login), getString(R.string.tagFragmentLogin), true, true);
-    }
-
-    private void loadSignedInFragment() {
-        Fragment fragment = SignedInFragment.newInstance();
-        loadFragment(fragment, getString(R.string.welcome), getString(R.string.tagFragmentSignedIn), true, true);
-    }
-
-    private void loadSignupFragment() {
-        Fragment fragment = SignupFragment.newInstance();
-        loadFragment(fragment, getString(R.string.signup), getString(R.string.tagFragmentSignup), true, false);
+    private void startLoginMenuActivity() {
+        Intent intent = new Intent(this, LoginMenuActivity.class);
+        intent.putExtra(LoginMenuActivity.EXTRA_BACK_ON_SKIP, true);
+        startActivity(intent);
     }
 
     private void loadPrivacyPolicyFragment() {
@@ -223,7 +205,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     
     private void updateLoginMenu() {
-        if (nativeIsLoggedIn()) {
+        if (HifiUtils.getInstance().isUserLoggedIn()) {
             mLoginPanel.setVisibility(View.GONE);
             mProfilePanel.setVisibility(View.VISIBLE);
             mLogoutOption.setVisibility(View.VISIBLE);
@@ -239,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void updateProfileHeader() {
-        updateProfileHeader(nativeGetDisplayName());
+        updateProfileHeader(getUsername());
     }
     private void updateProfileHeader(String username) {
         if (!username.isEmpty()) {
@@ -289,15 +271,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onStart() {
         super.onStart();
+        setUsernameChangedListener(this);
         updateLoginMenu();
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        setUsernameChangedListener(null);
+    }
+
     public void onLoginClicked(View view) {
-        loadLoginFragment();
+        startLoginMenuActivity();
     }
 
     public void onLogoutClicked(View view) {
-        nativeLogout();
+        logout();
         updateLoginMenu();
         exitLoggedInFragment();
 
@@ -336,42 +325,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         finish();
         intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
-    }
-
-    @Override
-    public void onLoginCompleted() {
-        loadHomeFragment(false);
-        updateLoginMenu();
-        if (backToScene) {
-            backToScene = false;
-            goToLastLocation();
-        }
-    }
-
-    @Override
-    public void onGettingStarted() {
-        loadHomeFragment(false);
-        if (backToScene) {
-            backToScene = false;
-            goToLastLocation();
-        }
-    }
-
-    @Override
-    public void onLoginRequested() {
-        // go back from signup to login
-        onBackPressed();
-    }
-
-    @Override
-    public void onSignupRequested() {
-        loadSignupFragment();
-    }
-
-    @Override
-    public void onSignupCompleted() {
-        loadSignedInFragment();
-        updateLoginMenu();
     }
 
     public void handleUsernameChanged(String username) {
@@ -418,7 +371,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void onBackPressed() {
         // if a fragment needs to internally manage back presses..
         FragmentManager fm = getFragmentManager();
-        Log.d("[BACK]", "getBackStackEntryCount " + fm.getBackStackEntryCount());
         Fragment friendsFragment = fm.findFragmentByTag(getString(R.string.tagFragmentPeople));
         if (friendsFragment != null && friendsFragment instanceof FriendsFragment) {
             if (((FriendsFragment) friendsFragment).onBackPressed()) {

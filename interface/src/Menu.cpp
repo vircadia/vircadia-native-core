@@ -141,7 +141,7 @@ Menu::Menu() {
         assetServerAction->setEnabled(nodeList->getThisNodeCanWriteAssets());
     }
 
-    // Edit > Package Model as .fst...
+    // Edit > Package Avatar as .fst...
     addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
         qApp, SLOT(packageModel()));
 
@@ -226,6 +226,14 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyPath, 0,
         addressManager.data(), SLOT(copyPath()));
 
+    // Navigate > Start-up Location
+    MenuWrapper* startupLocationMenu = navigateMenu->addMenu(MenuOption::StartUpLocation);
+    QActionGroup* startupLocatiopnGroup = new QActionGroup(startupLocationMenu);
+    startupLocatiopnGroup->setExclusive(true);
+    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0, 
+        false));
+    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0, 
+        true));
 
     // Settings menu ----------------------------------
     MenuWrapper* settingsMenu = addMenu("Settings");
@@ -263,6 +271,18 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"),
             QString("hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
+    });
+
+    // Settings > Security...
+    action = addActionToQMenuAndActionHash(settingsMenu, "Security...");
+    connect(action, &QAction::triggered, [] {
+		auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+		auto hmd = DependencyManager::get<HMDScriptingInterface>();
+		tablet->pushOntoStack("hifi/dialogs/security/Security.qml");
+
+		if (!hmd->getShouldShowTablet()) {
+			hmd->toggleShouldShowTablet();
+		}
     });
 
     // Settings > Developer Menu
@@ -343,6 +363,8 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         qApp->setHmdTabletBecomesToolbarSetting(action->isChecked());
     });
+
+    addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::Use3DKeyboard, 0, true);
 
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");

@@ -327,8 +327,8 @@ describe("Assets", function () {
             expect(hash).toMatch(IS_ASSET_HASH_REGEX);
             context.definedHash = hash; // used in later tests
             context.definedContent = SAMPLE_CONTENTS;
-            print('context.definedHash = ' + context.definedHash);
-            print('context.definedContent = ' + context.definedContent);
+            //print('context.definedHash = ' + context.definedHash);
+            //print('context.definedContent = ' + context.definedContent);
             done();
         });
     });
@@ -339,7 +339,7 @@ describe("Assets", function () {
             if (error) error += ' ('+JSON.stringify([SAMPLE_FILE_PATH, context.definedHash])+')';
             expect(error).toBe(null);
             context.definedPath = SAMPLE_FILE_PATH;
-            print('context.definedPath = ' + context.definedPath);
+            //print('context.definedPath = ' + context.definedPath);
             done();
         });
     });

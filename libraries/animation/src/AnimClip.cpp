@@ -101,8 +101,8 @@ void AnimClip::copyFromNetworkAnim() {
 
     // build a mapping from animation joint indices to skeleton joint indices.
     // by matching joints with the same name.
-    const FBXGeometry& geom = _networkAnim->getGeometry();
-    AnimSkeleton animSkeleton(geom);
+    const HFMModel& hfmModel = _networkAnim->getHFMModel();
+    AnimSkeleton animSkeleton(hfmModel);
     const auto animJointCount = animSkeleton.getNumJoints();
     const auto skeletonJointCount = _skeleton->getNumJoints();
     std::vector<int> jointMap;
@@ -110,17 +110,17 @@ void AnimClip::copyFromNetworkAnim() {
     for (int i = 0; i < animJointCount; i++) {
         int skeletonJoint = _skeleton->nameToJointIndex(animSkeleton.getJointName(i));
         if (skeletonJoint == -1) {
-            qCWarning(animation) << "animation contains joint =" << animSkeleton.getJointName(i) << " which is not in the skeleton, url =" << _url;
+            qCWarning(animation) << "animation contains joint =" << animSkeleton.getJointName(i) << " which is not in the skeleton";
         }
         jointMap.push_back(skeletonJoint);
     }
 
-    const int frameCount = geom.animationFrames.size();
+    const int frameCount = hfmModel.animationFrames.size();
     _anim.resize(frameCount);
 
     for (int frame = 0; frame < frameCount; frame++) {
 
-        const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
+        const HFMAnimationFrame& hfmAnimFrame = hfmModel.animationFrames[frame];
 
         // init all joints in animation to default pose
         // this will give us a resonable result for bones in the model skeleton but not in the animation.
@@ -132,8 +132,8 @@ void AnimClip::copyFromNetworkAnim() {
         for (int animJoint = 0; animJoint < animJointCount; animJoint++) {
             int skeletonJoint = jointMap[animJoint];
 
-            const glm::vec3& fbxAnimTrans = fbxAnimFrame.translations[animJoint];
-            const glm::quat& fbxAnimRot = fbxAnimFrame.rotations[animJoint];
+            const glm::vec3& hfmAnimTrans = hfmAnimFrame.translations[animJoint];
+            const glm::quat& hfmAnimRot = hfmAnimFrame.rotations[animJoint];
 
             // skip joints that are in the animation but not in the skeleton.
             if (skeletonJoint >= 0 && skeletonJoint < skeletonJointCount) {
@@ -146,19 +146,19 @@ void AnimClip::copyFromNetworkAnim() {
                 preRot.scale() = glm::vec3(1.0f);
                 postRot.scale() = glm::vec3(1.0f);
 
-                AnimPose rot(glm::vec3(1.0f), fbxAnimRot, glm::vec3());
+                AnimPose rot(glm::vec3(1.0f), hfmAnimRot, glm::vec3());
 
                 // adjust translation offsets, so large translation animatons on the reference skeleton
                 // will be adjusted when played on a skeleton with short limbs.
-                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint];
+                const glm::vec3& hfmZeroTrans = hfmModel.animationFrames[0].translations[animJoint];
                 const AnimPose& relDefaultPose = _skeleton->getRelativeDefaultPose(skeletonJoint);
                 float boneLengthScale = 1.0f;
                 const float EPSILON = 0.0001f;
-                if (fabsf(glm::length(fbxZeroTrans)) > EPSILON) {
-                    boneLengthScale = glm::length(relDefaultPose.trans()) / glm::length(fbxZeroTrans);
+                if (fabsf(glm::length(hfmZeroTrans)) > EPSILON) {
+                    boneLengthScale = glm::length(relDefaultPose.trans()) / glm::length(hfmZeroTrans);
                 }
 
-                AnimPose trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans() + boneLengthScale * (fbxAnimTrans - fbxZeroTrans));
+                AnimPose trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans() + boneLengthScale * (hfmAnimTrans - hfmZeroTrans));
 
                 _anim[frame][skeletonJoint] = trans * preRot * rot * postRot;
             }

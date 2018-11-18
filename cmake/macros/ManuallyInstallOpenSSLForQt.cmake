@@ -19,13 +19,13 @@ macro(manually_install_openssl_for_qt)
     find_package(OpenSSL REQUIRED)
 
     install(
-      FILES "${OPENSSL_DLL_PATH}/ssleay32.dll"
+      FILES "${VCPKG_INSTALL_ROOT}/bin/ssleay32.dll"
       DESTINATION ${TARGET_INSTALL_DIR}
       COMPONENT ${TARGET_INSTALL_COMPONENT}
     )
 
     install(
-      FILES "${OPENSSL_DLL_PATH}/libeay32.dll"
+      FILES "${VCPKG_INSTALL_ROOT}/bin/libeay32.dll"
       DESTINATION ${TARGET_INSTALL_DIR}
       COMPONENT ${TARGET_INSTALL_COMPONENT}
     )

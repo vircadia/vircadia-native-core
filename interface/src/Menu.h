@@ -117,9 +117,11 @@ namespace MenuOption {
     const QString FrameTimer = "Show Timer";
     const QString FullscreenMirror = "Mirror";
     const QString Help = "Help...";
+    const QString HomeLocation = "Home";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString ActionMotorControl = "Enable Default Motor Control";
+    const QString LastLocation = "Last Location";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
@@ -139,7 +141,7 @@ namespace MenuOption {
     const QString OpenVrThreadedSubmit = "OpenVR Threaded Submit"; 
     const QString OutputMenu = "Display";
     const QString Overlays = "Show Overlays";
-    const QString PackageModel = "Package Model as .fst...";
+    const QString PackageModel = "Package Avatar as .fst...";
     const QString Pair = "Pair";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
     const QString VerboseLogging = "Verbose Logging";
@@ -197,6 +199,7 @@ namespace MenuOption {
     const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";
     const QString SparseTextureManagement = "Enable Sparse Texture Management";
+    const QString StartUpLocation = "Start-Up Location";
     const QString Stats = "Show Statistics";
     const QString AnimStats = "Show Animation Stats";
     const QString StopAllScripts = "Stop All Scripts";
@@ -210,6 +213,7 @@ namespace MenuOption {
     const QString TurnWithHead = "Turn using Head";
     const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString UseCamera = "Use Camera";
+    const QString Use3DKeyboard = "Use 3D Keyboard";
     const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";

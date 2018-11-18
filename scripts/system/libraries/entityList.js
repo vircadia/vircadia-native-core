@@ -9,14 +9,15 @@
 //
 
 /* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
-   cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
+   cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible,
+   keyUpEventFromUIWindow */
 
 var PROFILING_ENABLED = false;
 var profileIndent = '';
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
 };
-PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
+const PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Script " + profileIndent + "(" + name + ") Begin");
     var previousIndent = profileIndent;
     profileIndent += '  ';
@@ -115,6 +116,13 @@ EntityListTool = function(shouldUseEditTabletApp) {
         });
     });
 
+    that.setSpaceMode = function(spaceMode) {
+        emitJSONScriptEvent({
+            type: 'setSpaceMode',
+            spaceMode: spaceMode
+        });
+    };
+
     that.clearEntityList = function() {
         emitJSONScriptEvent({
             type: 'clearEntityList'
@@ -200,6 +208,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                 type: "update",
                 entities: entities,
                 selectedIDs: selectedIDs,
+                spaceMode: SelectionDisplay.getSpaceMode(),
             });
         });
     };
@@ -218,7 +227,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
         try {
             data = JSON.parse(data);
         } catch(e) {
-            print("entityList.js: Error parsing JSON: " + e.name + " data " + data);
+            print("entityList.js: Error parsing JSON");
             return;
         }
 
@@ -288,6 +297,10 @@ EntityListTool = function(shouldUseEditTabletApp) {
             Entities.editEntity(data.entityID, {name: data.name});
             // make sure that the name also gets updated in the properties window
             SelectionManager._update();
+        } else if (data.type === "toggleSpaceMode") {
+            SelectionDisplay.toggleSpaceMode();
+        } else if (data.type === 'keyUpEvent') {
+            keyUpEventFromUIWindow(data.keyUpEvent);
         }
     };
 

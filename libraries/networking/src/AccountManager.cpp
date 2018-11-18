@@ -540,6 +540,30 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestAccessTokenFinished);
 }
 
+void AccountManager::requestAccessTokenWithAuthCode(const QString& authCode, const QString& clientId, const QString& clientSecret, const QString& redirectUri) {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+
+    QNetworkRequest request;
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+    QUrl grantURL = _authURL;
+    grantURL.setPath("/oauth/token");
+
+    QByteArray postData;
+    postData.append("grant_type=authorization_code&");
+    postData.append("client_id=" + clientId + "&");
+    postData.append("client_secret=" + clientSecret + "&");
+    postData.append("code=" + authCode + "&");
+    postData.append("redirect_uri=" + QUrl::toPercentEncoding(redirectUri));
+
+    request.setUrl(grantURL);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+    QNetworkReply* requestReply = networkAccessManager.post(request, postData);
+    connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestAccessTokenFinished);
+}
+
 void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
@@ -836,4 +860,8 @@ void AccountManager::handleKeypairGenerationError() {
 
     // reset our waiting state for keypair response
     _isWaitingForKeypairResponse = false;
+}
+
+void AccountManager::setLimitedCommerce(bool isLimited) {
+    _limitedCommerce = isLimited;
 }

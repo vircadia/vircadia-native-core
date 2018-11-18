@@ -369,7 +369,6 @@ void ScriptEngine::runInThread() {
     Q_ASSERT_X(!_isThreaded, "ScriptEngine::runInThread()", "runInThread should not be called more than once");
 
     if (_isThreaded) {
-        qCWarning(scriptengine) << "ScriptEngine already running in thread: " << getFilename();
         return;
     }
 
@@ -498,7 +497,6 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
         {
             static const QString DEBUG_FLAG("#debug");
             if (QRegularExpression(DEBUG_FLAG).match(scriptContents).hasMatch()) {
-                qCWarning(scriptengine) << "NOTE: ScriptEngine for " << QUrl(url).fileName() << " will be launched in debug mode";
                 _debuggable = true;
             }
         }
@@ -1632,7 +1630,6 @@ QVariantMap ScriptEngine::fetchModuleSource(const QString& modulePath, const boo
         auto url = modulePath;
         auto status = _status[url];
         auto contents = data[url];
-        qCDebug(scriptengine_module) << "require.fetchModuleSource.onload: " << QUrl(url).fileName() << status << QThread::currentThread();
         if (isStopping()) {
             req["status"] = "Stopped";
             req["success"] = false;
@@ -1752,8 +1749,8 @@ QScriptValue ScriptEngine::require(const QString& moduleId) {
     auto exports = module.property("exports");
     if (!invalidateCache && exports.isObject()) {
         // we have found a cached module -- just need to possibly register it with current parent
-        qCDebug(scriptengine_module) << QString("require - using cached module '%1' for '%2' (loaded: %3)")
-            .arg(modulePath).arg(moduleId).arg(module.property("loaded").toString());
+        qCDebug(scriptengine_module) << QString("require - using cached module for '%1' (loaded: %2)")
+            .arg(moduleId).arg(module.property("loaded").toString());
         registerModuleWithParent(module, parent);
         maybeEmitUncaughtException("cached module");
         return exports;
@@ -2138,7 +2135,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     PROFILE_RANGE(script, __FUNCTION__);
 
     if (isStopping() || DependencyManager::get<ScriptEngines>()->isStopped()) {
-        qCDebug(scriptengine) << "loadEntityScript.start " << entityScript << entityID.toString()
+        qCDebug(scriptengine) << "loadEntityScript.start " << entityID.toString()
                                      << " but isStopping==" << isStopping()
                                      << " || engines->isStopped==" << DependencyManager::get<ScriptEngines>()->isStopped();
         return;
@@ -2163,8 +2160,8 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
                 // since not reloading, assume that the exact same input would produce the exact same output again
                 // note: this state gets reset with "reload all scripts," leaving/returning to a Domain, clear cache, etc.
 #ifdef DEBUG_ENTITY_STATES
-                qCDebug(scriptengine) << QString("loadEntityScript.cancelled entity: %1 script: %2 (previous script failure)")
-                    .arg(entityID.toString()).arg(entityScript);
+                qCDebug(scriptengine) << QString("loadEntityScript.cancelled entity: %1 (previous script failure)")
+                    .arg(entityID.toString());
 #endif
                 updateEntityScriptStatus(entityID, EntityScriptStatus::ERROR_LOADING_SCRIPT,
                                          "A previous Entity failed to load using this script URL; reload to try again.");
@@ -2173,8 +2170,8 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
         } else {
             // another entity is busy loading from this script URL so wait for them to finish
 #ifdef DEBUG_ENTITY_STATES
-            qCDebug(scriptengine) << QString("loadEntityScript.deferring[%0] entity: %1 script: %2 (waiting on %3)")
-                .arg(_deferredEntityLoads.size()).arg(entityID.toString()).arg(entityScript).arg(currentEntityID.toString());
+            qCDebug(scriptengine) << QString("loadEntityScript.deferring[%0] entity: %1  (waiting on %2 )")
+                .arg(_deferredEntityLoads.size()).arg(entityID.toString()).arg(currentEntityID.toString());
 #endif
             _deferredEntityLoads.push_back({ entityID, entityScript });
             return;
@@ -2188,7 +2185,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     {
         EntityScriptDetails details;
         bool hasEntityScript = getEntityScriptDetails(entityID, details);
-        qCDebug(scriptengine) << "loadEntityScript.LOADING: " << entityScript << entityID.toString()
+        qCDebug(scriptengine) << "loadEntityScript.LOADING: " << entityID.toString()
             << "(previous: " << (hasEntityScript ? details.status : EntityScriptStatus::PENDING) << ")";
     }
 #endif
@@ -2217,7 +2214,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
             }
             executeOnScriptThread([=]{
 #ifdef DEBUG_ENTITY_STATES
-                qCDebug(scriptengine) << "loadEntityScript.contentAvailable" << status << QUrl(url).fileName() << entityID.toString();
+                qCDebug(scriptengine) << "loadEntityScript.contentAvailable" << status << entityID.toString();
 #endif
                 if (!isStopping() && hasEntityScriptDetails(entityID)) {
                     _contentAvailableQueue[entityID] = { entityID, url, contents, isURL, success, status };
@@ -2306,7 +2303,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         setEntityScriptDetails(entityID, newDetails);
 
 #ifdef DEBUG_ENTITY_STATES
-        qCDebug(scriptengine) << "entityScriptContentAvailable -- flagging " << entityScript << " as BAD_SCRIPT_UUID_PLACEHOLDER";
+        qCDebug(scriptengine) << "entityScriptContentAvailable -- flagging as BAD_SCRIPT_UUID_PLACEHOLDER";
 #endif
         // flag the original entityScript as unusuable
         _occupiedScriptURLs[entityScript] = BAD_SCRIPT_UUID_PLACEHOLDER;
@@ -2352,7 +2349,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         timeout.setSingleShot(true);
         timeout.start(SANDBOX_TIMEOUT);
         connect(&timeout, &QTimer::timeout, [=, &sandbox]{
-                qCDebug(scriptengine) << "ScriptEngine::entityScriptContentAvailable timeout(" << scriptOrURL << ")";
+                qCDebug(scriptengine) << "ScriptEngine::entityScriptContentAvailable timeout";
 
                 // Guard against infinite loops and non-performant code
                 sandbox.raiseException(

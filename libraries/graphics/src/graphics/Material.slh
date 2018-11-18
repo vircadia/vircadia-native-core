@@ -44,11 +44,11 @@ struct TexMapArray {
 struct Material {
     vec4 _emissiveOpacity;
     vec4 _albedoRoughness;
-    vec4 _fresnelMetallic;
-    vec4 _scatteringSpare2Key;
+    vec4 _metallicScatteringSpare2;
+    vec4 _keySpare3;
 };
 
-LAYOUT(binding=GRAPHICS_BUFFER_MATERIAL) uniform materialBuffer {
+LAYOUT_STD140(binding=GRAPHICS_BUFFER_MATERIAL) uniform materialBuffer {
     Material _mat;
     TexMapArray _texMapArray;
 };
@@ -65,15 +65,12 @@ float getMaterialOpacity(Material m) { return m._emissiveOpacity.a; }
 
 vec3 getMaterialAlbedo(Material m) { return m._albedoRoughness.rgb; }
 float getMaterialRoughness(Material m) { return m._albedoRoughness.a; }
-
-vec3 getMaterialFresnel(Material m) { return m._fresnelMetallic.rgb; }
-float getMaterialMetallic(Material m) { return m._fresnelMetallic.a; }
-
 float getMaterialShininess(Material m) { return 1.0 - getMaterialRoughness(m); }
 
-float getMaterialScattering(Material m) { return m._scatteringSpare2Key.x; }
+float getMaterialMetallic(Material m) { return m._metallicScatteringSpare2.x; }
+float getMaterialScattering(Material m) { return m._metallicScatteringSpare2.y; }
 
-BITFIELD getMaterialKey(Material m) { return floatBitsToInt(m._scatteringSpare2Key.w); }
+BITFIELD getMaterialKey(Material m) { return floatBitsToInt(m._keySpare3.x); }
 
 const BITFIELD EMISSIVE_VAL_BIT              = 0x00000001;
 const BITFIELD UNLIT_VAL_BIT                 = 0x00000002;

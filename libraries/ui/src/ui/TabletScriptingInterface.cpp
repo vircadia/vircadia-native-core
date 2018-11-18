@@ -211,7 +211,7 @@ void TabletScriptingInterface::playSound(TabletAudioEvents aEvent) {
         options.ambisonic = sound->isAmbisonic();
         options.localOnly = true;
 
-        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound->getByteArray(), options);
+        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound, options);
     }
 }
 
@@ -886,6 +886,12 @@ OffscreenQmlSurface* TabletProxy::getTabletSurface() {
 
 void TabletProxy::desktopWindowClosed() {
     gotoHomeScreen();
+}
+
+void TabletProxy::unfocus() {
+    if (_qmlOffscreenSurface) {
+        _qmlOffscreenSurface->lowerKeyboard();
+    }
 }
 
 

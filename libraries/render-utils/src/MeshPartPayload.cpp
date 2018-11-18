@@ -239,7 +239,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     initCache(model);
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_ANDROID)
     // On mac AMD, we specifically need to have a _meshBlendshapeBuffer bound when using a deformed mesh pipeline
     // it cannot be null otherwise we crash in the drawcall using a deformed pipeline with a skinned only (not blendshaped) mesh
     if (_isBlendShaped) {
@@ -260,8 +260,8 @@ void ModelMeshPartPayload::initCache(const ModelPointer& model) {
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
         _isSkinned = vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX);
 
-        const FBXGeometry& geometry = model->getFBXGeometry();
-        const FBXMesh& mesh = geometry.meshes.at(_meshIndex);
+        const HFMModel& hfmModel = model->getHFMModel();
+        const HFMMesh& mesh = hfmModel.meshes.at(_meshIndex);
 
         _isBlendShaped = !mesh.blendshapes.isEmpty();
         _hasTangents = !mesh.tangents.isEmpty();

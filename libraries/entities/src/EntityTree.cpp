@@ -35,6 +35,7 @@
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
+#include "RecurseOctreeToJSONOperator.h"
 #include "LogHandler.h"
 #include "EntityEditFilters.h"
 #include "EntityDynamicFactoryInterface.h"
@@ -2767,9 +2768,11 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             success = false;
         }
 
-        const QUuid& cloneOriginID = entity->getCloneOriginID();
-        if (!cloneOriginID.isNull()) {
-            cloneIDs[cloneOriginID].push_back(entity->getEntityItemID());
+        if (entity) {
+            const QUuid& cloneOriginID = entity->getCloneOriginID();
+            if (!cloneOriginID.isNull()) {
+                cloneIDs[cloneOriginID].push_back(entity->getEntityItemID());
+            }
         }
     }
 
@@ -2781,6 +2784,17 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     }
 
     return success;
+}
+
+bool EntityTree::writeToJSON(QString& jsonString, const OctreeElementPointer& element) {
+    QScriptEngine scriptEngine;
+    RecurseOctreeToJSONOperator theOperator(element, &scriptEngine, jsonString);
+    withReadLock([&] {
+        recurseTreeWithOperator(&theOperator);
+    });
+
+    jsonString = theOperator.getJson();
+    return true;
 }
 
 void EntityTree::resetClientEditStats() {

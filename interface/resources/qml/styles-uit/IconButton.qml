@@ -1,18 +1,4 @@
-//
-//  IconButton.qml
-//
-//  Created by Clement on 7/18/16
-//  Copyright 2016 High Fidelity, Inc.
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
+import stylesUit 1.0
 
-import QtQuick 2.5
-import "."
-
-RalewayRegular {
-    font.pixelSize: hifi.fontSizes.iconButton
-    font.capitalization: Font.AllUppercase
-    font.letterSpacing: 1.5
+IconButton {
 }

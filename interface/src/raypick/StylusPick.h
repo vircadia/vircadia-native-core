@@ -58,7 +58,7 @@ public:
 class StylusPick : public Pick<StylusTip> {
     using Side = bilateral::Side;
 public:
-    StylusPick(Side side, const PickFilter& filter, float maxDistance, bool enabled);
+    StylusPick(Side side, const PickFilter& filter, float maxDistance, bool enabled, const glm::vec3& tipOffset);
 
     StylusTip getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override;
@@ -71,6 +71,8 @@ public:
     bool isLeftHand() const override { return _mathPick.side == Side::Left; }
     bool isRightHand() const override { return _mathPick.side == Side::Right; }
     bool isMouse() const override { return false; }
+
+    static float WEB_STYLUS_LENGTH;
 };
 
 #endif // hifi_StylusPick_h

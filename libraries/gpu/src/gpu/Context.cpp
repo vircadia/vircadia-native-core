@@ -14,6 +14,7 @@
 
 #include "Frame.h"
 #include "GPULogging.h"
+#include <shaders/Shaders.h>
 
 using namespace gpu;
 
@@ -331,10 +332,19 @@ Size Context::getTextureResourcePopulatedGPUMemSize() {
     return Backend::textureResourcePopulatedGPUMemSize.getValue();
 }
 
+PipelinePointer Context::createMipGenerationPipeline(const ShaderPointer& ps) {
+    auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawViewportQuadTransformTexcoord);
+	static gpu::StatePointer state(new gpu::State());
+
+	gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+	// Good to go add the brand new pipeline
+	return gpu::Pipeline::create(program, state);
+}
+
 Size Context::getTextureResourceIdealGPUMemSize() {
     return Backend::textureResourceIdealGPUMemSize.getValue();
 }
-
 
 BatchPointer Context::acquireBatch(const char* name) {
     Batch* rawBatch = nullptr;

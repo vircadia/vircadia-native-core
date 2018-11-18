@@ -216,7 +216,7 @@ void Agent::requestScript() {
     }
 
     // make sure this is not a script request for the file scheme
-    if (scriptURL.scheme() == URL_SCHEME_FILE) {
+    if (scriptURL.scheme() == HIFI_URL_SCHEME_FILE) {
         qWarning() << "Cannot load script for Agent from local filesystem.";
         scriptRequestFinished();
         return;
@@ -754,13 +754,13 @@ void Agent::processAgentAvatarAudio() {
         const int16_t* nextSoundOutput = NULL;
 
         if (_avatarSound) {
-            const QByteArray& soundByteArray = _avatarSound->getByteArray();
-            nextSoundOutput = reinterpret_cast<const int16_t*>(soundByteArray.data()
+            auto audioData = _avatarSound->getAudioData();
+            nextSoundOutput = reinterpret_cast<const int16_t*>(audioData->rawData()
                     + _numAvatarSoundSentBytes);
 
-            int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
+            int numAvailableBytes = (audioData->getNumBytes() - _numAvatarSoundSentBytes) > AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
                 ? AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
-                : soundByteArray.size() - _numAvatarSoundSentBytes;
+                : audioData->getNumBytes() - _numAvatarSoundSentBytes;
             numAvailableSamples = (int16_t)numAvailableBytes / sizeof(int16_t);
 
 
@@ -773,7 +773,7 @@ void Agent::processAgentAvatarAudio() {
             }
 
             _numAvatarSoundSentBytes += numAvailableBytes;
-            if (_numAvatarSoundSentBytes == soundByteArray.size()) {
+            if (_numAvatarSoundSentBytes == (int)audioData->getNumBytes()) {
                 // we're done with this sound object - so set our pointer back to NULL
                 // and our sent bytes back to zero
                 _avatarSound.clear();

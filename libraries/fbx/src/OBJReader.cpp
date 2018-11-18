@@ -28,7 +28,7 @@
 #include <ResourceManager.h>
 
 #include "FBXReader.h"
-#include "ModelFormatLogging.h"
+#include <hfm/ModelFormatLogging.h>
 #include <shared/PlatformHacks.h>
 
 QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as units", 1.0f / 100.0f},
@@ -175,7 +175,7 @@ glm::vec2 OBJTokenizer::getVec2() {
 }
 
 
-void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
+void setMeshPartDefaults(HFMMeshPart& meshPart, QString materialID) {
     meshPart.materialID = materialID;
 }
 
@@ -488,12 +488,12 @@ QNetworkReply* request(QUrl& url, bool isTest) {
 }
 
 
-bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry,
+bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& hfmModel,
                               float& scaleGuess, bool combineParts) {
     FaceGroup faces;
-    FBXMesh& mesh = geometry.meshes[0];
-    mesh.parts.append(FBXMeshPart());
-    FBXMeshPart& meshPart = mesh.parts.last();
+    HFMMesh& mesh = hfmModel.meshes[0];
+    mesh.parts.append(HFMMeshPart());
+    HFMMeshPart& meshPart = mesh.parts.last();
     bool sawG = false;
     bool result = true;
     int originalFaceCountForDebugging = 0;
@@ -652,43 +652,43 @@ done:
 }
 
 
-FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url) {
+HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mapping, bool combineParts, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
-    QBuffer buffer { &model };
+    QBuffer buffer { &data };
     buffer.open(QIODevice::ReadOnly);
 
-    auto geometryPtr { std::make_shared<FBXGeometry>() };
-    FBXGeometry& geometry { *geometryPtr };
+    auto hfmModelPtr { std::make_shared<HFMModel>() };
+    HFMModel& hfmModel { *hfmModelPtr };
     OBJTokenizer tokenizer { &buffer };
     float scaleGuess = 1.0f;
 
     bool needsMaterialLibrary = false;
 
     _url = url;
-    geometry.meshExtents.reset();
-    geometry.meshes.append(FBXMesh());
+    hfmModel.meshExtents.reset();
+    hfmModel.meshes.append(HFMMesh());
 
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
-        // add a new meshPart to the geometry's single mesh.
-        while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess, combineParts)) {}
+        // add a new meshPart to the model's single mesh.
+        while (parseOBJGroup(tokenizer, mapping, hfmModel, scaleGuess, combineParts)) {}
 
-        FBXMesh& mesh = geometry.meshes[0];
+        HFMMesh& mesh = hfmModel.meshes[0];
         mesh.meshIndex = 0;
 
-        geometry.joints.resize(1);
-        geometry.joints[0].isFree = false;
-        geometry.joints[0].parentIndex = -1;
-        geometry.joints[0].distanceToParent = 0;
-        geometry.joints[0].translation = glm::vec3(0, 0, 0);
-        geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
-        geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
-        geometry.joints[0].name = "OBJ";
-        geometry.joints[0].isSkeletonJoint = true;
+        hfmModel.joints.resize(1);
+        hfmModel.joints[0].isFree = false;
+        hfmModel.joints[0].parentIndex = -1;
+        hfmModel.joints[0].distanceToParent = 0;
+        hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
+        hfmModel.joints[0].rotationMin = glm::vec3(0, 0, 0);
+        hfmModel.joints[0].rotationMax = glm::vec3(0, 0, 0);
+        hfmModel.joints[0].name = "OBJ";
+        hfmModel.joints[0].isSkeletonJoint = true;
 
-        geometry.jointIndices["x"] = 1;
+        hfmModel.jointIndices["x"] = 1;
 
-        FBXCluster cluster;
+        HFMCluster cluster;
         cluster.jointIndex = 0;
         cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
             0, 1, 0, 0,
@@ -697,20 +697,20 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         mesh.clusters.append(cluster);
 
         QMap<QString, int> materialMeshIdMap;
-        QVector<FBXMeshPart> fbxMeshParts;
+        QVector<HFMMeshPart> hfmMeshParts;
         for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
-            FBXMeshPart& meshPart = mesh.parts[i];
+            HFMMeshPart& meshPart = mesh.parts[i];
             FaceGroup faceGroup = faceGroups[meshPartCount];
             bool specifiesUV = false;
             foreach(OBJFace face, faceGroup) {
                 // Go through all of the OBJ faces and determine the number of different materials necessary (each different material will be a unique mesh).
                 // NOTE (trent/mittens 3/30/17): this seems hardcore wasteful and is slowed down a bit by iterating through the face group twice, but it's the best way I've thought of to hack multi-material support in an OBJ into this pipeline.
                 if (!materialMeshIdMap.contains(face.materialName)) {
-                    // Create a new FBXMesh for this material mapping.
+                    // Create a new HFMMesh for this material mapping.
                     materialMeshIdMap.insert(face.materialName, materialMeshIdMap.count());
 
-                    fbxMeshParts.append(FBXMeshPart());
-                    FBXMeshPart& meshPartNew = fbxMeshParts.last();
+                    hfmMeshParts.append(HFMMeshPart());
+                    HFMMeshPart& meshPartNew = hfmMeshParts.last();
                     meshPartNew.quadIndices = QVector<int>(meshPart.quadIndices);                    // Copy over quad indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
                     meshPartNew.quadTrianglesIndices = QVector<int>(meshPart.quadTrianglesIndices); // Copy over quad triangulated indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
                     meshPartNew.triangleIndices = QVector<int>(meshPart.triangleIndices);            // Copy over triangle indices.
@@ -745,14 +745,14 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         // clean up old mesh parts.
         int unmodifiedMeshPartCount = mesh.parts.count();
         mesh.parts.clear();
-        mesh.parts = QVector<FBXMeshPart>(fbxMeshParts);
+        mesh.parts = QVector<HFMMeshPart>(hfmMeshParts);
 
         for (int i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
             FaceGroup faceGroup = faceGroups[meshPartCount];
 
             // Now that each mesh has been created with its own unique material mappings, fill them with data (vertex data is duplicated, face data is not).
             foreach(OBJFace face, faceGroup) {
-                FBXMeshPart& meshPart = mesh.parts[materialMeshIdMap[face.materialName]];
+                HFMMeshPart& meshPart = mesh.parts[materialMeshIdMap[face.materialName]];
 
                 glm::vec3 v0 = checked_at(vertices, face.vertexIndices[0]);
                 glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
@@ -818,13 +818,13 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         mesh.meshExtents.reset();
         foreach(const glm::vec3& vertex, mesh.vertices) {
             mesh.meshExtents.addPoint(vertex);
-            geometry.meshExtents.addPoint(vertex);
+            hfmModel.meshExtents.addPoint(vertex);
         }
 
         // Build the single mesh.
         FBXReader::buildModelMesh(mesh, url.toString());
 
-        // fbxDebugDump(geometry);
+        // hfmDebugDump(hfmModel);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
@@ -845,7 +845,7 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
         QVector<QByteArray> extensions = { "jpg", "jpeg", "png", "tga" };
         QByteArray base = basename.toUtf8(), textName = "";
-        qCDebug(modelformat) << "OBJ Reader looking for default texture of" << url;
+        qCDebug(modelformat) << "OBJ Reader looking for default texture";
         for (int i = 0; i < extensions.count(); i++) {
             QByteArray candidateString = base + extensions[i];
             if (isValidTexture(candidateString)) {
@@ -866,7 +866,7 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         foreach (QString libraryName, librariesSeen.keys()) {
             // Throw away any path part of libraryName, and merge against original url.
             QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
-            qCDebug(modelformat) << "OBJ Reader material library" << libraryName << "used in" << _url;
+            qCDebug(modelformat) << "OBJ Reader material library" << libraryName;
             bool success;
             QByteArray data;
             std::tie<bool, QByteArray>(success, data) = requestData(libraryUrl);
@@ -885,38 +885,38 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         if (!objMaterial.used) {
             continue;
         }
-        geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
+        hfmModel.materials[materialID] = HFMMaterial(objMaterial.diffuseColor,
                                                      objMaterial.specularColor,
                                                      objMaterial.emissiveColor,
                                                      objMaterial.shininess,
                                                      objMaterial.opacity);
-        FBXMaterial& fbxMaterial = geometry.materials[materialID];
-        fbxMaterial.materialID = materialID;
-        fbxMaterial._material = std::make_shared<graphics::Material>();
-        graphics::MaterialPointer modelMaterial = fbxMaterial._material;
+        HFMMaterial& hfmMaterial = hfmModel.materials[materialID];
+        hfmMaterial.materialID = materialID;
+        hfmMaterial._material = std::make_shared<graphics::Material>();
+        graphics::MaterialPointer modelMaterial = hfmMaterial._material;
 
         if (!objMaterial.diffuseTextureFilename.isEmpty()) {
-            fbxMaterial.albedoTexture.filename = objMaterial.diffuseTextureFilename;
+            hfmMaterial.albedoTexture.filename = objMaterial.diffuseTextureFilename;
         }
         if (!objMaterial.specularTextureFilename.isEmpty()) {
-            fbxMaterial.specularTexture.filename = objMaterial.specularTextureFilename;
+            hfmMaterial.specularTexture.filename = objMaterial.specularTextureFilename;
         }
         if (!objMaterial.emissiveTextureFilename.isEmpty()) {
-            fbxMaterial.emissiveTexture.filename = objMaterial.emissiveTextureFilename;
+            hfmMaterial.emissiveTexture.filename = objMaterial.emissiveTextureFilename;
         }
         if (!objMaterial.bumpTextureFilename.isEmpty()) {
-            fbxMaterial.normalTexture.filename = objMaterial.bumpTextureFilename;
-            fbxMaterial.normalTexture.isBumpmap = true;
-            fbxMaterial.bumpMultiplier = objMaterial.bumpTextureOptions.bumpMultiplier;
+            hfmMaterial.normalTexture.filename = objMaterial.bumpTextureFilename;
+            hfmMaterial.normalTexture.isBumpmap = true;
+            hfmMaterial.bumpMultiplier = objMaterial.bumpTextureOptions.bumpMultiplier;
         }
         if (!objMaterial.opacityTextureFilename.isEmpty()) {
-            fbxMaterial.opacityTexture.filename = objMaterial.opacityTextureFilename;
+            hfmMaterial.opacityTexture.filename = objMaterial.opacityTextureFilename;
         }
 
-        modelMaterial->setEmissive(fbxMaterial.emissiveColor);
-        modelMaterial->setAlbedo(fbxMaterial.diffuseColor);
-        modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
-        modelMaterial->setRoughness(graphics::Material::shininessToRoughness(fbxMaterial.shininess));
+        modelMaterial->setEmissive(hfmMaterial.emissiveColor);
+        modelMaterial->setAlbedo(hfmMaterial.diffuseColor);
+        modelMaterial->setMetallic(glm::length(hfmMaterial.specularColor));
+        modelMaterial->setRoughness(graphics::Material::shininessToRoughness(hfmMaterial.shininess));
 
         bool applyTransparency = false;
         bool applyShininess = false;
@@ -971,7 +971,7 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
         }      
 
         if (applyTransparency) {
-            fbxMaterial.opacity = std::max(fbxMaterial.opacity, ILLUMINATION_MODEL_MIN_OPACITY);
+            hfmMaterial.opacity = std::max(hfmMaterial.opacity, ILLUMINATION_MODEL_MIN_OPACITY);
         }
         if (applyShininess) {
             modelMaterial->setRoughness(ILLUMINATION_MODEL_APPLY_SHININESS);
@@ -982,21 +982,21 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
             modelMaterial->setMetallic(ILLUMINATION_MODEL_APPLY_NON_METALLIC);
         }
         if (fresnelOn) {
-            modelMaterial->setFresnel(glm::vec3(1.0f));
+            // TODO: how to turn fresnel on?
         }
 
-        modelMaterial->setOpacity(fbxMaterial.opacity);
+        modelMaterial->setOpacity(hfmMaterial.opacity);
     }
 
-    return geometryPtr;
+    return hfmModelPtr;
 }
 
-void fbxDebugDump(const FBXGeometry& fbxgeo) {
-    qCDebug(modelformat) << "---------------- fbxGeometry ----------------";
-    qCDebug(modelformat) << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
-    qCDebug(modelformat) << "  offset =" << fbxgeo.offset;
-    qCDebug(modelformat) << "  meshes.count() =" << fbxgeo.meshes.count();
-    foreach (FBXMesh mesh, fbxgeo.meshes) {
+void hfmDebugDump(const HFMModel& hfmModel) {
+    qCDebug(modelformat) << "---------------- hfmModel ----------------";
+    qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
+    qCDebug(modelformat) << "  offset =" << hfmModel.offset;
+    qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.count();
+    foreach (HFMMesh mesh, hfmModel.meshes) {
         qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
         qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
         qCDebug(modelformat) << "    normals.count() =" << mesh.normals.count();
@@ -1014,7 +1014,7 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "    meshExtents =" << mesh.meshExtents;
         qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
         qCDebug(modelformat) << "    parts.count() =" << mesh.parts.count();
-        foreach (FBXMeshPart meshPart, mesh.parts) {
+        foreach (HFMMeshPart meshPart, mesh.parts) {
             qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
             qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
    /*
@@ -1031,16 +1031,16 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
             */
         }
         qCDebug(modelformat) << "    clusters.count() =" << mesh.clusters.count();
-        foreach (FBXCluster cluster, mesh.clusters) {
+        foreach (HFMCluster cluster, mesh.clusters) {
             qCDebug(modelformat) << "        jointIndex =" << cluster.jointIndex;
             qCDebug(modelformat) << "        inverseBindMatrix =" << cluster.inverseBindMatrix;
         }
     }
 
-    qCDebug(modelformat) << "  jointIndices =" << fbxgeo.jointIndices;
-    qCDebug(modelformat) << "  joints.count() =" << fbxgeo.joints.count();
+    qCDebug(modelformat) << "  jointIndices =" << hfmModel.jointIndices;
+    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.count();
 
-    foreach (FBXJoint joint, fbxgeo.joints) {
+    foreach (HFMJoint joint, hfmModel.joints) {
         qCDebug(modelformat) << "    isFree =" << joint.isFree;
         qCDebug(modelformat) << "    freeLineage" << joint.freeLineage;
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;

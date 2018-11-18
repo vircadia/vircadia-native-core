@@ -396,8 +396,7 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
     if (!DependencyManager::get<ScriptEngines>()->stopScript(scriptUrl.trimmed(), false)) {
-        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway. ScriptURL is:"
-                            << scriptUrl.trimmed();
+        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway.";
     }
 
     // Delete the .app.json from the filesystem
@@ -441,9 +440,9 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     return true;
 }
 
-void QmlCommerce::getAvailableUpdates(const QString& itemId) {
+void QmlCommerce::getAvailableUpdates(const QString& itemId, const int& pageNumber, const int& itemsPerPage) {
     auto ledger = DependencyManager::get<Ledger>();
-    ledger->getAvailableUpdates(itemId);
+    ledger->getAvailableUpdates(itemId, pageNumber, itemsPerPage);
 }
 
 void QmlCommerce::updateItem(const QString& certificateId) {

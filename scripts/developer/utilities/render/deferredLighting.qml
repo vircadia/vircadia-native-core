@@ -11,8 +11,8 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
-import "qrc:///qml/styles-uit"
-import "qrc:///qml/controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 import  "configSlider"
 import "../lib/jet/qml" as Jet
 
@@ -204,6 +204,7 @@ Rectangle {
                     ListElement { text: "Debug Scattering"; color: "White" }
                     ListElement { text: "Ambient Occlusion"; color: "White" }
                     ListElement { text: "Ambient Occlusion Blurred"; color: "White" }
+                    ListElement { text: "Ambient Occlusion Normal"; color: "White" }
                     ListElement { text: "Velocity"; color: "White" }
                     ListElement { text: "Custom"; color: "White" }
                 }
@@ -279,11 +280,27 @@ Rectangle {
             }
         }
         Separator {}
-        HifiControls.Button {
-            text: "Engine"
-           // activeFocusOnPress: false
-            onClicked: {
-               sendToScript({method: "openEngineView"}); 
+        Row {
+            HifiControls.Button {
+                text: "Engine"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openEngineView"}); 
+                }
+            }
+            HifiControls.Button {
+                text: "LOD"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openEngineLODView"}); 
+                }
+            }
+            HifiControls.Button {
+                text: "Cull"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openCullInspectorView"}); 
+                }
             }
         }
     }

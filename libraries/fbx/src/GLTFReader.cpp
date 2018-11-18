@@ -533,10 +533,10 @@ bool GLTFReader::addTexture(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::parseGLTF(const QByteArray& model) {
+bool GLTFReader::parseGLTF(const QByteArray& data) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
     
-    QJsonDocument d = QJsonDocument::fromJson(model);
+    QJsonDocument d = QJsonDocument::fromJson(data);
     QJsonObject jsFile = d.object();
 
     bool isvalid = setAsset(jsFile);
@@ -697,7 +697,7 @@ glm::mat4 GLTFReader::getModelTransform(const GLTFNode& node) {
     return tmat;
 }
 
-bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
+bool GLTFReader::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
 
     //Build dependencies
     QVector<QVector<int>> nodeDependencies(_file.nodes.size());
@@ -727,17 +727,17 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
     }
     
     //Build default joints
-    geometry.joints.resize(1);
-    geometry.joints[0].isFree = false;
-    geometry.joints[0].parentIndex = -1;
-    geometry.joints[0].distanceToParent = 0;
-    geometry.joints[0].translation = glm::vec3(0, 0, 0);
-    geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
-    geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
-    geometry.joints[0].name = "OBJ";
-    geometry.joints[0].isSkeletonJoint = true;
+    hfmModel.joints.resize(1);
+    hfmModel.joints[0].isFree = false;
+    hfmModel.joints[0].parentIndex = -1;
+    hfmModel.joints[0].distanceToParent = 0;
+    hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
+    hfmModel.joints[0].rotationMin = glm::vec3(0, 0, 0);
+    hfmModel.joints[0].rotationMax = glm::vec3(0, 0, 0);
+    hfmModel.joints[0].name = "OBJ";
+    hfmModel.joints[0].isSkeletonJoint = true;
 
-    geometry.jointIndices["x"] = 1;
+    hfmModel.jointIndices["x"] = 1;
 
     //Build materials
     QVector<QString> materialIDs;
@@ -750,10 +750,10 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
 
     for (int i = 0; i < materialIDs.size(); i++) {
         QString& matid = materialIDs[i];
-        geometry.materials[matid] = FBXMaterial();
-        FBXMaterial& fbxMaterial = geometry.materials[matid];
-        fbxMaterial._material = std::make_shared<graphics::Material>();
-        setFBXMaterial(fbxMaterial, _file.materials[i]);
+        hfmModel.materials[matid] = HFMMaterial();
+        HFMMaterial& hfmMaterial = hfmModel.materials[matid];
+        hfmMaterial._material = std::make_shared<graphics::Material>();
+        setHFMMaterial(hfmMaterial, _file.materials[i]);
     }
 
     
@@ -765,9 +765,9 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
         if (node.defined["mesh"]) {
             qCDebug(modelformat) << "node_transforms" << node.transforms;
             foreach(auto &primitive, _file.meshes[node.mesh].primitives) {
-                geometry.meshes.append(FBXMesh());
-                FBXMesh& mesh = geometry.meshes[geometry.meshes.size() - 1];
-                FBXCluster cluster;
+                hfmModel.meshes.append(HFMMesh());
+                HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
+                HFMCluster cluster;
                 cluster.jointIndex = 0;
                 cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
                     0, 1, 0, 0,
@@ -775,7 +775,7 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                     0, 0, 0, 1);
                 mesh.clusters.append(cluster);
 
-                FBXMeshPart part = FBXMeshPart();
+                HFMMeshPart part = HFMMeshPart();
 
                 int indicesAccessorIdx = primitive.indices;
 
@@ -886,7 +886,7 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                 mesh.meshExtents.reset();
                 foreach(const glm::vec3& vertex, mesh.vertices) {
                     mesh.meshExtents.addPoint(vertex);
-                    geometry.meshExtents.addPoint(vertex);
+                    hfmModel.meshExtents.addPoint(vertex);
                 }
                 
                 // since mesh.modelTransform seems to not have any effect I apply the transformation the model 
@@ -898,7 +898,7 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                     }
                 }
 
-                mesh.meshIndex = geometry.meshes.size();
+                mesh.meshIndex = hfmModel.meshes.size();
                 FBXReader::buildModelMesh(mesh, url.toString());
             }
             
@@ -910,7 +910,7 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
     return true;
 }
 
-FBXGeometry* GLTFReader::readGLTF(QByteArray& model, const QVariantHash& mapping, 
+HFMModel* GLTFReader::readGLTF(QByteArray& data, const QVariantHash& mapping, 
                                   const QUrl& url, bool loadLightmaps, float lightmapLevel) {
     
     _url = url;
@@ -922,22 +922,21 @@ FBXGeometry* GLTFReader::readGLTF(QByteArray& model, const QVariantHash& mapping
         _url = QUrl(QFileInfo(localFileName).absoluteFilePath());
     }
 
-    parseGLTF(model);
+    parseGLTF(data);
     //_file.dump();
-    FBXGeometry* geometryPtr = new FBXGeometry();
-    FBXGeometry& geometry = *geometryPtr;
+    HFMModel* hfmModelPtr = new HFMModel();
+    HFMModel& hfmModel = *hfmModelPtr;
 
-    buildGeometry(geometry, url);
+    buildGeometry(hfmModel, url);
     
-    //fbxDebugDump(geometry);
-    return geometryPtr;
+    //hfmDebugDump(data);
+    return hfmModelPtr;
     
 }
 
 bool GLTFReader::readBinary(const QString& url, QByteArray& outdata) {
     QUrl binaryUrl = _url.resolved(url);
 
-    qCDebug(modelformat) << "binaryUrl: " << binaryUrl << "  OriginalUrl: " << _url;
     bool success;
     std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
     
@@ -997,8 +996,8 @@ QNetworkReply* GLTFReader::request(QUrl& url, bool isTest) {
     return netReply;                // trying to sync later on.
 }
 
-FBXTexture GLTFReader::getFBXTexture(const GLTFTexture& texture) {
-    FBXTexture fbxtex = FBXTexture();
+HFMTexture GLTFReader::getHFMTexture(const GLTFTexture& texture) {
+    HFMTexture fbxtex = HFMTexture();
     fbxtex.texcoordSet = 0;
     
     if (texture.defined["source"]) {
@@ -1006,15 +1005,13 @@ FBXTexture GLTFReader::getFBXTexture(const GLTFTexture& texture) {
         QString fname = QUrl(url).fileName();
         QUrl textureUrl = _url.resolved(url);
         qCDebug(modelformat) << "fname: " << fname;
-        qCDebug(modelformat) << "textureUrl: " << textureUrl;
-        qCDebug(modelformat) << "Url: " << _url;
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
     }
     return fbxtex;
 }
 
-void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& material) {
+void GLTFReader::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material) {
 
 
     if (material.defined["name"]) {
@@ -1029,17 +1026,17 @@ void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& materia
     }
 
     if (material.defined["emissiveTexture"]) {
-        fbxmat.emissiveTexture = getFBXTexture(_file.textures[material.emissiveTexture]);
+        fbxmat.emissiveTexture = getHFMTexture(_file.textures[material.emissiveTexture]);
         fbxmat.useEmissiveMap = true;
     }
     
     if (material.defined["normalTexture"]) {
-        fbxmat.normalTexture = getFBXTexture(_file.textures[material.normalTexture]);
+        fbxmat.normalTexture = getHFMTexture(_file.textures[material.normalTexture]);
         fbxmat.useNormalMap = true;
     }
     
     if (material.defined["occlusionTexture"]) {
-        fbxmat.occlusionTexture = getFBXTexture(_file.textures[material.occlusionTexture]);
+        fbxmat.occlusionTexture = getHFMTexture(_file.textures[material.occlusionTexture]);
         fbxmat.useOcclusionMap = true;
     }
 
@@ -1050,14 +1047,14 @@ void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& materia
             fbxmat.metallic = material.pbrMetallicRoughness.metallicFactor;
         }
         if (material.pbrMetallicRoughness.defined["baseColorTexture"]) {
-            fbxmat.opacityTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
-            fbxmat.albedoTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
+            fbxmat.opacityTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
+            fbxmat.albedoTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
             fbxmat.useAlbedoMap = true;
         }
         if (material.pbrMetallicRoughness.defined["metallicRoughnessTexture"]) {
-            fbxmat.roughnessTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.roughnessTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
             fbxmat.useRoughnessMap = true;
-            fbxmat.metallicTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.metallicTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
             fbxmat.useMetallicMap = true;
         }
         if (material.pbrMetallicRoughness.defined["roughnessFactor"]) {
@@ -1181,37 +1178,37 @@ void GLTFReader::retriangulate(const QVector<int>& inIndices, const QVector<glm:
     }
 }
 
-void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
-    qCDebug(modelformat) << "---------------- fbxGeometry ----------------";
-    qCDebug(modelformat) << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
-    qCDebug(modelformat) << "  offset =" << fbxgeo.offset;
+void GLTFReader::hfmDebugDump(const HFMModel& hfmModel) {
+    qCDebug(modelformat) << "---------------- hfmModel ----------------";
+    qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
+    qCDebug(modelformat) << "  offset =" << hfmModel.offset;
 
-    qCDebug(modelformat) << "  leftEyeJointIndex =" << fbxgeo.leftEyeJointIndex;
-    qCDebug(modelformat) << "  rightEyeJointIndex =" << fbxgeo.rightEyeJointIndex;
-    qCDebug(modelformat) << "  neckJointIndex =" << fbxgeo.neckJointIndex;
-    qCDebug(modelformat) << "  rootJointIndex =" << fbxgeo.rootJointIndex;
-    qCDebug(modelformat) << "  leanJointIndex =" << fbxgeo.leanJointIndex;
-    qCDebug(modelformat) << "  headJointIndex =" << fbxgeo.headJointIndex;
-    qCDebug(modelformat) << "  leftHandJointIndex" << fbxgeo.leftHandJointIndex;
-    qCDebug(modelformat) << "  rightHandJointIndex" << fbxgeo.rightHandJointIndex;
-    qCDebug(modelformat) << "  leftToeJointIndex" << fbxgeo.leftToeJointIndex;
-    qCDebug(modelformat) << "  rightToeJointIndex" << fbxgeo.rightToeJointIndex;
-    qCDebug(modelformat) << "  leftEyeSize = " << fbxgeo.leftEyeSize;
-    qCDebug(modelformat) << "  rightEyeSize = " << fbxgeo.rightEyeSize;
+    qCDebug(modelformat) << "  leftEyeJointIndex =" << hfmModel.leftEyeJointIndex;
+    qCDebug(modelformat) << "  rightEyeJointIndex =" << hfmModel.rightEyeJointIndex;
+    qCDebug(modelformat) << "  neckJointIndex =" << hfmModel.neckJointIndex;
+    qCDebug(modelformat) << "  rootJointIndex =" << hfmModel.rootJointIndex;
+    qCDebug(modelformat) << "  leanJointIndex =" << hfmModel.leanJointIndex;
+    qCDebug(modelformat) << "  headJointIndex =" << hfmModel.headJointIndex;
+    qCDebug(modelformat) << "  leftHandJointIndex" << hfmModel.leftHandJointIndex;
+    qCDebug(modelformat) << "  rightHandJointIndex" << hfmModel.rightHandJointIndex;
+    qCDebug(modelformat) << "  leftToeJointIndex" << hfmModel.leftToeJointIndex;
+    qCDebug(modelformat) << "  rightToeJointIndex" << hfmModel.rightToeJointIndex;
+    qCDebug(modelformat) << "  leftEyeSize = " << hfmModel.leftEyeSize;
+    qCDebug(modelformat) << "  rightEyeSize = " << hfmModel.rightEyeSize;
 
-    qCDebug(modelformat) << "  palmDirection = " << fbxgeo.palmDirection;
+    qCDebug(modelformat) << "  palmDirection = " << hfmModel.palmDirection;
 
-    qCDebug(modelformat) << "  neckPivot = " << fbxgeo.neckPivot;
+    qCDebug(modelformat) << "  neckPivot = " << hfmModel.neckPivot;
 
-    qCDebug(modelformat) << "  bindExtents.size() = " << fbxgeo.bindExtents.size();
-    qCDebug(modelformat) << "  meshExtents.size() = " << fbxgeo.meshExtents.size();
+    qCDebug(modelformat) << "  bindExtents.size() = " << hfmModel.bindExtents.size();
+    qCDebug(modelformat) << "  meshExtents.size() = " << hfmModel.meshExtents.size();
 
-    qCDebug(modelformat) << "  jointIndices.size() =" << fbxgeo.jointIndices.size();
-    qCDebug(modelformat) << "  joints.count() =" << fbxgeo.joints.count();
+    qCDebug(modelformat) << "  jointIndices.size() =" << hfmModel.jointIndices.size();
+    qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.count();
     qCDebug(modelformat) << "---------------- Meshes ----------------";
-    qCDebug(modelformat) << "  meshes.count() =" << fbxgeo.meshes.count();
-    qCDebug(modelformat) << "  blendshapeChannelNames = " << fbxgeo.blendshapeChannelNames;
-    foreach(FBXMesh mesh, fbxgeo.meshes) {
+    qCDebug(modelformat) << "  meshes.count() =" << hfmModel.meshes.count();
+    qCDebug(modelformat) << "  blendshapeChannelNames = " << hfmModel.blendshapeChannelNames;
+    foreach(HFMMesh mesh, hfmModel.meshes) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "    meshpointer =" << mesh._mesh.get();
         qCDebug(modelformat) << "    meshindex =" << mesh.meshIndex;
@@ -1227,7 +1224,7 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
         qCDebug(modelformat) << "    parts.count() =" << mesh.parts.count();
         qCDebug(modelformat) << "---------------- Meshes (blendshapes)--------";
-        foreach(FBXBlendshape bshape, mesh.blendshapes) {
+        foreach(HFMBlendshape bshape, mesh.blendshapes) {
             qCDebug(modelformat) << "\n";
             qCDebug(modelformat) << "    bshape.indices.count() =" << bshape.indices.count();
             qCDebug(modelformat) << "    bshape.vertices.count() =" << bshape.vertices.count();
@@ -1235,7 +1232,7 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
             qCDebug(modelformat) << "\n";
         }
         qCDebug(modelformat) << "---------------- Meshes (meshparts)--------";
-        foreach(FBXMeshPart meshPart, mesh.parts) {
+        foreach(HFMMeshPart meshPart, mesh.parts) {
             qCDebug(modelformat) << "\n";
             qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
             qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
@@ -1245,7 +1242,7 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
         }
         qCDebug(modelformat) << "---------------- Meshes (clusters)--------";
         qCDebug(modelformat) << "    clusters.count() =" << mesh.clusters.count();
-        foreach(FBXCluster cluster, mesh.clusters) {
+        foreach(HFMCluster cluster, mesh.clusters) {
             qCDebug(modelformat) << "\n";
             qCDebug(modelformat) << "        jointIndex =" << cluster.jointIndex;
             qCDebug(modelformat) << "        inverseBindMatrix =" << cluster.inverseBindMatrix;
@@ -1254,18 +1251,18 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "\n";
     }
     qCDebug(modelformat) << "---------------- AnimationFrames ----------------";
-    foreach(FBXAnimationFrame anim, fbxgeo.animationFrames) {
+    foreach(HFMAnimationFrame anim, hfmModel.animationFrames) {
         qCDebug(modelformat) << "  anim.translations = " << anim.translations;
         qCDebug(modelformat) << "  anim.rotations = " << anim.rotations;
     }
-    QList<int> mitomona_keys = fbxgeo.meshIndicesToModelNames.keys();
+    QList<int> mitomona_keys = hfmModel.meshIndicesToModelNames.keys();
     foreach(int key, mitomona_keys) {
-        qCDebug(modelformat) << "    meshIndicesToModelNames key =" << key << "  val =" << fbxgeo.meshIndicesToModelNames[key];
+        qCDebug(modelformat) << "    meshIndicesToModelNames key =" << key << "  val =" << hfmModel.meshIndicesToModelNames[key];
     }
 
     qCDebug(modelformat) << "---------------- Materials ----------------";
 
-    foreach(FBXMaterial mat, fbxgeo.materials) {
+    foreach(HFMMaterial mat, hfmModel.materials) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "  mat.materialID =" << mat.materialID;
         qCDebug(modelformat) << "  diffuseColor =" << mat.diffuseColor;
@@ -1289,14 +1286,6 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "  normalTexture =" << mat.normalTexture.filename;
         qCDebug(modelformat) << "  albedoTexture =" << mat.albedoTexture.filename;
         qCDebug(modelformat) << "  opacityTexture =" << mat.opacityTexture.filename;
-        qCDebug(modelformat) << "  glossTexture =" << mat.glossTexture.filename;
-        qCDebug(modelformat) << "  roughnessTexture =" << mat.roughnessTexture.filename;
-        qCDebug(modelformat) << "  specularTexture =" << mat.specularTexture.filename;
-        qCDebug(modelformat) << "  metallicTexture =" << mat.metallicTexture.filename;
-        qCDebug(modelformat) << "  emissiveTexture =" << mat.emissiveTexture.filename;
-        qCDebug(modelformat) << "  occlusionTexture =" << mat.occlusionTexture.filename;
-        qCDebug(modelformat) << "  scatteringTexture =" << mat.scatteringTexture.filename;
-        qCDebug(modelformat) << "  lightmapTexture =" << mat.lightmapTexture.filename;
 
         qCDebug(modelformat) << "  lightmapParams =" << mat.lightmapParams;
 
@@ -1314,7 +1303,7 @@ void GLTFReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
 
     qCDebug(modelformat) << "---------------- Joints ----------------";
 
-    foreach(FBXJoint joint, fbxgeo.joints) {
+    foreach(HFMJoint joint, hfmModel.joints) {
         qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "    shapeInfo.avgPoint =" << joint.shapeInfo.avgPoint;
         qCDebug(modelformat) << "    shapeInfo.debugLines =" << joint.shapeInfo.debugLines;
