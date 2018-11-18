@@ -22,7 +22,7 @@ namespace AudioConstants {
     const int STEREO = 2;
     const int AMBISONIC = 4;
 
-    typedef int16_t AudioSample;
+    using AudioSample = int16_t;
     const int SAMPLE_SIZE = sizeof(AudioSample);
 
     inline const char* getAudioFrameName() { return "com.highfidelity.recording.Audio"; }

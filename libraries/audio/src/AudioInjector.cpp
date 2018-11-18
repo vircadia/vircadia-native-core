@@ -38,12 +38,14 @@ AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs)
     return lhs;
 };
 
-AudioInjector::AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions) :
-    AudioInjector(sound.getByteArray(), injectorOptions)
+AudioInjector::AudioInjector(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions) :
+    _sound(sound),
+    _audioData(sound->getAudioData()),
+    _options(injectorOptions)
 {
 }
 
-AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions) :
+AudioInjector::AudioInjector(AudioDataPointer audioData, const AudioInjectorOptions& injectorOptions) :
     _audioData(audioData),
     _options(injectorOptions)
 {
@@ -154,7 +156,7 @@ bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(const AudioInj
 bool AudioInjector::injectLocally() {
     bool success = false;
     if (_localAudioInterface) {
-        if (_audioData.size() > 0) {
+        if (_audioData->getNumBytes() > 0) {
 
             _localBuffer = new AudioInjectorLocalBuffer(_audioData);
 
@@ -220,22 +222,12 @@ int64_t AudioInjector::injectNextFrame() {
 
     if (!_currentPacket) {
         if (_currentSendOffset < 0 ||
-            _currentSendOffset >= _audioData.size()) {
+            _currentSendOffset >= (int)_audioData->getNumBytes()) {
             _currentSendOffset = 0;
         }
 
         // make sure we actually have samples downloaded to inject
-        if (_audioData.size()) {
-
-            int sampleSize = (_options.stereo ? 2 : 1) * sizeof(AudioConstants::AudioSample);
-            auto numSamples = static_cast<int>(_audioData.size() / sampleSize);
-            auto targetSize = numSamples * sampleSize;
-            if (targetSize != _audioData.size()) {
-                qCDebug(audio)  << "Resizing audio that doesn't end at multiple of sample size, resizing from "
-                    << _audioData.size() << " to " << targetSize;
-                _audioData.resize(targetSize);
-            }
-
+        if (_audioData && _audioData->getNumSamples() > 0) {
             _outgoingSequenceNumber = 0;
             _nextFrame = 0;
 
@@ -307,19 +299,10 @@ int64_t AudioInjector::injectNextFrame() {
         _frameTimer->restart();
     }
 
-    int totalBytesLeftToCopy = (_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
-    if (!_options.loop) {
-        // If we aren't looping, let's make sure we don't read past the end
-        totalBytesLeftToCopy = std::min(totalBytesLeftToCopy, _audioData.size() - _currentSendOffset);
-    }
-
-    //  Measure the loudness of this frame
-    _loudness = 0.0f;
-    for (int i = 0; i < totalBytesLeftToCopy; i += sizeof(int16_t)) {
-        _loudness += abs(*reinterpret_cast<int16_t*>(_audioData.data() + ((_currentSendOffset + i) % _audioData.size()))) /
-            (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
-    }
-    _loudness /= (float)(totalBytesLeftToCopy/ sizeof(int16_t));
+    assert(loopbackOptionOffset != -1);
+    assert(positionOptionOffset != -1);
+    assert(volumeOptionOffset != -1);
+    assert(audioDataOffset != -1);
 
     _currentPacket->seek(0);
 
@@ -339,19 +322,37 @@ int64_t AudioInjector::injectNextFrame() {
 
     _currentPacket->seek(audioDataOffset);
 
-    // This code is copying bytes from the _audioData directly into the packet, handling looping appropriately.
+    // This code is copying bytes from the _sound directly into the packet, handling looping appropriately.
     // Might be a reasonable place to do the encode step here.
     QByteArray decodedAudio;
-    while (totalBytesLeftToCopy > 0) {
-        int bytesToCopy = std::min(totalBytesLeftToCopy, _audioData.size() - _currentSendOffset);
 
-        decodedAudio.append(_audioData.data() + _currentSendOffset, bytesToCopy);
-        _currentSendOffset += bytesToCopy;
-        totalBytesLeftToCopy -= bytesToCopy;
-        if (_options.loop && _currentSendOffset >= _audioData.size()) {
-            _currentSendOffset = 0;
-        }
+    int totalBytesLeftToCopy = (_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+    if (!_options.loop) {
+        // If we aren't looping, let's make sure we don't read past the end
+        int bytesLeftToRead = _audioData->getNumBytes() - _currentSendOffset;
+        totalBytesLeftToCopy = std::min(totalBytesLeftToCopy, bytesLeftToRead);
     }
+
+    auto samples = _audioData->data();
+    auto currentSample = _currentSendOffset / AudioConstants::SAMPLE_SIZE;
+    auto samplesLeftToCopy = totalBytesLeftToCopy / AudioConstants::SAMPLE_SIZE;
+
+    using AudioConstants::AudioSample;
+    decodedAudio.resize(totalBytesLeftToCopy);
+    auto samplesOut = reinterpret_cast<AudioSample*>(decodedAudio.data());
+
+    //  Copy and Measure the loudness of this frame
+    _loudness = 0.0f;
+    for (int i = 0; i < samplesLeftToCopy; ++i) {
+        auto index = (currentSample + i) % _audioData->getNumSamples();
+        auto sample = samples[index];
+        samplesOut[i] = sample;
+        _loudness += abs(sample) / (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
+    }
+    _loudness /= (float)samplesLeftToCopy;
+    _currentSendOffset = (_currentSendOffset + totalBytesLeftToCopy) %
+                         _audioData->getNumBytes();
+
     // FIXME -- good place to call codec encode here. We need to figure out how to tell the AudioInjector which
     // codec to use... possible through AbstractAudioInterface.
     QByteArray encodedAudio = decodedAudio;
@@ -370,7 +371,7 @@ int64_t AudioInjector::injectNextFrame() {
         _outgoingSequenceNumber++;
     }
 
-    if (_currentSendOffset >= _audioData.size() && !_options.loop) {
+    if (_currentSendOffset == 0 && !_options.loop) {
         finishNetworkInjection();
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
@@ -390,7 +391,7 @@ int64_t AudioInjector::injectNextFrame() {
         // If we are falling behind by more frames than our threshold, let's skip the frames ahead
         qCDebug(audio)  << this << "injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
         _nextFrame = currentFrameBasedOnElapsedTime;
-        _currentSendOffset = _nextFrame * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * (_options.stereo ? 2 : 1) % _audioData.size();
+        _currentSendOffset = _nextFrame * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * (_options.stereo ? 2 : 1) % _audioData->getNumBytes();
     }
 
     int64_t playNextFrameAt = ++_nextFrame * AudioConstants::NETWORK_FRAME_USECS;
@@ -417,38 +418,25 @@ void AudioInjector::triggerDeleteAfterFinish() {
     }
 }
 
-AudioInjectorPointer AudioInjector::playSound(SharedSoundPointer sound, const float volume,
-                                              const float stretchFactor, const glm::vec3 position) {
+AudioInjectorPointer AudioInjector::playSoundAndDelete(SharedSoundPointer sound, const AudioInjectorOptions& options) {
+    AudioInjectorPointer injector = playSound(sound, options);
+
+    if (injector) {
+        injector->_state |= AudioInjectorState::PendingDelete;
+    }
+
+    return injector;
+}
+
+
+AudioInjectorPointer AudioInjector::playSound(SharedSoundPointer sound,  const AudioInjectorOptions& options) {
     if (!sound || !sound->isReady()) {
         return AudioInjectorPointer();
     }
 
-    AudioInjectorOptions options;
-    options.stereo = sound->isStereo();
-    options.position = position;
-    options.volume = volume;
-    options.pitch = 1.0f / stretchFactor;
-
-    QByteArray samples = sound->getByteArray();
-
-    return playSoundAndDelete(samples, options);
-}
-
-AudioInjectorPointer AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options) {
-    AudioInjectorPointer sound = playSound(buffer, options);
-
-    if (sound) {
-        sound->_state |= AudioInjectorState::PendingDelete;
-    }
-
-    return sound;
-}
-
-AudioInjectorPointer AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options) {
-
     if (options.pitch == 1.0f) {
 
-        AudioInjectorPointer injector = AudioInjectorPointer::create(buffer, options);
+        AudioInjectorPointer injector = AudioInjectorPointer::create(sound, options);
 
         if (!injector->inject(&AudioInjectorManager::threadInjector)) {
             qWarning() << "AudioInjector::playSound failed to thread injector";
@@ -456,28 +444,81 @@ AudioInjectorPointer AudioInjector::playSound(const QByteArray& buffer, const Au
         return injector;
 
     } else {
+        using AudioConstants::AudioSample;
+        using AudioConstants::SAMPLE_RATE;
+        const int standardRate = SAMPLE_RATE;
+        // limit to 4 octaves
+        const int pitch = glm::clamp(options.pitch, 1 / 16.0f, 16.0f);
+        const int resampledRate = SAMPLE_RATE / pitch;
 
-        const int standardRate = AudioConstants::SAMPLE_RATE;
-        const int resampledRate = AudioConstants::SAMPLE_RATE / glm::clamp(options.pitch, 1/16.0f, 16.0f);  // limit to 4 octaves
-        const int numChannels = options.ambisonic ? AudioConstants::AMBISONIC : 
-            (options.stereo ? AudioConstants::STEREO : AudioConstants::MONO);
+        auto audioData = sound->getAudioData();
+        auto numChannels = audioData->getNumChannels();
+        auto numFrames = audioData->getNumFrames();
 
         AudioSRC resampler(standardRate, resampledRate, numChannels);
 
         // create a resampled buffer that is guaranteed to be large enough
-        const int nInputFrames = buffer.size() / (numChannels * sizeof(int16_t));
-        const int maxOutputFrames = resampler.getMaxOutput(nInputFrames);
-        QByteArray resampledBuffer(maxOutputFrames * numChannels * sizeof(int16_t), '\0');
+        const int maxOutputFrames = resampler.getMaxOutput(numFrames);
+        const int maxOutputSize = maxOutputFrames * numChannels * sizeof(AudioSample);
+        QByteArray resampledBuffer(maxOutputSize, '\0');
+        auto bufferPtr = reinterpret_cast<AudioSample*>(resampledBuffer.data());
 
-        resampler.render(reinterpret_cast<const int16_t*>(buffer.data()),
-                         reinterpret_cast<int16_t*>(resampledBuffer.data()),
-                         nInputFrames);
+        resampler.render(audioData->data(), bufferPtr, numFrames);
 
-        AudioInjectorPointer injector = AudioInjectorPointer::create(resampledBuffer, options);
+        int numSamples = maxOutputFrames * numChannels;
+        auto newAudioData = AudioData::make(numSamples, numChannels, bufferPtr);
+
+        AudioInjectorPointer injector = AudioInjectorPointer::create(newAudioData, options);
 
         if (!injector->inject(&AudioInjectorManager::threadInjector)) {
             qWarning() << "AudioInjector::playSound failed to thread pitch-shifted injector";
         }
         return injector;
+    }
+}
+
+AudioInjectorPointer AudioInjector::playSoundAndDelete(AudioDataPointer audioData, const AudioInjectorOptions& options) {
+    AudioInjectorPointer injector = playSound(audioData, options);
+
+    if (injector) {
+        injector->_state |= AudioInjectorState::PendingDelete;
+    }
+
+    return injector;
+}
+
+AudioInjectorPointer AudioInjector::playSound(AudioDataPointer audioData, const AudioInjectorOptions& options) {
+    if (options.pitch == 1.0f) {
+        AudioInjectorPointer injector = AudioInjectorPointer::create(audioData, options);
+
+        if (!injector->inject(&AudioInjectorManager::threadInjector)) {
+            qWarning() << "AudioInjector::playSound failed to thread pitch-shifted injector";
+        }
+        return injector;
+    } else {
+        using AudioConstants::AudioSample;
+        using AudioConstants::SAMPLE_RATE;
+        const int standardRate = SAMPLE_RATE;
+        // limit to 4 octaves
+        const int pitch = glm::clamp(options.pitch, 1 / 16.0f, 16.0f);
+        const int resampledRate = SAMPLE_RATE / pitch;
+
+        auto numChannels = audioData->getNumChannels();
+        auto numFrames = audioData->getNumFrames();
+
+        AudioSRC resampler(standardRate, resampledRate, numChannels);
+
+        // create a resampled buffer that is guaranteed to be large enough
+        const int maxOutputFrames = resampler.getMaxOutput(numFrames);
+        const int maxOutputSize = maxOutputFrames * numChannels * sizeof(AudioSample);
+        QByteArray resampledBuffer(maxOutputSize, '\0');
+        auto bufferPtr = reinterpret_cast<AudioSample*>(resampledBuffer.data());
+
+        resampler.render(audioData->data(), bufferPtr, numFrames);
+
+        int numSamples = maxOutputFrames * numChannels;
+        auto newAudioData = AudioData::make(numSamples, numChannels, bufferPtr);
+
+        return  AudioInjector::playSound(newAudioData, options);
     }
 }
