@@ -2523,12 +2523,20 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
     QByteArray sessionIdBytes = connection->requestHeader(UPLOAD_SESSION_KEY);
     int sessionId = sessionIdBytes.toInt();
 
+    bool newUpload = itemName == "restore-file" || itemName == "restore-file-chunk-initial" || itemName == "restore-file-chunk-only";
+
     if (filename.endsWith(".zip", Qt::CaseInsensitive)) {
         static const QString TEMPORARY_CONTENT_FILEPATH { QDir::tempPath() + "/hifiUploadContent_XXXXXX.zip" };
 
         if (_pendingContentFiles.find(sessionId) == _pendingContentFiles.end()) {
+            if (!newUpload) {
+                return false;
+            }
             std::unique_ptr<QTemporaryFile> newTemp(new QTemporaryFile(TEMPORARY_CONTENT_FILEPATH));
             _pendingContentFiles[sessionId] = std::move(newTemp);
+        } else if (newUpload) {
+            qCDebug(domain_server) << "New upload received using existing session ID";
+            _pendingContentFiles[sessionId]->resize(0);
         }
 
         QTemporaryFile& _pendingFileContent = *_pendingContentFiles[sessionId];
@@ -2543,7 +2551,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
         
         // Respond immediately - will timeout if we wait for restore.
         connection->respond(HTTPConnection::StatusCode200);
-        if (itemName == "restore-file-chunk-final" || itemName == "restore-file") {
+        if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
             auto deferred = makePromise("recoverFromUploadedBackup");
 
             deferred->then([this, sessionId](QString error, QVariantMap result) {
@@ -2554,11 +2562,15 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
         }
     } else if (filename.endsWith(".json", Qt::CaseInsensitive)
         || filename.endsWith(".json.gz", Qt::CaseInsensitive)) {
+        if (_pendingUploadedContents.find(sessionId) == _pendingUploadedContents.end() && !newUpload) {
+            qCDebug(domain_server) << "Json upload with invalid session ID received";
+            return false;
+        }
         QByteArray& _pendingUploadedContent = _pendingUploadedContents[sessionId];
         _pendingUploadedContent += dataChunk;
         connection->respond(HTTPConnection::StatusCode200);
 
-        if (itemName == "restore-file-chunk-final" || itemName == "restore-file") {
+        if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
             // invoke our method to hand the new octree file off to the octree server
             QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
                 Qt::QueuedConnection, Q_ARG(QByteArray, _pendingUploadedContent));

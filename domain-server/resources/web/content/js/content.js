@@ -43,7 +43,13 @@ $(document).ready(function(){
       var chunk = file.slice(offset, offset + nextChunkSize, file.type);
       var chunkFormData = new FormData();
 
-      var formItemName = isFinal ? 'restore-file-chunk-final' : 'restore-file-chunk';
+      var formItemName = 'restore-file-chunk';
+      if (offset == 0) {
+          formItemName = isFinal ? 'restore-file-chunk-only' : 'restore-file-chunk-initial';
+      } else if (isFinal) {
+          formItemName = 'restore-file-chunk-final';
+      }
+
       chunkFormData.append(formItemName, chunk, filename);
       var ajaxParams = {
         url: '/content/upload',
@@ -57,7 +63,7 @@ $(document).ready(function(){
       };
 
       var ajaxObject = $.ajax(ajaxParams);
-      ajaxObject.fail(function(jqXHR, textStatus, errorThrown) {
+      ajaxObject.fail(function (jqXHR, textStatus, errorThrown) {
         showErrorMessage(
           "Error",
           "There was a problem restoring domain content.\n"
