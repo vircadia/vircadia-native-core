@@ -34,7 +34,7 @@ Nitpick is built as part of the High Fidelity build.
 1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.0.dmg: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.0.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.0.dmg`
 ### Installation
 #### Windows
-1. Download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/nitpick/nitpick-installer-v1.0.exe>).
+1. Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.0.exe>)
 1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.0.exe)
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
     1. After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
@@ -49,7 +49,7 @@ Nitpick is built as part of the High Fidelity build.
 ![](./setup_7z.PNG)
 1. To run nitpick, double click **nitpick.exe**
 ####Mac
-1.  DOWNLOAD INSTALLER
+1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.0.dmg>).
 1.  Install Python from https://www.python.org/downloads/release/python-370/ (**macOS 64-bit installer** or **macOS 64-bit/32-bit installer**)
     1. After installation - run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
     1. Verify that `/usr/local/bin/python3` exists.  
