@@ -360,7 +360,9 @@ void Rig::initJointStates(const HFMModel& hfmModel, const glm::mat4& modelOffset
 void Rig::reset(const HFMModel& hfmModel) {
     _geometryOffset = AnimPose(hfmModel.offset);
     _invGeometryOffset = _geometryOffset.inverse();
+
     _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel);
+
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();

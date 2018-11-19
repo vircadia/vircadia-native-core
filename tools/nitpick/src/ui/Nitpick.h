@@ -1,5 +1,5 @@
 //
-//  AutoTester.h
+//  Nitpick.h
 //
 //  Created by Nissim Hadar on 2 Nov 2017.
 //  Copyright 2013 High Fidelity, Inc.
@@ -7,13 +7,13 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_AutoTester_h
-#define hifi_AutoTester_h
+#ifndef hifi_Nitpick_h
+#define hifi_Nitpick_h
 
 #include <QtWidgets/QMainWindow>
 #include <QSignalMapper>
 #include <QTextEdit>
-#include "ui_AutoTester.h"
+#include "ui_Nitpick.h"
 
 #include "../Downloader.h"
 #include "../Test.h"
@@ -22,12 +22,12 @@
 #include "../TestRunner.h"
 #include "../AWSInterface.h"
 
-class AutoTester : public QMainWindow {
+class Nitpick : public QMainWindow {
     Q_OBJECT
 
 public:
-    AutoTester(QWidget* parent = Q_NULLPTR);
-    ~AutoTester();
+    Nitpick(QWidget* parent = Q_NULLPTR);
+    ~Nitpick();
 
     void setup();
 
@@ -95,7 +95,7 @@ private slots:
     void content();
 
 private:
-    Ui::AutoTesterClass _ui;
+    Ui::NitpickClass _ui;
     Test* _test{ nullptr };
     TestRunner* _testRunner{ nullptr };
 
@@ -121,4 +121,4 @@ private:
     void* _caller;
 };
 
-#endif  // hifi_AutoTester_h
+#endif  // hifi_Nitpick_h

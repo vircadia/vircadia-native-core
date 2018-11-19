@@ -56,7 +56,7 @@ StackView {
         Qt.callLater(function() {
             addressBarDialog.keyboardEnabled = HMD.active;
             addressLine.forceActiveFocus();
-            addressBarDialog.raised = true;
+            addressBarDialog.keyboardRaised = true;
         })
     }
 

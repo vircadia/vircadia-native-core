@@ -252,7 +252,7 @@ input.search:focus {
     box-shadow: 0 0 0 1px #00b4ef;
 }
 
-input:disabled, textarea:disabled {
+input:disabled, textarea:disabled, .draggable-number.text[disabled="disabled"] {
     background-color: #383838;
     color: #afafaf;
 }
@@ -889,6 +889,9 @@ div.refresh input[type="button"] {
     border-color: #afafaf;
 }
 
+.colpick {
+    z-index: 3;
+}
 .colpick[disabled="disabled"] {
     display: none !important;
 }
@@ -911,6 +914,79 @@ div.refresh input[type="button"] {
     clear: both;
 }
 
+.draggable-number {
+    position: relative;
+}
+.draggable-number div {
+    height: 28px;
+    width: 92px;
+}
+.draggable-number.text {
+    display: inline-block;
+    color: #afafaf;
+    background-color: #252525;
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;   
+    margin: 0;
+    padding: 0 16px;
+    height: 28px;
+    width: 100%;
+    line-height: 2;
+}
+.draggable-number.text:hover {
+    cursor: ew-resize;
+}
+.draggable-number span {
+    position: absolute;
+    display: inline-block;
+    font-family: HiFi-Glyphs;
+    font-size: 20px;
+    z-index: 2;
+}
+.draggable-number span:hover {
+    cursor: default;
+}
+.draggable-number.left-arrow {
+    top: -5px;
+    right: 106px;
+    transform: rotate(180deg);
+}
+.draggable-number.right-arrow {
+    top: -5px;
+    left: 106px;
+}
+.draggable-number input[type=number] {
+    position: absolute;
+    right: 0;
+    width: 100%;
+}
+.draggable-number input[type=button] {
+    position: absolute;
+    top: 0;
+}
+.draggable-number input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    visibility: hidden;
+}
+.draggable-number.fstuple {
+    height: 28px;
+    width: 124px;
+    left: 12px;
+}
+.draggable-number.fstuple + .draggable-number.fstuple {
+    padding-left: 28px;
+}
+.draggable-number.fstuple input {
+    right: -10px;
+}
+.draggable-number.fstuple .sublabel {
+    position: absolute;
+    top: 0;
+    left: -16px;
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+}
+
 .row .property {
     width: auto;
     display: inline-block;
@@ -927,10 +1003,10 @@ div.refresh input[type="button"] {
 .property.texture {
     display: block;
 }
-.property.texture input{
+.property.texture input {
     margin: 0.4rem 0;
 }
-.texture-image img{
+.texture-image img {
     padding: 0;
     margin: 0;
     width: 100%;
@@ -1362,17 +1438,12 @@ input[type=button]#export {
 }
 
 input#property-scale-button-rescale {
-    margin-top: 6px;
     min-width: 50px;
+    left: 152px;
 }
 input#property-scale-button-reset {
-    margin-top: 6px;
     margin-right: 0;
-}
-
-#property-userData-button-edit,
-#property-materialData-button-clear {
-    margin: 6px 0 6px 0;
+    left: 250px;
 }
 
 #property-userData-static,
@@ -1555,6 +1626,10 @@ input.number-slider {
 .flex-column {
     display: flex;
     flex-flow: column;
+}
+
+.flex-column + .flex-column {
+    padding-left: 50px;
 }
 
 .flex-center {
