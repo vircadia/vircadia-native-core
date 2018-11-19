@@ -26,15 +26,16 @@ Nitpick is built as part of the High Fidelity build.
 1.  Click "OK"
 1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.0.exe: aws s3 cp nitpick-installer-v1.0.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.0.exe
 #### Mac
+These steps assume the hifi repository has been cloned to `~/hifi`.
 1.  (First time) install create-dmg:
     `brew install create-dmg`
-1.  Copy the quazip dynamic library:
-    `cp ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib ~/hifi/build/tools/nitpick/Release`
+1.  Copy the quazip dynamic library to the Release:
+    `cp ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib ~/hifi/build/tools/nitpick/Release/`
 1.  Change the loader instruction to find the dynamic library locally
-    `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib ./libquazip5.1.0.0.dylib ~/hifi/build/tools/nitpick/Release/nitpick`
+    `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib ~/hifi/build/tools/nitpick/Release/libquazip5.1.dylib ~/hifi/build/tools/nitpick/Release/nitpick`
 1.  cd to the `build/tools/nitpick/Release` folder
-1.  Delete any existing installer: rm nitpick.dmg`
-1.  Create installer: `create-dmg --volname nitpick-installer-v1.0 nitpick-installer-v1.0.dmg "source_folder/"`
+1.  Delete any existing installer: `rm nitpick.dmg`
+1.  Create installer (note final period!): `create-dmg --volname nitpick-installer-v1.0 nitpick-installer-v1.0.dmg .`
 1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.0.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.0.dmg`
 ### Installation
 #### Windows
