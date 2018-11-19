@@ -56,7 +56,7 @@
 #include "ConnectionMonitor.h"
 #include "CursorManager.h"
 #include "gpu/Context.h"
-#include "LoginPointerManager.h"
+#include "LoginStateManager.h"
 #include "Menu.h"
 #include "octree/OctreePacketProcessor.h"
 #include "render/Engine.h"
@@ -700,7 +700,7 @@ private:
     bool _developerMenuVisible{ false };
     CameraMode _previousCameraMode;
     OverlayID _loginDialogOverlayID;
-    LoginPointerManager _loginPointerManager;
+    LoginStateManager _loginStateManager;
 
     quint64 _lastFaceTrackerUpdate;
 

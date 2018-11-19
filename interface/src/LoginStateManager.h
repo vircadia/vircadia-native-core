@@ -1,5 +1,5 @@
 //
-//  LoginPointerManager.h
+//  LoginStateManager.h
 //  interface/src
 //
 //  Created by Wayne Chen on 11/5/18.
@@ -8,8 +8,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_LoginPointerManager_h
-#define hifi_LoginPointerManager_h
+#ifndef hifi_LoginStateManager_h
+#define hifi_LoginStateManager_h
 #include <QtCore/QList>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QVariant>
@@ -18,10 +18,10 @@
 
 #include <shared/ReadWriteLockable.h>
 
-class LoginPointerManager : protected ReadWriteLockable {
+class LoginStateManager : protected ReadWriteLockable {
 public:
-    LoginPointerManager() {}
-    ~LoginPointerManager() {}
+    LoginStateManager() {}
+    ~LoginStateManager() {}
 
     void setUp();
     void tearDown();
@@ -37,4 +37,4 @@ private:
     unsigned int _rightLoginPointerID { PointerEvent::INVALID_POINTER_ID };
 };
 
-#endif // hifi_LoginPointerManager_h
+#endif // hifi_LoginStateManager_h

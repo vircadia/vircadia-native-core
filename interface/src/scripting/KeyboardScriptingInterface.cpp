@@ -12,6 +12,10 @@
 #include "KeyboardScriptingInterface.h"
 #include "ui/Keyboard.h"
 
+QUuid KeyboardScriptingInterface::getAnchorID() {
+    return DependencyManager::get<Keyboard>()->getAnchorID();
+}
+
 bool KeyboardScriptingInterface::isRaised() {
     return DependencyManager::get<Keyboard>()->isRaised();
 }

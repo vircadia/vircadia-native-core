@@ -121,6 +121,7 @@ FocusScope {
 
     Component.onCompleted: {
         keyboardTimer.start();
+        print(KeyboardScriptingInterface.raised);
         bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
     }
 }

@@ -1329,7 +1329,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 // Desktop mode.
                 getOverlays().deleteOverlay(_loginDialogOverlayID);
                 _loginDialogOverlayID = OverlayID();
-                _loginPointerManager.tearDown();
+                _loginStateManager.tearDown();
                 dialogsManager->showLoginDialog();
             }
         }
@@ -6251,7 +6251,7 @@ void Application::update(float deltaTime) {
         _overlays.update(deltaTime);
     }
     if (!_loginDialogOverlayID.isNull()) {
-        _loginPointerManager.update();
+        _loginStateManager.update();
     }
 
     if (!_loginDialogOverlayID.isNull()) {
@@ -6268,7 +6268,7 @@ void Application::update(float deltaTime) {
         //auto lookAtQuat = glm::inverse(glm::quat_cast(glm::lookAt(positionVec, avatarHeadPosition, avatarHeadOrientation * Vectors::UNIT_Y)));
         auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
         auto upVec = myAvatar->getWorldOrientation() * Vectors::UNIT_Y;
-        auto offset = headLookVec * 1.0f;
+        auto offset = headLookVec * 0.7f;
         auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
         auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
 
@@ -6728,7 +6728,8 @@ void Application::keyboardRaisedChanged(bool raised) {
     if (raised && !_loginDialogOverlayID.isNull()) {
         QVariantMap properties {
             { "parentID", _loginDialogOverlayID },
-            { "localPosition", vec3toVariant(glm::vec3(0.0f, 1.0f, -0.2f)) }
+            { "localPosition", vec3toVariant(glm::vec3(-0.3f, -0.3f, 0.2f)) },
+            { "localOrientation", quatToVariant(glm::quat(0.0f, 0.0, 1.00f, 0.0f)) }
         };
         getOverlays().editOverlay(keyboard->getAnchorID(), properties);
     }
@@ -8650,7 +8651,7 @@ void Application::createLoginDialogOverlay() {
     auto headLookVec = (cameraOrientation * Vectors::FRONT);
     // DEFAULT_DPI / tablet scale percentage
     float overlayDpi = 31.0f / (75.0f / 100.0f);
-    auto offset = headLookVec * 1.0f;
+    auto offset = headLookVec * 0.7f;
     auto overlayPosition = (cameraPosition + offset) + (upVec * -0.1f);
 
     const glm::vec2 LOGIN_OVERLAY_DIMENSIONS{ 0.5f, 0.5f };
@@ -8669,8 +8670,8 @@ void Application::createLoginDialogOverlay() {
     };
 
     _loginDialogOverlayID = getOverlays().addOverlay("web3d", overlayProperties);
-    if (!_loginPointerManager.isSetUp()) {
-        _loginPointerManager.setUp();
+    if (!_loginStateManager.isSetUp()) {
+        _loginStateManager.setUp();
     }
 }
 
@@ -8687,7 +8688,7 @@ void Application::onDismissedLoginDialog() {
         qDebug() << "Deleting overlay";
         getOverlays().deleteOverlay(_loginDialogOverlayID);
         _loginDialogOverlayID = OverlayID();
-        _loginPointerManager.tearDown();
+        _loginStateManager.tearDown();
     }
     resumeAfterLoginDialogActionTaken();
 }
