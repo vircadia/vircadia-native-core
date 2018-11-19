@@ -197,7 +197,7 @@
 
     var loadingBarProgress = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Progress",
-        localPosition: { x: 0.0, y: -0.86, z: 0.0 },
+        localPosition: { x: 0.0, y: -0.91, z: 0.0 },
         url: LOADING_BAR_PROGRESS,
         alpha: 1,
         dimensions: { x: TOTAL_LOADING_PROGRESS, y: 0.3},
@@ -274,6 +274,7 @@
             previousCameraMode = Camera.mode;
             Camera.mode = "first person";
             updateProgressBar(0.0);
+            scaleInterstitialPage(MyAvatar.sensorToWorldScale);
             timer = Script.setTimeout(update, 2000);
         }
     }
@@ -482,7 +483,7 @@
         var end = 0;
         var xLocalPosition = (progressPercentage * (end - start)) + start;
         var properties = {
-            localPosition: { x: xLocalPosition, y: -0.93, z: 0.0 },
+            localPosition: { x: xLocalPosition, y: (HMD.active ? -0.93 : -0.91), z: 0.0 },
             dimensions: {
                 x: progress,
                 y: 0.3

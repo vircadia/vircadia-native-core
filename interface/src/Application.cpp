@@ -371,6 +371,8 @@ static const QString INFO_HELP_PATH = "html/tabletHelp.html";
 
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
+static const int ENTITY_SERVER_ADDED_TIMEOUT = 5000;
+static const int ENTITY_SERVER_CONNECTION_TIMEOUT = 5000;
 
 static const uint32_t INVALID_FRAME = UINT32_MAX;
 
@@ -1234,6 +1236,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         getOverlays().deleteOverlay(getTabletScreenID());
         getOverlays().deleteOverlay(getTabletHomeButtonID());
         getOverlays().deleteOverlay(getTabletFrameID());
+        _failedToConnectToEntityServer = false;
+    });
+
+    _entityServerConnectionTimer.setSingleShot(true);
+    connect(&_entityServerConnectionTimer, &QTimer::timeout, this, &Application::setFailedToConnectToEntityServer);
+
+    connect(&domainHandler, &DomainHandler::connectedToDomain, this, [this]() {
+        if (!isServerlessMode()) {
+            _entityServerConnectionTimer.setInterval(ENTITY_SERVER_ADDED_TIMEOUT);
+            _entityServerConnectionTimer.start();
+            _failedToConnectToEntityServer = false;
+        }
     });
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
 
@@ -1315,7 +1329,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 // Desktop mode.
                 getOverlays().deleteOverlay(_loginDialogOverlayID);
                 _loginDialogOverlayID = OverlayID();
-                _loginPointerManager.tearDown();
+                _loginStateManager.tearDown();
                 dialogsManager->showLoginDialog();
             }
         }
@@ -3394,26 +3408,37 @@ void Application::showHelp() {
     static const QString HAND_CONTROLLER_NAME_OCULUS_TOUCH = "oculus";
     static const QString HAND_CONTROLLER_NAME_WINDOWS_MR = "windowsMR";
 
+    static const QString VIVE_PLUGIN_NAME = "HTC Vive";
+    static const QString OCULUS_RIFT_PLUGIN_NAME = "Oculus Rift";
+    static const QString WINDOWS_MR_PLUGIN_NAME = "WindowsMR";
+
     static const QString TAB_KEYBOARD_MOUSE = "kbm";
     static const QString TAB_GAMEPAD = "gamepad";
     static const QString TAB_HAND_CONTROLLERS = "handControllers";
 
-    QString handControllerName = HAND_CONTROLLER_NAME_VIVE;
+    QString handControllerName;
     QString defaultTab = TAB_KEYBOARD_MOUSE;
 
-    if (PluginUtils::isViveControllerAvailable()) {
-        defaultTab = TAB_HAND_CONTROLLERS;
-        handControllerName = HAND_CONTROLLER_NAME_VIVE;
-    } else if (PluginUtils::isOculusTouchControllerAvailable()) {
-        defaultTab = TAB_HAND_CONTROLLERS;
-        handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
-    } else if (qApp->getActiveDisplayPlugin()->getName() == "WindowMS") {
+    if (PluginUtils::isHMDAvailable(WINDOWS_MR_PLUGIN_NAME)) {
         defaultTab = TAB_HAND_CONTROLLERS;
         handControllerName = HAND_CONTROLLER_NAME_WINDOWS_MR;
+    } else if (PluginUtils::isHMDAvailable(VIVE_PLUGIN_NAME)) {
+        defaultTab = TAB_HAND_CONTROLLERS;
+        handControllerName = HAND_CONTROLLER_NAME_VIVE;
+    } else if (PluginUtils::isHMDAvailable(OCULUS_RIFT_PLUGIN_NAME)) {
+        if (PluginUtils::isOculusTouchControllerAvailable()) {
+            defaultTab = TAB_HAND_CONTROLLERS;
+            handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
+        } else if (PluginUtils::isXboxControllerAvailable()) {
+            defaultTab = TAB_GAMEPAD;
+        } else {
+            defaultTab = TAB_KEYBOARD_MOUSE;
+        }
     } else if (PluginUtils::isXboxControllerAvailable()) {
         defaultTab = TAB_GAMEPAD;
+    } else {
+        defaultTab = TAB_KEYBOARD_MOUSE;
     }
-    // TODO need some way to detect windowsMR to load controls reference default tab in Help > Controls Reference menu.
 
     QUrlQuery queryString;
     queryString.addQueryItem("handControllerName", handControllerName);
@@ -5844,6 +5869,7 @@ void Application::update(float deltaTime) {
         quint64 now = usecTimestampNow();
         if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
             bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+
             if (gpuTextureMemSizeStable() || !enableInterstitial) {
                 // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
                 _lastPhysicsCheckTime = now;
@@ -6225,7 +6251,7 @@ void Application::update(float deltaTime) {
         _overlays.update(deltaTime);
     }
     if (!_loginDialogOverlayID.isNull()) {
-        _loginPointerManager.update();
+        _loginStateManager.update();
     }
 
     if (!_loginDialogOverlayID.isNull()) {
@@ -6242,8 +6268,8 @@ void Application::update(float deltaTime) {
         //auto lookAtQuat = glm::inverse(glm::quat_cast(glm::lookAt(positionVec, avatarHeadPosition, avatarHeadOrientation * Vectors::UNIT_Y)));
         auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
         auto upVec = myAvatar->getWorldOrientation() * Vectors::UNIT_Y;
-        auto offset = headLookVec * 1.0f;
-        auto newOverlayPositionVec = (cameraPositionVec + offset);
+        auto offset = headLookVec * 0.7f;
+        auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
         auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
 
         if (pointAngle > 30.0f) {
@@ -6702,7 +6728,8 @@ void Application::keyboardRaisedChanged(bool raised) {
     if (raised && !_loginDialogOverlayID.isNull()) {
         QVariantMap properties {
             { "parentID", _loginDialogOverlayID },
-            { "localPosition", vec3toVariant(glm::vec3(-0.3f, -0.3f, 0.2f)) }
+            { "localPosition", vec3toVariant(glm::vec3(-0.3f, -0.3f, 0.2f)) },
+            { "localOrientation", quatToVariant(glm::quat(0.0f, 0.0, 1.00f, 0.0f)) }
         };
         getOverlays().editOverlay(keyboard->getAnchorID(), properties);
     }
@@ -6815,7 +6842,13 @@ void Application::resettingDomain() {
 }
 
 void Application::nodeAdded(SharedNodePointer node) const {
-    // nothing to do here
+    if (node->getType() == NodeType::EntityServer) {
+        if (!_failedToConnectToEntityServer) {
+            _entityServerConnectionTimer.stop();
+            _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
+            _entityServerConnectionTimer.start();
+        }
+    }
 }
 
 void Application::nodeActivated(SharedNodePointer node) {
@@ -6843,6 +6876,10 @@ void Application::nodeActivated(SharedNodePointer node) {
     if (node->getType() == NodeType::EntityServer) {
         _queryExpiry = SteadyClock::now();
         _octreeQuery.incrementConnectionID();
+
+        if  (!_failedToConnectToEntityServer) {
+            _entityServerConnectionTimer.stop();
+        }
     }
 
     if (node->getType() == NodeType::AudioMixer && !isInterstitialMode()) {
@@ -8614,7 +8651,7 @@ void Application::createLoginDialogOverlay() {
     auto headLookVec = (cameraOrientation * Vectors::FRONT);
     // DEFAULT_DPI / tablet scale percentage
     float overlayDpi = 31.0f / (75.0f / 100.0f);
-    auto offset = headLookVec * 1.0f;
+    auto offset = headLookVec * 0.7f;
     auto overlayPosition = (cameraPosition + offset) + (upVec * -0.1f);
 
     const glm::vec2 LOGIN_OVERLAY_DIMENSIONS{ 0.5f, 0.5f };
@@ -8633,8 +8670,8 @@ void Application::createLoginDialogOverlay() {
     };
 
     _loginDialogOverlayID = getOverlays().addOverlay("web3d", overlayProperties);
-    if (!_loginPointerManager.isSetUp()) {
-        _loginPointerManager.setUp();
+    if (!_loginStateManager.isSetUp()) {
+        _loginStateManager.setUp();
     }
 }
 
@@ -8651,7 +8688,7 @@ void Application::onDismissedLoginDialog() {
         qDebug() << "Deleting overlay";
         getOverlays().deleteOverlay(_loginDialogOverlayID);
         _loginDialogOverlayID = OverlayID();
-        _loginPointerManager.tearDown();
+        _loginStateManager.tearDown();
     }
     resumeAfterLoginDialogActionTaken();
 }

@@ -114,18 +114,22 @@ void CauterizedModel::updateClusterMatrices() {
     for (int i = 0; i < (int)_meshStates.size(); i++) {
         Model::MeshState& state = _meshStates[i];
         const HFMMesh& mesh = hfmModel.meshes.at(i);
+        int meshIndex = i;
+
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const HFMCluster& cluster = mesh.clusters.at(j);
+            int clusterIndex = j;
+
             if (_useDualQuaternionSkinning) {
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
                 Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
                 Transform clusterTransform;
-                Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                Transform::mult(clusterTransform, jointTransform, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindTransform);
                 state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
                 state.clusterDualQuaternions[j].setCauterizationParameters(0.0f, jointPose.trans());
             } else {
                 auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                glm_mat4u_mul(jointMatrix, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindMatrix, state.clusterMatrices[j]);
             }
         }
     }
@@ -146,9 +150,11 @@ void CauterizedModel::updateClusterMatrices() {
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
             const HFMMesh& mesh = hfmModel.meshes.at(i);
+            int meshIndex = i;
 
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const HFMCluster& cluster = mesh.clusters.at(j);
+                int clusterIndex = j;
 
                 if (_useDualQuaternionSkinning) {
                     if (_cauterizeBoneSet.find(cluster.jointIndex) == _cauterizeBoneSet.end()) {
@@ -157,7 +163,7 @@ void CauterizedModel::updateClusterMatrices() {
                     } else {
                         Transform jointTransform(cauterizePose.rot(), cauterizePose.scale(), cauterizePose.trans());
                         Transform clusterTransform;
-                        Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                        Transform::mult(clusterTransform, jointTransform, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindTransform);
                         state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
                         state.clusterDualQuaternions[j].setCauterizationParameters(1.0f, cauterizePose.trans());
                     }
@@ -166,7 +172,7 @@ void CauterizedModel::updateClusterMatrices() {
                         // not cauterized so just copy the value from the non-cauterized version.
                         state.clusterMatrices[j] = _meshStates[i].clusterMatrices[j];
                     } else {
-                        glm_mat4u_mul(cauterizeMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                        glm_mat4u_mul(cauterizeMatrix, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindMatrix, state.clusterMatrices[j]);
                     }
                 }
             }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AutoTesterClass</class>
- <widget class="QMainWindow" name="AutoTesterClass">
+ <class>NitpickClass</class>
+ <widget class="QMainWindow" name="NitpickClass">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>AutoTester</string>
+   <string>Nitpick</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QPushButton" name="closeButton">
@@ -198,7 +198,7 @@
         <x>10</x>
         <y>160</y>
         <width>161</width>
-        <height>28</height>
+        <height>51</height>
        </rect>
       </property>
       <property name="text">
@@ -525,7 +525,7 @@
        <rect>
         <x>128</x>
         <y>95</y>
-        <width>21</width>
+        <width>31</width>
         <height>31</height>
        </rect>
       </property>
@@ -539,7 +539,7 @@
       </property>
       <property name="geometry">
        <rect>
-        <x>160</x>
+        <x>170</x>
         <y>100</y>
         <width>451</width>
         <height>21</height>
@@ -554,9 +554,9 @@
      <widget class="QCheckBox" name="checkBoxInteractiveMode">
       <property name="geometry">
        <rect>
-        <x>200</x>
+        <x>190</x>
         <y>180</y>
-        <width>120</width>
+        <width>131</width>
         <height>20</height>
        </rect>
       </property>
@@ -572,8 +572,8 @@
        <rect>
         <x>330</x>
         <y>170</y>
-        <width>101</width>
-        <height>40</height>
+        <width>181</width>
+        <height>51</height>
        </rect>
       </property>
       <property name="text">
@@ -684,10 +684,10 @@
        </property>
        <property name="geometry">
         <rect>
-         <x>240</x>
+         <x>270</x>
          <y>30</y>
          <width>160</width>
-         <height>40</height>
+         <height>51</height>
         </rect>
        </property>
        <property name="text">
@@ -699,7 +699,7 @@
         <rect>
          <x>150</x>
          <y>42</y>
-         <width>81</width>
+         <width>111</width>
          <height>17</height>
         </rect>
        </property>
@@ -803,7 +803,7 @@
      <x>0</x>
      <y>0</y>
      <width>720</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

@@ -1,5 +1,5 @@
 //
-//  LoginPointerManager.cpp
+//  LoginStateManager.cpp
 //  interface/src
 //
 //  Created by Wayne Chen on 11/5/18.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "LoginPointerManager.h"
+#include "LoginStateManager.h"
 
 #include <QtCore/QString>
 #include <QtCore/QVariantMap>
@@ -43,7 +43,7 @@ static const QVariantMap COLORS_GRAB_DISTANCE_HOLD = {{"red", 238},
 
 
 
-void LoginPointerManager::tearDown() {
+void LoginStateManager::tearDown() {
     auto pointers = DependencyManager::get<PointerManager>().data();
     if (pointers) {
         if (_leftLoginPointerID > PointerEvent::INVALID_POINTER_ID) {
@@ -57,7 +57,7 @@ void LoginPointerManager::tearDown() {
     }
 }
 
-void LoginPointerManager::setUp() {
+void LoginStateManager::setUp() {
     QVariantMap fullPathRenderState {
         {"type", "line3d"},
         {"color", COLORS_GRAB_SEARCHING_FULL_SQUEEZE},
@@ -209,7 +209,7 @@ void LoginPointerManager::setUp() {
     pointers->enablePointer(_rightLoginPointerID);
 }
 
-void LoginPointerManager::update() {
+void LoginStateManager::update() {
     auto pointers = DependencyManager::get<PointerScriptingInterface>();
     if (pointers) {
         QString mode = "full";

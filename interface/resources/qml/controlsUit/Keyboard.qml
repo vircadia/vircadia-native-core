@@ -51,11 +51,13 @@ Rectangle {
     }
 
     onRaisedChanged: {
+        console.log("raising keyboard to " + raised);
         var use3DKeyboard = (typeof MenuInterface === "undefined") ? false : MenuInterface.isOptionChecked("Use 3D Keyboard");
         if (!use3DKeyboard) {
             keyboardBase.height = raised ? raisedHeight : 0;
             keyboardBase.visible = raised;
         } else {
+            console.log("raising 3d keyboard to " + raised);
             KeyboardScriptingInterface.raised = raised;
             KeyboardScriptingInterface.password = raised ? password : false;
         }
