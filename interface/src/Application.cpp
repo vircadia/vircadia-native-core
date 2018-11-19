@@ -2345,8 +2345,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
     DependencyManager::get<Keyboard>()->createKeyboard();
 
-    connect(DependencyManager::get<Keyboard>().data(), SIGNAL(keyboardRaisedChanged(bool)), this, SLOT(onKeyboardRaisedChanged(bool)));
-
     _pendingIdleEvent = false;
     _pendingRenderEvent = false;
 
@@ -6724,7 +6722,7 @@ void Application::hmdVisibleChanged(bool visible) {
     }
 }
 
-void Application::onKeyboardRaisedChanged(bool raised) {
+void Application::keyboardRaisedChanged(bool raised) {
     auto keyboard = DependencyManager::get<Keyboard>().data();
     auto keyboardParentID = getOverlays().getProperty(keyboard->getAnchorID(), "parentID");
     if (raised && !_loginDialogOverlayID.isNull()) {

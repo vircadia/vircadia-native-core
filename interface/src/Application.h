@@ -393,7 +393,7 @@ public slots:
 
     void hmdVisibleChanged(bool visible);
 
-    void onKeyboardRaisedChanged(bool raised);
+    void keyboardRaisedChanged(bool raised);
 
 #if (PR_BUILD || DEV_BUILD)
     void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
