@@ -535,7 +535,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
     bool bestIsFront = false;
     bool bestIsTablet = false;
     auto tabletIDs = qApp->getTabletIDs();
-
+    const QVector<OverlayID> keyboardKeysToDiscard = DependencyManager::get<Keyboard>()->getKeysID();
     QMutexLocker locker(&_mutex);
     RayToOverlayIntersectionResult result;
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
@@ -545,7 +545,8 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
         auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
 
         if ((overlaysToDiscard.size() > 0 && overlaysToDiscard.contains(thisID)) ||
-            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID))) {
+            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID)) ||
+            (keyboardKeysToDiscard.size() > 0 && keyboardKeysToDiscard.contains(thisID))) {
             continue;
         }
 
