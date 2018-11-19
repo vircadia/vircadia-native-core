@@ -234,7 +234,7 @@ private:
 #ifdef Q_OS_ANDROID
     Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", false };
 #else
-    Setting::Handle<bool> _enableInterstitialMode { "enableInterstitialMode", true };
+    Setting::Handle<bool> _enableInterstitialMode { "enableInterstitialMode", false };
 #endif
 
     QSet<QString> _domainConnectionRefusals;
