@@ -244,7 +244,7 @@ void GeometryReader::run() {
                 Q_ARG(bool, false));
         }
     } catch (QString& e) {
-        qCWarning(modelnetworking) << "Exception while loading" << _url << "--" << e;
+        qCWarning(modelnetworking) << "Exception while loading model --" << e;
         auto resource = _resource.toStrongRef();
         if (resource) {
             QMetaObject::invokeMethod(resource.data(), "finishedLoading",
