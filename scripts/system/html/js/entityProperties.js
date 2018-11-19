@@ -1158,18 +1158,21 @@ const GROUPS = [
                 label: "Link",
                 type: "string",
                 propertyID: "href",
+                placeholder: "URL",
             },
             {
                 label: "Script",
                 type: "string",
                 buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadScripts } ],
                 propertyID: "script",
+                placeholder: "URL",
             },
             {
                 label: "Server Script",
                 type: "string",
                 buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadServerScripts } ],
                 propertyID: "serverScripts",
+                placeholder: "URL",
             },
             {
                 label: "Server Script Status",
@@ -2771,7 +2774,7 @@ function loaded() {
                 elLegend.appendChild(createElementFromHTML(`<div class="label">${group.label}</div>`));
 
                 let elSpan = document.createElement('span');
-                elSpan.className = ".collapse-icon";
+                elSpan.className = "collapse-icon";
                 elSpan.innerText = "M";
                 elLegend.appendChild(elSpan);
                 elGroup.appendChild(elLegend);
@@ -3311,14 +3314,14 @@ function loaded() {
         getPropertyInputElement("image").addEventListener('change', createImageURLUpdateFunction('textures', false));
         
         // Collapsible sections
-        let elCollapsible = document.getElementsByClassName("section-header");
+        let elCollapsible = document.getElementsByClassName("collapse-icon");
 
         let toggleCollapsedEvent = function(event) {
-            let element = this.parentNode;
+            let element = this.parentNode.parentNode;
             let isCollapsed = element.dataset.collapsed !== "true";
             element.dataset.collapsed = isCollapsed ? "true" : false;
             element.setAttribute("collapsed", isCollapsed ? "true" : "false");
-            element.getElementsByClassName(".collapse-icon")[0].textContent = isCollapsed ? "L" : "M";
+            this.textContent = isCollapsed ? "L" : "M";
         };
 
         for (let collapseIndex = 0, numCollapsibles = elCollapsible.length; collapseIndex < numCollapsibles; ++collapseIndex) {
