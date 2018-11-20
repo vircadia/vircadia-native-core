@@ -2223,7 +2223,7 @@ var PropertiesTool = function (opts) {
     // are selected or if no entity is selected this will be `null`.
     var currentSelectedEntityID = null;
     var statusMonitor = null;
-    var nextPropertyUpdateDisabled = false;
+    var blockPropertyUpdates = false;
 
     that.setVisible = function (newVisible) {
         visible = newVisible;
@@ -2261,8 +2261,7 @@ var PropertiesTool = function (opts) {
     };
 
     function updateSelections(selectionUpdated) {
-        if (nextPropertyUpdateDisabled) {
-            nextPropertyUpdateDisabled = false;
+        if (blockPropertyUpdates) {
             return;
         }
 
@@ -2362,8 +2361,9 @@ var PropertiesTool = function (opts) {
                 }
             }
             pushCommandForSelections();
-            nextPropertyUpdateDisabled = data.blockUpdateCallback === true;
+            blockPropertyUpdates = data.blockUpdateCallback === true;
             selectionManager._update(false, this);
+            blockPropertyUpdates = false;
         } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
