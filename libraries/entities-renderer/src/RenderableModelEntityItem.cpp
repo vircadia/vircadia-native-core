@@ -726,7 +726,9 @@ int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     auto model = getModel();
     if (EntityItem::contains(point) && model && _compoundShapeResource && _compoundShapeResource->isLoaded()) {
-        return _compoundShapeResource->getHFMModel().convexHullContains(worldToEntity(point));
+        glm::mat4 worldToHFMMatrix = model->getWorldToHFMMatrix();
+        glm::vec3 hfmPoint = worldToHFMMatrix * glm::vec4(point, 1.0f);
+        return _compoundShapeResource->getHFMModel().convexHullContains(hfmPoint);
     }
 
     return false;
