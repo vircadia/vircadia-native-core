@@ -417,6 +417,30 @@ QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
     return filepath.mid(filepath.lastIndexOf('/') + 1);
 }
 
+QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
+    QMap<QString, glm::quat> jointRotationOffsets;
+    static const QString JOINT_ROTATION_OFFSET_FIELD = "jointRotationOffset";
+    if (!mapping.isEmpty() && mapping.contains(JOINT_ROTATION_OFFSET_FIELD) && mapping[JOINT_ROTATION_OFFSET_FIELD].type() == QVariant::Hash) {
+        auto offsets = mapping[JOINT_ROTATION_OFFSET_FIELD].toHash();
+        for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
+            QString jointName = itr.key();
+            QString line = itr.value().toString();
+            auto quatCoords = line.split(',');
+            if (quatCoords.size() == 4) {
+                float quatX = quatCoords[0].mid(1).toFloat();
+                float quatY = quatCoords[1].toFloat();
+                float quatZ = quatCoords[2].toFloat();
+                float quatW = quatCoords[3].mid(0, quatCoords[3].size() - 1).toFloat();
+                if (!isNaN(quatX) && !isNaN(quatY) && !isNaN(quatZ) && !isNaN(quatW)) {
+                    glm::quat rotationOffset = glm::quat(quatW, quatX, quatY, quatZ);
+                    jointRotationOffsets.insert(jointName, rotationOffset);
+                }
+            }
+        }
+    }
+    return jointRotationOffsets;
+}
+
 HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString& url) {
     const FBXNode& node = _rootNode;
     QMap<QString, ExtractedMesh> meshes;
@@ -1793,6 +1817,19 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
             }
         }
     }
+
+    auto offsets = getJointRotationOffsets(mapping);
+    hfmModel.jointRotationOffsets.clear();
+    for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
+        QString jointName = itr.key();
+        glm::quat rotationOffset = itr.value();
+        int jointIndex = hfmModel.getJointIndex(jointName);
+        if (jointIndex != -1) {
+            hfmModel.jointRotationOffsets.insert(jointIndex, rotationOffset);
+        }
+        qCDebug(modelformat) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
+    }
+
     return hfmModelPtr;
 }
 
