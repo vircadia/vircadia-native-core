@@ -8101,9 +8101,9 @@ void Application::loadDomainConnectionDialog() {
 }
 
 void Application::toggleLogDialog() {
-    //if (getLoginDialogPoppedUp()) {
-    //    return;
-    //}
+    if (getLoginDialogPoppedUp()) {
+        return;
+    }
     if (! _logDialog) {
         _logDialog = new LogDialog(nullptr, getLogger());
     }

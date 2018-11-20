@@ -435,7 +435,11 @@ void AudioMixer::start() {
             QCoreApplication::processEvents();
         }
 
-        int numToRetain = nodeList->size() * (1 - _throttlingRatio);
+        int numToRetain = -1;
+        assert(_throttlingRatio >= 0.0f && _throttlingRatio <= 1.0f);
+        if (_throttlingRatio > EPSILON) {
+            numToRetain = nodeList->size() * (1.0f - _throttlingRatio);
+        }
         nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
             // mix across slave threads
             auto mixTimer = _mixTiming.timer();
