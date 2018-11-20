@@ -1286,8 +1286,9 @@ function loaded() {
     });
     
     augmentSpinButtons();
+    disableDragDrop();
 
-    document.addEventListener("contextmenu", function (event) {
+    document.addEventListener("contextmenu", function(event) {
         entityListContextMenu.close();
 
         // Disable default right-click context menu which is not visible in the HMD and makes it seem like the app has locked

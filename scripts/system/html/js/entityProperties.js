@@ -3479,6 +3479,7 @@ function loaded() {
     });
 
     augmentSpinButtons();
+    disableDragDrop();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function(event) {
