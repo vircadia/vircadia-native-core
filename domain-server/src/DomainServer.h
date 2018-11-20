@@ -20,6 +20,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QThread>
 #include <QtCore/QUrl>
+#include <QHostAddress>
 #include <QAbstractNativeEventFilter>
 
 #include <Assignment.h>
@@ -209,6 +210,8 @@ private:
 
     HTTPSConnection* connectionFromReplyWithState(QNetworkReply* reply);
 
+    bool processPendingContent(HTTPConnection* connection, QString itemName, QString filename, QByteArray dataChunk);
+
     bool forwardMetaverseAPIRequest(HTTPConnection* connection,
                                     const QString& metaversePath,
                                     const QString& requestSubobject,
@@ -280,6 +283,9 @@ private:
     std::unique_ptr<DomainContentBackupManager> _contentManager { nullptr };
 
     QHash<QUuid, QPointer<HTTPSConnection>> _pendingOAuthConnections;
+
+    std::unordered_map<int, QByteArray> _pendingUploadedContents;
+    std::unordered_map<int, std::unique_ptr<QTemporaryFile>> _pendingContentFiles;
 
     QThread _assetClientThread;
 };
