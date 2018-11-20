@@ -1418,18 +1418,21 @@ void Model::updateClusterMatrices() {
     const HFMModel& hfmModel = getHFMModel();
     for (int i = 0; i < (int) _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
+        int meshIndex = i;
         const HFMMesh& mesh = hfmModel.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const HFMCluster& cluster = mesh.clusters.at(j);
+            int clusterIndex = j;
+
             if (_useDualQuaternionSkinning) {
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
                 Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
                 Transform clusterTransform;
-                Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                Transform::mult(clusterTransform, jointTransform, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindTransform);
                 state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
             } else {
                 auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                glm_mat4u_mul(jointMatrix, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindMatrix, state.clusterMatrices[j]);
             }
         }
     }

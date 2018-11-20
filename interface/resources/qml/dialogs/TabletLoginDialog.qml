@@ -141,6 +141,7 @@ TabletModalWindow {
 
     Component.onDestruction: {
         loginKeyboard.raised = false;
+        KeyboardScriptingInterface.raised = false;
     }
 
     Component.onCompleted: {

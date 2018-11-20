@@ -348,6 +348,27 @@ void DomainContentBackupManager::recoverFromUploadedBackup(MiniPromise::Promise 
     });
 }
 
+void DomainContentBackupManager::recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "recoverFromUploadedFile", Q_ARG(MiniPromise::Promise, promise),
+            Q_ARG(QString, uploadedFilename));
+        return;
+    }
+
+    qDebug() << "Recovering from uploaded file -" << uploadedFilename;
+
+    QFile uploadedFile(uploadedFilename);
+    QuaZip uploadedZip { &uploadedFile };
+
+    QString backupName = MANUAL_BACKUP_PREFIX + "uploaded.zip";
+
+    bool success = recoverFromBackupZip(backupName, uploadedZip);
+
+    promise->resolve({
+        { "success", success }
+        });
+}
+
 std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {
 
     QDir backupDir { _backupDirectory };
