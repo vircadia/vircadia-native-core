@@ -538,11 +538,11 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGL
     auto hudMirrorPipeline = _mirrorHUDPipeline;
     auto hudStereo = isStereo();
     auto hudCompositeFramebufferSize = _compositeFramebuffer->getSize();
-    glm::ivec4 hudEyeViewports[2];
+    std::array<glm::ivec4, 2> hudEyeViewports;
     for_each_eye([&](Eye eye) {
         hudEyeViewports[eye] = eyeViewport(eye);
     });
-    return [hudPipeline, hudMirrorPipeline, hudStereo, hudEyeViewports, hudCompositeFramebufferSize](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
+    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
         if (hudPipeline && hudTexture) {
             batch.enableStereo(false);
             batch.setPipeline(mirror ? hudMirrorPipeline : hudPipeline);

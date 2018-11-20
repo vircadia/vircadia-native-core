@@ -428,7 +428,7 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDis
     auto hudUniformBuffer = uniformsBuffer;
     auto hudUniforms = uniforms;
     auto hudIndexCount = indexCount;
-    return [hudPipeline, hudFormat, hudVertices, hudIndices, hudUniformBuffer, hudUniforms, hudIndexCount](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
+    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
         if (hudPipeline && hudTexture) {
             batch.setPipeline(hudPipeline);
 
