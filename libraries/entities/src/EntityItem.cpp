@@ -1680,15 +1680,54 @@ void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
 }
 
 bool EntityItem::contains(const glm::vec3& point) const {
-    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-        bool success;
-        bool result = getAABox(success).contains(point);
-        return result && success;
-    } else {
-        ShapeInfo info;
-        info.setParams(getShapeType(), glm::vec3(0.5f));
-        adjustShapeInfoByRegistration(info);
-        return info.contains(worldToEntity(point));
+    // we transform into the "normalized entity-frame" where the bounding box is centered on the origin
+    // and has dimensions <1,1,1>
+    glm::vec3 localPoint = glm::vec3(glm::inverse(getEntityToWorldMatrix()) * glm::vec4(point, 1.0f));
+
+    const float NORMALIZED_HALF_SIDE = 0.5f;
+    const float NORMALIZED_RADIUS_SQUARED = NORMALIZED_HALF_SIDE * NORMALIZED_HALF_SIDE;
+    ShapeType shapeType = getShapeType();
+    switch(shapeType) {
+        case SHAPE_TYPE_NONE:
+            return false;
+        case SHAPE_TYPE_CAPSULE_X:
+        case SHAPE_TYPE_CAPSULE_Y:
+        case SHAPE_TYPE_CAPSULE_Z:
+        case SHAPE_TYPE_HULL:
+        case SHAPE_TYPE_PLANE:
+        case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_SIMPLE_COMPOUND:
+        case SHAPE_TYPE_STATIC_MESH:
+        case SHAPE_TYPE_CIRCLE:
+        // the above cases not yet supported --> fall through to BOX case
+        case SHAPE_TYPE_BOX: {
+            localPoint = glm::abs(localPoint);
+            return localPoint.x <= NORMALIZED_HALF_SIDE &&
+                localPoint.y <= NORMALIZED_HALF_SIDE &&
+                localPoint.z <= NORMALIZED_HALF_SIDE;
+        }
+        case SHAPE_TYPE_SPHERE:
+        case SHAPE_TYPE_ELLIPSOID: {
+            return glm::length2(localPoint) <= NORMALIZED_RADIUS_SQUARED;
+        }
+        case SHAPE_TYPE_CYLINDER_X:
+            if (fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE) {
+                return (localPoint.y * localPoint.y + localPoint.z * localPoint.z <= NORMALIZED_RADIUS_SQUARED);
+            }
+            return false;
+        case SHAPE_TYPE_CYLINDER_Y:
+            if (fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE) {
+                return (localPoint.z * localPoint.z + localPoint.x * localPoint.x <= NORMALIZED_RADIUS_SQUARED);
+            }
+            return false;
+        case SHAPE_TYPE_CYLINDER_Z:
+            if (fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE) {
+                return (localPoint.x * localPoint.x + localPoint.y * localPoint.y <= NORMALIZED_RADIUS_SQUARED);
+            }
+            return false;
+        default:
+            return false;
     }
 }
 
