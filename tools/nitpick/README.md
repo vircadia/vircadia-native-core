@@ -55,7 +55,7 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
 
 1. __To run nitpick, double click **nitpick.exe**__
 #### Mac
-1.  (Firat time) install Python from https://www.python.org/downloads/release/python-370/ (**macOS 64-bit installer** or **macOS 64-bit/32-bit installer**)
+1.  (First time) install Python from https://www.python.org/downloads/release/python-370/ (**macOS 64-bit installer** or **macOS 64-bit/32-bit installer**)
     1. After installation - run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
     1. Verify that `/usr/local/bin/python3` exists.  
 1.  (First time - AWS interface) Install pip with the script provided by the Python Packaging Authority:  
