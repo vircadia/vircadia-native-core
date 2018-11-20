@@ -534,18 +534,26 @@ void OpenGLDisplayPlugin::updateFrameData() {
 }
 
 std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGLDisplayPlugin::getHUDOperator() {
-    return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        if (_hudPipeline && hudTexture) {
+    auto hudPipeline = _hudPipeline;
+    auto hudMirrorPipeline = _mirrorHUDPipeline;
+    auto hudStereo = isStereo();
+    auto hudCompositeFramebufferSize = _compositeFramebuffer->getSize();
+    glm::ivec4 hudEyeViewports[2];
+    for_each_eye([&](Eye eye) {
+        hudEyeViewports[eye] = eyeViewport(eye);
+    });
+    return [hudPipeline, hudMirrorPipeline, hudStereo, hudEyeViewports, hudCompositeFramebufferSize](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
+        if (hudPipeline && hudTexture) {
             batch.enableStereo(false);
-            batch.setPipeline(mirror ? _mirrorHUDPipeline : _hudPipeline);
+            batch.setPipeline(mirror ? hudMirrorPipeline : hudPipeline);
             batch.setResourceTexture(0, hudTexture);
-            if (isStereo()) {
+            if (hudStereo) {
                 for_each_eye([&](Eye eye) {
-                    batch.setViewportTransform(eyeViewport(eye));
+                    batch.setViewportTransform(hudEyeViewports[eye]);
                     batch.draw(gpu::TRIANGLE_STRIP, 4);
                 });
             } else {
-                batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
+                batch.setViewportTransform(ivec4(uvec2(0), hudCompositeFramebufferSize));
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
         }
