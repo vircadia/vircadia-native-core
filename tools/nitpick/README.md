@@ -53,7 +53,7 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
 1. Double click on the installer and install to a convenient location  
 ![](./setup_7z.PNG)
 1. To run nitpick, double click **nitpick.exe**
-####Mac
+#### Mac
 1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.0.dmg>).
 1.  Install Python from https://www.python.org/downloads/release/python-370/ (**macOS 64-bit installer** or **macOS 64-bit/32-bit installer**)
     1. After installation - run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
