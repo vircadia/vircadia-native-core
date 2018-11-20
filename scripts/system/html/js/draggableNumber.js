@@ -32,7 +32,7 @@ DraggableNumber.prototype = {
     mouseUp: function(event) {
         if (event.target === this.elText && this.initialMouseEvent) {
             let dx = event.clientX - this.initialMouseEvent.clientX;
-            if (dx <= DELTA_X_FOCUS_THRESHOLD) {
+            if (Math.abs(dx) <= DELTA_X_FOCUS_THRESHOLD) {
                 this.elInput.style.visibility = "visible";
                 this.elText.style.visibility = "hidden";
             }
