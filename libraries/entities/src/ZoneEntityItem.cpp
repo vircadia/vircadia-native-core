@@ -11,7 +11,9 @@
 
 #include "ZoneEntityItem.h"
 
+#include <glm/gtx/transform.hpp>
 #include <QDebug>
+#include <QUrlQuery>
 
 #include <ByteCountCoding.h>
 
@@ -275,22 +277,53 @@ void ZoneEntityItem::debugDump() const {
     _bloomProperties.debugDump();
 }
 
-ShapeType ZoneEntityItem::getShapeType() const {
-    // Zones are not allowed to have a SHAPE_TYPE_NONE... they are always at least a SHAPE_TYPE_BOX
-    if (_shapeType == SHAPE_TYPE_COMPOUND) {
-        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : DEFAULT_SHAPE_TYPE;
+void ZoneEntityItem::setShapeType(ShapeType type) {
+    //ShapeType typeArgument = type;
+    ShapeType oldShapeType = _shapeType;
+    switch(type) {
+        case SHAPE_TYPE_NONE:
+        case SHAPE_TYPE_CAPSULE_X:
+        case SHAPE_TYPE_CAPSULE_Y:
+        case SHAPE_TYPE_CAPSULE_Z:
+        case SHAPE_TYPE_HULL:
+        case SHAPE_TYPE_PLANE:
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_SIMPLE_COMPOUND:
+        case SHAPE_TYPE_STATIC_MESH:
+        case SHAPE_TYPE_CIRCLE:
+            // these types are unsupported for ZoneEntity
+            type = DEFAULT_SHAPE_TYPE;
+            break;
+        default:
+            break;
+    }
+    _shapeType = type;
+
+    if (type == SHAPE_TYPE_COMPOUND) {
+        if (type != oldShapeType) {
+            fetchCollisionGeometryResource();
+        }
     } else {
-        return _shapeType == SHAPE_TYPE_NONE ? DEFAULT_SHAPE_TYPE : _shapeType;
+        _shapeResource.reset();
     }
 }
 
+ShapeType ZoneEntityItem::getShapeType() const {
+    return _shapeType;
+}
+
 void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
+    QString oldCompoundShapeURL = _compoundShapeURL;
     withWriteLock([&] {
         _compoundShapeURL = url;
-        if (_compoundShapeURL.isEmpty() && _shapeType == SHAPE_TYPE_COMPOUND) {
-            _shapeType = DEFAULT_SHAPE_TYPE;
-        }
     });
+    if (oldCompoundShapeURL != url) {
+        if (_shapeType == SHAPE_TYPE_COMPOUND) {
+            fetchCollisionGeometryResource();
+        } else {
+            _shapeResource.reset();
+        }
+    }
 }
 
 bool ZoneEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -305,6 +338,28 @@ bool ZoneEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, c
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const {
     return _zonesArePickable;
+}
+
+bool ZoneEntityItem::contains(const glm::vec3& point) const {
+    GeometryResource::Pointer resource = _shapeResource;
+    if (_shapeType == SHAPE_TYPE_COMPOUND && resource) {
+        if (resource->isLoaded()) {
+            const HFMModel& hfmModel = resource->getHFMModel();
+
+            glm::vec3 minimum = glm::vec3(hfmModel.offset * glm::vec4(hfmModel.meshExtents.minimum, 1.0f));
+            glm::vec3 maximum = glm::vec3(hfmModel.offset * glm::vec4(hfmModel.meshExtents.maximum, 1.0f));
+            glm::vec3 modelExtentsDiagonal = maximum - minimum;
+            glm::vec3 offset = -minimum - (modelExtentsDiagonal * getRegistrationPoint());
+            glm::vec3 scale(getScaledDimensions() / modelExtentsDiagonal);
+
+            glm::mat4 hfmToEntityMatrix = glm::scale(scale) * glm::translate(offset);
+            glm::mat4 entityToWorldMatrix = getTransform().getMatrix();
+            glm::mat4 worldToHFMMatrix = glm::inverse(entityToWorldMatrix * hfmToEntityMatrix);
+
+            return hfmModel.convexHullContains(glm::vec3(worldToHFMMatrix * glm::vec4(point, 1.0f)));
+        }
+    }
+    return EntityItem::contains(point);
 }
 
 void ZoneEntityItem::setFilterURL(QString url) {
@@ -324,10 +379,6 @@ QString ZoneEntityItem::getFilterURL() const {
         result = _filterURL;
     });
     return result;
-}
-
-bool ZoneEntityItem::hasCompoundShapeURL() const { 
-    return !getCompoundShapeURL().isEmpty();
 }
 
 QString ZoneEntityItem::getCompoundShapeURL() const { 
@@ -402,4 +453,16 @@ void ZoneEntityItem::setSkyboxMode(const uint32_t value) {
 
 uint32_t ZoneEntityItem::getSkyboxMode() const {
     return _skyboxMode;
+}
+
+void ZoneEntityItem::fetchCollisionGeometryResource() {
+    QUrl hullURL(getCompoundShapeURL());
+    if (hullURL.isEmpty()) {
+        _shapeResource.reset();
+    } else {
+        QUrlQuery queryArgs(hullURL);
+        queryArgs.addQueryItem("collision-hull", "");
+        hullURL.setQuery(queryArgs);
+        _shapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+    }
 }

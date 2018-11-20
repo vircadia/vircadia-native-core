@@ -45,6 +45,7 @@ EntityServer::EntityServer(ReceivedMessage& message) :
 
     DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
     DependencyManager::set<AssignmentDynamicFactory>();
+    DependencyManager::set<ModelCache>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::EntityAdd,
