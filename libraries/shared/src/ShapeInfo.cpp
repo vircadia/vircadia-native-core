@@ -250,50 +250,6 @@ float ShapeInfo::computeVolume() const {
     return volume;
 }
 
-bool ShapeInfo::contains(const glm::vec3& point) const {
-    switch(_type) {
-        case SHAPE_TYPE_SPHERE:
-            return glm::length(point) <= _halfExtents.x;
-        case SHAPE_TYPE_CYLINDER_X:
-            return glm::length(glm::vec2(point.y, point.z)) <= _halfExtents.z;
-        case SHAPE_TYPE_CYLINDER_Y:
-            return glm::length(glm::vec2(point.x, point.z)) <= _halfExtents.x;
-        case SHAPE_TYPE_CYLINDER_Z:
-            return glm::length(glm::vec2(point.x, point.y)) <= _halfExtents.y;
-        case SHAPE_TYPE_CAPSULE_X: {
-            if (glm::abs(point.x) <= _halfExtents.x - _halfExtents.y) {
-                return glm::length(glm::vec2(point.y, point.z)) <= _halfExtents.y;
-            } else {
-                glm::vec3 absPoint = glm::abs(point) - glm::vec3(_halfExtents.x, 0.0f, 0.0f);
-                return glm::length(absPoint) <= _halfExtents.y;
-            }
-        }
-        case SHAPE_TYPE_CAPSULE_Y: {
-            if (glm::abs(point.y) <= _halfExtents.y - _halfExtents.z) {
-                return glm::length(glm::vec2(point.x, point.z)) <= _halfExtents.z;
-            } else {
-                glm::vec3 absPoint = glm::abs(point) - glm::vec3(0.0f, _halfExtents.y, 0.0f);
-                return glm::length(absPoint) <= _halfExtents.z;
-            }
-        }
-        case SHAPE_TYPE_CAPSULE_Z: {
-            if (glm::abs(point.z) <= _halfExtents.z - _halfExtents.x) {
-                return glm::length(glm::vec2(point.x, point.y)) <= _halfExtents.x;
-            } else {
-                glm::vec3 absPoint = glm::abs(point) - glm::vec3(0.0f, 0.0f, _halfExtents.z);
-                return glm::length(absPoint) <= _halfExtents.x;
-            }
-        }
-        case SHAPE_TYPE_BOX:
-        default: {
-            glm::vec3 absPoint = glm::abs(point);
-            return absPoint.x <= _halfExtents.x
-            && absPoint.y <= _halfExtents.y
-            && absPoint.z <= _halfExtents.z;
-        }
-    }
-}
-
 const HashKey& ShapeInfo::getHash() const {
     // NOTE: we cache the key so we only ever need to compute it once for any valid ShapeInfo instance.
     if (_hashKey.isNull() && _type != SHAPE_TYPE_NONE) {
