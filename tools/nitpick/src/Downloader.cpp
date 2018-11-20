@@ -17,8 +17,7 @@ Downloader::Downloader(QUrl fileURL, QObject *parent) : QObject(parent) {
         this, SLOT (fileDownloaded(QNetworkReply*))
     );
 
-    QNetworkRequest request(fileURL);
-    _networkAccessManager.get(request);
+    _networkAccessManager.get(QNetworkRequest(fileURL));
 }
 
 void Downloader::fileDownloaded(QNetworkReply* reply) {

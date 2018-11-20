@@ -1,0 +1,42 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  ssao_bilateralBlur.vert
+//
+//  Draw the unit quad [-1,-1 -> 1,1] filling in 
+//  Simply draw a Triangle_strip of 2 triangles, no input buffers or index buffer needed
+//
+//  Created by Olivier Prat on 9/12/2018
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+layout(location=0) out vec4 varTexCoord0;
+
+void main(void) {
+    const vec4 UNIT_QUAD[4] = vec4[4](
+        vec4(-1.0, -1.0, 0.0, 1.0),
+        vec4(1.0, -1.0, 0.0, 1.0),
+        vec4(-1.0, 1.0, 0.0, 1.0),
+        vec4(1.0, 1.0, 0.0, 1.0)
+    );
+    vec4 pos = UNIT_QUAD[gl_VertexID];
+
+    // standard transform but applied to the Texcoord
+    vec2 fullTexCoord = (pos.xy + 1.0) * 0.5;
+    vec4 tc = vec4(fullTexCoord, pos.zw);
+
+    TransformObject obj = getTransformObject();
+    <$transformModelToWorldPos(obj, tc, tc)$>
+
+    gl_Position = pos;
+    varTexCoord0.xy = tc.xy;
+    varTexCoord0.zw = fullTexCoord.xy;
+}

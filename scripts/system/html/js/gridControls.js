@@ -6,8 +6,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
-
 function loaded() {
     openEventBridge(function() {
         elPosY = document.getElementById("horiz-y");
@@ -85,44 +83,26 @@ function loaded() {
 
         var gridColor = { red: 255, green: 255, blue: 255 };
         var elColor = document.getElementById("grid-color");
-        var elColorRed = document.getElementById("grid-color-red");
-        var elColorGreen = document.getElementById("grid-color-green");
-        var elColorBlue = document.getElementById("grid-color-blue");
         elColor.style.backgroundColor = "rgb(" + gridColor.red + "," + gridColor.green + "," + gridColor.blue + ")";
-        elColorRed.value = gridColor.red;
-        elColorGreen.value = gridColor.green;
-        elColorBlue.value = gridColor.blue;
 
-        var colorChangeFunction = function () {
-            gridColor = { red: elColorRed.value, green: elColorGreen.value, blue: elColorBlue.value };
-            elColor.style.backgroundColor = "rgb(" + gridColor.red + "," + gridColor.green + "," + gridColor.blue + ")";
+        var colorPickFunction = function (red, green, blue) {
+            gridColor = { red: red, green: green, blue: blue };
             emitUpdate();
         };
 
-        var colorPickFunction = function (red, green, blue) {
-            elColorRed.value = red;
-            elColorGreen.value = green;
-            elColorBlue.value = blue;
-            gridColor = { red: red, green: green, blue: blue };
-            emitUpdate();
-        }
-
-        elColorRed.addEventListener('change', colorChangeFunction);
-        elColorGreen.addEventListener('change', colorChangeFunction);
-        elColorBlue.addEventListener('change', colorChangeFunction);
         $('#grid-color').colpick({
             colorScheme: 'dark',
-            layout: 'hex',
+            layout: 'rgbhex',
             color: { r: gridColor.red, g: gridColor.green, b: gridColor.blue },
+            submit: false,
             onShow: function (colpick) {
                 $('#grid-color').attr('active', 'true');
             },
             onHide: function (colpick) {
                 $('#grid-color').attr('active', 'false');
             },
-            onSubmit: function (hsb, hex, rgb, el) {
+            onChange: function (hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
                 colorPickFunction(rgb.r, rgb.g, rgb.b);
             }
         });
@@ -131,15 +111,47 @@ function loaded() {
 
         EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
     });
-    document.addEventListener("keydown", function (keyDown) {
-      if (keyDown.keyCode === KEY_P && keyDown.ctrlKey) {
-          if (keyDown.shiftKey) {
-              EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
-          } else {
-              EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
-          }
-      }
-    })
+
+    const KEY_CODES = {
+        BACKSPACE: 8,
+        DELETE: 46
+    };
+
+    document.addEventListener("keyup", function (keyUpEvent) {
+        if (keyUpEvent.target.nodeName === "INPUT") {
+            return;
+        }
+        let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;
+
+        let controlKey = window.navigator.platform.startsWith("Mac") ? metaKey : ctrlKey;
+
+        let keyCodeString;
+        switch (keyCode) {
+            case KEY_CODES.DELETE:
+                keyCodeString = "Delete";
+                break;
+            case KEY_CODES.BACKSPACE:
+                keyCodeString = "Backspace";
+                break;
+            default:
+                keyCodeString = String.fromCharCode(keyUpEvent.keyCode);
+                break;
+        }
+
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: 'keyUpEvent',
+            keyUpEvent: {
+                code,
+                key,
+                keyCode,
+                keyCodeString,
+                altKey,
+                controlKey,
+                shiftKey,
+            }
+        }));
+    }, false);
+
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function (event) {
         event.preventDefault();

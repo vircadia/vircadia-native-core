@@ -416,7 +416,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         // NOTE: Here's where we determine if we are over budget and drop remaining avatars,
         // or send minimal avatar data in uncommon case of PALIsOpen.
         int minimRemainingAvatarBytes = minimumBytesPerAvatar * remainingAvatars;
-        bool overBudget = (identityBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes) > maxAvatarBytesPerFrame;
+        auto frameByteEstimate = identityBytesSent + traitBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes;
+        bool overBudget = frameByteEstimate > maxAvatarBytesPerFrame;
         if (overBudget) {
             if (PALIsOpen) {
                 _stats.overBudgetAvatars++;
@@ -497,8 +498,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         _stats.avatarDataPackingElapsedTime +=
             (quint64) chrono::duration_cast<chrono::microseconds>(endAvatarDataPacking - startAvatarDataPacking).count();
 
-        // use helper to add any changed traits to our packet list
-        traitBytesSent += addChangedTraitsToBulkPacket(nodeData, otherNodeData, *traitsPacketList);
+        if (!overBudget) {
+            // use helper to add any changed traits to our packet list
+            traitBytesSent += addChangedTraitsToBulkPacket(nodeData, otherNodeData, *traitsPacketList);
+        }
+
         remainingAvatars--;
     }
 

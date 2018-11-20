@@ -12,7 +12,8 @@
 
 /* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager,
    Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera,
-   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, OverlaySystemWindow */
+   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, OverlaySystemWindow,
+   keyUpEventFromUIWindow:true */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -113,7 +114,6 @@ selectionManager.addEventListener(function () {
     entityIconOverlayManager.updatePositions();
 });
 
-var KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
 
@@ -1964,14 +1964,6 @@ var keyReleaseEvent = function (event) {
     if (isActive) {
         cameraManager.keyReleaseEvent(event);
     }
-    // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.key === KEY_P && event.isControl && !event.isAutoRepeat) {
-        if (event.isShifted) {
-            unparentSelectedEntities();
-        } else {
-            parentSelectedEntities();
-        }
-    }
 };
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
@@ -2231,6 +2223,7 @@ var PropertiesTool = function (opts) {
     // are selected or if no entity is selected this will be `null`.
     var currentSelectedEntityID = null;
     var statusMonitor = null;
+    var blockPropertyUpdates = false;
 
     that.setVisible = function (newVisible) {
         visible = newVisible;
@@ -2268,6 +2261,10 @@ var PropertiesTool = function (opts) {
     };
 
     function updateSelections(selectionUpdated) {
+        if (blockPropertyUpdates) {
+            return;
+        }
+
         var data = {
             type: 'update',
             spaceMode: selectionDisplay.getSpaceMode()
@@ -2364,11 +2361,9 @@ var PropertiesTool = function (opts) {
                 }
             }
             pushCommandForSelections();
+            blockPropertyUpdates = data.blockUpdateCallback === true;
             selectionManager._update(false, this);
-        } else if (data.type === 'parent') {
-            parentSelectedEntities();
-        } else if (data.type === 'unparent') {
-            unparentSelectedEntities();
+            blockPropertyUpdates = false;
         } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
@@ -2478,6 +2473,8 @@ var PropertiesTool = function (opts) {
                 tooltips: Script.require('./assets/data/createAppTooltips.json'),
                 hmdActive: HMD.active,
             });
+        } else if (data.type === "updateProperties") {
+            updateSelections(true);
         }
     };
 
@@ -2681,9 +2678,14 @@ function whenReleased(fn) {
     };
 }
 
+var isOnMacPlatform = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+
 var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
-mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
+if (isOnMacPlatform) {
+    mapping.from([Controller.Hardware.Keyboard.Backspace]).to(deleteKey);
+} else {
+    mapping.from([Controller.Hardware.Keyboard.Delete]).to(deleteKey);
+}
 mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
 mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
 mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
@@ -2706,6 +2708,53 @@ mapping.from([Controller.Hardware.Keyboard.Z])
     .to(whenPressed(function() { undoHistory.redo() }));
 
 
+mapping.from([Controller.Hardware.Keyboard.P])
+    .when([Controller.Hardware.Keyboard.Control, Controller.Hardware.Keyboard.Shift])
+    .to(whenReleased(function() { unparentSelectedEntities(); }));
+
+mapping.from([Controller.Hardware.Keyboard.P])
+    .when([Controller.Hardware.Keyboard.Control, !Controller.Hardware.Keyboard.Shift])
+    .to(whenReleased(function() { parentSelectedEntities(); }));
+
+keyUpEventFromUIWindow = function(keyUpEvent) {
+    var WANT_DEBUG_MISSING_SHORTCUTS = false;
+
+    var pressedValue = 0.0;
+
+    if ((!isOnMacPlatform && keyUpEvent.keyCodeString === "Delete")
+        || (isOnMacPlatform && keyUpEvent.keyCodeString === "Backspace")) {
+
+        deleteKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "T") {
+        toggleKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "F") {
+        focusKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "G") {
+        gridKey(pressedValue);
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "X") {
+        selectionManager.cutSelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "C") {
+        selectionManager.copySelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "V") {
+        selectionManager.pasteEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "D") {
+        selectionManager.duplicateSelection();
+    } else if (keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") {
+        undoHistory.undo();
+    } else if (keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
+        parentSelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
+        unparentSelectedEntities();
+    } else if (
+        (keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") ||
+        (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "Y")) {
+
+        undoHistory.redo();
+    } else if (WANT_DEBUG_MISSING_SHORTCUTS) {
+        console.warn("unhandled key event: " + JSON.stringify(keyUpEvent))
+    }
+};
+
 var propertyMenu = new PopupMenu();
 
 propertyMenu.onSelectMenuItem = function (name) {
@@ -2718,22 +2767,6 @@ propertyMenu.onSelectMenuItem = function (name) {
 var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
-
-entityListTool.webView.webEventReceived.connect(function(data) {
-    try {
-        data = JSON.parse(data);
-    } catch(e) {
-        print("edit.js: Error parsing JSON");
-        return;
-    }
-
-    if (data.type === 'parent') {
-        parentSelectedEntities();
-    } else if (data.type === 'unparent') {
-        unparentSelectedEntities();
-    }
-});
-
 
 selectionDisplay.onSpaceModeChange = function(spaceMode) {
     entityListTool.setSpaceMode(spaceMode);

@@ -245,6 +245,7 @@ TabBar {
                 id: entityListToolWebView
                 url: Paths.defaultScripts + "/system/html/entityList.html"
                 enabled: true
+                blurOnCtrlShift: false
             }
         }
     }
@@ -260,6 +261,7 @@ TabBar {
                 id: entityPropertiesWebView
                 url: Paths.defaultScripts + "/system/html/entityProperties.html"
                 enabled: true
+                blurOnCtrlShift: false
             }
         }
     }
@@ -275,6 +277,7 @@ TabBar {
                 id: gridControlsWebView
                 url: Paths.defaultScripts + "/system/html/gridControls.html"
                 enabled: true
+                blurOnCtrlShift: false
             }
         }
     }
