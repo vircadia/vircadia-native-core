@@ -29,17 +29,16 @@ Nitpick is built as part of the High Fidelity build.
 These steps assume the hifi repository has been cloned to `~/hifi`.
 1.  (First time) install create-dmg:
     `brew install create-dmg`
-1.  Copy the quazip dynamic library to the Release:
-    `cp ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib ~/hifi/build/tools/nitpick/Release/`
-1.  Change the loader instruction to find the dynamic library locally
-    `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib ~/hifi/build/tools/nitpick/Release/libquazip5.1.dylib ~/hifi/build/tools/nitpick/Release/nitpick`
 1.  cd to the `build/tools/nitpick/Release` folder
+1.  Copy the quazip dynamic library (note final period):
+    `cp ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib .`
+1.  Change the loader instruction to find the dynamic library locally
+    `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib libquazip5.1.dylib nitpick`
 1.  Delete any existing installer: `rm nitpick.dmg`
-1.  Create installer (note final period!): `create-dmg --volname nitpick-installer-v1.0 nitpick-installer-v1.0.dmg .`
+1.  Create installer (note final period): `create-dmg --volname nitpick-installer-v1.0 nitpick-installer-v1.0.dmg .`
 1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.0.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.0.dmg`
 ### Installation
 #### Windows
-1. Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.0.exe>)
 1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.0.exe)
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
     1. After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
@@ -50,12 +49,13 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
     1.  Leave region name and ouput format as default [None]
     1.  Install the latest release of Boto3 via pip:  `pip install boto3`
 
+1. Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.0.exe>)
 1. Double click on the installer and install to a convenient location  
 ![](./setup_7z.PNG)
-1. To run nitpick, double click **nitpick.exe**
-####Mac
-1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.0.dmg>).
-1.  Install Python from https://www.python.org/downloads/release/python-370/ (**macOS 64-bit installer** or **macOS 64-bit/32-bit installer**)
+
+1. __To run nitpick, double click **nitpick.exe**__
+#### Mac
+1.  (Firat time) install Python from https://www.python.org/downloads/release/python-370/ (**macOS 64-bit installer** or **macOS 64-bit/32-bit installer**)
     1. After installation - run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
     1. Verify that `/usr/local/bin/python3` exists.  
 1.  (First time - AWS interface) Install pip with the script provided by the Python Packaging Authority:  
@@ -69,7 +69,13 @@ $ python3 get-pip.py --user
     1.  Enter the secret key
     1.  Leave region name and ouput format as default [None]
     1.  Install the latest release of Boto3 via pip:  pip3 install boto3
+1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.0.dmg>).
+1.  Double-click on the downloaded image to mount it
+1. Create a folder for the nitpick files (e.g. ~/nitpick)
+1. Copy the downloaded files to the folder  
+   `cp -r /Volumes/nitpick-installer-v1.0/* .`
 
+1. __To run nitpick, cd to the folder that you copied to and run `./nitpick`__
 #Use
 ## Create
 ![](./Create.PNG)
