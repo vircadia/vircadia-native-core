@@ -22,6 +22,7 @@
 #include <shared/RateCounter.h>
 
 #include <gpu/Batch.h>
+#include <gl/QOpenGLContextWrapper.h>
 
 namespace gpu {
     namespace gl {
@@ -33,6 +34,7 @@ class OpenGLDisplayPlugin : public DisplayPlugin {
     Q_OBJECT
     Q_PROPERTY(float hudAlpha MEMBER _hudAlpha)
     using Parent = DisplayPlugin;
+    using NativeContextPointer = QOpenGLContextWrapper::NativeContextPointer;
 protected:
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
@@ -175,6 +177,7 @@ protected:
     }
 
     gpu::gl::GLBackend* getGLBackend();
+    //NativeContextPointer _nativeContext;
 
     // Any resource shared by the main thread and the presentation thread must
     // be serialized through this mutex

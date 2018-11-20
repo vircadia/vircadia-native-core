@@ -9,6 +9,9 @@
     #define gl_VertexID  gl_VertexIndex
 #endif
 #extension GL_EXT_texture_buffer : enable
+#ifndef VULKAN
+#extension GL_EXT_clip_cull_distance : enable
+#endif
 precision highp float;
 precision highp samplerBuffer;
 precision highp sampler2DShadow;

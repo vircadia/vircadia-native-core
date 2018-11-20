@@ -422,6 +422,10 @@ public:
     PROFILE_RANGE(category, name); \
     GlDuration glProfileRangeThis(name);
 
+#ifndef GL_CLIP_DISTANCE0
+#define  GL_CLIP_DISTANCE0 GL_CLIP_DISTANCE0_EXT
+#endif
+
 void GLBackend::render(const Batch& batch) {
     GL_PROFILE_RANGE(render_gpu_gl, batch.getName().c_str());
 

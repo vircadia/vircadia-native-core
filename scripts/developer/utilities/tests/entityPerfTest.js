@@ -87,6 +87,14 @@ function makeEntity () {
         .withRay(function(){
             Entities.findRayIntersection(this.ray, false);
         });
+    entityTests.addTestCase('findRayIntersectionBlocking, precisionPicking=true')
+        .withRay(function(){
+            Entities.findRayIntersectionBlocking(this.ray, true);
+        })
+    entityTests.addTestCase('findRayIntersectionBlocking, precisionPicking=false')
+        .withRay(function(){
+            Entities.findRayIntersectionBlocking(this.ray, false);
+        })
     entityTests.addTestCase('no-op')
         .run(function(){});
 

@@ -425,11 +425,12 @@ FocusScope {
             console.warn("Could not find top level window for " + item);
             return;
         }
-
+/*
         if (typeof Controller === "undefined") {
             console.warn("Controller not yet available... can't center");
             return;
         }
+*/
 
         var newRecommendedRectJS = (typeof Controller === "undefined") ? Qt.rect(0,0,0,0) : Controller.getRecommendedHUDRect();
         var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y,
@@ -455,15 +456,15 @@ FocusScope {
             console.warn("Could not find top level window for " + item);
             return;
         }
-
+/*
         if (typeof Controller === "undefined") {
             console.warn("Controller not yet available... can't reposition targetWindow:" + targetWindow);
             return;
         }
-
+*/
         var oldRecommendedRect = recommendedRect;
         var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
-        var newRecommendedRect = Controller.getRecommendedHUDRect();
+        var newRecommendedRect = { width: 1280, height: 720, x: 0, y: 0 };
         var newRecommendedDimmensions = { x: newRecommendedRect.width, y: newRecommendedRect.height };
         repositionWindow(targetWindow, false, oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions);
     }
@@ -480,7 +481,7 @@ FocusScope {
             return;
         }
 
-        var recommended = Controller.getRecommendedHUDRect();
+        var recommended = { width: 1280, height: 720, x: 0, y: 0 }; //Controller.getRecommendedHUDRect();
         var maxX = recommended.x + recommended.width;
         var maxY = recommended.y + recommended.height;
         var newPosition = Qt.vector2d(targetWindow.x, targetWindow.y);

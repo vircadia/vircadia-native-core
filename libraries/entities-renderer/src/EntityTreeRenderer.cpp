@@ -547,12 +547,11 @@ void EntityTreeRenderer::handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUp
 bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar) {
     bool didUpdate = false;
     float radius = 0.01f; // for now, assume 0.01 meter radius, because we actually check the point inside later
-    QVector<QUuid> entityIDs;
+    QVector<EntityItemPointer> foundEntities;
 
     // find the entities near us
     // don't let someone else change our tree while we search
     _tree->withReadLock([&] {
-        auto entityTree = std::static_pointer_cast<EntityTree>(_tree);
 
         // FIXME - if EntityTree had a findEntitiesContainingPoint() this could theoretically be a little faster
         entityTree->evalEntitiesInSphere(_avatarPosition, radius, PickFilter(), entityIDs);
@@ -561,12 +560,7 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
         _layeredZones.clear();
 
         // create a list of entities that actually contain the avatar's position
-        for (auto& entityID : entityIDs) {
-            auto entity = entityTree->findEntityByID(entityID);
-            if (!entity) {
-                continue;
-            }
-
+        for (auto& entity : foundEntities) {
             auto isZone = entity->getType() == EntityTypes::Zone;
             auto hasScript = !entity->getScript().isEmpty();
 

@@ -77,11 +77,11 @@ protected:
     float _ipd { 0.064f };
 
     struct FrameInfo {
+        uint32_t frameId{ 0 };
         mat4 renderPose;
         mat4 presentPose;
         double sensorSampleTime { 0 };
         double predictedDisplayTime { 0 };
-        mat3 presentReprojection;
     };
 
     QMap<uint32_t, FrameInfo> _frameInfos;

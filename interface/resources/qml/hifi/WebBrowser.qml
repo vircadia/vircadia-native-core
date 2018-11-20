@@ -15,7 +15,7 @@ import QtQuick.Controls 2.2 as QQControls
 import QtQuick.Layouts 1.3
 import QtGraphicalEffects 1.0
 
-import QtWebEngine 1.5
+import QtWebView 1.1
 import QtWebChannel 1.0
 
 import stylesUit 1.0
@@ -188,13 +188,13 @@ Rectangle {
                     }
 
                     HifiControls.WebGlyphButton {
-                        glyph: webStack.currentItem.webEngineView.loading ? hifi.glyphs.closeSmall : hifi.glyphs.reloadSmall;
+                        glyph: webStack.currentItem.WebView.Loading ? hifi.glyphs.closeSmall : hifi.glyphs.reloadSmall;
                         anchors.verticalCenter: parent.verticalCenter;
                         width: hifi.dimensions.controlLineHeight
                         z: 2
                         x: addressBarInput.width - implicitWidth
                         onClicked: {
-                            if (webStack.currentItem.webEngineView.loading) {
+                            if (webStack.currentItem.WebView.Loading) {
                                 webStack.currentItem.webEngineView.stop();
                             } else {
                                 webStack.currentItem.reloadTimer.start();
@@ -259,7 +259,7 @@ Rectangle {
             width: parent.width;
             from: 0
             to: 100
-            value: webStack.currentItem.webEngineView.loadProgress
+            value: webStack.currentItem.WebView.LoadProgress
             height: 2
         }
 
@@ -269,7 +269,7 @@ Rectangle {
                 property alias webEngineView: webEngineView
                 property alias reloadTimer: reloadTimer
 
-                property WebEngineNewViewRequest request: null
+                property var request: null
 
                 property bool isDialog: QQControls.StackView.index > 0
                 property real margins: isDialog ? 10 : 0
@@ -303,7 +303,6 @@ Rectangle {
                     focus: true
                     objectName: "tabletWebEngineView"
 
-                    //profile: HFWebEngineProfile;
                     profile.httpUserAgent: "Mozilla/5.0 (Android; Mobile; rv:13.0) Gecko/13.0 Firefox/13.0"
 
                     property string userScriptUrl: ""
@@ -320,93 +319,9 @@ Rectangle {
                         //TODO: change cursor shape?
                     }
 
-                    // creates a global EventBridge object.
-                    WebEngineScript {
-                        id: createGlobalEventBridge
-                        sourceCode: eventBridgeJavaScriptToInject
-                        injectionPoint: WebEngineScript.Deferred
-                        worldId: WebEngineScript.MainWorld
-                    }
-
-                    // detects when to raise and lower virtual keyboard
-                    WebEngineScript {
-                        id: raiseAndLowerKeyboard
-                        injectionPoint: WebEngineScript.Deferred
-                        sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
-                        worldId: WebEngineScript.MainWorld
-                    }
-
-                    // User script.
-                    WebEngineScript {
-                        id: userScript
-                        sourceUrl: webEngineView.userScriptUrl
-                        injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
-                        worldId: WebEngineScript.MainWorld
-                    }
-
-                    userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
-
-                    settings.autoLoadImages: true
-                    settings.javascriptEnabled: true
-                    settings.errorPageEnabled: true
-                    settings.pluginsEnabled: true
-                    settings.fullScreenSupportEnabled: true
-                    settings.autoLoadIconsForPage: true
-                    settings.touchIconsEnabled: true
-
-                    onCertificateError: {
-                        error.defer();
-                    }
-
                     Component.onCompleted: {
                         webChannel.registerObject("eventBridge", eventBridge);
                         webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-                    }
-
-                    onFeaturePermissionRequested: {
-                        grantFeaturePermission(securityOrigin, feature, true);
-                    }
-
-                    onNewViewRequested: {
-                        if (request.destination == WebEngineView.NewViewInDialog) {
-                            webStack.push(webViewComponent, {"request": request});
-                        } else {
-                            request.openIn(webEngineView);
-                        }
-                    }
-
-                    onRenderProcessTerminated: {
-                        var status = "";
-                        switch (terminationStatus) {
-                        case WebEngineView.NormalTerminationStatus:
-                            status = "(normal exit)";
-                            break;
-                        case WebEngineView.AbnormalTerminationStatus:
-                            status = "(abnormal exit)";
-                            break;
-                        case WebEngineView.CrashedTerminationStatus:
-                            status = "(crashed)";
-                            break;
-                        case WebEngineView.KilledTerminationStatus:
-                            status = "(killed)";
-                            break;
-                        }
-
-                        console.error("Render process exited with code " + exitCode + " " + status);
-                        reloadTimer.running = true;
-                    }
-
-                    onFullScreenRequested: {
-                        if (request.toggleOn) {
-                            webEngineView.state = "FullScreen";
-                        } else {
-                            webEngineView.state = "";
-                        }
-                        request.accept();
-                    }
-
-                    onWindowCloseRequested: {
-                        webStack.pop();
                     }
                 }
                 Timer {

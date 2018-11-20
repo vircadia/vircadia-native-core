@@ -237,13 +237,22 @@ void OffscreenQmlSurface::clearFocusItem() {
 
 void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     Parent::initializeEngine(engine);
-    new QQmlFileSelector(engine);
     static std::once_flag once;
     std::call_once(once, [] { 
         qRegisterMetaType<TabletProxy*>();
         qRegisterMetaType<TabletButtonProxy*>();
         qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
     });
+
+#ifdef Q_OS_ANDROID
+    auto fileSelector = QQmlFileSelector::get(engine);
+    if (fileSelector) {
+        auto selectors = fileSelector->selector()->extraSelectors();
+        if (!selectors.contains(HIFI_ANDROID_APP)) {
+            fileSelector->setExtraSelectors(QStringList() << HIFI_ANDROID_APP);
+        }
+    }
+#endif
 
     // Register the pixmap Security Image Provider
     engine->addImageProvider(SecurityImageProvider::PROVIDER_NAME, new SecurityImageProvider());

@@ -404,7 +404,7 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::updateBounds() {
 const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabolaPipeline() {
     if (!_parabolaPipeline || !_transparentParabolaPipeline) {
         {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola );
             auto state = std::make_shared<gpu::State>();
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
             state->setBlendFunction(false,

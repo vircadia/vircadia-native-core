@@ -35,7 +35,7 @@ namespace shader {
 static const Dialect DEFAULT_DIALECT = Dialect::glsl310es;
 
 const std::vector<Dialect>& allDialects() {
-    static const std::vector<Dialect> ALL_DIALECTS{ { Dialect::glsl310es } };
+    static const std::vector<Dialect> ALL_DIALECTS{ Dialect::glsl310es };
     return ALL_DIALECTS;
 }
     
@@ -224,7 +224,7 @@ String Source::getSource(Dialect dialect, Variant variant) const {
         }
     }
 
-#ifdef Q_OS_ANDROID
+#if defined(Q_OS_ANDROID) || defined(USE_GLES)
     // SPIRV cross injects "#extension GL_OES_texture_buffer : require" into the GLSL shaders,
     // which breaks android rendering
     return variantSource.scribe;

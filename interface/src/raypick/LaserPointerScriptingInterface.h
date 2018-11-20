@@ -21,7 +21,7 @@ class LaserPointerScriptingInterface : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 /**jsdoc
- * Synonym for {@link Pointers} as used for laser pointers.  Deprecated.
+ * Synonym for {@link Pointers} as used for laser pointers.
  *
  * @namespace LaserPointers
  *

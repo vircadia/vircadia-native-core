@@ -135,18 +135,18 @@
         gotoImage = document.getElementById("goto-img");
         expandButton = document.getElementById("expand");
 
-        connectEventBridge();
-
-        document.body.addEventListener("mouseenter", onBodyHover, false);
-        document.body.addEventListener("mouseleave", onBodyUnhover, false);
-
-        muteButton.addEventListener("mouseenter", onButtonHover, false);
-        gotoButton.addEventListener("mouseenter", onButtonHover, false);
-        expandButton.addEventListener("mouseenter", onButtonHover, false);
-        muteButton.addEventListener("click", onMuteButtonClick, true);
-        gotoButton.addEventListener("click", onGotoButtonClick, true);
-        expandButton.addEventListener("click", onExpandButtonClick, true);
-
+       connectEventBridge();
+     
+       document.body.addEventListener("mouseenter", onBodyHover, false);
+       document.body.addEventListener("mouseleave", onBodyUnhover, false);
+     
+       muteButton.addEventListener("mouseenter", onButtonHover, false);
+       gotoButton.addEventListener("mouseenter", onButtonHover, false);
+       expandButton.addEventListener("mouseenter", onButtonHover, false);
+       muteButton.addEventListener("click", onMuteButtonClick, true);
+       gotoButton.addEventListener("click", onGotoButtonClick, true);
+       expandButton.addEventListener("click", onExpandButtonClick, true);
+    
         document.body.onunload = function () {
             onUnload();
         };

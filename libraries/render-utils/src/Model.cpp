@@ -135,6 +135,11 @@ void Model::setScale(const glm::vec3& scale) {
 const float SCALE_CHANGE_EPSILON = 0.0000001f;
 
 void Model::setScaleInternal(const glm::vec3& scale) {
+    if (scale == glm::vec3(0)) {
+        setScaleInternal(glm::vec3{1});
+        return;
+    }
+
     if (glm::distance(_scale, scale) > SCALE_CHANGE_EPSILON) {
         _scale = scale;
         assert(_scale.x != 0.0f && scale.y != 0.0f && scale.z != 0.0f);

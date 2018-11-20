@@ -1,6 +1,6 @@
 import QtQuick 2.5
 import QtWebChannel 1.0
-import QtWebEngine 1.5
+import QtWebView 1.1
 
 import controlsUit 1.0
 import "styles" as HifiStyles
@@ -207,24 +207,6 @@ ScrollingWindow {
             url: "https://highfidelity.com/"
             profile: FileTypeProfile;
 
-            // Create a global EventBridge object for raiseAndLowerKeyboard.
-            WebEngineScript {
-                id: createGlobalEventBridge
-                sourceCode: eventBridgeJavaScriptToInject
-                injectionPoint: WebEngineScript.Deferred
-                worldId: WebEngineScript.MainWorld
-            }
-
-            // Detect when may want to raise and lower keyboard.
-            WebEngineScript {
-                id: raiseAndLowerKeyboard
-                injectionPoint: WebEngineScript.Deferred
-                sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
-                worldId: WebEngineScript.MainWorld
-            }
-
-            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
-
             anchors.top: buttons.bottom
             anchors.topMargin: 8
             anchors.bottom: parent.bottom
@@ -242,7 +224,7 @@ ScrollingWindow {
             }
 
             onLoadingChanged: {
-                if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
+                if (loadRequest.status === WebView.LoadSucceededStatus) {
                     addressBar.text = loadRequest.url
                 }
                 root.loadingChanged(loadRequest.status);

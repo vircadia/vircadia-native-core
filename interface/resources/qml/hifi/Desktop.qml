@@ -1,5 +1,5 @@
 import QtQuick 2.7
-import QtWebEngine 1.5;
+import QtWebView 1.1
 import Qt.labs.settings 1.0 as QtSettings
 
 import QtQuick.Controls 2.3
@@ -19,8 +19,8 @@ OriginalDesktop.Desktop {
         hoverEnabled: true
         propagateComposedEvents: true
         scrollGestureEnabled: false // we don't need/want these
-        onEntered: ApplicationCompositor.reticleOverDesktop = true
-        onExited: ApplicationCompositor.reticleOverDesktop = false
+        onEntered: if (typeof ApplicationCompositor !== "undefined") ApplicationCompositor.reticleOverDesktop = true
+        onExited: if (typeof ApplicationCompositor !== "undefined") ApplicationCompositor.reticleOverDesktop = false
         acceptedButtons: Qt.NoButton
     }
 
@@ -87,13 +87,6 @@ OriginalDesktop.Desktop {
         return map;
     })({});
 
-    Component.onCompleted: {
-        WebEngine.settings.javascriptCanOpenWindows = true;
-        WebEngine.settings.javascriptCanAccessClipboard = false;
-        WebEngine.settings.spatialNavigationEnabled = false;
-        WebEngine.settings.localContentCanAccessRemoteUrls = true;
-    }
-
     // Accept a download through the webview
     property bool webViewProfileSetup: false
     property string currentUrl: ""
@@ -103,28 +96,6 @@ OriginalDesktop.Desktop {
     property bool autoAdd: false
 
     function initWebviewProfileHandlers(profile) {
-        downloadUrl = currentUrl;
-        if (webViewProfileSetup) return;
-        webViewProfileSetup = true;
-
-        profile.downloadRequested.connect(function(download){
-            adaptedPath = File.convertUrlToPath(downloadUrl);
-            tempDir = File.getTempDir();
-            download.path = tempDir + "/" + adaptedPath;
-            download.accept();
-            if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
-                console.log("download failed to complete");
-            }
-        })
-
-        profile.downloadFinished.connect(function(download){
-            if (download.state === WebEngineDownloadItem.DownloadCompleted) {
-                File.runUnzip(download.path, downloadUrl, autoAdd);
-            } else {
-                console.log("The download was corrupted, state: " + download.state);
-            }
-            autoAdd = false;
-        })
     }
 
     function setAutoAdd(auto) {

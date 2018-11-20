@@ -1,5 +1,5 @@
 import QtQuick 2.7
-import QtWebEngine 1.5
+import QtWebView 1.1
 import QtWebChannel 1.0
 
 import QtQuick.Controls 2.2
@@ -67,7 +67,7 @@ Item {
     }
 
     function onLoadingChanged(loadRequest) {
-        if (WebEngineView.LoadStartedStatus === loadRequest.status) {
+        if (WebView.LoadStartedStatus === loadRequest.status) {
 
             // Required to support clicking on "hifi://" links
             var url = loadRequest.url.toString();
@@ -79,51 +79,24 @@ Item {
             }
         }
 
-        if (WebEngineView.LoadFailedStatus === loadRequest.status) {
-            console.log("Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
+        if (WebView.LoadFailedStatus === loadRequest.status) {
+            console.log("Tablet Web View failed to load url: " + loadRequest.url.toString());
         }
 
-        if (WebEngineView.LoadSucceededStatus === loadRequest.status) {
+        if (WebView.LoadSucceededStatus === loadRequest.status) {
             //disable Chromium's scroll bars
         }
     }
 
-    WebEngineView {
+    WebView {
         id: webViewCore
 
         width: parent.width
         height: parent.height
 
-        profile: HFWebEngineProfile;
         settings.pluginsEnabled: true
         settings.touchIconsEnabled: true
         settings.allowRunningInsecureContent: true
-
-        // creates a global EventBridge object.
-        WebEngineScript {
-            id: createGlobalEventBridge
-            sourceCode: eventBridgeJavaScriptToInject
-            injectionPoint: WebEngineScript.DocumentCreation
-            worldId: WebEngineScript.MainWorld
-        }
-
-        // detects when to raise and lower virtual keyboard
-        WebEngineScript {
-            id: raiseAndLowerKeyboard
-            injectionPoint: WebEngineScript.Deferred
-            sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
-            worldId: WebEngineScript.MainWorld
-        }
-
-        // User script.
-        WebEngineScript {
-            id: userScript
-            sourceUrl: flick.userScriptUrl
-            injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
-            worldId: WebEngineScript.MainWorld
-        }
-
-        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
         Component.onCompleted: {
             webChannel.registerObject("eventBridge", eventBridge);

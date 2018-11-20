@@ -33,6 +33,9 @@ const QStringList& FileUtils::getFileSelectors() {
 #if defined(USE_GLES)
         extraSelectors << "gles";
 #endif
+#if defined(Q_OS_ANDROID)
+        extraSelectors << HIFI_ANDROID_APP;
+#endif
     });
     return extraSelectors;
 

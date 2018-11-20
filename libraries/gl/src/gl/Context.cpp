@@ -26,6 +26,9 @@
 #include "Config.h"
 #include "GLHelpers.h"
 #include "QOpenGLContextWrapper.h"
+#if defined(GL_CUSTOM_CONTEXT)
+#include <QtPlatformHeaders/QWGLNativeContext>
+#endif
 
 using namespace gl;
 
@@ -195,6 +198,21 @@ GLAPI PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 
 Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
 
+#if defined(GL_CUSTOM_CONTEXT)
+bool Context::makeCurrent() {	
+    BOOL result = wglMakeCurrent(_hdc, _hglrc);	
+    assert(result);	
+    updateSwapchainMemoryCounter();	
+     return result;	
+}	
+ void Context::swapBuffers() {	
+    SwapBuffers(_hdc);	
+}	
+ void Context::doneCurrent() {	
+    wglMakeCurrent(0, 0);	
+}
+#endif
+
 void Context::create(QOpenGLContext* shareContext) {
     if (!shareContext) {
         shareContext = qt_gl_global_share_context();
@@ -297,7 +315,11 @@ void Context::create(QOpenGLContext* shareContext) {
                 contextAttribs.push_back(0);
             }
             contextAttribs.push_back(0);
-            HGLRC shareHglrc = (HGLRC)QOpenGLContextWrapper::nativeContext(shareContext);
+            HGLRC shareHglrc = nullptr;
+            if (shareContext) {
+                auto nativeContextPointer = QOpenGLContextWrapper(shareContext).getNativeContext();
+                shareHglrc = (HGLRC)nativeContextPointer->context();
+            }
             _hglrc = wglCreateContextAttribsARB(_hdc, shareHglrc, &contextAttribs[0]);
         }
 

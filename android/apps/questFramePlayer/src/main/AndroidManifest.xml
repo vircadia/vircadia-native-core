@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="io.highfidelity.frameplayer"
+    android:versionCode="1"
+    android:versionName="1.0"
+    android:installLocation="auto">
+    <uses-feature android:glEsVersion="0x00030002" android:required="true" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true"/>
+    <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true"/>
+    <uses-feature android:name="android.software.vr.mode" android:required="true"/>
+    <uses-feature android:name="android.hardware.vr.high_performance" android:required="true"/>
+
+
+    <application android:label="Frame Viewer"
+        android:allowBackup="false"
+        android:name="org.qtproject.qt5.android.bindings.QtApplication"
+        tools:ignore="GoogleAppIndexingWarning,MissingApplicationIcon">
+        <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_only"/>
+        <activity
+            android:name=".QuestQtActivity"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:launchMode="singleTask"
+            android:label="@string/app_name"
+            android:screenOrientation="landscape"
+            android:excludeFromRecents="false"
+            android:alwaysRetainTaskState="true"
+            android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode"
+            >
+            <!-- JNI nonsense -->
+            <meta-data android:name="android.app.lib_name" android:value="framePlayer"/>
+            <!-- Qt nonsense -->
+            <meta-data android:name="android.app.qt_libs_resource_id" android:resource="@array/qt_libs"/>
+            <meta-data android:name="android.app.bundled_in_lib_resource_id" android:resource="@array/bundled_in_lib"/>
+            <meta-data android:name="android.app.bundled_in_assets_resource_id" android:resource="@array/bundled_in_assets"/>
+            <meta-data android:name="android.app.load_local_libs" android:value="plugins/platforms/android/libqtforandroid.so:plugins/bearer/libqandroidbearer.so:lib/libQt5QuickParticles.so"/>
+        </activity>
+
+        <activity
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode"
+            android:name=".QuestRenderActivity"
+            android:label="Frame Player"
+            android:launchMode="singleInstance"
+            android:screenOrientation="landscape"
+            android:excludeFromRecents="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

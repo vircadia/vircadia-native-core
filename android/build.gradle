@@ -1,12 +1,4 @@
-import de.undercouch.gradle.tasks.download.Download
-import de.undercouch.gradle.tasks.download.Verify
-import groovy.io.FileType
-import groovy.json.JsonSlurper
-import groovy.xml.XmlUtil
 import org.apache.tools.ant.taskdefs.condition.Os
-
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 
 buildscript {
     repositories {
@@ -18,12 +10,6 @@ buildscript {
     }
 }
 
-plugins {
-    id 'de.undercouch.download' version '3.3.0'
-    id "cz.malohlava" version "1.0.3"
-    id "io.github.http-builder-ng.http-plugin" version "0.1.1"
-}
-
 allprojects {
     repositories {
         google()
@@ -32,16 +18,14 @@ allprojects {
     }
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
-}
-
 ext {
     RELEASE_NUMBER = project.hasProperty('RELEASE_NUMBER') ? project.getProperty('RELEASE_NUMBER') : '0'
     VERSION_CODE = project.hasProperty('VERSION_CODE') ? project.getProperty('VERSION_CODE') : '0'
     RELEASE_TYPE = project.hasProperty('RELEASE_TYPE') ? project.getProperty('RELEASE_TYPE') : 'DEV'
     STABLE_BUILD = project.hasProperty('STABLE_BUILD') ? project.getProperty('STABLE_BUILD') : '0'
     EXEC_SUFFIX = Os.isFamily(Os.FAMILY_WINDOWS) ? '.exe' : ''
+    appVersionCode = Integer.valueOf(VERSION_CODE ?: 1)
+    appVersionName = RELEASE_NUMBER ?: "1.0"
 }
 
 def appDir = new File(projectDir, 'apps/interface')
@@ -142,108 +126,6 @@ task setupDependencies() {
 task cleanDependencies(type: Delete) {
 }
 
-def runBreakpadDumpSyms = { buildType ->
-    gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS
-
-    def objDir = new File("${appDir}/build/intermediates/cmake/${buildType}/obj/arm64-v8a")
-    def stripDebugSymbol = "${appDir}/build/intermediates/transforms/stripDebugSymbol/${buildType}/0/lib/arm64-v8a/"
-    def outputDir = new File(breakpadDumpSymsDir, buildType)
-    if (!outputDir.exists()) {
-        outputDir.mkdirs()
-    }
-
-    objDir.eachFileRecurse (FileType.FILES) { file ->
-        if (file.name.endsWith('.so')) {
-            def output = file.name + ".sym"
-            def cmdArgs = [
-                    file.toString(),
-                    stripDebugSymbol
-            ]
-            def result = exec {
-                workingDir HIFI_ANDROID_PRECOMPILED + '/breakpad/bin'
-                commandLine './dump_syms'
-                args cmdArgs
-                ignoreExitValue true
-                standardOutput = new BufferedOutputStream(new FileOutputStream(new File(outputDir, output)))
-            }
-        }
-    }
-}
-
-task runBreakpadDumpSymsDebug() {
-    doLast {
-        runBreakpadDumpSyms("debug");
-    }
-}
-
-task runBreakpadDumpSymsRelease() {
-    doLast {
-        runBreakpadDumpSyms("release");
-    }
-}
-
-task zipDumpSymsDebug(type: Zip, dependsOn: runBreakpadDumpSymsDebug) {
-    from (new File(breakpadDumpSymsDir, "debug").absolutePath)
-    archiveName "symbols-${RELEASE_NUMBER}-debug.zip"
-    destinationDir(new File("${appDir}/build/tmp/"))
-}
-
-task zipDumpSymsRelease(type: Zip, dependsOn: runBreakpadDumpSymsRelease) {
-    from (new File(breakpadDumpSymsDir, "release").absolutePath)
-    archiveName "symbols-${RELEASE_NUMBER}-release.zip"
-    destinationDir(new File("${appDir}/build/tmp/"))
-}
-
-task uploadBreakpadDumpSymsDebug(type:io.github.httpbuilderng.http.HttpTask, dependsOn: zipDumpSymsDebug) {
-    onlyIf {
-        System.getenv("CMAKE_BACKTRACE_URL") && System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")
-    }
-    config {
-        request.uri = System.getenv("CMAKE_BACKTRACE_URL")
-    }
-    post {
-        request.uri.path = '/post'
-        request.uri.query = [format: 'symbols', token: System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")]
-        request.body = new File("${appDir}/build/tmp/", "symbols-${RELEASE_NUMBER}-debug.zip").bytes
-        request.contentType = 'application/octet-stream'
-        response.success {
-            println ("${appDir}/build/tmp/symbols-${RELEASE_NUMBER}-debug.zip uploaded")
-        }
-    }
-}
-
-task uploadBreakpadDumpSymsRelease(type:io.github.httpbuilderng.http.HttpTask, dependsOn: zipDumpSymsRelease) {
-    onlyIf {
-        System.getenv("CMAKE_BACKTRACE_URL") && System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")
-    }
-    config {
-        request.uri = System.getenv("CMAKE_BACKTRACE_URL")
-    }
-    post {
-        request.uri.path = '/post'
-        request.uri.query = [format: 'symbols', token: System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")]
-        request.body = new File("${appDir}/build/tmp/", "symbols-${RELEASE_NUMBER}-release.zip").bytes
-        request.contentType = 'application/octet-stream'
-        response.success {
-            println ("${appDir}/build/tmp/symbols-${RELEASE_NUMBER}-release.zip uploaded")
-        }
-    }
-}
-
-task renameHifiACTaskDebug() {
-    doLast {
-        def sourceFile = new File("${appDir}/build/intermediates/cmake/debug/obj/arm64-v8a/","libhifiCodec.so")
-        def destinationFile = new File("${appDir}/src/main/jniLibs/arm64-v8a", "libplugins_libhifiCodec.so")
-        copy { from sourceFile;  into destinationFile.parent;  rename(sourceFile.name, destinationFile.name) }
-    }
-}
-task renameHifiACTaskRelease(type: Copy) {
-    doLast {
-        def sourceFile = new File("${appDir}/build/intermediates/cmake/release/obj/arm64-v8a/","libhifiCodec.so")
-        def destinationFile = new File("${appDir}/src/main/jniLibs/arm64-v8a", "libplugins_libhifiCodec.so")
-        copy { from sourceFile;  into destinationFile.parent;  rename(sourceFile.name, destinationFile.name) }
-    }
-}
 
 // FIXME this code is prototyping the desired functionality for doing build time binary dependency resolution.
 // See the comment on the qtBundle task above

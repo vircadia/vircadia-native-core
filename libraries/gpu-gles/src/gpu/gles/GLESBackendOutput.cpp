@@ -15,7 +15,7 @@
 #include <gpu/gl/GLFramebuffer.h>
 #include <gpu/gl/GLTexture.h>
 
-namespace gpu { namespace gles { 
+namespace gpu { namespace gles {
 
 class GLESFramebuffer : public gl::GLFramebuffer {
     using Parent = gl::GLFramebuffer;

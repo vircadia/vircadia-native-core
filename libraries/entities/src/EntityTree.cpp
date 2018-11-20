@@ -43,6 +43,50 @@
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
 
+// combines the ray cast arguments into a single object
+class RayArgs {
+public:
+    // Inputs
+    glm::vec3 origin;
+    glm::vec3 direction;
+    glm::vec3 invDirection;
+    const QVector<EntityItemID>& entityIdsToInclude;
+    const QVector<EntityItemID>& entityIdsToDiscard;
+    bool visibleOnly;
+    bool collidableOnly;
+    bool precisionPicking;
+
+    // Outputs
+    OctreeElementPointer& element;
+    float& distance;
+    BoxFace& face;
+    glm::vec3& surfaceNormal;
+    QVariantMap& extraInfo;
+    EntityItemID entityID;
+};
+
+class ParabolaArgs {
+public:
+    // Inputs
+    glm::vec3 origin;
+    glm::vec3 velocity;
+    glm::vec3 acceleration;
+    const QVector<EntityItemID>& entityIdsToInclude;
+    const QVector<EntityItemID>& entityIdsToDiscard;
+    bool visibleOnly;
+    bool collidableOnly;
+    bool precisionPicking;
+
+    // Outputs
+    OctreeElementPointer& element;
+    float& parabolicDistance;
+    BoxFace& face;
+    glm::vec3& surfaceNormal;
+    QVariantMap& extraInfo;
+    EntityItemID entityID;
+};
+
+
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage)
 {
@@ -772,32 +816,59 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
     }
 }
 
-class RayArgs {
-public:
-    // Inputs
-    glm::vec3 origin;
-    glm::vec3 direction;
-    glm::vec3 invDirection;
-    const QVector<EntityItemID>& entityIdsToInclude;
-    const QVector<EntityItemID>& entityIdsToDiscard;
-    PickFilter searchFilter;
 
-    // Outputs
-    OctreeElementPointer& element;
-    float& distance;
-    BoxFace& face;
-    glm::vec3& surfaceNormal;
-    QVariantMap& extraInfo;
-    EntityItemID entityID;
+class FindNearPointArgs {
+public:
+    glm::vec3 position;
+    float targetRadius;
+    bool found;
+    EntityItemPointer closestEntity;
+    float closestEntityDistance;
 };
 
-bool evalRayIntersectionOp(const OctreeElementPointer& element, void* extraData) {
+
+bool EntityTree::findNearPointOperation(const OctreeElementPointer& element, void* extraData) {
+    FindNearPointArgs* args = static_cast<FindNearPointArgs*>(extraData);
+    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+
+    glm::vec3 penetration;
+    bool sphereIntersection = entityTreeElement->getAACube().findSpherePenetration(args->position, args->targetRadius, penetration);
+
+    // If this entityTreeElement contains the point, then search it...
+    if (sphereIntersection) {
+        EntityItemPointer thisClosestEntity = entityTreeElement->getClosestEntity(args->position);
+
+        // we may have gotten NULL back, meaning no entity was available
+        if (thisClosestEntity) {
+            glm::vec3 entityPosition = thisClosestEntity->getWorldPosition();
+            float distanceFromPointToEntity = glm::distance(entityPosition, args->position);
+
+            // If we're within our target radius
+            if (distanceFromPointToEntity <= args->targetRadius) {
+                // we are closer than anything else we've found
+                if (distanceFromPointToEntity < args->closestEntityDistance) {
+                    args->closestEntity = thisClosestEntity;
+                    args->closestEntityDistance = distanceFromPointToEntity;
+                    args->found = true;
+                }
+            }
+        }
+
+        // we should be able to optimize this...
+        return true; // keep searching in case children have closer entities
+    }
+
+    // if this element doesn't contain the point, then none of its children can contain the point, so stop searching
+    return false;
+}
+
+bool findRayIntersectionOp(const OctreeElementPointer& element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    EntityItemID entityID = entityTreeElementPointer->evalRayIntersection(args->origin, args->direction,
+    EntityItemID entityID = entityTreeElementPointer->findRayIntersection(args->origin, args->direction,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
-        args->entityIdsToDiscard, args->searchFilter, args->extraInfo);
+        args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->extraInfo, args->precisionPicking);
     if (!entityID.isNull()) {
         args->entityID = entityID;
         // We recurse OctreeElements in order, so if we hit something, we can stop immediately
@@ -806,7 +877,7 @@ bool evalRayIntersectionOp(const OctreeElementPointer& element, void* extraData)
     return keepSearching;
 }
 
-float evalRayIntersectionSortingOp(const OctreeElementPointer& element, void* extraData) {
+float findRayIntersectionSortingOp(const OctreeElementPointer& element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
     float distance = FLT_MAX;
@@ -827,18 +898,19 @@ float evalRayIntersectionSortingOp(const OctreeElementPointer& element, void* ex
     return distance;
 }
 
-EntityItemID EntityTree::evalRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
-                                    PickFilter searchFilter, OctreeElementPointer& element, float& distance,
+                                    bool visibleOnly, bool collidableOnly, bool precisionPicking, 
+                                    OctreeElementPointer& element, float& distance,
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
     RayArgs args = { origin, direction, 1.0f / direction, entityIdsToInclude, entityIdsToDiscard,
-            searchFilter, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
+            visibleOnly, collidableOnly, precisionPicking, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;
     bool lockResult = withReadLock([&]{
-        recurseTreeWithOperationSorted(evalRayIntersectionOp, evalRayIntersectionSortingOp, &args);
+        recurseTreeWithOperationSorted(findRayIntersectionOp, findRayIntersectionSortingOp, &args);
     }, requireLock);
 
     if (accurateResult) {
@@ -848,32 +920,13 @@ EntityItemID EntityTree::evalRayIntersection(const glm::vec3& origin, const glm:
     return args.entityID;
 }
 
-class ParabolaArgs {
-public:
-    // Inputs
-    glm::vec3 origin;
-    glm::vec3 velocity;
-    glm::vec3 acceleration;
-    const QVector<EntityItemID>& entityIdsToInclude;
-    const QVector<EntityItemID>& entityIdsToDiscard;
-    PickFilter searchFilter;
-
-    // Outputs
-    OctreeElementPointer& element;
-    float& parabolicDistance;
-    BoxFace& face;
-    glm::vec3& surfaceNormal;
-    QVariantMap& extraInfo;
-    EntityItemID entityID;
-};
-
-bool evalParabolaIntersectionOp(const OctreeElementPointer& element, void* extraData) {
+bool findParabolaIntersectionOp(const OctreeElementPointer& element, void* extraData) {
     ParabolaArgs* args = static_cast<ParabolaArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    EntityItemID entityID = entityTreeElementPointer->evalParabolaIntersection(args->origin, args->velocity, args->acceleration,
+    EntityItemID entityID = entityTreeElementPointer->findParabolaIntersection(args->origin, args->velocity, args->acceleration,
         args->element, args->parabolicDistance, args->face, args->surfaceNormal, args->entityIdsToInclude,
-        args->entityIdsToDiscard, args->searchFilter, args->extraInfo);
+        args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->extraInfo, args->precisionPicking);
     if (!entityID.isNull()) {
         args->entityID = entityID;
         // We recurse OctreeElements in order, so if we hit something, we can stop immediately
@@ -882,7 +935,7 @@ bool evalParabolaIntersectionOp(const OctreeElementPointer& element, void* extra
     return keepSearching;
 }
 
-float evalParabolaIntersectionSortingOp(const OctreeElementPointer& element, void* extraData) {
+float findParabolaIntersectionSortingOp(const OctreeElementPointer& element, void* extraData) {
     ParabolaArgs* args = static_cast<ParabolaArgs*>(extraData);
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
     float distance = FLT_MAX;
@@ -903,20 +956,20 @@ float evalParabolaIntersectionSortingOp(const OctreeElementPointer& element, voi
     return distance;
 }
 
-EntityItemID EntityTree::evalParabolaIntersection(const PickParabola& parabola,
+EntityItemID EntityTree::findParabolaIntersection(const PickParabola& parabola,
                                     QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
-                                    PickFilter searchFilter,
+                                    bool visibleOnly, bool collidableOnly, bool precisionPicking,
                                     OctreeElementPointer& element, glm::vec3& intersection, float& distance, float& parabolicDistance,
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
     ParabolaArgs args = { parabola.origin, parabola.velocity, parabola.acceleration, entityIdsToInclude, entityIdsToDiscard,
-        searchFilter, element, parabolicDistance, face, surfaceNormal, extraInfo, EntityItemID() };
+        visibleOnly, collidableOnly, precisionPicking, element, parabolicDistance, face, surfaceNormal, extraInfo, EntityItemID() };
     parabolicDistance = FLT_MAX;
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;
     bool lockResult = withReadLock([&] {
-        recurseTreeWithOperationSorted(evalParabolaIntersectionOp, evalParabolaIntersectionSortingOp, &args);
+        recurseTreeWithOperationSorted(findParabolaIntersectionOp, findParabolaIntersectionSortingOp, &args);
     }, requireLock);
 
     if (accurateResult) {
@@ -931,80 +984,33 @@ EntityItemID EntityTree::evalParabolaIntersection(const PickParabola& parabola,
     return args.entityID;
 }
 
-class FindClosestEntityArgs {
-public:
-    // Inputs
-    glm::vec3 position;
-    float targetRadius;
-    PickFilter searchFilter;
 
-    // Outputs
-    QUuid closestEntity;
-    float closestEntityDistance;
-};
-
-
-bool evalClosestEntityOperation(const OctreeElementPointer& element, void* extraData) {
-    FindClosestEntityArgs* args = static_cast<FindClosestEntityArgs*>(extraData);
-    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-
-    glm::vec3 penetration;
-    bool sphereIntersection = entityTreeElement->getAACube().findSpherePenetration(args->position, args->targetRadius, penetration);
-
-    // If this entityTreeElement contains the point, then search it...
-    if (sphereIntersection) {
-        float closestDistanceSquared = FLT_MAX;
-        QUuid thisClosestEntity = entityTreeElement->evalClosetEntity(args->position, args->searchFilter, closestDistanceSquared);
-
-        // we may have gotten NULL back, meaning no entity was available
-        if (!thisClosestEntity.isNull()) {
-            float distanceFromPointToEntity = glm::sqrt(closestDistanceSquared);
-
-            // If we're within our target radius
-            if (distanceFromPointToEntity <= args->targetRadius) {
-                // we are closer than anything else we've found
-                if (distanceFromPointToEntity < args->closestEntityDistance) {
-                    args->closestEntity = thisClosestEntity;
-                    args->closestEntityDistance = distanceFromPointToEntity;
-                }
-            }
-        }
-
-        // we should be able to optimize this...
-        return true; // keep searching in case children have closer entities
-    }
-
-    // if this element doesn't contain the point, then none of its children can contain the point, so stop searching
-    return false;
-}
-
-// NOTE: assumes caller has handled locking
-QUuid EntityTree::evalClosestEntity(const glm::vec3& position, float targetRadius, PickFilter searchFilter) {
-    FindClosestEntityArgs args = { position, targetRadius, searchFilter, QUuid(), FLT_MAX };
-    recurseTreeWithOperation(evalClosestEntityOperation, &args);
+EntityItemPointer EntityTree::findClosestEntity(const glm::vec3& position, float targetRadius) {
+    FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
+    withReadLock([&] {
+        // NOTE: This should use recursion, since this is a spatial operation
+        recurseTreeWithOperation(findNearPointOperation, &args);
+    });
     return args.closestEntity;
 }
 
-class FindEntitiesInSphereArgs {
+class FindAllNearPointArgs {
 public:
-    // Inputs
     glm::vec3 position;
     float targetRadius;
-    PickFilter searchFilter;
-
-    // Outputs
-    QVector<QUuid> entities;
+    QVector<EntityItemPointer> entities;
 };
 
-bool evalInSphereOperation(const OctreeElementPointer& element, void* extraData) {
-    FindEntitiesInSphereArgs* args = static_cast<FindEntitiesInSphereArgs*>(extraData);
+
+bool EntityTree::findInSphereOperation(const OctreeElementPointer& element, void* extraData) {
+    FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
     glm::vec3 penetration;
     bool sphereIntersection = element->getAACube().findSpherePenetration(args->position, args->targetRadius, penetration);
 
     // If this element contains the point, then search it...
     if (sphereIntersection) {
         EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-        entityTreeElement->evalEntitiesInSphere(args->position, args->targetRadius, args->searchFilter, args->entities);
+        entityTreeElement->getEntities(args->position, args->targetRadius, args->entities);
         return true; // keep searching in case children have closer entities
     }
 
@@ -1013,166 +1019,102 @@ bool evalInSphereOperation(const OctreeElementPointer& element, void* extraData)
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::evalEntitiesInSphere(const glm::vec3& center, float radius, PickFilter searchFilter, QVector<QUuid>& foundEntities) {
-    FindEntitiesInSphereArgs args = { center, radius, searchFilter, QVector<QUuid>() };
-    recurseTreeWithOperation(evalInSphereOperation, &args);
-    foundEntities.swap(args.entities);
-}
+void EntityTree::findEntities(const glm::vec3& center, float radius, QVector<EntityItemPointer>& foundEntities) {
+    FindAllNearPointArgs args = { center, radius, QVector<EntityItemPointer>() };
+    // NOTE: This should use recursion, since this is a spatial operation
+    recurseTreeWithOperation(findInSphereOperation, &args);
 
-class FindEntitiesInSphereWithTypeArgs {
-public:
-    // Inputs
-    glm::vec3 position;
-    float targetRadius;
-    EntityTypes::EntityType type;
-    PickFilter searchFilter;
-
-    // Outputs
-    QVector<QUuid> entities;
-};
-
-bool evalInSphereWithTypeOperation(const OctreeElementPointer& element, void* extraData) {
-    FindEntitiesInSphereWithTypeArgs* args = static_cast<FindEntitiesInSphereWithTypeArgs*>(extraData);
-    glm::vec3 penetration;
-    bool sphereIntersection = element->getAACube().findSpherePenetration(args->position, args->targetRadius, penetration);
-
-    // If this element contains the point, then search it...
-    if (sphereIntersection) {
-        EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-        entityTreeElement->evalEntitiesInSphereWithType(args->position, args->targetRadius, args->type, args->searchFilter, args->entities);
-        return true; // keep searching in case children have closer entities
-    }
-
-    // if this element doesn't contain the point, then none of it's children can contain the point, so stop searching
-    return false;
-}
-
-// NOTE: assumes caller has handled locking
-void EntityTree::evalEntitiesInSphereWithType(const glm::vec3& center, float radius, EntityTypes::EntityType type, PickFilter searchFilter, QVector<QUuid>& foundEntities) {
-    FindEntitiesInSphereWithTypeArgs args = { center, radius, type, searchFilter, QVector<QUuid>() };
-    recurseTreeWithOperation(evalInSphereWithTypeOperation, &args);
-    foundEntities.swap(args.entities);
-}
-
-class FindEntitiesInSphereWithNameArgs {
-public:
-    // Inputs
-    glm::vec3 position;
-    float targetRadius;
-    QString name;
-    bool caseSensitive;
-    PickFilter searchFilter;
-
-    // Outputs
-    QVector<QUuid> entities;
-};
-
-bool evalInSphereWithNameOperation(const OctreeElementPointer& element, void* extraData) {
-    FindEntitiesInSphereWithNameArgs* args = static_cast<FindEntitiesInSphereWithNameArgs*>(extraData);
-    glm::vec3 penetration;
-    bool sphereIntersection = element->getAACube().findSpherePenetration(args->position, args->targetRadius, penetration);
-
-    // If this element contains the point, then search it...
-    if (sphereIntersection) {
-        EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-        entityTreeElement->evalEntitiesInSphereWithName(args->position, args->targetRadius, args->name, args->caseSensitive, args->searchFilter, args->entities);
-        return true; // keep searching in case children have closer entities
-    }
-
-    // if this element doesn't contain the point, then none of it's children can contain the point, so stop searching
-    return false;
-}
-
-// NOTE: assumes caller has handled locking
-void EntityTree::evalEntitiesInSphereWithName(const glm::vec3& center, float radius, const QString& name, bool caseSensitive, PickFilter searchFilter, QVector<QUuid>& foundEntities) {
-    FindEntitiesInSphereWithNameArgs args = { center, radius, name, caseSensitive, searchFilter, QVector<QUuid>() };
-    recurseTreeWithOperation(evalInSphereWithNameOperation, &args);
+    // swap the two lists of entity pointers instead of copy
     foundEntities.swap(args.entities);
 }
 
 class FindEntitiesInCubeArgs {
 public:
-    // Inputs
-    AACube cube;
-    PickFilter searchFilter;
+    FindEntitiesInCubeArgs(const AACube& cube)
+        : _cube(cube), _foundEntities() {
+    }
 
-    // Outputs
-    QVector<QUuid> entities;
+    AACube _cube;
+    QVector<EntityItemPointer> _foundEntities;
 };
 
-bool findInCubeOperation(const OctreeElementPointer& element, void* extraData) {
+bool EntityTree::findInCubeOperation(const OctreeElementPointer& element, void* extraData) {
     FindEntitiesInCubeArgs* args = static_cast<FindEntitiesInCubeArgs*>(extraData);
-    if (element->getAACube().touches(args->cube)) {
+    if (element->getAACube().touches(args->_cube)) {
         EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-        entityTreeElement->evalEntitiesInCube(args->cube, args->searchFilter, args->entities);
+        entityTreeElement->getEntities(args->_cube, args->_foundEntities);
         return true;
     }
     return false;
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::evalEntitiesInCube(const AACube& cube, PickFilter searchFilter, QVector<QUuid>& foundEntities) {
-    FindEntitiesInCubeArgs args { cube, searchFilter, QVector<QUuid>() };
+void EntityTree::findEntities(const AACube& cube, QVector<EntityItemPointer>& foundEntities) {
+    FindEntitiesInCubeArgs args(cube);
+    // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInCubeOperation, &args);
-    foundEntities.swap(args.entities);
+    // swap the two lists of entity pointers instead of copy
+    foundEntities.swap(args._foundEntities);
 }
 
 class FindEntitiesInBoxArgs {
 public:
-    // Inputs
-    AABox box;
-    PickFilter searchFilter;
+    FindEntitiesInBoxArgs(const AABox& box)
+    : _box(box), _foundEntities() {
+    }
 
-    // Outputs
-    QVector<QUuid> entities;
+    AABox _box;
+    QVector<EntityItemPointer> _foundEntities;
 };
 
-bool findInBoxOperation(const OctreeElementPointer& element, void* extraData) {
+bool EntityTree::findInBoxOperation(const OctreeElementPointer& element, void* extraData) {
     FindEntitiesInBoxArgs* args = static_cast<FindEntitiesInBoxArgs*>(extraData);
-    if (element->getAACube().touches(args->box)) {
+    if (element->getAACube().touches(args->_box)) {
         EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-        entityTreeElement->evalEntitiesInBox(args->box, args->searchFilter, args->entities);
+        entityTreeElement->getEntities(args->_box, args->_foundEntities);
         return true;
     }
     return false;
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::evalEntitiesInBox(const AABox& box, PickFilter searchFilter, QVector<QUuid>& foundEntities) {
-    FindEntitiesInBoxArgs args { box, searchFilter, QVector<QUuid>() };
+void EntityTree::findEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities) {
+    FindEntitiesInBoxArgs args(box);
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInBoxOperation, &args);
     // swap the two lists of entity pointers instead of copy
-    foundEntities.swap(args.entities);
+    foundEntities.swap(args._foundEntities);
 }
 
-class FindEntitiesInFrustumArgs {
+class FindInFrustumArgs {
 public:
-    // Inputs
     ViewFrustum frustum;
-    PickFilter searchFilter;
-
-    // Outputs
-    QVector<QUuid> entities;
+    QVector<EntityItemPointer> entities;
 };
 
-bool findInFrustumOperation(const OctreeElementPointer& element, void* extraData) {
-    FindEntitiesInFrustumArgs* args = static_cast<FindEntitiesInFrustumArgs*>(extraData);
+bool EntityTree::findInFrustumOperation(const OctreeElementPointer& element, void* extraData) {
+    FindInFrustumArgs* args = static_cast<FindInFrustumArgs*>(extraData);
     if (element->isInView(args->frustum)) {
         EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-        entityTreeElement->evalEntitiesInFrustum(args->frustum, args->searchFilter, args->entities);
+        entityTreeElement->getEntities(args->frustum, args->entities);
         return true;
     }
     return false;
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::evalEntitiesInFrustum(const ViewFrustum& frustum, PickFilter searchFilter, QVector<QUuid>& foundEntities) {
-    FindEntitiesInFrustumArgs args = { frustum, searchFilter, QVector<QUuid>() };
+void EntityTree::findEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities) {
+    FindInFrustumArgs args = { frustum, QVector<EntityItemPointer>() };
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInFrustumOperation, &args);
     // swap the two lists of entity pointers instead of copy
     foundEntities.swap(args.entities);
+}
+
+// NOTE: assumes caller has handled locking
+void EntityTree::findEntities(RecurseOctreeOperation& elementFilter,
+                              QVector<EntityItemPointer>& foundEntities) {
+    recurseTreeWithOperation(elementFilter, nullptr);
 }
 
 EntityItemPointer EntityTree::findEntityByID(const QUuid& id) const {

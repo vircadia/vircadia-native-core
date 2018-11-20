@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include "Application.h"
 
 #include <chrono>
@@ -37,7 +38,6 @@
 
 #include <QtNetwork/QLocalSocket>
 #include <QtNetwork/QLocalServer>
-
 #include <QtQml/QQmlContext>
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickWindow>
@@ -50,6 +50,7 @@
 #include <QFontDatabase>
 #include <QProcessEnvironment>
 #include <QTemporaryDir>
+
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/GLWindow.h>
@@ -189,6 +190,9 @@
 #include "scripting/WalletScriptingInterface.h"
 #include "scripting/TTSScriptingInterface.h"
 #include "scripting/KeyboardScriptingInterface.h"
+
+
+
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -238,6 +242,7 @@
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
+
 
 #include "AboutUtil.h"
 
@@ -601,8 +606,9 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
                 __android_log_write(ANDROID_LOG_FATAL,"Interface",local);
                 abort();
         }
-#endif
+#else
         qApp->getLogger()->addMessage(qPrintable(logMessage));
+#endif
     }
 }
 
@@ -978,7 +984,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QApplication(argc, argv),
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
+#ifndef Q_OS_ANDROID
     _logger(new FileLogger(this)),
+#endif
     _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
@@ -1112,7 +1120,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
     auto accountManager = DependencyManager::get<AccountManager>();
 
+#ifndef Q_OS_ANDROID
     _logger->setSessionID(accountManager->getSessionID());
+#endif
 
     setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
     setCrashAnnotation("main_thread_id", std::to_string((size_t)QThread::currentThreadId()));
@@ -1750,7 +1760,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_ANDROID, []() -> float {
 #if defined(Q_OS_ANDROID)
-        return 1;
+        return 1 ;
 #else
         return 0;
 #endif
@@ -1852,6 +1862,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
 
     this->installEventFilter(this);
+
+
 
 #ifdef HAVE_DDE
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
@@ -1986,6 +1998,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
+
 
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
@@ -3060,11 +3073,11 @@ void Application::initializeUi() {
         if (TouchscreenVirtualPadDevice::NAME == inputPlugin->getName()) {
             _touchscreenVirtualPadDevice = std::dynamic_pointer_cast<TouchscreenVirtualPadDevice>(inputPlugin);
 #if defined(Q_OS_ANDROID)
-            auto& virtualPadManager = VirtualPad::Manager::instance();
-            connect(&virtualPadManager, &VirtualPad::Manager::hapticFeedbackRequested,
-                    this, [](int duration) {
-                        AndroidHelper::instance().performHapticFeedback(duration);
-                    });
+ //          auto& virtualPadManager = VirtualPad::Manager::instance();
+ //          connect(&virtualPadManager, &VirtualPad::Manager::hapticFeedbackRequested,
+ //                  this, [](int duration) {
+ //                      AndroidHelper::instance().performHapticFeedback(duration);
+ //                  });
 #endif
         }
     }
@@ -3226,9 +3239,9 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     surfaceContext->setContextProperty("AnimStats", AnimStats::getInstance());
 
 #if !defined(Q_OS_ANDROID)
-    auto offscreenUi = getOffscreenUI();
-    auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
-    offscreenUi->show(qml, "AvatarInputsBar");
+//  auto offscreenUi = getOffscreenUI();
+//  auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
+//  offscreenUi->show(qml, "AvatarInputsBar");
 #endif
 }
 
@@ -3591,10 +3604,14 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     }
 
     // Get controller availability
+    #ifdef Q_OS_ANDROID
+    bool hasHandControllers = true;
+    #else
     bool hasHandControllers = false;
     if (PluginUtils::isViveControllerAvailable() || PluginUtils::isOculusTouchControllerAvailable()) {
         hasHandControllers = true;
     }
+    #endif
 
     // Check HMD use (may be technically available without being in use)
     bool hasHMD = PluginUtils::isHMDAvailable();
@@ -4925,7 +4942,11 @@ void Application::idle() {
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
     // details normally.
+#ifndef Q_OS_ANDROID
     bool showWarnings = getLogger()->extraDebugging();
+#else
+    bool showWarnings = false;
+#endif
     PerformanceWarning warn(showWarnings, "idle()");
 
     {
@@ -5063,7 +5084,7 @@ void Application::calibrateEyeTracker5Points() {
 #endif
 
 bool Application::exportEntities(const QString& filename,
-                                 const QVector<QUuid>& entityIDs,
+                                 const QVector<EntityItemID>& entityIDs,
                                  const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
 
@@ -5138,12 +5159,16 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     glm::vec3 minCorner = center - vec3(scale);
     float cubeSize = scale * 2;
     AACube boundingCube(minCorner, cubeSize);
-    QVector<QUuid> entities;
+    QVector<EntityItemPointer> entities;
+    QVector<EntityItemID> ids;
     auto entityTree = getEntities()->getTree();
     entityTree->withReadLock([&] {
-        entityTree->evalEntitiesInCube(boundingCube, PickFilter(), entities);
+        entityTree->findEntities(boundingCube, entities);
+        foreach(EntityItemPointer entity, entities) {
+            ids << entity->getEntityItemID();
+        }
     });
-    return exportEntities(filename, entities, &center);
+    return exportEntities(filename, ids, &center);
 }
 
 void Application::loadSettings() {
@@ -7208,7 +7233,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     bool clientScript = scriptEngine->isClientScript();
     scriptEngine->registerFunction("OverlayWindow", clientScript ? QmlWindowClass::constructor : QmlWindowClass::restricted_constructor);
-#if !defined(Q_OS_ANDROID) && !defined(DISABLE_QML)
+#if !defined(DISABLE_QML)
     scriptEngine->registerFunction("OverlayWebWindow", clientScript ? QmlWebWindowClass::constructor : QmlWebWindowClass::restricted_constructor);
 #endif
     scriptEngine->registerFunction("QmlFragment", clientScript ? QmlFragmentClass::constructor : QmlFragmentClass::restricted_constructor);
@@ -8256,9 +8281,7 @@ void Application::loadDomainConnectionDialog() {
 }
 
 void Application::toggleLogDialog() {
-    if (getLoginDialogPoppedUp()) {
-        return;
-    }
+#ifndef Q_OS_ANDROID
     if (! _logDialog) {
 
         bool keepOnTop =_keepLogWindowOnTop.get();
@@ -8279,6 +8302,7 @@ void Application::toggleLogDialog() {
     } else {
         _logDialog->show();
     }
+#endif
 }
 
  void Application::recreateLogWindow(int keepOnTop) {
@@ -9138,17 +9162,17 @@ void Application::beforeEnterBackground() {
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
-    if (getActiveDisplayPlugin()->isActive()) {
-        getActiveDisplayPlugin()->deactivate();
-    }
+//    if (getActiveDisplayPlugin()->isActive()) {
+//        getActiveDisplayPlugin()->deactivate();
+//    }
 }
 
 void Application::enterForeground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                                   "start", Qt::BlockingQueuedConnection);
-    if (!getActiveDisplayPlugin() || getActiveDisplayPlugin()->isActive() || !getActiveDisplayPlugin()->activate()) {
-        qWarning() << "Could not re-activate display plugin";
-    }
+//    if (!getActiveDisplayPlugin() || getActiveDisplayPlugin()->isActive() || !getActiveDisplayPlugin()->activate()) {
+//        qWarning() << "Could not re-activate display plugin";
+//    }
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setSendDomainServerCheckInEnabled(true);
 }

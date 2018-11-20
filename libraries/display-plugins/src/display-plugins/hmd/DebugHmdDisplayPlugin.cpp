@@ -51,6 +51,19 @@ bool DebugHmdDisplayPlugin::internalActivate() {
     }, true, _isAutoRotateEnabled);
 
     _ipd = 0.0327499993f * 2.0f;
+
+
+    // Quest 
+    _eyeProjections[0][0] = vec4{ 0.91729, 0.0, -0.17407, 0.0  };
+    _eyeProjections[0][1] = vec4{ 0.0, 0.083354, -0.106141, 0.0 };
+    _eyeProjections[0][2] = vec4{ 0.0, 0.0, -1.0, -0.2 };
+    _eyeProjections[0][3] = vec4{ 0.0, 0.0, -1.0, 0.0 };
+    _eyeProjections[1][0] = vec4{ 0.91729, 0.0, 0.17407, 0.0 };
+    _eyeProjections[1][1] = vec4{ 0.0, 0.083354, -0.106141, 0.0 };
+    _eyeProjections[1][2] = vec4{ 0.0, 0.0, -1.0, -0.2 };
+    _eyeProjections[1][3] = vec4{ 0.0, 0.0, -1.0, 0.0 };
+
+
     // Would be nice to know why the left and right projection matrices are slightly dissymetrical
     _eyeProjections[0][0] = vec4{ 0.759056330, 0.000000000, 0.000000000, 0.000000000 };
     _eyeProjections[0][1] = vec4{ 0.000000000, 0.682773232, 0.000000000, 0.000000000 };

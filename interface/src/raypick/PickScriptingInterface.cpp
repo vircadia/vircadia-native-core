@@ -49,17 +49,11 @@ unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, 
     }
 }
 
-PickFilter getPickFilter(unsigned int filter) {
-    // FIXME: Picks always intersect visible and collidable things right now
-    filter = filter | (PickScriptingInterface::PICK_INCLUDE_VISIBLE() | PickScriptingInterface::PICK_INCLUDE_COLLIDABLE());
-    return PickFilter(filter);
-}
-
 /**jsdoc
  * A set of properties that can be passed to {@link Picks.createPick} to create a new Ray Pick.
  * @typedef {object} Picks.RayPickProperties
  * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
- * @property {number} [filter=0] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
+ * @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
  * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
  * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, an overlay, or a pick.
  * @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
@@ -79,7 +73,7 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
 
     PickFilter filter = PickFilter();
     if (propMap["filter"].isValid()) {
-        filter = getPickFilter(propMap["filter"].toUInt());
+        filter = PickFilter(propMap["filter"].toUInt());
     }
 
     float maxDistance = 0.0f;
@@ -117,7 +111,7 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
  * @typedef {object} Picks.StylusPickProperties
  * @property {number} [hand=-1] An integer.  0 == left, 1 == right.  Invalid otherwise.
  * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
- * @property {number} [filter=0] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
+ * @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
  * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
  */
 unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties) {
@@ -138,7 +132,7 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
 
     PickFilter filter = PickFilter();
     if (propMap["filter"].isValid()) {
-        filter = getPickFilter(propMap["filter"].toUInt());
+        filter = PickFilter(propMap["filter"].toUInt());
     }
 
     float maxDistance = 0.0f;
@@ -159,7 +153,7 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
  * A set of properties that can be passed to {@link Picks.createPick} to create a new Parabola Pick.
  * @typedef {object} Picks.ParabolaPickProperties
  * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
- * @property {number} [filter=0] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
+ * @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
  * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
  * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, an overlay, or a pick.
  * @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
@@ -184,7 +178,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 
     PickFilter filter = PickFilter();
     if (propMap["filter"].isValid()) {
-        filter = getPickFilter(propMap["filter"].toUInt());
+        filter = PickFilter(propMap["filter"].toUInt());
     }
 
     float maxDistance = 0.0f;
@@ -256,7 +250,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 
 * @typedef {object} Picks.CollisionPickProperties
 * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
-* @property {number} [filter=0] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
+* @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
 * @property {Shape} shape - The information about the collision region's size and shape. Dimensions are in world space, but will scale with the parent if defined.
 * @property {Vec3} position - The position of the collision region, relative to a parent if defined.
 * @property {Quat} orientation - The orientation of the collision region, relative to a parent if defined.
@@ -279,7 +273,7 @@ unsigned int PickScriptingInterface::createCollisionPick(const QVariant& propert
 
     PickFilter filter = PickFilter();
     if (propMap["filter"].isValid()) {
-        filter = getPickFilter(propMap["filter"].toUInt());
+        filter = PickFilter(propMap["filter"].toUInt());
     }
 
     float maxDistance = 0.0f;

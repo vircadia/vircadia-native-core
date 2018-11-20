@@ -166,8 +166,27 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         nativeOnDestroy();
+        /*
+        cduarte https://highfidelity.manuscript.com/f/cases/16712/App-freezes-on-opening-randomly
+        After Qt upgrade to 5.11 we had a black screen crash after closing the application with
+        the hardware button "Back" and trying to start the app again. It could only be fixed after
+        totally closing the app swiping it in the list of running apps.
+        This problem did not happen with the previous Qt version.
+        After analysing changes we came up with this case and change:
+            https://codereview.qt-project.org/#/c/218882/
+        In summary they've moved libs loading to the same thread as main() and as a matter of correctness
+        in the onDestroy method in QtActivityDelegate, they exit that thread with `QtNative.m_qtThread.exit();`
+        That exit call is the main reason of this problem.
+
+        In this fix we just replace the `QtApplication.invokeDelegate();` call that may end using the
+        entire onDestroy method including that thread exit line for other three lines that purposely
+        terminate qt (borrowed from QtActivityDelegate::onDestroy as well).
+         */
+        QtNative.terminateQt();
+        QtNative.setActivity(null, null);
+        System.exit(0);
+        super.onDestroy();
     }
 
     @Override

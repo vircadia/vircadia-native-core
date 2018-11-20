@@ -75,6 +75,8 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
     details._considered += (int)inItems.size();
 
     // Culling / LOD
+#if 0 
+    // Culling / LOD
     for (auto item : inItems) {
         if (item.bound.isNull()) {
             outItems.emplace_back(item); // One more Item to render
@@ -103,6 +105,12 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
             details._outOfView++;
         }
     }
+#else
+    for (auto item : inItems) {
+        outItems.emplace_back(item);
+    }
+#endif
+
     details._rendered += (int)outItems.size();
 }
 
@@ -117,9 +125,9 @@ void FetchNonspatialItems::run(const RenderContextPointer& renderContext, const 
     outItems.reserve(items.size());
     for (auto& id : items) {
         auto& item = scene->getItem(id);
-        if (filter.test(item.getKey())) {
+        //if (filter.test(item.getKey())) {
             outItems.emplace_back(ItemBound(id, item.getBound()));
-        }
+        //}
     }
 }
 
@@ -435,9 +443,9 @@ void ApplyCullFunctorOnItemBounds::run(const RenderContextPointer& renderContext
     outItems.reserve(inItems.size());
 
     for (auto& item : inItems) {
-        if (_cullFunctor(args, item.bound)) {
+        //if (_cullFunctor(args, item.bound)) {
             outItems.emplace_back(item);
-        }
+        //}
     }
 
     if (inputFrustum != nullptr) {

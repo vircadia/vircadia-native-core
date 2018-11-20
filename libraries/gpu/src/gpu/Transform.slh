@@ -167,7 +167,7 @@ TransformObject getTransformObject() {
         vec4 eyeClipEdge[2]= vec4[2](vec4(-1,0,0,1), vec4(1,0,0,1));
         vec2 eyeOffsetScale = vec2(-0.5, +0.5);
         uint eyeIndex = uint(_stereoSide);
-#ifndef GPU_GLES
+#if !defined(GPU_GLES) || !defined(VULKAN)
         gl_ClipDistance[0] = dot(<$clipPos$>, eyeClipEdge[eyeIndex]);
 #endif
         float newClipPosX = <$clipPos$>.x * 0.5 + eyeOffsetScale[eyeIndex] * <$clipPos$>.w;

@@ -1,8 +1,29 @@
+//
+// Libraries
+//
+
+include ':oculus'
+project(':oculus').projectDir = new File(settingsDir, 'libraries/oculus')
+
 include ':qt'
 project(':qt').projectDir = new File(settingsDir, 'libraries/qt')
 
-include ':interface'
-project(':interface').projectDir = new File(settingsDir, 'apps/interface')
+//
+// Applications
+//
+
+//include ':interface'
+//project(':interface').projectDir = new File(settingsDir, 'apps/interface')
+
+include ':questInterface'
+project(':questInterface').projectDir = new File(settingsDir, 'apps/questInterface')
+
+//
+// Test projects
+//
 
 //include ':framePlayer'
 //project(':framePlayer').projectDir = new File(settingsDir, 'apps/framePlayer')
+
+//include ':ui'
+//project(':ui').projectDir = new File(settingsDir, 'apps/ui')

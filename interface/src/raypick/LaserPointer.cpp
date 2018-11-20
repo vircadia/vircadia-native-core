@@ -125,7 +125,7 @@ LaserPointer::RenderState::RenderState(const OverlayID& startID, const OverlayID
     StartEndRenderState(startID, endID), _pathID(pathID)
 {
     if (!_pathID.isNull()) {
-        _pathIgnoreRays = qApp->getOverlays().getProperty(_pathID, "ignorePickIntersection").value.toBool();
+        _pathIgnoreRays = qApp->getOverlays().getProperty(_pathID, "ignoreRayIntersection").value.toBool();
         _lineWidth = qApp->getOverlays().getProperty(_pathID, "lineWidth").value.toFloat();
     }
 }
@@ -142,7 +142,7 @@ void LaserPointer::RenderState::disable() {
     if (!getPathID().isNull()) {
         QVariantMap pathProps;
         pathProps.insert("visible", false);
-        pathProps.insert("ignorePickIntersection", true);
+        pathProps.insert("ignoreRayIntersection", true);
         qApp->getOverlays().editOverlay(getPathID(), pathProps);
     }
 }
@@ -156,7 +156,7 @@ void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3&
         pathProps.insert("start", vec3toVariant(origin));
         pathProps.insert("end", endVariant);
         pathProps.insert("visible", true);
-        pathProps.insert("ignorePickIntersection", doesPathIgnoreRays());
+        pathProps.insert("ignoreRayIntersection", doesPathIgnoreRays());
         pathProps.insert("lineWidth", getLineWidth() * parentScale);
         qApp->getOverlays().editOverlay(getPathID(), pathProps);
     }

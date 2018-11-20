@@ -1,6 +1,6 @@
 import QtQuick 2.5
 import QtWebChannel 1.0
-import QtWebEngine 1.5
+import QtWebView 1.1
 
 import "controls"
 import controlsUit 1.0 as HifiControls
@@ -30,7 +30,7 @@ Item {
         webview.profile = profile;
     }
 
-    WebEngineView {
+    WebView {
         id: webview
         objectName: "webEngineView"
         x: 0
@@ -38,35 +38,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
-        profile: HFWebEngineProfile;
-
         property string userScriptUrl: ""
-
-        // creates a global EventBridge object.
-        WebEngineScript {
-            id: createGlobalEventBridge
-            sourceCode: eventBridgeJavaScriptToInject
-            injectionPoint: WebEngineScript.DocumentCreation
-            worldId: WebEngineScript.MainWorld
-        }
-
-        // detects when to raise and lower virtual keyboard
-        WebEngineScript {
-            id: raiseAndLowerKeyboard
-            injectionPoint: WebEngineScript.Deferred
-            sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
-            worldId: WebEngineScript.MainWorld
-        }
-
-        // User script.
-        WebEngineScript {
-            id: userScript
-            sourceUrl: webview.userScriptUrl
-            injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
-            worldId: WebEngineScript.MainWorld
-        }
-
-        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
         property string newUrl: ""
 
@@ -83,17 +55,13 @@ Item {
             web.address = url;
         }
 
-        onFeaturePermissionRequested: {
-            grantFeaturePermission(securityOrigin, feature, true);
-        }
-
         onLoadingChanged: {
             keyboardRaised = false;
             punctuationMode = false;
             keyboard.resetShiftMode(false);
 
             // Required to support clicking on "hifi://" links
-            if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+            if (WebView.LoadStartedStatus == loadRequest.status) {
                 urlAppend(loadRequest.url.toString())
                 var url = loadRequest.url.toString();
                 if (urlHandler.canHandleUrl(url)) {

@@ -240,6 +240,7 @@ void LODManager::setAutomaticLODAdjust(bool value) {
 }
 
 bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
+    return true;
     // To decide if the bound should be rendered or not at the specified Args->lodAngle,
     // we need to compute the apparent angle of the bound from the frustum origin,
     // and compare it against the lodAngle, if it is greater or equal we should render the content of that bound.

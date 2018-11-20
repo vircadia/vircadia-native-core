@@ -256,6 +256,7 @@ bool OpenGLDisplayPlugin::activate() {
         return false;
     }
 
+
     // Start the present thread if necessary
     QSharedPointer<PresentThread> presentThread;
     if (DependencyManager::isSet<PresentThread>()) {
@@ -268,6 +269,7 @@ bool OpenGLDisplayPlugin::activate() {
         if (!widget->context()->makeCurrent()) {
             throw std::runtime_error("Failed to make context current");
         }
+        //_nativeContext = QOpenGLContextWrapper::currentContextWrapper()->getNativeContext();
         CHECK_GL_ERROR();
         widget->context()->doneCurrent();
 
@@ -718,9 +720,11 @@ void OpenGLDisplayPlugin::present() {
             PROFILE_RANGE_EX(render, "internalPresent", 0xff00ffff, frameId)
             internalPresent();
         }
-
         gpu::Backend::freeGPUMemSize.set(gpu::gl::getFreeDedicatedMemory());
+    } else {
+        internalPresent();
     }
+
     _movingAveragePresent.addSample((float)(usecTimestampNow() - startPresent));
 }
 

@@ -35,7 +35,12 @@ public:
     }
 
     Deserializer(const std::string& filename, uint32_t externalTexture, const TextureLoader& loader) :
-        basename(getBaseName(filename)), externalTexture(externalTexture), textureLoader(loader) {}
+        basename(getBaseName(filename)), externalTexture(externalTexture), textureLoader(loader) {
+        basedir = QFileInfo(filename.c_str()).absoluteDir().canonicalPath().toStdString();
+        if (*basedir.rbegin() != '/') {
+            basedir += '/';
+        }
+    }
 
     const std::string basename;
     std::string basedir;
@@ -302,6 +307,21 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
         return nullptr;
     }
 
+    std::string source;
+    readOptional(source, node, keys::source);
+
+    std::string ktxFile;
+    readOptional(ktxFile, node, keys::ktxFile);
+    Element ktxTexelFormat, ktxMipFormat;
+    if (!ktxFile.empty()) {
+        if (QFileInfo(ktxFile.c_str()).isRelative()) {
+            ktxFile = basedir + ktxFile;
+        }
+        ktx::StoragePointer ktxStorage{ new storage::FileStorage(ktxFile.c_str()) };
+        auto ktxObject = ktx::KTX::create(ktxStorage);
+        Texture::evalTextureFormat(ktxObject->getHeader(), ktxTexelFormat, ktxMipFormat);
+    }
+
     TextureUsageType usageType = node[keys::usageType];
     Texture::Type type = node[keys::type];
     glm::u16vec4 dims;
@@ -312,6 +332,9 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     uint16 mips = node[keys::mips];
     uint16 samples = node[keys::samples];
     Element texelFormat = readElement(node[keys::texelFormat]);
+    if (!ktxFile.empty() && (ktxMipFormat.isCompressed() != texelFormat.isCompressed())) {
+        texelFormat = ktxMipFormat;
+    }
     Sampler sampler;
     readOptionalTransformed<Sampler>(sampler, node, keys::sampler, [](const json& node) { return readSampler(node); });
     TexturePointer result;
@@ -325,8 +348,6 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     auto& texture = *result;
     readOptional(texture._source, node, keys::source);
 
-    std::string ktxFile;
-    readOptional(ktxFile, node, keys::ktxFile);
     if (!ktxFile.empty()) {
         if (QFileInfo(ktxFile.c_str()).isRelative()) {
             ktxFile = basedir + "/" + ktxFile;
@@ -808,7 +829,7 @@ FramePointer Deserializer::deserializeFrame() {
     swapchains =
         readArray<SwapChainPointer>(frameNode, keys::swapchains, [this](const json& node) { return readSwapchain(node); });
 
-    queries = readArray<QueryPointer>(frameNode, keys::queries, [this](const json& node) { return readQuery(node); });
+    queries = readArray<QueryPointer>(frameNode, keys::queries, [](const json& node) { return readQuery(node); });
     frame.framebuffer = framebuffers[frameNode[keys::framebuffer].get<uint32_t>()];
     frame.view = readMat4(frameNode[keys::view]);
     frame.pose = readMat4(frameNode[keys::pose]);

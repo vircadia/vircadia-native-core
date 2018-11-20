@@ -9,9 +9,9 @@
 //
 
 import QtQuick 2.7
-import QtWebEngine 1.5
+import QtWebView 1.1
 
-WebEngineView {
+WebView {
     id: root
 
     Component.onCompleted: {
@@ -24,7 +24,7 @@ WebEngineView {
 
     onLoadingChanged: {
         // Required to support clicking on "hifi://" links
-        if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+        if (WebView.LoadStartedStatus == loadRequest.status) {
             var url = loadRequest.url.toString();
             if (urlHandler.canHandleUrl(url)) {
                 if (urlHandler.handleUrl(url)) {
@@ -33,6 +33,12 @@ WebEngineView {
             }
         }
     }
+
+    signal newViewRequested();
+    signal windowCloseRequested();
+    signal featurePermissionRequested();
+
+    property var profile: null;
 
     WebSpinner { }
 }

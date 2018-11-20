@@ -16,6 +16,8 @@
 #include "TouchscreenDevice.h"
 #include "TouchscreenVirtualPadDevice.h"
 
+#if !defined(Q_OS_ANDROID)
+
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 InputPluginList getInputPlugins() {
     InputPlugin* PLUGIN_POOL[] = {
@@ -37,6 +39,7 @@ InputPluginList getInputPlugins() {
     }
     return result;
 }
+#endif
 
 void saveInputPluginSettings(const InputPluginList& plugins) {
     foreach (auto inputPlugin, plugins) {
