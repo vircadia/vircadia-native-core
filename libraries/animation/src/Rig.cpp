@@ -420,7 +420,12 @@ static const uint32_t MAX_JOINT_NAME_WARNING_COUNT = 100;
 
 int Rig::indexOfJoint(const QString& jointName) const {
     if (_animSkeleton) {
+
         int result = _animSkeleton->nameToJointIndex(jointName);
+        if (_animSkeleton->getFBXToHifiJointNameMapping().contains(jointName)) {
+            qCDebug(animation) << "the alternate name for the joint " << jointName << " is " << _animSkeleton->getFBXToHifiJointNameMapping()[jointName] << " " << _animSkeleton->nameToJointIndex(_animSkeleton->getFBXToHifiJointNameMapping()[jointName]);
+            result = _animSkeleton->nameToJointIndex(jointName);
+        }
 
         // This is a content error, so we should issue a warning.
         if (result < 0 && _jointNameWarningCount < MAX_JOINT_NAME_WARNING_COUNT) {

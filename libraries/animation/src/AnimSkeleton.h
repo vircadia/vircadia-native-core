@@ -27,7 +27,7 @@ public:
     explicit AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets);
 
     int nameToJointIndex(const QString& jointName) const;
-    const QString& getJointName(int jointIndex) const;
+    const QString getJointName(int jointIndex) const;
     int getNumJoints() const;
     int getChainDepth(int jointIndex) const;
 
@@ -64,6 +64,7 @@ public:
 
     std::vector<int> lookUpJointIndices(const std::vector<QString>& jointNames) const;
     const HFMCluster getClusterBindMatricesOriginalValues(const int meshIndex, const int clusterIndex) const { return _clusterBindMatrixOriginalValues[meshIndex][clusterIndex]; }
+    const QMap<QString, QString> getFBXToHifiJointNameMapping() const { return _fbxToHifiJointNameMapping; }
 
 protected:
     void buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets);
@@ -79,6 +80,7 @@ protected:
     std::vector<int> _mirrorMap;
     QHash<QString, int> _jointIndicesByName;
     std::vector<std::vector<HFMCluster>> _clusterBindMatrixOriginalValues;
+    QMap<QString, QString> _fbxToHifiJointNameMapping;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;

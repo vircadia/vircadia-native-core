@@ -425,7 +425,7 @@ QMap<QString, QString> getJointNameMapping(const QVariantHash& mapping) {
         for (auto itr = jointNames.begin(); itr != jointNames.end(); itr++) {
             qCDebug(modelformat) << "found a joint mapping field key " << itr.key() << " value " << itr.value().toString();
             fbxToHifiJointNameMap.insert(itr.key(), itr.value().toString());
-            qCDebug(modelformat) << "the mapped key (Head) has a value of " << fbxToHifiJointNameMap[itr.key()];
+            qCDebug(modelformat) << "the mapped key " << itr.key() << " has a value of " << fbxToHifiJointNameMap[itr.key()];
         }
     
     }

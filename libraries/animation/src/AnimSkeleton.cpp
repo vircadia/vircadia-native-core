@@ -23,6 +23,8 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     for (auto& joint : hfmModel.joints) {
         joints.push_back(joint);
     }
+
+    _fbxToHifiJointNameMapping = hfmModel.fbxToHifiJointNameMapping;
     buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
 
     // we make a copy of the inverseBindMatrices in order to prevent mutating the model bind pose
@@ -59,7 +61,16 @@ AnimSkeleton::AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, 
 }
 
 int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
+
     auto itr = _jointIndicesByName.find(jointName);
+
+    if (getFBXToHifiJointNameMapping().contains(jointName)) {
+        qCDebug(animation) << "failing joint name is " << jointName;
+        itr = _jointIndicesByName.find(_fbxToHifiJointNameMapping[jointName]);
+        qCDebug(animation) << "the alternate name for the joint " << jointName << " is " <<
+            _fbxToHifiJointNameMapping[jointName] << " " << itr.value();
+    }
+    
     if (_jointIndicesByName.end() != itr) {
         return itr.value();
     }
@@ -120,8 +131,18 @@ std::vector<int> AnimSkeleton::getChildrenOfJoint(int jointIndex) const {
     return result;
 }
 
-const QString& AnimSkeleton::getJointName(int jointIndex) const {
-    return _joints[jointIndex].name;
+const QString AnimSkeleton::getJointName(int jointIndex) const {
+    
+    QString jointName = _joints[jointIndex].name;
+    QMapIterator<QString, QString> i(_fbxToHifiJointNameMapping);
+    while (i.hasNext()) {
+        i.next();
+        if (i.value() == _joints[jointIndex].name) {
+            jointName = i.key();
+            break;
+        }
+    }
+    return jointName; //;_joints[jointIndex].name;
 }
 
 AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& relativePoses) const {
@@ -245,9 +266,9 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
     _nonMirroredIndices.clear();
     _mirrorMap.reserve(_jointsSize);
     for (int i = 0; i < _jointsSize; i++) {
-        if (_joints[i].name != "Hips" && _joints[i].name != "Spine" &&
-            _joints[i].name != "Spine1" && _joints[i].name != "Spine2" &&
-            _joints[i].name != "Neck" && _joints[i].name != "Head" &&
+        if (_joints[i].name != "Hips" && _joints[i].name != _fbxToHifiJointNameMapping["Hips"] && _joints[i].name != "Spine" && _joints[i].name != _fbxToHifiJointNameMapping["Spine"] &&
+            _joints[i].name != "Spine1" && _joints[i].name != _fbxToHifiJointNameMapping["Spine1"] && _joints[i].name != "Spine2" && _joints[i].name != _fbxToHifiJointNameMapping["Spine2"] &&
+            _joints[i].name != "Neck" && _joints[i].name != _fbxToHifiJointNameMapping["Neck"] && _joints[i].name != "Head" && _joints[i].name != _fbxToHifiJointNameMapping["Head"] &&
             !((_joints[i].name.startsWith("Left") || _joints[i].name.startsWith("Right")) &&
               _joints[i].name != "LeftEye" && _joints[i].name != "RightEye")) {
             // HACK: we don't want to mirror some joints so we remember their indices
@@ -327,7 +348,7 @@ std::vector<int> AnimSkeleton::lookUpJointIndices(const std::vector<QString>& jo
     for (auto& name : jointNames) {
         int index = nameToJointIndex(name);
         if (index == -1) {
-            qWarning(animation) << "AnimSkeleton::lookUpJointIndices(): could not find bone with named " << name;
+            qWarning(animation) << "AnimSkeleton::lookUpJointIndices(): could not find bone with name " << name;
         }
         result.push_back(index);
     }

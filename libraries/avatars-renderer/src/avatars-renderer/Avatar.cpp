@@ -1438,18 +1438,20 @@ int Avatar::getJointIndex(const QString& name) const {
         if (_modelJointIndicesCache.contains(name)) {
             result = _modelJointIndicesCache[name] - 1;
             if (_skeletonModel && _skeletonModel->isActive()) {
-                qCDebug(avatars_renderer) << "the other head id is this" << _skeletonModel->getHFMModel().fbxToHifiJointNameMapping["Head"];
-                qCDebug(avatars_renderer) << "joint indices cache " << name << " " <<  _modelJointIndicesCache[name];
+               // qCDebug(avatars_renderer) << "the other head id is this" << _skeletonModel->getHFMModel().fbxToHifiJointNameMapping["Head"];
+               // qCDebug(avatars_renderer) << "joint indices cache " << name << " " <<  _modelJointIndicesCache[name];
                 if (_modelJointIndicesCache.contains(_skeletonModel->getHFMModel().fbxToHifiJointNameMapping["Head"])) {
-                    qCDebug(avatars_renderer) << "joint alternate name " << _skeletonModel->getHFMModel().fbxToHifiJointNameMapping["Head"] << " " << _modelJointIndicesCache[_skeletonModel->getHFMModel().fbxToHifiJointNameMapping["Head"]];
+                    // qCDebug(avatars_renderer) << "joint alternate name " << _skeletonModel->getHFMModel().fbxToHifiJointNameMapping["Head"] << " " << _modelJointIndicesCache[_skeletonModel->getHFMModel().fbxToHifiJointNameMapping["Head"]];
                 }
             }
         } else {
             // doesn't contain name.
             qCDebug(avatars_renderer) << "name is not here";
             if (_skeletonModel && _skeletonModel->isActive()) {
-                if (_modelJointIndicesCache.contains(_skeletonModel->getHFMModel().fbxToHifiJointNameMapping["Head"])) {
-                    qCDebug(avatars_renderer) << "the other head id is this" << _skeletonModel->getHFMModel().fbxToHifiJointNameMapping["Head"] << " " << _modelJointIndicesCache[_skeletonModel->getHFMModel().fbxToHifiJointNameMapping["Head"]];;
+                
+                if (_modelJointIndicesCache.contains(_skeletonModel->getHFMModel().fbxToHifiJointNameMapping[name])) {
+                    result = _modelJointIndicesCache[_skeletonModel->getHFMModel().fbxToHifiJointNameMapping[name]] - 1;
+                    qCDebug(avatars_renderer) << "joint " << name << " remapped to " << _skeletonModel->getHFMModel().fbxToHifiJointNameMapping[name] << result;
                 }
             }
         }
