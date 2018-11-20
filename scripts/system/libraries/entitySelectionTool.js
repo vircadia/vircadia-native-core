@@ -58,10 +58,7 @@ SelectionManager = (function() {
             return;
         }
 
-        if (messageParsed.method === "moduleRunning") {
-            // Terminate any current laser or mouse action.
-            SelectionDisplay.mouseReleaseEvent({});
-        } else if (messageParsed.method === "selectEntity") {
+        if (messageParsed.method === "selectEntity") {
             if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
                 if (wantDebug) {
                     print("setting selection to " + messageParsed.entityID);

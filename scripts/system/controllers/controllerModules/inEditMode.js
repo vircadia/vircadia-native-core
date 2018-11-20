@@ -20,7 +20,6 @@ Script.include("/~/system/libraries/utils.js");
     var MARGIN = 25;
     function InEditMode(hand) {
         this.hand = hand;
-        this.running = false;
         this.triggerClicked = false;
         this.selectedTarget = null;
         this.reticleMinX = MARGIN;
@@ -114,26 +113,10 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.runModule = function() {
-            if (!this.running) {
-                Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
-                    method: "moduleRunning",
-                    hand: this.hand,
-                    running: true
-                }));
-                this.running = true;
-            }
             return makeRunningValues(true, [], []);
         };
 
         this.exitModule = function() {
-            if (this.running) {
-                Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
-                    method: "moduleRunning",
-                    hand: this.hand,
-                    running: false
-                }));
-                this.running = false;
-            }
             return makeRunningValues(false, [], []);
         };
 
