@@ -1857,7 +1857,6 @@ function createNumberProperty(property, elProperty) {
 
     let dragStartFunction = createDragStartFunction(property);
     let dragEndFunction = createDragEndFunction(property);
-    
     let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step,
                                                 propertyData.decimals, dragStartFunction, dragEndFunction);
     
@@ -1912,9 +1911,6 @@ function createVec2Property(property, elProperty) {
     elTuple.className = "tuple";
     
     elProperty.appendChild(elTuple);
-    
-    let dragStartFunction = createDragStartFunction(property);
-    let dragEndFunction = createDragEndFunction(property);
     
     let elNumberX = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER]);
     let elNumberY = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER]);
@@ -2134,7 +2130,6 @@ function createButtonsProperty(property, elProperty, elLabel) {
 function createTupleNumberInput(property, subLabel) {
     let propertyElementID = property.elementID;
     let propertyData = property.data;
-    
     let elementID = propertyElementID + "-" + subLabel.toLowerCase();
     
     let elLabel = document.createElement('label');
