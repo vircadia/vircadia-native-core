@@ -279,7 +279,7 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
         face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
-void RenderableModelEntityItem::getCollisionGeometryResource() {
+void RenderableModelEntityItem::fetchCollisionGeometryResource() {
     QUrl hullURL(getCollisionShapeURL());
     QUrlQuery queryArgs(hullURL);
     queryArgs.addQueryItem("collision-hull", "");
@@ -289,7 +289,7 @@ void RenderableModelEntityItem::getCollisionGeometryResource() {
 
 bool RenderableModelEntityItem::computeShapeFailedToLoad() {
     if (!_compoundShapeResource) {
-        getCollisionGeometryResource();
+        fetchCollisionGeometryResource();
     }
 
     return (_compoundShapeResource && _compoundShapeResource->isFailed());
@@ -300,7 +300,7 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
     auto shapeType = getShapeType();
     if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
         if (!_compoundShapeResource && !getCollisionShapeURL().isEmpty()) {
-            getCollisionGeometryResource();
+            fetchCollisionGeometryResource();
         }
     } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
@@ -317,7 +317,7 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
     ModelEntityItem::setCompoundShapeURL(url);
     if (getCompoundShapeURL() != currentCompoundShapeURL || !getModel()) {
         if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-            getCollisionGeometryResource();
+            fetchCollisionGeometryResource();
         }
     }
 }
@@ -340,7 +340,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
 
         if (model->isLoaded()) {
             if (!shapeURL.isEmpty() && !_compoundShapeResource) {
-                const_cast<RenderableModelEntityItem*>(this)->getCollisionGeometryResource();
+                const_cast<RenderableModelEntityItem*>(this)->fetchCollisionGeometryResource();
             }
 
             if (_compoundShapeResource && _compoundShapeResource->isLoaded()) {
