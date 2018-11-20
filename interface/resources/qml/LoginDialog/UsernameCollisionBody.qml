@@ -134,6 +134,10 @@ Item {
 
             placeholderText: "Choose your own"
 
+            onFocusChanged: {
+                root.text = "";
+            }
+
             Keys.onPressed: {
                 if (!visible) {
                     return;
@@ -238,7 +242,9 @@ Item {
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
 
+        root.text = "";
         d.resize();
+        textField.focus = true;
         if (usernameCollisionBody.errorString !== "") {
             mainTextContainer.visible = true;
             mainTextContainer.text = usernameCollisionBody.errorString;

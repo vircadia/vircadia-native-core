@@ -90,6 +90,7 @@ Item {
             emailField.anchors.top = loginContainer.top;
             emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.height : 0.24 * root.height;
             cantAccessContainer.anchors.topMargin = !root.isTablet ? 3.5 * hifi.dimensions.contentSpacing.y : hifi.dimensions.contentSpacing.y;
+            emailField.focus = true;
         } else {
             loginButtonAtSignIn.text = "Sign Up";
             loginButtonAtSignIn.color = hifi.buttons.blue;
@@ -98,6 +99,7 @@ Item {
             emailField.anchors.top = usernameField.bottom;
             emailField.anchors.topMargin = 1.5 * hifi.dimensions.contentSpacing.y;
             passwordField.text = "";
+            usernameField.focus = true;
         }
         loginContainer.visible = true;
     }
@@ -459,6 +461,7 @@ Item {
         //but rise Tablet's one instead for Tablet interface
         root.keyboardEnabled = HMD.active;
         root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
+        root.text = "";
         d.resize();
         init(loginDialog.isLogIn);
     }

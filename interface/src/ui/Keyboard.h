@@ -97,6 +97,8 @@ public:
     bool isPassword() const;
     void setPassword(bool password);
 
+    void setResetKeyboardPositionOnRaise(bool reset);
+
     void loadKeyboardFile(const QString& keyboardFile);
     QVector<OverlayID> getKeysID();
     OverlayID getAnchorID();
@@ -136,6 +138,7 @@ private:
     bool isLayerSwitchTimerFinished();
 
     bool _raised { false };
+    bool _resetKeyboardPositionOnRaise { true };
     bool _password { false };
     bool _capsEnabled { false };
     int _layerIndex { 0 };

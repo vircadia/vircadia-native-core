@@ -292,7 +292,6 @@ void Keyboard::setRaised(bool raised) {
             _capsEnabled = false;
             _typedCharacters.clear();
         });
-        qApp->keyboardRaisedChanged(raised);
 
         updateTextDisplay();
     }
@@ -327,8 +326,10 @@ void Keyboard::raiseKeyboardAnchor(bool raise) const {
     auto anchorOverlay = std::dynamic_pointer_cast<Cube3DOverlay>(overlays.getOverlay(anchorOverlayID));
     if (anchorOverlay) {
         std::pair<glm::vec3, glm::quat> keyboardLocation = calculateKeyboardPositionAndOrientation();
-        anchorOverlay->setWorldPosition(keyboardLocation.first);
-        anchorOverlay->setWorldOrientation(keyboardLocation.second);
+        if (_resetKeyboardPositionOnRaise) {
+            anchorOverlay->setWorldPosition(keyboardLocation.first);
+            anchorOverlay->setWorldOrientation(keyboardLocation.second);
+        }
         anchorOverlay->setVisible(raise);
 
         QVariantMap textDisplayProperties {
@@ -410,6 +411,14 @@ void Keyboard::setPassword(bool password) {
     }
 
     updateTextDisplay();
+}
+
+void Keyboard::setResetKeyboardPositionOnRaise(bool reset) {
+    if (_resetKeyboardPositionOnRaise != reset) {
+        withWriteLock([&] {
+            _resetKeyboardPositionOnRaise = reset;
+        });
+    }
 }
 
 void Keyboard::switchToLayer(int layerIndex) {

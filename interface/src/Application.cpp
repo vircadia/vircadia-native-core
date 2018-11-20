@@ -6722,19 +6722,6 @@ void Application::hmdVisibleChanged(bool visible) {
     }
 }
 
-void Application::keyboardRaisedChanged(bool raised) {
-    auto keyboard = DependencyManager::get<Keyboard>().data();
-    auto keyboardParentID = getOverlays().getProperty(keyboard->getAnchorID(), "parentID");
-    if (raised && !_loginDialogOverlayID.isNull()) {
-        QVariantMap properties {
-            { "parentID", _loginDialogOverlayID },
-            { "localPosition", vec3toVariant(glm::vec3(-0.3f, -0.3f, 0.2f)) },
-            { "localOrientation", quatToVariant(glm::quat(0.0f, 0.0, 1.00f, 0.0f)) }
-        };
-        getOverlays().editOverlay(keyboard->getAnchorID(), properties);
-    }
-}
-
 void Application::updateWindowTitle() const {
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -8670,6 +8657,16 @@ void Application::createLoginDialogOverlay() {
     };
 
     _loginDialogOverlayID = getOverlays().addOverlay("web3d", overlayProperties);
+    auto keyboard = DependencyManager::get<Keyboard>().data();
+    if (!keyboard->getAnchorID().isNull() && !_loginDialogOverlayID.isNull()) {
+        QVariantMap properties {
+            { "parentID", _loginDialogOverlayID },
+            { "localPosition", vec3toVariant(glm::vec3(-0.3f, -0.3f, 0.2f)) },
+            { "localOrientation", quatToVariant(glm::quat(0.0f, 0.0, 1.0f, 0.0f)) }
+        };
+        getOverlays().editOverlay(keyboard->getAnchorID(), properties);
+        keyboard->setResetKeyboardPositionOnRaise(false);
+    }
     if (!_loginStateManager.isSetUp()) {
         _loginStateManager.setUp();
     }
@@ -8684,6 +8681,7 @@ void Application::onDismissedLoginDialog() {
             { "parentID", QUuid() }
         };
         getOverlays().editOverlay(keyboard->getAnchorID(), properties);
+        keyboard->setResetKeyboardPositionOnRaise(true);
         // deleting overlay.
         qDebug() << "Deleting overlay";
         getOverlays().deleteOverlay(_loginDialogOverlayID);

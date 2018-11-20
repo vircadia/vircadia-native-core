@@ -29,7 +29,6 @@
  */
 class KeyboardScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
-    Q_PROPERTY(QUuid anchorID READ getAnchorID)
     Q_PROPERTY(bool raised READ isRaised WRITE setRaised)
     Q_PROPERTY(bool password READ isPassword WRITE setPassword)
 
@@ -37,7 +36,6 @@ public:
     Q_INVOKABLE void loadKeyboardFile(const QString& string);
 
 private:
-    QUuid getAnchorID();
     bool isRaised();
     void setRaised(bool raised);
 

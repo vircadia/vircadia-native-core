@@ -265,7 +265,6 @@ Item {
 
     Component.onCompleted: {
         d.resize();
-        KeyboardScriptingInterface.raised = true;
     }
     Component.onDestruction: {
         if (loginDialog.getLoginDialogPoppedUp() && root.isTablet) {

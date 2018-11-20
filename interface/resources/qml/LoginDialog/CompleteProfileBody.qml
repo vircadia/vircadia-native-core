@@ -252,5 +252,6 @@ Item {
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
         d.resize();
+        root.text = "";
     }
 }
