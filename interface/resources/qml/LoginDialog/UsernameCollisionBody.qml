@@ -136,6 +136,7 @@ Item {
 
             onFocusChanged: {
                 root.text = "";
+                root.isPassword = !focus;
             }
 
             Keys.onPressed: {
