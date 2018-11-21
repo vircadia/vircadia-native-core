@@ -336,16 +336,18 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     QString dataDirectory{ "NOT FOUND" };
 
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
-
+#elif defined Q_OS_MAC
+    QString dataDirectory{ QDir::homePath() + "/Library/Application Support" };
+#endif
     if (_runLatest->isChecked()) {
-        _appDataFolder = dataDirectory + "\\High Fidelity";
+        _appDataFolder = dataDirectory + "/High Fidelity";
     } else {
         // We are running a PR build
-        _appDataFolder = dataDirectory + "\\High Fidelity - " + getPRNumberFromURL(_url->text());
+        _appDataFolder = dataDirectory + "/High Fidelity - " + getPRNumberFromURL(_url->text());
     }
 
     _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
-    if (_savedAppDataFolder.exists()) {
+    if (QDir(_savedAppDataFolder).exists()) {
         _savedAppDataFolder.removeRecursively();
     }
 
@@ -356,9 +358,6 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
 
     // Copy an "empty" AppData folder (i.e. no entities)
     copyFolder(QDir::currentPath() + "/AppDataHighFidelity", _appDataFolder.path());
-#elif defined Q_OS_MAC
-    // TODO:  find Mac equivalent of AppData
-#endif
 }
 
 void TestRunner::createSnapshotFolder() {
