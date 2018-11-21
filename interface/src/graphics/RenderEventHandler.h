@@ -10,9 +10,9 @@
 #ifndef hifi_RenderEventHandler_h
 #define hifi_RenderEventHandler_h
 
+#include <QEvent>
+#include <QElapsedTimer>
 #include "gl/OffscreenGLCanvas.h"
-#include <QEvent.h>
-#include <QElapsedTimer.h>
 
 enum ApplicationEvent {
     // Execute a lambda function
