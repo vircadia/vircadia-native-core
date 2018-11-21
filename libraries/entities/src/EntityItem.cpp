@@ -1712,20 +1712,14 @@ bool EntityItem::contains(const glm::vec3& point) const {
             return glm::length2(localPoint) <= NORMALIZED_RADIUS_SQUARED;
         }
         case SHAPE_TYPE_CYLINDER_X:
-            if (fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE) {
-                return (localPoint.y * localPoint.y + localPoint.z * localPoint.z <= NORMALIZED_RADIUS_SQUARED);
-            }
-            return false;
+            return fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE &&
+                localPoint.y * localPoint.y + localPoint.z * localPoint.z <= NORMALIZED_RADIUS_SQUARED;
         case SHAPE_TYPE_CYLINDER_Y:
-            if (fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE) {
-                return (localPoint.z * localPoint.z + localPoint.x * localPoint.x <= NORMALIZED_RADIUS_SQUARED);
-            }
-            return false;
+            return fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE &&
+                localPoint.z * localPoint.z + localPoint.x * localPoint.x <= NORMALIZED_RADIUS_SQUARED;
         case SHAPE_TYPE_CYLINDER_Z:
-            if (fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE) {
-                return (localPoint.x * localPoint.x + localPoint.y * localPoint.y <= NORMALIZED_RADIUS_SQUARED);
-            }
-            return false;
+            return fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE &&
+                localPoint.x * localPoint.x + localPoint.y * localPoint.y <= NORMALIZED_RADIUS_SQUARED;
         default:
             return false;
     }
