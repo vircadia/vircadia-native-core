@@ -148,7 +148,7 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
             batch.setResourceTexture(0, _virtualPadStickTexture);
-            batch.setModelTransform(stickTransform);,
+            batch.setModelTransform(stickTransform);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
             batch.setResourceTexture(0, _virtualPadJumpBtnTexture);
