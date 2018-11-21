@@ -29,7 +29,7 @@ const ICON_FOR_TYPE = {
 
 const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
-const NO_SELECTION = "w";
+const NO_SELECTION = ",";
 
 const PROPERTY_SPACE_MODE = {
     ALL: 0,
@@ -1158,18 +1158,21 @@ const GROUPS = [
                 label: "Link",
                 type: "string",
                 propertyID: "href",
+                placeholder: "URL",
             },
             {
                 label: "Script",
                 type: "string",
                 buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadScripts } ],
                 propertyID: "script",
+                placeholder: "URL",
             },
             {
                 label: "Server Script",
                 type: "string",
                 buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadServerScripts } ],
                 propertyID: "serverScripts",
+                placeholder: "URL",
             },
             {
                 label: "Server Script Status",
@@ -1244,8 +1247,9 @@ const GROUPS = [
                 showPropertyRule: { "collisionless": "false" },
             },
             {
-                label: "Collision sound URL",
+                label: "Collision Sound",
                 type: "string",
+                placeholder: "URL",
                 propertyID: "collisionSoundURL",
                 showPropertyRule: { "collisionless": "false" },
             },
@@ -1500,7 +1504,7 @@ function disableProperties() {
 
 function showPropertyElement(propertyID, show) {
     let elProperty = properties[propertyID].elContainer;
-    elProperty.style.display = show ? "flex" : "none";
+    elProperty.style.display = show ? "" : "none";
 }
 
 function resetProperties() {
@@ -1622,10 +1626,11 @@ function updateVisibleSpaceModeProperties() {
         if (properties.hasOwnProperty(propertyID)) {
             let property = properties[propertyID];
             let propertySpaceMode = property.spaceMode;
-            if (propertySpaceMode !== PROPERTY_SPACE_MODE.ALL) {
-                showPropertyElement(propertyID, propertySpaceMode === currentSpaceMode);
+            let elProperty = properties[propertyID].elContainer;
+            if (propertySpaceMode !== PROPERTY_SPACE_MODE.ALL && propertySpaceMode !== currentSpaceMode) {
+                elProperty.classList.add('spacemode-hidden');
             } else {
-                showPropertyElement(propertyID, true);
+                elProperty.classList.remove('spacemode-hidden');
             }
         }
     }
@@ -1636,7 +1641,7 @@ function updateVisibleSpaceModeProperties() {
  * PROPERTY UPDATE FUNCTIONS
  */
 
-function updateProperty(originalPropertyName, propertyValue, isParticleProperty) {
+function updateProperty(originalPropertyName, propertyValue, isParticleProperty, blockUpdateCallback) {
     let propertyUpdate = {};
     // if this is a compound property name (i.e. animation.running) then split it by . up to 3 times
     let splitPropertyName = originalPropertyName.split('.');
@@ -1662,7 +1667,7 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty)
         });
         particleSyncDebounce();
     } else {
-        updateProperties(propertyUpdate);
+        updateProperties(propertyUpdate, blockUpdateCallback);
     }
 }
 
@@ -1671,66 +1676,89 @@ var particleSyncDebounce = _.debounce(function () {
     particlePropertyUpdates = {};
 }, DEBOUNCE_TIMEOUT);
 
-function updateProperties(propertiesToUpdate) {
+function updateProperties(propertiesToUpdate, blockUpdateCallback) {
+    if (blockUpdateCallback === undefined) {
+        blockUpdateCallback = false;
+    }
     EventBridge.emitWebEvent(JSON.stringify({
         id: lastEntityID,
         type: "update",
-        properties: propertiesToUpdate
+        properties: propertiesToUpdate,
+        blockUpdateCallback: blockUpdateCallback
     }));
 }
 
-function createEmitTextPropertyUpdateFunction(propertyName, isParticleProperty) {
+function createEmitTextPropertyUpdateFunction(property) {
     return function() {
-        updateProperty(propertyName, this.value, isParticleProperty);
+        updateProperty(property.name, this.value, property.isParticleProperty);
     };
 }
 
-function createEmitCheckedPropertyUpdateFunction(propertyName, inverse, isParticleProperty) {
+function createEmitCheckedPropertyUpdateFunction(property) {
     return function() {
-        updateProperty(propertyName, inverse ? !this.checked : this.checked, isParticleProperty);
+        updateProperty(property.name, property.data.inverse ? !this.checked : this.checked, property.isParticleProperty);
     };
 }
 
-function createEmitNumberPropertyUpdateFunction(propertyName, multiplier, isParticleProperty) {
+function createDragStartFunction(property) {
     return function() {
+        property.dragging = true;
+    };
+}
+
+function createDragEndFunction(property) {
+    return function() {
+        property.dragging = false;
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "updateProperties"
+        }));
+    };
+}
+
+function createEmitNumberPropertyUpdateFunction(property) {
+    return function() {
+        let multiplier = property.data.multiplier;
         if (multiplier === undefined) {
             multiplier = 1;
         }
         let value = parseFloat(this.value) * multiplier;
-        updateProperty(propertyName, value, isParticleProperty);
+        updateProperty(property.name, value, property.isParticleProperty, property.dragging);
     };
 }
 
-function createEmitVec2PropertyUpdateFunction(propertyName, elX, elY, multiplier, isParticleProperty) {
+function createEmitVec2PropertyUpdateFunction(property) {
     return function () {
+        let multiplier = property.data.multiplier;
         if (multiplier === undefined) {
             multiplier = 1;
         }
         let newValue = {
-            x: elX.value * multiplier,
-            y: elY.value * multiplier
+            x: property.elNumberX.elInput.value * multiplier,
+            y: property.elNumberY.elInput.value * multiplier
         };
-        updateProperty(propertyName, newValue, isParticleProperty);
+        updateProperty(property.name, newValue, property.isParticleProperty, property.dragging);
     };
 }
 
-function createEmitVec3PropertyUpdateFunction(propertyName, elX, elY, elZ, multiplier, isParticleProperty) {
+function createEmitVec3PropertyUpdateFunction(property) {
     return function() {
+        let multiplier = property.data.multiplier;
         if (multiplier === undefined) {
             multiplier = 1;
         }
         let newValue = {
-            x: elX.value * multiplier,
-            y: elY.value * multiplier,
-            z: elZ.value * multiplier
+            x: property.elNumberX.elInput.value * multiplier,
+            y: property.elNumberY.elInput.value * multiplier,
+            z: property.elNumberZ.elInput.value * multiplier
         };
-        updateProperty(propertyName, newValue, isParticleProperty);
+        updateProperty(property.name, newValue, property.isParticleProperty, property.dragging);
     };
 }
 
-function createEmitColorPropertyUpdateFunction(propertyName, elRed, elGreen, elBlue, isParticleProperty) {
+function createEmitColorPropertyUpdateFunction(property) {
     return function() {
-        emitColorPropertyUpdate(propertyName, elRed.value, elGreen.value, elBlue.value, isParticleProperty);
+        emitColorPropertyUpdate(property.name, property.elNumberR.elInput.value, property.elNumberG.elInput.value,
+                                property.elNumberB.elInput.value, property.isParticleProperty);
     };
 }
 
@@ -1755,10 +1783,10 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
     updateProperty(propertyName, propertyValue, isParticleProperty);
 }
 
-function createImageURLUpdateFunction(propertyName, isParticleProperty) {
+function createImageURLUpdateFunction(property) {
     return function () {
         let newTextures = JSON.stringify({ "tex.picture": this.value });
-        updateProperty(propertyName, newTextures, isParticleProperty);
+        updateProperty(property.name, newTextures, property.isParticleProperty);
     };
 }
 
@@ -1768,7 +1796,6 @@ function createImageURLUpdateFunction(propertyName, isParticleProperty) {
  */
 
 function createStringProperty(property, elProperty) {    
-    let propertyName = property.name;
     let elementID = property.elementID;
     let propertyData = property.data;
     
@@ -1782,7 +1809,7 @@ function createStringProperty(property, elProperty) {
         `)
 
     
-    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName, property.isParticleProperty));
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
     
     elProperty.appendChild(elInput);
     
@@ -1821,30 +1848,29 @@ function createBoolProperty(property, elProperty) {
                                      elInput, propertyName, property.isParticleProperty);
         });
     } else {
-        elInput.addEventListener('change', createEmitCheckedPropertyUpdateFunction(propertyName, propertyData.inverse, 
-                                                                                   property.isParticleProperty));
+        elInput.addEventListener('change', createEmitCheckedPropertyUpdateFunction(property));
     }
     
     return elInput;
 }
 
 function createNumberProperty(property, elProperty) { 
-    let propertyName = property.name;
     let elementID = property.elementID;
     let propertyData = property.data;
     
     elProperty.className = "draggable-number";
 
-    let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, 
-                                                propertyData.step, propertyData.decimals);
+    let dragStartFunction = createDragStartFunction(property);
+    let dragEndFunction = createDragEndFunction(property);
+    let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step,
+                                                propertyData.decimals, dragStartFunction, dragEndFunction);
     
     let defaultValue = propertyData.defaultValue;   
     if (defaultValue !== undefined) {   
         elDraggableNumber.elInput.value = defaultValue; 
     }
 
-    let valueChangeFunction = createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, 
-                                                                     property.isParticleProperty);
+    let valueChangeFunction = createEmitNumberPropertyUpdateFunction(property);
     elDraggableNumber.setValueChangeFunction(valueChangeFunction);
     
     elDraggableNumber.elInput.setAttribute("id", elementID);
@@ -1858,22 +1884,18 @@ function createNumberProperty(property, elProperty) {
 }
 
 function createVec3Property(property, elProperty) {
-    let propertyName = property.name;
-    let elementID = property.elementID;
     let propertyData = property.data;
 
     elProperty.className = propertyData.vec3Type + " fstuple";
     
-    let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER], 
-                                           propertyData.min, propertyData.max, propertyData.step, propertyData.decimals);
-    let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER], 
-                                           propertyData.min, propertyData.max, propertyData.step, propertyData.decimals);
-    let elNumberZ = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Z_NUMBER], 
-                                           propertyData.min, propertyData.max, propertyData.step, propertyData.decimals);
+    let elNumberX = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER]);
+    let elNumberY = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER]);
+    let elNumberZ = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Z_NUMBER]);
+    elProperty.appendChild(elNumberX.elDiv);
+    elProperty.appendChild(elNumberY.elDiv);
+    elProperty.appendChild(elNumberZ.elDiv);
     
-    let valueChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput, 
-                                                                   elNumberZ.elInput, propertyData.multiplier, 
-                                                                   property.isParticleProperty);    
+    let valueChangeFunction = createEmitVec3PropertyUpdateFunction(property);
     elNumberX.setValueChangeFunction(valueChangeFunction);
     elNumberY.setValueChangeFunction(valueChangeFunction);
     elNumberZ.setValueChangeFunction(valueChangeFunction);
@@ -1886,8 +1908,6 @@ function createVec3Property(property, elProperty) {
 }
 
 function createVec2Property(property, elProperty) {  
-    let propertyName = property.name;
-    let elementID = property.elementID;
     let propertyData = property.data;
     
     elProperty.className = propertyData.vec2Type + " fstuple";
@@ -1897,13 +1917,12 @@ function createVec2Property(property, elProperty) {
     
     elProperty.appendChild(elTuple);
     
-    let elNumberX = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER], 
-                                           propertyData.min, propertyData.max, propertyData.step, propertyData.decimals);
-    let elNumberY = createTupleNumberInput(elProperty, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER], 
-                                           propertyData.min, propertyData.max, propertyData.step, propertyData.decimals);
+    let elNumberX = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER]);
+    let elNumberY = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER]);
+    elProperty.appendChild(elNumberX.elDiv);
+    elProperty.appendChild(elNumberY.elDiv);
     
-    let valueChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elNumberX.elInput, elNumberY.elInput,
-                                                                   propertyData.multiplier, property.isParticleProperty);
+    let valueChangeFunction = createEmitVec2PropertyUpdateFunction(property);
     elNumberX.setValueChangeFunction(valueChangeFunction);
     elNumberY.setValueChangeFunction(valueChangeFunction);
     
@@ -1916,6 +1935,7 @@ function createVec2Property(property, elProperty) {
 function createColorProperty(property, elProperty) {
     let propertyName = property.name;
     let elementID = property.elementID;
+    let propertyData = property.data;
     
     elProperty.className = "rgb fstuple";
     
@@ -1929,12 +1949,24 @@ function createColorProperty(property, elProperty) {
     elProperty.appendChild(elColorPicker);
     elProperty.appendChild(elTuple);
     
-    let elNumberR = createTupleNumberInput(elTuple, elementID, "red", COLOR_MIN, COLOR_MAX, COLOR_STEP);
-    let elNumberG = createTupleNumberInput(elTuple, elementID, "green", COLOR_MIN, COLOR_MAX, COLOR_STEP);
-    let elNumberB = createTupleNumberInput(elTuple, elementID, "blue", COLOR_MIN, COLOR_MAX, COLOR_STEP);
+    if (propertyData.min === undefined) {
+        propertyData.min = COLOR_MIN;
+    }
+    if (propertyData.max === undefined) {
+        propertyData.max = COLOR_MAX;
+    }
+    if (propertyData.step === undefined) {
+        propertyData.step = COLOR_STEP;
+    }
     
-    let valueChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elNumberR.elInput, elNumberG.elInput,
-                                                                    elNumberB.elInput, property.isParticleProperty);
+    let elNumberR = createTupleNumberInput(property, "red");
+    let elNumberG = createTupleNumberInput(property, "green");
+    let elNumberB = createTupleNumberInput(property, "blue");
+    elTuple.appendChild(elNumberR.elDiv);
+    elTuple.appendChild(elNumberG.elDiv);
+    elTuple.appendChild(elNumberB.elDiv);
+    
+    let valueChangeFunction = createEmitColorPropertyUpdateFunction(property);
     elNumberR.setValueChangeFunction(valueChangeFunction);
     elNumberG.setValueChangeFunction(valueChangeFunction);
     elNumberB.setValueChangeFunction(valueChangeFunction);
@@ -1973,7 +2005,6 @@ function createColorProperty(property, elProperty) {
 }
 
 function createDropdownProperty(property, propertyID, elProperty) { 
-    let propertyName = property.name;
     let elementID = property.elementID;
     let propertyData = property.data;
     
@@ -1990,7 +2021,7 @@ function createDropdownProperty(property, propertyID, elProperty) {
         elInput.add(option);
     }
     
-    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName, property.isParticleProperty));
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
     
     elProperty.appendChild(elInput);
     
@@ -1998,7 +2029,6 @@ function createDropdownProperty(property, propertyID, elProperty) {
 }
 
 function createTextareaProperty(property, elProperty) {   
-    let propertyName = property.name;
     let elementID = property.elementID;
     let propertyData = property.data;
     
@@ -2010,7 +2040,7 @@ function createTextareaProperty(property, elProperty) {
         elInput.readOnly = true;
     }                   
     
-    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName, property.isParticleProperty));
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
     
     elProperty.appendChild(elInput);
                         
@@ -2102,7 +2132,9 @@ function createButtonsProperty(property, elProperty, elLabel) {
     return elProperty;
 }
 
-function createTupleNumberInput(elTuple, propertyElementID, subLabel, min, max, step, decimals) {
+function createTupleNumberInput(property, subLabel) {
+    let propertyElementID = property.elementID;
+    let propertyData = property.data;
     let elementID = propertyElementID + "-" + subLabel.toLowerCase();
     
     let elLabel = document.createElement('label');
@@ -2111,11 +2143,13 @@ function createTupleNumberInput(elTuple, propertyElementID, subLabel, min, max, 
     elLabel.setAttribute("for", elementID);
     elLabel.style.visibility = "visible";
     
-    let elDraggableNumber = new DraggableNumber(min, max, step, decimals);
+    let dragStartFunction = createDragStartFunction(property);
+    let dragEndFunction = createDragEndFunction(property);
+    let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step, 
+                                                propertyData.decimals, dragStartFunction, dragEndFunction); 
     elDraggableNumber.elInput.setAttribute("id", elementID);
     elDraggableNumber.elDiv.className += " fstuple";
     elDraggableNumber.elText.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
-    elTuple.appendChild(elDraggableNumber.elDiv);
     
     return elDraggableNumber;
 }
@@ -2388,7 +2422,7 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, r
 
     userDataElement.value = propertyUpdate.userData;
 
-    updateProperties(propertyUpdate);
+    updateProperties(propertyUpdate, false);
 }
 
 var editor = null;
@@ -2769,7 +2803,7 @@ function loaded() {
                 elLegend.appendChild(createElementFromHTML(`<div class="label">${group.label}</div>`));
 
                 let elSpan = document.createElement('span');
-                elSpan.className = ".collapse-icon";
+                elSpan.className = "collapse-icon";
                 elSpan.innerText = "M";
                 elLegend.appendChild(elSpan);
                 elGroup.appendChild(elLegend);
@@ -3306,17 +3340,17 @@ function loaded() {
             }
         });
         
-        getPropertyInputElement("image").addEventListener('change', createImageURLUpdateFunction('textures', false));
+        getPropertyInputElement("image").addEventListener('change', createImageURLUpdateFunction(properties['textures']));
         
         // Collapsible sections
-        let elCollapsible = document.getElementsByClassName("section-header");
+        let elCollapsible = document.getElementsByClassName("collapse-icon");
 
         let toggleCollapsedEvent = function(event) {
-            let element = this.parentNode;
+            let element = this.parentNode.parentNode;
             let isCollapsed = element.dataset.collapsed !== "true";
             element.dataset.collapsed = isCollapsed ? "true" : false;
             element.setAttribute("collapsed", isCollapsed ? "true" : "false");
-            element.getElementsByClassName(".collapse-icon")[0].textContent = isCollapsed ? "L" : "M";
+            this.textContent = isCollapsed ? "L" : "M";
         };
 
         for (let collapseIndex = 0, numCollapsibles = elCollapsible.length; collapseIndex < numCollapsibles; ++collapseIndex) {
@@ -3401,7 +3435,7 @@ function loaded() {
             let propertyID = elDropdown.getAttribute("propertyID");
             let property = properties[propertyID];
             property.elInput = dt;
-            dt.addEventListener('change', createEmitTextPropertyUpdateFunction(property.name, property.isParticleProperty));
+            dt.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
         }
         
         elDropdowns = document.getElementsByTagName("select");
