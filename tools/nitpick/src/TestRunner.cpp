@@ -467,12 +467,7 @@ void TestRunner::runInterfaceWithTestScript() {
         // Move to an empty area
         url = "file:///~serverless/tutorial.json";
     } else {
-#ifdef Q_OS_WIN
         url = "hifi://localhost";
-#elif defined Q_OS_MAC
-        // TODO: Find out Mac equivalent of AppData, then this won't be needed
-        url = "hifi://localhost/9999,9999,9999";
-#endif
     }
 
     QString testScript =
