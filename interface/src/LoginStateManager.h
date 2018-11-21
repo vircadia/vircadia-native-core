@@ -26,11 +26,12 @@ public:
     void setUp();
     void tearDown();
 
-    void update();
+    void update(const QString dominantHand);
 
     bool isSetUp() const { return (_leftLoginPointerID > PointerEvent::INVALID_POINTER_ID) && (_rightLoginPointerID > PointerEvent::INVALID_POINTER_ID); }
 
 private:
+    QString _dominantHand;
     QList<QVariant> _renderStates {};
     QList<QVariant> _defaultRenderStates {};
     unsigned int _leftLoginPointerID { PointerEvent::INVALID_POINTER_ID };

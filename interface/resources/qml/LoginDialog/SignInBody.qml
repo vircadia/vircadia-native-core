@@ -65,7 +65,8 @@ Item {
         if (loginDialog.isLogIn) {
             loginDialog.login(emailField.text, passwordField.text);
         } else {
-            loginDialog.signup(usernameField.text, emailField.text, passwordField.text);
+            loginDialog.signup(emailField.text, usernameField.text, passwordField.text);
+            return;
         }
         bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "fromBody": "" });
     }
@@ -482,6 +483,25 @@ Item {
                 }
                 signInBody.login();
                 break;
+        }
+    }
+    Connections {
+        target: loginDialog
+        onHandleSignupCompleted: {
+            console.log("Sign Up Completed");
+
+            loginDialog.login(usernameField.text, passwordField.text);
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "fromBody": "" });
+        }
+        onHandleSignupFailed: {
+            console.log("Sign Up Failed")
+
+            loginErrorMessage.visible = (errorString !== "");
+            if (errorString !== "") {
+                loginErrorMessage.text = errorString;
+                errorContainer.anchors.bottom = loginDialog.isLogIn ? emailField.top : usernameField.top;
+                errorContainer.anchors.left = emailField.left;
+            }
         }
     }
 }

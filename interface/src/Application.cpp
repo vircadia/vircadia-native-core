@@ -1316,6 +1316,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
     connect(this, &Application::activeDisplayPluginChanged, this, [&](){
         auto dialogsManager = DependencyManager::get<DialogsManager>();
+        auto keyboard = DependencyManager::get<Keyboard>();
         if (getLoginDialogPoppedUp()) {
             if (_firstRun.get()) {
                 // display mode changed.  Don't allow auto-switch to work after this session.
@@ -1327,6 +1328,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 createLoginDialogOverlay();
             } else {
                 // Desktop mode.
+                QVariantMap properties{
+                    { "parentID", QUuid() }
+                };
+                getOverlays().editOverlay(keyboard->getAnchorID(), properties);
                 getOverlays().deleteOverlay(_loginDialogOverlayID);
                 _loginDialogOverlayID = OverlayID();
                 _loginStateManager.tearDown();
@@ -6251,7 +6256,7 @@ void Application::update(float deltaTime) {
         _overlays.update(deltaTime);
     }
     if (!_loginDialogOverlayID.isNull()) {
-        _loginStateManager.update();
+        _loginStateManager.update(getMyAvatar()->getDominantHand());
     }
 
     if (!_loginDialogOverlayID.isNull()) {
@@ -8662,7 +8667,7 @@ void Application::createLoginDialogOverlay() {
         QVariantMap properties {
             { "parentID", _loginDialogOverlayID },
             { "localPosition", vec3toVariant(glm::vec3(-0.3f, -0.3f, 0.2f)) },
-            { "localOrientation", quatToVariant(glm::quat(0.0f, 0.0, 1.0f, 0.0f)) }
+            { "localOrientation", quatToVariant(glm::quat(0.0f, 0.0, 1.0f, 0.25f)) },
         };
         getOverlays().editOverlay(keyboard->getAnchorID(), properties);
         keyboard->setResetKeyboardPositionOnRaise(false);

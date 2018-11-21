@@ -28,12 +28,6 @@ Item {
 
     property bool withSteam: false
 
-    property bool keyboardEnabled: false
-    property bool keyboardRaised: false
-    property bool punctuationMode: false
-
-    onKeyboardRaisedChanged: d.resize();
-
     QtObject {
         id: d
         readonly property int minWidth: 480
@@ -55,8 +49,7 @@ Item {
                 parent.width = root.width = newWidth;
             }
 
-            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
-                    + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)) + hifi.dimensions.contentSpacing.y;
         }
     }
 
@@ -264,6 +257,9 @@ Item {
     }
 
     Component.onCompleted: {
+        root.keyboardEnabled = false;
+        root.keyboardRaised = false;
+        KeyboardScriptingInterface.raised = false;
         d.resize();
     }
     Component.onDestruction: {

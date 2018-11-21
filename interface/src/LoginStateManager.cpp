@@ -19,6 +19,7 @@
 #include "controllers/StateController.h"
 #include "controllers/UserInputMapper.h"
 #include "raypick/PointerScriptingInterface.h"
+#include "raypick/RayPickScriptingInterface.h"
 #include "raypick/PickScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
 
@@ -209,15 +210,29 @@ void LoginStateManager::setUp() {
     pointers->enablePointer(_rightLoginPointerID);
 }
 
-void LoginStateManager::update() {
+void LoginStateManager::update(const QString dominantHand) {
+    if (!isSetUp()) {
+        return;
+    }
+    if (_dominantHand != dominantHand) {
+        _dominantHand = dominantHand;
+    }
     auto pointers = DependencyManager::get<PointerScriptingInterface>();
-    if (pointers) {
+    auto raypicks = DependencyManager::get<RayPickScriptingInterface>();
+    if (pointers && raypicks) {
         QString mode = "full";
-
-        if (_leftLoginPointerID > PointerEvent::INVALID_POINTER_ID) {
+        auto rightObjectID = raypicks->getPrevRayPickResult(_rightLoginPointerID)["objectID"].toUuid();
+        auto leftObjectID = raypicks->getPrevRayPickResult(_leftLoginPointerID)["objectID"].toUuid();
+        if (_dominantHand == "left" && !leftObjectID.isNull()) {
+            // dominant is left.
+            pointers->setRenderState(_rightLoginPointerID, "");
             pointers->setRenderState(_leftLoginPointerID, mode);
-        }
-        if (_rightLoginPointerID > PointerEvent::INVALID_POINTER_ID) {
+        } else if (_dominantHand == "right" && !rightObjectID.isNull()) {
+            // dominant is right.
+            pointers->setRenderState(_leftLoginPointerID, "");
+            pointers->setRenderState(_rightLoginPointerID, mode);
+        } else {
+            pointers->setRenderState(_leftLoginPointerID, mode);
             pointers->setRenderState(_rightLoginPointerID, mode);
         }
     }

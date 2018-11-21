@@ -230,7 +230,7 @@ Item {
                     // Alignment
                     horizontalAlignment: Text.AlignHCenter;
                     verticalAlignment: Text.AlignVCenter;
-                    visible: loggingInBody.withSteam;
+                    visible: false;
                 }
             }
         }
@@ -262,19 +262,20 @@ Item {
 
         onHandleLoginFailed: {
             console.log("Login Failed")
+            loggingInSpinner.visible = false;
             var errorString = "";
             if (loggingInBody.withSteam && loggingInBody.fromBody === "LinkAccountBody") {
                 loggingInGlyph.visible = false;
                 loggingInText.text = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again."
+                loggingInText.width = loggingInBody.width;
                 loggingInText.wrapMode = Text.WordWrap;
                 loggingInText.anchors.centerIn = loggingInHeader;
-                loggingInText.anchors.bottom = loggingInHeader.bottom;
                 steamFailureTimer.start();
             } else if (loggingInBody.withSteam) {
                 errorString = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again.";
                 bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
             } else {
-                errorString = loginDialog.isLogIn ? "Username or password is incorrect." : "Failed to sign up. Please try again.";
+                errorString = "Username or password is incorrect.";
                 if (loginDialog.isLogIn && loginDialog.isSteamRunning()) {
                     bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                 } else {
