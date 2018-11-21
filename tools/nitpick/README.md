@@ -35,8 +35,8 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
 1.  Change the loader instruction to find the dynamic library locally
     `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib libquazip5.1.dylib nitpick`
 1.  Delete any existing installer: `rm nitpick.dmg`
-1.  Create installer (note final period): `create-dmg --volname nitpick-installer-v1.0 nitpick-installer-v1.0.dmg .`
-1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.0.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.0.dmg`
+1.  Create installer (note final period): `create-dmg --volname nitpick-installer-v1.1 nitpick-installer-v1.1.dmg .`
+1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.1.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.1.dmg`
 ### Installation
 #### Windows
 1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.0.exe)
