@@ -324,8 +324,6 @@ static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SI
 static const int ENTITY_SERVER_ADDED_TIMEOUT = 5000;
 static const int ENTITY_SERVER_CONNECTION_TIMEOUT = 5000;
 
-static const uint32_t INVALID_FRAME = UINT32_MAX;
-
 static const float INITIAL_QUERY_RADIUS = 10.0f;  // priority radius for entities before physics enabled
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);

@@ -275,7 +275,6 @@ public:
     int getMaxOctreePacketsPerSecond() const;
 
     render::ScenePointer getMain3DScene() override { return _graphicsEngine.getRenderScene(); }
-    const render::ScenePointer& getMain3DScene() const { return _graphicsEngine.getRenderScene(); }
     render::EnginePointer getRenderEngine() override { return  _graphicsEngine.getRenderEngine(); }
     gpu::ContextPointer getGPUContext() const { return _graphicsEngine.getGPUContext(); }
 
