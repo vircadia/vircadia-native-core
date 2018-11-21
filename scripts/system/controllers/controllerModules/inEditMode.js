@@ -20,6 +20,7 @@ Script.include("/~/system/libraries/utils.js");
     var MARGIN = 25;
     function InEditMode(hand) {
         this.hand = hand;
+        this.isEditing = false;
         this.triggerClicked = false;
         this.selectedTarget = null;
         this.reticleMinX = MARGIN;
@@ -211,6 +212,37 @@ Script.include("/~/system/libraries/utils.js");
 
     enableDispatcherModule("LeftHandInEditMode", leftHandInEditMode);
     enableDispatcherModule("RightHandInEditMode", rightHandInEditMode);
+
+    var INEDIT_STATUS_CHANNEL = "Hifi-InEdit-Status";
+    var HAND_RAYPICK_BLACKLIST_CHANNEL = "Hifi-Hand-RayPick-Blacklist";
+    this.handleMessage = function (channel, data, sender) {
+        if (channel === INEDIT_STATUS_CHANNEL && sender === MyAvatar.sessionUUID) {
+            var message;
+
+            try {
+                message = JSON.parse(data);
+            } catch (e) {
+                return;
+            }
+
+            switch (message.method) {
+                case "editing":
+                    if (message.hand === LEFT_HAND) {
+                        leftHandInEditMode.isEditing = message.editing;
+                    } else {
+                        rightHandInEditMode.isEditing = message.editing;
+                    }
+                    Messages.sendLocalMessage(HAND_RAYPICK_BLACKLIST_CHANNEL, JSON.stringify({
+                        action: "tablet",
+                        hand: message.hand,
+                        blacklist: message.editing
+                    }));
+                    break;
+            }
+        }
+    };
+    Messages.subscribe(INEDIT_STATUS_CHANNEL);
+    Messages.messageReceived.connect(this.handleMessage);
 
     function cleanup() {
         disableDispatcherModule("LeftHandInEditMode");

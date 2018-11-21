@@ -14,7 +14,7 @@
 //
 
 /* global SelectionManager, SelectionDisplay, grid, rayPlaneIntersection, rayPlaneIntersection2, pushCommandForSelections,
-   getMainTabletIDs, getControllerWorldLocation, TRIGGER_ON_VALUE, HIFI_EDIT_MANIPULATION_CHANNEL */
+   getMainTabletIDs, getControllerWorldLocation, TRIGGER_ON_VALUE */
 
 const SPACE_LOCAL = "local";
 const SPACE_WORLD = "world";
@@ -639,6 +639,8 @@ SelectionDisplay = (function() {
         ROLL: 2
     };
 
+    const INEDIT_STATUS_CHANNEL = "Hifi-InEdit-Status";
+
     /**
      * The current space mode, this could have been a forced space mode since we do not support multi selection while in
      * local space mode.
@@ -1118,11 +1120,12 @@ SelectionDisplay = (function() {
                 activeTool = hitTool;
                 that.clearDebugPickPlane();
                 if (activeTool.onBegin) {
-                    Messages.sendLocalMessage(HIFI_EDIT_MANIPULATION_CHANNEL, JSON.stringify({
-                        action: "startEdit",
-                        hand: that.triggeredHand
-                    }));
                     that.editingHand = that.triggeredHand;
+                    Messages.sendLocalMessage(INEDIT_STATUS_CHANNEL, JSON.stringify({
+                        method: "editing",
+                        hand: that.editingHand === Controller.Standard.LeftHand ? LEFT_HAND : RIGHT_HAND,
+                        editing: true
+                    }));
                     activeTool.onBegin(event, pickRay, results);
                 } else {
                     print("ERROR: entitySelectionTool.mousePressEvent - ActiveTool(" + activeTool.mode + ") missing onBegin");
@@ -1271,9 +1274,10 @@ SelectionDisplay = (function() {
                 if (wantDebug) {
                     print("    Triggering ActiveTool(" + activeTool.mode + ")'s onEnd");
                 }
-                Messages.sendLocalMessage(HIFI_EDIT_MANIPULATION_CHANNEL, JSON.stringify({
-                    action: "finishEdit",
-                    hand: that.editingHand
+                Messages.sendLocalMessage(INEDIT_STATUS_CHANNEL, JSON.stringify({
+                    method: "editing",
+                    hand: that.editingHand === Controller.Standard.LeftHand ? LEFT_HAND : RIGHT_HAND,
+                    editing: false
                 }));
                 that.editingHand = NO_HAND;
                 activeTool.onEnd(event);

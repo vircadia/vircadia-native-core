@@ -24,7 +24,6 @@
    HAPTIC_PULSE_DURATION:true,
    DISPATCHER_HOVERING_LIST:true,
    DISPATCHER_HOVERING_STYLE:true,
-   HIFI_EDIT_MANIPULATION_CHANNEL:true,
    Entities,
    makeDispatcherModuleParameters:true,
    makeRunningValues:true,
@@ -149,8 +148,6 @@ DISPATCHER_PROPERTIES = [
     "grab.equippableIndicatorOffset",
     "userData"
 ];
-
-HIFI_EDIT_MANIPULATION_CHANNEL = "HiFi-Edit-Manipulation";
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
 // activitySlots -- indicates which "slots" must not yet be in use for this module to start
@@ -593,7 +590,6 @@ if (typeof module !== 'undefined') {
         TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
         TRIGGER_ON_VALUE: TRIGGER_ON_VALUE,
         DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST,
-        HIFI_EDIT_MANIPULATION_CHANNEL: HIFI_EDIT_MANIPULATION_CHANNEL,
         worldPositionToRegistrationFrameMatrix: worldPositionToRegistrationFrameMatrix
     };
 }

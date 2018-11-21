@@ -11,7 +11,7 @@
 //
 
 /* global LEFT_HAND, RIGHT_HAND, makeDispatcherModuleParameters, makeRunningValues, enableDispatcherModule, 
- * disableDispatcherModule, HIFI_EDIT_MANIPULATION_CHANNEL */
+ * disableDispatcherModule, getEnabledModuleByName */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
@@ -66,9 +66,18 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             100
         );
 
-        this.isEditing = false;
-        this.setIsEditing = function (editing) {
-            this.isEditing = editing;
+        this.isEditing = function () {
+            var inEditModeModule = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightHandInEditMode" : "LeftHandInEditMode");
+            if (inEditModeModule && inEditModeModule.isEditing) {
+                return true;
+            }
+            var inVREditModeModule = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightHandInVREditMode" : "LeftHandInVREditMode");
+            if (inVREditModeModule && inVREditModeModule.isEditing) {
+                return true;
+            }
+            return false;
         };
 
         this.isNearTablet = function (controllerData) {
@@ -76,7 +85,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.isReady = function (controllerData) {
-            if (!this.isEditing && this.isNearTablet(controllerData)) {
+            if (!this.isEditing() && this.isNearTablet(controllerData)) {
                 return makeRunningValues(true, [], []);
             }
             setTabletNearGrabbable(this.hand, false);
@@ -84,7 +93,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.run = function (controllerData) {
-            if (this.isEditing || !this.isNearTablet(controllerData)) {
+            if (this.isEditing() || !this.isNearTablet(controllerData)) {
                 setTabletNearGrabbable(this.hand, false);
                 return makeRunningValues(false, [], []);
             }
@@ -115,28 +124,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     HMD.displayModeChanged.connect(onDisplayModeChanged);
     HMD.mountedChanged.connect(onDisplayModeChanged);
     onDisplayModeChanged();
-
-    function onMessageReceived(channel, data, senderID) {
-        var message;
-
-        if (channel !== HIFI_EDIT_MANIPULATION_CHANNEL || senderID !== MyAvatar.sessionUUID) {
-            return;
-        }
-
-        try {
-            message = JSON.parse(data);
-        } catch (e) {
-            return;
-        }
-
-        if (message.hand === Controller.Standard.LeftHand) {
-            leftNearTabletHighlight.setIsEditing(message.action === "startEdit");
-        } else if (message.hand === Controller.Standard.RightHand) {
-            rightNearTabletHighlight.setIsEditing(message.action === "startEdit");
-        }
-    }
-    Messages.subscribe(HIFI_EDIT_MANIPULATION_CHANNEL);
-    Messages.messageReceived.connect(onMessageReceived);
 
     function cleanUp() {
         disableDispatcherModule("LeftNearTabletHighlight");

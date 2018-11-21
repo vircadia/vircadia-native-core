@@ -12,7 +12,7 @@
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
    getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers,
    PointerManager, getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers,
-   PointerManager, print, Selection, DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE, HIFI_EDIT_MANIPULATION_CHANNEL
+   PointerManager, print, Selection, DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE
 */
 
 controllerDispatcherPlugins = {};
@@ -524,16 +524,17 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                                 _this.setBlacklist();
                             }
                         }
-                    } else if (channel === HIFI_EDIT_MANIPULATION_CHANNEL) {
-                        message = JSON.parse(data);
-                        var tabletIDs = message.action === "startEdit" ?
-                            [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, HMD.homeButtonHighlightID] : [];
-                        if (message.hand === Controller.Standard.LeftHand) {
-                            _this.leftBlacklistTabletIDs = tabletIDs;
-                            _this.setLeftBlacklist();
-                        } else if (message.hand === Controller.Standard.RightHand) {
-                            _this.rightBlacklistTabletIDs = tabletIDs;
-                            _this.setRightBlacklist();
+
+                        if (action === "tablet") {
+                            var tabletIDs = message.blacklist
+                                ? [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, HMD.homeButtonHighlightID] : [];
+                            if (message.hand === LEFT_HAND) {
+                                _this.leftBlacklistTabletIDs = tabletIDs;
+                                _this.setLeftBlacklist();
+                            } else {
+                                _this.rightBlacklistTabletIDs = tabletIDs;
+                                _this.setRightBlacklist();
+                            }
                         }
                     }
                 } catch (e) {
@@ -575,7 +576,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
     var controllerDispatcher = new ControllerDispatcher();
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
-    Messages.subscribe(HIFI_EDIT_MANIPULATION_CHANNEL);
     Messages.messageReceived.connect(controllerDispatcher.handleMessage);
 
     Script.scriptEnding.connect(controllerDispatcher.cleanup);
