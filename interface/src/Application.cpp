@@ -1317,6 +1317,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &Application::activeDisplayPluginChanged, this, [&](){
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         auto keyboard = DependencyManager::get<Keyboard>();
+        if (_loginStateSoundInjector != nullptr) {
+            AudioInjectorOptions options;
+            options.localOnly = true;
+            options.position = getMyAvatar()->getHeadPosition();
+            options.loop = true;
+            options.volume = 0.4f;
+            options.stereo = true;
+            _loginStateSoundInjector->setOptions(options);
+            _loginStateSoundInjector->restart();
+        }
         if (getLoginDialogPoppedUp()) {
             if (_firstRun.get()) {
                 // display mode changed.  Don't allow auto-switch to work after this session.
@@ -2967,15 +2977,15 @@ void Application::showLoginScreen() {
         loginData["action"] = "login dialog shown";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
         _window->setWindowTitle("High Fidelity Interface");
-        if (!_loginStateSoundInjector) {
-            AudioInjectorOptions options;
-            options.localOnly = true;
-            options.position = getMyAvatar()->getHeadPosition();
-            options.loop = true;
-            options.volume = 0.4f;
-            options.stereo = true;
-            _loginStateSoundInjector = AudioInjector::playSound(_loginStateSound, options);
-        }
+        //if (!_loginStateSoundInjector) {
+        //    AudioInjectorOptions options;
+        //    options.localOnly = true;
+        //    options.position = getMyAvatar()->getHeadPosition();
+        //    options.loop = true;
+        //    options.volume = 0.4f;
+        //    options.stereo = true;
+        //    _loginStateSoundInjector = AudioInjector::playSound(_loginStateSound, options);
+        //}
     } else {
         resumeAfterLoginDialogActionTaken();
     }
