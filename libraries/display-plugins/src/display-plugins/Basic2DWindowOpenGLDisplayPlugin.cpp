@@ -165,11 +165,11 @@ static const uint32_t MIN_THROTTLE_CHECK_FRAMES = 60;
 bool Basic2DWindowOpenGLDisplayPlugin::isThrottled() const {
     static auto lastCheck = presentCount();
     // Don't access the menu API every single frame
-   // if ((presentCount() - lastCheck) > MIN_THROTTLE_CHECK_FRAMES) {
+    if ((presentCount() - lastCheck) > MIN_THROTTLE_CHECK_FRAMES) {
         static const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Menu.h
         _isThrottled  = (!_container->isForeground() && _container->isOptionChecked(ThrottleFPSIfNotFocus));
-  //      lastCheck = presentCount();
- //   }
+        lastCheck = presentCount();
+    }
 
     return _isThrottled;
 }
