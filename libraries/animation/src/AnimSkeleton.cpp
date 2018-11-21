@@ -268,7 +268,7 @@ int AnimSkeleton::containsLeft(QString jointName) const {
         }
     }
     if (jointName.startsWith("Left")) {
-        QString mirrorJointName = QString(i.key()).replace(0, 4, "Right");
+        QString mirrorJointName = QString(jointName).replace(0, 4, "Right");
         mirrorJointIndex = nameToJointIndex(mirrorJointName);
     } 
     return mirrorJointIndex;
@@ -288,7 +288,7 @@ int AnimSkeleton::containsRight(QString jointName) const {
         }
     }
     if (jointName.startsWith("Right")) {
-        QString mirrorJointName = QString(i.key()).replace(0, 5, "Left");
+        QString mirrorJointName = QString(jointName).replace(0, 5, "Left");
         mirrorJointIndex = nameToJointIndex(mirrorJointName);
     }
     return mirrorJointIndex;
