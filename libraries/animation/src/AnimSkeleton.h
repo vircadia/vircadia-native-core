@@ -56,6 +56,9 @@ public:
     void saveNonMirroredPoses(const AnimPoseVec& poses) const;
     void restoreNonMirroredPoses(AnimPoseVec& poses) const;
 
+    bool checkNonMirrored(QString jointName) const;
+    int containsLeft(QString jointName) const;
+    int containsRight(QString jointName) const;
     void mirrorRelativePoses(AnimPoseVec& poses) const;
     void mirrorAbsolutePoses(AnimPoseVec& poses) const;
 

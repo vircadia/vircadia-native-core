@@ -54,6 +54,7 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
         }
         _clusterBindMatrixOriginalValues.push_back(dummyClustersList);
     }
+    //dump(false);
 }
 
 AnimSkeleton::AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
@@ -64,16 +65,18 @@ int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
 
     auto itr = _jointIndicesByName.find(jointName);
 
-    if (getFBXToHifiJointNameMapping().contains(jointName)) {
-        qCDebug(animation) << "failing joint name is " << jointName;
+    if (_fbxToHifiJointNameMapping.contains(jointName)) {
+        //qCDebug(animation) << "failing joint name is " << jointName;
         itr = _jointIndicesByName.find(_fbxToHifiJointNameMapping[jointName]);
-        qCDebug(animation) << "the alternate name for the joint " << jointName << " is " <<
-            _fbxToHifiJointNameMapping[jointName] << " " << itr.value();
+        //qCDebug(animation) << "the alternate name for the joint " << jointName << " is " <<
+            //_fbxToHifiJointNameMapping[jointName] << " " << itr.value();
     }
     
     if (_jointIndicesByName.end() != itr) {
+        //qCDebug(animation) << "returning " << itr.value() << " for " << jointName;
         return itr.value();
     }
+    //qCDebug(animation) << "returning -1 " << " for " << jointName;
     return -1;
 }
 
@@ -142,6 +145,7 @@ const QString AnimSkeleton::getJointName(int jointIndex) const {
             break;
         }
     }
+    //qCDebug(animation) << "reverse lookup:  returning " << jointName << " for " << jointIndex;
     return jointName; //;_joints[jointIndex].name;
 }
 
@@ -215,6 +219,81 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
     }
 }
 
+bool AnimSkeleton::checkNonMirrored(QString jointName) const {
+
+    //bool isNonMirrored = false;
+    QMapIterator<QString, QString> i(_fbxToHifiJointNameMapping);
+    while (i.hasNext()) {
+        i.next();
+        if (i.value() == jointName) {
+            // check for left right in the key
+            if (i.key() != "Hips" && i.key() != "Spine" &&
+                i.key() != "Spine1" && i.key() != "Spine2" &&
+                i.key() != "Neck" && i.key() != "Head" &&
+                !((i.key().startsWith("Left") || i.key().startsWith("Right")) &&
+                    i.key() != "LeftEye" && i.key() != "RightEye")) {
+                //return true
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+    // check the unmapped name
+    if (jointName != "Hips" && jointName != "Spine" &&
+        jointName != "Spine1" && jointName != "Spine2" &&
+        jointName != "Neck" && jointName != "Head" &&
+        !((jointName.startsWith("Left") || jointName.startsWith("Right")) &&
+            jointName != "LeftEye" && jointName != "RightEye")) {
+        //return true
+        return true;
+    } else {
+        return false;
+    }
+
+}
+
+int AnimSkeleton::containsLeft(QString jointName) const {
+    QMapIterator<QString, QString> i(_fbxToHifiJointNameMapping);
+    int mirrorJointIndex = -1;
+    while (i.hasNext()) {
+        i.next();
+        if (i.value() == jointName) {
+            // check for left right in the key
+            if (i.key().startsWith("Left")) {
+                QString mirrorJointName = QString(i.key()).replace(0, 4, "Right");
+                mirrorJointIndex = nameToJointIndex(mirrorJointName);
+                //return true
+            }
+        }
+    }
+    if (jointName.startsWith("Left")) {
+        QString mirrorJointName = QString(i.key()).replace(0, 4, "Right");
+        mirrorJointIndex = nameToJointIndex(mirrorJointName);
+    } 
+    return mirrorJointIndex;
+}
+
+int AnimSkeleton::containsRight(QString jointName) const {
+    QMapIterator<QString, QString> i(_fbxToHifiJointNameMapping);
+    int mirrorJointIndex = -1;
+    while (i.hasNext()) {
+        i.next();
+        if (i.value() == jointName) {
+            // check for left right in the key
+            if (i.key().startsWith("Right")) {
+                QString mirrorJointName = QString(i.key()).replace(0, 5, "Left");
+                mirrorJointIndex = nameToJointIndex(mirrorJointName);
+            } 
+        }
+    }
+    if (jointName.startsWith("Right")) {
+        QString mirrorJointName = QString(i.key()).replace(0, 5, "Left");
+        mirrorJointIndex = nameToJointIndex(mirrorJointName);
+    }
+    return mirrorJointIndex;
+}
+
 void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
 
     _joints = joints;
@@ -266,22 +345,15 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
     _nonMirroredIndices.clear();
     _mirrorMap.reserve(_jointsSize);
     for (int i = 0; i < _jointsSize; i++) {
-        if (_joints[i].name != "Hips" && _joints[i].name != _fbxToHifiJointNameMapping["Hips"] && _joints[i].name != "Spine" && _joints[i].name != _fbxToHifiJointNameMapping["Spine"] &&
-            _joints[i].name != "Spine1" && _joints[i].name != _fbxToHifiJointNameMapping["Spine1"] && _joints[i].name != "Spine2" && _joints[i].name != _fbxToHifiJointNameMapping["Spine2"] &&
-            _joints[i].name != "Neck" && _joints[i].name != _fbxToHifiJointNameMapping["Neck"] && _joints[i].name != "Head" && _joints[i].name != _fbxToHifiJointNameMapping["Head"] &&
-            !((_joints[i].name.startsWith("Left") || _joints[i].name.startsWith("Right")) &&
-              _joints[i].name != "LeftEye" && _joints[i].name != "RightEye")) {
+        if (checkNonMirrored(_joints[i].name)) {
             // HACK: we don't want to mirror some joints so we remember their indices
             // so we can restore them after a future mirror operation
             _nonMirroredIndices.push_back(i);
         }
         int mirrorJointIndex = -1;
-        if (_joints[i].name.startsWith("Left")) {
-            QString mirrorJointName = QString(_joints[i].name).replace(0, 4, "Right");
-            mirrorJointIndex = nameToJointIndex(mirrorJointName);
-        } else if (_joints[i].name.startsWith("Right")) {
-            QString mirrorJointName = QString(_joints[i].name).replace(0, 5, "Left");
-            mirrorJointIndex = nameToJointIndex(mirrorJointName);
+        mirrorJointIndex = containsLeft(_joints[i].name);
+        if (mirrorJointIndex > -1) {
+            mirrorJointIndex = containsRight(_joints[i].name);
         }
         if (mirrorJointIndex >= 0) {
             _mirrorMap.push_back(mirrorJointIndex);

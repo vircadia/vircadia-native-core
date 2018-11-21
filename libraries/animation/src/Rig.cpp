@@ -423,7 +423,7 @@ int Rig::indexOfJoint(const QString& jointName) const {
 
         int result = _animSkeleton->nameToJointIndex(jointName);
         if (_animSkeleton->getFBXToHifiJointNameMapping().contains(jointName)) {
-            qCDebug(animation) << "the alternate name for the joint " << jointName << " is " << _animSkeleton->getFBXToHifiJointNameMapping()[jointName] << " " << _animSkeleton->nameToJointIndex(_animSkeleton->getFBXToHifiJointNameMapping()[jointName]);
+            //qCDebug(animation) << "the alternate name for the joint " << jointName << " is " << _animSkeleton->getFBXToHifiJointNameMapping()[jointName] << " " << _animSkeleton->nameToJointIndex(_animSkeleton->getFBXToHifiJointNameMapping()[jointName]);
             result = _animSkeleton->nameToJointIndex(jointName);
         }
 
