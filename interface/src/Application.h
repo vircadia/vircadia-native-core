@@ -324,6 +324,7 @@ public:
 
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
     void createLoginDialogOverlay();
+    void updateLoginDialogOverlayPosition();
 
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();

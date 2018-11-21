@@ -1322,12 +1322,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 // display mode changed.  Don't allow auto-switch to work after this session.
                 _firstRun.set(false);
             }
-            if (_loginDialogOverlayID.isNull()) {
-                // HMD mode.
+            if (isHMDMode()) {
                 dialogsManager->hideLoginDialog();
                 createLoginDialogOverlay();
             } else {
-                // Desktop mode.
                 QVariantMap properties{
                     { "parentID", QUuid() }
                 };
@@ -1335,6 +1333,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 getOverlays().deleteOverlay(_loginDialogOverlayID);
                 _loginDialogOverlayID = OverlayID();
                 _loginStateManager.tearDown();
+                auto toolbar =  DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
+                toolbar->writeProperty("visible", false);
                 dialogsManager->showLoginDialog();
             }
         }
@@ -2946,6 +2946,10 @@ void Application::showLoginScreen() {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     if (!accountManager->isLoggedIn()) {
+        if (!isHMDMode()) {
+            auto toolbar =  DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
+            toolbar->writeProperty("visible", false);
+        }
         _loginDialogPoppedUp = true;
         dialogsManager->showLoginDialog();
         QJsonObject loginData = {};
@@ -5302,6 +5306,8 @@ void Application::resumeAfterLoginDialogActionTaken() {
         return;
     }
 
+    updateSystemTabletMode();
+
     getMyAvatar()->setEnableMeshVisible(true);
 
     const auto& nodeList = DependencyManager::get<NodeList>();
@@ -6257,33 +6263,7 @@ void Application::update(float deltaTime) {
     }
     if (!_loginDialogOverlayID.isNull()) {
         _loginStateManager.update(getMyAvatar()->getDominantHand());
-    }
-
-    if (!_loginDialogOverlayID.isNull()) {
-        auto overlayPosition = getOverlays().getProperty(_loginDialogOverlayID, "position");
-        auto overlayPositionVec = vec3FromVariant(overlayPosition.value);
-        //auto avatarHeadPosition = myAvatar->getHeadPosition();
-        //auto avatarHeadOrientation = myAvatar->getHeadOrientation();
-        //auto headLookVec = avatarHeadOrientation * Vectors::FRONT;
-        //auto overlayToHeadVec = positionVec - avatarHeadPosition;
-        auto cameraPositionVec = _myCamera.getPosition();
-        auto cameraOrientation = _myCamera.getOrientation();
-        auto headLookVec = (cameraOrientation * Vectors::FRONT);
-        auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
-        //auto lookAtQuat = glm::inverse(glm::quat_cast(glm::lookAt(positionVec, avatarHeadPosition, avatarHeadOrientation * Vectors::UNIT_Y)));
-        auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
-        auto upVec = myAvatar->getWorldOrientation() * Vectors::UNIT_Y;
-        auto offset = headLookVec * 0.7f;
-        auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
-        auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
-
-        if (pointAngle > 30.0f) {
-            QVariantMap properties {
-                {"position", vec3toVariant(newOverlayPositionVec)},
-                {"orientation", quatToVariant(newOverlayOrientation)}
-            };
-            getOverlays().editOverlay(_loginDialogOverlayID, properties);
-        }
+        updateLoginDialogOverlayPosition();
     }
 
     // Update _viewFrustum with latest camera and view frustum data...
@@ -8677,6 +8657,28 @@ void Application::createLoginDialogOverlay() {
     }
 }
 
+void Application::updateLoginDialogOverlayPosition() {
+    auto overlayPosition = getOverlays().getProperty(_loginDialogOverlayID, "position");
+    auto overlayPositionVec = vec3FromVariant(overlayPosition.value);
+    auto cameraPositionVec = _myCamera.getPosition();
+    auto cameraOrientation = _myCamera.getOrientation();
+    auto headLookVec = (cameraOrientation * Vectors::FRONT);
+    auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
+    auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
+    auto upVec = getMyAvatar()->getWorldOrientation() * Vectors::UNIT_Y;
+    auto offset = headLookVec * 0.7f;
+    auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
+    auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
+
+    if (pointAngle > 30.0f) {
+        QVariantMap properties {
+            {"position", vec3toVariant(newOverlayPositionVec)},
+            {"orientation", quatToVariant(newOverlayOrientation)}
+        };
+        getOverlays().editOverlay(_loginDialogOverlayID, properties);
+    }
+}
+
 void Application::onDismissedLoginDialog() {
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
@@ -8846,7 +8848,7 @@ void Application::updateThreadPoolCount() const {
 }
 
 void Application::updateSystemTabletMode() {
-    if (_settingsLoaded) {
+    if (_settingsLoaded && !getLoginDialogPoppedUp()) {
         qApp->setProperty(hifi::properties::HMD, isHMDMode());
         if (isHMDMode()) {
             DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
