@@ -2858,23 +2858,20 @@ function loaded() {
                         elGroup.appendChild(elContainer);
                     }
 
-                    elLabel = document.createElement('label');
-                    elLabel.setAttribute("for", propertyElementID);
+                    let labelText = propertyData.label !== undefined ? propertyData.label : "";
+                    let className = '';
                     if (propertyData.indentedLabel || propertyData.showPropertyRule !== undefined) {
-                        let elSpan = document.createElement('span');
-                        elSpan.className = 'indented';
-                        elSpan.innerText = propertyData.label !== undefined ? propertyData.label : "";
-                        elLabel.appendChild(elSpan);
-                    } else {
-                        elLabel.innerText = propertyData.label !== undefined ? propertyData.label : "";
+                        className = 'indented';
                     }
+                    elLabel = createElementFromHTML(
+                        `<label><span class="${className}">${labelText}</span></label>`);
                     elContainer.appendChild(elLabel);
                 } else {
                     elContainer = document.getElementById(propertyData.replaceID);
                 }
 
                 if (elLabel) {
-                    createAppTooltip.registerTooltipElement(elLabel, propertyID);
+                    createAppTooltip.registerTooltipElement(elLabel.childNodes[0], propertyID);
                 }
 
                 let elProperty = createElementFromHTML('<div style="width: 100%;"></div>');
