@@ -172,7 +172,7 @@ function job_tree_model_functor(jobTreeModel, maxLevel, newNodeFunctor) {
 
 // Traverse the jobTreenode data structure created above
 function job_traverseTreeNode(root, functor, depth) {
- //   if (root.subNode.length) { 
+    if (root.subNode.length) { 
         depth++;
         for (var i = 0; i <root.subNode.length; i++) {
             var sub = root.subNode[i];
@@ -180,8 +180,9 @@ function job_traverseTreeNode(root, functor, depth) {
                 job_traverseTreeNode(sub, functor, depth, 0)
             }
         }
- //   }    
+    }
 }
+
 function job_traverseTreeNodeRoot(root, functor) {
     if (functor(root, 0, 0)) {
         job_traverseTreeNode(root, functor, 0)
