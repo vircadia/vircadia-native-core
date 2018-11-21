@@ -127,12 +127,7 @@ static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SI
 
 bool GraphicsEngine::shouldPaint() const {
 
-//        if (_aboutToQuit || _window->isMinimized()) {
-//            return false;
- //       }
-
-
-        auto displayPlugin = qApp->getActiveDisplayPlugin();
+    auto displayPlugin = qApp->getActiveDisplayPlugin();
 
 #ifdef DEBUG_PAINT_DELAY
         static uint64_t paintDelaySamples{ 0 };
@@ -148,15 +143,14 @@ bool GraphicsEngine::shouldPaint() const {
         }
 #endif
 
-        // Throttle if requested
-        //if (displayPlugin->isThrottled() && (_graphicsEngine._renderEventHandler->_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
-        if (    displayPlugin->isThrottled() &&
-                (static_cast<RenderEventHandler*>(_renderEventHandler)->_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
-            return false;
-        }
+    // Throttle if requested
+    //if (displayPlugin->isThrottled() && (_graphicsEngine._renderEventHandler->_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
+    if (    displayPlugin->isThrottled() &&
+            (static_cast<RenderEventHandler*>(_renderEventHandler)->_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
+        return false;
+    }
 
-        return true;
-  //  }
+    return true;
 }
 
 bool GraphicsEngine::checkPendingRenderEvent() {
@@ -170,16 +164,10 @@ void GraphicsEngine::render_performFrame() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
 
     _renderFrameCount++;
-    // SG: Moved into the RenderEventHandler
-    //_lastTimeRendered.start();
 
     auto lastPaintBegin = usecTimestampNow();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff0000ff, (uint64_t)_renderFrameCount);
     PerformanceTimer perfTimer("paintGL");
-
-  /*  if (nullptr == _displayPlugin) {
-        return;
-    }*/
 
     DisplayPluginPointer displayPlugin;
     {
@@ -310,5 +298,4 @@ void GraphicsEngine::render_performFrame() {
 void GraphicsEngine::editRenderArgs(RenderArgsEditor editor) {
     QMutexLocker renderLocker(&_renderArgsMutex);
     editor(_appRenderArgs);
-
 }

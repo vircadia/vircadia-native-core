@@ -87,7 +87,6 @@
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
-//#include <gpu/gl/GLBackend.h>
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
@@ -2313,7 +2312,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<Keyboard>()->createKeyboard();
 
     _pendingIdleEvent = false;
-   // _pendingRenderEvent = false;
     _graphicsEngine.startup();
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
@@ -2578,11 +2576,6 @@ void Application::cleanupBeforeQuit() {
 
     // Cleanup all overlays after the scripts, as scripts might add more
     _overlays.cleanupAllOverlays();
-    // The cleanup process enqueues the transactions but does not process them.  Calling this here will force the actual
-    // removal of the items.
-    // See https://highfidelity.fogbugz.com/f/cases/5328
-   // _main3DScene->enqueueFrame(); // flush all the transactions
-   // _main3DScene->processTransactionQueue(); // process and apply deletions
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -2597,8 +2590,6 @@ void Application::cleanupBeforeQuit() {
     }
 
     _window->saveGeometry();
-
-   // _gpuContext->shutdown();
 
     // Destroy third party processes after scripts have finished using them.
 #ifdef HAVE_DDE
@@ -2655,9 +2646,7 @@ Application::~Application() {
     _shapeManager.collectGarbage();
     assert(_shapeManager.getNumShapes() == 0);
 
-    // shutdown render engine
-    //_main3DScene = nullptr;
-    //_renderEngine = nullptr;
+    // shutdown graphics engine
     _graphicsEngine.shutdown();
     
     _gameWorkload.shutdown();
@@ -2717,9 +2706,6 @@ Application::~Application() {
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
-
-    
-//    _renderEventHandler->deleteLater();
 }
 
 void Application::initializeGL() {
@@ -4681,19 +4667,6 @@ void Application::idle() {
     PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
     auto renderConfig = _graphicsEngine.getRenderEngine()->getConfiguration();
     PROFILE_COUNTER_IF_CHANGED(render, "gpuTime", float, (float)_graphicsEngine.getGPUContext()->getFrameTimerGPUAverage());
-/*    auto opaqueRangeTimer = renderConfig->getConfig("OpaqueRangeTimer");
-    auto linearDepth = renderConfig->getConfig("LinearDepth");
-    auto surfaceGeometry = renderConfig->getConfig("SurfaceGeometry");
-    auto renderDeferred = renderConfig->getConfig("RenderDeferred");
-    auto toneAndPostRangeTimer = renderConfig->getConfig("ToneAndPostRangeTimer");
-
-    PROFILE_COUNTER(render_detail, "gpuTimes", {
-        { "OpaqueRangeTimer", opaqueRangeTimer ? opaqueRangeTimer->property("gpuRunTime") : 0 },
-        { "LinearDepth", linearDepth ? linearDepth->property("gpuRunTime") : 0 },
-        { "SurfaceGeometry", surfaceGeometry ? surfaceGeometry->property("gpuRunTime") : 0 },
-        { "RenderDeferred", renderDeferred ? renderDeferred->property("gpuRunTime") : 0 },
-        { "ToneAndPostRangeTimer", toneAndPostRangeTimer ? toneAndPostRangeTimer->property("gpuRunTime") : 0 }
-    });*/
 
     PROFILE_RANGE(app, __FUNCTION__);
 
@@ -5062,9 +5035,6 @@ QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
 void Application::init() {
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
-//    if (!DISABLE_DEFERRED) {
- //       DependencyManager::get<DeferredLightingEffect>()->init();
- //   }
     DependencyManager::get<AvatarManager>()->init();
 
     _timerStart.start();
@@ -6128,13 +6098,6 @@ void Application::update(float deltaTime) {
 
 
     updateRenderArgs(deltaTime);
-
-    // HACK
-    // load the view frustum
-    // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
-    // Then we can move this logic into the Avatar::simulate call.
-//    myAvatar->preDisplaySide(&_appRenderArgs._renderArgs);
-
 
     {
         PerformanceTimer perfTimer("AnimDebugDraw");
