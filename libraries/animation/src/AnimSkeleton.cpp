@@ -27,6 +27,7 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     _fbxToHifiJointNameMapping = hfmModel.fbxToHifiJointNameMapping;
     buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
 
+
     // we make a copy of the inverseBindMatrices in order to prevent mutating the model bind pose
     // when we are dealing with a joint offset in the model
     for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
@@ -352,7 +353,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
         }
         int mirrorJointIndex = -1;
         mirrorJointIndex = containsLeft(_joints[i].name);
-        if (mirrorJointIndex > -1) {
+        if (!(mirrorJointIndex > -1)) {
             mirrorJointIndex = containsRight(_joints[i].name);
         }
         if (mirrorJointIndex >= 0) {

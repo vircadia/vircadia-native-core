@@ -480,14 +480,14 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
     std::map<QString, HFMLight> lights;
 
     QVariantHash joints = mapping.value("joint").toHash();
-    QString jointEyeLeftName = processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
-    QString jointEyeRightName = processID(getString(joints.value("jointEyeRight", "jointEyeRight")));
-    QString jointNeckName = processID(getString(joints.value("jointNeck", "jointNeck")));
-    QString jointRootName = processID(getString(joints.value("jointRoot", "jointRoot")));
+    QString jointEyeLeftName = "EyeLeft";  //processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
+    QString jointEyeRightName = "EyeRight"; // processID(getString(joints.value("jointEyeRight", "jointEyeRight")));
+    QString jointNeckName = "Neck"; //processID(getString(joints.value("jointNeck", "jointNeck")));
+    QString jointRootName = "Hips"; //processID(getString(joints.value("jointRoot", "jointRoot")));
     QString jointLeanName = processID(getString(joints.value("jointLean", "jointLean")));
     QString jointHeadName = "Head";// processID(getString(joints.value("jointHead", "jointHead")));
-    QString jointLeftHandName = processID(getString(joints.value("jointLeftHand", "jointLeftHand")));
-    QString jointRightHandName = processID(getString(joints.value("jointRightHand", "jointRightHand")));
+    QString jointLeftHandName = "LeftHand"; //processID(getString(joints.value("jointLeftHand", "jointLeftHand")));
+    QString jointRightHandName = "RightHand"; // processID(getString(joints.value("jointRightHand", "jointRightHand")));
     QString jointEyeLeftID;
     QString jointEyeRightID;
     QString jointNeckID;
@@ -1845,7 +1845,15 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
             jointIndex = hfmModel.getJointIndex(hfmModel.fbxToHifiJointNameMapping[jointName]);
         }
         if (jointIndex != -1) {
-            hfmModel.jointRotationOffsets.insert(jointIndex, rotationOffset);
+            //if (jointIndex == 18) {
+            //    glm::quat spine3LocalOffset(0.94232035f, 0.000000014995882f, 0.33471236f, 0.000000058068572f);
+            //    glm::quat spine3AbsoluteOffset = spine3LocalOffset * hfmModel.jointRotationOffsets[16];
+            //    hfmModel.jointRotationOffsets.insert(jointIndex, spine3AbsoluteOffset);
+            //    qCDebug(modelformat) << "Joint Rotation Offset added for spine3 : " << spine3AbsoluteOffset;
+            //} else {
+                hfmModel.jointRotationOffsets.insert(jointIndex, rotationOffset);
+            //}
+            
         }
         qCDebug(modelformat) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
     }
