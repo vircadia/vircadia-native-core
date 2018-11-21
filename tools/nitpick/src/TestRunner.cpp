@@ -350,7 +350,6 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     if (QDir(_savedAppDataFolder).exists()) {
         _savedAppDataFolder.removeRecursively();
     }
-
     if (_appDataFolder.exists()) {
         // The original folder is saved in a unique name
         _appDataFolder.rename(_appDataFolder.path(), _savedAppDataFolder.path());
