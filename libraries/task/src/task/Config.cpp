@@ -41,7 +41,6 @@ void JobConfig::setPresetList(const QJsonObject& object) {
 void TaskConfig::connectChildConfig(QConfigPointer childConfig, const std::string& name) {
     childConfig->setParent(this);
     childConfig->setObjectName(name.c_str());
-  //  childConfig->propagateParentEnabled((_isParentEnabled ? _isEnabled : false));
 
     // Connect loaded->refresh
     QObject::connect(childConfig.get(), SIGNAL(loaded()), this, SLOT(refresh()));
@@ -69,8 +68,6 @@ void TaskConfig::transferChildrenConfigs(QConfigPointer source) {
             QObject::connect(child, SIGNAL(dirtyEnabled()), this, SLOT(refresh()));
         }
     }
-
-  //  propagateParentEnabledToSubs();
 }
 
 void TaskConfig::refresh() {
