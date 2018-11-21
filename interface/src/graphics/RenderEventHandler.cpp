@@ -19,13 +19,9 @@ RenderEventHandler::RenderEventHandler(CheckCall checkCall, RenderCall renderCal
     _checkCall(checkCall),
     _renderCall(renderCall)
 {
-    // Deleting the object with automatically shutdown the thread
-  //  connect(qApp, &QCoreApplication::aboutToQuit, this, &QObject::deleteLater);
-
     // Transfer to a new thread
     moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
         hifi::qt::addBlockingForbiddenThread("Render", renderThread);
-        //_renderContext->moveToThreadWithContext(renderThread);
         _lastTimeRendered.start();
     }, std::bind(&RenderEventHandler::initialize, this), QThread::HighestPriority);
 }

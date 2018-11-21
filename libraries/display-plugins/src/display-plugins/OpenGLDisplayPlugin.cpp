@@ -172,16 +172,7 @@ public:
             // If there's no active plugin, just sleep
             if (currentPlugin == nullptr) {
                 // Minimum sleep ends up being about 2 ms anyway
-                QThread::msleep(16);
-                continue;
-            }
-
-            static uint _vsyncLoopIndex = 0;
-            _vsyncLoopIndex++;
-
-            if (currentPlugin->isThrottled() && (_vsyncLoopIndex % 8)) {
-                // Minimum sleep ends up being about 2 ms anyway
-                QThread::msleep(16);
+                QThread::msleep(1);
                 continue;
             }
 
