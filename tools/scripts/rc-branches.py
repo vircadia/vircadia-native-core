@@ -5,7 +5,7 @@ import os
 import re
 import sys
 
-from optparse import OptionParser
+import argparse
 
 from utils import git
 
@@ -212,38 +212,28 @@ def createVersionBranches(version):
     if is_patch_release:
         print("[SUCCESS] NOTE: You will have to wait for the first fix to be merged into the RC branch to be able to create the PR")
 
-def usage():
-    """Print usage."""
-    print("rc-branches.py supports the following commands:")
-    print("\ncheck <version>")
-    print("   <version>  - version to check of the form \"X.Y.Z\"")
-    print("\ncreate <version>")
-    print("   <version>  - version to create branches for of the form \"X.Y.Z\"")
-
 def main():
     """Execute Main entry point."""
     global remote_name
 
-    parser = OptionParser()
-    parser.add_option("-r", "--remote", type="string", dest="remote_name", default=remote_name)
-    (options, args) = parser.parse_args(args=sys.argv)
+    parser = argparse.ArgumentParser(description='RC branches tool',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''Example commands you can run:\n%(prog)s check 0.75.0\n%(prog)s create 0.75.1''')
+    parser.add_argument("command", help="command to execute", choices=["check", "create"])
+    parser.add_argument("version", help="version of the form \"X.Y.Z\"")
+    parser.add_argument("--remote", dest="remote_name", default=remote_name,
+        help="git remote to use as reference")
+    args = parser.parse_args()
 
-    remote_name = options.remote_name
-
-    if len(args) < 3:
-        usage()
-        return
-
-    command = args[1]
-    version = args[2]
+    remote_name = args.remote_name
 
     try:
-        if command == "check":
-            checkVersionBranches(version)
-        elif command == "create":
-            createVersionBranches(version)
+        if args.command == "check":
+            checkVersionBranches(args.version)
+        elif args.command == "create":
+            createVersionBranches(args.version)
         else:
-            usage()
+            parser.print_help()
     except Exception as ex:
         logging.error(ex)
         sys.exit(1)
