@@ -7,7 +7,7 @@ import sys
 
 import argparse
 
-from utils import git
+from git import Repo
 
 FORMAT = '[%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
@@ -58,129 +58,102 @@ def checkVersionBranches(version):
     """Check that the branches for a given version were created properly."""
 
     parser = VersionParser(version)
-    major = parser.major
-    minor = parser.minor
-    patch = parser.patch
-    previous_version = parser.previous_version
-    version = parser.version
 
-    is_major_release = parser.is_major_release
-    is_minor_release = parser.is_minor_release
-    is_patch_release = parser.is_patch_release
-
-    remote_previous_rc_branch = parser.remote_previous_rc_branch
-    remote_base_branch = parser.remote_base_branch
-    remote_rc_branch = parser.remote_rc_branch
-
-    repo = git.Repository(git.Repository.get_base_directory())
+    repo = Repo(os.getcwd(), search_parent_directories=True)
+    assert not repo.bare
 
     # Verify the branches' existance
-    if not repo.does_branch_exist(remote_previous_rc_branch):
-        raise ValueError("Previous RC branch not found: {}".format(remote_previous_rc_branch))
+    if parser.remote_previous_rc_branch not in repo.refs:
+        raise ValueError("Previous RC branch not found: {}".format(parser.remote_previous_rc_branch))
 
-    if not repo.does_branch_exist(remote_base_branch):
-        raise ValueError("Base branch not found: {}".format(remote_base_branch))
+    if parser.remote_base_branch not in repo.refs:
+        raise ValueError("Base branch not found: {}".format(parser.remote_base_branch))
 
-    if not repo.does_branch_exist(remote_rc_branch):
-        raise ValueError("RC branch not found: {}".format(remote_rc_branch))
+    if parser.remote_rc_branch not in repo.refs:
+        raise ValueError("RC branch not found: {}".format(parser.remote_rc_branch))
 
-    # Figure out SHA for each of the branches
-    previous_rc_commit = repo.git_rev_parse([remote_previous_rc_branch])
-    base_commit = repo.git_rev_parse([remote_base_branch])
-    rc_commit = repo.git_rev_parse([remote_rc_branch])
+    previous_rc = repo.refs[parser.remote_previous_rc_branch]
+    current_rc_base = repo.refs[parser.remote_base_branch]
+    current_rc = repo.refs[parser.remote_rc_branch]
+    master = repo.refs[remote_master_branch]
 
     # Check the base branch is an ancestor of the rc branch
-    if not repo.is_ancestor(base_commit, rc_commit):
-        raise ValueError("{} is not an ancesctor of {}".format(remote_base_branch, remote_rc_branch))
+    if not repo.is_ancestor(current_rc_base, current_rc):
+        raise ValueError("{} is not an ancesctor of {}".format(current_rc_base, current_rc))
 
     # Check that the base branch is the merge base of the previous and current RCs
-    merge_base = repo.get_merge_base(previous_rc_commit, rc_commit)
-    if base_commit != merge_base:
-        raise ValueError("Base branch is not the merge base between {} and {}".format(remote_previous_rc_branch, remote_rc_branch))
+    merge_base = repo.merge_base(previous_rc, current_rc)
+    if current_rc_base.commit not in merge_base:
+        raise ValueError("Base branch is not the merge base between {} and {}".format(previous_rc, current_rc))
 
     # For patch releases, warn if the base commit is not the previous RC commit
-    if is_patch_release:
-        if not repo.does_tag_exist(version):
-            logging.warning("The tag {} does not exist, which suggests {} has not been released.".format(version, version))
+    if parser.is_patch_release:
+        if parser.previous_version not in repo.tags:
+            logging.warning("The tag {0} does not exist, which suggests {0} has not been released.".format(parser.previous_version))
 
-        if base_commit != previous_rc_commit:
+        if current_rc_base.commit != previous_rc.commit:
             logging.warning("Previous version has commits not in this patch");
-            logging.warning("Type \"git diff {}..{}\" to see the commit list".format(base_commit, previous_rc_commit));
+            logging.warning("Type \"git diff {}..{}\" to see the commit list".format(current_rc_base, previous_rc));
 
         # Check base branch is part of the previous RC
-        previous_rc_base_commit = repo.get_merge_base(previous_rc_commit, remote_master_branch)
-        if repo.is_ancestor(base_commit, previous_rc_base_commit):
-            raise ValueError("{} is older than {}".format(remote_base_branch, remote_rc_branch))
+        previous_rc_base_commit = repo.merge_base(previous_rc, master)
+        if repo.is_ancestor(current_rc_base, previous_rc_base_commit):
+            raise ValueError("{} is older than {}".format(current_rc_base, previous_rc))
 
-    print("[SUCCESS] Checked {}".format(version))
+    print("[SUCCESS] Checked {}".format(parser.version))
 
 def createVersionBranches(version):
     """Create the branches for a given version."""
 
     parser = VersionParser(version)
-    major = parser.major
-    minor = parser.minor
-    patch = parser.patch
-    previous_version = parser.previous_version
-    version = parser.version
 
-    is_major_release = parser.is_major_release
-    is_minor_release = parser.is_minor_release
-    is_patch_release = parser.is_patch_release
-
-    previous_rc_branch = parser.previous_rc_branch
-    base_branch = parser.base_branch
-    rc_branch = parser.rc_branch
-    remote_previous_rc_branch = parser.remote_previous_rc_branch
-    remote_base_branch = parser.remote_base_branch
-    remote_rc_branch = parser.remote_rc_branch
-
-    repo = git.Repository(git.Repository.get_base_directory())
+    repo = Repo(os.getcwd(), search_parent_directories=True)
+    assert not repo.bare
 
     # Validate the user is on a local branch that has the right merge base
-    if repo.is_detached():
+    if repo.head.is_detached:
         raise ValueError("You must not run this script in a detached HEAD state")
 
     # Validate the user has no pending changes
-    if repo.is_working_tree_dirty():
+    if repo.is_dirty():
         raise ValueError("Your working tree has pending changes. You must have a clean working tree before proceeding.")
 
     # Make sure the remote is up to date
-    repo.git_fetch([remote_name])
+    remote = repo.remotes[remote_name]
+    remote.fetch(prune=True)
 
     # Verify the previous RC branch exists
-    if not repo.does_branch_exist(remote_previous_rc_branch):
-        raise ValueError("Previous RC branch not found: {}".format(remote_previous_rc_branch))
+    if parser.remote_previous_rc_branch not in repo.refs:
+        raise ValueError("Previous RC branch not found: {}".format(parser.remote_previous_rc_branch))
 
     # Verify the branches don't already exist
-    if repo.does_branch_exist(remote_base_branch):
-        raise ValueError("Base branch already exists: {}".format(remote_base_branch))
+    if parser.remote_base_branch in repo.refs:
+        raise ValueError("Base branch already exists: {}".format(parser.remote_base_branch))
 
-    if repo.does_branch_exist(remote_rc_branch):
-        raise ValueError("RC branch already exists: {}".format(remote_rc_branch))
+    if parser.remote_rc_branch in repo.refs:
+        raise ValueError("RC branch already exists: {}".format(parser.remote_rc_branch))
 
-    if repo.does_branch_exist(base_branch):
-        raise ValueError("Base branch already exists locally: {}".format(base_branch))
+    if parser.base_branch in repo.refs:
+        raise ValueError("Base branch already exists locally: {}".format(parser.base_branch))
 
-    if repo.does_branch_exist(rc_branch):
-        raise ValueError("RC branch already exists locally: {}".format(rc_branch))
+    if parser.rc_branch in repo.refs:
+        raise ValueError("RC branch already exists locally: {}".format(parser.rc_branch))
 
     # Save current branch name
-    current_branch_name = repo.get_branch_name()
+    current_branch_name = repo.active_branch
 
     # Create the RC branches
-    if is_patch_release:
-
+    if parser.is_patch_release:
         # Check tag exists, if it doesn't, print warning and ask for comfirmation
-        if not repo.does_tag_exist(previous_version):
-            logging.warning("The tag {} does not exist, which suggests {} has not yet been released.".format(previous_version, previous_version))
-            logging.warning("Creating the branches now means that {} will diverge from {} if anything is merged into {}.".format(version, previous_version, previous_version))
+        if parser.previous_version not in repo.tags:
+            logging.warning("The tag {0} does not exist, which suggests {0} has not yet been released.".format(parser.previous_version))
+            logging.warning("Creating the branches now means that {0} will diverge from {1} if anything is merged into {1}.".format(parser.version, parser.previous_version))
             logging.warning("This is not recommended unless necessary.")
 
             validAnswer = False
             askCount = 0
             while not validAnswer and askCount < 3:
-                answer = input("Are you sure you want to do this? [y/n]").strip().lower()
+                answer = input("Are you sure you want to do this? [y/n] ").strip().lower()
                 askCount += 1
                 validAnswer = answer == "y" or answer == "n"
 
@@ -193,23 +166,26 @@ def createVersionBranches(version):
             else:
                 print("Creating branches")
 
-        repo.git_checkout(["-b", base_branch, remote_previous_rc_branch])
-        repo.push_to_remote_branch(remote_name, base_branch)
-        repo.git_checkout(["-b", rc_branch, remote_previous_rc_branch])
-        repo.push_to_remote_branch(remote_name, rc_branch)
+        previous_rc = repo.refs[parser.remote_previous_rc_branch]
+
+        repo.create_head(parser.base_branch, previous_rc)
+        remote.push("{0}:{0}".format(parser.base_branch))
+        repo.create_head(parser.rc_branch, previous_rc)
+        remote.push("{0}:{0}".format(parser.rc_branch))
     else:
-        merge_base = repo.get_merge_base(remote_previous_rc_branch, remote_master_branch)
-        repo.git_checkout(["-b", base_branch, merge_base])
-        repo.push_to_remote_branch(remote_name, base_branch)
-        repo.git_checkout(["-b", rc_branch, remote_master_branch])
-        repo.push_to_remote_branch(remote_name, rc_branch)
+        previous_rc = repo.refs[parser.remote_previous_rc_branch]
+        master = repo.refs[remote_master_branch]
+        merge_base = repo.merge_base(previous_rc, master)
 
-    repo.git_checkout([current_branch_name])
+        repo.create_head(parser.base_branch, merge_base[0])
+        remote.push("{0}:{0}".format(parser.base_branch))
+        repo.create_head(parser.rc_branch, master)
+        remote.push("{0}:{0}".format(parser.rc_branch))
 
-    print("[SUCCESS] Created {} and {}".format(base_branch, rc_branch))
+    print("[SUCCESS] Created {} and {}".format(parser.base_branch, parser.rc_branch))
     print("[SUCCESS] You can make the PR from the following webpage:")
-    print("[SUCCESS] https://github.com/highfidelity/hifi/compare/{}...{}".format(base_branch, rc_branch))
-    if is_patch_release:
+    print("[SUCCESS] https://github.com/highfidelity/hifi/compare/{}...{}".format(parser.base_branch, parser.rc_branch))
+    if parser.is_patch_release:
         print("[SUCCESS] NOTE: You will have to wait for the first fix to be merged into the RC branch to be able to create the PR")
 
 def main():
@@ -234,7 +210,7 @@ def main():
             createVersionBranches(args.version)
         else:
             parser.print_help()
-    except Exception as ex:
+    except ValueError as ex:
         logging.error(ex)
         sys.exit(1)
 
