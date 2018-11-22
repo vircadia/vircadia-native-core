@@ -172,8 +172,8 @@ def createVersionBranches(version):
     if is_patch_release:
 
         # Check tag exists, if it doesn't, print warning and ask for comfirmation
-        if not repo.does_tag_exist(version):
-            logging.warning("The tag {} does not exist, which suggests {} has not yet been released.".format(version, version))
+        if not repo.does_tag_exist(previous_version):
+            logging.warning("The tag {} does not exist, which suggests {} has not yet been released.".format(previous_version, previous_version))
             logging.warning("Creating the branches now means that {} will diverge from {} if anything is merged into {}.".format(version, previous_version, previous_version))
             logging.warning("This is not recommended unless necessary.")
 
