@@ -171,7 +171,7 @@ Script.include("/~/system/libraries/controllers.js");
                     var controllerIndex =
                         this.hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
                     var controllerGrabOffset = getGrabPointSphereOffset(controllerIndex, true);
-                    controllerGrabOffset = Vec3.multiply(-1, controllerGrabOffset);
+                    controllerGrabOffset = Vec3.multiply(-MyAvatar.sensorToWorldScale, controllerGrabOffset);
                     var distance = distanceBetweenEntityLocalPositionAndBoundingBox(props, controllerGrabOffset);
                     if (distance > tearAwayDistance) {
                         this.autoUnequipCounter++;
