@@ -32,7 +32,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.previousParentID = {};
         this.previousParentJointIndex = {};
         this.previouslyUnhooked = {};
-        this.hapticTargetID = null;
         this.lastUnequipCheckTime = 0;
         this.autoUnequipCounter = 0;
         this.lastUnexpectedChildrenCheckTime = 0;
@@ -138,7 +137,6 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.endNearParentingGrabEntity = function (controllerData) {
-            this.hapticTargetID = null;
             var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
             if (this.thisHandIsParent(props) && !this.robbed) {
                 Entities.editEntity(this.targetEntityID, {
@@ -248,11 +246,6 @@ Script.include("/~/system/libraries/controllers.js");
                     continue;
                 }
                 if (entityIsGrabbable(props) || entityIsCloneable(props)) {
-                    // give haptic feedback
-                    if (props.id !== this.hapticTargetID) {
-                        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-                        this.hapticTargetID = props.id;
-                    }
                     if (!entityIsCloneable(props)) {
                         // if we've attempted to grab a non-cloneable child, roll up to the root of the tree
                         var groupRootProps = findGroupParent(controllerData, props);
@@ -295,7 +288,6 @@ Script.include("/~/system/libraries/controllers.js");
                     unhighlightTargetEntity(this.highlightedEntity);
                     this.highlightedEntity = null;
                 }
-                this.hapticTargetID = null;
                 this.robbed = false;
                 return makeRunningValues(false, [], []);
             }
@@ -316,7 +308,6 @@ Script.include("/~/system/libraries/controllers.js");
                     this.highlightedEntity = null;
                     this.grabbing = false;
                     this.targetEntityID = null;
-                    this.hapticTargetID = null;
                     this.robbed = false;
                     return makeRunningValues(false, [], []);
                 }

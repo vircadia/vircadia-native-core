@@ -256,7 +256,6 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.endFarParentGrab = function (controllerData) {
-            this.hapticTargetID = null;
             // var endProps = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
             var endProps = Entities.getEntityProperties(this.targetEntityID, DISPATCHER_PROPERTIES);
             if (this.thisFarGrabJointIsParent(endProps)) {
@@ -410,11 +409,6 @@ Script.include("/~/system/libraries/controllers.js");
             if (targetEntity) {
                 var gtProps = Entities.getEntityProperties(targetEntity, DISPATCHER_PROPERTIES);
                 if (entityIsGrabbable(gtProps)) {
-                    // give haptic feedback
-                    if (gtProps.id !== this.hapticTargetID) {
-                        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-                        this.hapticTargetID = gtProps.id;
-                    }
                     // if we've attempted to grab a child, roll up to the root of the tree
                     var groupRootProps = findGroupParent(controllerData, gtProps);
                     if (entityIsGrabbable(groupRootProps)) {
