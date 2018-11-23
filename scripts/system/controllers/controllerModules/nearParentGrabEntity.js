@@ -12,7 +12,8 @@
    findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
    HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, findHandChildEntities, TEAR_AWAY_DISTANCE, MSECS_PER_SEC, TEAR_AWAY_CHECK_TIME,
    TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Uuid, highlightTargetEntity, unhighlightTargetEntity,
-   distanceBetweenEntityLocalPositionAndBoundingBox, getGrabbableData, getGrabPointSphereOffset, DISPATCHER_PROPERTIES
+   distanceBetweenEntityLocalPositionAndBoundingBox, getGrabbableData, getGrabPointSphereOffset, DISPATCHER_PROPERTIES,
+   NEAR_GRAB_DISTANCE
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -235,14 +236,14 @@ Script.include("/~/system/libraries/controllers.js");
             // nearbyEntityProperties is already sorted by length from controller
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
             var sensorScaleFactor = MyAvatar.sensorToWorldScale;
-            var tearAwayDistance = TEAR_AWAY_DISTANCE * sensorScaleFactor;
+            var nearGrabDistance = NEAR_GRAB_DISTANCE * sensorScaleFactor;
             var nearGrabRadius = NEAR_GRAB_RADIUS * sensorScaleFactor;
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
                 var grabPosition = controllerData.controllerLocations[this.hand].position; // Is offset from hand position.
                 var dist = distanceBetweenPointAndEntityBoundingBox(grabPosition, props);
                 var distance = Vec3.distance(grabPosition, props.position);
-                if ((dist > tearAwayDistance) ||
+                if ((dist > nearGrabDistance) ||
                     (distance > nearGrabRadius)) { // Only smallish entities can be near grabbed.
                     continue;
                 }
