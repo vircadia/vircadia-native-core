@@ -61,6 +61,8 @@ Script.include("/~/system/libraries/controllers.js");
         this.reticleMinY = MARGIN;
         this.reticleMaxY = 0;
         this.lastUnexpectedChildrenCheckTime = 0;
+        this.endedGrab = 0;
+        this.MIN_HAPTIC_PULSE_INTERVAL = 500; // ms
 
         var FAR_GRAB_JOINTS = [65527, 65528]; // FARGRAB_LEFTHAND_INDEX, FARGRAB_RIGHTHAND_INDEX
 
@@ -144,7 +146,12 @@ Script.include("/~/system/libraries/controllers.js");
             // compute the mass for the purpose of energy and how quickly to move object
             this.mass = this.getMass(grabbedProperties.dimensions, grabbedProperties.density);
 
-            Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+            // Debounce haptic pules. Can occur as near grab controller module vacillates between being ready or not due to
+            // changing positions and floating point rounding.
+            if (Date.now() - this.endedGrab > this.MIN_HAPTIC_PULSE_INTERVAL) {
+                Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+            }
+
             unhighlightTargetEntity(this.targetEntityID);
             var message = {
                 hand: this.hand,
@@ -256,6 +263,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.endFarParentGrab = function (controllerData) {
+            this.endedGrab = Date.now();
             // var endProps = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
             var endProps = Entities.getEntityProperties(this.targetEntityID, DISPATCHER_PROPERTIES);
             if (this.thisFarGrabJointIsParent(endProps)) {
