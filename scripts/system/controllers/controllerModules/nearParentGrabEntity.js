@@ -24,15 +24,6 @@ Script.include("/~/system/libraries/controllers.js");
     // XXX this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
     // XXX this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
 
-    // this offset needs to match the one in libraries/display-plugins/src/display-plugins/hmd/HmdDisplayPlugin.cpp:378
-    var GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 };  // x = upward, y = forward, z = lateral
-
-    function getGrabOffset(handController) {
-        var offset = getGrabPointSphereOffset(handController, true);
-        offset.y = -offset.y;
-        return Vec3.multiply(MyAvatar.sensorToWorldScale, offset);
-    }
-
     function NearParentingGrabEntity(hand) {
         this.hand = hand;
         this.targetEntityID = null;
@@ -178,8 +169,10 @@ Script.include("/~/system/libraries/controllers.js");
                 this.lastUnequipCheckTime = now;
                 if (props.parentID === MyAvatar.SELF_ID) {
                     var tearAwayDistance = TEAR_AWAY_DISTANCE * MyAvatar.sensorToWorldScale;
-                    var controllerIndex = (this.hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
-                    var controllerGrabOffset = getGrabOffset(controllerIndex);
+                    var controllerIndex =
+                        this.hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
+                    var controllerGrabOffset = getGrabPointSphereOffset(controllerIndex, true);
+                    controllerGrabOffset = Vec3.multiply(-1, controllerGrabOffset);
                     var distance = distanceBetweenEntityLocalPositionAndBoundingBox(props, controllerGrabOffset);
                     if (distance > tearAwayDistance) {
                         this.autoUnequipCounter++;
@@ -242,13 +235,15 @@ Script.include("/~/system/libraries/controllers.js");
             // nearbyEntityProperties is already sorted by length from controller
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
             var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+            var tearAwayDistance = TEAR_AWAY_DISTANCE * sensorScaleFactor;
+            var nearGrabRadius = NEAR_GRAB_RADIUS * sensorScaleFactor;
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
-                var handPosition = controllerData.controllerLocations[this.hand].position;
-                var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
-                var distance = Vec3.distance(handPosition, props.position);
-                if ((dist > TEAR_AWAY_DISTANCE) ||
-                    (distance > NEAR_GRAB_RADIUS * sensorScaleFactor)) {
+                var grabPosition = controllerData.controllerLocations[this.hand].position; // Is offset from hand position.
+                var dist = distanceBetweenPointAndEntityBoundingBox(grabPosition, props);
+                var distance = Vec3.distance(grabPosition, props.position);
+                if ((dist > tearAwayDistance) ||
+                    (distance > nearGrabRadius)) { // Only smallish entities can be near grabbed.
                     continue;
                 }
                 if (entityIsGrabbable(props) || entityIsCloneable(props)) {
