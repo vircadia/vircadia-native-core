@@ -24,7 +24,7 @@ Nitpick is built as part of the High Fidelity build.
 1.  Check "Create SFX archive
 1.  Enter installer name (i.e. `nitpick-installer-v1.0.exe`)
 1.  Click "OK"
-1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.0.exe: aws s3 cp nitpick-installer-v1.0.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.0.exe
+1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe: aws s3 cp nitpick-installer-v1.0.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.0.exe
 #### Mac
 These steps assume the hifi repository has been cloned to `~/hifi`.
 1.  (First time) install create-dmg:
@@ -49,7 +49,7 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
     1.  Leave region name and ouput format as default [None]
     1.  Install the latest release of Boto3 via pip:  `pip install boto3`
 
-1. Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.0.exe>)
+1. Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe>)
 1. Double click on the installer and install to a convenient location  
 ![](./setup_7z.PNG)
 
@@ -69,7 +69,7 @@ $ python3 get-pip.py --user
     1.  Enter the secret key
     1.  Leave region name and ouput format as default [None]
     1.  Install the latest release of Boto3 via pip:  pip3 install boto3
-1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.0.dmg>).
+1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.1.dmg>).
 1.  Double-click on the downloaded image to mount it
 1. Create a folder for the nitpick files (e.g. ~/nitpick)
 1. Copy the downloaded files to the folder  
