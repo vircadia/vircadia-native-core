@@ -336,19 +336,20 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     QString dataDirectory{ "NOT FOUND" };
 
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
-
+#elif defined Q_OS_MAC
+    QString dataDirectory{ QDir::homePath() + "/Library/Application Support" };
+#endif
     if (_runLatest->isChecked()) {
-        _appDataFolder = dataDirectory + "\\High Fidelity";
+        _appDataFolder = dataDirectory + "/High Fidelity";
     } else {
         // We are running a PR build
-        _appDataFolder = dataDirectory + "\\High Fidelity - " + getPRNumberFromURL(_url->text());
+        _appDataFolder = dataDirectory + "/High Fidelity - " + getPRNumberFromURL(_url->text());
     }
 
     _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
-    if (_savedAppDataFolder.exists()) {
+    if (QDir(_savedAppDataFolder).exists()) {
         _savedAppDataFolder.removeRecursively();
     }
-
     if (_appDataFolder.exists()) {
         // The original folder is saved in a unique name
         _appDataFolder.rename(_appDataFolder.path(), _savedAppDataFolder.path());
@@ -356,9 +357,6 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
 
     // Copy an "empty" AppData folder (i.e. no entities)
     copyFolder(QDir::currentPath() + "/AppDataHighFidelity", _appDataFolder.path());
-#elif defined Q_OS_MAC
-    // TODO:  find Mac equivalent of AppData
-#endif
 }
 
 void TestRunner::createSnapshotFolder() {
@@ -469,12 +467,7 @@ void TestRunner::runInterfaceWithTestScript() {
         // Move to an empty area
         url = "file:///~serverless/tutorial.json";
     } else {
-#ifdef Q_OS_WIN
         url = "hifi://localhost";
-#elif defined Q_OS_MAC
-        // TODO: Find out Mac equivalent of AppData, then this won't be needed
-        url = "hifi://localhost/9999,9999,9999";
-#endif
     }
 
     QString testScript =
