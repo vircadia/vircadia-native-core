@@ -22,9 +22,9 @@ Nitpick is built as part of the High Fidelity build.
 1.  Select all, right-click and select 7-Zip->Add to archive...
 1.  Set Archive format to 7z
 1.  Check "Create SFX archive
-1.  Enter installer name (i.e. `nitpick-installer-v1.0.exe`)
+1.  Enter installer name (i.e. `nitpick-installer-v1.1.exe`)
 1.  Click "OK"
-1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe: aws s3 cp nitpick-installer-v1.0.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.0.exe
+1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe: aws s3 cp nitpick-installer-v1.1.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.1.exe
 #### Mac
 These steps assume the hifi repository has been cloned to `~/hifi`.
 1.  (First time) install create-dmg:
@@ -39,7 +39,7 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
 1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.1.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.1.dmg`
 ### Installation
 #### Windows
-1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.0.exe)
+1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe)
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
     1. After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
 1.  (First time) download and install AWS CLI from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/AWSCLI64PY3.msi (also available at https://aws.amazon.com/cli/
@@ -72,8 +72,9 @@ $ python3 get-pip.py --user
 1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.1.dmg>).
 1.  Double-click on the downloaded image to mount it
 1. Create a folder for the nitpick files (e.g. ~/nitpick)
+   If this folder exists then delete all it's contents.
 1. Copy the downloaded files to the folder  
-   `cp -r /Volumes/nitpick-installer-v1.0/* .`
+   `cp -r /Volumes/nitpick-installer-v1.1/* .`
 
 1. __To run nitpick, cd to the folder that you copied to and run `./nitpick`__
 #Use
