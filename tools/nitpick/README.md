@@ -36,6 +36,7 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
     `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib libquazip5.1.dylib nitpick`
 1.  Delete any existing disk images: `rm *.dmg`
 1.  Create installer (note final period): `create-dmg --volname nitpick-installer-v1.1 nitpick-installer-v1.1.dmg .`
+    Make sure to wait for completion.
 1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.1.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.1.dmg`
 ### Installation
 #### Windows
