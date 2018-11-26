@@ -83,44 +83,26 @@ function loaded() {
 
         var gridColor = { red: 255, green: 255, blue: 255 };
         var elColor = document.getElementById("grid-color");
-        var elColorRed = document.getElementById("grid-color-red");
-        var elColorGreen = document.getElementById("grid-color-green");
-        var elColorBlue = document.getElementById("grid-color-blue");
         elColor.style.backgroundColor = "rgb(" + gridColor.red + "," + gridColor.green + "," + gridColor.blue + ")";
-        elColorRed.value = gridColor.red;
-        elColorGreen.value = gridColor.green;
-        elColorBlue.value = gridColor.blue;
-
-        var colorChangeFunction = function () {
-            gridColor = { red: elColorRed.value, green: elColorGreen.value, blue: elColorBlue.value };
-            elColor.style.backgroundColor = "rgb(" + gridColor.red + "," + gridColor.green + "," + gridColor.blue + ")";
-            emitUpdate();
-        };
 
         var colorPickFunction = function (red, green, blue) {
-            elColorRed.value = red;
-            elColorGreen.value = green;
-            elColorBlue.value = blue;
             gridColor = { red: red, green: green, blue: blue };
             emitUpdate();
         };
 
-        elColorRed.addEventListener('change', colorChangeFunction);
-        elColorGreen.addEventListener('change', colorChangeFunction);
-        elColorBlue.addEventListener('change', colorChangeFunction);
         $('#grid-color').colpick({
             colorScheme: 'dark',
-            layout: 'hex',
+            layout: 'rgbhex',
             color: { r: gridColor.red, g: gridColor.green, b: gridColor.blue },
+            submit: false,
             onShow: function (colpick) {
                 $('#grid-color').attr('active', 'true');
             },
             onHide: function (colpick) {
                 $('#grid-color').attr('active', 'false');
             },
-            onSubmit: function (hsb, hex, rgb, el) {
+            onChange: function (hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
                 colorPickFunction(rgb.r, rgb.g, rgb.b);
             }
         });
