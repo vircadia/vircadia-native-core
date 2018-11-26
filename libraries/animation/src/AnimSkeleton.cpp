@@ -65,19 +65,14 @@ AnimSkeleton::AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, 
 int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
 
     auto itr = _jointIndicesByName.find(jointName);
-
     if (_fbxToHifiJointNameMapping.contains(jointName)) {
-        //qCDebug(animation) << "failing joint name is " << jointName;
+        // if the fbx joint name is different than the hifi standard then look up the
+        // index from that name.
         itr = _jointIndicesByName.find(_fbxToHifiJointNameMapping[jointName]);
-        //qCDebug(animation) << "the alternate name for the joint " << jointName << " is " <<
-            //_fbxToHifiJointNameMapping[jointName] << " " << itr.value();
     }
-    
-    if (_jointIndicesByName.end() != itr) {
-        //qCDebug(animation) << "returning " << itr.value() << " for " << jointName;
+    if (itr != _jointIndicesByName.end()) {
         return itr.value();
     }
-    //qCDebug(animation) << "returning -1 " << " for " << jointName;
     return -1;
 }
 
@@ -136,7 +131,7 @@ std::vector<int> AnimSkeleton::getChildrenOfJoint(int jointIndex) const {
 }
 
 const QString AnimSkeleton::getJointName(int jointIndex) const {
-    
+
     QString jointName = _joints[jointIndex].name;
     QMapIterator<QString, QString> i(_fbxToHifiJointNameMapping);
     while (i.hasNext()) {
@@ -146,8 +141,7 @@ const QString AnimSkeleton::getJointName(int jointIndex) const {
             break;
         }
     }
-    //qCDebug(animation) << "reverse lookup:  returning " << jointName << " for " << jointIndex;
-    return jointName; //;_joints[jointIndex].name;
+    return jointName;
 }
 
 AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& relativePoses) const {
@@ -222,7 +216,6 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
 
 bool AnimSkeleton::checkNonMirrored(QString jointName) const {
 
-    //bool isNonMirrored = false;
     QMapIterator<QString, QString> i(_fbxToHifiJointNameMapping);
     while (i.hasNext()) {
         i.next();
@@ -264,14 +257,15 @@ int AnimSkeleton::containsLeft(QString jointName) const {
             if (i.key().startsWith("Left")) {
                 QString mirrorJointName = QString(i.key()).replace(0, 4, "Right");
                 mirrorJointIndex = nameToJointIndex(mirrorJointName);
-                //return true
             }
         }
     }
-    if (jointName.startsWith("Left")) {
-        QString mirrorJointName = QString(jointName).replace(0, 4, "Right");
-        mirrorJointIndex = nameToJointIndex(mirrorJointName);
-    } 
+    if (mirrorJointIndex < 0) {
+        if (jointName.startsWith("Left")) {
+            QString mirrorJointName = QString(jointName).replace(0, 4, "Right");
+            mirrorJointIndex = nameToJointIndex(mirrorJointName);
+        }
+    }
     return mirrorJointIndex;
 }
 
@@ -285,12 +279,14 @@ int AnimSkeleton::containsRight(QString jointName) const {
             if (i.key().startsWith("Right")) {
                 QString mirrorJointName = QString(i.key()).replace(0, 5, "Left");
                 mirrorJointIndex = nameToJointIndex(mirrorJointName);
-            } 
+            }
         }
     }
-    if (jointName.startsWith("Right")) {
-        QString mirrorJointName = QString(jointName).replace(0, 5, "Left");
-        mirrorJointIndex = nameToJointIndex(mirrorJointName);
+    if (mirrorJointIndex < 0) {
+        if (jointName.startsWith("Right")) {
+            QString mirrorJointName = QString(jointName).replace(0, 5, "Left");
+            mirrorJointIndex = nameToJointIndex(mirrorJointName);
+        }
     }
     return mirrorJointIndex;
 }
@@ -353,7 +349,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
         }
         int mirrorJointIndex = -1;
         mirrorJointIndex = containsLeft(_joints[i].name);
-        if (!(mirrorJointIndex > -1)) {
+        if (mirrorJointIndex < 0) {
             mirrorJointIndex = containsRight(_joints[i].name);
         }
         if (mirrorJointIndex >= 0) {

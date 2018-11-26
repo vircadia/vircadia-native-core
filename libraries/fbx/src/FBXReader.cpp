@@ -423,11 +423,9 @@ QMap<QString, QString> getJointNameMapping(const QVariantHash& mapping) {
     if (!mapping.isEmpty() && mapping.contains(JOINT_NAME_MAPPING_FIELD) && mapping[JOINT_NAME_MAPPING_FIELD].type() == QVariant::Hash) {
         auto jointNames = mapping[JOINT_NAME_MAPPING_FIELD].toHash();
         for (auto itr = jointNames.begin(); itr != jointNames.end(); itr++) {
-            qCDebug(modelformat) << "found a joint mapping field key " << itr.key() << " value " << itr.value().toString();
             fbxToHifiJointNameMap.insert(itr.key(), itr.value().toString());
             qCDebug(modelformat) << "the mapped key " << itr.key() << " has a value of " << fbxToHifiJointNameMap[itr.key()];
         }
-    
     }
     return fbxToHifiJointNameMap;
 }
@@ -480,14 +478,14 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
     std::map<QString, HFMLight> lights;
 
     QVariantHash joints = mapping.value("joint").toHash();
-    QString jointEyeLeftName = "EyeLeft";  //processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
-    QString jointEyeRightName = "EyeRight"; // processID(getString(joints.value("jointEyeRight", "jointEyeRight")));
-    QString jointNeckName = "Neck"; //processID(getString(joints.value("jointNeck", "jointNeck")));
-    QString jointRootName = "Hips"; //processID(getString(joints.value("jointRoot", "jointRoot")));
+    QString jointEyeLeftName = "EyeLeft";
+    QString jointEyeRightName = "EyeRight";
+    QString jointNeckName = "Neck";
+    QString jointRootName = "Hips";
     QString jointLeanName = processID(getString(joints.value("jointLean", "jointLean")));
-    QString jointHeadName = "Head";// processID(getString(joints.value("jointHead", "jointHead")));
-    QString jointLeftHandName = "LeftHand"; //processID(getString(joints.value("jointLeftHand", "jointLeftHand")));
-    QString jointRightHandName = "RightHand"; // processID(getString(joints.value("jointRightHand", "jointRightHand")));
+    QString jointHeadName = "Head";
+    QString jointLeftHandName = "LeftHand";
+    QString jointRightHandName = "RightHand";
     QString jointEyeLeftID;
     QString jointEyeRightID;
     QString jointNeckID;
@@ -1845,20 +1843,10 @@ HFMModel* FBXReader::extractHFMModel(const QVariantHash& mapping, const QString&
             jointIndex = hfmModel.getJointIndex(hfmModel.fbxToHifiJointNameMapping[jointName]);
         }
         if (jointIndex != -1) {
-            //if (jointIndex == 18) {
-            //    glm::quat spine3LocalOffset(0.94232035f, 0.000000014995882f, 0.33471236f, 0.000000058068572f);
-            //    glm::quat spine3AbsoluteOffset = spine3LocalOffset * hfmModel.jointRotationOffsets[16];
-            //    hfmModel.jointRotationOffsets.insert(jointIndex, spine3AbsoluteOffset);
-            //    qCDebug(modelformat) << "Joint Rotation Offset added for spine3 : " << spine3AbsoluteOffset;
-            //} else {
-                hfmModel.jointRotationOffsets.insert(jointIndex, rotationOffset);
-            //}
-            
+            hfmModel.jointRotationOffsets.insert(jointIndex, rotationOffset);
         }
         qCDebug(modelformat) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
     }
-
-    
 
     return hfmModelPtr;
 }

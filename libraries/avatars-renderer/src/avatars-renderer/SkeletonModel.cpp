@@ -317,7 +317,6 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
 }
 
 glm::vec3 SkeletonModel::getDefaultEyeModelPosition() const {
-    //qCDebug(avatars_renderer) << "default eye model position " << _defaultEyeModelPosition;
     return _owningAvatar->getModelScale() * _defaultEyeModelPosition;
 }
 
