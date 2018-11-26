@@ -1,4 +1,4 @@
-set (TARGET_NAME auto-tester)
+set (TARGET_NAME nitpick)
 project(${TARGET_NAME})
 
 # Automatically run UIC and MOC.  This replaces the older WRAP macros
@@ -22,7 +22,7 @@ set (QT_LIBRARIES Qt5::Core Qt5::Widgets QT::Gui Qt5::Xml)
 
 if (WIN32)
     # Do not show Console
-    set_property (TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
+    set_property (TARGET nitpick PROPERTY WIN32_EXECUTABLE true)
 endif()
 
 target_zlib()

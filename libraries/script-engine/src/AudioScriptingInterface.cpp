@@ -63,15 +63,15 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
         optionsCopy.ambisonic = sound->isAmbisonic();
         optionsCopy.localOnly = optionsCopy.localOnly || sound->isAmbisonic();  // force localOnly when Ambisonic
 
-        auto injector = AudioInjector::playSound(sound->getByteArray(), optionsCopy);
+        auto injector = AudioInjector::playSound(sound, optionsCopy);
         if (!injector) {
-            return NULL;
+            return nullptr;
         }
         return new ScriptAudioInjector(injector);
 
     } else {
         qCDebug(scriptengine) << "AudioScriptingInterface::playSound called with null Sound object.";
-        return NULL;
+        return nullptr;
     }
 }
 

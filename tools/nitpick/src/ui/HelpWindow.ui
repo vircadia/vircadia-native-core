@@ -14,7 +14,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>AutoTester Help</string>
+   <string>Nitpick Help</string>
   </property>
   <widget class="QTextEdit" name="textEdit">
    <property name="geometry">

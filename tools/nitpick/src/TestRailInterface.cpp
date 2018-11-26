@@ -357,8 +357,13 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
                 [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
+#ifdef Q_OS_WIN
         QStringList parameters = QStringList() << _outputDirectory + "/addTestCases.py";
         process->start(_pythonCommand, parameters);
+#elif defined Q_OS_MAC
+        QStringList parameters = QStringList() << "-c" <<  _pythonCommand + " " + _outputDirectory + "/addTestCases.py";
+        process->start("sh", parameters);
+#endif
     }
 }
 
@@ -482,8 +487,13 @@ void TestRailInterface::addRun() {
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
                 [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
+#ifdef Q_OS_WIN
         QStringList parameters = QStringList() << _outputDirectory + "/addRun.py";
         process->start(_pythonCommand, parameters);
+#elif defined Q_OS_MAC
+        QStringList parameters = QStringList() << "-c" <<  _pythonCommand + " " + _outputDirectory + "/addRun.py";
+        process->start("sh", parameters);
+#endif
     }
 }
 
@@ -586,8 +596,13 @@ void TestRailInterface::updateRunWithResults() {
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
                 [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
+#ifdef Q_OS_WIN
         QStringList parameters = QStringList() << _outputDirectory + "/updateRunWithResults.py";
         process->start(_pythonCommand, parameters);
+#elif defined Q_OS_MAC
+        QStringList parameters = QStringList() << "-c" <<  _pythonCommand + " " + _outputDirectory + "/updateRunWithResults.py";
+        process->start("sh", parameters);
+#endif
     }
 }
 
@@ -759,8 +774,13 @@ void TestRailInterface::getReleasesFromTestRail() {
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateReleasesComboData(exitCode, exitStatus); });
     connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
 
+#ifdef Q_OS_WIN
     QStringList parameters = QStringList() << filename;
     process->start(_pythonCommand, parameters);
+#elif defined Q_OS_MAC
+    QStringList parameters = QStringList() << "-c" <<  _pythonCommand + " " + filename;
+    process->start("sh", parameters);
+#endif
 }
 
 void TestRailInterface::createTestSuitePython(const QString& testDirectory,
@@ -1078,8 +1098,13 @@ void TestRailInterface::getTestSectionsFromTestRail() {
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateSectionsComboData(exitCode, exitStatus); });
     connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
 
+#ifdef Q_OS_WIN
     QStringList parameters = QStringList() << filename;
     process->start(_pythonCommand, parameters);
+#elif defined Q_OS_MAC
+    QStringList parameters = QStringList() << "-c" <<  _pythonCommand + " " + filename;
+    process->start("sh", parameters);
+#endif
 }
 
 void TestRailInterface::getRunsFromTestRail() {
@@ -1117,9 +1142,13 @@ void TestRailInterface::getRunsFromTestRail() {
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateRunsComboData(exitCode, exitStatus); });
     connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
 
+#ifdef Q_OS_WIN
     QStringList parameters = QStringList() << filename;
-
     process->start(_pythonCommand, parameters);
+#elif defined Q_OS_MAC
+    QStringList parameters = QStringList() << "-c" <<  _pythonCommand + " " + filename;
+    process->start("sh", parameters);
+#endif
 }
 
 void TestRailInterface::createTestRailRun(const QString& outputDirectory) {

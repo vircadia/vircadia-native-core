@@ -157,7 +157,7 @@ public:
 
     // This next call are  NOT threadsafe, you have to call them from the correct thread to avoid any potential issues
 
-    // Access a particular item form its ID
+    // Access a particular item from its ID
     // WARNING, There is No check on the validity of the ID, so this could return a bad Item
     const Item& getItem(const ItemID& id) const { return _items[id]; }
 

@@ -17,7 +17,7 @@ var profileIndent = '';
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
 };
-PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
+const PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Script " + profileIndent + "(" + name + ") Begin");
     var previousIndent = profileIndent;
     profileIndent += '  ';

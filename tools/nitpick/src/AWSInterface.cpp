@@ -22,11 +22,11 @@ AWSInterface::AWSInterface(QObject* parent) : QObject(parent) {
 }
 
 void AWSInterface::createWebPageFromResults(const QString& testResults,
-                                            const QString& workingDirectory,
+                                            const QString& snapshotDirectory,
                                             QCheckBox* updateAWSCheckBox,
                                             QLineEdit* urlLineEdit) {
     _testResults = testResults;
-    _workingDirectory = workingDirectory;
+    _snapshotDirectory = snapshotDirectory;
     
     _urlLineEdit = urlLineEdit;
     _urlLineEdit->setEnabled(false);
@@ -42,16 +42,15 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
 void AWSInterface::extractTestFailuresFromZippedFolder() {
     // For a test results zip file called `D:/tt/TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ].zip`
     //   the folder will be called `TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ]`
-    //   and, this folder will be in the workign directory
+    //   and, this folder will be in the working directory
     QStringList parts =_testResults.split('/');
-    QString zipFolderName =  _workingDirectory + "/" + parts[parts.length() - 1].split('.')[0];
+    QString zipFolderName = _snapshotDirectory + "/" + parts[parts.length() - 1].split('.')[0];
     if (QDir(zipFolderName).exists()) {
         QDir dir = zipFolderName;
         dir.removeRecursively();
     }
 
-    QDir().mkdir(_workingDirectory);
-    JlCompress::extractDir(_testResults, _workingDirectory);
+    JlCompress::extractDir(_testResults, _snapshotDirectory);
 }
 
 void AWSInterface::createHTMLFile() {
@@ -61,7 +60,7 @@ void AWSInterface::createHTMLFile() {
     QString filename = pathComponents[pathComponents.length() - 1];
     _resultsFolder = filename.left(filename.length() - 4);
 
-    QString resultsPath = _workingDirectory + "/" + _resultsFolder + "/";
+    QString resultsPath = _snapshotDirectory + "/" + _resultsFolder + "/";
     QDir().mkdir(resultsPath);
     _htmlFilename = resultsPath + HTML_FILENAME;
 
@@ -157,7 +156,7 @@ void AWSInterface::writeTable(QTextStream& stream) {
     // Note that failures are processed first, then successes
     QStringList originalNamesFailures;
     QStringList originalNamesSuccesses;
-    QDirIterator it1(_workingDirectory.toStdString().c_str());
+    QDirIterator it1(_snapshotDirectory.toStdString().c_str());
     while (it1.hasNext()) {
         QString nextDirectory = it1.next();
 
@@ -191,10 +190,10 @@ void AWSInterface::writeTable(QTextStream& stream) {
         newNamesSuccesses.append(originalNamesSuccesses[i].split("--tests.")[1]);
     }
     
-    _htmlFailuresFolder = _workingDirectory + "/" + _resultsFolder + "/" + FAILURES_FOLDER;
+    _htmlFailuresFolder = _snapshotDirectory + "/" + _resultsFolder + "/" + FAILURES_FOLDER;
     QDir().mkdir(_htmlFailuresFolder);
 
-    _htmlSuccessesFolder = _workingDirectory + "/" + _resultsFolder + "/" + SUCCESSES_FOLDER;
+    _htmlSuccessesFolder = _snapshotDirectory + "/" + _resultsFolder + "/" + SUCCESSES_FOLDER;
     QDir().mkdir(_htmlSuccessesFolder);
 
     for (int i = 0; i < newNamesFailures.length(); ++i) {
@@ -321,7 +320,7 @@ void AWSInterface::createEntry(int index, const QString& testResult, QTextStream
 }
 
 void AWSInterface::updateAWS() {
-    QString filename = _workingDirectory + "/updateAWS.py";
+    QString filename = _snapshotDirectory + "/updateAWS.py";
     if (QFile::exists(filename)) {
         QFile::remove(filename);
     }
@@ -352,14 +351,23 @@ void AWSInterface::updateAWS() {
         QStringList parts = nextDirectory.split('/');
         QString filename = parts[parts.length() - 3] + "/" + parts[parts.length() - 2] + "/" + parts[parts.length() - 1];
 
-        stream << "data = open('" << _workingDirectory << "/" << filename << "/" << "Actual Image.png" << "', 'rb')\n";
+        stream << "data = open('" << _snapshotDirectory << "/" << filename << "/"
+               << "Actual Image.png"
+               << "', 'rb')\n";
+
         stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Actual Image.png" << "', Body=data)\n\n";
 
-        stream << "data = open('" << _workingDirectory << "/" << filename << "/" << "Expected Image.png" << "', 'rb')\n";
+        stream << "data = open('" << _snapshotDirectory << "/" << filename << "/"
+               << "Expected Image.png"
+               << "', 'rb')\n";
+
         stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Expected Image.png" << "', Body=data)\n\n";
 
         if (QFile::exists(_htmlFailuresFolder + "/" + parts[parts.length() - 1] + "/Difference Image.png")) {
-            stream << "data = open('" << _workingDirectory << "/" << filename << "/" << "Difference Image.png" << "', 'rb')\n";
+            stream << "data = open('" << _snapshotDirectory << "/" << filename << "/"
+                   << "Difference Image.png"
+                   << "', 'rb')\n";
+
             stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Difference Image.png" << "', Body=data)\n\n";
         }
     }
@@ -378,19 +386,28 @@ void AWSInterface::updateAWS() {
         QStringList parts = nextDirectory.split('/');
         QString filename = parts[parts.length() - 3] + "/" + parts[parts.length() - 2] + "/" + parts[parts.length() - 1];
 
-        stream << "data = open('" << _workingDirectory << "/" << filename << "/" << "Actual Image.png" << "', 'rb')\n";
+        stream << "data = open('" << _snapshotDirectory << "/" << filename << "/"
+               << "Actual Image.png"
+               << "', 'rb')\n";
+
         stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Actual Image.png" << "', Body=data)\n\n";
 
-        stream << "data = open('" << _workingDirectory << "/" << filename << "/" << "Expected Image.png" << "', 'rb')\n";
+        stream << "data = open('" << _snapshotDirectory << "/" << filename << "/"
+               << "Expected Image.png"
+               << "', 'rb')\n";
+
         stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Expected Image.png" << "', Body=data)\n\n";
 
         if (QFile::exists(_htmlSuccessesFolder + "/" + parts[parts.length() - 1] + "/Difference Image.png")) {
-            stream << "data = open('" << _workingDirectory << "/" << filename << "/" << "Difference Image.png" << "', 'rb')\n";
+            stream << "data = open('" << _snapshotDirectory << "/" << filename << "/"
+                   << "Difference Image.png"
+                   << "', 'rb')\n";
+
             stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Difference Image.png" << "', Body=data)\n\n";
         }
     }
 
-    stream << "data = open('" << _workingDirectory << "/" << _resultsFolder << "/" << HTML_FILENAME << "', 'rb')\n";
+    stream << "data = open('" << _snapshotDirectory << "/" << _resultsFolder << "/" << HTML_FILENAME << "', 'rb')\n";
     stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << _resultsFolder << "/"
            << HTML_FILENAME << "', Body=data, ContentType='text/html')\n";
 
@@ -408,6 +425,11 @@ void AWSInterface::updateAWS() {
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
+#ifdef Q_OS_WIN
     QStringList parameters = QStringList() << filename ;
     process->start(_pythonCommand, parameters);
+#elif defined Q_OS_MAC
+    QStringList parameters = QStringList() << "-c" <<  _pythonCommand + " " + filename;
+    process->start("sh", parameters);
+#endif
 }
