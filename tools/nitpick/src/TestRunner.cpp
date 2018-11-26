@@ -332,12 +332,11 @@ void TestRunner::verifyInstallationSucceeded() {
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
-#ifdef Q_OS_WIN
     QString dataDirectory{ "NOT FOUND" };
-
+#ifdef Q_OS_WIN
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
 #elif defined Q_OS_MAC
-    QString dataDirectory{ QDir::homePath() + "/Library/Application Support" };
+    dataDirectory{ QDir::homePath() + "/Library/Application Support" };
 #endif
     if (_runLatest->isChecked()) {
         _appDataFolder = dataDirectory + "/High Fidelity";
