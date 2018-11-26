@@ -582,15 +582,11 @@ void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
 }
 
 void TestRunner::restoreHighFidelityAppDataFolder() {
-#ifdef Q_OS_WIN
     _appDataFolder.removeRecursively();
 
     if (_savedAppDataFolder != QDir()) {
         _appDataFolder.rename(_savedAppDataFolder.path(), _appDataFolder.path());
     }
-#elif defined Q_OS_MAC
-    // TODO:  find Mac equivalent of AppData
-#endif
 }
 
 // Copies a folder recursively
