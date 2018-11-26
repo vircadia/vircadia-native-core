@@ -71,7 +71,6 @@ namespace gr {
     using graphics::slot::buffer::Buffer;
 }
 
-
 RenderDeferredTask::RenderDeferredTask()
 {
 }
@@ -257,6 +256,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     { // Debug the bounds of the rendered items, still look at the zbuffer
+        const auto debugInputs = RenderDeferredTaskDebug::Inputs(items.get0(), items.get1(), zones, selectedItems, lightFrame, deferredFramebuffer, lightingFramebuffer, deferredFrameTransform, jitter).asVarying();
+        task.addJob<RenderDeferredTaskDebug>("DebugRenderDeferred", input);
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
@@ -346,6 +347,93 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Blit!
     task.addJob<Blit>("Blit", primaryFramebuffer);
 }
+
+RenderDeferredTaskDebug::RenderDeferredTaskDebug() {
+
+}
+
+void RenderDeferredTaskDebug::configure(const Config& config) {
+
+}
+
+void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
+    const auto& inputs = input.get<Input>();
+    const auto& items = inputs.get0();
+
+    // Extract opaques / transparents / lights / metas / overlays / background
+    const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
+    const auto& transparents = items.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+    const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
+    const auto& metas = items.get0()[RenderFetchCullSortTask::META];
+    const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+    const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+
+    { // Debug the bounds of the rendered items, still look at the zbuffer
+        task.addJob<DrawBounds>("DrawMetaBounds", metas);
+        task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
+        task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
+
+        task.addJob<DrawBounds>("DrawLightBounds", lights);
+        task.addJob<DrawBounds>("DrawZones", zones);
+        const auto frustums = task.addJob<ExtractFrustums>("ExtractFrustums", lightFrame);
+        const auto viewFrustum = frustums.getN<ExtractFrustums::Outputs>(ExtractFrustums::VIEW_FRUSTUM);
+        task.addJob<DrawFrustum>("DrawViewFrustum", viewFrustum, glm::vec3(0.0f, 1.0f, 0.0f));
+        for (auto i = 0; i < ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
+            const auto shadowFrustum = frustums.getN<ExtractFrustums::Outputs>(ExtractFrustums::SHADOW_CASCADE0_FRUSTUM + i);
+            float tint = 1.0f - i / float(ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT - 1);
+            char jobName[64];
+            sprintf(jobName, "DrawShadowFrustum%d", i);
+            task.addJob<DrawFrustum>(jobName, shadowFrustum, glm::vec3(0.0f, tint, 1.0f));
+            if (!inputs[1].isNull()) {
+                const auto& shadowCascadeSceneBBoxes = inputs.get1();
+                const auto shadowBBox = shadowCascadeSceneBBoxes[ExtractFrustums::SHADOW_CASCADE0_FRUSTUM + i];
+                sprintf(jobName, "DrawShadowBBox%d", i);
+                task.addJob<DrawAABox>(jobName, shadowBBox, glm::vec3(1.0f, tint, 0.0f));
+            }
+        }
+
+        // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
+        task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
+    }
+
+    { // Debug the bounds of the rendered Overlay items that are marked drawInFront, still look at the zbuffer
+        task.addJob<DrawBounds>("DrawOverlayInFrontOpaqueBounds", overlaysInFrontOpaque);
+        task.addJob<DrawBounds>("DrawOverlayInFrontTransparentBounds", overlaysInFrontTransparent);
+    }
+
+    // Debugging stages
+    {
+        // Debugging Deferred buffer job
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer, deferredFrameTransform, lightFrame));
+        task.addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
+
+        const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
+            surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).asVarying();
+        task.addJob<DebugSubsurfaceScattering>("DebugScattering", debugSubsurfaceScatteringInputs);
+
+        const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).asVarying();
+        task.addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
+
+        // Scene Octree Debugging job
+        {
+            task.addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
+            task.addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
+        }
+
+        // Status icon rendering job
+        {
+            // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
+            auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
+            auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath, image::TextureUsage::STRICT_TEXTURE);
+            const auto drawStatusInputs = DrawStatus::Input(opaques, jitter).asVarying();
+            task.addJob<DrawStatus>("DrawStatus", drawStatusInputs, DrawStatus(statusIconMap));
+        }
+
+        const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();
+        task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
+    }
+}
+
 
 void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
