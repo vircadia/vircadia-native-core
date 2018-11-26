@@ -52,8 +52,9 @@ public:
 
 
     using Inputs = render::ItemBounds;
+    using Outputs = render::ItemBounds;
     using Config = ZoneRendererConfig;
-    using JobModel = render::Task::ModelI<ZoneRendererTask, Inputs, Config>;
+    using JobModel = render::Task::ModelIO<ZoneRendererTask, Inputs, Outputs, Config>;
 
     ZoneRendererTask() {}
 

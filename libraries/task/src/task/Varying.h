@@ -289,6 +289,26 @@ public:
     const T6& get6() const { return std::get<6>((*this)).template get<T6>(); }
     T6& edit6() { return std::get<6>((*this)).template edit<T6>(); }
     
+    virtual Varying operator[] (uint8_t index) const {
+        switch (index) {
+        default:
+            return std::get<0>((*this));
+        case 1:
+            return std::get<1>((*this));
+        case 2:
+            return std::get<2>((*this));
+        case 3:
+            return std::get<3>((*this));
+        case 4:
+            return std::get<4>((*this));
+        case 5:
+            return std::get<5>((*this));
+        case 6:
+            return std::get<6>((*this));
+        };
+    }
+    virtual uint8_t length() const { return 7; }
+
     Varying asVarying() const { return Varying((*this)); }
 };
 
@@ -324,6 +344,28 @@ public:
 
     const T7& get7() const { return std::get<7>((*this)).template get<T7>(); }
     T7& edit7() { return std::get<7>((*this)).template edit<T7>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        switch (index) {
+        default:
+            return std::get<0>((*this));
+        case 1:
+            return std::get<1>((*this));
+        case 2:
+            return std::get<2>((*this));
+        case 3:
+            return std::get<3>((*this));
+        case 4:
+            return std::get<4>((*this));
+        case 5:
+            return std::get<5>((*this));
+        case 6:
+            return std::get<6>((*this));
+        case 7:
+            return std::get<7>((*this));
+        };
+    }
+    virtual uint8_t length() const { return 8; }
 
     Varying asVarying() const { return Varying((*this)); }
 };

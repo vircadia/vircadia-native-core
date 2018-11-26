@@ -27,7 +27,7 @@ Rectangle {
 
     Component.onCompleted: {
         var message = ""
-        var maxDepth = 3;
+        var maxDepth = 5;
         
         var jobTreePath = []
         var jobsRoot;

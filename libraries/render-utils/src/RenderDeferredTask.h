@@ -154,26 +154,4 @@ private:
                                                    const render::Varying& transparents);
 };
 
-
-class RenderDeferredTaskDebugConfig : public render::Task::Config {
-    Q_OBJECT
-public:
-
-signals:
-    void dirty();
-};
-
-class RenderDeferredTaskDebug {
-public:
-    using Input = render::VaryingSet2<RenderFetchCullSortTask::Output, RenderShadowTask::Output>;
-    using Config = RenderDeferredTaskConfig;
-    using JobModel = render::Task::ModelI<RenderDeferredTaskDebug, Input, Config>;
-
-    RenderDeferredTaskDebug();
-
-    void configure(const Config& config);
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
-
-private:
-};
 #endif  // hifi_RenderDeferredTask_h
