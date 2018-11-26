@@ -64,11 +64,17 @@ const uint64_t MAX_INCOMING_SIMULATION_UPDATE_PERIOD = MAX_OUTGOING_SIMULATION_U
 
 class MeshProxyList;
 
-enum class EntityHost {
-    DOMAIN_ENTITY = 0,
-    AVATAR_ENTITY,
-    LOCAL_ENTITY
+#ifdef DOMAIN
+#undef DOMAIN
+#endif
+
+namespace entity {
+enum class HostType {
+    DOMAIN = 0,
+    AVATAR,
+    LOCAL
 };
+}
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
@@ -484,11 +490,11 @@ public:
     void setScriptHasFinishedPreload(bool value);
     bool isScriptPreloadFinished();
 
-    bool isDomainEntity() const { return _entityHost == EntityHost::DOMAIN_ENTITY; }
-    bool isAvatarEntity() const { return _entityHost == EntityHost::AVATAR_ENTITY; }
-    bool isLocalEntity() const { return _entityHost == EntityHost::LOCAL_ENTITY; }
-    EntityHost getEntityHost() const { return _entityHost; }
-    virtual void setEntityHost(EntityHost entityHost) { _entityHost = entityHost; }
+    bool isDomainEntity() const { return _hostType == entity::HostType::DOMAIN; }
+    bool isAvatarEntity() const { return _hostType == entity::HostType::AVATAR; }
+    bool isLocalEntity() const { return _hostType == entity::HostType::LOCAL; }
+    entity::HostType getEntityHostType() const { return _hostType; }
+    virtual void setEntityHostType(entity::HostType hostType) { _hostType = hostType; }
 
     // if this entity is an avatar entity, which avatar is it associated with?
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
@@ -683,7 +689,7 @@ protected:
 
     QUuid _sourceUUID; /// the server node UUID we came from
 
-    EntityHost _entityHost { EntityHost::DOMAIN_ENTITY };
+    entity::HostType _hostType { entity::HostType::DOMAIN };
     bool _transitingWithAvatar{ false };
     QUuid _owningAvatarID;
 

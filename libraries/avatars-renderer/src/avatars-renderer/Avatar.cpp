@@ -389,7 +389,7 @@ void Avatar::updateAvatarEntities() {
             QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
             EntityItemProperties properties;
             EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, properties);
-            properties.setEntityHost(EntityHost::AVATAR_ENTITY);
+            properties.setEntityHostType(entity::HostType::AVATAR);
             properties.setOwningAvatarID(getID());
 
             // there's no entity-server to tell us we're the simulation owner, so always set the

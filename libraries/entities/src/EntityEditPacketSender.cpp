@@ -84,7 +84,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
                                                     EntityTreePointer entityTree,
                                                     EntityItemID entityItemID,
                                                     const EntityItemProperties& properties) {
-    if (properties.getEntityHost() == EntityHost::AVATAR_ENTITY) {
+    if (properties.getEntityHostType() == entity::HostType::AVATAR) {
         if (!_myAvatar) {
             qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit with no myAvatar";
         } else if (properties.getOwningAvatarID() == _myAvatar->getID()) {
@@ -94,7 +94,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
             qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit for another avatar";
         }
         return;
-    } else if (properties.getEntityHost() == EntityHost::LOCAL_ENTITY) {
+    } else if (properties.getEntityHostType() == entity::HostType::LOCAL) {
         // Don't send edits for local entities
         return;
     }

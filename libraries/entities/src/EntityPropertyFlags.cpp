@@ -121,7 +121,7 @@ QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
     result = f.getHasProperty(PROP_FALLOFF_RADIUS) ? result + "falloffRadius " : result;
     result = f.getHasProperty(PROP_FLYING_ALLOWED) ? result + "flyingAllowed " : result;
     result = f.getHasProperty(PROP_GHOSTING_ALLOWED) ? result + "ghostingAllowed " : result;
-    result = f.getHasProperty(PROP_ENTITY_HOST) ? result + "entityHost " : result;
+    result = f.getHasProperty(PROP_ENTITY_HOST_TYPE) ? result + "entityHostType " : result;
     result = f.getHasProperty(PROP_OWNING_AVATAR_ID) ? result + "owningAvatarID " : result;
     result = f.getHasProperty(PROP_SHAPE) ? result + "shape " : result;
     result = f.getHasProperty(PROP_DPI) ? result + "dpi " : result;

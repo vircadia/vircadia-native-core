@@ -119,7 +119,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_PARENT_JOINT_INDEX;
     requestedProperties += PROP_QUERY_AA_CUBE;
 
-    requestedProperties += PROP_ENTITY_HOST;
+    requestedProperties += PROP_ENTITY_HOST_TYPE;
     requestedProperties += PROP_OWNING_AVATAR_ID;
 
     requestedProperties += PROP_LAST_EDITED_BY;
@@ -172,7 +172,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
 
-    requestedProperties -= PROP_ENTITY_HOST;
+    requestedProperties -= PROP_ENTITY_HOST_TYPE;
     requestedProperties -= PROP_OWNING_AVATAR_ID;
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
@@ -1334,7 +1334,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localPosition, getLocalPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRotation, getLocalOrientation);
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityHost, getEntityHost);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityHostType, getEntityHostType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(owningAvatarID, getOwningAvatarID);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lastEditedBy, getLastEditedBy);
@@ -1476,7 +1476,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityHost, setEntityHost);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityHostType, setEntityHostType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(owningAvatarID, setOwningAvatarID);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
@@ -3274,7 +3274,7 @@ void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properti
     properties.setSimulationOwner(Physics::getSessionUUID(), priority);
     setPendingOwnershipPriority(priority);
 
-    properties.setEntityHost(getEntityHost());
+    properties.setEntityHostType(getEntityHostType());
     properties.setOwningAvatarID(getOwningAvatarID());
     setLastBroadcast(now); // for debug/physics status icons
 }

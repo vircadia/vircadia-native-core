@@ -470,7 +470,7 @@ void synchronizeEditedGrabProperties(EntityItemProperties& properties, const QSt
 }
 
 
-QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, const QString& entityHostString) {
+QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, const QString& entityHostTypeString) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     _activityTracking.addedEntityCount++;
@@ -479,10 +479,10 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     const auto sessionID = nodeList->getSessionUUID();
 
     EntityItemProperties propertiesWithSimID = properties;
-    propertiesWithSimID.setEntityHostFromString(entityHostString);
-    if (propertiesWithSimID.getEntityHost() == EntityHost::AVATAR_ENTITY) {
+    propertiesWithSimID.setEntityHostTypeFromString(entityHostTypeString);
+    if (propertiesWithSimID.getEntityHostType() == entity::HostType::AVATAR) {
         propertiesWithSimID.setOwningAvatarID(sessionID);
-    } else if (propertiesWithSimID.getEntityHost() == EntityHost::LOCAL_ENTITY) {
+    } else if (propertiesWithSimID.getEntityHostType() == entity::HostType::LOCAL) {
         // For now, local entities are always collisionless
         // TODO: create a separate, local physics simulation that just handles local entities (and MyAvatar?)
         propertiesWithSimID.setCollisionless(true);
@@ -572,7 +572,7 @@ QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
     bool cloneAvatarEntity = properties.getCloneAvatarEntity();
     properties.convertToCloneProperties(entityIDToClone);
 
-    if (properties.getEntityHost() == EntityHost::LOCAL_ENTITY) {
+    if (properties.getEntityHostType() == entity::HostType::LOCAL) {
         // Local entities are only cloned locally
         return addEntity(properties, "local");
     } else if (cloneAvatarEntity) {
@@ -838,9 +838,9 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
 
         // set these to make EntityItemProperties::getScalesWithParent() work correctly
-        EntityHost entityHost = entity->getEntityHost();
-        properties.setEntityHost(entityHost);
-        if (entityHost == EntityHost::LOCAL_ENTITY) {
+        entity::HostType entityHostType = entity->getEntityHostType();
+        properties.setEntityHostType(entityHostType);
+        if (entityHostType == entity::HostType::LOCAL) {
             properties.setCollisionless(true);
         }
         properties.setOwningAvatarID(entity->getOwningAvatarID());
@@ -1660,7 +1660,7 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         doTransmit = actor(simulation, entity);
         _entityTree->entityChanged(entity);
         if (doTransmit) {
-            properties.setEntityHost(entity->getEntityHost());
+            properties.setEntityHostType(entity->getEntityHostType());
             properties.setOwningAvatarID(entity->getOwningAvatarID());
         }
     });

@@ -595,7 +595,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     EntityTreeElementPointer element = _entity->getElement();
     EntityTreePointer tree = element ? element->getTree() : nullptr;
 
-    properties.setEntityHost(_entity->getEntityHost());
+    properties.setEntityHostType(_entity->getEntityHostType());
     properties.setOwningAvatarID(_entity->getOwningAvatarID());
 
     entityPacketSender->queueEditEntityMessage(PacketType::EntityPhysics, tree, id, properties);
@@ -610,7 +610,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 EntityItemProperties newQueryCubeProperties;
                 newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
                 newQueryCubeProperties.setLastEdited(properties.getLastEdited());
-                newQueryCubeProperties.setEntityHost(entityDescendant->getEntityHost());
+                newQueryCubeProperties.setEntityHostType(entityDescendant->getEntityHostType());
                 newQueryCubeProperties.setOwningAvatarID(entityDescendant->getOwningAvatarID());
 
                 entityPacketSender->queueEditEntityMessage(PacketType::EntityPhysics, tree,

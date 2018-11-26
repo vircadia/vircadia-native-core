@@ -306,26 +306,26 @@ void EntityItemProperties::setMaterialMappingModeFromString(const QString& mater
     }
 }
 
-QString EntityItemProperties::getEntityHostAsString() const {
-    switch (_entityHost) {
-        case EntityHost::DOMAIN_ENTITY:
+QString EntityItemProperties::getEntityHostTypeAsString() const {
+    switch (_entityHostType) {
+        case entity::HostType::DOMAIN:
             return "domain";
-        case EntityHost::AVATAR_ENTITY:
+        case entity::HostType::AVATAR:
             return "avatar";
-        case EntityHost::LOCAL_ENTITY:
+        case entity::HostType::LOCAL:
             return "local";
         default:
             return "";
     }
 }
 
-void EntityItemProperties::setEntityHostFromString(const QString& entityHost) {
-    if (entityHost == "domain") {
-        _entityHost = EntityHost::DOMAIN_ENTITY;
-    } else if (entityHost == "avatar") {
-        _entityHost = EntityHost::AVATAR_ENTITY;
-    } else if (entityHost == "local") {
-        _entityHost = EntityHost::LOCAL_ENTITY;
+void EntityItemProperties::setEntityHostTypeFromString(const QString& entityHostType) {
+    if (entityHostType == "domain") {
+        _entityHostType = entity::HostType::DOMAIN;
+    } else if (entityHostType == "avatar") {
+        _entityHostType = entity::HostType::AVATAR;
+    } else if (entityHostType == "local") {
+        _entityHostType = entity::HostType::LOCAL;
     }
 }
 
@@ -476,7 +476,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
     CHECK_PROPERTY_CHANGE(PROP_FILTER_URL, filterURL);
 
-    CHECK_PROPERTY_CHANGE(PROP_ENTITY_HOST, entityHost);
+    CHECK_PROPERTY_CHANGE(PROP_ENTITY_HOST_TYPE, entityHostType);
     CHECK_PROPERTY_CHANGE(PROP_OWNING_AVATAR_ID, owningAvatarID);
 
     CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
@@ -512,16 +512,16 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.EntityType} type - The entity type. You cannot change the type of an entity after it's created. (Though 
  *     its value may switch among <code>"Box"</code>, <code>"Shape"</code>, and <code>"Sphere"</code> depending on changes to 
  *     the <code>shape</code> property set for entities of these types.) <em>Read-only.</em>
- * @property {EntityHost} entityHost="domain" - How this entity will behave, including if and how it is sent to other people.
- *     The value can only be set at entity creation by using the <code>entityHost</code> parameter in
+ * @property {EntityHostType} entityHostType="domain" - How this entity will behave, including if and how it is sent to other people.
+ *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
  *     {@link Entities.addEntity}.
  * @property {boolean} avatarEntity=false - If <code>true</code> then the entity is an avatar entity;  An avatar entity follows you to each domain you visit,
  *     rendering at the same world coordinates unless it's parented to your avatar. <em>Value cannot be changed after the entity is created.</em><br />
- *     The value can only be set at entity creation by using the <code>entityHost</code> parameter in 
+ *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in 
  *     {@link Entities.addEntity}.  <code>clientOnly</code> is an alias.
  * @property {boolean} localEntity=false - If <code>true</code> then the entity is a local entity;  Local entities only render for you and are not sent over the wire.
  *     <em>Value cannot be changed after the entity is created.</em><br />
- *     The value can only be set at entity creation by using the <code>entityHost</code> parameter in
+ *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
  *     {@link Entities.addEntity}.
  * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>avatarEntity</code> is 
  *     <code>true</code>, otherwise {@link Uuid|Uuid.NULL}. <em>Read-only.</em>
@@ -768,7 +768,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * overlay's ID.
  * To apply a material to an avatar, set the material entity's <code>parentID</code> property to the avatar's session UUID.
  * To apply a material to your avatar such that it persists across domains and log-ins, create the material as an avatar entity 
- * by setting the <code>entityHost</code> parameter in {@link Entities.addEntity} to <code>"avatar"</code>.
+ * by setting the <code>entityHostType</code> parameter in {@link Entities.addEntity} to <code>"avatar"</code>.
  * Material entities render as non-scalable spheres if they don't have their parent set.
  * @typedef {object} Entities.EntityProperties-Material
  * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
@@ -1556,8 +1556,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ENTITY_HOST, entityHost, getEntityHostAsString());       // Gettable but not settable except at entity creation
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);                                    // Gettable but not settable
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ENTITY_HOST_TYPE, entityHostType, getEntityHostTypeAsString());  // Gettable but not settable except at entity creation
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);                                      // Gettable but not settable
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONEABLE, cloneable);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_LIFETIME, cloneLifetime);
@@ -1597,13 +1597,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     }
 
     if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::ClientOnly)) {
-        properties.setProperty("clientOnly", convertScriptValue(engine, getEntityHost() == EntityHost::AVATAR_ENTITY));
+        properties.setProperty("clientOnly", convertScriptValue(engine, getEntityHostType() == entity::HostType::AVATAR));
     }
     if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::AvatarEntity)) {
-        properties.setProperty("avatarEntity", convertScriptValue(engine, getEntityHost() == EntityHost::AVATAR_ENTITY));
+        properties.setProperty("avatarEntity", convertScriptValue(engine, getEntityHostType() == entity::HostType::AVATAR));
     }
     if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::LocalEntity)) {
-        properties.setProperty("localEntity", convertScriptValue(engine, getEntityHost() == EntityHost::LOCAL_ENTITY));
+        properties.setProperty("localEntity", convertScriptValue(engine, getEntityHostType() == entity::HostType::LOCAL));
     }
 
     // FIXME - I don't think these properties are supported any more
@@ -1792,7 +1792,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(ghostingAllowed, bool, setGhostingAllowed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(filterURL, QString, setFilterURL);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(entityHost, EntityHost);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(entityHostType, EntityHostType);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
@@ -1958,7 +1958,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(ghostingAllowed);
     COPY_PROPERTY_IF_CHANGED(filterURL);
 
-    COPY_PROPERTY_IF_CHANGED(entityHost);
+    COPY_PROPERTY_IF_CHANGED(entityHostType);
     COPY_PROPERTY_IF_CHANGED(owningAvatarID);
 
     COPY_PROPERTY_IF_CHANGED(dpi);
@@ -3244,7 +3244,7 @@ void EntityItemProperties::markAllChanged() {
     _ghostingAllowedChanged = true;
     _filterURLChanged = true;
 
-    _entityHostChanged = true;
+    _entityHostTypeChanged = true;
     _owningAvatarIDChanged = true;
 
     _dpiChanged = true;
@@ -3743,8 +3743,8 @@ QList<QString> EntityItemProperties::listChangedProperties() {
         out += "queryAACube";
     }
 
-    if (entityHostChanged()) {
-        out += "entityHost";
+    if (entityHostTypeChanged()) {
+        out += "entityHostType";
     }
     if (owningAvatarIDChanged()) {
         out += "owningAvatarID";
@@ -3819,7 +3819,7 @@ bool EntityItemProperties::getScalesWithParent() const {
         if (success && parent) {
             bool avatarAncestor = (parent->getNestableType() == NestableType::Avatar ||
                                    parent->hasAncestorOfType(NestableType::Avatar));
-            scalesWithParent = getEntityHost() == EntityHost::AVATAR_ENTITY && avatarAncestor;
+            scalesWithParent = getEntityHostType() == entity::HostType::AVATAR && avatarAncestor;
         }
     }
     return scalesWithParent;
@@ -3977,11 +3977,11 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
     setParentJointIndex(-1);
     setLifetime(getCloneLifetime());
     setDynamic(getCloneDynamic());
-    if (getEntityHost() != EntityHost::LOCAL_ENTITY) {
-        setEntityHost(getCloneAvatarEntity() ? EntityHost::AVATAR_ENTITY : EntityHost::DOMAIN_ENTITY);
+    if (getEntityHostType() != entity::HostType::LOCAL) {
+        setEntityHostType(getCloneAvatarEntity() ? entity::HostType::AVATAR : entity::HostType::DOMAIN);
     } else {
         // Local Entities clone as local entities
-        setEntityHost(EntityHost::LOCAL_ENTITY);
+        setEntityHostType(entity::HostType::LOCAL);
         setCollisionless(true);
     }
     setCreated(usecTimestampNow());
