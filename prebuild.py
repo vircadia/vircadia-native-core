@@ -83,12 +83,17 @@ class VcpkgRepo:
         self.sourcePortsPath = os.path.join(scriptPath, 'cmake', 'ports')
         # FIXME Revert to ports hash before release
         self.id = hashFolder(self.sourcePortsPath)[:8]
+        # OS dependent information
+        system = platform.system()
 
         if args.vcpkg_root is not None:
             print("override vcpkg path with " + args.vcpkg_root)
             self.path = args.vcpkg_root
         else:
-            defaultBasePath = os.path.join(tempfile.gettempdir(), 'hifi', 'vcpkg')
+            if 'Darwin' == system:
+                defaultBasePath = os.path.expanduser('~/hifi/vcpkg')
+            else:
+                defaultBasePath = os.path.join(tempfile.gettempdir(), 'hifi', 'vcpkg')
             basePath = os.getenv('HIFI_VCPKG_BASE', defaultBasePath)
             if (not os.path.isdir(basePath)):
                 os.makedirs(basePath)
@@ -101,8 +106,6 @@ class VcpkgRepo:
         self.tagContents = "{}_{}".format(self.id, self.version)
 
         print("prebuild path: " + self.path)
-        # OS dependent information
-        system = platform.system()
         if 'Windows' == system:
             self.exe = os.path.join(self.path, 'vcpkg.exe')
             self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/vcpkg-win32.tar.gz?versionId=YZYkDejDRk7L_hrK_WVFthWvisAhbDzZ'
