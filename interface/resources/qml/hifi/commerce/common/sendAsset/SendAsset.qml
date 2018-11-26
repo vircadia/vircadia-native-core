@@ -39,7 +39,7 @@ Item {
     property string sendingPubliclyEffectImage;
     property var http;
     property var listModelName;
-    property var keyboardContainer: nil;
+    property var keyboardContainer;
         
     // This object is always used in a popup or full-screen Wallet section.
     // This MouseArea is used to prevent a user from being
@@ -405,7 +405,7 @@ Item {
         HifiModels.PSFListModel {
             id: connectionsModel;
             http: root.http;
-            listModelName: root.listModelName;
+            listModelName: root.listModelName || "";
             endpoint: "/api/v1/users?filter=connections";
             itemsPerPage: 9;
             listView: connectionsList;
@@ -853,7 +853,7 @@ Item {
         id: sendAssetStep;
         z: 996;
 
-        property string referrer; // either "connections" or "nearby"
+        property string referrer; // either "connections", "nearby", or "payIn"
         property string selectedRecipientNodeID;
         property string selectedRecipientDisplayName;
         property string selectedRecipientUserName;
@@ -931,6 +931,7 @@ Item {
                 height: 35;
                 width: 100;
                 text: "CHANGE";
+                visible: sendAssetStep.referrer !== "payIn";
                 onClicked: {
                     if (sendAssetStep.referrer === "connections") {
                         root.nextActiveView = "chooseRecipientConnection";
@@ -970,6 +971,7 @@ Item {
 
             HifiControlsUit.TextField {
                 id: amountTextField;
+                readOnly: sendAssetStep.referrer === "payIn";
                 text: root.assetName === "" ? "" : "1";
                 colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 inputMethodHints: Qt.ImhDigitsOnly;
@@ -980,8 +982,8 @@ Item {
                 height: 50;
                 // Style
                 leftPermanentGlyph: hifi.glyphs.hfc;
-                activeFocusOnPress: true;
-                activeFocusOnTab: true;
+                activeFocusOnPress: !amountTextField.readOnly;
+                activeFocusOnTab: !amountTextField.readOnly;
 
                 validator: IntValidator { bottom: 0; }
 
@@ -1071,6 +1073,7 @@ Item {
 
             TextArea {
                 id: optionalMessage;
+                readOnly: sendAssetStep.referrer === "payIn";
                 property int maximumLength: 72;
                 property string previousText: text;
                 placeholderText: "<i>Optional Public Message (" + maximumLength + " character limit)</i>";
@@ -1081,10 +1084,10 @@ Item {
                 // Style
                 background: Rectangle {
                     anchors.fill: parent;
-                    color: root.assetName === "" ? (optionalMessage.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow) :
-                        (optionalMessage.activeFocus ? "#EFEFEF" : "#EEEEEE");
-                    border.width: optionalMessage.activeFocus ? 1 : 0;
-                    border.color: optionalMessage.activeFocus ? hifi.colors.primaryHighlight : hifi.colors.textFieldLightBackground;
+                    color: root.assetName === "" ? (optionalMessage.activeFocus && !optionalMessage.readOnly ? hifi.colors.black : hifi.colors.baseGrayShadow) :
+                        (optionalMessage.activeFocus && !optionalMessage.readOnly ? "#EFEFEF" : "#EEEEEE");
+                    border.width: optionalMessage.activeFocus && !optionalMessage.readOnly ? 1 : 0;
+                    border.color: optionalMessage.activeFocus && !optionalMessage.readOnly ? hifi.colors.primaryHighlight : hifi.colors.textFieldLightBackground;
                 }
                 color: root.assetName === "" ? hifi.colors.white : hifi.colors.black;
                 textFormat: TextEdit.PlainText;
@@ -1205,8 +1208,12 @@ Item {
                 width: 100;
                 text: "CANCEL";
                 onClicked: {
-                    resetSendAssetData();
-                    root.nextActiveView = "sendAssetHome";
+                    if (sendAssetStep.referrer === "payIn") {
+                        sendToScript({method: "closeSendAsset"});
+                    } else {
+                        resetSendAssetData();
+                        root.nextActiveView = "sendAssetHome";
+                    }
                 }
             }
 
@@ -1236,7 +1243,7 @@ Item {
                         root.isCurrentlySendingAsset = true;
                         amountTextField.focus = false;
                         optionalMessage.focus = false;
-                        if (sendAssetStep.referrer === "connections") {
+                        if (sendAssetStep.referrer === "connections" || sendAssetStep.referrer === "payIn") {
                             Commerce.transferAssetToUsername(sendAssetStep.selectedRecipientUserName,
                                 root.assetCertID,
                                 parseInt(amountTextField.text),
@@ -1364,10 +1371,14 @@ Item {
                         parent.text = hifi.glyphs.close;
                     }
                     onClicked: {
-                        root.nextActiveView = "sendAssetHome";
-                        resetSendAssetData();
-                        if (root.assetName !== "") {
-                            sendSignalToParent({method: "closeSendAsset"});
+                        if (sendAssetStep.referrer === "payIn") {
+                            sendToScript({method: "closeSendAsset"});
+                        } else {
+                            root.nextActiveView = "sendAssetHome";
+                            resetSendAssetData();
+                            if (root.assetName !== "") {
+                                sendSignalToParent({method: "closeSendAsset"});
+                            }
                         }
                     }
                 }
@@ -1866,11 +1877,27 @@ Item {
             case 'updateSelectedRecipientUsername':
                 sendAssetStep.selectedRecipientUserName = message.userName;
             break;
+            case 'updateSendAssetQML':
+                root.assetName = message.assetName || "";
+                root.assetCertID = message.assetCertID || "";
+                amountTextField.text = message.amount || 1;
+                sendAssetStep.referrer = "payIn";
+                sendAssetStep.selectedRecipientNodeID = "";
+                sendAssetStep.selectedRecipientDisplayName = 'Secure Payment';
+                sendAssetStep.selectedRecipientUserName = message.username;
+                optionalMessage.text = message.message || "No Message Provided";
+
+                root.nextActiveView = "sendAssetStep";
+            break;
+            case 'inspectionCertificate_resetCert':
+                // NOP
+            break;
             default:
                 console.log('SendAsset: Unrecognized message from wallet.js');
         }
     }
     signal sendSignalToParent(var msg);
+    signal sendToScript(var message);
     //
     // FUNCTION DEFINITIONS END
     //
