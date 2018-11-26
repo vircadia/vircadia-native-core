@@ -62,6 +62,7 @@ protected slots:
     Q_INVOKABLE void dismissLoginDialog();
 
     Q_INVOKABLE bool isSteamRunning() const;
+    Q_INVOKABLE bool isOculusStoreRunning() const;
 
     Q_INVOKABLE void login(const QString& username, const QString& password) const;
     Q_INVOKABLE void loginThroughSteam();

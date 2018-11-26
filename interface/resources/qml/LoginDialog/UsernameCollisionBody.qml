@@ -21,8 +21,8 @@ Item {
     clip: true
     width: root.width
     height: root.height
-    readonly property string fontFamily: "Cairo"
-    readonly property int fontSize: 24
+    readonly property string fontFamily: "Raleway"
+    readonly property int fontSize: 15
     readonly property bool fontBold: true
 
     readonly property string errorString: errorString

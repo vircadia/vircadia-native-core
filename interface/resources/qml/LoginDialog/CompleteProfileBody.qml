@@ -22,8 +22,8 @@ Item {
     width: root.width
     height: root.height
     readonly property string termsContainerText: qsTr("By creating this user profile, you agree to High Fidelity's Terms of Service")
-    readonly property string fontFamily: "Cairo"
-    readonly property int fontSize: 24
+    readonly property string fontFamily: "Raleway"
+    readonly property int fontSize: 15
     readonly property bool fontBold: true
 
     QtObject {

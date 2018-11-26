@@ -18,6 +18,7 @@
 
 #include <plugins/PluginManager.h>
 #include <plugins/SteamClientPlugin.h>
+#include <shared/GlobalAppProperties.h>
 #include <ui/TabletScriptingInterface.h>
 #include <UserActivityLogger.h>
 
@@ -98,6 +99,10 @@ void LoginDialog::toggleAction() {
 bool LoginDialog::isSteamRunning() const {
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     return steamClient && steamClient->isRunning();
+}
+
+bool LoginDialog::isOculusStoreRunning() const {
+    return qApp->property(hifi::properties::OCULUS_STORE).toBool();
 }
 
 void LoginDialog::dismissLoginDialog() {

@@ -21,10 +21,11 @@ Item {
     id: loggingInBody
     property int textFieldHeight: 31
     property int loggingInGlyphRightMargin: 10
-    property string fontFamily: "Cairo"
-    property int fontSize: 24
+    property string fontFamily: "Raleway"
+    property int fontSize: 15
     property bool fontBold: true
     property bool withSteam: withSteam
+    property bool withOculus: withOculus
     property string fromBody: fromBody
 
     QtObject {
@@ -64,24 +65,20 @@ Item {
         }
     }
 
-    // timer to kill the dialog upon login failure
-    Timer {
-        id: steamFailureTimer
-        interval: 2500;
-        running: false;
-        repeat: false;
-        onTriggered: {
-            // from linkaccount.
-            bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader })
-        }
-    }
-
     function init() {
         // For the process of logging in.
         loggingInText.wrapMode = Text.NoWrap;
+        print("withSteam " + loggingInBody.withSteam);
+        print("withOculus " + loggingInBody.withOculus);
         if (loggingInBody.withSteam) {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Steam";
+            loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
+
+        } else if (loggingInBody.withOculus) {
+            loggingInGlyph.visible = true;
+            loggingInGlyph.text = hifi.glyphs.oculus;
+            loggingInText.text = "Logging in to Oculus";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
         } else {
             loggingInText.text = "Logging in";
@@ -92,12 +89,20 @@ Item {
     }
     function loadingSuccess() {
         loggingInSpinner.visible = false;
-        if (loggingInBody.withSteam && !loginDialog.isLogIn) {
+        if (loggingInBody.withSteam) {
             // reset the flag.
             loggingInGlyph.visible = false;
             loggingInText.text = "You are now logged into Steam!"
             loggingInText.anchors.centerIn = loggingInHeader;
             loggingInText.anchors.bottom = loggingInHeader.bottom;
+            loggedInGlyph.visible = true;
+        } else if (loggingInBody.withOculus) {
+            // reset the flag.
+            loggingInGlyph.visible = false;
+            loggingInText.text = "You are now logged into Oculus!"
+            loggingInText.anchors.centerIn = loggingInHeader;
+            loggingInText.anchors.bottom = loggingInHeader.bottom;
+            loggedInGlyph.text = hifi.glyphs.oculus;
             loggedInGlyph.visible = true;
         } else {
             loggingInText.text = "You are now logged in!";
@@ -244,17 +249,6 @@ Item {
     Connections {
         target: loginDialog
 
-        onHandleSignupCompleted: {
-            console.log("SignUp completed!");
-            successTimer.start();
-        }
-
-        onHandleSignupFailed: {
-            console.log("SignUp failed!");
-            var errorStringEdited = errorString.replace(/[\n\r]+/g, ' ');
-            bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorStringEdited });
-        }
-
         onHandleLoginCompleted: {
             console.log("Login Succeeded")
             loadingSuccess();
@@ -264,22 +258,21 @@ Item {
             console.log("Login Failed")
             loggingInSpinner.visible = false;
             var errorString = "";
-            if (loggingInBody.withSteam && loggingInBody.fromBody === "LinkAccountBody") {
+            if (loggingInBody.withSteam) {
                 loggingInGlyph.visible = false;
-                loggingInText.text = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again."
-                loggingInText.width = loggingInBody.width;
-                loggingInText.wrapMode = Text.WordWrap;
-                loggingInText.anchors.centerIn = loggingInHeader;
-                steamFailureTimer.start();
-            } else if (loggingInBody.withSteam) {
-                errorString = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again.";
-                bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
-            } else {
+                errorString = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again."
+                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
+            } else if (loggingInBody.withOculus) {
+                loggingInGlyph.visible = false;
+                errorString = "Your Oculus authentication has failed. Please make sure you are logged into Oculus and try again."
+                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
+            }
+            else {
                 errorString = "Username or password is incorrect.";
-                if (loginDialog.isLogIn && loginDialog.isSteamRunning()) {
+                if (loginDialog.isLogIn && loggingInBody.withSteam) {
                     bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                 } else {
-                    bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
+                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
                 }
             }
         }
