@@ -27,7 +27,6 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     _fbxToHifiJointNameMapping = hfmModel.fbxToHifiJointNameMapping;
     buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
 
-
     // we make a copy of the inverseBindMatrices in order to prevent mutating the model bind pose
     // when we are dealing with a joint offset in the model
     for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
@@ -133,13 +132,8 @@ std::vector<int> AnimSkeleton::getChildrenOfJoint(int jointIndex) const {
 const QString AnimSkeleton::getJointName(int jointIndex) const {
 
     QString jointName = _joints[jointIndex].name;
-    QMapIterator<QString, QString> i(_fbxToHifiJointNameMapping);
-    while (i.hasNext()) {
-        i.next();
-        if (i.value() == _joints[jointIndex].name) {
-            jointName = i.key();
-            break;
-        }
+    if (_fbxToHifiJointNameMapping.contains(_fbxToHifiJointNameMapping.key(_joints[jointIndex].name))) {
+        jointName = _fbxToHifiJointNameMapping.key(_joints[jointIndex].name);
     }
     return jointName;
 }
@@ -216,22 +210,8 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
 
 bool AnimSkeleton::checkNonMirrored(QString jointName) const {
 
-    QMapIterator<QString, QString> i(_fbxToHifiJointNameMapping);
-    while (i.hasNext()) {
-        i.next();
-        if (i.value() == jointName) {
-            // check for left right in the key
-            if (i.key() != "Hips" && i.key() != "Spine" &&
-                i.key() != "Spine1" && i.key() != "Spine2" &&
-                i.key() != "Neck" && i.key() != "Head" &&
-                !((i.key().startsWith("Left") || i.key().startsWith("Right")) &&
-                    i.key() != "LeftEye" && i.key() != "RightEye")) {
-                //return true
-                return true;
-            } else {
-                return false;
-            }
-        }
+    if (_fbxToHifiJointNameMapping.contains(_fbxToHifiJointNameMapping.key(jointName))) {
+        jointName = _fbxToHifiJointNameMapping.key(jointName);
     }
     // check the unmapped name
     if (jointName != "Hips" && jointName != "Spine" &&
@@ -239,26 +219,16 @@ bool AnimSkeleton::checkNonMirrored(QString jointName) const {
         jointName != "Neck" && jointName != "Head" &&
         !((jointName.startsWith("Left") || jointName.startsWith("Right")) &&
             jointName != "LeftEye" && jointName != "RightEye")) {
-        //return true
         return true;
     } else {
         return false;
     }
-
 }
 
 int AnimSkeleton::containsLeft(QString jointName) const {
-    QMapIterator<QString, QString> i(_fbxToHifiJointNameMapping);
     int mirrorJointIndex = -1;
-    while (i.hasNext()) {
-        i.next();
-        if (i.value() == jointName) {
-            // check for left right in the key
-            if (i.key().startsWith("Left")) {
-                QString mirrorJointName = QString(i.key()).replace(0, 4, "Right");
-                mirrorJointIndex = nameToJointIndex(mirrorJointName);
-            }
-        }
+    if (_fbxToHifiJointNameMapping.contains(_fbxToHifiJointNameMapping.key(jointName))) {
+        jointName = _fbxToHifiJointNameMapping.key(jointName);
     }
     if (mirrorJointIndex < 0) {
         if (jointName.startsWith("Left")) {
@@ -270,17 +240,9 @@ int AnimSkeleton::containsLeft(QString jointName) const {
 }
 
 int AnimSkeleton::containsRight(QString jointName) const {
-    QMapIterator<QString, QString> i(_fbxToHifiJointNameMapping);
     int mirrorJointIndex = -1;
-    while (i.hasNext()) {
-        i.next();
-        if (i.value() == jointName) {
-            // check for left right in the key
-            if (i.key().startsWith("Right")) {
-                QString mirrorJointName = QString(i.key()).replace(0, 5, "Left");
-                mirrorJointIndex = nameToJointIndex(mirrorJointName);
-            }
-        }
+    if (_fbxToHifiJointNameMapping.contains(_fbxToHifiJointNameMapping.key(jointName))) {
+        jointName = _fbxToHifiJointNameMapping.key(jointName);
     }
     if (mirrorJointIndex < 0) {
         if (jointName.startsWith("Right")) {
