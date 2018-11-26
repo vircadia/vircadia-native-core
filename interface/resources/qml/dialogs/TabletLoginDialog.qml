@@ -87,10 +87,6 @@ FocusScope {
             id: bodyLoader
             anchors.fill: parent
         }
-
-    Component.onDestruction: {
-        loginKeyboard.raised = false;
-        KeyboardScriptingInterface.raised = false;
     }
 
     Image {
@@ -143,6 +139,7 @@ FocusScope {
 
     Component.onDestruction: {
         loginKeyboard.raised = false;
+        KeyboardScriptingInterface.raised = false;
     }
 
     Component.onCompleted: {

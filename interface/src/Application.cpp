@@ -1033,8 +1033,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0),
     _snapshotSound(nullptr),
-    _sampleSound(nullptr)
-
+    _sampleSound(nullptr),
+    _loginStateSound(nullptr)
 {
 
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
@@ -1317,17 +1317,25 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &Application::activeDisplayPluginChanged, this, [&](){
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         auto keyboard = DependencyManager::get<Keyboard>();
+        if (_loginStateSoundInjector != nullptr) {
+            AudioInjectorOptions options;
+            options.localOnly = true;
+            options.position = getMyAvatar()->getHeadPosition();
+            options.loop = true;
+            options.volume = 0.4f;
+            options.stereo = true;
+            _loginStateSoundInjector->setOptions(options);
+            _loginStateSoundInjector->restart();
+        }
         if (getLoginDialogPoppedUp()) {
             if (_firstRun.get()) {
                 // display mode changed.  Don't allow auto-switch to work after this session.
                 _firstRun.set(false);
             }
-            if (_loginDialogOverlayID.isNull()) {
-                // HMD mode.
+            if (isHMDMode()) {
                 dialogsManager->hideLoginDialog();
                 createLoginDialogOverlay();
             } else {
-                // Desktop mode.
                 QVariantMap properties{
                     { "parentID", QUuid() }
                 };
@@ -1335,6 +1343,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 getOverlays().deleteOverlay(_loginDialogOverlayID);
                 _loginDialogOverlayID = OverlayID();
                 _loginStateManager.tearDown();
+                auto toolbar =  DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
+                toolbar->writeProperty("visible", false);
                 dialogsManager->showLoginDialog();
             }
         }
@@ -2286,6 +2296,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snapshot/snap.wav"));
+    _loginStateSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/crystals_and_voices.mp3"));
 
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
     static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
@@ -2634,6 +2645,10 @@ void Application::cleanupBeforeQuit() {
         _snapshotSoundInjector->stop();
     }
 
+    if (_loginStateSoundInjector != nullptr) {
+        _loginStateSoundInjector->stop();
+    }
+
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
     DependencyManager::destroy<AudioClient>();
@@ -2945,13 +2960,32 @@ static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, in
 void Application::showLoginScreen() {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto dialogsManager = DependencyManager::get<DialogsManager>();
+    if (!_loginStateSound->isReady()) {
+        connect(_loginStateSound.data(), &Sound::ready, this, &Application::showLoginScreen);
+        return;
+    } else {
+        disconnect(_loginStateSound.data(), &Sound::ready, this, &Application::showLoginScreen);
+    }
     if (!accountManager->isLoggedIn()) {
+        if (!isHMDMode()) {
+            auto toolbar =  DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
+            toolbar->writeProperty("visible", false);
+        }
         _loginDialogPoppedUp = true;
         dialogsManager->showLoginDialog();
         QJsonObject loginData = {};
         loginData["action"] = "login dialog shown";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
         _window->setWindowTitle("High Fidelity Interface");
+        //if (!_loginStateSoundInjector) {
+        //    AudioInjectorOptions options;
+        //    options.localOnly = true;
+        //    options.position = getMyAvatar()->getHeadPosition();
+        //    options.loop = true;
+        //    options.volume = 0.4f;
+        //    options.stereo = true;
+        //    _loginStateSoundInjector = AudioInjector::playSound(_loginStateSound, options);
+        //}
     } else {
         resumeAfterLoginDialogActionTaken();
     }
@@ -5294,6 +5328,7 @@ void Application::pauseUntilLoginDetermined() {
 
     // disconnect domain handler.
     nodeList->getDomainHandler().disconnect();
+
 }
 
 void Application::resumeAfterLoginDialogActionTaken() {
@@ -5301,6 +5336,8 @@ void Application::resumeAfterLoginDialogActionTaken() {
         QMetaObject::invokeMethod(this, "resumeAfterLoginDialogActionTaken");
         return;
     }
+
+    updateSystemTabletMode();
 
     getMyAvatar()->setEnableMeshVisible(true);
 
@@ -6257,33 +6294,7 @@ void Application::update(float deltaTime) {
     }
     if (!_loginDialogOverlayID.isNull()) {
         _loginStateManager.update(getMyAvatar()->getDominantHand());
-    }
-
-    if (!_loginDialogOverlayID.isNull()) {
-        auto overlayPosition = getOverlays().getProperty(_loginDialogOverlayID, "position");
-        auto overlayPositionVec = vec3FromVariant(overlayPosition.value);
-        //auto avatarHeadPosition = myAvatar->getHeadPosition();
-        //auto avatarHeadOrientation = myAvatar->getHeadOrientation();
-        //auto headLookVec = avatarHeadOrientation * Vectors::FRONT;
-        //auto overlayToHeadVec = positionVec - avatarHeadPosition;
-        auto cameraPositionVec = _myCamera.getPosition();
-        auto cameraOrientation = _myCamera.getOrientation();
-        auto headLookVec = (cameraOrientation * Vectors::FRONT);
-        auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
-        //auto lookAtQuat = glm::inverse(glm::quat_cast(glm::lookAt(positionVec, avatarHeadPosition, avatarHeadOrientation * Vectors::UNIT_Y)));
-        auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
-        auto upVec = myAvatar->getWorldOrientation() * Vectors::UNIT_Y;
-        auto offset = headLookVec * 0.7f;
-        auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
-        auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
-
-        if (pointAngle > 30.0f) {
-            QVariantMap properties {
-                {"position", vec3toVariant(newOverlayPositionVec)},
-                {"orientation", quatToVariant(newOverlayOrientation)}
-            };
-            getOverlays().editOverlay(_loginDialogOverlayID, properties);
-        }
+        updateLoginDialogOverlayPosition();
     }
 
     // Update _viewFrustum with latest camera and view frustum data...
@@ -8677,6 +8688,28 @@ void Application::createLoginDialogOverlay() {
     }
 }
 
+void Application::updateLoginDialogOverlayPosition() {
+    auto overlayPosition = getOverlays().getProperty(_loginDialogOverlayID, "position");
+    auto overlayPositionVec = vec3FromVariant(overlayPosition.value);
+    auto cameraPositionVec = _myCamera.getPosition();
+    auto cameraOrientation = _myCamera.getOrientation();
+    auto headLookVec = (cameraOrientation * Vectors::FRONT);
+    auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
+    auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
+    auto upVec = getMyAvatar()->getWorldOrientation() * Vectors::UNIT_Y;
+    auto offset = headLookVec * 0.7f;
+    auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
+    auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
+
+    if (pointAngle > 40.0f) {
+        QVariantMap properties {
+            {"position", vec3toVariant(newOverlayPositionVec)},
+            {"orientation", quatToVariant(newOverlayOrientation)}
+        };
+        getOverlays().editOverlay(_loginDialogOverlayID, properties);
+    }
+}
+
 void Application::onDismissedLoginDialog() {
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
@@ -8692,6 +8725,9 @@ void Application::onDismissedLoginDialog() {
         getOverlays().deleteOverlay(_loginDialogOverlayID);
         _loginDialogOverlayID = OverlayID();
         _loginStateManager.tearDown();
+    }
+    if (_loginStateSoundInjector != nullptr) {
+        _loginStateSoundInjector->stop();
     }
     resumeAfterLoginDialogActionTaken();
 }
@@ -8846,7 +8882,7 @@ void Application::updateThreadPoolCount() const {
 }
 
 void Application::updateSystemTabletMode() {
-    if (_settingsLoaded) {
+    if (_settingsLoaded && !getLoginDialogPoppedUp()) {
         qApp->setProperty(hifi::properties::HMD, isHMDMode());
         if (isHMDMode()) {
             DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());

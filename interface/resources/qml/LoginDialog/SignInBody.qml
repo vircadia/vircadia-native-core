@@ -409,7 +409,14 @@ Item {
                     id: cancelArea
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
+                    hoverEnabled: true
+
+                    onEntered: {
+                        Tablet.playSound(TabletEnums.ButtonHover);
+                    }
+
                     onClicked: {
+                        Tablet.playSound(TabletEnums.ButtonClick);
                         bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                     }
                 }

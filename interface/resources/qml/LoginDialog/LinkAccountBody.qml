@@ -15,6 +15,7 @@ import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
 import controlsUit 1.0 as HifiControlsUit
 import stylesUit 1.0 as HifiStylesUit
+import TabletScriptingInterface 1.0
 
 Item {
     id: linkAccountBody
@@ -240,7 +241,12 @@ Item {
                     id: dismissMouseArea
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
+                    hoverEnabled: true
+                    onEntered: {
+                        Tablet.playSound(TabletEnums.ButtonHover);
+                    }
                     onClicked: {
+                        Tablet.playSound(TabletEnums.ButtonClick);
                         if (loginDialog.getLoginDialogPoppedUp()) {
                             console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
                             var data = {

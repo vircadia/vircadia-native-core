@@ -324,6 +324,7 @@ public:
 
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
     void createLoginDialogOverlay();
+    void updateLoginDialogOverlayPosition();
 
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
@@ -793,6 +794,8 @@ private:
     AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
     SharedSoundPointer _sampleSound;
+    AudioInjectorPointer _loginStateSoundInjector;
+    SharedSoundPointer _loginStateSound;
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
