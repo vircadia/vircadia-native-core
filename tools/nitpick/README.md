@@ -86,7 +86,7 @@ In a terminal: `python3 get-pip.py --user`
      `cp -r /Volumes/nitpick-installer-v1.1/* .`
 
 1. __To run nitpick, cd to the folder that you copied to and run `./nitpick`__  
-#Use
+# Usage
 ## Create
 ![](./Create.PNG)
 
