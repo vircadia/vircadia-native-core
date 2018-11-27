@@ -278,7 +278,6 @@ void ZoneEntityItem::debugDump() const {
 }
 
 void ZoneEntityItem::setShapeType(ShapeType type) {
-    //ShapeType typeArgument = type;
     ShapeType oldShapeType = _shapeType;
     switch(type) {
         case SHAPE_TYPE_NONE:

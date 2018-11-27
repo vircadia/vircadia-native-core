@@ -117,6 +117,7 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_SIMPLE_HULL);
     addShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     addShapeType(SHAPE_TYPE_STATIC_MESH);
+    addShapeType(SHAPE_TYPE_ELLIPSOID);
 }
 
 QHash<QString, MaterialMappingMode> stringToMaterialMappingModeLookup;

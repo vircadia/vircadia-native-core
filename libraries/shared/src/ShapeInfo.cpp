@@ -58,7 +58,8 @@ const char* shapeTypeNames[] = {
     "compound",
     "simple-hull",
     "simple-compound",
-    "static-mesh"
+    "static-mesh",
+    "ellipsoid"
 };
 
 static const size_t SHAPETYPE_NAME_COUNT = (sizeof(shapeTypeNames) / sizeof((shapeTypeNames)[0]));
