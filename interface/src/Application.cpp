@@ -1033,8 +1033,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0),
     _snapshotSound(nullptr),
-    _sampleSound(nullptr),
-    _loginStateSound(nullptr)
+    _sampleSound(nullptr)
 {
 
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
@@ -1317,16 +1316,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &Application::activeDisplayPluginChanged, this, [&](){
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         auto keyboard = DependencyManager::get<Keyboard>();
-        if (_loginStateSoundInjector != nullptr) {
-            AudioInjectorOptions options;
-            options.localOnly = true;
-            options.position = getMyAvatar()->getHeadPosition();
-            options.loop = true;
-            options.volume = 0.4f;
-            options.stereo = true;
-            _loginStateSoundInjector->setOptions(options);
-            _loginStateSoundInjector->restart();
-        }
         if (getLoginDialogPoppedUp()) {
             if (_firstRun.get()) {
                 // display mode changed.  Don't allow auto-switch to work after this session.
@@ -2296,7 +2285,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snapshot/snap.wav"));
-    _loginStateSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/crystals_and_voices.mp3"));
 
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
     static const int ADD_ASSET_TO_WORLD_TIMER_INTERVAL_MS = 1000;
@@ -2645,10 +2633,6 @@ void Application::cleanupBeforeQuit() {
         _snapshotSoundInjector->stop();
     }
 
-    if (_loginStateSoundInjector != nullptr) {
-        _loginStateSoundInjector->stop();
-    }
-
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
     DependencyManager::destroy<AudioClient>();
@@ -2960,12 +2944,6 @@ static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, in
 void Application::showLoginScreen() {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto dialogsManager = DependencyManager::get<DialogsManager>();
-    if (!_loginStateSound->isReady()) {
-        connect(_loginStateSound.data(), &Sound::ready, this, &Application::showLoginScreen);
-        return;
-    } else {
-        disconnect(_loginStateSound.data(), &Sound::ready, this, &Application::showLoginScreen);
-    }
     if (!accountManager->isLoggedIn()) {
         if (!isHMDMode()) {
             auto toolbar =  DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
@@ -2977,15 +2955,6 @@ void Application::showLoginScreen() {
         loginData["action"] = "login dialog shown";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
         _window->setWindowTitle("High Fidelity Interface");
-        //if (!_loginStateSoundInjector) {
-        //    AudioInjectorOptions options;
-        //    options.localOnly = true;
-        //    options.position = getMyAvatar()->getHeadPosition();
-        //    options.loop = true;
-        //    options.volume = 0.4f;
-        //    options.stereo = true;
-        //    _loginStateSoundInjector = AudioInjector::playSound(_loginStateSound, options);
-        //}
     } else {
         resumeAfterLoginDialogActionTaken();
     }
@@ -8728,9 +8697,6 @@ void Application::onDismissedLoginDialog() {
         getOverlays().deleteOverlay(_loginDialogOverlayID);
         _loginDialogOverlayID = OverlayID();
         _loginStateManager.tearDown();
-    }
-    if (_loginStateSoundInjector != nullptr) {
-        _loginStateSoundInjector->stop();
     }
     resumeAfterLoginDialogActionTaken();
 }
