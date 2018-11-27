@@ -45,6 +45,7 @@
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/SelectionScriptingInterface.h"
+#include "scripting/HMDScriptingInterface.h"
 #include "DependencyManager.h"
 
 #include "raypick/StylusPointer.h"
@@ -54,9 +55,9 @@
 static const int LEFT_HAND_CONTROLLER_INDEX = 0;
 static const int RIGHT_HAND_CONTROLLER_INDEX = 1;
 
-static const float MALLET_LENGTH = 0.2f;
-static const float MALLET_TOUCH_Y_OFFSET = 0.052f;
-static const float MALLET_Y_OFFSET = 0.180f;
+static const float MALLET_LENGTH = 0.18f;
+static const float MALLET_TOUCH_Y_OFFSET = 0.050f;
+static const float MALLET_Y_OFFSET = 0.160f;
 
 static const glm::quat MALLET_ROTATION_OFFSET{0.70710678f, 0.0f, -0.70710678f, 0.0f};
 static const glm::vec3 MALLET_MODEL_DIMENSIONS{0.03f, MALLET_LENGTH, 0.03f};
@@ -65,14 +66,14 @@ static const glm::vec3 MALLET_TIP_OFFSET{0.0f, MALLET_LENGTH - MALLET_TOUCH_Y_OF
 
 
 static const glm::vec3 Z_AXIS {0.0f, 0.0f, 1.0f};
-static const glm::vec3 KEYBOARD_TABLET_OFFSET{0.28f, -0.3f, -0.05f};
+static const glm::vec3 KEYBOARD_TABLET_OFFSET{0.30f, -0.38f, -0.04f};
 static const glm::vec3 KEYBOARD_TABLET_DEGREES_OFFSET{-45.0f, 0.0f, 0.0f};
 static const glm::vec3 KEYBOARD_TABLET_LANDSCAPE_OFFSET{-0.2f, -0.27f, -0.05f};
 static const glm::vec3 KEYBOARD_TABLET_LANDSCAPE_DEGREES_OFFSET{-45.0f, 0.0f, -90.0f};
 static const glm::vec3 KEYBOARD_AVATAR_OFFSET{-0.6f, 0.3f, -0.7f};
 static const glm::vec3 KEYBOARD_AVATAR_DEGREES_OFFSET{0.0f, 180.0f, 0.0f};
 
-static const QString SOUND_FILE = PathUtils::resourcesUrl() + "sounds/keyboard_key.mp3";
+static const QString SOUND_FILE = PathUtils::resourcesUrl() + "sounds/keyboardPress.mp3";
 static const QString MALLET_MODEL_URL = PathUtils::resourcesUrl() + "meshes/drumstick.fbx";
 
 static const float PULSE_STRENGTH = 0.6f;
@@ -221,6 +222,7 @@ Keyboard::Keyboard() {
     auto pointerManager = DependencyManager::get<PointerManager>();
     auto windowScriptingInterface = DependencyManager::get<WindowScriptingInterface>();
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto hmdScriptingInterface = DependencyManager::get<HMDScriptingInterface>();
     connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, this, &Keyboard::handleTriggerBegin, Qt::QueuedConnection);
     connect(pointerManager.data(), &PointerManager::triggerContinueOverlay, this, &Keyboard::handleTriggerContinue, Qt::QueuedConnection);
     connect(pointerManager.data(), &PointerManager::triggerEndOverlay, this, &Keyboard::handleTriggerEnd, Qt::QueuedConnection);
@@ -228,6 +230,7 @@ Keyboard::Keyboard() {
     connect(pointerManager.data(), &PointerManager::hoverEndOverlay, this, &Keyboard::handleHoverEnd, Qt::QueuedConnection);
     connect(myAvatar.get(), &MyAvatar::sensorToWorldScaleChanged, this, &Keyboard::scaleKeyboard, Qt::QueuedConnection);
     connect(windowScriptingInterface.data(), &WindowScriptingInterface::domainChanged, [&]() { setRaised(false); });
+    connect(hmdScriptingInterface.data(), &HMDScriptingInterface::displayModeChanged, [&]() { setRaised(false); });
 }
 
 void Keyboard::registerKeyboardHighlighting() {
@@ -483,9 +486,9 @@ void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent
         AudioInjectorOptions audioOptions;
         audioOptions.localOnly = true;
         audioOptions.position = keyWorldPosition;
-        audioOptions.volume = 0.1f;
+        audioOptions.volume = 0.05f;
 
-        AudioInjector::playSound(_keySound->getByteArray(), audioOptions);
+        AudioInjector::playSoundAndDelete(_keySound, audioOptions);
 
         int scanCode = key.getScanCode(_capsEnabled);
         QString keyString = key.getKeyString(_capsEnabled);
@@ -835,8 +838,8 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
         _textDisplay = textDisplay;
 
         _ignoreItemsLock.withWriteLock([&] {
-            _itemsToIgnore.push_back(_textDisplay.overlayID);
-            _itemsToIgnore.push_back(_anchor.overlayID);
+            _itemsToIgnore.append(_textDisplay.overlayID);
+            _itemsToIgnore.append(_anchor.overlayID);
         });
         _layerIndex = 0;
         auto pointerManager = DependencyManager::get<PointerManager>();

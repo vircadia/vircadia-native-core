@@ -14,6 +14,7 @@
 
 #include "Frame.h"
 #include "GPULogging.h"
+#include <shaders/Shaders.h>
 
 using namespace gpu;
 
@@ -331,6 +332,16 @@ Size Context::getTextureResourcePopulatedGPUMemSize() {
     return Backend::textureResourcePopulatedGPUMemSize.getValue();
 }
 
+PipelinePointer Context::createMipGenerationPipeline(const ShaderPointer& ps) {
+    auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawViewportQuadTransformTexcoord);
+	static gpu::StatePointer state(new gpu::State());
+
+	gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+	// Good to go add the brand new pipeline
+	return gpu::Pipeline::create(program, state);
+}
+
 Size Context::getTextureResourceIdealGPUMemSize() {
     return Backend::textureResourceIdealGPUMemSize.getValue();
 }
@@ -352,7 +363,7 @@ void Context::processProgramsToSync() {
     Lock lock(_programsToSyncMutex);
     if (!_programsToSyncQueue.empty()) {
         ProgramsToSync programsToSync = _programsToSyncQueue.front();
-        int numSynced = 0;
+        size_t numSynced = 0;
         while (_nextProgramToSyncIndex < programsToSync.programs.size() && numSynced < programsToSync.rate) {
             auto nextProgram = programsToSync.programs.at(_nextProgramToSyncIndex);
             _backend->syncProgram(nextProgram);

@@ -562,8 +562,13 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 
                 static const int MAX_INJECTOR_COUNT = 3;
                 if (_collisionInjectors.size() < MAX_INJECTOR_COUNT) {
-                    auto injector = AudioInjector::playSound(collisionSound, energyFactorOfFull, AVATAR_STRETCH_FACTOR,
-                                                             myAvatar->getWorldPosition());
+                    AudioInjectorOptions options;
+                    options.stereo = collisionSound->isStereo();
+                    options.position = myAvatar->getWorldPosition();
+                    options.volume = energyFactorOfFull;
+                    options.pitch = 1.0f / AVATAR_STRETCH_FACTOR;
+
+                    auto injector = AudioInjector::playSoundAndDelete(collisionSound, options);
                     _collisionInjectors.emplace_back(injector);
                 }
                 myAvatar->collisionWithEntity(collision);

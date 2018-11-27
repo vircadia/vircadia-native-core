@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include <QDebug>
+#include "ShaderConstants.h"
 
 #include "GPULogging.h"
 
