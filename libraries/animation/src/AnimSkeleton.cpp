@@ -65,7 +65,7 @@ int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
     auto itr = _jointIndicesByName.find(jointName);
     if (_fbxToHifiJointNameMapping.contains(jointName)) {
         // if the fbx joint name is different than the hifi standard then look up the
-        // index from that name.
+        // index from the fbx joint name.
         itr = _jointIndicesByName.find(_fbxToHifiJointNameMapping[jointName]);
     }
     if (itr != _jointIndicesByName.end()) {
@@ -131,8 +131,8 @@ std::vector<int> AnimSkeleton::getChildrenOfJoint(int jointIndex) const {
 const QString AnimSkeleton::getJointName(int jointIndex) const {
 
     QString jointName = _joints[jointIndex].name;
-    if (_fbxToHifiJointNameMapping.contains(_fbxToHifiJointNameMapping.key(_joints[jointIndex].name))) {
-        jointName = _fbxToHifiJointNameMapping.key(_joints[jointIndex].name);
+    if (_fbxToHifiJointNameMapping.contains(_fbxToHifiJointNameMapping.key(jointName))) {
+        jointName = _fbxToHifiJointNameMapping.key(jointName);
     }
     return jointName;
 }
