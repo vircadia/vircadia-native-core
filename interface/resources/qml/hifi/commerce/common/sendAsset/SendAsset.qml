@@ -918,7 +918,7 @@ Item {
                 userName: sendAssetStep.selectedRecipientUserName;
                 profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
                     sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
-                isDisplayingNearby: sendAssetStep.referrer === "nearby";
+                multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
             }
 
             // "CHANGE" button
@@ -1422,7 +1422,7 @@ Item {
                     userName: sendAssetStep.selectedRecipientUserName;
                     profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
                         sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
-                    isDisplayingNearby: sendAssetStep.referrer === "nearby";
+                    multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
                 }
             }
             
@@ -1703,7 +1703,7 @@ Item {
                     userName: sendAssetStep.selectedRecipientUserName;
                     profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
                         sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
-                    isDisplayingNearby: sendAssetStep.referrer === "nearby";
+                    multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
                 }
             }
 
@@ -1898,7 +1898,7 @@ Item {
                 }
                 sendAssetStep.referrer = "payIn";
                 sendAssetStep.selectedRecipientNodeID = "";
-                sendAssetStep.selectedRecipientDisplayName = 'Secure Payment';
+                sendAssetStep.selectedRecipientDisplayName = "Determined by script:";
                 sendAssetStep.selectedRecipientUserName = message.username;
                 optionalMessage.text = message.message || "No Message Provided";
 
