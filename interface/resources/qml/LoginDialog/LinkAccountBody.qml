@@ -156,7 +156,7 @@ Item {
                 id: emailField
                 width: banner.width
                 height: linkAccountBody.textFieldHeight
-                font.family: linkAccountBody.fontFamily
+                font.family: "Fira Sans"
                 anchors {
                     top: parent.top
                     left: parent.left
@@ -193,7 +193,7 @@ Item {
                 id: passwordField
                 width: banner.width
                 height: linkAccountBody.textFieldHeight
-                font.family: linkAccountBody.fontFamily
+                font.family: "Fira Sans"
                 placeholderText: "Password"
                 activeFocusOnPress: true
                 echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
@@ -433,6 +433,7 @@ Item {
                 right: parent.right
                 margins: 3 * hifi.dimensions.contentSpacing.y
             }
+            visible: loginDialog.getLoginDialogPoppedUp()
             Text {
                 id: dismissText
                 text: qsTr("No thanks, take me in-world! >")

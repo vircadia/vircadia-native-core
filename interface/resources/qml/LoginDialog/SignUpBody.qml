@@ -157,7 +157,7 @@ Item {
                 id: usernameField
                 width: banner.width
                 height: signInBody.textFieldHeight
-                font.family: signInBody.fontFamily
+                font.family: "Fira Sans"
                 placeholderText: "Username"
                 anchors {
                     top: parent.top
@@ -203,7 +203,7 @@ Item {
                 id: emailField
                 width: banner.width
                 height: signInBody.textFieldHeight
-                font.family: signInBody.fontFamily
+                font.family: "Fira Sans"
                 anchors {
                     top: parent.top
                     left: parent.left
@@ -246,7 +246,7 @@ Item {
                 id: passwordField
                 width: banner.width
                 height: signInBody.textFieldHeight
-                font.family: signInBody.fontFamily
+                font.family: "Fira Sans"
                 placeholderText: "Password"
                 activeFocusOnPress: true
                 echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password

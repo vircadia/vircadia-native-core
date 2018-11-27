@@ -128,7 +128,7 @@ Item {
                 leftMargin: (parent.width - width) / 2
                 topMargin: hifi.dimensions.contentSpacing.y
             }
-            font.family: usernameCollisionBody.fontFamily
+            font.family: "Fira Sans"
             font.pixelSize: usernameCollisionBody.fontSize - 10
             font.bold: usernameCollisionBody.fontBold
             width: banner.width
