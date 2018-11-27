@@ -16,7 +16,7 @@
 #include <string>
 #include <functional>
 
-#include <shared/Hifitypes.h>
+#include <shared/HifiTypes.h>
 #include <hfm/HFM.h>
 
 class ModelLoader {
