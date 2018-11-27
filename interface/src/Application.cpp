@@ -5337,7 +5337,10 @@ void Application::resumeAfterLoginDialogActionTaken() {
         return;
     }
 
-    updateSystemTabletMode();
+    if (!isHMDMode()) {
+        auto toolbar = DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
+        toolbar->writeProperty("visible", true);
+    }
 
     getMyAvatar()->setEnableMeshVisible(true);
 

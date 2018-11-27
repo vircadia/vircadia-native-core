@@ -381,8 +381,8 @@ Item {
 
                 anchors {
                     left: emailField.left
-                    top: cantAccessContainer.bottom
-                    topMargin: 7 * hifi.dimensions.contentSpacing.y + d.minHeightButton
+                    bottom: parent.bottom
+                    bottomMargin: 0.25 * parent.height
                 }
                 TextMetrics {
                     id: signUpTextMetrics
