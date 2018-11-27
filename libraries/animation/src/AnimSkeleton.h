@@ -56,9 +56,6 @@ public:
     void saveNonMirroredPoses(const AnimPoseVec& poses) const;
     void restoreNonMirroredPoses(AnimPoseVec& poses) const;
 
-    bool checkNonMirrored(QString jointName) const;
-    int containsLeft(QString jointName) const;
-    int containsRight(QString jointName) const;
     void mirrorRelativePoses(AnimPoseVec& poses) const;
     void mirrorAbsolutePoses(AnimPoseVec& poses) const;
 
@@ -67,7 +64,6 @@ public:
 
     std::vector<int> lookUpJointIndices(const std::vector<QString>& jointNames) const;
     const HFMCluster getClusterBindMatricesOriginalValues(const int meshIndex, const int clusterIndex) const { return _clusterBindMatrixOriginalValues[meshIndex][clusterIndex]; }
-    const QMap<QString, QString> getFBXToHifiJointNameMapping() const { return _fbxToHifiJointNameMapping; }
 
 protected:
     void buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets);
