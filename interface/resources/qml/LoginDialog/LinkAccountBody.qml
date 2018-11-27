@@ -1,8 +1,8 @@
 //
-//  linkAccountBody.qml
+//  LinkAccountBody.qml
 //
-//  Created by Wayne Chen on 10/18/18
-//  Copyright 2018 High Fidelity, Inc.
+//  Created by Clement on 7/18/16
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,6 +20,7 @@ import TabletScriptingInterface 1.0
 Item {
     id: linkAccountBody
     clip: true
+    focus: true
     height: root.height
     width: root.width
     property int textFieldHeight: 31
@@ -477,7 +478,7 @@ Item {
         root.text = "";
         d.resize();
         init();
-        emailField.focus = true;
+        emailField.forceActiveFocus();
     }
 
     Keys.onPressed: {
@@ -491,6 +492,10 @@ Item {
                 event.accepted = true;
                 Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
                 linkAccountBody.login();
+                break;
+            case Qt.Key_Escape:
+                event.accepted = true;
+                root.tryDestroy();
                 break;
         }
     }

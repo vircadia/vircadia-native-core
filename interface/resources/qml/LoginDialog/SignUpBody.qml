@@ -1,8 +1,8 @@
 //
 //  SignInBody.qml
 //
-//  Created by Wayne Chen on 10/18/18
-//  Copyright 2018 High Fidelity, Inc.
+//  Created by Stephen Birarda on 7 Dec 2016
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
