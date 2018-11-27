@@ -107,6 +107,14 @@ Item {
                 root.nextActiveView = 'paymentFailure';
             }
         }
+
+        onCertificateInfoResult: {
+            if (result.status !== 'success') {
+                console.log("Failed to get certificate info", result.data.message);
+            } else {
+                root.assetName = result.data.marketplace_item_name;
+            }
+        }
     }
 
     Connections {
@@ -864,7 +872,7 @@ Item {
 
         RalewaySemiBold {
             id: sendAssetText_sendAssetStep;
-            text: sendAssetStep.referrer === "payIn" && root.assetCertID !== "" ? "Send Item:" :
+            text: sendAssetStep.referrer === "payIn" && root.assetCertID !== "" ? "Send \"" + root.assetName + "\":" :
                 (root.assetCertID === "" ? "Send Money To:" : "Gift \"" + root.assetName + "\" To:");
             // Anchors
             anchors.top: parent.top;
@@ -1429,7 +1437,7 @@ Item {
 
             Item {
                 id: giftContainer_paymentSuccess;
-                visible: root.assetCertID !== "" && sendAssetStep.referrer !== "payIn";
+                visible: root.assetCertID !== "";
                 anchors.top: sendToContainer_paymentSuccess.bottom;
                 anchors.topMargin: 8;
                 anchors.left: parent.left;
@@ -1440,7 +1448,7 @@ Item {
 
                 RalewaySemiBold {
                     id: gift_paymentSuccess;
-                    text: "Gift:";
+                    text: sendAssetStep.referrer === "payIn" ? "Item:" : "Gift:";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: parent.left;
@@ -1526,7 +1534,7 @@ Item {
 
             RalewaySemiBold {
                 id: optionalMessage_paymentSuccess;
-                visible: root.assetCertID === "" || sendAssetStep.referrer === "payIn";
+                visible: root.assetCertID === "";
                 text: optionalMessage.text;
                 // Anchors
                 anchors.top: amountContainer_paymentSuccess.visible ? amountContainer_paymentSuccess.bottom : sendToContainer_paymentSuccess.bottom;
@@ -1895,6 +1903,7 @@ Item {
                     amountTextField.text = message.amount || 1;
                 } else {
                     amountTextField.text = "";
+                    Commerce.certificateInfo(root.assetCertID);
                 }
                 sendAssetStep.referrer = "payIn";
                 sendAssetStep.selectedRecipientNodeID = "";
