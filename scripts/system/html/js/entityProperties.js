@@ -720,6 +720,7 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Size",
+                propertyID: "particleRadiusTriple",
                 properties: [
                     {
                         label: "Start",
@@ -771,6 +772,7 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Color",
+                propertyID: "particleColorTriple",
                 properties: [
                     {
                         label: "Start",
@@ -807,6 +809,7 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Alpha",
+                propertyID: "particleAlphaTriple",
                 properties: [
                     {
                         label: "Start",
@@ -883,6 +886,7 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Alpha",
+                propertyID: "particleSpinTriple",
                 properties: [
                     {
                         label: "Start",
@@ -947,6 +951,7 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Horizontal Angle",
+                propertyID: "particlePolarTriple",
                 properties: [
                     {
                         label: "Start",
@@ -975,6 +980,7 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Vertical Angle",
+                propertyID: "particleAzimuthTriple",
                 properties: [
                     {
                         label: "Start",
@@ -2886,7 +2892,10 @@ function loaded() {
                         let propertyElementID = "property-" + propertyID;
                         propertyElementID = propertyElementID.replace('.', '-');
 
-                        elWrapper.appendChild(createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`));
+                        let elLabel = createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`);
+                        createAppTooltip.registerTooltipElement(elLabel, propertyID);
+
+                        elWrapper.appendChild(elLabel);
                         elProperty.appendChild(elWrapper);
 
                         let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper.childNodes[0]);
