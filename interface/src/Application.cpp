@@ -2862,6 +2862,13 @@ void Application::initializeGL() {
     _glWidget->makeCurrent();
     _gpuContext = std::make_shared<gpu::Context>();
 
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        _gpuContext->pushProgramsToSync(shader::allPrograms(), [this] {
+            _programsCompiled.store(true);
+        }, 1);
+    });
+
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
 }
 

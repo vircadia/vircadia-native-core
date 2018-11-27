@@ -335,6 +335,39 @@ Size Context::getTextureResourceIdealGPUMemSize() {
     return Backend::textureResourceIdealGPUMemSize.getValue();
 }
 
+void Context::pushProgramsToSync(const std::vector<uint32_t>& programIDs, std::function<void()> callback, size_t rate) {
+    std::vector<gpu::ShaderPointer> programs;
+    for (auto programID : programIDs) {
+        programs.push_back(gpu::Shader::createProgram(programID));
+    }
+    pushProgramsToSync(programs, callback, rate);
+}
+
+void Context::pushProgramsToSync(const std::vector<gpu::ShaderPointer>& programs, std::function<void()> callback, size_t rate) {
+    Lock lock(_programsToSyncMutex);
+    _programsToSyncQueue.emplace(programs, callback, rate == 0 ? programs.size() : rate);
+}
+
+void Context::processProgramsToSync() {
+    Lock lock(_programsToSyncMutex);
+    if (!_programsToSyncQueue.empty()) {
+        ProgramsToSync programsToSync = _programsToSyncQueue.front();
+        int numSynced = 0;
+        while (_nextProgramToSyncIndex < programsToSync.programs.size() && numSynced < programsToSync.rate) {
+            auto nextProgram = programsToSync.programs.at(_nextProgramToSyncIndex);
+            _backend->syncProgram(nextProgram);
+            _syncedPrograms.push_back(nextProgram);
+            _nextProgramToSyncIndex++;
+            numSynced++;
+        }
+
+        if (_nextProgramToSyncIndex == programsToSync.programs.size()) {
+            programsToSync.callback();
+            _nextProgramToSyncIndex = 0;
+            _programsToSyncQueue.pop();
+        }
+    }
+}
 
 BatchPointer Context::acquireBatch(const char* name) {
     Batch* rawBatch = nullptr;

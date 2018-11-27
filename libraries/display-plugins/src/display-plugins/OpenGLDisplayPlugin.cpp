@@ -525,6 +525,9 @@ void OpenGLDisplayPlugin::updateFrameData() {
         if (_newFrameQueue.size() > 1) {
             _droppedFrameRate.increment(_newFrameQueue.size() - 1);
         }
+
+        _gpuContext->processProgramsToSync();
+
         while (!_newFrameQueue.empty()) {
             _currentFrame = _newFrameQueue.front();
             _newFrameQueue.pop();
@@ -633,28 +636,10 @@ void OpenGLDisplayPlugin::internalPresent() {
     _presentRate.increment();
 }
 
-std::atomic<bool> OpenGLDisplayPlugin::_allProgramsLoaded { false };
-unsigned int OpenGLDisplayPlugin::_currentLoadingProgramIndex { 0 };
-
-bool OpenGLDisplayPlugin::areAllProgramsLoaded() const {
-    return OpenGLDisplayPlugin::_allProgramsLoaded.load();
-}
-
 void OpenGLDisplayPlugin::present() {
     auto frameId = (uint64_t)presentCount();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, frameId)
     uint64_t startPresent = usecTimestampNow();
-
-    if (!OpenGLDisplayPlugin::_allProgramsLoaded.load()) {
-        const auto& programIDs = shader::allPrograms();
-        if (OpenGLDisplayPlugin::_currentLoadingProgramIndex < programIDs.size()) {
-            gpu::doInBatch("createAndSyncProgram", _gpuContext, [&programIDs](gpu::Batch& batch) {
-                batch.createAndSyncProgram(programIDs.at(OpenGLDisplayPlugin::_currentLoadingProgramIndex++));
-            });
-        } else {
-            OpenGLDisplayPlugin::_allProgramsLoaded.store(true);
-        }
-    }
 
     {
         PROFILE_RANGE_EX(render, "updateFrameData", 0xff00ff00, frameId)

@@ -83,8 +83,6 @@ public:
 
     void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target, GLsync* fenceSync) override;
 
-    bool areAllProgramsLoaded() const override;
-
 protected:
     friend class PresentThread;
 
@@ -182,8 +180,5 @@ protected:
     // be serialized through this mutex
     mutable Mutex _presentMutex;
     float _hudAlpha{ 1.0f };
-
-    static std::atomic<bool> _allProgramsLoaded;
-    static unsigned int _currentLoadingProgramIndex;
 };
 

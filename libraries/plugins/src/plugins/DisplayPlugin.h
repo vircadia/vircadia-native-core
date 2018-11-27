@@ -217,8 +217,6 @@ public:
 
     static const QString& MENU_PATH();
 
-    virtual bool areAllProgramsLoaded() const { return true; }
-
 signals:
     void recommendedFramebufferSizeChanged(const QSize& size);
     void resetSensorsRequested();

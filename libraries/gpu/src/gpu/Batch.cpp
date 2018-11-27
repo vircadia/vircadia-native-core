@@ -760,9 +760,3 @@ void Batch::flush() {
         buffer->flush();
     }
 }
-
-void Batch::createAndSyncProgram(unsigned int programID) {
-    ADD_COMMAND(createAndSyncProgram);
-
-    _params.emplace_back(programID);
-}

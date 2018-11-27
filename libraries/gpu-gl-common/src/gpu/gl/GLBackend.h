@@ -249,6 +249,8 @@ public:
     // Let's try to avoid to do that as much as possible!
     void syncCache() final override;
 
+    void syncProgram(const gpu::ShaderPointer& program) override;
+
     // This is the ugly "download the pixels to sysmem for taking a snapshot"
     // Just avoid using it, it's ugly and will break performances
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer,
@@ -379,8 +381,6 @@ public:
     virtual void do_setStateColorWriteMask(uint32 mask) final;
     virtual void do_setStateBlendFactor(const Batch& batch, size_t paramOffset) final;
     virtual void do_setStateScissorRect(const Batch& batch, size_t paramOffset) final;
-
-    virtual void do_createAndSyncProgram(const Batch& batch, size_t paramOffset) final;
 
     virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) = 0;
     virtual GLuint getTextureID(const TexturePointer& texture) final;

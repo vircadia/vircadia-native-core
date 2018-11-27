@@ -289,8 +289,6 @@ public:
 
     void _glColor4f(float red, float green, float blue, float alpha);
 
-    void createAndSyncProgram(unsigned int programID);
-
     // Maybe useful but shoudln't be public. Please convince me otherwise
     // Well porting to gles i need it...
     void runLambda(std::function<void()> f);
@@ -369,8 +367,6 @@ public:
 
         COMMAND_pushProfileRange,
         COMMAND_popProfileRange,
-
-        COMMAND_createAndSyncProgram,
 
         NUM_COMMANDS,
     };

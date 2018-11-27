@@ -102,8 +102,6 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::gl::GLBackend::do_pushProfileRange),
     (&::gpu::gl::GLBackend::do_popProfileRange),
-
-    (&::gpu::gl::GLBackend::do_createAndSyncProgram),
 };
 
 #define GL_GET_INTEGER(NAME) glGetIntegerv(GL_##NAME, &const_cast<GLint&>(NAME)); 
@@ -708,11 +706,6 @@ void GLBackend::do_glColor4f(const Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::do_createAndSyncProgram(const Batch& batch, size_t paramOffset) {
-    auto shader = gpu::Shader::createProgram(batch._params[paramOffset + 0]._uint);
-    gpu::gl::GLShader::sync(*this, *shader);
-}
-
 void GLBackend::releaseBuffer(GLuint id, Size size) const {
     Lock lock(_trashMutex);
     _currentFrameTrash.buffersTrash.push_back({ id, size });
@@ -865,4 +858,8 @@ void GLBackend::setCameraCorrection(const Mat4& correction, const Mat4& prevRend
     _transform._correction.correctionInverse = invCorrection;
     _pipeline._cameraCorrectionBuffer._buffer->setSubData(0, _transform._correction);
     _pipeline._cameraCorrectionBuffer._buffer->flush();
+}
+
+void GLBackend::syncProgram(const gpu::ShaderPointer& program) {
+    gpu::gl::GLShader::sync(*this, *program);
 }

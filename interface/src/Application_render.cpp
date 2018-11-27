@@ -115,7 +115,7 @@ void Application::paintGL() {
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
-    if (!displayPlugin->areAllProgramsLoaded()) {
+    if (!_programsCompiled.load()) {
         gpu::doInBatch("splashFrame", _gpuContext, [&](gpu::Batch& batch) {
             batch.setFramebuffer(finalFramebuffer);
             batch.enableSkybox(true);
