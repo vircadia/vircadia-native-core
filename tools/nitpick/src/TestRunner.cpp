@@ -528,8 +528,6 @@ void TestRunner::runInterfaceWithTestScript() {
 }
 
 void TestRunner::interfaceExecutionComplete() {
-    killProcesses();
-
     QFileInfo testCompleted(QDir::toNativeSeparators(_snapshotFolder) +"/tests_completed.txt");
     if (!testCompleted.exists()) {
         QMessageBox::critical(0, "Tests not completed", "Interface seems to have crashed before completion of the test scripts\nExisting images will be evaluated");
@@ -537,6 +535,8 @@ void TestRunner::interfaceExecutionComplete() {
 
     evaluateResults();
 
+    killProcesses();
+    
     // The High Fidelity AppData folder will be restored after evaluation has completed
 }
 
