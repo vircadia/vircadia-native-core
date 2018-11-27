@@ -18,6 +18,7 @@
 
 #include <shared/HifiTypes.h>
 #include <hfm/HFM.h>
+#include <hfm/HFMSerializer.h>
 
 class ModelLoader {
 public:
@@ -75,7 +76,10 @@ protected:
 
         template <typename T>
         static Loader getLoader() {
-            assert(dynamic_cast<hfm::Serializer*>(&T()));
+            assert([](){
+                T t;
+                return dynamic_cast<hfm::Serializer*>(&t) != nullptr;
+            }());
 
             return [](const hifi::ByteArray& bytes, const hifi::VariantHash& mapping, const hifi::URL& url) -> hfm::Model::Pointer {
                 return T().read(bytes, mapping, url);
