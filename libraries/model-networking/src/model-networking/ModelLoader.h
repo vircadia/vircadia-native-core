@@ -47,6 +47,8 @@ public:
         std::vector<FileSignature> fileSignatures;
     };
 
+    ModelLoader();
+
     // T is a subclass of hfm::Serializer
     template <typename T>
     void addSupportedFormat(const MIMEType& mimeType) {

@@ -11,6 +11,28 @@
 
 #include "ModelLoader.h"
 
+#include "FBXSerializer.h"
+#include "OBJSerializer.h"
+#include "GLTFSerializer.h"
+
+ModelLoader::ModelLoader() {
+    // Add supported model formats
+
+    MIMEType fbxMIMEType("fbx");
+    fbxMIMEType.extensions.push_back("fbx");
+    fbxMIMEType.fileSignatures.emplace_back("Kaydara FBX Binary  \x00", 0);
+    addSupportedFormat<FBXSerializer>(fbxMIMEType);
+
+    MIMEType objMIMEType("obj");
+    objMIMEType.extensions.push_back("obj");
+    addSupportedFormat<OBJSerializer>(objMIMEType);
+
+    MIMEType gltfMIMEType("gltf");
+    gltfMIMEType.extensions.push_back("gltf");
+    gltfMIMEType.webMediaTypes.push_back("model/gltf+json");
+    addSupportedFormat<GLTFSerializer>(gltfMIMEType);
+}
+
 hfm::Model::Pointer ModelLoader::load(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url, const std::string& webMediaType) const {
     // Check file contents
     for (auto& supportedFormat : supportedFormats) {

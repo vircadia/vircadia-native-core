@@ -12,9 +12,6 @@
 #include "ModelCache.h"
 #include <Finally.h>
 #include <FSTReader.h>
-#include "FBXSerializer.h"
-#include "OBJSerializer.h"
-#include "GLTFSerializer.h"
 
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
@@ -311,22 +308,6 @@ ModelCache::ModelCache() {
     const qint64 GEOMETRY_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(GEOMETRY_DEFAULT_UNUSED_MAX_SIZE);
     setObjectName("ModelCache");
-
-    // Add supported model formats
-
-    ModelLoader::MIMEType fbxMIMEType("fbx");
-    fbxMIMEType.extensions.push_back("fbx");
-    fbxMIMEType.fileSignatures.emplace_back("Kaydara FBX Binary  \x00", 0);
-    _modelLoader.addSupportedFormat<FBXSerializer>(fbxMIMEType);
-
-    ModelLoader::MIMEType objMIMEType("obj");
-    objMIMEType.extensions.push_back("obj");
-    _modelLoader.addSupportedFormat<OBJSerializer>(objMIMEType);
-
-    ModelLoader::MIMEType gltfMIMEType("gltf");
-    gltfMIMEType.extensions.push_back("gltf");
-    gltfMIMEType.webMediaTypes.push_back("model/gltf+json");
-    _modelLoader.addSupportedFormat<GLTFSerializer>(gltfMIMEType);
 }
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
