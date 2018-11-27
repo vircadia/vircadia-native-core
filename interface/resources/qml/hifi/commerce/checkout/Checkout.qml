@@ -1080,6 +1080,12 @@ Rectangle {
     //
 
     function updateCheckoutQMLFromHTTP(error, result) {
+        if (error || (result.status !== 'success')) {
+            // The QML will display a loading spinner forever if the user is stuck here.
+            console.log("Error in Checkout.qml when getting marketplace item info!");
+            return;
+        }
+
         root.itemInfoReceived = true;
         root.itemName = result.data.title;
         root.itemPrice = result.data.cost;
