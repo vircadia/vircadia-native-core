@@ -337,8 +337,8 @@ public:
         glm::vec2 _lightmapParams { 0.0, 1.0 };
 
         // x: material mode (0 for UV, 1 for PROJECTED)
-        // x: 1 for texture repeat, 0 for discard outside of 0 - 1
-        glm::vec2 _materialParms { 0.0, 1.0 };
+        // y: 1 for texture repeat, 0 for discard outside of 0 - 1
+        glm::vec2 _materialParams { 0.0, 1.0 };
 
         Schema() {}
     };
