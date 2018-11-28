@@ -12,6 +12,7 @@
 #ifndef hifi_task_Varying_h
 #define hifi_task_Varying_h
 
+#include <type_traits>
 #include <tuple>
 #include <array>
 
@@ -23,7 +24,7 @@ public:
     Varying() {}
     Varying(const Varying& var) : _concept(var._concept) {}
     Varying& operator=(const Varying& var) {
-        _concept = var._concept;
+       _concept = var._concept;
         return (*this);
     }
     template <class T> Varying(const T& data) : _concept(std::make_shared<Model<T>>(data)) {}

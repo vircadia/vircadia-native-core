@@ -294,8 +294,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     { // Debug the bounds of the rendered items, still look at the zbuffer
-        const auto debugInputs = RenderDeferredTaskDebug::Input(items, inputs[1], zones, selectedItems, currentStageFrames, prepareDeferredOutputs, deferredFrameTransform, jitter).asVarying();
-        task.addJob<RenderDeferredTaskDebug>("DebugRenderDeferredTask", input);
+        const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, inputs[1], zones, selectedItems, currentStageFrames, prepareDeferredOutputs, deferredFrameTransform, jitter).asVarying();
+        task.addJob<RenderDeferredTaskDebug>("DebugRenderDeferredTask", debugInputs);
         /*task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
