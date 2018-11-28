@@ -269,7 +269,7 @@ Item {
 
             RalewaySemiBold {
                 id: sendAssetText;
-                text: root.assetCertID === "" ? "Send Money To:" : "Gift \"" + root.assetName + "\" To:";
+                text: root.assetCertID === "" ? "Send Money To:" : "Send \"" + root.assetName + "\" To:";
                 // Anchors
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
@@ -366,6 +366,50 @@ Item {
                     anchors.fill: parent;
                     onClicked: {
                         root.nextActiveView = "chooseRecipientNearby";
+                    }
+                }
+            }
+
+            Item {
+                id: authorizedScriptButton;
+                // Anchors
+                anchors.top: nearbyButton.bottom;
+                anchors.topMargin: 32;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                height: connectionButton.height;
+                width: connectionButton.width;
+
+                Image {
+                    anchors.top: parent.top;
+                    source: "./images/nearby.svg";
+                    height: 70;
+                    width: parent.width;
+                    fillMode: Image.PreserveAspectFit;
+                    horizontalAlignment: Image.AlignHCenter;
+                    verticalAlignment: Image.AlignTop;
+                    mipmap: true;
+                }
+
+                RalewaySemiBold {
+                    text: "Authorized Script";
+                    // Anchors
+                    anchors.bottom: parent.bottom;
+                    height: 15;
+                    width: parent.width;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    horizontalAlignment: Text.AlignHCenter;
+                }
+
+                MouseArea {
+                    anchors.fill: parent;
+                    onClicked: {
+                        sendAssetStep.referrer = "authorizedScript";
+                        sendAssetStep.selectedRecipientNodeID = "";
+
+                        root.nextActiveView = "sendAssetStep";
                     }
                 }
             }
@@ -860,7 +904,7 @@ Item {
         id: sendAssetStep;
         z: 996;
 
-        property string referrer; // either "connections", "nearby", or "payIn"
+        property string referrer; // either "connections", "nearby", "payIn", or "authorizedScript"
         property string selectedRecipientNodeID;
         property string selectedRecipientDisplayName;
         property string selectedRecipientUserName;
@@ -872,7 +916,8 @@ Item {
 
         RalewaySemiBold {
             id: sendAssetText_sendAssetStep;
-            text: sendAssetStep.referrer === "payIn" && root.assetCertID !== "" ? "Send \"" + root.assetName + "\":" :
+            text: ((sendAssetStep.referrer === "payIn" || sendAssetStep.referrer === "authorizedScript") &&
+                root.assetCertID !== "") ? "Send \"" + root.assetName + "\":" :
                 (root.assetCertID === "" ? "Send Money To:" : "Gift \"" + root.assetName + "\" To:");
             // Anchors
             anchors.top: parent.top;
@@ -901,12 +946,13 @@ Item {
 
             RalewaySemiBold {
                 id: sendToText_sendAssetStep;
-                text: (root.assetCertID === "" || sendAssetStep.referrer === "payIn") ? "Send to:" : "Gift to:";
+                text: sendAssetStep.referrer === "authorizedScript" ? "Script Secret:" :
+                    (root.assetCertID === "" || sendAssetStep.referrer === "payIn") ? "Send to:" : "Gift to:";
                 // Anchors
                 anchors.top: parent.top;
                 anchors.left: parent.left;
                 anchors.bottom: parent.bottom;
-                width: 90;
+                width: paintedWidth;
                 // Text size
                 size: 18;
                 // Style
@@ -915,8 +961,10 @@ Item {
             }
 
             RecipientDisplay {
+                visible: sendAssetStep.referrer !== "authorizedScript";
                 anchors.top: parent.top;
                 anchors.left: sendToText_sendAssetStep.right;
+                anchors.leftMargin: 16;
                 anchors.right: changeButton.left;
                 anchors.rightMargin: 12;
                 height: parent.height;
@@ -929,6 +977,71 @@ Item {
                 multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
             }
 
+            Item {
+                id: scriptSecretContainer;
+                visible: sendAssetStep.referrer === "authorizedScript";
+                anchors.top: parent.top;
+                anchors.left: sendToText_sendAssetStep.right;
+                anchors.right: parent.right;
+                height: parent.height;
+                
+                RalewaySemiBold {
+                    id: scriptSecretHelp;
+                    text: "[?]";
+                    // Anchors
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 8;
+                    anchors.verticalCenter: parent.verticalCenter;
+                    height: 30;
+                    width: paintedWidth;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.blueAccent;
+                    MouseArea {
+                        anchors.fill: parent;
+                        hoverEnabled: true;
+                        onEntered: {
+                            parent.color = hifi.colors.blueHighlight;
+                        }
+                        onExited: {
+                            parent.color = hifi.colors.blueAccent;
+                        }
+                        onClicked: {
+                            lightboxPopup.titleText = "Script Secret";
+                            lightboxPopup.bodyText = "This alphanumeric text string will be used to ensure " +
+                                "that only your scripts have access to the asset that you are sending. Keep it private!";
+                            lightboxPopup.button1text = "CLOSE";
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
+                            lightboxPopup.visible = true;
+                        }
+                    }
+                }
+
+                HifiControlsUit.TextField {
+                    id: scriptSecretTextField;
+                    text: generateRandomSecret();
+                    colorScheme: root.assetCertID === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                    // Anchors
+                    anchors.verticalCenter: parent.verticalCenter;
+                    anchors.left: scriptSecretHelp.right;
+                    anchors.leftMargin: 16;
+                    anchors.right: parent.right;
+                    height: 50;
+                    // Style
+                    activeFocusOnPress: true;
+                    activeFocusOnTab: true;
+
+                    validator: RegExpValidator { regExp: /^[a-zA-Z0-9]+$/ }
+
+                    onAccepted: {
+                        optionalMessage.focus = true;
+                    }
+                }
+            }
+
             // "CHANGE" button
             HifiControlsUit.Button {
                 id: changeButton;
@@ -939,7 +1052,7 @@ Item {
                 height: 35;
                 width: 100;
                 text: "CHANGE";
-                visible: sendAssetStep.referrer !== "payIn";
+                visible: sendAssetStep.referrer !== "payIn" && sendAssetStep.referrer !== "authorizedScript";
                 onClicked: {
                     if (sendAssetStep.referrer === "connections") {
                         root.nextActiveView = "chooseRecipientConnection";
@@ -1263,6 +1376,8 @@ Item {
                                 root.assetCertID,
                                 parseInt(amountTextField.text),
                                 optionalMessage.text);
+                        } else if (sendAssetStep.referrer === "authorizedScript") {
+                            console.log("ZRF HERE: SENDING TO AUTHORIZED SCRIPT");
                         }
                     }
                 }
@@ -1867,6 +1982,17 @@ Item {
         sendAssetStep.referrer = "";
     }
 
+    function generateRandomSecret() {
+        var randomSecret = "";
+        var possibleCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        for (var i = 0; i < 10; i++) {
+            randomSecret += possibleCharacters.charAt(Math.floor(Math.random() * possibleCharacters.length));
+        }
+
+        return randomSecret;
+    }
+
     //
     // Function Name: fromScript()
     //
@@ -1908,8 +2034,14 @@ Item {
                 sendAssetStep.referrer = "payIn";
                 sendAssetStep.selectedRecipientNodeID = "";
                 sendAssetStep.selectedRecipientDisplayName = "Determined by script:";
-                sendAssetStep.selectedRecipientUserName = message.username;
+                sendAssetStep.selectedRecipientUserName = message.username || "";
                 optionalMessage.text = message.message || "No Message Provided";
+
+                if (sendAssetStep.selectedRecipientUserName === "") {
+                    console.log("SendAsset: Script didn't specify a recipient username!");
+                    sendAssetHome.visible = false;
+                    return;
+                }
 
                 root.nextActiveView = "sendAssetStep";
             break;
