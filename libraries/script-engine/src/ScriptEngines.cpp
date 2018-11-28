@@ -191,7 +191,6 @@ void ScriptEngines::shutdownScripting() {
 
             // Gracefully stop the engine's scripting thread
             scriptEngine->stop();
-            removeScriptEngine(scriptEngine);
 
             // We need to wait for the engine to be done running before we proceed, because we don't
             // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
@@ -370,13 +369,10 @@ QStringList ScriptEngines::getRunningScripts() {
 }
 
 void ScriptEngines::stopAllScripts(bool restart) {
-    QVector<QString> toReload;
     QReadLocker lock(&_scriptEnginesHashLock);
 
     if (_isReloading) {
         return;
-    } else {
-        _isReloading = true;
     }
 
     for (QHash<QUrl, ScriptEnginePointer>::const_iterator it = _scriptEnginesHash.constBegin();
@@ -389,29 +385,27 @@ void ScriptEngines::stopAllScripts(bool restart) {
 
         // queue user scripts if restarting
         if (restart && scriptEngine->isUserLoaded()) {
-            toReload << it.key().toString();
+            _isReloading = true;
+            bool lastScript = (it == _scriptEnginesHash.constEnd() - 1);
+            ScriptEngine::Type type = scriptEngine->getType();
+
+            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type, lastScript] (QString scriptName) {
+                reloadScript(scriptName, true)->setType(type);
+
+                if (lastScript) {
+                    _isReloading = false;
+                }
+            });
         }
 
         // stop all scripts
         scriptEngine->stop();
-        removeScriptEngine(scriptEngine);
     }
-    // wait for engines to stop (ie: providing time for .scriptEnding cleanup handlers to run) before
-    // triggering reload of any Client scripts / Entity scripts
-    QTimer::singleShot(1000, this, [=]() {
-        for(const auto &scriptName : toReload) {
-            auto scriptEngine = getScriptEngine(scriptName);
-            if (scriptEngine && !scriptEngine->isFinished()) {
-                scriptEngine->waitTillDoneRunning();
-            }
-            reloadScript(scriptName);
-        }
-        if (restart) {
-            qCDebug(scriptengine) << "stopAllScripts -- emitting scriptsReloading";
-            emit scriptsReloading();
-        }
-        _isReloading = false;
-    });
+
+    if (restart) {
+        qCDebug(scriptengine) << "stopAllScripts -- emitting scriptsReloading";
+        emit scriptsReloading();
+    }
 }
 
 bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
@@ -439,7 +433,6 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
                 }
             }
             scriptEngine->stop();
-            removeScriptEngine(scriptEngine);
             stoppedScript = true;
         }
     }
