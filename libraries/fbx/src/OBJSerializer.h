@@ -1,6 +1,20 @@
+//
+//  OBJSerializer.h
+//  libraries/fbx/src/
+//
+//  Created by Seth Alves on 3/6/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#ifndef hifi_OBJSerializer_h
+#define hifi_OBJSerializer_h
 
 #include <QtNetwork/QNetworkReply>
-#include "FBXReader.h"
+#include <hfm/HFMSerializer.h>
+#include "FBXSerializer.h"
 
 class OBJTokenizer {
 public:
@@ -75,7 +89,7 @@ public:
     OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.0f), illuminationModel(-1) {}
 };
 
-class OBJReader: public QObject { // QObject so we can make network requests.
+class OBJSerializer: public QObject, public HFMSerializer { // QObject so we can make network requests.
     Q_OBJECT
 public:
     typedef QVector<OBJFace> FaceGroup;
@@ -86,8 +100,8 @@ public:
     QVector<FaceGroup> faceGroups;
     QString currentMaterialName;
     QHash<QString, OBJMaterial> materials;
-
-    HFMModel::Pointer readOBJ(QByteArray& data, const QVariantHash& mapping, bool combineParts, const QUrl& url = QUrl());
+    
+    HFMModel::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
 
 private:
     QUrl _url;
@@ -105,3 +119,5 @@ private:
 // What are these utilities doing here? One is used by fbx loading code in VHACD Utils, and the other a general debugging utility.
 void setMeshPartDefaults(HFMMeshPart& meshPart, QString materialID);
 void hfmDebugDump(const HFMModel& hfmModel);
+
+#endif // hifi_OBJSerializer_h
