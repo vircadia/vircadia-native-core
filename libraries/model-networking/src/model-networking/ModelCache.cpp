@@ -216,7 +216,7 @@ void GeometryReader::run() {
             throw QString("unsupported format");
         }
 
-        if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
+        if (hfmModel->meshes.empty() || hfmModel->joints.empty()) {
             throw QString("empty geometry, possibly due to an unsupported model version");
         }
 
