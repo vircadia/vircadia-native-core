@@ -5311,6 +5311,8 @@ void Application::resumeAfterLoginDialogActionTaken() {
         toolbar->writeProperty("visible", true);
     }
 
+    updateSystemTabletMode();
+
     getMyAvatar()->setEnableMeshVisible(true);
 
     const auto& nodeList = DependencyManager::get<NodeList>();
@@ -8665,6 +8667,7 @@ void Application::updateLoginDialogOverlayPosition() {
     auto overlayPositionVec = vec3FromVariant(overlayPosition.value);
     auto cameraPositionVec = _myCamera.getPosition();
     auto cameraOrientation = _myCamera.getOrientation();
+    cameraOrientation = cancelOutRollAndPitch(cameraOrientation);
     auto headLookVec = (cameraOrientation * Vectors::FRONT);
     auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
     auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);

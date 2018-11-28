@@ -26,13 +26,13 @@ Item {
     property int textFieldHeight: 31
     property string fontFamily: "Raleway"
     property int fontSize: 15
+    // property int textFieldFontSize: !root.isTablet ? !root.isOverlay : hifi.fontSizes.textFieldInput ? hifi.fontSizes.textFieldInput : 18
+    property int textFieldFontSize: 18
     property bool fontBold: true
 
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
-
-    onKeyboardRaisedChanged: d.resize();
 
     property bool withSteam: false
     property bool withOculus: false
@@ -44,23 +44,22 @@ Item {
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
         property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
-        readonly property int minHeightButton: !root.isTablet ? 56 : 42
+        // readonly property int minHeightButton: !root.isTablet ? 56 : 42
+        readonly property int minHeightButton: 36
         property int maxHeight: root.isTablet ? 720 : root.height
 
         function resize() {
             maxWidth = root.isTablet ? 1280 : root.width;
             maxHeight = root.isTablet ? 720 : root.height;
             var targetWidth = Math.max(titleWidth, mainContainer.width);
-            var targetHeight =  hifi.dimensions.contentSpacing.y + mainContainer.height +
-                    4 * hifi.dimensions.contentSpacing.y;
+            var targetHeight =  hifi.dimensions.contentSpacing.y + mainContainer.height + 4 * hifi.dimensions.contentSpacing.y;
 
             var newWidth = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             if (!isNaN(newWidth)) {
                 parent.width = root.width = newWidth;
             }
 
-            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
-                    + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)) + hifi.dimensions.contentSpacing.y;
         }
     }
 
@@ -72,19 +71,13 @@ Item {
     function init() {
         // going to/from sign in/up dialog.
         loginDialog.isLogIn = true;
-        loginErrorMessage.visible = (linkAccountBody.errorString !== "");
-        if (linkAccountBody.errorString !== "") {
-            loginErrorMessage.text = linkAccountBody.errorString;
-            errorContainer.anchors.bottom = emailField.top;
-            errorContainer.anchors.left = emailField.left;
-        }
+        loginErrorMessage.text = linkAccountBody.errorString;
+        loginErrorMessage.visible = (linkAccountBody.errorString  !== "");
         loginButton.text = "Log In";
         loginButton.color = hifi.buttons.blue;
         emailField.placeholderText = "Username or Email";
         var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
         emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
-        emailField.anchors.top = loginContainer.top;
-        emailField.anchors.topMargin = !root.isTablet ? 0.2 * root.height : 0.24 * root.height;
         loginContainer.visible = true;
     }
 
@@ -108,7 +101,7 @@ Item {
             height: banner.height
             anchors {
                 top: parent.top
-                topMargin: 85
+                topMargin: 0.03 * parent.height
             }
             Image {
                 id: banner
@@ -126,14 +119,13 @@ Item {
                 top: bannerContainer.bottom
                 topMargin: 1.5 * hifi.dimensions.contentSpacing.y
             }
-
             Item {
                 id: errorContainer
                 width: loginErrorMessageTextMetrics.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
                     bottom: emailField.top;
-                    bottomMargin: 2;
+                    bottomMargin: hifi.dimensions.contentSpacing.y;
                     left: emailField.left;
                 }
                 TextMetrics {
@@ -145,7 +137,7 @@ Item {
                     id: loginErrorMessage;
                     color: "red";
                     font.family: linkAccountBody.fontFamily
-                    font.pixelSize: 12
+                    font.pixelSize: linkAccountBody.textFieldFontSize
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                     text: ""
@@ -157,9 +149,10 @@ Item {
                 id: emailField
                 width: banner.width
                 height: linkAccountBody.textFieldHeight
-                font.family: "Fira Sans"
+                font.pixelSize: linkAccountBody.textFieldFontSize
                 anchors {
                     top: parent.top
+                    topMargin: 0.2 * root.height
                     left: parent.left
                     leftMargin: (parent.width - emailField.width) / 2
                 }
@@ -194,7 +187,7 @@ Item {
                 id: passwordField
                 width: banner.width
                 height: linkAccountBody.textFieldHeight
-                font.family: "Fira Sans"
+                font.pixelSize: linkAccountBody.textFieldFontSize
                 placeholderText: "Password"
                 activeFocusOnPress: true
                 echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
@@ -306,30 +299,25 @@ Item {
                     linkAccountBody.login()
                 }
             }
-            Item {
-                id: cantAccessContainer
-                width: parent.width
-                height: emailField.height
+            HifiStylesUit.ShortcutText {
+                id: cantAccessText
+                z: 10
                 anchors {
                     top: loginButton.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
+                    left: emailField.left
                 }
-                HifiStylesUit.ShortcutText {
-                    id: cantAccessText
-                    z: 10
-                    anchors.centerIn: parent
-                    font.family: linkAccountBody.fontFamily
-                    font.pixelSize: 18
+                font.family: linkAccountBody.fontFamily
+                font.pixelSize: 18
 
-                    text: "<a href='https://highfidelity.com/users/password/new'> Can't access your account?</a>"
+                text: "<a href='https://highfidelity.com/users/password/new'> Can't access your account?</a>"
 
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    linkColor: hifi.colors.blueAccent
-                    onLinkActivated: {
-                        Tablet.playSound(TabletEnums.ButtonClick);
-                        loginDialog.openUrl(link)
-                    }
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                linkColor: hifi.colors.blueAccent
+                onLinkActivated: {
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                    loginDialog.openUrl(link)
                 }
             }
             HifiControlsUit.Button {
@@ -357,8 +345,6 @@ Item {
                         loginDialog.loginThroughSteam();
                     }
 
-                    print("withSteam " + linkAccountBody.withSteam);
-                    print("withOculus " + linkAccountBody.withOculus);
                     bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
                         "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "fromBody": "LinkAccountBody" });
                 }
@@ -379,7 +365,6 @@ Item {
                 id: signUpContainer
                 width: emailField.width
                 height: emailField.height
-
                 anchors {
                     left: emailField.left
                     bottom: parent.bottom
@@ -425,48 +410,36 @@ Item {
                 }
             }
         }
-        Item {
-            id: dismissTextContainer
-            width: dismissText.width
-            height: dismissText.height
+        TextMetrics {
+            id: dismissButtonTextMetrics
+            font: loginErrorMessage.font
+            text: dismissButton.text
+        }
+        HifiControlsUit.Button {
+            id: dismissButton
+            width: dismissButtonTextMetrics.width
+            height: d.minHeightButton
             anchors {
                 bottom: parent.bottom
                 right: parent.right
                 margins: 3 * hifi.dimensions.contentSpacing.y
             }
-            visible: loginDialog.getLoginDialogPoppedUp()
-            Text {
-                id: dismissText
-                text: qsTr("No thanks, take me in-world! >")
-
-                lineHeight: 1
-                color: "white"
-                font.family: linkAccountBody.fontFamily
-                font.pixelSize: 20
-                font.bold: linkAccountBody.fontBold
-                lineHeightMode: Text.ProportionalHeight
-                horizontalAlignment: Text.AlignHCenter
-            }
-            MouseArea {
-                id: dismissMouseArea
-                anchors.fill: parent
-                acceptedButtons: Qt.LeftButton
-                hoverEnabled: true
-                onEntered: {
-                    Tablet.playSound(TabletEnums.ButtonHover);
+            color: hifi.buttons.noneBorderlessWhite
+            text: qsTr("No thanks, take me in-world! >")
+            fontCapitalization: Font.MixedCase
+            fontFamily: linkAccountBody.fontFamily
+            fontSize: linkAccountBody.fontSize
+            fontBold: linkAccountBody.fontBold
+            onClicked: {
+                if (loginDialog.getLoginDialogPoppedUp()) {
+                    console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
+                    var data = {
+                        "action": "user dismissed login screen"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                    loginDialog.dismissLoginDialog();
                 }
-                onClicked: {
-                    Tablet.playSound(TabletEnums.ButtonClick);
-                    if (loginDialog.getLoginDialogPoppedUp()) {
-                        console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
-                        var data = {
-                            "action": "user dismissed login screen"
-                        };
-                        UserActivityLogger.logAction("encourageLoginDialog", data);
-                        loginDialog.dismissLoginDialog();
-                    }
-                    root.tryDestroy();
-                }
+                root.tryDestroy();
             }
         }
     }

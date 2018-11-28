@@ -29,10 +29,12 @@ Item {
     QtObject {
         id: d
         readonly property int minWidth: 480
-        readonly property int minWidthButton: !root.isTablet ? 256 : 174
+        // readonly property int minWidthButton: !root.isTablet ? 256 : 174
+        readonly property int minWidthButton: 36
         property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
-        readonly property int minHeightButton: !root.isTablet ? 56 : 42
+        // readonly property int minHeightButton: !root.isTablet ? 56 : 42
+        readonly property int minHeightButton: 36
         property int maxHeight: root.isTablet ? 720 : root.height
 
         function resize() {
