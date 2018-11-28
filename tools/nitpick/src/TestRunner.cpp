@@ -336,7 +336,7 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
 #ifdef Q_OS_WIN
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
 #elif defined Q_OS_MAC
-    dataDirectory{ QDir::homePath() + "/Library/Application Support" };
+    dataDirectory = QDir::homePath() + "/Library/Application Support";
 #endif
     if (_runLatest->isChecked()) {
         _appDataFolder = dataDirectory + "/High Fidelity";
@@ -527,8 +527,6 @@ void TestRunner::runInterfaceWithTestScript() {
 }
 
 void TestRunner::interfaceExecutionComplete() {
-    killProcesses();
-
     QFileInfo testCompleted(QDir::toNativeSeparators(_snapshotFolder) +"/tests_completed.txt");
     if (!testCompleted.exists()) {
         QMessageBox::critical(0, "Tests not completed", "Interface seems to have crashed before completion of the test scripts\nExisting images will be evaluated");
@@ -536,6 +534,8 @@ void TestRunner::interfaceExecutionComplete() {
 
     evaluateResults();
 
+    killProcesses();
+    
     // The High Fidelity AppData folder will be restored after evaluation has completed
 }
 
