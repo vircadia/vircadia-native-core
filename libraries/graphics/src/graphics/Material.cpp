@@ -138,7 +138,7 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
         _schemaBuffer.edit<Schema>()._lightmapParams = (textureMap ? glm::vec2(textureMap->getLightmapOffsetScale()) : glm::vec2(0.0, 1.0));
     }
 
-    _schemaBuffer.edit<Schema>()._materialParms = (textureMap ? glm::vec2(textureMap->getMappingMode(), textureMap->getRepeat()) : glm::vec2(MaterialMappingMode::UV, 1.0));
+    _schemaBuffer.edit<Schema>()._materialParams = (textureMap ? glm::vec2(textureMap->getMappingMode(), textureMap->getRepeat()) : glm::vec2(MaterialMappingMode::UV, 1.0));
 
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
 
@@ -229,5 +229,5 @@ void Material::setTextureTransforms(const Transform& transform, MaterialMappingM
     for (int i = 0; i < NUM_TEXCOORD_TRANSFORMS; i++) {
         _schemaBuffer.edit<Schema>()._texcoordTransforms[i] = transform.getMatrix();
     }
-    _schemaBuffer.edit<Schema>()._materialParms = glm::vec2(mode, repeat);
+    _schemaBuffer.edit<Schema>()._materialParams = glm::vec2(mode, repeat);
 }
