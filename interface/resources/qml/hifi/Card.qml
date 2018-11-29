@@ -49,7 +49,6 @@ Item {
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
     property int shadowHeight: 10;
     property bool hovered: false
-    property bool scrolling: false
 
     HifiConstants { id: hifi }
 
@@ -238,31 +237,38 @@ Item {
     property var unhoverThunk: function () { };
     Rectangle {
         anchors.fill: parent
-        visible: root.hovered && !root.scrolling
+        visible: root.hovered
         color: "transparent"
         border.width: 4
         border.color: hifiStyleConstants.colors.primaryHighlight
         z: 1
     }
     MouseArea {
-        anchors.fill: parent;
-        acceptedButtons: Qt.LeftButton;
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: true
+        onContainsMouseChanged: {
+            // Use onContainsMouseChanged rather than onEntered and onExited because the latter aren't always
+            // triggered correctly - e.g., if drag rightwards from right hand side of a card to the next card
+            // onExited doesn't fire, in which case can end up with two cards highlighted.
+            if (containsMouse) {
+                Tablet.playSound(TabletEnums.ButtonHover);
+                hoverThunk();
+            } else {
+                unhoverThunk();
+            }
+        }
+    }
+    MouseArea {
+        // Separate MouseArea for click handling so that it doesn't interfere with hovering and interaction
+        // with containing ListView.
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: false
         onClicked: {
             Tablet.playSound(TabletEnums.ButtonClick);
             goFunction("hifi://" + hifiUrl);
         }
-        hoverEnabled: true;
-        onEntered:  {
-            Tablet.playSound(TabletEnums.ButtonHover);
-            hoverThunk();
-        }
-        onExited: unhoverThunk();
-        onCanceled: unhoverThunk();
-    }
-    MouseArea {
-        // This second mouse area causes onEntered to fire on the first if you scroll just a little and the cursor stays on
-        // the original card. I.e., the original card is re-highlighted if the cursor is on it after scrolling finishes.
-        anchors.fill: parent
     }
     StateImage {
         id: actionIcon;

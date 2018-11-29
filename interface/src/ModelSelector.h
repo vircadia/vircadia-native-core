@@ -29,7 +29,6 @@ public:
     ModelSelector();
 
     QFileInfo getFileInfo() const;
-    FSTReader::ModelType getModelType() const;
 
     public slots:
     virtual void accept() override;
@@ -40,7 +39,6 @@ public:
 private:
     QFileInfo _modelFile;
     QPushButton* _browseButton;
-    QComboBox* _modelType;
 };
 
 #endif // hifi_ModelSelector_h

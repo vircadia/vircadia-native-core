@@ -83,8 +83,10 @@ SpinBox {
     }
 
     validator: DoubleValidator {
-        bottom: Math.min(spinBox.from, spinBox.to)
-        top:  Math.max(spinBox.from, spinBox.to)
+        decimals: spinBox.decimals
+        bottom: Math.min(spinBox.realFrom, spinBox.realTo)
+        top:  Math.max(spinBox.realFrom, spinBox.realTo)
+        notation: DoubleValidator.StandardNotation
     }
 
     textFromValue: function(value, locale) {
@@ -97,20 +99,37 @@ SpinBox {
 
 
     contentItem: TextInput {
+        id: spinboxText
         z: 2
         color: isLightColorScheme
                ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.lightGray)
                : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
-        text: spinBox.textFromValue(spinBox.value, spinBox.locale) + suffix
+        text: spinBox.textFromValue(spinBox.value, spinBox.locale)
         inputMethodHints: spinBox.inputMethodHints
         validator: spinBox.validator
         verticalAlignment: Qt.AlignVCenter
         leftPadding: spinBoxLabelInside.visible ? 30 : hifi.dimensions.textPadding
-        //rightPadding: hifi.dimensions.spinnerSize
         width: spinBox.width - hifi.dimensions.spinnerSize
         onEditingFinished: spinBox.editingFinished()
+
+        Text {
+            id: suffixText
+            x: metrics.advanceWidth(spinboxText.text + '*')
+            height: spinboxText.height
+
+            FontMetrics {
+                id: metrics
+                font: spinboxText.font
+            }
+
+            color: isLightColorScheme
+                   ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.lightGray)
+                   : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
+            text: suffix
+            verticalAlignment: Qt.AlignVCenter
+        }
     }
 
     up.indicator: Item {

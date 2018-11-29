@@ -39,7 +39,7 @@ Item {
     property string sendingPubliclyEffectImage;
     property var http;
     property var listModelName;
-    property var keyboardContainer: nil;
+    property var keyboardContainer;
         
     // This object is always used in a popup or full-screen Wallet section.
     // This MouseArea is used to prevent a user from being
@@ -56,7 +56,7 @@ Item {
     // Background
     Rectangle {
         z: 1;
-        visible: root.assetName !== "" && sendAssetStep.visible;
+        visible: root.assetCertID !== "" && sendAssetStep.referrer !== "payIn" && sendAssetStep.visible;
         anchors.top: parent.top;
         anchors.topMargin: root.parentAppTitleBarHeight;
         anchors.left: parent.left;
@@ -84,7 +84,6 @@ Item {
                 if (sendPubliclyCheckbox.checked && sendAssetStep.referrer === "nearby") {
                     sendSignalToParent({
                         method: 'sendAsset_sendPublicly',
-                        assetName: root.assetName,
                         recipient: sendAssetStep.selectedRecipientNodeID,
                         amount: parseInt(amountTextField.text),
                         effectImage: root.sendingPubliclyEffectImage
@@ -106,6 +105,14 @@ Item {
                 root.nextActiveView = 'paymentSuccess';
             } else {
                 root.nextActiveView = 'paymentFailure';
+            }
+        }
+
+        onCertificateInfoResult: {
+            if (result.status !== 'success') {
+                console.log("Failed to get certificate info", result.data.message);
+            } else {
+                root.assetName = result.data.marketplace_item_name;
             }
         }
     }
@@ -155,7 +162,7 @@ Item {
 
         Item {
             id: userInfoContainer;
-            visible: root.assetName === "";
+            visible: root.assetCertID === "";
             anchors.top: parent.top;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -251,7 +258,7 @@ Item {
     
             LinearGradient {
                 anchors.fill: parent;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "";
                 start: Qt.point(0, 0);
                 end: Qt.point(0, height);
                 gradient: Gradient {
@@ -262,7 +269,7 @@ Item {
 
             RalewaySemiBold {
                 id: sendAssetText;
-                text: root.assetName === "" ? "Send Money To:" : "Gift \"" + root.assetName + "\" To:";
+                text: root.assetCertID === "" ? "Send Money To:" : "Gift \"" + root.assetName + "\" To:";
                 // Anchors
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
@@ -405,7 +412,7 @@ Item {
         HifiModels.PSFListModel {
             id: connectionsModel;
             http: root.http;
-            listModelName: root.listModelName;
+            listModelName: root.listModelName || "";
             endpoint: "/api/v1/users?filter=connections";
             itemsPerPage: 9;
             listView: connectionsList;
@@ -441,7 +448,7 @@ Item {
             HiFiGlyphs {
                 id: closeGlyphButton_connections;
                 text: hifi.glyphs.close;
-                color: root.assetName === "" ? hifi.colors.lightGrayText : hifi.colors.baseGray;
+                color: root.assetCertID === "" ? hifi.colors.lightGrayText : hifi.colors.baseGray;
                 size: 26;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
@@ -684,7 +691,7 @@ Item {
             HiFiGlyphs {
                 id: closeGlyphButton_nearby;
                 text: hifi.glyphs.close;
-                color: root.assetName === "" ? hifi.colors.lightGrayText : hifi.colors.baseGray;
+                color: root.assetCertID === "" ? hifi.colors.lightGrayText : hifi.colors.baseGray;
                 size: 26;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
@@ -760,7 +767,7 @@ Item {
 
                 RalewaySemiBold {
                     id: sendToText;
-                    text: root.assetName === "" ? "Send to:" : "Gift to:";
+                    text: root.assetCertID === "" ? "Send to:" : "Gift to:";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.topMargin: 36;
@@ -853,7 +860,7 @@ Item {
         id: sendAssetStep;
         z: 996;
 
-        property string referrer; // either "connections" or "nearby"
+        property string referrer; // either "connections", "nearby", or "payIn"
         property string selectedRecipientNodeID;
         property string selectedRecipientDisplayName;
         property string selectedRecipientUserName;
@@ -865,7 +872,8 @@ Item {
 
         RalewaySemiBold {
             id: sendAssetText_sendAssetStep;
-            text: root.assetName === "" ? "Send Money" : "Gift \"" + root.assetName + "\"";
+            text: sendAssetStep.referrer === "payIn" && root.assetCertID !== "" ? "Send \"" + root.assetName + "\":" :
+                (root.assetCertID === "" ? "Send Money To:" : "Gift \"" + root.assetName + "\" To:");
             // Anchors
             anchors.top: parent.top;
             anchors.topMargin: 26;
@@ -878,7 +886,7 @@ Item {
             // Text size
             size: 22;
             // Style
-            color: root.assetName === "" ? hifi.colors.white : hifi.colors.black;
+            color: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colors.white : hifi.colors.black;
         }
 
         Item {
@@ -893,7 +901,7 @@ Item {
 
             RalewaySemiBold {
                 id: sendToText_sendAssetStep;
-                text: root.assetName === "" ? "Send to:" : "Gift to:";
+                text: (root.assetCertID === "" || sendAssetStep.referrer === "payIn") ? "Send to:" : "Gift to:";
                 // Anchors
                 anchors.top: parent.top;
                 anchors.left: parent.left;
@@ -902,7 +910,7 @@ Item {
                 // Text size
                 size: 18;
                 // Style
-                color: root.assetName === "" ? hifi.colors.white : hifi.colors.black;
+                color: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colors.white : hifi.colors.black;
                 verticalAlignment: Text.AlignVCenter;
             }
 
@@ -912,25 +920,26 @@ Item {
                 anchors.right: changeButton.left;
                 anchors.rightMargin: 12;
                 height: parent.height;
-                textColor: root.assetName === "" ? hifi.colors.white : hifi.colors.black;
+                textColor: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colors.white : hifi.colors.black;
 
                 displayName: sendAssetStep.selectedRecipientDisplayName;
                 userName: sendAssetStep.selectedRecipientUserName;
                 profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
                     sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
-                isDisplayingNearby: sendAssetStep.referrer === "nearby";
+                multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
             }
 
             // "CHANGE" button
             HifiControlsUit.Button {
                 id: changeButton;
-                color: root.assetName === "" ? hifi.buttons.none : hifi.buttons.white;
+                color: root.assetCertID === "" ? hifi.buttons.none : hifi.buttons.white;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.right: parent.right;
                 anchors.verticalCenter: parent.verticalCenter;
                 height: 35;
                 width: 100;
                 text: "CHANGE";
+                visible: sendAssetStep.referrer !== "payIn";
                 onClicked: {
                     if (sendAssetStep.referrer === "connections") {
                         root.nextActiveView = "chooseRecipientConnection";
@@ -944,7 +953,7 @@ Item {
 
         Item {
             id: amountContainer;
-            visible: root.assetName === "";
+            visible: root.assetCertID === "";
             anchors.top: sendToContainer.bottom;
             anchors.topMargin: 2;
             anchors.left: parent.left;
@@ -970,8 +979,9 @@ Item {
 
             HifiControlsUit.TextField {
                 id: amountTextField;
-                text: root.assetName === "" ? "" : "1";
-                colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                readOnly: sendAssetStep.referrer === "payIn";
+                text: root.assetCertID === "" ? "" : "1";
+                colorScheme: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 inputMethodHints: Qt.ImhDigitsOnly;
                 // Anchors
                 anchors.verticalCenter: parent.verticalCenter;
@@ -980,8 +990,8 @@ Item {
                 height: 50;
                 // Style
                 leftPermanentGlyph: hifi.glyphs.hfc;
-                activeFocusOnPress: true;
-                activeFocusOnTab: true;
+                activeFocusOnPress: !amountTextField.readOnly;
+                activeFocusOnTab: !amountTextField.readOnly;
 
                 validator: IntValidator { bottom: 0; }
 
@@ -1071,6 +1081,7 @@ Item {
 
             TextArea {
                 id: optionalMessage;
+                readOnly: sendAssetStep.referrer === "payIn";
                 property int maximumLength: 72;
                 property string previousText: text;
                 placeholderText: "<i>Optional Public Message (" + maximumLength + " character limit)</i>";
@@ -1081,12 +1092,13 @@ Item {
                 // Style
                 background: Rectangle {
                     anchors.fill: parent;
-                    color: root.assetName === "" ? (optionalMessage.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow) :
+                    color: (root.assetCertID === "" || sendAssetStep.referrer === "payIn") ?
+                        (optionalMessage.activeFocus && !optionalMessage.readOnly ? hifi.colors.black : hifi.colors.baseGrayShadow) :
                         (optionalMessage.activeFocus ? "#EFEFEF" : "#EEEEEE");
-                    border.width: optionalMessage.activeFocus ? 1 : 0;
-                    border.color: optionalMessage.activeFocus ? hifi.colors.primaryHighlight : hifi.colors.textFieldLightBackground;
+                    border.width: optionalMessage.activeFocus && !optionalMessage.readOnly ? 1 : 0;
+                    border.color: optionalMessage.activeFocus && !optionalMessage.readOnly ? hifi.colors.primaryHighlight : hifi.colors.textFieldLightBackground;
                 }
-                color: root.assetName === "" ? hifi.colors.white : hifi.colors.black;
+                color: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colors.white : hifi.colors.black;
                 textFormat: TextEdit.PlainText;
                 wrapMode: TextEdit.Wrap;
                 activeFocusOnPress: true;
@@ -1122,7 +1134,8 @@ Item {
                 // Text size
                 size: 16;
                 // Style
-                color: optionalMessage.text.length === optionalMessage.maximumLength ? "#ea89a5" : (root.assetName === "" ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight);
+                color: optionalMessage.text.length === optionalMessage.maximumLength ? "#ea89a5" :
+                    (root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight);
                 verticalAlignment: Text.AlignTop;
                 horizontalAlignment: Text.AlignRight;
             }
@@ -1167,7 +1180,7 @@ Item {
                     parent.color = hifi.colors.blueAccent;
                 }
                 onClicked: {
-                    lightboxPopup.titleText = (root.assetName === "" ? "Send Effect" : "Gift Effect");
+                    lightboxPopup.titleText = (root.assetCertID === "" ? "Send Effect" : "Gift Effect");
                     lightboxPopup.bodyImageSource = "sendAsset/images/send-money-effect-sm.jpg"; // Path relative to CommerceLightbox.qml
                     lightboxPopup.bodyText = "Enabling this option will create a particle effect between you and " +
                         "your recipient that is visible to everyone nearby.";
@@ -1196,7 +1209,7 @@ Item {
             // "CANCEL" button
             HifiControlsUit.Button {
                 id: cancelButton_sendAssetStep;
-                color: root.assetName === "" ? hifi.buttons.noneBorderlessWhite : hifi.buttons.noneBorderlessGray;
+                color: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.buttons.noneBorderlessWhite : hifi.buttons.noneBorderlessGray;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.right: sendButton.left;
                 anchors.rightMargin: 24;
@@ -1205,8 +1218,12 @@ Item {
                 width: 100;
                 text: "CANCEL";
                 onClicked: {
-                    resetSendAssetData();
-                    root.nextActiveView = "sendAssetHome";
+                    if (sendAssetStep.referrer === "payIn") {
+                        sendToScript({method: "closeSendAsset"});
+                    } else {
+                        resetSendAssetData();
+                        root.nextActiveView = "sendAssetHome";
+                    }
                 }
             }
 
@@ -1214,7 +1231,7 @@ Item {
             HifiControlsUit.Button {
                 id: sendButton;
                 color: hifi.buttons.blue;
-                colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                colorScheme: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.right: parent.right;
                 anchors.rightMargin: 0;
                 anchors.verticalCenter: parent.verticalCenter;
@@ -1222,11 +1239,11 @@ Item {
                 width: 100;
                 text: "SUBMIT";
                 onClicked: {
-                    if (root.assetName === "" && parseInt(amountTextField.text) > parseInt(balanceText.text)) {
+                    if (root.assetCertID === "" && parseInt(amountTextField.text) > parseInt(balanceText.text)) {
                         amountTextField.focus = true;
                         amountTextField.error = true;
                         amountTextFieldError.text = "<i>amount exceeds available funds</i>";
-                    } else if (root.assetName === "" && (amountTextField.text === "" || parseInt(amountTextField.text) < 1)) {
+                    } else if (root.assetCertID === "" && (amountTextField.text === "" || parseInt(amountTextField.text) < 1)) {
                         amountTextField.focus = true;
                         amountTextField.error = true;
                         amountTextFieldError.text = "<i>invalid amount</i>";
@@ -1236,7 +1253,7 @@ Item {
                         root.isCurrentlySendingAsset = true;
                         amountTextField.focus = false;
                         optionalMessage.focus = false;
-                        if (sendAssetStep.referrer === "connections") {
+                        if (sendAssetStep.referrer === "connections" || sendAssetStep.referrer === "payIn") {
                             Commerce.transferAssetToUsername(sendAssetStep.selectedRecipientUserName,
                                 root.assetCertID,
                                 parseInt(amountTextField.text),
@@ -1317,18 +1334,18 @@ Item {
 
         Rectangle {
             anchors.top: parent.top;
-            anchors.topMargin: root.assetName === "" ? 15 : 125;
+            anchors.topMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 125;
             anchors.left: parent.left;
-            anchors.leftMargin: root.assetName === "" ? 15 : 50;
+            anchors.leftMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 50;
             anchors.right: parent.right;
-            anchors.rightMargin: root.assetName === "" ? 15 : 50;
+            anchors.rightMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 50;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: root.assetName === "" ? 15 : 125;
+            anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 125;
             color: "#FFFFFF";
 
             RalewaySemiBold {
                 id: paymentSentText;
-                text: root.assetName === "" ? "Payment Sent" : "Gift Sent";
+                text: root.assetCertID === "" ? "Payment Sent" : (sendAssetStep.referrer === "payIn" ? "Item Sent" : "Gift Sent");
                 // Anchors
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
@@ -1346,7 +1363,7 @@ Item {
             
             HiFiGlyphs {
                 id: closeGlyphButton_paymentSuccess;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "" && sendAssetStep.referrer !== "payIn";
                 text: hifi.glyphs.close;
                 color: hifi.colors.lightGrayText;
                 size: 26;
@@ -1364,10 +1381,14 @@ Item {
                         parent.text = hifi.glyphs.close;
                     }
                     onClicked: {
-                        root.nextActiveView = "sendAssetHome";
-                        resetSendAssetData();
-                        if (root.assetName !== "") {
-                            sendSignalToParent({method: "closeSendAsset"});
+                        if (sendAssetStep.referrer === "payIn") {
+                            sendToScript({method: "closeSendAsset"});
+                        } else {
+                            root.nextActiveView = "sendAssetHome";
+                            resetSendAssetData();
+                            if (root.assetName !== "") {
+                                sendSignalToParent({method: "closeSendAsset"});
+                            }
                         }
                     }
                 }
@@ -1409,14 +1430,14 @@ Item {
                     userName: sendAssetStep.selectedRecipientUserName;
                     profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
                         sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
-                    isDisplayingNearby: sendAssetStep.referrer === "nearby";
+                    multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
                 }
             }
             
 
             Item {
                 id: giftContainer_paymentSuccess;
-                visible: root.assetName !== "";
+                visible: root.assetCertID !== "";
                 anchors.top: sendToContainer_paymentSuccess.bottom;
                 anchors.topMargin: 8;
                 anchors.left: parent.left;
@@ -1427,7 +1448,7 @@ Item {
 
                 RalewaySemiBold {
                     id: gift_paymentSuccess;
-                    text: "Gift:";
+                    text: sendAssetStep.referrer === "payIn" ? "Item:" : "Gift:";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: parent.left;
@@ -1458,7 +1479,7 @@ Item {
 
             Item {
                 id: amountContainer_paymentSuccess;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "";
                 anchors.top: sendToContainer_paymentSuccess.bottom;
                 anchors.topMargin: 16;
                 anchors.left: parent.left;
@@ -1513,7 +1534,7 @@ Item {
 
             RalewaySemiBold {
                 id: optionalMessage_paymentSuccess;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "";
                 text: optionalMessage.text;
                 // Anchors
                 anchors.top: amountContainer_paymentSuccess.visible ? amountContainer_paymentSuccess.bottom : sendToContainer_paymentSuccess.bottom;
@@ -1535,18 +1556,22 @@ Item {
             HifiControlsUit.Button {
                 id: closeButton;
                 color: hifi.buttons.blue;
-                colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                colorScheme: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: root.assetName === "" ? 80 : 30;
+                anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 80 : 30;
                 height: 50;
                 width: 120;
                 text: "Close";
                 onClicked: {
-                    root.nextActiveView = "sendAssetHome";
-                    resetSendAssetData();
-                    if (root.assetName !== "") {
-                        sendSignalToParent({method: "closeSendAsset"});
+                    if (sendAssetStep.referrer === "payIn") {
+                        sendToScript({method: "closeSendAsset"});
+                    } else {
+                        root.nextActiveView = "sendAssetHome";
+                        resetSendAssetData();
+                        if (root.assetName !== "") {
+                            sendSignalToParent({method: "closeSendAsset"});
+                        }
                     }
                 }
             }
@@ -1574,18 +1599,18 @@ Item {
 
         Rectangle {
             anchors.top: parent.top;
-            anchors.topMargin: root.assetName === "" ? 15 : 150;
+            anchors.topMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 150;
             anchors.left: parent.left;
-            anchors.leftMargin: root.assetName === "" ? 15 : 50;
+            anchors.leftMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 50;
             anchors.right: parent.right;
-            anchors.rightMargin: root.assetName === "" ? 15 : 50;
+            anchors.rightMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 50;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: root.assetName === "" ? 15 : 300;
+            anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 300;
             color: "#FFFFFF";
 
             RalewaySemiBold {
                 id: paymentFailureText;
-                text: root.assetName === "" ? "Payment Failed" : "Failed";
+                text: root.assetCertID === "" && sendAssetStep.referrer !== "payIn" ? "Payment Failed" : "Failed";
                 // Anchors
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
@@ -1603,7 +1628,7 @@ Item {
             
             HiFiGlyphs {
                 id: closeGlyphButton_paymentFailure;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "" && sendAssetStep.referrer !== "payIn";
                 text: hifi.glyphs.close;
                 color: hifi.colors.lightGrayText;
                 size: 26;
@@ -1632,7 +1657,8 @@ Item {
 
             RalewaySemiBold {
                 id: paymentFailureDetailText;
-                text: "The recipient you specified was unable to receive your " + (root.assetName === "" ? "payment." : "gift.");
+                text: "The recipient you specified was unable to receive your " +
+                    (root.assetCertID === "" ? "payment." : (sendAssetStep.referrer === "payIn" ? "item." : "gift."));
                 anchors.top: paymentFailureText.bottom;
                 anchors.topMargin: 20;
                 anchors.left: parent.left;
@@ -1650,7 +1676,7 @@ Item {
 
             Item {
                 id: sendToContainer_paymentFailure;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "" || sendAssetStep.referrer === "payIn";
                 anchors.top: paymentFailureDetailText.bottom;
                 anchors.topMargin: 8;
                 anchors.left: parent.left;
@@ -1685,13 +1711,13 @@ Item {
                     userName: sendAssetStep.selectedRecipientUserName;
                     profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
                         sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
-                    isDisplayingNearby: sendAssetStep.referrer === "nearby";
+                    multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
                 }
             }
 
             Item {
                 id: amountContainer_paymentFailure;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "";
                 anchors.top: sendToContainer_paymentFailure.bottom;
                 anchors.topMargin: 16;
                 anchors.left: parent.left;
@@ -1746,7 +1772,7 @@ Item {
 
             RalewaySemiBold {
                 id: optionalMessage_paymentFailure;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "" || sendAssetStep.referrer === "payIn";
                 text: optionalMessage.text;
                 // Anchors
                 anchors.top: amountContainer_paymentFailure.visible ? amountContainer_paymentFailure.bottom : sendToContainer_paymentFailure.bottom;
@@ -1768,19 +1794,23 @@ Item {
             HifiControlsUit.Button {
                 id: closeButton_paymentFailure;
                 color: hifi.buttons.noneBorderless;
-                colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                colorScheme: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.right: retryButton_paymentFailure.left;
                 anchors.rightMargin: 12;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: root.assetName === "" ? 80 : 30;
+                anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 80 : 30;
                 height: 50;
                 width: 120;
                 text: "Cancel";
                 onClicked: {
-                    root.nextActiveView = "sendAssetHome";
-                    resetSendAssetData();
-                    if (root.assetName !== "") {
-                        sendSignalToParent({method: "closeSendAsset"});
+                    if (sendAssetStep.referrer === "payIn") {
+                        sendToScript({method: "closeSendAsset"});
+                    } else {
+                        root.nextActiveView = "sendAssetHome";
+                        resetSendAssetData();
+                        if (root.assetName !== "") {
+                            sendSignalToParent({method: "closeSendAsset"});
+                        }
                     }
                 }
             }
@@ -1789,17 +1819,17 @@ Item {
             HifiControlsUit.Button {
                 id: retryButton_paymentFailure;
                 color: hifi.buttons.blue;
-                colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                colorScheme: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.right: parent.right;
                 anchors.rightMargin: 12;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: root.assetName === "" ? 80 : 30;
+                anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 80 : 30;
                 height: 50;
                 width: 120;
                 text: "Retry";
                 onClicked: {
                     root.isCurrentlySendingAsset = true;
-                    if (sendAssetStep.referrer === "connections") {
+                    if (sendAssetStep.referrer === "connections" || sendAssetStep.referrer === "payIn") {
                         Commerce.transferAssetToUsername(sendAssetStep.selectedRecipientUserName,
                             root.assetCertID,
                             parseInt(amountTextField.text),
@@ -1866,11 +1896,32 @@ Item {
             case 'updateSelectedRecipientUsername':
                 sendAssetStep.selectedRecipientUserName = message.userName;
             break;
+            case 'updateSendAssetQML':
+                root.assetName = "";
+                root.assetCertID = message.assetCertID || "";
+                if (root.assetCertID === "") {
+                    amountTextField.text = message.amount || 1;
+                } else {
+                    amountTextField.text = "";
+                    Commerce.certificateInfo(root.assetCertID);
+                }
+                sendAssetStep.referrer = "payIn";
+                sendAssetStep.selectedRecipientNodeID = "";
+                sendAssetStep.selectedRecipientDisplayName = "Determined by script:";
+                sendAssetStep.selectedRecipientUserName = message.username;
+                optionalMessage.text = message.message || "No Message Provided";
+
+                root.nextActiveView = "sendAssetStep";
+            break;
+            case 'inspectionCertificate_resetCert':
+                // NOP
+            break;
             default:
                 console.log('SendAsset: Unrecognized message from wallet.js');
         }
     }
     signal sendSignalToParent(var msg);
+    signal sendToScript(var message);
     //
     // FUNCTION DEFINITIONS END
     //

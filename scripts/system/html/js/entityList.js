@@ -153,6 +153,9 @@ const ICON_FOR_TYPE = {
     Text: "l",
 };
 
+const DOUBLE_CLICK_TIMEOUT = 300; // ms
+const RENAME_COOLDOWN = 400; // ms
+
 // List of all entities
 let entities = [];
 // List of all entities, indexed by Entity ID
@@ -181,6 +184,10 @@ let currentResizeEl = null;
 let startResizeEvent = null;
 let resizeColumnIndex = 0;
 let startThClick = null;
+let renameTimeout = null;
+let renameLastBlur = null;
+let renameLastEntityID = null;
+let isRenameFieldBeingMoved = false;
 
 let elEntityTable,
     elEntityTableHeader,
@@ -204,7 +211,8 @@ let elEntityTable,
     elNoEntitiesMessage,
     elColumnsMultiselectBox,
     elColumnsOptions,
-    elToggleSpaceMode;
+    elToggleSpaceMode,
+    elRenameInput;
 
 const ENABLE_PROFILING = false;
 let profileIndent = '';
@@ -388,19 +396,20 @@ function loaded() {
         
         elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
         
-        entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow,
-                                  createRow, updateRow, clearRow, WINDOW_NONVARIABLE_HEIGHT);
+        entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow, createRow, updateRow,
+                                  clearRow, preRefresh, postRefresh, preRefresh, WINDOW_NONVARIABLE_HEIGHT);
 
         entityListContextMenu = new EntityListContextMenu();
 
         function startRenamingEntity(entityID) {
+            renameLastEntityID = entityID;
             let entity = entitiesByID[entityID];
             if (!entity || entity.locked || !entity.elRow) {
                 return;
             }
 
             let elCell = entity.elRow.childNodes[getColumnIndex("name")];
-            let elRenameInput = document.createElement("input");
+            elRenameInput = document.createElement("input");
             elRenameInput.setAttribute('class', 'rename-entity');
             elRenameInput.value = entity.name;
             let ignoreClicks = function(event) {
@@ -415,6 +424,9 @@ function loaded() {
             };
 
             elRenameInput.onblur = function(event) {
+                if (isRenameFieldBeingMoved) {
+                    return;
+                }
                 let value = elRenameInput.value;
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: 'rename',
@@ -422,13 +434,42 @@ function loaded() {
                     name: value
                 }));
                 entity.name = value;
-                elCell.innerText = value;
+                elRenameInput.parentElement.innerText = value;
+
+                renameLastBlur = Date.now();
+                elRenameInput = null;
             };
 
             elCell.innerHTML = "";
             elCell.appendChild(elRenameInput);
 
             elRenameInput.select();
+        }
+
+        function preRefresh() {
+            // move the rename input to the body
+            if (!isRenameFieldBeingMoved && elRenameInput) {
+                isRenameFieldBeingMoved = true;
+                document.body.appendChild(elRenameInput);
+                // keep the focus
+                elRenameInput.select();
+            }
+        }
+
+        function postRefresh() {
+            if (!elRenameInput || !isRenameFieldBeingMoved) {
+                return;
+            }
+            let entity = entitiesByID[renameLastEntityID];
+            if (!entity || entity.locked || !entity.elRow) {
+                return;
+            }
+            let elCell = entity.elRow.childNodes[getColumnIndex("name")];
+            elCell.innerHTML = "";
+            elCell.appendChild(elRenameInput);
+            // keep the focus
+            elRenameInput.select();
+            isRenameFieldBeingMoved = false;
         }
 
         entityListContextMenu.setOnSelectedCallback(function(optionName, selectedEntityID) {
@@ -455,6 +496,11 @@ function loaded() {
         });
 
         function onRowContextMenu(clickEvent) {
+            if (elRenameInput) {
+                // disallow the context menu from popping up while renaming
+                return;
+            }
+
             let entityID = this.dataset.entityID;
 
             if (!selectedEntities.includes(entityID)) {
@@ -477,6 +523,13 @@ function loaded() {
 
             entityListContextMenu.open(clickEvent, entityID, enabledContextMenuItems);
         }
+
+        let clearRenameTimeout = () => {
+            if (renameTimeout !== null) {
+                window.clearTimeout(renameTimeout);
+                renameTimeout = null;
+            }
+        };
 
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
@@ -516,7 +569,15 @@ function loaded() {
             } else if (!clickEvent.ctrlKey && !clickEvent.shiftKey && selectedEntities.length === 1) {
                 // if reselecting the same entity then start renaming it
                 if (selectedEntities[0] === entityID) {
-                    startRenamingEntity(entityID);
+                    if (renameLastBlur && renameLastEntityID === entityID && (Date.now() - renameLastBlur) < RENAME_COOLDOWN) {
+
+                        return;
+                    }
+                    clearRenameTimeout();
+                    renameTimeout = window.setTimeout(() => {
+                        renameTimeout = null;
+                        startRenamingEntity(entityID);
+                    }, DOUBLE_CLICK_TIMEOUT);
                 }
             }
             
@@ -530,6 +591,8 @@ function loaded() {
         }
 
         function onRowDoubleClicked() {
+            clearRenameTimeout();
+
             let selection = [this.dataset.entityID];
             updateSelectedEntities(selection, false);
 
@@ -1100,12 +1163,12 @@ function loaded() {
                     startResizeEvent = ev;
                 }
             }
-        }
+        };
         
         document.onmouseup = function(ev) {
             startResizeEvent = null;
             ev.stopPropagation();
-        }
+        };
 
         function setSpaceMode(spaceMode) {
             if (spaceMode === "local") {
@@ -1219,7 +1282,7 @@ function loaded() {
         refreshSortOrder();
         refreshEntities();
         
-        window.onresize = updateColumnWidths;
+        window.addEventListener("resize", updateColumnWidths);
     });
     
     augmentSpinButtons();

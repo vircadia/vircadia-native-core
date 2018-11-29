@@ -65,6 +65,6 @@ bool PluginUtils::isOculusTouchControllerAvailable() {
 };
 
 bool PluginUtils::isXboxControllerAvailable() {
-    return isSubdeviceContainingNameAvailable("X360 Controller");
+    return isSubdeviceContainingNameAvailable("X360 Controller") || isSubdeviceContainingNameAvailable("XInput Controller");
 };
 

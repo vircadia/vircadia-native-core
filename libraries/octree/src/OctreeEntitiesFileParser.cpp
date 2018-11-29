@@ -46,8 +46,13 @@ bool OctreeEntitiesFileParser::parseEntities(QVariantMap& parsedEntities) {
     bool gotId = false;
     bool gotVersion = false;
 
-    while (!(gotDataVersion && gotEntities && gotId && gotVersion)) {
-        if (nextToken() != '"') {
+    int token = nextToken();
+
+    while (true) {
+        if (token == '}') {
+            break;
+        }
+        else if (token != '"') {
             _errorString = "Incorrect key string";
             return false;
         }
@@ -144,15 +149,13 @@ bool OctreeEntitiesFileParser::parseEntities(QVariantMap& parsedEntities) {
             return false;
         }
 
-        if (gotDataVersion && gotEntities && gotId && gotVersion) {
-            break;
-        } else if (nextToken() != ',') {
-            _errorString = "Id/value incorrectly terminated";
-            return false;
+        token = nextToken();
+        if (token == ',') {
+            token = nextToken();
         }
     }
 
-    if (nextToken() != '}' || nextToken() != -1) {
+    if (nextToken() != -1) {
         _errorString = "Ill-formed end of object";
         return false;
     }

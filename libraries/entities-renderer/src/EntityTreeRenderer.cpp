@@ -1031,7 +1031,14 @@ void EntityTreeRenderer::playEntityCollisionSound(const EntityItemPointer& entit
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
     const float stretchFactor = logf(1.0f + (minAACube.getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / logf(2.0f);
-    AudioInjector::playSound(collisionSound, volume, stretchFactor, collision.contactPoint);
+
+    AudioInjectorOptions options;
+    options.stereo = collisionSound->isStereo();
+    options.position = collision.contactPoint;
+    options.volume = volume;
+    options.pitch = 1.0f / stretchFactor;
+
+    AudioInjector::playSoundAndDelete(collisionSound, options);
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,
