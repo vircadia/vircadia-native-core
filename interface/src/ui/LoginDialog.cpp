@@ -193,29 +193,7 @@ void LoginDialog::createAccountFromSteam(QString username) {
 }
 
 void LoginDialog::openUrl(const QString& url) const {
-    auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
-    auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-
-    if (tablet->getToolbarMode()) {
-        offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
-            newObject->setProperty("url", url);
-        });
-        if (!qApp->getLoginDialogPoppedUp()) {
-            LoginDialog::hide();
-        }
-    } else {
-        if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
-            offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
-                newObject->setProperty("url", url);
-            });
-            if (!qApp->getLoginDialogPoppedUp()) {
-                LoginDialog::hide();
-            }
-        } else {
-            tablet->gotoWebScreen(url);
-        }
-    }
+    QDesktopServices::openUrl(QUrl(url));
 }
 
 void LoginDialog::linkCompleted(QNetworkReply* reply) {

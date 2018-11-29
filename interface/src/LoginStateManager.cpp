@@ -210,7 +210,7 @@ void LoginStateManager::setUp() {
     pointers->enablePointer(_rightLoginPointerID);
 }
 
-void LoginStateManager::update(const QString dominantHand) {
+void LoginStateManager::update(const QString dominantHand, const QUuid loginOverlayID) {
     if (!isSetUp()) {
         return;
     }
@@ -223,6 +223,12 @@ void LoginStateManager::update(const QString dominantHand) {
         QString mode = "full";
         auto rightObjectID = raypicks->getPrevRayPickResult(_rightLoginPointerID)["objectID"].toUuid();
         auto leftObjectID = raypicks->getPrevRayPickResult(_leftLoginPointerID)["objectID"].toUuid();
+        if (leftObjectID.isNull() || leftObjectID != loginOverlayID) {
+            pointers->setRenderState(_leftLoginPointerID, "");
+        }
+        if (rightObjectID.isNull() || rightObjectID != loginOverlayID) {
+            pointers->setRenderState(_leftLoginPointerID, "");
+        }
         if (_dominantHand == "left" && !leftObjectID.isNull()) {
             // dominant is left.
             pointers->setRenderState(_rightLoginPointerID, "");

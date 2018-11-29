@@ -1,8 +1,8 @@
 //
-//  SignInBody.qml
+//  signUpBody.qml
 //
-//  Created by Wayne Chen on 10/18/18
-//  Copyright 2018 High Fidelity, Inc.
+//  Created by Stephen Birarda on 7 Dec 2016
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,13 +18,15 @@ import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
 
 Item {
-    id: signInBody
+    id: signUpBody
     clip: true
     height: root.height
     width: root.width
     property int textFieldHeight: 31
     property string fontFamily: "Raleway"
     property int fontSize: 15
+    // property int textFieldFontSize: !root.isTablet ? !root.isOverlay : hifi.fontSizes.textFieldInput ? hifi.fontSizes.textFieldInput : 18
+    property int textFieldFontSize: 18
     property bool fontBold: true
 
     property bool keyboardEnabled: false
@@ -41,7 +43,8 @@ Item {
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
         property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
-        readonly property int minHeightButton: !root.isTablet ? 56 : 42
+        // readonly property int minHeightButton: !root.isTablet ? 56 : 42
+        readonly property int minHeightButton: 36
         property int maxHeight: root.isTablet ? 720 : root.height
 
         function resize() {
@@ -56,8 +59,7 @@ Item {
                 parent.width = root.width = newWidth;
             }
 
-            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
-                    + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight) + hifi.dimensions.contentSpacing.y;
         }
     }
 
@@ -70,14 +72,13 @@ Item {
     function init() {
         // going to/from sign in/up dialog.
         loginDialog.isLogIn = false;
-        loginErrorMessage.visible = (signInBody.errorString !== "");
-        if (signInBody.errorString !== "") {
-            loginErrorMessage.text = signInBody.errorString;
+        loginErrorMessage.visible = (signUpBody.errorString !== "");
+        if (signUpBody.errorString !== "") {
+            loginErrorMessage.text = signUpBody.errorString;
             errorContainer.anchors.bottom = usernameField.top;
+            errorContainer.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
             errorContainer.anchors.left = usernameField.left;
         }
-        loginButtonAtSignIn.text = "Sign Up";
-        loginButtonAtSignIn.color = hifi.buttons.blue;
         emailField.placeholderText = "Email";
         emailField.text = "";
         emailField.anchors.top = usernameField.bottom;
@@ -101,13 +102,14 @@ Item {
             color: "black"
         }
 
+
         Item {
             id: bannerContainer
             width: parent.width
             height: banner.height
             anchors {
-                top: parent.top
-                topMargin: 85
+                bottom: loginContainer.top
+                bottomMargin: 0.125 * parent.height
             }
             Image {
                 id: banner
@@ -116,14 +118,15 @@ Item {
                 horizontalAlignment: Image.AlignHCenter
             }
         }
-
         Item {
             id: loginContainer
-            width: parent.width
-            height: parent.height - (bannerContainer.height + 1.5 * hifi.dimensions.contentSpacing.y)
+            width: usernameField.width
+            height: parent.height - bannerContainer.height
             anchors {
-                top: bannerContainer.bottom
-                topMargin: 1.5 * hifi.dimensions.contentSpacing.y
+                top: parent.top
+                topMargin: bannerContainer.height + 0.25 * parent.height
+                left: parent.left
+                leftMargin: (parent.width - usernameField.width) / 2
             }
             visible: true
 
@@ -132,9 +135,9 @@ Item {
                 width: loginErrorMessageTextMetrics.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
-                    bottom: emailField.top;
-                    bottomMargin: 2;
-                    left: emailField.left;
+                    bottom: usernameField.top;
+                    bottomMargin: hifi.dimensions.contentSpacing.y;
+                    left: usernameField.left;
                 }
                 TextMetrics {
                     id: loginErrorMessageTextMetrics
@@ -144,8 +147,8 @@ Item {
                 Text {
                     id: loginErrorMessage;
                     color: "red";
-                    font.family: signInBody.fontFamily
-                    font.pixelSize: 12
+                    font.family: signUpBody.fontFamily
+                    font.pixelSize: 18
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                     text: ""
@@ -156,14 +159,12 @@ Item {
             HifiControlsUit.TextField {
                 id: usernameField
                 width: banner.width
-                height: signInBody.textFieldHeight
-                font.family: signInBody.fontFamily
+                height: signUpBody.textFieldHeight
                 placeholderText: "Username"
+                font.pixelSize: signUpBody.textFieldFontSize
                 anchors {
                     top: parent.top
-                    topMargin: 0.2 * parent.height
-                    left: parent.left
-                    leftMargin: (parent.width - usernameField.width) / 2
+                    topMargin: loginErrorMessage.height
                 }
                 focus: true
                 Keys.onPressed: {
@@ -189,7 +190,7 @@ Item {
                             if (keepMeLoggedInCheckbox.checked) {
                                 Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
                             }
-                            signInBody.login();
+                            signUpBody.login();
                             break;
                     }
                 }
@@ -202,14 +203,12 @@ Item {
             HifiControlsUit.TextField {
                 id: emailField
                 width: banner.width
-                height: signInBody.textFieldHeight
-                font.family: signInBody.fontFamily
+                height: signUpBody.textFieldHeight
                 anchors {
                     top: parent.top
-                    left: parent.left
-                    leftMargin: (parent.width - emailField.width) / 2
                 }
                 placeholderText: "Username or Email"
+                font.pixelSize: signUpBody.textFieldFontSize
                 activeFocusOnPress: true
                 Keys.onPressed: {
                     switch (event.key) {
@@ -233,7 +232,7 @@ Item {
                             if (keepMeLoggedInCheckbox.checked) {
                                 Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
                             }
-                            signInBody.login();
+                            signUpBody.login();
                             break;
                     }
                 }
@@ -245,16 +244,14 @@ Item {
             HifiControlsUit.TextField {
                 id: passwordField
                 width: banner.width
-                height: signInBody.textFieldHeight
-                font.family: signInBody.fontFamily
+                height: signUpBody.textFieldHeight
                 placeholderText: "Password"
+                font.pixelSize: signUpBody.textFieldFontSize
                 activeFocusOnPress: true
                 echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
                 anchors {
                     top: emailField.bottom
                     topMargin: 1.5 * hifi.dimensions.contentSpacing.y
-                    left: parent.left
-                    leftMargin: (parent.width - emailField.width) / 2
                 }
 
                 onFocusChanged: {
@@ -318,7 +315,7 @@ Item {
                         if (keepMeLoggedInCheckbox.checked) {
                             Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
                         }
-                        signInBody.login();
+                        signUpBody.login();
                         break;
                     }
                 }
@@ -328,7 +325,7 @@ Item {
                 checked: Settings.getValue("keepMeLoggedIn", false);
                 text: qsTr("Keep Me Logged In");
                 boxSize: 18;
-                labelFontFamily: signInBody.fontFamily
+                labelFontFamily: signUpBody.fontFamily
                 labelFontSize: 18;
                 color: hifi.colors.white;
                 anchors {
@@ -350,9 +347,15 @@ Item {
                     Settings.setValue("keepMeLoggedIn", checked);
                 }
             }
-            Item {
-                id: cancelContainer
-                width: cancelText.width
+
+            TextMetrics {
+                id: cancelButtonTextMetrics
+                font: loginErrorMessage.font
+                text: cancelButton.text
+            }
+            HifiControlsUit.Button {
+                id: cancelButton
+                width: emailField.width / 2
                 height: d.minHeightButton
                 anchors {
                     top: keepMeLoggedInCheckbox.bottom
@@ -360,48 +363,31 @@ Item {
                     left: parent.left
                     leftMargin: (parent.width - passwordField.width) / 2
                 }
-                Text {
-                    id: cancelText
-                    anchors.centerIn: parent
-                    text: qsTr("Cancel");
-
-                    lineHeight: 1
-                    color: "white"
-                    font.family: signInBody.fontFamily
-                    font.pixelSize: signInBody.fontSize
-                    font.capitalization: Font.AllUppercase;
-                    font.bold: signInBody.fontBold
-                    lineHeightMode: Text.ProportionalHeight
-                }
-                MouseArea {
-                    id: cancelArea
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    hoverEnabled: true
-                    onEntered: {
-                        Tablet.playSound(TabletEnums.ButtonHover);
-                    }
-                    onClicked: {
-                        Tablet.playSound(TabletEnums.ButtonClick);
-                        bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
-                    }
+                color: hifi.buttons.noneBorderlessWhite
+                text: qsTr("CANCEL")
+                fontFamily: signUpBody.fontFamily
+                fontSize: signUpBody.fontSize
+                fontBold: signUpBody.fontBold
+                onClicked: {
+                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                 }
             }
             HifiControlsUit.Button {
-                id: loginButtonAtSignIn
-                width: d.minWidthButton
+                id: signUpButton
+                width: emailField.width / 2
                 height: d.minHeightButton
-                text: qsTr("Log In")
-                fontFamily: signInBody.fontFamily
-                fontSize: signInBody.fontSize
-                fontBold: signInBody.fontBold
+                color: hifi.buttons.blue
+                text: qsTr("Sign Up")
+                fontFamily: signUpBody.fontFamily
+                fontSize: signUpBody.fontSize
+                fontBold: signUpBody.fontBold
                 anchors {
-                    top: cancelContainer.top
+                    top: cancelButton.top
                     right: passwordField.right
                 }
 
                 onClicked: {
-                    signInBody.login()
+                    signUpBody.login()
                 }
             }
         }
@@ -426,7 +412,7 @@ Item {
             case Qt.Key_Return:
                 event.accepted = true;
                 Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
-                signInBody.login();
+                signUpBody.login();
                 break;
         }
     }

@@ -60,7 +60,7 @@ static const float MALLET_TOUCH_Y_OFFSET = 0.050f;
 static const float MALLET_Y_OFFSET = 0.160f;
 
 static const glm::quat MALLET_ROTATION_OFFSET{0.70710678f, 0.0f, -0.70710678f, 0.0f};
-static const glm::vec3 MALLET_MODEL_DIMENSIONS{0.03f, MALLET_LENGTH, 0.03f};
+static const glm::vec3 MALLET_MODEL_DIMENSIONS{0.01f, MALLET_LENGTH, 0.01f};
 static const glm::vec3 MALLET_POSITION_OFFSET{0.0f, -MALLET_Y_OFFSET / 2.0f, 0.0f};
 static const glm::vec3 MALLET_TIP_OFFSET{0.0f, MALLET_LENGTH - MALLET_TOUCH_Y_OFFSET, 0.0f};
 

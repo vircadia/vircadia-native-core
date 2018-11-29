@@ -1,8 +1,8 @@
 //
 //  CompleteProfileBody.qml
 //
-//  Created by Wayne Chen on 10/18/18
-//  Copyright 2018 High Fidelity, Inc.
+//  Created by Clement on 7/18/16
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -29,10 +29,12 @@ Item {
     QtObject {
         id: d
         readonly property int minWidth: 480
-        readonly property int minWidthButton: !root.isTablet ? 256 : 174
+        // readonly property int minWidthButton: !root.isTablet ? 256 : 174
+        readonly property int minWidthButton: 36
         property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
-        readonly property int minHeightButton: !root.isTablet ? 56 : 42
+        // readonly property int minHeightButton: !root.isTablet ? 56 : 42
+        readonly property int minHeightButton: 36
         property int maxHeight: root.isTablet ? 720 : root.height
 
         function resize() {

@@ -366,6 +366,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     if (toolbarMode) {
+#if !defined(DISABLE_QML)
         // create new desktop window
         auto tabletRootWindow = new TabletRootWindow();
         tabletRootWindow->initQml(QVariantMap());
@@ -379,6 +380,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
         // forward qml surface events to interface js
         connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
+#endif
     } else {
         if (_currentPathLoaded != TABLET_HOME_SOURCE_URL) {
             loadHomeScreen(true);
