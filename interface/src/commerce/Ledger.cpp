@@ -63,6 +63,7 @@ Handler(balance)
 Handler(inventory)
 Handler(transferAssetToNode)
 Handler(transferAssetToUsername)
+Handler(authorizeAssetTransfer)
 Handler(alreadyOwned)
 Handler(availableUpdates)
 Handler(updateItem)
@@ -428,6 +429,7 @@ void Ledger::transferAssetToUsername(const QString& hfc_key, const QString& user
     transaction["username"] = username;
     transaction["quantity"] = amount;
     transaction["message"] = optionalMessage;
+    transaction["place_name"] = DependencyManager::get<AddressManager>()->getPlaceName();
     if (!certificateID.isEmpty()) {
         transaction["certificate_id"] = certificateID;
     }
@@ -438,6 +440,20 @@ void Ledger::transferAssetToUsername(const QString& hfc_key, const QString& user
     } else {
         signedSend("transaction", transactionString, hfc_key, "transfer_asset_to_user", "transferAssetToUsernameSuccess", "transferAssetToUsernameFailure");
     }
+}
+
+void Ledger::authorizeAssetTransfer(const QString& hfc_key, const QString& secret, const QString& certificateID, const int& amount, const QString& optionalMessage) {
+    QJsonObject transaction;
+    transaction["public_key"] = hfc_key;
+    transaction["secret"] = secret;
+    transaction["quantity"] = amount;
+    transaction["message"] = optionalMessage;
+    if (!certificateID.isEmpty()) {
+        transaction["certificate_id"] = certificateID;
+    }
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    signedSend("transaction", transactionString, hfc_key, "authorize", "authorizeAssetTransferSuccess", "authorizeAssetTransferFailure");
 }
 
 void Ledger::alreadyOwned(const QString& marketplaceId) {

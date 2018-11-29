@@ -36,6 +36,8 @@ Item {
     property bool isCurrentlySendingAsset: false;
     property string assetName: "";
     property string assetCertID: "";
+    property string secret: "";
+    property string authorizationID: "";
     property string sendingPubliclyEffectImage;
     property var http;
     property var listModelName;
@@ -102,6 +104,27 @@ Item {
             root.isCurrentlySendingAsset = false;
 
             if (result.status === 'success') {
+                root.nextActiveView = 'paymentSuccess';
+            } else {
+                root.nextActiveView = 'paymentFailure';
+            }
+        }
+
+        onAuthorizeAssetTransferResult: {
+            if (!root.visible) {
+                return;
+            }
+
+            root.isCurrentlySendingAsset = false;
+
+            if (result.status === 'success') {
+                root.authorizationID = result.data.authorization_id;
+                authorizationIDText.text = root.authorizationID;
+                root.secret = result.data.secret;
+                secretText.text = root.secret
+                if (scriptSecretTextField.text !== root.secret) {
+                    console.log("SendAsset: Returned secret doesn't match client-generated secret!");
+                }
                 root.nextActiveView = 'paymentSuccess';
             } else {
                 root.nextActiveView = 'paymentFailure';
@@ -408,6 +431,7 @@ Item {
                     onClicked: {
                         sendAssetStep.referrer = "authorizedScript";
                         sendAssetStep.selectedRecipientNodeID = "";
+                        scriptSecretTextField.text = generateRandomSecret();
 
                         root.nextActiveView = "sendAssetStep";
                     }
@@ -1022,7 +1046,6 @@ Item {
 
                 HifiControlsUit.TextField {
                     id: scriptSecretTextField;
-                    text: generateRandomSecret();
                     colorScheme: root.assetCertID === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                     // Anchors
                     anchors.verticalCenter: parent.verticalCenter;
@@ -1033,8 +1056,6 @@ Item {
                     // Style
                     activeFocusOnPress: true;
                     activeFocusOnTab: true;
-
-                    validator: RegExpValidator { regExp: /^[a-zA-Z0-9]+$/ }
 
                     onAccepted: {
                         optionalMessage.focus = true;
@@ -1377,7 +1398,10 @@ Item {
                                 parseInt(amountTextField.text),
                                 optionalMessage.text);
                         } else if (sendAssetStep.referrer === "authorizedScript") {
-                            console.log("ZRF HERE: SENDING TO AUTHORIZED SCRIPT");
+                            Commerce.authorizeAssetTransfer(scriptSecretTextField.text || "",
+                                root.assetCertID,
+                                parseInt(amountTextField.text) || 1,
+                                optionalMessage.text)
                         }
                     }
                 }
@@ -1449,18 +1473,24 @@ Item {
 
         Rectangle {
             anchors.top: parent.top;
-            anchors.topMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 125;
+            anchors.topMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "authorizedScript" ? 15 : 125;
             anchors.left: parent.left;
-            anchors.leftMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 50;
+            anchors.leftMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "authorizedScript" ? 15 : 50;
             anchors.right: parent.right;
-            anchors.rightMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 50;
+            anchors.rightMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "authorizedScript" ? 15 : 50;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 125;
+            anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "authorizedScript" ? 15 : 125;
             color: "#FFFFFF";
 
             RalewaySemiBold {
                 id: paymentSentText;
-                text: root.assetCertID === "" ? "Payment Sent" : (sendAssetStep.referrer === "payIn" ? "Item Sent" : "Gift Sent");
+                text: root.assetCertID === "" ? (sendAssetStep.referrer === "authorizedScript" ? "Payment Authorized" : "Payment Sent") :
+                    (sendAssetStep.referrer === "authorizedScript" ? "Item Transfer Authorized" :
+                    (sendAssetStep.referrer === "payIn" ? "Item Sent" : "Gift Sent"));
                 // Anchors
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
@@ -1498,6 +1528,8 @@ Item {
                     onClicked: {
                         if (sendAssetStep.referrer === "payIn") {
                             sendToScript({method: "closeSendAsset"});
+                        } else if (sendAssetStep.referrer === "authorizedScript") {
+                            showDidYouCopyLightbox();
                         } else {
                             root.nextActiveView = "sendAssetHome";
                             resetSendAssetData();
@@ -1517,38 +1549,176 @@ Item {
                 anchors.leftMargin: 20;
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
-                height: 80;
+                height: childrenRect.height;
 
-                RalewaySemiBold {
-                    id: sendToText_paymentSuccess;
-                    text: "Sent To:";
-                    // Anchors
+                Item {
+                    id: sendToScriptContainer_paymentSuccess;
+                    visible: sendAssetStep.referrer === "authorizedScript";
                     anchors.top: parent.top;
                     anchors.left: parent.left;
-                    anchors.bottom: parent.bottom;
-                    width: 90;
-                    // Text size
-                    size: 18;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignVCenter;
-                }
-
-                RecipientDisplay {
-                    anchors.top: parent.top;
-                    anchors.left: sendToText_paymentSuccess.right;
                     anchors.right: parent.right;
-                    height: parent.height;
-                    textColor: hifi.colors.blueAccent;
+                    height: childrenRect.height;
 
-                    displayName: sendAssetStep.selectedRecipientDisplayName;
-                    userName: sendAssetStep.selectedRecipientUserName;
-                    profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
-                        sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
-                    multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
+                    RalewaySemiBold {
+                        id: authorizationIDLabel;
+                        text: "Authorization ID:";
+                        // Anchors
+                        anchors.left: parent.left;
+                        anchors.top: authorizationIDText.top;
+                        width: paintedWidth;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        verticalAlignment: Text.AlignVCenter;
+                    }
+
+                    RalewayRegular {
+                        id: authorizationIDText;
+                        text: root.authorizationID;
+                        anchors.top: parent.top;
+                        anchors.left: authorizationIDLabel.right;
+                        anchors.leftMargin: 16;
+                        anchors.right: authorizationIDClipboardButton.left;
+                        anchors.rightMargin: 16;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        horizontalAlignment: Text.AlignHCenter;
+                        verticalAlignment: Text.AlignVCenter;
+                        wrapMode: Text.WrapAnywhere;
+                    }
+
+                    Image {
+                        id: authorizationIDClipboardButton;
+                        source: "images/clipboard.svg"; // clipboard by Bieutuong Bon from the Noun Project
+                        fillMode: Image.PreserveAspectFit;
+                        // Anchors
+                        anchors.right: parent.right;
+                        anchors.top: authorizationIDText.top;
+                        height: 40;
+                        width: height;
+
+                        MouseArea {
+                            anchors.fill: parent;
+                            onClicked: {
+                                Window.copyToClipboard(root.authorizationID);
+                                authorizationIDText.text = "Copied to Clipboard!\n";
+                                authorizationIDClipboardTimer.start();
+                            }
+                        }
+                    }
+
+                    Timer {
+                        id: authorizationIDClipboardTimer;
+                        interval: 2000;
+                        repeat: false;
+                        onTriggered: {
+                            authorizationIDText.text = root.authorizationID;
+                        }
+                    }
+
+                    RalewaySemiBold {
+                        id: secretLabel;
+                        text: "Secret:";
+                        // Anchors
+                        anchors.left: parent.left;
+                        anchors.top: secretText.top;
+                        width: authorizationIDLabel.width;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        verticalAlignment: Text.AlignVCenter;
+                    }
+
+                    RalewayRegular {
+                        id: secretText;
+                        text: root.secret;
+                        anchors.top: authorizationIDText.bottom;
+                        anchors.topMargin: 16;
+                        anchors.left: secretLabel.right;
+                        anchors.leftMargin: 16;
+                        anchors.right: secretClipboardButton.left;
+                        anchors.rightMargin: 16;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        horizontalAlignment: Text.AlignHCenter;
+                        verticalAlignment: Text.AlignVCenter;
+                        wrapMode: Text.WrapAnywhere;
+                    }                    
+
+                    Image {
+                        id: secretClipboardButton;
+                        source: "images/clipboard.svg"; // clipboard by Bieutuong Bon from the Noun Project
+                        fillMode: Image.PreserveAspectFit;
+                        // Anchors
+                        anchors.right: parent.right;
+                        anchors.top: secretText.top;
+                        height: 40;
+                        width: height;
+
+                        MouseArea {
+                            anchors.fill: parent;
+                            onClicked: {
+                                Window.copyToClipboard(root.secret);
+                                secretText.text = "Copied to Clipboard!\n";
+                                secretClipboardTimer.start();
+                            }
+                        }
+                    }
+
+                    Timer {
+                        id: secretClipboardTimer;
+                        interval: 2000;
+                        repeat: false;
+                        onTriggered: {
+                            secretText.text = root.secret;
+                        }
+                    }
                 }
-            }
-            
+
+                Item {
+                    id: sendToRecipientContainer_paymentSuccess;
+                    visible: !sendToScriptContainer_paymentSuccess.visible;
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    anchors.right: parent.right;
+                    height: 80;
+
+                    RalewaySemiBold {
+                        id: sendToText_paymentSuccess;
+                        text: "Sent To:";
+                        // Anchors
+                        anchors.top: parent.top;
+                        anchors.left: parent.left;
+                        anchors.bottom: parent.bottom;
+                        width: 90;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        verticalAlignment: Text.AlignVCenter;
+                    }
+
+                    RecipientDisplay {
+                        anchors.top: parent.top;
+                        anchors.left: sendToText_paymentSuccess.right;
+                        anchors.right: parent.right;
+                        height: parent.height;
+                        textColor: hifi.colors.blueAccent;
+
+                        displayName: sendAssetStep.selectedRecipientDisplayName;
+                        userName: sendAssetStep.selectedRecipientUserName;
+                        profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
+                            sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
+                        multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
+                    }
+                }
+            }            
 
             Item {
                 id: giftContainer_paymentSuccess;
@@ -1563,7 +1733,8 @@ Item {
 
                 RalewaySemiBold {
                     id: gift_paymentSuccess;
-                    text: sendAssetStep.referrer === "payIn" ? "Item:" : "Gift:";
+                    text: sendAssetStep.referrer === "payIn" || sendAssetStep.referrer === "authorizedScript" ?
+                        "Item:" : "Gift:";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: parent.left;
@@ -1681,6 +1852,8 @@ Item {
                 onClicked: {
                     if (sendAssetStep.referrer === "payIn") {
                         sendToScript({method: "closeSendAsset"});
+                    } else if (sendAssetStep.referrer === "authorizedScript") {
+                        showDidYouCopyLightbox();
                     } else {
                         root.nextActiveView = "sendAssetHome";
                         resetSendAssetData();
@@ -1714,13 +1887,17 @@ Item {
 
         Rectangle {
             anchors.top: parent.top;
-            anchors.topMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 150;
+            anchors.topMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "authorizedScript" ? 15 : 150;
             anchors.left: parent.left;
-            anchors.leftMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 50;
+            anchors.leftMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "authorizedScript" ? 15 : 50;
             anchors.right: parent.right;
-            anchors.rightMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 50;
+            anchors.rightMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "authorizedScript" ? 15 : 50;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 15 : 300;
+            anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "authorizedScript" ? 15 : 300;
             color: "#FFFFFF";
 
             RalewaySemiBold {
@@ -1772,8 +1949,9 @@ Item {
 
             RalewaySemiBold {
                 id: paymentFailureDetailText;
-                text: "The recipient you specified was unable to receive your " +
-                    (root.assetCertID === "" ? "payment." : (sendAssetStep.referrer === "payIn" ? "item." : "gift."));
+                text: sendAssetStep.referrer === "authorizedScript" ? "The server was unable to handle your request. Please try again later." :
+                ("The recipient you specified was unable to receive your " +
+                    (root.assetCertID === "" ? "payment." : (sendAssetStep.referrer === "payIn" ? "item." : "gift.")));
                 anchors.top: paymentFailureText.bottom;
                 anchors.topMargin: 20;
                 anchors.left: parent.left;
@@ -1791,7 +1969,8 @@ Item {
 
             Item {
                 id: sendToContainer_paymentFailure;
-                visible: root.assetCertID === "" || sendAssetStep.referrer === "payIn";
+                visible: (root.assetCertID === "" || sendAssetStep.referrer === "payIn") &&
+                    sendAssetStep.referrer !== "authorizedScript";
                 anchors.top: paymentFailureDetailText.bottom;
                 anchors.topMargin: 8;
                 anchors.left: parent.left;
@@ -1833,7 +2012,8 @@ Item {
             Item {
                 id: amountContainer_paymentFailure;
                 visible: root.assetCertID === "";
-                anchors.top: sendToContainer_paymentFailure.bottom;
+                anchors.top: sendToContainer_paymentFailure.visible ?
+                    sendToContainer_paymentFailure.bottom : paymentFailureDetailText.bottom;
                 anchors.topMargin: 16;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
@@ -1954,6 +2134,11 @@ Item {
                             root.assetCertID,
                             parseInt(amountTextField.text),
                             optionalMessage.text);
+                    } else if (sendAssetStep.referrer === "authorizedScript") {
+                        Commerce.authorizeAssetTransfer(scriptSecretTextField.text || "",
+                            root.assetCertID,
+                            parseInt(amountTextField.text) || 1,
+                            optionalMessage.text)
                     }
                 }
             }
@@ -1983,14 +2168,36 @@ Item {
     }
 
     function generateRandomSecret() {
+        var RANDOM_SECRET_LENGTH = 25;
         var randomSecret = "";
         var possibleCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-        for (var i = 0; i < 10; i++) {
+        for (var i = 0; i < RANDOM_SECRET_LENGTH; i++) {
             randomSecret += possibleCharacters.charAt(Math.floor(Math.random() * possibleCharacters.length));
         }
 
         return randomSecret;
+    }
+
+    function showDidYouCopyLightbox() {
+        lightboxPopup.titleText = "Close Confirmation";
+        lightboxPopup.bodyText = "Did you copy your Authorization ID and your Script Secret?\n\n" +
+            "You won't be able to see your Authorization ID or your Script Secret once " +
+            "you close this window.";
+        lightboxPopup.button1text = "GO BACK";
+        lightboxPopup.button1method = function() {
+            lightboxPopup.visible = false;
+        }
+        lightboxPopup.button2text = "I'M ALL SET";
+        lightboxPopup.button2method = function() {
+            lightboxPopup.visible = false;
+            root.nextActiveView = "sendAssetHome";
+            resetSendAssetData();
+            if (root.assetName !== "") {
+                sendSignalToParent({method: "closeSendAsset"});
+            }
+        }
+        lightboxPopup.visible = true;
     }
 
     //
