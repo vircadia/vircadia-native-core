@@ -8736,6 +8736,8 @@ void Application::createLoginDialogOverlay() {
         getOverlays().editOverlay(keyboard->getAnchorID(), properties);
         keyboard->setResetKeyboardPositionOnRaise(false);
     }
+    getApplicationCompositor().getReticleInterface()->setAllowMouseCapture(false);
+    getApplicationCompositor().getReticleInterface()->setVisible(false);
     if (!_loginStateManager.isSetUp()) {
         _loginStateManager.setUp();
     }
