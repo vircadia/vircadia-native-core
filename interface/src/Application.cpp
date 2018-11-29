@@ -5088,13 +5088,7 @@ void Application::init() {
     // Make sure Login state is up to date
 #if !defined(DISABLE_QML)
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
-<<<<<<< HEAD
-=======
 #endif
-    if (!DISABLE_DEFERRED) {
-        DependencyManager::get<DeferredLightingEffect>()->init();
-    }
->>>>>>> f4535e6784be56de3e3b0a21517280c12a434425
     DependencyManager::get<AvatarManager>()->init();
 
     _timerStart.start();
