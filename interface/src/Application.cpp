@@ -6267,7 +6267,7 @@ void Application::update(float deltaTime) {
         _overlays.update(deltaTime);
     }
     if (!_loginDialogOverlayID.isNull()) {
-        _loginStateManager.update(getMyAvatar()->getDominantHand());
+        _loginStateManager.update(getMyAvatar()->getDominantHand(), _loginDialogOverlayID);
         updateLoginDialogOverlayPosition();
     }
 
@@ -8631,7 +8631,7 @@ void Application::createLoginDialogOverlay() {
     auto offset = headLookVec * 0.7f;
     auto overlayPosition = (cameraPosition + offset) + (upVec * -0.1f);
 
-    const glm::vec2 LOGIN_OVERLAY_DIMENSIONS{ 0.5f, 0.5f };
+    const glm::vec2 LOGIN_OVERLAY_DIMENSIONS{ 0.89f, 0.5f };
     QVariantMap overlayProperties = {
         { "name", "LoginDialogOverlay" },
         { "url", OVERLAY_LOGIN_DIALOG_URL },

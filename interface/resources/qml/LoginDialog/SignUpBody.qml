@@ -59,8 +59,7 @@ Item {
                 parent.width = root.width = newWidth;
             }
 
-            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
-                    + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight) + hifi.dimensions.contentSpacing.y;
         }
     }
 
@@ -103,13 +102,14 @@ Item {
             color: "black"
         }
 
+
         Item {
             id: bannerContainer
             width: parent.width
             height: banner.height
             anchors {
-                top: parent.top
-                topMargin: 85
+                bottom: loginContainer.top
+                bottomMargin: 0.125 * parent.height
             }
             Image {
                 id: banner
@@ -118,14 +118,15 @@ Item {
                 horizontalAlignment: Image.AlignHCenter
             }
         }
-
         Item {
             id: loginContainer
-            width: parent.width
-            height: parent.height - (bannerContainer.height + 1.5 * hifi.dimensions.contentSpacing.y)
+            width: usernameField.width
+            height: parent.height - bannerContainer.height
             anchors {
-                top: bannerContainer.bottom
-                topMargin: 1.5 * hifi.dimensions.contentSpacing.y
+                top: parent.top
+                topMargin: bannerContainer.height + 0.25 * parent.height
+                left: parent.left
+                leftMargin: (parent.width - usernameField.width) / 2
             }
             visible: true
 
@@ -134,9 +135,9 @@ Item {
                 width: loginErrorMessageTextMetrics.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
-                    bottom: emailField.top;
-                    bottomMargin: 2;
-                    left: emailField.left;
+                    bottom: usernameField.top;
+                    bottomMargin: hifi.dimensions.contentSpacing.y;
+                    left: usernameField.left;
                 }
                 TextMetrics {
                     id: loginErrorMessageTextMetrics
@@ -163,9 +164,7 @@ Item {
                 font.pixelSize: signUpBody.textFieldFontSize
                 anchors {
                     top: parent.top
-                    topMargin: 0.2 * parent.height
-                    left: parent.left
-                    leftMargin: (parent.width - usernameField.width) / 2
+                    topMargin: loginErrorMessage.height
                 }
                 focus: true
                 Keys.onPressed: {
@@ -207,8 +206,6 @@ Item {
                 height: signUpBody.textFieldHeight
                 anchors {
                     top: parent.top
-                    left: parent.left
-                    leftMargin: (parent.width - emailField.width) / 2
                 }
                 placeholderText: "Username or Email"
                 font.pixelSize: signUpBody.textFieldFontSize
@@ -255,8 +252,6 @@ Item {
                 anchors {
                     top: emailField.bottom
                     topMargin: 1.5 * hifi.dimensions.contentSpacing.y
-                    left: parent.left
-                    leftMargin: (parent.width - emailField.width) / 2
                 }
 
                 onFocusChanged: {
@@ -360,7 +355,7 @@ Item {
             }
             HifiControlsUit.Button {
                 id: cancelButton
-                width: 1.2 * cancelButtonTextMetrics.width
+                width: emailField.width / 2
                 height: d.minHeightButton
                 anchors {
                     top: keepMeLoggedInCheckbox.bottom
@@ -379,7 +374,7 @@ Item {
             }
             HifiControlsUit.Button {
                 id: signUpButton
-                width: d.minWidthButton
+                width: emailField.width / 2
                 height: d.minHeightButton
                 color: hifi.buttons.blue
                 text: qsTr("Sign Up")

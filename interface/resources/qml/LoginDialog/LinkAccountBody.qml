@@ -100,8 +100,8 @@ Item {
             width: parent.width
             height: banner.height
             anchors {
-                top: parent.top
-                topMargin: 0.03 * parent.height
+                bottom: loginContainer.top
+                bottomMargin: 0.125 * parent.height
             }
             Image {
                 id: banner
@@ -110,14 +110,15 @@ Item {
                 horizontalAlignment: Image.AlignHCenter
             }
         }
-
         Item {
             id: loginContainer
-            width: parent.width
-            height: parent.height - (bannerContainer.height + 1.5 * hifi.dimensions.contentSpacing.y)
+            width: emailField.width
+            height: 0.45 * parent.height
             anchors {
-                top: bannerContainer.bottom
-                topMargin: 1.5 * hifi.dimensions.contentSpacing.y
+                top: parent.top
+                topMargin: bannerContainer.height + 0.25 * parent.height
+                left: parent.left
+                leftMargin: (parent.width - emailField.width) / 2
             }
             Item {
                 id: errorContainer
@@ -152,9 +153,7 @@ Item {
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 anchors {
                     top: parent.top
-                    topMargin: 0.2 * root.height
-                    left: parent.left
-                    leftMargin: (parent.width - emailField.width) / 2
+                    topMargin: loginErrorMessage.height
                 }
                 placeholderText: "Username or Email"
                 activeFocusOnPress: true
@@ -194,8 +193,6 @@ Item {
                 anchors {
                     top: emailField.bottom
                     topMargin: 1.5 * hifi.dimensions.contentSpacing.y
-                    left: parent.left
-                    leftMargin: (parent.width - emailField.width) / 2
                 }
 
                 onFocusChanged: {
@@ -317,7 +314,8 @@ Item {
                 linkColor: hifi.colors.blueAccent
                 onLinkActivated: {
                     Tablet.playSound(TabletEnums.ButtonClick);
-                    loginDialog.openUrl(link)
+                    loginDialog.openUrl(link);
+                    bodyLoader.setSource("CantAccessBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                 }
             }
             HifiControlsUit.Button {
@@ -361,52 +359,52 @@ Item {
 
                 }
             }
-            Item {
-                id: signUpContainer
-                width: emailField.width
-                height: emailField.height
+        }
+        Item {
+            id: signUpContainer
+            width: loginContainer.width
+            height: signUpTextMetrics.height
+            anchors {
+                left: loginContainer.left
+                top: loginContainer.bottom
+                // topMargin: 0.25 * parent.height
+            }
+            TextMetrics {
+                id: signUpTextMetrics
+                font: signUpText.font
+                text: signUpText.text
+            }
+            Text {
+                id: signUpText
+                text: qsTr("Don't have an account?")
                 anchors {
-                    left: emailField.left
-                    bottom: parent.bottom
-                    bottomMargin: 0.25 * parent.height
+                    left: parent.left
                 }
-                TextMetrics {
-                    id: signUpTextMetrics
-                    font: signUpText.font
-                    text: signUpText.text
-                }
-                Text {
-                    id: signUpText
-                    text: qsTr("Don't have an account?")
-                    anchors {
-                        left: parent.left
-                    }
-                    lineHeight: 1
-                    color: "white"
-                    font.family: linkAccountBody.fontFamily
-                    font.pixelSize: 18
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHCenter
+                lineHeight: 1
+                color: "white"
+                font.family: linkAccountBody.fontFamily
+                font.pixelSize: 18
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            HifiStylesUit.ShortcutText {
+                id: signUpShortcutText
+                z: 10
+                font.family: linkAccountBody.fontFamily
+                font.pixelSize: 18
+                anchors {
+                     left: signUpText.right
+                     leftMargin: hifi.dimensions.contentSpacing.x
                 }
 
-                HifiStylesUit.ShortcutText {
-                    id: signUpShortcutText
-                    z: 10
-                    font.family: linkAccountBody.fontFamily
-                    font.pixelSize: 18
-                    anchors {
-                         left: signUpText.right
-                         leftMargin: hifi.dimensions.contentSpacing.x
-                    }
+                text: "<a href='https://highfidelity.com'>Sign Up</a>"
 
-                    text: "<a href='https://highfidelity.com'>Sign Up</a>"
-
-                    linkColor: hifi.colors.blueAccent
-                    onLinkActivated: {
-                        Tablet.playSound(TabletEnums.ButtonClick);
-                        bodyLoader.setSource("SignUpBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
-                            "errorString": "" });
-                    }
+                linkColor: hifi.colors.blueAccent
+                onLinkActivated: {
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                    bodyLoader.setSource("SignUpBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
+                        "errorString": "" });
                 }
             }
         }
@@ -430,6 +428,7 @@ Item {
             fontFamily: linkAccountBody.fontFamily
             fontSize: linkAccountBody.fontSize
             fontBold: linkAccountBody.fontBold
+            visible: loginDialog.getLoginDialogPoppedUp()
             onClicked: {
                 if (loginDialog.getLoginDialogPoppedUp()) {
                     console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
