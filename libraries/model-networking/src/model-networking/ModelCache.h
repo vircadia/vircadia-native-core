@@ -18,7 +18,7 @@
 #include <graphics/Material.h>
 #include <graphics/Asset.h>
 
-#include "FBXReader.h"
+#include "FBXSerializer.h"
 #include "TextureCache.h"
 
 // Alias instead of derive to avoid copying

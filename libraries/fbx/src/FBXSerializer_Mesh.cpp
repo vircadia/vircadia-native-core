@@ -1,5 +1,5 @@
 //
-//  FBXReader_Mesh.cpp
+//  FBXSerializer_Mesh.cpp
 //  interface/src/fbx
 //
 //  Created by Sam Gateau on 8/27/2015.
@@ -33,7 +33,7 @@
 #include <LogHandler.h>
 #include <hfm/ModelFormatLogging.h>
 
-#include "FBXReader.h"
+#include "FBXSerializer.h"
 
 #include <memory>
 
@@ -191,7 +191,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index, bool deduplic
     }
 }
 
-ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate) {
+ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate) {
     MeshData data;
     data.extracted.mesh.meshIndex = meshIndex++;
 
@@ -254,7 +254,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 data.colorsByVertex = true;
             }
 
-#if defined(FBXREADER_KILL_BLACK_COLOR_ATTRIBUTE)
+#if defined(FBXSERIALIZER_KILL_BLACK_COLOR_ATTRIBUTE)
             // Potential feature where we decide to kill the color attribute is to dark?
             // Tested with the model:
             // https://hifi-public.s3.amazonaws.com/ryan/gardenLight2.fbx
@@ -281,7 +281,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                     } else if (subdata.name == "Name") {
                         attrib.name = subdata.properties.at(0).toString();
                     } 
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
                     else {
                         int unknown = 0;
                         QString subname = subdata.name.data();
@@ -307,7 +307,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                     } else if  (subdata.name == "Name") {
                         attrib.name = subdata.properties.at(0).toString();
                     }
-#if defined(DEBUG_FBXREADER)
+#if defined(DEBUG_FBXSERIALIZER)
                     else {
                         int unknown = 0;
                         QString subname = subdata.name.data();
@@ -557,7 +557,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
     return data.extracted;
 }
 
-glm::vec3 FBXReader::normalizeDirForPacking(const glm::vec3& dir) {
+glm::vec3 FBXSerializer::normalizeDirForPacking(const glm::vec3& dir) {
     auto maxCoord = glm::max(fabsf(dir.x), glm::max(fabsf(dir.y), fabsf(dir.z)));
     if (maxCoord > 1e-6f) {
         return dir / maxCoord;
@@ -565,7 +565,7 @@ glm::vec3 FBXReader::normalizeDirForPacking(const glm::vec3& dir) {
     return dir;
 }
 
-void FBXReader::buildModelMesh(HFMMesh& extractedMesh, const QString& url) {
+void FBXSerializer::buildModelMesh(HFMMesh& extractedMesh, const QString& url) {
     unsigned int totalSourceIndices = 0;
     foreach(const HFMMeshPart& part, extractedMesh.parts) {
         totalSourceIndices += (part.quadTrianglesIndices.size() + part.triangleIndices.size());
