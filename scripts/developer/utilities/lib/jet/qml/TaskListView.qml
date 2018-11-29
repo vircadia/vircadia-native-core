@@ -26,30 +26,10 @@ Rectangle {
     
 
     Component.onCompleted: {
-        //var functor = Jet.job_tree_model_functor(jobsModel)
         var functor = Jet.job_tree_model_functor(jobsModel, 3, function(node) {
               node["cpuT"] = 0.0
         })
         Jet.task_traverseTree(rootConfig, functor);
-
-  
-
-     /*   var tfunctor = Jet.job_tree_model_array_functor(jobsModel.engineJobItemModel, function(node) {
-            node["init"] = (node.level < 3)
-            node["fullpath"] = (node.path + "." + node.name)
-            node["cpuT"] = 0.0
-        })
-
-        Jet.task_traverseTree(rootConfig, tfunctor);
-*/
-      //  var currentParentStach = []
-    //    currentParentStach.push(jobsModel);
-        
-
-      /*  Jet.job_traverseTreeNodeRoot(jobsModel.engineJobItemModel[0], function(node, depth, index) {
-            print(node.name + depth + " - " + index)
-            return true
-        })*/
     }
         
     
@@ -95,15 +75,13 @@ Rectangle {
 
                     HifiControls.Label {
                         id: objLabel
-                       // property var config: root.rootConfig.getConfig(model.path + "." + model.name);
                         colorScheme: (root.rootConfig.getConfig(model.path + "." + model.name) ? hifi.colorSchemes.dark : hifi.colorSchemes.light)
                         text: (objRecursiveColumn.children.length > 2 ?
                                 objRecursiveColumn.children[1].visible ?
                                 qsTr("-  ") : qsTr("+ ") : qsTr("   ")) + model.name
-                              //  + " ms=" + config.cpuRunTime.toFixed(3)
                                 + " id=" + model.id
                     }
-                }  
+                }
             }
 
             Repeater {

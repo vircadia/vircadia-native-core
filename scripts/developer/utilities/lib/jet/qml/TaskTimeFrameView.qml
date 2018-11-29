@@ -166,7 +166,6 @@ Rectangle {
 
             function drawJob(ctx, depth, index, duration, timeOffset) {
                //print(root.jobsArray[index].cpuT)
-              //  ctx.fillStyle = Qt.rgba(255, 255, 0, root.backgroundOpacity);
                 ctx.fillStyle = ( depth % 2 ? ( index % 2 ? "blue" : "yellow") : ( index % 2 ? "green" : "red"))
                 ctx.fillRect(getXFromTime(timeOffset), lineHeight * 2 * depth,getWFromDuration(duration), lineHeight);
 

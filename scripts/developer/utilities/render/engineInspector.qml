@@ -26,5 +26,5 @@ Item {
     Jet.TaskListView {
         rootConfig: root.rootConfig
         anchors.fill: root        
-    }  
+    }
 }
