@@ -616,7 +616,9 @@ bool OffscreenUi::navigationFocused() {
 }
 
 void OffscreenUi::setNavigationFocused(bool focused) {
-    offscreenFlags->setNavigationFocused(focused);
+    if (offscreenFlags) {
+        offscreenFlags->setNavigationFocused(focused);
+    }
 }
 
 // FIXME HACK....

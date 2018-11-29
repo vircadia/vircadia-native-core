@@ -156,12 +156,14 @@ void Application::paintGL() {
     renderArgs._blitFramebuffer.reset();
     renderArgs._context->enableStereo(false);
 
+#if !defined(DISABLE_QML)
     {
         auto stats = Stats::getInstance();
         if (stats) {
             stats->setRenderDetails(renderArgs._details);
         }
     }
+#endif
 
     uint64_t lastPaintDuration = usecTimestampNow() - lastPaintBegin;
     _frameTimingsScriptingInterface.addValue(lastPaintDuration);

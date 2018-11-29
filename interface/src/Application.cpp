@@ -930,7 +930,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 #endif
     DependencyManager::set<DiscoverabilityManager>();
     DependencyManager::set<SceneScriptingInterface>();
+#if !defined(DISABLE_QML)
     DependencyManager::set<OffscreenUi>();
+#endif
     DependencyManager::set<Midi>();
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceDynamicFactory>();
@@ -1002,6 +1004,14 @@ const bool DEFAULT_PREFER_STYLUS_OVER_LASER = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 const QString DEFAULT_CURSOR_NAME = "DEFAULT";
 const bool DEFAULT_MINI_TABLET_ENABLED = true;
+
+QSharedPointer<OffscreenUi> getOffscreenUI() {
+#if !defined(DISABLE_QML)
+    return DependencyManager::get<OffscreenUi>();
+#else
+    return nullptr;
+#endif
+}
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runningMarkerExisted) :
     QApplication(argc, argv),
@@ -1630,7 +1640,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         {
             auto actionEnum = static_cast<Action>(action);
@@ -1769,7 +1778,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return qApp->getMyAvatar()->getCharacterController()->onGround() ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_NAV_FOCUSED, []() -> float {
-        return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
+        auto offscreenUi = getOffscreenUI();
+        return offscreenUi ? (offscreenUi->navigationFocused() ? 1 : 0) : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_WINDOWS, []() -> float {
 #if defined(Q_OS_WIN)
@@ -1813,9 +1823,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Now that we've loaded the menu and thus switched to the previous display plugin
     // we can unlock the desktop repositioning code, since all the positions will be
     // relative to the desktop size for this plugin
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto offscreenUi = getOffscreenUI();
     connect(offscreenUi.data(), &OffscreenUi::desktopReady, []() {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto offscreenUi = getOffscreenUI();
         auto desktop = offscreenUi->getDesktop();
         if (desktop) {
             desktop->setProperty("repositionLocked", false);
@@ -2359,8 +2369,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
+#else
+#if !defined(DISABLE_QML)
+    // Do not show login dialog if requested not to on the command line
+    const QString HIFI_NO_LOGIN_COMMAND_LINE_KEY = "--no-login-suggestion";
+    int index = arguments().indexOf(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
+    if (index == -1) {
+        // request not found
+        pauseUntilLoginDetermined();
+    }
 #endif
-    pauseUntilLoginDetermined();
+#endif
 }
 
 void Application::updateVerboseLogging() {
@@ -2511,7 +2530,9 @@ void Application::onAboutToQuit() {
     DependencyManager::get<CloseEventSender>()->startThread();
 
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
-    DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
+#if !defined(DISABLE_QML)
+    getOffscreenUI()->hide("RunningScripts");
+#endif
 
     _aboutToQuit = true;
 
@@ -2939,7 +2960,9 @@ void Application::initializeRenderEngine() {
 }
 
 extern void setupPreferences();
+#if !defined(DISABLE_QML)
 static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active = false);
+#endif
 
 void Application::showLoginScreen() {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -3010,12 +3033,13 @@ void Application::initializeUi() {
         tabletScriptingInterface->getTablet(SYSTEM_TABLET);
     }
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto offscreenUi = getOffscreenUI();
     connect(offscreenUi.data(), &hifi::qml::OffscreenSurface::rootContextCreated,
         this, &Application::onDesktopRootContextCreated);
     connect(offscreenUi.data(), &hifi::qml::OffscreenSurface::rootItemCreated,
         this, &Application::onDesktopRootItemCreated);
 
+#if !defined(DISABLE_QML)
     offscreenUi->setProxyWindow(_window->windowHandle());
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
@@ -3025,9 +3049,13 @@ void Application::initializeUi() {
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
+#else
+    _window->setMenuBar(new Menu());
+#endif
 
     setupPreferences();
 
+#if !defined(DISABLE_QML)
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
         QPointF result = pt;
@@ -3040,6 +3068,7 @@ void Application::initializeUi() {
         return result.toPoint();
     });
     offscreenUi->resume();
+#endif
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
         resizeGL();
         if (_touchscreenVirtualPadDevice) {
@@ -3078,6 +3107,7 @@ void Application::initializeUi() {
         }
     });
 
+#if !defined(DISABLE_QML)
     // Pre-create a couple of Web3D overlays to speed up tablet UI
     auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
     offscreenSurfaceCache->setOnRootContextCreated([&](const QString& rootObject, QQmlContext* surfaceContext) {
@@ -3091,8 +3121,11 @@ void Application::initializeUi() {
 
     offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
+#endif
 
     flushMenuUpdates();
+
+#if !defined(DISABLE_QML)
     // Now that the menu is instantiated, ensure the display plugin menu is properly updated
     {
         auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
@@ -3110,6 +3143,7 @@ void Application::initializeUi() {
         auto parent = getPrimaryMenu()->getMenu(MenuOption::OutputMenu);
         parent->addSeparator();
     }
+#endif
 
 
     // The display plugins are created before the menu now, so we need to do this here to hide the menu bar
@@ -3215,12 +3249,12 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     Stats::show();
     AnimStats::show();
-    auto surfaceContext = DependencyManager::get<OffscreenUi>()->getSurfaceContext();
+    auto surfaceContext = getOffscreenUI()->getSurfaceContext();
     surfaceContext->setContextProperty("Stats", Stats::getInstance());
     surfaceContext->setContextProperty("AnimStats", AnimStats::getInstance());
 
 #if !defined(Q_OS_ANDROID)
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto offscreenUi = getOffscreenUI();
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
 #endif
@@ -3403,7 +3437,7 @@ void Application::setPreferredCursor(const QString& cursorName) {
 
 void Application::setSettingConstrainToolbarPosition(bool setting) {
     _constrainToolbarPosition.set(setting);
-    DependencyManager::get<OffscreenUi>()->setConstrainToolbarToCenterX(setting);
+    getOffscreenUI()->setConstrainToolbarToCenterX(setting);
 }
 
 void Application::setMiniTabletEnabled(bool enabled) {
@@ -3497,7 +3531,9 @@ void Application::resizeGL() {
         _myCamera.loadViewFrustum(_viewFrustum);
     }
 
-    DependencyManager::get<OffscreenUi>()->resize(fromGlm(displayPlugin->getRecommendedUiSize()));
+#if !defined(DISABLE_QML)
+    getOffscreenUI()->resize(fromGlm(displayPlugin->getRecommendedUiSize()));
+#endif
 }
 
 void Application::handleSandboxStatus(QNetworkReply* reply) {
@@ -3916,10 +3952,12 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
     }
 
     if (event->type() == QEvent::ShortcutOverride) {
-        if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
+#if !defined(DISABLE_QML)
+        if (getOffscreenUI()->shouldSwallowShortcut(event)) {
             event->accept();
             return true;
         }
+#endif
 
         // Filter out captured keys before they're used for shortcut actions.
         if (_controllerScriptingInterface->isKeyCaptured(static_cast<QKeyEvent*>(event))) {
@@ -4029,7 +4067,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_X:
                 if (isShifted && isMeta) {
-                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    auto offscreenUi = getOffscreenUI();
                     offscreenUi->togglePinned();
                     //offscreenUi->getSurfaceContext()->engine()->clearComponentCache();
                     //OffscreenUi::information("Debugging", "Component cache cleared");
@@ -4045,7 +4083,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_B:
                 if (isMeta) {
-                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    auto offscreenUi = getOffscreenUI();
                     offscreenUi->load("Browser.qml");
                 } else if (isOption) {
                     controller::InputRecorder* inputRecorder = controller::InputRecorder::getInstance();
@@ -4067,7 +4105,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_R:
                 if (isMeta && !event->isAutoRepeat()) {
                     DependencyManager::get<ScriptEngines>()->reloadAllScripts();
-                    DependencyManager::get<OffscreenUi>()->clearCache();
+                    getOffscreenUI()->clearCache();
                 }
                 break;
 
@@ -4264,9 +4302,13 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         return; // bail
     }
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+#if !defined(DISABLE_QML)
+    auto offscreenUi = getOffscreenUI();
     auto eventPosition = compositor.getMouseEventPosition(event);
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
+    QPointF transformedPos = offscreenUi ? offscreenUi->mapToVirtualScreen(eventPosition) : QPointF();
+#else
+    QPointF transformedPos;
+#endif
     auto button = event->button();
     auto buttons = event->buttons();
     // Determine if the ReticleClick Action is 1 and if so, fake include the LeftMouseButton
@@ -4304,7 +4346,8 @@ void Application::mousePressEvent(QMouseEvent* event) {
     // Inhibit the menu if the user is using alt-mouse dragging
     _altPressed = false;
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+#if !defined(DISABLE_QML)
+    auto offscreenUi = getOffscreenUI();
     // If we get a mouse press event it means it wasn't consumed by the offscreen UI,
     // hence, we should defocus all of the offscreen UI windows, in order to allow
     // keyboard shortcuts not to be swallowed by them.  In particular, WebEngineViews
@@ -4313,6 +4356,9 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
     auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
+#else
+    QPointF transformedPos;
+#endif
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
@@ -4349,9 +4395,13 @@ void Application::mousePressEvent(QMouseEvent* event) {
 }
 
 void Application::mouseDoublePressEvent(QMouseEvent* event) {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+#if !defined(DISABLE_QML)
+    auto offscreenUi = getOffscreenUI();
     auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
+#else
+    QPointF transformedPos;
+#endif
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
@@ -4372,9 +4422,13 @@ void Application::mouseDoublePressEvent(QMouseEvent* event) {
 
 void Application::mouseReleaseEvent(QMouseEvent* event) {
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+#if !defined(DISABLE_QML)
+    auto offscreenUi = getOffscreenUI();
     auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
+#else
+    QPointF transformedPos;
+#endif
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
@@ -4770,7 +4824,8 @@ void Application::idle() {
     // Update the deadlock watchdog
     updateHeartbeat();
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+#if !defined(DISABLE_QML)
+    auto offscreenUi = getOffscreenUI();
 
     // These tasks need to be done on our first idle, because we don't want the showing of
     // overlay subwindows to do a showDesktop() until after the first time through
@@ -4779,6 +4834,7 @@ void Application::idle() {
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
     }
+#endif
 
 #ifdef Q_OS_WIN
     // If tracing is enabled then monitor the CPU in a separate thread
@@ -4795,6 +4851,7 @@ void Application::idle() {
 #endif
 
     auto displayPlugin = getActiveDisplayPlugin();
+#if !defined(DISABLE_QML)
     if (displayPlugin) {
         auto uiSize = displayPlugin->getRecommendedUiSize();
         // Bit of a hack since there's no device pixel ratio change event I can find.
@@ -4803,6 +4860,7 @@ void Application::idle() {
             offscreenUi->resize(fromGlm(uiSize));
         }
     }
+#endif
 
     if (displayPlugin) {
         PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
@@ -4837,6 +4895,7 @@ void Application::idle() {
     float secondsSinceLastUpdate = (float)_lastTimeUpdated.nsecsElapsed() / NSECS_PER_MSEC / MSECS_PER_SECOND;
     _lastTimeUpdated.start();
 
+#if !defined(DISABLE_QML)
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     if (offscreenUi && offscreenUi->getWindow()) {
         auto activeFocusItem = offscreenUi->getWindow()->activeFocusItem();
@@ -4848,9 +4907,11 @@ void Application::idle() {
             _keyboardDeviceHasFocus = true;
         }
     }
+#endif
 
     checkChangeCursor();
 
+#if !defined(DISABLE_QML)
     auto stats = Stats::getInstance();
     if (stats) {
         stats->updateStats();
@@ -4859,6 +4920,7 @@ void Application::idle() {
     if (animStats) {
         animStats->updateStats();
     }
+#endif
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
@@ -5193,7 +5255,9 @@ QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
 
 void Application::init() {
     // Make sure Login state is up to date
+#if !defined(DISABLE_QML)
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
+#endif
     if (!DISABLE_DEFERRED) {
         DependencyManager::get<DeferredLightingEffect>()->init();
     }
@@ -6832,8 +6896,9 @@ void Application::nodeActivated(SharedNodePointer node) {
     if (node->getType() == NodeType::AssetServer) {
         // asset server just connected - check if we have the asset browser showing
 
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto assetDialog = offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer");
+#if !defined(DISABLE_QML)
+        auto offscreenUi = getOffscreenUI();
+        auto assetDialog = offscreenUi ? offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer") : nullptr;
 
         if (assetDialog) {
             auto nodeList = DependencyManager::get<NodeList>();
@@ -6846,6 +6911,7 @@ void Application::nodeActivated(SharedNodePointer node) {
                 assetDialog->setVisible(false);
             }
         }
+#endif
     }
 
     // If we get a new EntityServer activated, reset lastQueried time
@@ -6903,13 +6969,15 @@ void Application::nodeKilled(SharedNodePointer node) {
     } else if (node->getType() == NodeType::AssetServer) {
         // asset server going away - check if we have the asset browser showing
 
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto assetDialog = offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer");
+#if !defined(DISABLE_QML)
+        auto offscreenUi = getOffscreenUI();
+        auto assetDialog = offscreenUi ? offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer") : nullptr;
 
         if (assetDialog) {
             // call reload on the shown asset browser dialog
             QMetaObject::invokeMethod(assetDialog, "clear");
         }
+#endif
     }
 }
 
@@ -7016,8 +7084,10 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     qScriptRegisterMetaType(scriptEngine.data(), RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
 
-    scriptEngine->registerGlobalObject("OffscreenFlags", DependencyManager::get<OffscreenUi>()->getFlags());
+#if !defined(DISABLE_QML)
+    scriptEngine->registerGlobalObject("OffscreenFlags", getOffscreenUI()->getFlags());
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+#endif
 
     qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
     qScriptRegisterMetaType(scriptEngine.data(),
@@ -7043,14 +7113,16 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     bool clientScript = scriptEngine->isClientScript();
     scriptEngine->registerFunction("OverlayWindow", clientScript ? QmlWindowClass::constructor : QmlWindowClass::restricted_constructor);
-#if !defined(Q_OS_ANDROID)
+#if !defined(Q_OS_ANDROID) && !defined(DISABLE_QML)
     scriptEngine->registerFunction("OverlayWebWindow", clientScript ? QmlWebWindowClass::constructor : QmlWebWindowClass::restricted_constructor);
 #endif
     scriptEngine->registerFunction("QmlFragment", clientScript ? QmlFragmentClass::constructor : QmlFragmentClass::restricted_constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("DesktopPreviewProvider", DependencyManager::get<DesktopPreviewProvider>().data());
+#if !defined(DISABLE_QML)
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
+#endif
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Snapshot", DependencyManager::get<Snapshot>().data());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
@@ -7246,7 +7318,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
                 qCDebug(interfaceapp) << "Declined to agree to avatar license";
             }
 
-            //auto offscreenUi = DependencyManager::get<OffscreenUi>();
+            //auto offscreenUi = getOffscreenUI();
         });
     } else {
         setAvatar(url, modelName);
@@ -7444,7 +7516,9 @@ void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const
             toggleTabletUI(true);
         }
     } else {
-        DependencyManager::get<OffscreenUi>()->show(widgetUrl, name);
+#if !defined(DISABLE_QML)
+        getOffscreenUI()->show(widgetUrl, name);
+#endif
     }
 }
 
@@ -7469,10 +7543,10 @@ void Application::showAssetServerWidget(QString filePath) {
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     if (tablet->getToolbarMode()) {
-        DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
+        getOffscreenUI()->show(url, "AssetServer", startUpload);
     } else {
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
-            DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
+            getOffscreenUI()->show(url, "AssetServer", startUpload);
         } else {
             static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
             if (!tablet->isPathLoaded(url)) {
@@ -7827,7 +7901,7 @@ void Application::addAssetToWorldInfo(QString modelName, QString infoText) {
 
     if (!_addAssetToWorldErrorTimer.isActive()) {
         if (!_addAssetToWorldMessageBox) {
-            _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
+            _addAssetToWorldMessageBox = getOffscreenUI()->createMessageBox(OffscreenUi::ICON_INFORMATION,
                 "Downloading Model", "", QMessageBox::NoButton, QMessageBox::NoButton);
             connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
         }
@@ -7910,7 +7984,7 @@ void Application::addAssetToWorldError(QString modelName, QString errorText) {
     addAssetToWorldInfoClear(modelName);
 
     if (!_addAssetToWorldMessageBox) {
-        _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
+        _addAssetToWorldMessageBox = getOffscreenUI()->createMessageBox(OffscreenUi::ICON_INFORMATION,
             "Downloading Model", "", QMessageBox::NoButton, QMessageBox::NoButton);
         connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
     }
@@ -8407,6 +8481,8 @@ DisplayPluginPointer Application::getActiveDisplayPlugin() const {
     return _displayPlugin;
 }
 
+
+#if !defined(DISABLE_QML)
 static const char* EXCLUSION_GROUP_KEY = "exclusionGroup";
 
 static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active) {
@@ -8447,6 +8523,7 @@ static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, in
     action->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(displayPluginGroup));
     Q_ASSERT(menu->menuItemExists(MenuOption::OutputMenu, name));
 }
+#endif
 
 void Application::updateDisplayMode() {
     // Unsafe to call this method from anything but the main thread
@@ -8491,8 +8568,8 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
     // instead emit a signal that the display plugin is changing and let
     // the desktop lock itself.  Reduces coupling between the UI and display
     // plugins
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto desktop = offscreenUi->getDesktop();
+    auto offscreenUi = getOffscreenUI();
+    auto desktop = offscreenUi ? offscreenUi->getDesktop() : nullptr;
     auto menu = Menu::getInstance();
 
     // Make the switch atomic from the perspective of other threads
@@ -8538,7 +8615,9 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
             }
         }
 
-        offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
+        if (offscreenUi) {
+            offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
+        }
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
         connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent, Qt::DirectConnection);

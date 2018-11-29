@@ -1,5 +1,5 @@
 //
-//  FBXReader_Node.cpp
+//  FBXSerializer_Node.cpp
 //  interface/src/fbx
 //
 //  Created by Sam Gateau on 8/27/2015.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "FBXReader.h"
+#include "FBXSerializer.h"
 
 #include <iostream>
 #include <QtCore/QBuffer>
@@ -345,7 +345,7 @@ FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
     return node;
 }
 
-FBXNode FBXReader::parseFBX(QIODevice* device) {
+FBXNode FBXSerializer::parseFBX(QIODevice* device) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xff0000ff, device);
     // verify the prolog
     if (device->peek(FBX_BINARY_PROLOG.size()) != FBX_BINARY_PROLOG) {
@@ -398,12 +398,12 @@ FBXNode FBXReader::parseFBX(QIODevice* device) {
 }
 
 
-glm::vec3 FBXReader::getVec3(const QVariantList& properties, int index) {
+glm::vec3 FBXSerializer::getVec3(const QVariantList& properties, int index) {
     return glm::vec3(properties.at(index).value<double>(), properties.at(index + 1).value<double>(),
         properties.at(index + 2).value<double>());
 }
 
-QVector<glm::vec4> FBXReader::createVec4Vector(const QVector<double>& doubleVector) {
+QVector<glm::vec4> FBXSerializer::createVec4Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec4> values;
     for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 4) * 4); it != end; ) {
         float x = *it++;
@@ -416,7 +416,7 @@ QVector<glm::vec4> FBXReader::createVec4Vector(const QVector<double>& doubleVect
 }
 
 
-QVector<glm::vec4> FBXReader::createVec4VectorRGBA(const QVector<double>& doubleVector, glm::vec4& average) {
+QVector<glm::vec4> FBXSerializer::createVec4VectorRGBA(const QVector<double>& doubleVector, glm::vec4& average) {
     QVector<glm::vec4> values;
     for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 4) * 4); it != end; ) {
         float x = *it++;
@@ -433,7 +433,7 @@ QVector<glm::vec4> FBXReader::createVec4VectorRGBA(const QVector<double>& double
     return values;
 }
 
-QVector<glm::vec3> FBXReader::createVec3Vector(const QVector<double>& doubleVector) {
+QVector<glm::vec3> FBXSerializer::createVec3Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec3> values;
     for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 3) * 3); it != end; ) {
         float x = *it++;
@@ -444,7 +444,7 @@ QVector<glm::vec3> FBXReader::createVec3Vector(const QVector<double>& doubleVect
     return values;
 }
 
-QVector<glm::vec2> FBXReader::createVec2Vector(const QVector<double>& doubleVector) {
+QVector<glm::vec2> FBXSerializer::createVec2Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec2> values;
     for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 2) * 2); it != end; ) {
         float s = *it++;
@@ -454,14 +454,14 @@ QVector<glm::vec2> FBXReader::createVec2Vector(const QVector<double>& doubleVect
     return values;
 }
 
-glm::mat4 FBXReader::createMat4(const QVector<double>& doubleVector) {
+glm::mat4 FBXSerializer::createMat4(const QVector<double>& doubleVector) {
     return glm::mat4(doubleVector.at(0), doubleVector.at(1), doubleVector.at(2), doubleVector.at(3),
         doubleVector.at(4), doubleVector.at(5), doubleVector.at(6), doubleVector.at(7),
         doubleVector.at(8), doubleVector.at(9), doubleVector.at(10), doubleVector.at(11),
         doubleVector.at(12), doubleVector.at(13), doubleVector.at(14), doubleVector.at(15));
 }
 
-QVector<int> FBXReader::getIntVector(const FBXNode& node) {
+QVector<int> FBXSerializer::getIntVector(const FBXNode& node) {
     foreach (const FBXNode& child, node.children) {
         if (child.name == "a") {
             return getIntVector(child);
@@ -480,7 +480,7 @@ QVector<int> FBXReader::getIntVector(const FBXNode& node) {
     return vector;
 }
 
-QVector<float> FBXReader::getFloatVector(const FBXNode& node) {
+QVector<float> FBXSerializer::getFloatVector(const FBXNode& node) {
     foreach (const FBXNode& child, node.children) {
         if (child.name == "a") {
             return getFloatVector(child);
@@ -499,7 +499,7 @@ QVector<float> FBXReader::getFloatVector(const FBXNode& node) {
     return vector;
 }
 
-QVector<double> FBXReader::getDoubleVector(const FBXNode& node) {
+QVector<double> FBXSerializer::getDoubleVector(const FBXNode& node) {
     foreach (const FBXNode& child, node.children) {
         if (child.name == "a") {
             return getDoubleVector(child);
