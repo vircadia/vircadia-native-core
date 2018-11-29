@@ -1668,7 +1668,10 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty)
         });
         particleSyncDebounce();
     } else {
-        let onlyUpdateEntity = properties[originalPropertyName].dragging === true;
+        // only update the entity property value itself if in the middle of dragging
+        // prevent undo command push, saving new property values, and property update 
+        // callback until drag is complete (additional update sent via dragEnd callback)
+        let onlyUpdateEntity = properties[originalPropertyName] && properties[originalPropertyName].dragging === true;
         updateProperties(propertyUpdate, onlyUpdateEntity);
     }
 }
