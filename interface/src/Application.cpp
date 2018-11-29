@@ -5373,6 +5373,9 @@ void Application::resumeAfterLoginDialogActionTaken() {
     if (!isHMDMode()) {
         auto toolbar = DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
         toolbar->writeProperty("visible", true);
+    } else {
+        getApplicationCompositor().getReticleInterface()->setAllowMouseCapture(true);
+        getApplicationCompositor().getReticleInterface()->setVisible(true);
     }
 
     updateSystemTabletMode();
