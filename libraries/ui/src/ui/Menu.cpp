@@ -422,9 +422,11 @@ void Menu::removeMenu(const QString& menuName) {
         } else {
             QMenuBar::removeAction(action);
             auto offscreenUi = DependencyManager::get<OffscreenUi>();
-            offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
-                vrMenu->removeAction(action);
-            });
+            if (offscreenUi) {
+                offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
+                    vrMenu->removeAction(action);
+                });
+            }
         }
 
         QMenuBar::repaint();
@@ -532,9 +534,11 @@ void Menu::setGroupingIsVisible(const QString& grouping, bool isVisible) {
 
 MenuWrapper::MenuWrapper(ui::Menu& rootMenu, QMenu* menu) : _rootMenu(rootMenu), _realMenu(menu) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
-        vrMenu->addMenu(menu);
-    });
+    if (offscreenUi) {
+        offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
+            vrMenu->addMenu(menu);
+        });
+    }
     _rootMenu._backMap[menu] = this;
 }
 
@@ -553,50 +557,62 @@ void MenuWrapper::setEnabled(bool enabled) {
 QAction* MenuWrapper::addSeparator() {
     QAction* action = _realMenu->addSeparator();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
-        vrMenu->addSeparator(_realMenu);
-    });
+    if (offscreenUi) {
+        offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
+            vrMenu->addSeparator(_realMenu);
+        });
+    }
     return action;
 }
 
 void MenuWrapper::addAction(QAction* action) {
     _realMenu->addAction(action);
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
-        vrMenu->addAction(_realMenu, action);
-    });
+    if (offscreenUi) {
+        offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
+            vrMenu->addAction(_realMenu, action);
+        });
+    }
 }
 
 QAction* MenuWrapper::addAction(const QString& menuName) {
     QAction* action = _realMenu->addAction(menuName);
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
-        vrMenu->addAction(_realMenu, action);
-    });
+    if (offscreenUi) {
+        offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
+            vrMenu->addAction(_realMenu, action);
+        });
+    }
     return action;
 }
 
 QAction* MenuWrapper::addAction(const QString& menuName, const QObject* receiver, const char* member, const QKeySequence& shortcut) {
     QAction* action = _realMenu->addAction(menuName, receiver, member, shortcut);
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
-        vrMenu->addAction(_realMenu, action);
-    });
+    if (offscreenUi) {
+        offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
+            vrMenu->addAction(_realMenu, action);
+        });
+    }
     return action;
 }
 
 void MenuWrapper::removeAction(QAction* action) {
     _realMenu->removeAction(action);
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
-        vrMenu->removeAction(action);
-    });
+    if (offscreenUi) {
+        offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
+            vrMenu->removeAction(action);
+        });
+    }
 }
 
 void MenuWrapper::insertAction(QAction* before, QAction* action) {
     _realMenu->insertAction(before, action);
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
-        vrMenu->insertAction(before, action);
-    });
+    if (offscreenUi) {
+        offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {
+            vrMenu->insertAction(before, action);
+        });
+    }
 }

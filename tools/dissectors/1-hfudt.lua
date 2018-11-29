@@ -39,9 +39,9 @@ p_hfudt.fields = {
 
 local control_types = {
   [0] = { "ACK", "Acknowledgement" },
-  [5] = { "Handshake", "Handshake" },
-  [6] = { "HandshakeACK", "Acknowledgement of Handshake" },
-  [8] = { "HandshakeRequest", "Request a Handshake" }
+  [1] = { "Handshake", "Handshake" },
+  [2] = { "HandshakeACK", "Acknowledgement of Handshake" },
+  [3] = { "HandshakeRequest", "Request a Handshake" }
 }
 
 local message_positions = {

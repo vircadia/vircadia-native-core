@@ -17,7 +17,7 @@
 #include <QtScript/QScriptValue>
 
 #include <DependencyManager.h>
-#include <FBXReader.h>
+#include <FBXSerializer.h>
 #include <ResourceCache.h>
 
 class Animation;
