@@ -248,7 +248,7 @@ void Procedural::prepare(gpu::Batch& batch,
         _proceduralPipelines.clear();
     }
 
-    auto& pipeline = _proceduralPipelines.find(key);
+    auto pipeline = _proceduralPipelines.find(key);
     bool recompiledShader = false;
     if (pipeline == _proceduralPipelines.end()) {
         if (!_vertexShader) {
