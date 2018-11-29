@@ -308,7 +308,7 @@ void Procedural::prepare(gpu::Batch& batch,
                 gpuTexture->setSampler(sampler);
                 gpuTexture->setAutoGenerateMips(true);
             }
-            batch.setResourceTexture(procedural::slot::texture::Channel0 + i, gpuTexture);
+            batch.setResourceTexture((gpu::uint32)(procedural::slot::texture::Channel0 + i), gpuTexture);
         }
     }
 }
