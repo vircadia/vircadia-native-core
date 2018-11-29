@@ -1663,3 +1663,27 @@ input.number-slider {
 .collapse-icon {
     cursor: pointer;
 }
+
+#property-userData-editor.error {
+    border: 2px solid red;
+}
+
+#property-userData-editorStatus {
+    color: white;
+    background-color: red;
+    padding: 5px;
+    display: none;
+    cursor: pointer;
+}
+
+#property-materialData-editor.error {
+    border: 2px solid red;
+}
+
+#property-materialData-editorStatus {
+    color: white;
+    background-color: red;
+    padding: 5px;
+    display: none;
+    cursor: pointer;
+}
