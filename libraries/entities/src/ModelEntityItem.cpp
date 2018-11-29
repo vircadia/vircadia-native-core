@@ -120,6 +120,11 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+    READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
+    READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
+    READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
+    READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
     READ_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
 
     // grab a local copy of _animationProperties to avoid multiple locks
@@ -140,13 +145,6 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     bytesRead += bytesFromAnimation;
     dataAt += bytesFromAnimation;
 
-    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
-
-    READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
-    READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
-    READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
-    READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
-
     return bytesRead;
 }
 
@@ -158,12 +156,12 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_TEXTURES;
     requestedProperties += PROP_SHAPE_TYPE;
-    requestedProperties += _animationProperties.getEntityProperties(params);
     requestedProperties += PROP_JOINT_ROTATIONS_SET;
     requestedProperties += PROP_JOINT_ROTATIONS;
     requestedProperties += PROP_JOINT_TRANSLATIONS_SET;
     requestedProperties += PROP_JOINT_TRANSLATIONS;
     requestedProperties += PROP_RELAY_PARENT_JOINTS;
+    requestedProperties += _animationProperties.getEntityProperties(params);
 
     return requestedProperties;
 }
@@ -182,19 +180,17 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, getModelURL());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
+    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
+    APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, getJointRotationsSet());
+    APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, getJointRotations());
+    APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
+    APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
     APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, getRelayParentJoints());
 
     withReadLock([&] {
         _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
             propertyFlags, propertiesDidntFit, propertyCount, appendState);
     });
-
-    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
-
-    APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, getJointRotationsSet());
-    APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, getJointRotations());
-    APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
-    APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
 }
 
 
