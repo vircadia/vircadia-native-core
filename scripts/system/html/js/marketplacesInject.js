@@ -219,17 +219,12 @@
         });
     }
 
-    function buyButtonClicked(id, name, author, price, href, referrer, edition, type) {
+    function buyButtonClicked(id, referrer, edition) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
-            itemName: name,
-            itemPrice: price ? parseInt(price, 10) : 0,
-            itemHref: href,
             referrer: referrer,
-            itemAuthor: author,
-            itemEdition: edition,
-            itemType: type.trim()
+            itemEdition: edition
         }));
     }
 
@@ -313,13 +308,8 @@
                 return false;
             }
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
-                $(this).closest('.grid-item').find('.item-title').text(),
-                $(this).closest('.grid-item').find('.creator').find('.value').text(),
-                $(this).closest('.grid-item').find('.item-cost').text(),
-                $(this).attr('data-href'),
                 "mainPage",
-                -1,
-                $(this).closest('.grid-item').find('.item-type').text());
+                -1);
         });
     }
 
@@ -427,13 +417,8 @@
                 purchaseButton.on('click', function () {
                     if ('available' === availability || isUpdating) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
-                            $('#top-center').find('h1').text(),
-                            $('#creator').find('.value').text(),
-                            cost,
-                            href,
                             "itemPage",
-                            urlParams.get('edition'),
-                            type);
+                            urlParams.get('edition'));
                     }
                 });
             }
