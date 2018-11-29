@@ -14,6 +14,7 @@
 #include <QtCore/QString>
 #include <QtCore/QVariantMap>
 
+#include <plugins/PluginUtils.h>
 #include <RegisteredMetaTypes.h>
 
 #include "controllers/StateController.h"
@@ -151,8 +152,9 @@ void LoginStateManager::setUp() {
     auto pointers = DependencyManager::get<PointerScriptingInterface>().data();
     auto controller = DependencyManager::get<controller::ScriptingInterface>().data();
 
-    glm::vec3 grabPointSphereOffsetLeft { 0.04, 0.13, 0.039 };  // x = upward, y = forward, z = lateral
-    glm::vec3 grabPointSphereOffsetRight { -0.04, 0.13, 0.039 };  // x = upward, y = forward, z = lateral
+    glm::vec3 grabPointSphereOffsetLeft { -0.04f, 0.13f, 0.039f };  // x = upward, y = forward, z = lateral
+    glm::vec3 grabPointSphereOffsetRight { 0.04f, 0.13f, 0.039f };  // x = upward, y = forward, z = lateral
+    glm::vec3 malletOffset {glm::vec3(0.0f, 0.18f - 0.050f, 0.0f)};
 
     QList<QVariant> leftPointerTriggerProperties;
     QVariantMap ltClick1 {
@@ -170,7 +172,7 @@ void LoginStateManager::setUp() {
         { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
         { "filter", PickScriptingInterface::PICK_OVERLAYS() },
         { "triggers", leftPointerTriggerProperties },
-        { "posOffset", vec3toVariant(grabPointSphereOffsetLeft) },
+        { "posOffset", vec3toVariant(grabPointSphereOffsetLeft + malletOffset) },
         { "hover", true },
         { "scaleWithParent", true },
         { "distanceScaleEnd", true },
@@ -197,7 +199,7 @@ void LoginStateManager::setUp() {
         { "joint", "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" },
         { "filter", PickScriptingInterface::PICK_OVERLAYS() },
         { "triggers", rightPointerTriggerProperties },
-        { "posOffset", vec3toVariant(grabPointSphereOffsetRight) },
+        { "posOffset", vec3toVariant(grabPointSphereOffsetRight + malletOffset) },
         { "hover", true },
         { "scaleWithParent", true },
         { "distanceScaleEnd", true },
@@ -220,26 +222,20 @@ void LoginStateManager::update(const QString dominantHand, const QUuid loginOver
     auto pointers = DependencyManager::get<PointerScriptingInterface>();
     auto raypicks = DependencyManager::get<RayPickScriptingInterface>();
     if (pointers && raypicks) {
-        QString mode = "full";
         auto rightObjectID = raypicks->getPrevRayPickResult(_rightLoginPointerID)["objectID"].toUuid();
         auto leftObjectID = raypicks->getPrevRayPickResult(_leftLoginPointerID)["objectID"].toUuid();
-        if (leftObjectID.isNull() || leftObjectID != loginOverlayID) {
-            pointers->setRenderState(_leftLoginPointerID, "");
-        }
-        if (rightObjectID.isNull() || rightObjectID != loginOverlayID) {
-            pointers->setRenderState(_leftLoginPointerID, "");
-        }
+        QString leftMode = (leftObjectID.isNull() || leftObjectID != loginOverlayID) ? "" : "full";
+        QString rightMode = (rightObjectID.isNull() || rightObjectID != loginOverlayID) ? "" : "full";
+        pointers->setRenderState(_leftLoginPointerID, leftMode);
+        pointers->setRenderState(_rightLoginPointerID, rightMode);
         if (_dominantHand == "left" && !leftObjectID.isNull()) {
             // dominant is left.
             pointers->setRenderState(_rightLoginPointerID, "");
-            pointers->setRenderState(_leftLoginPointerID, mode);
+            pointers->setRenderState(_leftLoginPointerID, leftMode);
         } else if (_dominantHand == "right" && !rightObjectID.isNull()) {
             // dominant is right.
             pointers->setRenderState(_leftLoginPointerID, "");
-            pointers->setRenderState(_rightLoginPointerID, mode);
-        } else {
-            pointers->setRenderState(_leftLoginPointerID, mode);
-            pointers->setRenderState(_rightLoginPointerID, mode);
+            pointers->setRenderState(_rightLoginPointerID, rightMode);
         }
     }
 }
