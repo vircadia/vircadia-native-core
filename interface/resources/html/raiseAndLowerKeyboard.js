@@ -18,7 +18,7 @@
     window.isKeyboardRaised = false;
     window.isNumericKeyboard = false;
     window.isPasswordField = false;
-    window.lastActiveElement = null;
+    window.lastActiveInputElement = null;
 
     function getActiveElement() {
         return document.activeElement;
@@ -70,11 +70,15 @@
         var keyboardRaised = shouldRaiseKeyboard();
         var numericKeyboard = shouldSetNumeric();
         var passwordField = shouldSetPasswordField();
-        var activeElement = getActiveElement();
+        var activeInputElement = null;
+        // Only set the active input element when there is an input element focussed, otherwise it will scroll on body focus as well.
+        if (keyboardRaised) {
+            activeInputElement = getActiveElement();
+        }
 
         if (isWindowFocused &&
             (keyboardRaised !== window.isKeyboardRaised || numericKeyboard !== window.isNumericKeyboard
-                || passwordField !== window.isPasswordField || activeElement !== window.lastActiveElement)) {
+                || passwordField !== window.isPasswordField || activeInputElement !== window.lastActiveInputElement)) {
 
             if (typeof EventBridge !== "undefined" && EventBridge !== null) {
                 EventBridge.emitWebEvent(
@@ -96,7 +100,7 @@
             window.isKeyboardRaised = keyboardRaised;
             window.isNumericKeyboard = numericKeyboard;
             window.isPasswordField = passwordField;
-            window.lastActiveElement = activeElement;
+            window.lastActiveInputElement = activeInputElement;
         }
     }, POLL_FREQUENCY);
 

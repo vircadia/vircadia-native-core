@@ -9,8 +9,8 @@
 const SCROLL_ROWS = 2; // number of rows used as scrolling buffer, each time we pass this number of rows we scroll
 const FIRST_ROW_INDEX = 2; // the first elRow element's index in the child nodes of the table body
 
-function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunction, 
-                  updateRowFunction, clearRowFunction, WINDOW_NONVARIABLE_HEIGHT) {   
+function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunction, updateRowFunction, clearRowFunction,
+                  preRefreshFunction, postRefreshFunction, preResizeFunction, WINDOW_NONVARIABLE_HEIGHT) {
     this.elTableBody = elTableBody;
     this.elTableScroll = elTableScroll;
     this.elTableHeaderRow = elTableHeaderRow;
@@ -21,6 +21,9 @@ function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunctio
     this.createRowFunction = createRowFunction;
     this.updateRowFunction = updateRowFunction;
     this.clearRowFunction = clearRowFunction;
+    this.preRefreshFunction = preRefreshFunction;
+    this.postRefreshFunction = postRefreshFunction;
+    this.preResizeFunction = preResizeFunction;
     
     // the list of row elements created in the table up to max viewable height plus SCROLL_ROWS rows for scrolling buffer
     this.elRows = [];
@@ -169,6 +172,7 @@ ListView.prototype = {
     },
     
     refresh: function() {
+        this.preRefreshFunction();
         // block refreshing before rows are initialized
         let numRows = this.getNumRows();
         if (numRows === 0) {
@@ -207,6 +211,7 @@ ListView.prototype = {
                 this.lastRowShiftScrollTop = 0;
             }
         }
+        this.postRefreshFunction();
     },
     
     refreshBuffers: function() {
@@ -226,7 +231,7 @@ ListView.prototype = {
     
     refreshRowOffset: function() {
         // make sure the row offset isn't causing visible rows to pass the end of the item list and is clamped to 0
-        var numRows = this.getNumRows();
+        let numRows = this.getNumRows();
         if (this.rowOffset + numRows > this.itemData.length) {
             this.rowOffset = this.itemData.length - numRows;
         }
@@ -240,7 +245,7 @@ ListView.prototype = {
             debugPrint("ListView.resize - no valid table body or table scroll element");
             return;
         }
-
+        this.preResizeFunction();
         let prevScrollTop = this.elTableScroll.scrollTop;  
 
         // take up available window space

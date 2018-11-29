@@ -10,10 +10,85 @@ $(document).ready(function(){
   function progressBarHTML(extraClass, label) {
     var html = "<div class='progress'>";
     html += "<div class='" + extraClass + " progress-bar progress-bar-success progress-bar-striped active' role='progressbar' aria-valuemin='0' aria-valuemax='100'>";
-    html += label + "<span class='sr-only'></span></div></div>";
+    html += "<span class='ongoing-msg'></span></div></div>";
     return html;
   }
 
+  function showUploadProgress(title) {
+    swal({
+      title: title,
+      text: progressBarHTML('upload-content-progress', 'Upload'),
+      html: true,
+      showConfirmButton: false,
+      allowEscapeKey: false
+    });
+  }
+
+  function uploadNextChunk(file, offset, id) {
+      if (offset == undefined) {
+          offset = 0;
+      }
+      if (id == undefined) {
+          // Identify this upload session
+          id = Math.round(Math.random() * 2147483647);
+      }
+
+      var fileSize = file.size;
+      var filename = file.name;
+
+      var CHUNK_SIZE = 1048576; // 1 MiB
+
+      var isFinal = Boolean(fileSize - offset <= CHUNK_SIZE);
+      var nextChunkSize = Math.min(fileSize - offset, CHUNK_SIZE);
+      var chunk = file.slice(offset, offset + nextChunkSize, file.type);
+      var chunkFormData = new FormData();
+
+      var formItemName = 'restore-file-chunk';
+      if (offset == 0) {
+          formItemName = isFinal ? 'restore-file-chunk-only' : 'restore-file-chunk-initial';
+      } else if (isFinal) {
+          formItemName = 'restore-file-chunk-final';
+      }
+
+      chunkFormData.append(formItemName, chunk, filename);
+      var ajaxParams = {
+        url: '/content/upload',
+        type: 'POST',
+        timeout: 30000, // 30 s
+        headers: {"X-Session-Id": id},
+        cache: false,
+        processData: false,
+        contentType: false,
+        data: chunkFormData
+      };
+
+      var ajaxObject = $.ajax(ajaxParams);
+      ajaxObject.fail(function (jqXHR, textStatus, errorThrown) {
+        showErrorMessage(
+          "Error",
+          "There was a problem restoring domain content.\n"
+          + "Please ensure that the content archive or entity file is valid and try again."
+        );
+      });
+
+      updateProgressBars($('.upload-content-progress'), (offset + nextChunkSize) * 100 / fileSize);
+
+      if (!isFinal) {
+        ajaxObject.done(function (data, textStatus, jqXHR)
+          { uploadNextChunk(file, offset + CHUNK_SIZE, id); });
+      } else {
+        ajaxObject.done(function(data, textStatus, jqXHR) {
+          isRestoring = true;
+
+          // immediately reload backup information since one should be restoring now
+          reloadBackupInformation();
+
+          swal.close();
+        });
+      }
+      
+    }
+  
   function setupBackupUpload() {
     // construct the HTML needed for the settings backup panel
     var html = "<div class='form-group'><div id='" + UPLOAD_CONTENT_ALLOWED_DIV_ID + "'>";
@@ -50,34 +125,10 @@ $(document).ready(function(){
       "Restore content",
       function() {
         var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
+        var file = files[0];
 
-        var fileFormData = new FormData();
-        fileFormData.append('restore-file', files[0]);
-
-        showSpinnerAlert("Uploading content to restore");
-
-        $.ajax({
-          url: '/content/upload',
-          type: 'POST',
-          timeout: 3600000, // Set timeout to 1h
-          cache: false,
-          processData: false,
-          contentType: false,
-          data: fileFormData
-        }).done(function(data, textStatus, jqXHR) {
-          isRestoring = true;
-
-          // immediately reload backup information since one should be restoring now
-          reloadBackupInformation();
-
-          swal.close();
-        }).fail(function(jqXHR, textStatus, errorThrown) {
-          showErrorMessage(
-            "Error",
-            "There was a problem restoring domain content.\n"
-            + "Please ensure that the content archive or entity file is valid and try again."
-          );
-        });
+        showUploadProgress("Uploading " + file.name);
+        uploadNextChunk(file);
       }
     );
   });
@@ -168,6 +219,11 @@ $(document).ready(function(){
     checkBackupStatus();
   });
 
+  function updateProgressBars($progressBar, value) {
+    $progressBar.attr('aria-valuenow', value).attr('style', 'width: ' + value + '%');
+    $progressBar.find('.ongoing-msg').html(" " + Math.round(value) + "%");
+  }
+
   function reloadBackupInformation() {
     // make a GET request to get backup information to populate the table
     $.ajax({
@@ -202,11 +258,6 @@ $(document).ready(function(){
           + "<li><a class='" + BACKUP_RESTORE_LINK_CLASS + "' href='#'>Restore from here</a></li><li class='divider'></li>"
           + "<li><a class='" + BACKUP_DOWNLOAD_LINK_CLASS + "' data-backup-id='" + backup.id + "' href='#'>Download</a></li><li class='divider'></li>"
           + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='#' target='_blank'>Delete</a></li></ul></div></td>";
-      }
-
-      function updateProgressBars($progressBar, value) {
-        $progressBar.attr('aria-valuenow', value).attr('style', 'width: ' + value + '%');
-        $progressBar.find('.sr-only').html(value + "% Complete");
       }
 
       // before we add any new rows and update existing ones

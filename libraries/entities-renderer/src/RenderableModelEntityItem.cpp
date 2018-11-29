@@ -421,7 +421,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 uint32_t numIndices = (uint32_t)meshPart.triangleIndices.size();
                 // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                 //assert(numIndices % TRIANGLE_STRIDE == 0);
-                numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                 for (uint32_t j = 0; j < numIndices; j += TRIANGLE_STRIDE) {
                     glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[j]];
@@ -442,7 +442,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 numIndices = (uint32_t)meshPart.quadIndices.size();
                 // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                 //assert(numIndices % QUAD_STRIDE == 0);
-                numIndices -= numIndices % QUAD_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                numIndices -= numIndices % QUAD_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                 for (uint32_t j = 0; j < numIndices; j += QUAD_STRIDE) {
                     glm::vec3 p0 = mesh.vertices[meshPart.quadIndices[j]];
@@ -595,7 +595,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                     if (partItr->_topology == graphics::Mesh::TRIANGLES) {
                         // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                         //assert(numIndices % TRIANGLE_STRIDE == 0);
-                        numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                        numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                         auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
                         auto indexEnd = indexItr + numIndices;
@@ -652,7 +652,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                     if (partItr->_topology == graphics::Mesh::TRIANGLES) {
                         // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                         //assert(numIndices% TRIANGLE_STRIDE == 0);
-                        numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                        numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                         auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
                         auto indexEnd = indexItr + numIndices;

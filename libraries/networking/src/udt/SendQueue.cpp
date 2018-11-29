@@ -134,6 +134,7 @@ void SendQueue::stop() {
 }
     
 int SendQueue::sendPacket(const Packet& packet) {
+    _lastPacketSentAt = std::chrono::high_resolution_clock::now();
     return _socket->writeDatagram(packet.getData(), packet.getDataSize(), _destination);
 }
     
@@ -501,12 +502,31 @@ bool SendQueue::isInactive(bool attemptedToSendPacket) {
                 // We think the client is still waiting for data (based on the sequence number gap)
                 // Let's wait either for a response from the client or until the estimated timeout
                 // (plus the sync interval to allow the client to respond) has elapsed
-                auto waitDuration = std::chrono::microseconds(_estimatedTimeout + _syncInterval);
-                
+
+                auto estimatedTimeout = std::chrono::microseconds(_estimatedTimeout);
+
+                // cap our maximum estimated timeout to the already unreasonable 5 seconds
+                const auto MAXIMUM_ESTIMATED_TIMEOUT = std::chrono::seconds(5);
+
+                if (estimatedTimeout > MAXIMUM_ESTIMATED_TIMEOUT) {
+                    estimatedTimeout = MAXIMUM_ESTIMATED_TIMEOUT;
+                }
+
                 // use our condition_variable_any to wait
-                auto cvStatus = _emptyCondition.wait_for(locker, waitDuration);
-                
-                if (cvStatus == std::cv_status::timeout && (_packets.isEmpty() || isFlowWindowFull()) && _naks.isEmpty()
+                auto cvStatus = _emptyCondition.wait_for(locker, estimatedTimeout);
+
+                // when we wake-up check if we're "stuck" either if we've slept for the estimated timeout
+                // or it has been that long since the last time we sent a packet
+
+                // we are stuck if all of the following are true
+                // - there are no new packets to send or the flow window is full and we can't send any new packets
+                // - there are no packets to resend
+                // - the client has yet to ACK some sent packets
+                auto now = std::chrono::high_resolution_clock::now();
+
+                if ((cvStatus == std::cv_status::timeout || (now - _lastPacketSentAt > estimatedTimeout))
+                    && (_packets.isEmpty() || isFlowWindowFull())
+                    && _naks.isEmpty()
                     && SequenceNumber(_lastACKSequenceNumber) < _currentSequenceNumber) {
                     // after a timeout if we still have sent packets that the client hasn't ACKed we
                     // add them to the loss list

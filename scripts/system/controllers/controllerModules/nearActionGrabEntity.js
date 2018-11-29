@@ -115,13 +115,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "startNearGrab", args);
-            unhighlightTargetEntity(this.targetEntityID);
-            var message = {
-                hand: this.hand,
-                entityID: this.targetEntityID
-            };
-
-            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
         };
 
         // this is for when the action is going to time-out
