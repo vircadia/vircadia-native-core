@@ -283,7 +283,7 @@ void Procedural::prepare(gpu::Batch& batch,
         recompiledShader = true;
     }
 
-    batch.setPipeline(_proceduralPipelines[key]);
+    batch.setPipeline(recompiledShader ? _proceduralPipelines[key] : pipeline->second);
 
     if (_shaderDirty || _uniformsDirty) {
         setupUniforms();
