@@ -2705,6 +2705,7 @@ function getMaterialEditorJSON() {
 
 function deleteJSONMaterialEditor() {
     if (materialEditor !== null) {
+        setJSONError('materialData', false);
         materialEditor.destroy();
         materialEditor = null;
     }
