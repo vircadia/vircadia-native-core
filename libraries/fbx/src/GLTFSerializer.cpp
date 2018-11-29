@@ -1,5 +1,5 @@
 //
-//  GLTFReader.cpp
+//  GLTFSerializer.cpp
 //  libraries/fbx/src
 //
 //  Created by Luis Cuenca on 8/30/17.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "GLTFReader.h"
+#include "GLTFSerializer.h"
 
 #include <QtCore/QBuffer>
 #include <QtCore/QIODevice>
@@ -33,14 +33,14 @@
 #include <ResourceManager.h>
 #include <PathUtils.h>
 
-#include "FBXReader.h"
+#include "FBXSerializer.h"
 
 
-GLTFReader::GLTFReader() {
+GLTFSerializer::GLTFSerializer() {
 
 }
 
-bool GLTFReader::getStringVal(const QJsonObject& object, const QString& fieldname, 
+bool GLTFSerializer::getStringVal(const QJsonObject& object, const QString& fieldname,
                               QString& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isString());
     if (_defined) {
@@ -50,7 +50,7 @@ bool GLTFReader::getStringVal(const QJsonObject& object, const QString& fieldnam
     return _defined;
 }
 
-bool GLTFReader::getBoolVal(const QJsonObject& object, const QString& fieldname,
+bool GLTFSerializer::getBoolVal(const QJsonObject& object, const QString& fieldname,
                             bool& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isBool());
     if (_defined) {
@@ -60,7 +60,7 @@ bool GLTFReader::getBoolVal(const QJsonObject& object, const QString& fieldname,
     return _defined;
 }
 
-bool GLTFReader::getIntVal(const QJsonObject& object, const QString& fieldname, 
+bool GLTFSerializer::getIntVal(const QJsonObject& object, const QString& fieldname,
                            int& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && !object[fieldname].isNull());
     if (_defined) {
@@ -70,7 +70,7 @@ bool GLTFReader::getIntVal(const QJsonObject& object, const QString& fieldname,
     return _defined;
 }
 
-bool GLTFReader::getDoubleVal(const QJsonObject& object, const QString& fieldname, 
+bool GLTFSerializer::getDoubleVal(const QJsonObject& object, const QString& fieldname,
                               double& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isDouble());
     if (_defined) {
@@ -79,7 +79,7 @@ bool GLTFReader::getDoubleVal(const QJsonObject& object, const QString& fieldnam
     defined.insert(fieldname, _defined);
     return _defined;
 }
-bool GLTFReader::getObjectVal(const QJsonObject& object, const QString& fieldname, 
+bool GLTFSerializer::getObjectVal(const QJsonObject& object, const QString& fieldname,
                               QJsonObject& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isObject());
     if (_defined) {
@@ -89,7 +89,7 @@ bool GLTFReader::getObjectVal(const QJsonObject& object, const QString& fieldnam
     return _defined;
 }
 
-bool GLTFReader::getIntArrayVal(const QJsonObject& object, const QString& fieldname, 
+bool GLTFSerializer::getIntArrayVal(const QJsonObject& object, const QString& fieldname,
                                 QVector<int>& values, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isArray());
     if (_defined) {
@@ -104,7 +104,7 @@ bool GLTFReader::getIntArrayVal(const QJsonObject& object, const QString& fieldn
     return _defined;
 }
 
-bool GLTFReader::getDoubleArrayVal(const QJsonObject& object, const QString& fieldname, 
+bool GLTFSerializer::getDoubleArrayVal(const QJsonObject& object, const QString& fieldname,
                                    QVector<double>& values, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isArray());
     if (_defined) {
@@ -119,7 +119,7 @@ bool GLTFReader::getDoubleArrayVal(const QJsonObject& object, const QString& fie
     return _defined;
 }
 
-bool GLTFReader::getObjectArrayVal(const QJsonObject& object, const QString& fieldname, 
+bool GLTFSerializer::getObjectArrayVal(const QJsonObject& object, const QString& fieldname,
                                    QJsonArray& objects, QMap<QString, bool>& defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isArray());
     if (_defined) {
@@ -129,7 +129,7 @@ bool GLTFReader::getObjectArrayVal(const QJsonObject& object, const QString& fie
     return _defined;
 }
 
-int GLTFReader::getMeshPrimitiveRenderingMode(const QString& type)
+int GLTFSerializer::getMeshPrimitiveRenderingMode(const QString& type)
 {
     if (type == "POINTS") {
         return GLTFMeshPrimitivesRenderingMode::POINTS;
@@ -155,7 +155,7 @@ int GLTFReader::getMeshPrimitiveRenderingMode(const QString& type)
     return GLTFMeshPrimitivesRenderingMode::TRIANGLES;
 }
 
-int GLTFReader::getAccessorType(const QString& type)
+int GLTFSerializer::getAccessorType(const QString& type)
 {
     if (type == "SCALAR") {
         return GLTFAccessorType::SCALAR;
@@ -181,7 +181,7 @@ int GLTFReader::getAccessorType(const QString& type)
     return GLTFAccessorType::SCALAR;
 }
 
-int GLTFReader::getMaterialAlphaMode(const QString& type)
+int GLTFSerializer::getMaterialAlphaMode(const QString& type)
 {
     if (type == "OPAQUE") {
         return GLTFMaterialAlphaMode::OPAQUE;
@@ -195,7 +195,7 @@ int GLTFReader::getMaterialAlphaMode(const QString& type)
     return GLTFMaterialAlphaMode::OPAQUE;
 }
 
-int GLTFReader::getCameraType(const QString& type)
+int GLTFSerializer::getCameraType(const QString& type)
 {
     if (type == "orthographic") {
         return GLTFCameraTypes::ORTHOGRAPHIC;
@@ -206,7 +206,7 @@ int GLTFReader::getCameraType(const QString& type)
     return GLTFCameraTypes::PERSPECTIVE;
 }
 
-int GLTFReader::getImageMimeType(const QString& mime)
+int GLTFSerializer::getImageMimeType(const QString& mime)
 {
     if (mime == "image/jpeg") {
         return GLTFImageMimetype::JPEG;
@@ -217,7 +217,7 @@ int GLTFReader::getImageMimeType(const QString& mime)
     return GLTFImageMimetype::JPEG;
 }
 
-int GLTFReader::getAnimationSamplerInterpolation(const QString& interpolation)
+int GLTFSerializer::getAnimationSamplerInterpolation(const QString& interpolation)
 {
     if (interpolation == "LINEAR") {
         return GLTFAnimationSamplerInterpolation::LINEAR;
@@ -225,7 +225,7 @@ int GLTFReader::getAnimationSamplerInterpolation(const QString& interpolation)
     return GLTFAnimationSamplerInterpolation::LINEAR;
 }
 
-bool GLTFReader::setAsset(const QJsonObject& object) {
+bool GLTFSerializer::setAsset(const QJsonObject& object) {
     QJsonObject jsAsset;
     bool isAssetDefined = getObjectVal(object, "asset", jsAsset, _file.defined);
     if (isAssetDefined) {
@@ -239,7 +239,7 @@ bool GLTFReader::setAsset(const QJsonObject& object) {
     return isAssetDefined;
 }
 
-bool GLTFReader::addAccessor(const QJsonObject& object) {
+bool GLTFSerializer::addAccessor(const QJsonObject& object) {
     GLTFAccessor accessor;
     
     getIntVal(object, "bufferView", accessor.bufferView, accessor.defined);
@@ -259,7 +259,7 @@ bool GLTFReader::addAccessor(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::addAnimation(const QJsonObject& object) {
+bool GLTFSerializer::addAnimation(const QJsonObject& object) {
     GLTFAnimation animation;
     
     QJsonArray channels;
@@ -297,7 +297,7 @@ bool GLTFReader::addAnimation(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::addBufferView(const QJsonObject& object) {
+bool GLTFSerializer::addBufferView(const QJsonObject& object) {
     GLTFBufferView bufferview;
     
     getIntVal(object, "buffer", bufferview.buffer, bufferview.defined);
@@ -310,7 +310,7 @@ bool GLTFReader::addBufferView(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::addBuffer(const QJsonObject& object) {
+bool GLTFSerializer::addBuffer(const QJsonObject& object) {
     GLTFBuffer buffer;
    
     getIntVal(object, "byteLength", buffer.byteLength, buffer.defined);
@@ -324,7 +324,7 @@ bool GLTFReader::addBuffer(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::addCamera(const QJsonObject& object) {
+bool GLTFSerializer::addCamera(const QJsonObject& object) {
     GLTFCamera camera;
     
     QJsonObject jsPerspective;
@@ -352,7 +352,7 @@ bool GLTFReader::addCamera(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::addImage(const QJsonObject& object) {
+bool GLTFSerializer::addImage(const QJsonObject& object) {
     GLTFImage image;
     
     QString mime;
@@ -367,7 +367,7 @@ bool GLTFReader::addImage(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::getIndexFromObject(const QJsonObject& object, const QString& field, 
+bool GLTFSerializer::getIndexFromObject(const QJsonObject& object, const QString& field,
                                     int& outidx, QMap<QString, bool>& defined) {
     QJsonObject subobject;
     if (getObjectVal(object, field, subobject, defined)) {
@@ -377,7 +377,7 @@ bool GLTFReader::getIndexFromObject(const QJsonObject& object, const QString& fi
     return false;
 }
 
-bool GLTFReader::addMaterial(const QJsonObject& object) {
+bool GLTFSerializer::addMaterial(const QJsonObject& object) {
     GLTFMaterial material;
 
     getStringVal(object, "name", material.name, material.defined);
@@ -413,7 +413,7 @@ bool GLTFReader::addMaterial(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::addMesh(const QJsonObject& object) {
+bool GLTFSerializer::addMesh(const QJsonObject& object) {
     GLTFMesh mesh;
 
     getStringVal(object, "name", mesh.name, mesh.defined);
@@ -467,7 +467,7 @@ bool GLTFReader::addMesh(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::addNode(const QJsonObject& object) {
+bool GLTFSerializer::addNode(const QJsonObject& object) {
     GLTFNode node;
     
     getStringVal(object, "name", node.name, node.defined);
@@ -487,7 +487,7 @@ bool GLTFReader::addNode(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::addSampler(const QJsonObject& object) {
+bool GLTFSerializer::addSampler(const QJsonObject& object) {
     GLTFSampler sampler;
 
     getIntVal(object, "magFilter", sampler.magFilter, sampler.defined);
@@ -501,7 +501,7 @@ bool GLTFReader::addSampler(const QJsonObject& object) {
 
 }
 
-bool GLTFReader::addScene(const QJsonObject& object) {
+bool GLTFSerializer::addScene(const QJsonObject& object) {
     GLTFScene scene;
 
     getStringVal(object, "name", scene.name, scene.defined);
@@ -511,7 +511,7 @@ bool GLTFReader::addScene(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::addSkin(const QJsonObject& object) {
+bool GLTFSerializer::addSkin(const QJsonObject& object) {
     GLTFSkin skin;
 
     getIntVal(object, "inverseBindMatrices", skin.inverseBindMatrices, skin.defined);
@@ -523,7 +523,7 @@ bool GLTFReader::addSkin(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::addTexture(const QJsonObject& object) {
+bool GLTFSerializer::addTexture(const QJsonObject& object) {
     GLTFTexture texture; 
     getIntVal(object, "sampler", texture.sampler, texture.defined);
     getIntVal(object, "source", texture.source, texture.defined);
@@ -533,7 +533,7 @@ bool GLTFReader::addTexture(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::parseGLTF(const QByteArray& data) {
+bool GLTFSerializer::parseGLTF(const QByteArray& data) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
     
     QJsonDocument d = QJsonDocument::fromJson(data);
@@ -664,7 +664,7 @@ bool GLTFReader::parseGLTF(const QByteArray& data) {
     return true;
 }
 
-glm::mat4 GLTFReader::getModelTransform(const GLTFNode& node) {
+glm::mat4 GLTFSerializer::getModelTransform(const GLTFNode& node) {
     glm::mat4 tmat = glm::mat4(1.0);
 
     if (node.defined["matrix"] && node.matrix.size() == 16) {
@@ -697,7 +697,7 @@ glm::mat4 GLTFReader::getModelTransform(const GLTFNode& node) {
     return tmat;
 }
 
-bool GLTFReader::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
+bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
 
     //Build dependencies
     QVector<QVector<int>> nodeDependencies(_file.nodes.size());
@@ -899,7 +899,7 @@ bool GLTFReader::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                 }
 
                 mesh.meshIndex = hfmModel.meshes.size();
-                FBXReader::buildModelMesh(mesh, url.toString());
+                FBXSerializer::buildModelMesh(mesh, url.toString());
             }
             
         }
@@ -910,13 +910,12 @@ bool GLTFReader::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     return true;
 }
 
-HFMModel* GLTFReader::readGLTF(QByteArray& data, const QVariantHash& mapping, 
-                                  const QUrl& url, bool loadLightmaps, float lightmapLevel) {
+HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     
     _url = url;
 
     // Normalize url for local files
-    QUrl normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(url);
+    QUrl normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(_url);
     if (normalizeUrl.scheme().isEmpty() || (normalizeUrl.scheme() == "file")) {
         QString localFileName = PathUtils::expandToLocalDataAbsolutePath(normalizeUrl).toLocalFile();
         _url = QUrl(QFileInfo(localFileName).absoluteFilePath());
@@ -924,17 +923,17 @@ HFMModel* GLTFReader::readGLTF(QByteArray& data, const QVariantHash& mapping,
 
     parseGLTF(data);
     //_file.dump();
-    HFMModel* hfmModelPtr = new HFMModel();
+    auto hfmModelPtr = std::make_shared<HFMModel>();
     HFMModel& hfmModel = *hfmModelPtr;
 
-    buildGeometry(hfmModel, url);
+    buildGeometry(hfmModel, _url);
     
     //hfmDebugDump(data);
     return hfmModelPtr;
     
 }
 
-bool GLTFReader::readBinary(const QString& url, QByteArray& outdata) {
+bool GLTFSerializer::readBinary(const QString& url, QByteArray& outdata) {
     QUrl binaryUrl = _url.resolved(url);
 
     bool success;
@@ -943,7 +942,7 @@ bool GLTFReader::readBinary(const QString& url, QByteArray& outdata) {
     return success;
 }
 
-bool GLTFReader::doesResourceExist(const QString& url) {
+bool GLTFSerializer::doesResourceExist(const QString& url) {
     if (_url.isEmpty()) {
         return false;
     }
@@ -951,9 +950,9 @@ bool GLTFReader::doesResourceExist(const QString& url) {
     return DependencyManager::get<ResourceManager>()->resourceExists(candidateUrl);
 }
 
-std::tuple<bool, QByteArray> GLTFReader::requestData(QUrl& url) {
+std::tuple<bool, QByteArray> GLTFSerializer::requestData(QUrl& url) {
     auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
-        nullptr, url, true, -1, "GLTFReader::requestData");
+        nullptr, url, true, -1, "GLTFSerializer::requestData");
 
     if (!request) {
         return std::make_tuple(false, QByteArray());
@@ -972,7 +971,7 @@ std::tuple<bool, QByteArray> GLTFReader::requestData(QUrl& url) {
 }
 
 
-QNetworkReply* GLTFReader::request(QUrl& url, bool isTest) {
+QNetworkReply* GLTFSerializer::request(QUrl& url, bool isTest) {
     if (!qApp) {
         return nullptr;
     }
@@ -996,7 +995,7 @@ QNetworkReply* GLTFReader::request(QUrl& url, bool isTest) {
     return netReply;                // trying to sync later on.
 }
 
-HFMTexture GLTFReader::getHFMTexture(const GLTFTexture& texture) {
+HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
     HFMTexture fbxtex = HFMTexture();
     fbxtex.texcoordSet = 0;
     
@@ -1011,7 +1010,7 @@ HFMTexture GLTFReader::getHFMTexture(const GLTFTexture& texture) {
     return fbxtex;
 }
 
-void GLTFReader::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material) {
+void GLTFSerializer::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material) {
 
 
     if (material.defined["name"]) {
@@ -1074,7 +1073,7 @@ void GLTFReader::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& materia
 }
 
 template<typename T, typename L>
-bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int count, 
+bool GLTFSerializer::readArray(const QByteArray& bin, int byteOffset, int count,
                            QVector<L>& outarray, int accessorType) {
     
     QDataStream blobstream(bin);
@@ -1131,7 +1130,7 @@ bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int count,
     return true;
 }
 template<typename T>
-bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int count, 
+bool GLTFSerializer::addArrayOfType(const QByteArray& bin, int byteOffset, int count,
                                 QVector<T>& outarray, int accessorType, int componentType) {
     
     switch (componentType) {
@@ -1155,7 +1154,7 @@ bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int count
     return false;
 }
 
-void GLTFReader::retriangulate(const QVector<int>& inIndices, const QVector<glm::vec3>& in_vertices, 
+void GLTFSerializer::retriangulate(const QVector<int>& inIndices, const QVector<glm::vec3>& in_vertices,
                                const QVector<glm::vec3>& in_normals, QVector<int>& outIndices, 
                                QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals) {
     for (int i = 0; i < inIndices.size(); i = i + 3) {
@@ -1178,7 +1177,7 @@ void GLTFReader::retriangulate(const QVector<int>& inIndices, const QVector<glm:
     }
 }
 
-void GLTFReader::hfmDebugDump(const HFMModel& hfmModel) {
+void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "---------------- hfmModel ----------------";
     qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << hfmModel.offset;

@@ -21,6 +21,7 @@
 
 
 
+<<<<<<< HEAD
 //void Application::paintGL() {
 //    // Some plugins process message events, allowing paintGL to be called reentrantly.
 //
