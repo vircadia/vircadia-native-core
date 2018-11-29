@@ -121,15 +121,22 @@ Item {
                     top: titleText.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
                     left: parent.left
-                    leftMargin: (parent.width - bodyTextMetrics.width) / 2
                 }
                 text: qsTr("Please navigate to your default browser to recover your account.\nIf you are in a VR headset, please take it off.")
                 font.pixelSize: cantAccessBody.textFontSize
                 color: "white"
                 wrapMode: Text.WordWrap
-                lineHeight: 2
+                lineHeight: 1
                 lineHeightMode: Text.ProportionalHeight
                 horizontalAlignment: Text.AlignHCenter
+                Component.onCompleted: {
+                    bodyText.text = root.isTablet ? qsTr("Please navigate to your default browser\nto recover your account.\nIf you are in a VR headset, please take it off.") :
+                        qsTr("Please navigate to your default browser to recover your account.\nIf you are in a VR headset, please take it off.");
+                    bodyTextMetrics.text = bodyText.text;
+                    bodyText
+                    bodyText.anchors.leftMargin = (parent.width - bodyTextMetrics.width) / 2;
+
+                }
             }
         }
 
