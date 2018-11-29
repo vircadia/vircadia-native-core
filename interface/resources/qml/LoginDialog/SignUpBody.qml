@@ -59,7 +59,7 @@ Item {
                 parent.width = root.width = newWidth;
             }
 
-            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight) + hifi.dimensions.contentSpacing.y;
+            parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)) + hifi.dimensions.contentSpacing.y;
         }
     }
 
