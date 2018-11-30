@@ -366,7 +366,7 @@ void TestRunner::createSnapshotFolder() {
         // Note that we cannot use just a `png` filter, as the filenames include periods
         // Also, delete any `jpg` and `txt` files
         // The idea is to leave only previous zipped result folders
-        QDirIterator it(_snapshotFolder.toStdString().c_str());
+        QDirIterator it(QDir(_snapshotFolder, "", QDir::Name));
         while (it.hasNext()) {
             QString filename = it.next();
             if (filename.right(4) == ".png" || filename.right(4) == ".jpg" || filename.right(4) == ".txt") {

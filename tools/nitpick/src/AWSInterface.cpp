@@ -156,7 +156,7 @@ void AWSInterface::writeTable(QTextStream& stream) {
     // Note that failures are processed first, then successes
     QStringList originalNamesFailures;
     QStringList originalNamesSuccesses;
-    QDirIterator it1(_snapshotDirectory.toStdString().c_str());
+    QDirIterator it1(QDir(_snapshotDirectory, "", QDir::Name));
     while (it1.hasNext()) {
         QString nextDirectory = it1.next();
 
@@ -204,7 +204,7 @@ void AWSInterface::writeTable(QTextStream& stream) {
         QDir().rename(originalNamesSuccesses[i], _htmlSuccessesFolder + "/" + newNamesSuccesses[i]);
     }
 
-    QDirIterator it2((_htmlFailuresFolder).toStdString().c_str());
+    QDirIterator it2(QDir(_htmlFailuresFolder, "", QDir::Name));
     while (it2.hasNext()) {
         QString nextDirectory = it2.next();
 
@@ -239,7 +239,7 @@ void AWSInterface::writeTable(QTextStream& stream) {
     stream << "\t" << "\t" << "<font color=\"blue\">\n";
     stream << "\t" << "\t" << "<h1>The following tests passed:</h1>";
 
-    QDirIterator it3((_htmlSuccessesFolder).toStdString().c_str());
+    QDirIterator it3(QDir(_htmlSuccessesFolder, "", QDir::Name));
     while (it3.hasNext()) {
         QString nextDirectory = it3.next();
 
@@ -337,7 +337,7 @@ void AWSInterface::updateAWS() {
     stream << "import boto3\n";
     stream << "s3 = boto3.resource('s3')\n\n";
 
-    QDirIterator it1(_htmlFailuresFolder.toStdString().c_str());
+    QDirIterator it1(QDir(_htmlFailuresFolder, "", QDir::Name));
     while (it1.hasNext()) {
         QString nextDirectory = it1.next();
 
@@ -372,7 +372,7 @@ void AWSInterface::updateAWS() {
         }
     }
 
-    QDirIterator it2(_htmlSuccessesFolder.toStdString().c_str());
+    QDirIterator it2(QDir(_htmlSuccessesFolder, "", QDir::Name));
     while (it2.hasNext()) {
         QString nextDirectory = it2.next();
 

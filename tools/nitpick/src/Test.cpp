@@ -542,7 +542,7 @@ void Test::createAllMDFiles() {
         createMDFile(_testsRootDirectory);
     }
 
-    QDirIterator it(_testsRootDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    QDirIterator it(QDir(_testsRootDirectory, "", QDir::Name), QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
 
@@ -636,7 +636,7 @@ void Test::createAllTestAutoScripts() {
         createTestAutoScript(_testsRootDirectory);
     }
 
-    QDirIterator it(_testsRootDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    QDirIterator it(QDir(_testsRootDirectory, "", QDir::Name), QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
 
@@ -704,7 +704,7 @@ void Test::createAllRecursiveScripts() {
 
     createRecursiveScript(_testsRootDirectory, false);
 
-    QDirIterator it(_testsRootDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    QDirIterator it(QDir(_testsRootDirectory, "", QDir::Name), QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
 
@@ -716,7 +716,7 @@ void Test::createAllRecursiveScripts() {
 
         // Only process directories that have sub-directories
         bool hasNoSubDirectories{ true };
-        QDirIterator it2(directory.toStdString().c_str(), QDirIterator::Subdirectories);
+        QDirIterator it2(QDir(directory, "", QDir::Name), QDirIterator::Subdirectories);
         while (it2.hasNext()) {
             QString directory2 = it2.next();
 
@@ -787,7 +787,7 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
         testFound = true;
     }
 
-    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    QDirIterator it(QDir(topLevelDirectory, "", QDir::Name), QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
 
@@ -858,7 +858,7 @@ void Test::createTestsOutline() {
     int rootDepth { _testDirectory.count('/') };
 
     // Each test is shown as the folder name linking to the matching GitHub URL, and the path to the associated test.md file
-    QDirIterator it(_testDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    QDirIterator it(QDir(_testDirectory, "", QDir::Name), QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
 
