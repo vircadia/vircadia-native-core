@@ -110,7 +110,7 @@ Item {
             height: banner.height
             anchors {
                 bottom: loginContainer.top
-                bottomMargin: 0.125 * parent.height
+                bottomMargin: 0.12 * parent.height
             }
             Image {
                 id: banner
@@ -356,13 +356,12 @@ Item {
             }
             HifiControlsUit.Button {
                 id: cancelButton
-                width: emailField.width / 2
+                width: (emailField.width - hifi.dimensions.contentSpacing.x) / 2
                 height: d.minHeightButton
                 anchors {
                     top: keepMeLoggedInCheckbox.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
                     left: parent.left
-                    leftMargin: (parent.width - passwordField.width) / 2
                 }
                 color: hifi.buttons.noneBorderlessWhite
                 text: qsTr("CANCEL")
@@ -375,7 +374,7 @@ Item {
             }
             HifiControlsUit.Button {
                 id: signUpButton
-                width: emailField.width / 2
+                width: (emailField.width - hifi.dimensions.contentSpacing.x) / 2
                 height: d.minHeightButton
                 color: hifi.buttons.blue
                 text: qsTr("Sign Up")

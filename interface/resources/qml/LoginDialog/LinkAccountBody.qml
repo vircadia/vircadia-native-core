@@ -102,7 +102,7 @@ Item {
             height: banner.height
             anchors {
                 bottom: loginContainer.top
-                bottomMargin: 0.125 * parent.height
+                bottomMargin: 0.12 * parent.height
             }
             Image {
                 id: banner
