@@ -12,9 +12,9 @@
 #include "ModelCache.h"
 #include <Finally.h>
 #include <FSTReader.h>
-#include "FBXReader.h"
-#include "OBJReader.h"
-#include "GLTFReader.h"
+#include "FBXSerializer.h"
+#include "OBJSerializer.h"
+#include "GLTFSerializer.h"
 
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
@@ -193,24 +193,26 @@ void GeometryReader::run() {
 
             HFMModel::Pointer hfmModel;
 
+            QVariantHash serializerMapping = _mapping;
+            serializerMapping["combineParts"] = _combineParts;
+
             if (_url.path().toLower().endsWith(".fbx")) {
-                hfmModel.reset(readFBX(_data, _mapping, _url.path()));
+                hfmModel = FBXSerializer().read(_data, serializerMapping, _url);
                 if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported FBX version");
                 }
             } else if (_url.path().toLower().endsWith(".obj")) {
-                hfmModel = OBJReader().readOBJ(_data, _mapping, _combineParts, _url);
+                hfmModel = OBJSerializer().read(_data, serializerMapping, _url);
             } else if (_url.path().toLower().endsWith(".obj.gz")) {
                 QByteArray uncompressedData;
                 if (gunzip(_data, uncompressedData)){
-                    hfmModel = OBJReader().readOBJ(uncompressedData, _mapping, _combineParts, _url);
+                    hfmModel = OBJSerializer().read(uncompressedData, serializerMapping, _url);
                 } else {
                     throw QString("failed to decompress .obj.gz");
                 }
 
             } else if (_url.path().toLower().endsWith(".gltf")) {
-                std::shared_ptr<GLTFReader> glreader = std::make_shared<GLTFReader>();
-                hfmModel.reset(glreader->readGLTF(_data, _mapping, _url));
+                hfmModel = GLTFSerializer().read(_data, serializerMapping, _url);
                 if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported GLTF version");
                 }
