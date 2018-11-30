@@ -1,6 +1,6 @@
 # nitpick
 
-Nitpick is a stand alone application that provides a mechanism for regression testing.  The general idea is simple:
+Nitpick is a stand alone application that provides a mechanism for regression testing.  The general idea is simple: 
 * Each test folder has a script that produces a set of snapshots.
 * The snapshots are compared to a 'canonical' set of images that have been produced beforehand.
 * The result, if any test failed, is a zipped folder describing the failure.
