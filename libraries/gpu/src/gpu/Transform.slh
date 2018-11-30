@@ -168,10 +168,15 @@ TransformObject getTransformObject() {
         vec2 eyeOffsetScale = vec2(-0.5, +0.5);
         uint eyeIndex = uint(_stereoSide);
 #ifndef GPU_GLES
+#ifdef GPU_GL450
+        gl_ViewportIndex = _stereoSide + 1;
+      //  gl_ViewportIndex = 2 - _stereoSide;
+#else
         gl_ClipDistance[0] = dot(<$clipPos$>, eyeClipEdge[eyeIndex]);
 #endif
-        float newClipPosX = <$clipPos$>.x * 0.5 + eyeOffsetScale[eyeIndex] * <$clipPos$>.w;
-        <$clipPos$>.x = newClipPosX;
+#endif
+     //   float newClipPosX = <$clipPos$>.x * 0.5 + eyeOffsetScale[eyeIndex] * <$clipPos$>.w;
+     //   <$clipPos$>.x = newClipPosX;
 #endif
 
 #else
