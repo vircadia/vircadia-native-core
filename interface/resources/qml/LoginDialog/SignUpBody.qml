@@ -18,6 +18,7 @@ import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
 
 Item {
+    z: -2
     id: signUpBody
     clip: true
     height: root.height
@@ -394,6 +395,7 @@ Item {
     }
 
     MouseArea {
+        z: -2
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton
         onClicked: {
