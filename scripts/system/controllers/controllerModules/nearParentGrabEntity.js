@@ -11,7 +11,7 @@
    TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
    findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
    HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, findHandChildEntities, TEAR_AWAY_DISTANCE, MSECS_PER_SEC, TEAR_AWAY_CHECK_TIME,
-   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Uuid, highlightTargetEntity, unhighlightTargetEntity,
+   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Uuid,
    distanceBetweenEntityLocalPositionAndBoundingBox, getGrabbableData, getGrabPointSphereOffset, DISPATCHER_PROPERTIES
 */
 
@@ -45,7 +45,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.autoUnequipCounter = 0;
         this.lastUnexpectedChildrenCheckTime = 0;
         this.robbed = false;
-        this.highlightedEntity = null;
         this.cloneAllowed = true;
 
         this.parameters = makeDispatcherModuleParameters(
@@ -95,14 +94,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.startNearParentingGrabEntity = function (controllerData, targetProps) {
             var grabData = getGrabbableData(targetProps);
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-            unhighlightTargetEntity(this.targetEntityID);
-            this.highlightedEntity = null;
-            var message = {
-                hand: this.hand,
-                entityID: this.targetEntityID
-            };
 
-            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var handJointIndex;
             if (grabData.grabFollowsController) {
                 handJointIndex = getControllerJointIndex(this.hand);
@@ -164,8 +156,7 @@ Script.include("/~/system/libraries/controllers.js");
                 grabbedEntity: this.targetEntityID,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
-            unhighlightTargetEntity(this.targetEntityID);
-            this.highlightedEntity = null;
+
             this.grabbing = false;
             this.targetEntityID = null;
             this.robbed = false;
@@ -290,15 +281,9 @@ Script.include("/~/system/libraries/controllers.js");
                     return makeRunningValues(false, [], []); // let nearActionGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
-                    this.highlightedEntity = this.targetEntityID;
-                    highlightTargetEntity(this.targetEntityID);
                     return makeRunningValues(true, [this.targetEntityID], []);
                 }
             } else {
-                if (this.highlightedEntity) {
-                    unhighlightTargetEntity(this.highlightedEntity);
-                    this.highlightedEntity = null;
-                }
                 this.hapticTargetID = null;
                 this.robbed = false;
                 return makeRunningValues(false, [], []);
@@ -316,8 +301,6 @@ Script.include("/~/system/libraries/controllers.js");
                 var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
                 if (!props) {
                     // entity was deleted
-                    unhighlightTargetEntity(this.targetEntityID);
-                    this.highlightedEntity = null;
                     this.grabbing = false;
                     this.targetEntityID = null;
                     this.hapticTargetID = null;
@@ -335,12 +318,10 @@ Script.include("/~/system/libraries/controllers.js");
                 var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
                 Entities.callEntityMethod(this.targetEntityID, "continueNearGrab", args);
             } else {
-                // still searching / highlighting
+                // still searching
                 var readiness = this.isReady(controllerData);
                 if (!readiness.active) {
                     this.robbed = false;
-                    unhighlightTargetEntity(this.highlightedEntity);
-                    this.highlightedEntity = null;
                     return readiness;
                 }
                 if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
