@@ -25,6 +25,9 @@ public:
         META,
         OVERLAY_OPAQUE_SHAPE,
         OVERLAY_TRANSPARENT_SHAPE,
+        HUD_OPAQUE_SHAPE,
+        HUD_TRANSPARENT_SHAPE,
+
         BACKGROUND,
 
         NUM_BUCKETS
