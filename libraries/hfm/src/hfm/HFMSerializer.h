@@ -19,6 +19,12 @@
 namespace hfm {
 
 class Serializer {
+public:
+    class Factory {
+    public:
+        virtual std::shared_ptr<Serializer> get() = 0;
+    };
+
     virtual Model::Pointer read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url = hifi::URL()) = 0;
 };
 
