@@ -21,7 +21,6 @@ Item {
     z: -2
     id: linkAccountBody
     clip: true
-    focus: true
     height: root.height
     width: root.width
     property int textFieldHeight: 31
@@ -158,6 +157,7 @@ Item {
                     topMargin: loginErrorMessage.height
                 }
                 placeholderText: "Username or Email"
+                focus: true
                 activeFocusOnPress: true
                 Keys.onPressed: {
                     switch (event.key) {
@@ -326,7 +326,7 @@ Item {
                 height: d.minHeightButton
                 color: hifi.buttons.none;
                 anchors {
-                    top: cantAccessContainer.bottom
+                    top: cantAccessText.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
                     left: emailField.left
                 }
@@ -444,16 +444,6 @@ Item {
             }
         }
     }
-    MouseArea {
-        anchors.fill: parent
-        onClicked: {
-            print("clicked");
-            if (!emailField.focus && !passwordField.focus) {
-                print("forcing active focus");
-                emailField.forceActiveFocus();
-            }
-        }
-    }
 
     Component.onCompleted: {
         //but rise Tablet's one instead for Tablet interface
@@ -462,7 +452,6 @@ Item {
         root.text = "";
         d.resize();
         init();
-        emailField.forceActiveFocus();
     }
 
     Keys.onPressed: {
