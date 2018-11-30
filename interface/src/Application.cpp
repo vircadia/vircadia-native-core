@@ -5340,6 +5340,7 @@ void Application::pauseUntilLoginDetermined() {
     }
 
     getMyAvatar()->setEnableMeshVisible(false);
+    _controllerScriptingInterface->disableMapping("Standard to Action");
 
     const auto& nodeList = DependencyManager::get<NodeList>();
     // save interstitial mode setting until resuming.
@@ -5381,6 +5382,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
     updateSystemTabletMode();
 
     getMyAvatar()->setEnableMeshVisible(true);
+    _controllerScriptingInterface->enableMapping("Standard to Action");
 
     const auto& nodeList = DependencyManager::get<NodeList>();
     nodeList->getDomainHandler().setInterstitialModeEnabled(_interstitialModeEnabled);
@@ -8727,7 +8729,7 @@ void Application::createLoginDialogOverlay() {
         { "dpi", overlayDpi },
         { "visible", true }
     };
-
+    auto& overlays = getOverlays();
     _loginDialogOverlayID = getOverlays().addOverlay("web3d", overlayProperties);
     auto keyboard = DependencyManager::get<Keyboard>().data();
     if (!keyboard->getAnchorID().isNull() && !_loginDialogOverlayID.isNull()) {
@@ -8736,7 +8738,7 @@ void Application::createLoginDialogOverlay() {
             { "localPosition", vec3toVariant(glm::vec3(-0.3f, -0.3f, 0.2f)) },
             { "localOrientation", quatToVariant(glm::quat(0.0f, 0.0, 1.0f, 0.25f)) },
         };
-        getOverlays().editOverlay(keyboard->getAnchorID(), properties);
+        overlays.editOverlay(keyboard->getAnchorID(), properties);
         keyboard->setResetKeyboardPositionOnRaise(false);
     }
     getApplicationCompositor().getReticleInterface()->setAllowMouseCapture(false);

@@ -393,6 +393,16 @@ Item {
         }
     }
 
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        onClicked: {
+            if (!usernameField.focus && !emailField.focus && !passwordField.focus) {
+                usernameField.focus = true;
+            }
+        }
+    }
+
     Component.onCompleted: {
         //but rise Tablet's one instead for Tablet interface
         root.keyboardEnabled = HMD.active;

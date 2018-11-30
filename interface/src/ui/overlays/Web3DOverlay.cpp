@@ -223,6 +223,7 @@ bool Web3DOverlay::isWebContent() const {
 
 void Web3DOverlay::setupQmlSurface(bool isTablet) {
     _webSurface->getSurfaceContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
+    _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
     _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
@@ -242,7 +243,6 @@ void Web3DOverlay::setupQmlSurface(bool isTablet) {
         _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
         _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
 
-        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
         _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
         _webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
 

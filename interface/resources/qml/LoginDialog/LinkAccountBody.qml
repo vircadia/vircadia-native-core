@@ -18,6 +18,7 @@ import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
 
 Item {
+    z: -2
     id: linkAccountBody
     clip: true
     focus: true
@@ -82,6 +83,7 @@ Item {
     }
 
     Item {
+        z: 10
         id: mainContainer
         width: root.width
         height: root.height
@@ -439,6 +441,16 @@ Item {
                     loginDialog.dismissLoginDialog();
                 }
                 root.tryDestroy();
+            }
+        }
+    }
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            print("clicked");
+            if (!emailField.focus && !passwordField.focus) {
+                print("forcing active focus");
+                emailField.forceActiveFocus();
             }
         }
     }
