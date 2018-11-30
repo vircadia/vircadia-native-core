@@ -6304,6 +6304,11 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("enqueueFrame");
         getMain3DScene()->enqueueFrame();
     }
+
+    // If the display plugin is inactive then the frames won't be processed so process them here.
+    if (!getActiveDisplayPlugin()->isActive()) {
+        getMain3DScene()->processTransactionQueue();
+    }
 }
 
 void Application::updateRenderArgs(float deltaTime) {
