@@ -302,7 +302,6 @@ void AudioClient::customDeleter() {
 #if defined(Q_OS_ANDROID)
     _shouldRestartInputSetup = false;
 #endif
-    stop();
     deleteLater();
 }
 

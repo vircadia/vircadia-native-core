@@ -31,6 +31,7 @@ class KeyboardScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     Q_PROPERTY(bool raised READ isRaised WRITE setRaised)
     Q_PROPERTY(bool password READ isPassword WRITE setPassword)
+    Q_PROPERTY(bool use3DKeyboard READ getUse3DKeyboard);
 
 public:
     Q_INVOKABLE void loadKeyboardFile(const QString& string);
@@ -41,5 +42,7 @@ private:
 
     bool isPassword();
     void setPassword(bool password);
+
+    bool getUse3DKeyboard();
 };
 #endif
