@@ -675,6 +675,7 @@ void AudioClient::start() {
 }
 
 void AudioClient::stop() {
+    return;
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchInputToAudioDevice() to shut down";
     switchInputToAudioDevice(QAudioDeviceInfo(), true);
 
