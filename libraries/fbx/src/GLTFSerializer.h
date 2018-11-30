@@ -16,6 +16,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <hfm/ModelFormatLogging.h>
 #include <hfm/HFMSerializer.h>
+#include <hfm/HFMFormat.h>
 #include "FBXSerializer.h"
 
 
@@ -700,9 +701,20 @@ struct GLTFFile {
     }
 };
 
+class GLTFFormat : public hfm::Format {
+public:
+    virtual void registerFormat(hfm::FormatRegistry& registry) override;
+    virtual void unregisterFormat(hfm::FormatRegistry& registry) override;
+protected:
+    hfm::FormatRegistry::MIMETypeID mimeTypeID;
+};
+
 class GLTFSerializer : public QObject, public HFMSerializer {
     Q_OBJECT
 public:
+    class Factory : public HFMSerializer::Factory {
+        std::shared_ptr<HFMSerializer> get() override;
+    };
     GLTFSerializer();
     HFMModel::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
 private:

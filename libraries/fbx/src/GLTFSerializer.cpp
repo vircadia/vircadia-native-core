@@ -910,6 +910,22 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     return true;
 }
 
+void GLTFFormat::registerFormat(hfm::FormatRegistry& registry) {
+    MIMEType mimeType("gltf");
+    mimeType.extensions.push_back("gltf");
+    mimeType.webMediaTypes.push_back("model/gltf+json");
+    mimeTypeID = registry.registerMIMEType(mimeType, std::make_shared<GLTFSerializer::Factory>());
+}
+
+void GLTFFormat::unregisterFormat(hfm::FormatRegistry& registry) {
+    registry.unregisterMIMEType(mimeTypeID);
+    mimeTypeID = hfm::FormatRegistry::INVALID_MIME_TYPE_ID;
+}
+
+std::shared_ptr<HFMSerializer> GLTFSerializer::Factory::get() {
+    return std::make_shared<GLTFSerializer>();
+}
+
 HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     
     _url = url;

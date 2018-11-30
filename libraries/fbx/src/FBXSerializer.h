@@ -28,6 +28,7 @@
 
 #include "FBX.h"
 #include <hfm/HFMSerializer.h>
+#include <hfm/HFMFormat.h>
 
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
@@ -94,8 +95,20 @@ public:
 
 class ExtractedMesh;
 
+class FBXFormat : public hfm::Format {
+public:
+    virtual void registerFormat(hfm::FormatRegistry& registry) override;
+    virtual void unregisterFormat(hfm::FormatRegistry& registry) override;
+protected:
+    hfm::FormatRegistry::MIMETypeID mimeTypeID { hfm::FormatRegistry::INVALID_MIME_TYPE_ID };
+};
+
 class FBXSerializer : public HFMSerializer {
 public:
+    class Factory : public HFMSerializer::Factory {
+        std::shared_ptr<HFMSerializer> get() override;
+    };
+
     HFMModel* _hfmModel;
     /// Reads HFMModel from the supplied model and mapping data.
     /// \exception QString if an error occurs in parsing

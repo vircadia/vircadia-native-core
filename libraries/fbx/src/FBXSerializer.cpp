@@ -1833,6 +1833,22 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     return hfmModelPtr;
 }
 
+void FBXFormat::registerFormat(hfm::FormatRegistry& registry) {
+    MIMEType mimeType("fbx");
+    mimeType.extensions.push_back("fbx");
+    mimeType.fileSignatures.emplace_back("Kaydara FBX Binary  \x00", 0);
+    mimeTypeID = registry.registerMIMEType(mimeType, std::make_shared<FBXSerializer::Factory>());
+}
+
+void FBXFormat::unregisterFormat(hfm::FormatRegistry& registry) {
+    registry.unregisterMIMEType(mimeTypeID);
+    mimeTypeID = hfm::FormatRegistry::INVALID_MIME_TYPE_ID;
+}
+
+std::shared_ptr<HFMSerializer> FBXSerializer::Factory::get() {
+    return std::make_shared<FBXSerializer>();
+}
+
 HFMModel::Pointer FBXSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);

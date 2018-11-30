@@ -651,6 +651,20 @@ done:
     return result;
 }
 
+void OBJFormat::registerFormat(hfm::FormatRegistry& registry) {
+    MIMEType mimeType("obj");
+    mimeType.extensions.push_back("obj");
+    mimeTypeID = registry.registerMIMEType(mimeType, std::make_shared<OBJSerializer::Factory>());
+}
+
+void OBJFormat::unregisterFormat(hfm::FormatRegistry& registry) {
+    registry.unregisterMIMEType(mimeTypeID);
+    mimeTypeID = hfm::FormatRegistry::INVALID_MIME_TYPE_ID;
+}
+
+std::shared_ptr<HFMSerializer> OBJSerializer::Factory::get() {
+    return std::make_shared<OBJSerializer>();
+}
 
 HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
