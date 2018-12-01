@@ -151,7 +151,14 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto& metas = items[RenderFetchCullSortTask::META];
     const auto& overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
     const auto& overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
-    
+    const auto& overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+    const auto& overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
+    const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
+    const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
+    const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
+
+ 
 //const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
     const auto& spatialSelection = fetchedItems[1];
 
