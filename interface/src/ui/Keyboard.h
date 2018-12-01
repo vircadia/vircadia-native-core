@@ -94,7 +94,7 @@ public:
     void registerKeyboardHighlighting();
     bool isRaised() const;
     void setRaised(bool raised);
-
+    void setResetKeyboardPositionOnRaise(bool reset);
     bool isPassword() const;
     void setPassword(bool password);
 
