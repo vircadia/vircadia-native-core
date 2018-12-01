@@ -61,7 +61,7 @@ Item {
                 RalewaySemiBold {
                     text: Account.loggedIn ? qsTr("Log out") : qsTr("Log in")
                     horizontalAlignment: Text.AlignRight
-                    anchors.right: parent.right
+                    Layout.alignment: Qt.AlignRight
                     font.pixelSize: 20
                     color: "#afafaf"
                 }
@@ -71,7 +71,7 @@ Item {
                     height: Account.loggedIn ? parent.height/2 - parent.spacing/2 : 0
                     text: Account.loggedIn ? "[" + tabletRoot.usernameShort + "]" : ""
                     horizontalAlignment: Text.AlignRight
-                    anchors.right: parent.right
+                    Layout.alignment: Qt.AlignRight
                     font.pixelSize: 20
                     color: "#afafaf"
                 }
