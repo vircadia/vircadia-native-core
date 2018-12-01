@@ -337,6 +337,13 @@ void AudioMixerClientData::removeAgentAvatarAudioStream() {
 
     if (it != _audioStreams.end()) {
         _audioStreams.erase(it);
+
+        // Clear mixing structures so that they get recreated with up to date
+        // data if the stream comes back
+        setHasReceivedFirstMix(false);
+        _streams.skipped.clear();
+        _streams.inactive.clear();
+        _streams.active.clear();
     }
 }
 
