@@ -1,6 +1,6 @@
 //
-//  FBXReader.h
-//  interface/src/renderer
+//  FBXSerializer.h
+//  libraries/fbx/src
 //
 //  Created by Andrzej Kapolka on 9/18/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_FBXReader_h
-#define hifi_FBXReader_h
+#ifndef hifi_FBXSerializer_h
+#define hifi_FBXSerializer_h
 
 #include <QtGlobal>
 #include <QMetaType>
@@ -27,21 +27,13 @@
 #include <Transform.h>
 
 #include "FBX.h"
-#include <hfm/HFM.h>
+#include <hfm/HFMSerializer.h>
 
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
 
 class QIODevice;
 class FBXNode;
-
-/// Reads HFMModel from the supplied model and mapping data.
-/// \exception QString if an error occurs in parsing
-HFMModel* readFBX(const QByteArray& data, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
-
-/// Reads HFMModel from the supplied model and mapping data.
-/// \exception QString if an error occurs in parsing
-HFMModel* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 class TextureParam {
 public:
@@ -102,9 +94,12 @@ public:
 
 class ExtractedMesh;
 
-class FBXReader {
+class FBXSerializer : public HFMSerializer {
 public:
     HFMModel* _hfmModel;
+    /// Reads HFMModel from the supplied model and mapping data.
+    /// \exception QString if an error occurs in parsing
+    HFMModel::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
 
     FBXNode _rootNode;
     static FBXNode parseFBX(QIODevice* device);
@@ -147,9 +142,9 @@ public:
 
     void consolidateHFMMaterials(const QVariantHash& mapping);
 
-    bool _loadLightmaps = true;
-    float _lightmapOffset = 0.0f;
-    float _lightmapLevel;
+    bool _loadLightmaps { true };
+    float _lightmapOffset { 0.0f };
+    float _lightmapLevel { 1.0f };
 
     QMultiMap<QString, QString> _connectionParentMap;
     QMultiMap<QString, QString> _connectionChildMap;
@@ -166,4 +161,4 @@ public:
     static QVector<double> getDoubleVector(const FBXNode& node);
 };
 
-#endif // hifi_FBXReader_h
+#endif // hifi_FBXSerializer_h

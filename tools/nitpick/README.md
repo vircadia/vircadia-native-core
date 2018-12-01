@@ -1,6 +1,6 @@
 # nitpick
 
-Nitpick is a stand alone application that provides a mechanism for regression testing.  The general idea is simple:
+Nitpick is a stand alone application that provides a mechanism for regression testing.  The general idea is simple: 
 * Each test folder has a script that produces a set of snapshots.
 * The snapshots are compared to a 'canonical' set of images that have been produced beforehand.
 * The result, if any test failed, is a zipped folder describing the failure.
@@ -12,70 +12,99 @@ Nitpick has 5 functions, separated into 4 tabs:
 1. Evaluating the results of running tests
 1. Web interface
 
-## Installation
-### Executable
-1. On Windows: download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/nitpick/nitpick-installer-v1.0.exe>).
-2. Double click on the installer and install to a convenient location  
+## Build (for developers)
+Nitpick is built as part of the High Fidelity build.
+### Creating installers
+#### Windows
+1.  Verify that 7Zip is installed.
+1.  cd to the `build\tools\nitpick\Release` directory
+1.  Delete any existing installers (named nitpick-installer-###.exe)
+1.  Select all, right-click and select 7-Zip->Add to archive...
+1.  Set Archive format to 7z
+1.  Check "Create SFX archive
+1.  Enter installer name (i.e. `nitpick-installer-v1.1.exe`)
+1.  Click "OK"
+1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe: aws s3 cp nitpick-installer-v1.1.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.1.exe
+#### Mac
+These steps assume the hifi repository has been cloned to `~/hifi`.
+1.  (first time) Install brew
+    In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
+1.  (First time) install create-dmg:
+    In a terminal: `brew install create-dmg`
+1.  In a terminal: cd to the `build/tools/nitpick/Release` folder
+1.  Copy the quazip dynamic library (note final period):
+    In a terminal: `cp ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib .`
+1.  Change the loader instruction to find the dynamic library locally
+    In a terminal: `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib libquazip5.1.dylib nitpick`
+1.  Delete any existing disk images. In a terminal: `rm *.dmg`
+1.  Create installer (note final period).In a terminal: `create-dmg --volname nitpick-installer-v1.1 nitpick-installer-v1.1.dmg .`  
+    Make sure to wait for completion.
+1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.1.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.1.dmg`
+### Installation
+#### Windows
+1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe)
+1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
+    1. After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
+1.  (First time) download and install AWS CLI from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/AWSCLI64PY3.msi (also available at https://aws.amazon.com/cli/
+    1.  Open a new command prompt and run `aws configure`
+    1.  Enter the AWS account number
+    1.  Enter the secret key
+    1.  Leave region name and ouput format as default [None]
+    1.  Install the latest release of Boto3 via pip:  `pip install boto3`
+
+1. Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe>)
+1. Double click on the installer and install to a convenient location  
 ![](./setup_7z.PNG)
-3. To run nitpick, double click **nitpick.exe**.
-### Python
-The TestRail interface requires Python 3 to be installed. Nitpick has been tested with Python 3.7.0 but should work with newer versions.
 
-Python 3 can be downloaded from:
-1. Windows installer   <https://www.python.org/downloads/>
-2. Linux (source)      <https://www.python.org/downloads/release/python-370/> (**Gzipped source tarball**)
-3. Mac                 <https://www.python.org/downloads/release/python-370/> (**macOS 64-bit/32-bit installer** or **macOS 64-bit/32-bit installer**)
- 
-#### Windows
-After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
-
+1. __To run nitpick, double click **nitpick.exe**__
 #### Mac
-After installation - run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
-Verify that `/usr/local/bin/python3` exists.  
+1.  (first time) Install brew
+    In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
+1.  (First time) install Qt:
+    In a terminal: `brew install qt`
+1.  (First time) install Python from https://www.python.org/downloads/release/python-370/ (**macOS 64-bit installer** or **macOS 64-bit/32-bit installer**)
+    1. After installation - In a terminal: run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
+    1. Verify that `/usr/local/bin/python3` exists.  
+1.  (First time - AWS interface) Install pip with the script provided by the Python Packaging Authority:  
+In a terminal: `curl -O https://bootstrap.pypa.io/get-pip.py`
+In a terminal: `python3 get-pip.py --user`  
+    1.  Use pip to install the AWS CLI.  
+        `pip3 install awscli --upgrade --user` 
+        This will install aws in your user.  For user XXX, aws will be located in ~/Library/Python/3.7/bin  
+    1.  Open a new command prompt and run `~/Library/Python/3.7/bin/aws configure`  
+    1.  Enter the AWS account number
+    1.  Enter the secret key
+    1.  Leave region name and ouput format as default [None]
+    1.  Install the latest release of Boto3 via pip:  pip3 install boto3
+1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.1.dmg>).
+1.  Double-click on the downloaded image to mount it
+1. Create a folder for the nitpick files (e.g. ~/nitpick)
+   If this folder exists then delete all it's contents.
+1. Copy the downloaded files to the folder  
+   In a terminal:  
+     `cd ~/nitpick`  
+     `cp -r /Volumes/nitpick-installer-v1.1/* .`
 
-### AWS interface
-#### Windows
-1.  Download the AWS CLI from `https://aws.amazon.com/cli/`
-1.  Install (installer is named `AWSCLI64PY3.msi`)
-1.  Open a new command prompt and run `aws configure`
-1.  Enter the AWS account number
-1.  Enter the secret key
-1.  Leave region name and ouput format as default [None]
-1.  Install the latest release of Boto3 via pip:  
-pip install boto3
-#### Mac
-1.  Install pip with the script provided by the Python Packaging Authority:  
-$ curl -O https://bootstrap.pypa.io/get-pip.py  
-$ python3 get-pip.py --user  
-
-1.  Use pip to install the AWS CLI.  
-$ pip3 install awscli --upgrade --user  
-This will install aws in your user.  For user XXX, aws will be located in /Users/XXX/Library/Python/3.7/bin  
-1.  Open a new command prompt and run `aws configure`  
-1.  Enter the AWS account number
-1.  Enter the secret key
-1.  Leave region name and ouput format as default [None]
-1.  Install the latest release of Boto3 via pip:  
-pip3 install boto3
-
-# Create
+1. __To run nitpick, cd to the folder that you copied to and run `./nitpick`__  
+# Usage
+## Create
 ![](./Create.PNG)
 
 The Create tab provides functions to create tests from snapshots, MD files, a test outline and recursive scripts.
-## Create Tests
-### Usage
+### Create Tests
+#### Usage
 This function is used to create/update Expected Images after a successful run of a test, or multiple tests.
 
 The user will be asked for the snapshot folder and then the tests root folder.  All snapshots located in the snapshot folder will be used to create or update the expected images in the relevant tests.
-### Details
+#### Details
 As an example - if the snapshots folder contains an image named `tests.content.entity.zone.zoneOrientation.00003.png`, then this file will be copied to `tests/contente/enity/zone/zoneOrientation/ExpectedImage0003.png`.
-## Create Tests Outline
-### Usage
+### Create Tests Outline
+#### Usage
 This function creates an MD file in the (user-selected) tests root folder.  The file provides links to both the tests and the MD files.
-## Create MD file
-### Usage
+### Create MD file
+#### Usage
 This function creates a file named `test.md` from a `test.js` script.  The user will be asked for the folder containing the test script:
-### Details
+#### Details
 The process to produce the MD file is a simplistic parse of the test script.
 - The string in the `nitpick.perform(...)` function call will be the title of the file
 
@@ -86,25 +115,25 @@ The process to produce the MD file is a simplistic parse of the test script.
 - The step description is the string in the addStep/addStepStepSnapshot commands
 
 - Image links are provided where applicable to the local Expected Images files
-## Create all MD files
-### Usage
+### Create all MD files
+#### Usage
 This function creates all MD files recursively from the user-selected root folder.  This can be any folder in the tests hierarchy (e.g. all engine\material tests).
 
 The file provides a hierarchal list of all the tests 
-## Create testAuto script
-### Usage
+### Create testAuto script
+#### Usage
 This function creates a script named `testAuto.js` in a user-selected test folder.
-### Details
+#### Details
 The script created runs the `test.js` script in the folder in automatic mode.  The script is the same for all tests.
-## Create all testAuto scripts
-### Usage
+### Create all testAuto scripts
+#### Usage
 This function creates all testAuto scripts recursively from the user-selected root folder.  This can be any folder in the tests hierarchy (e.g. all engine\material tests).
 
 The file provides a hierarchical list of all the tests 
-## Create Recursive Script
-### Usage
+### Create Recursive Script
+#### Usage
 After the user selects a folder within the tests hierarchy, a script is created, named `testRecursive.js`.  This script calls all `test.js` scripts in the sub-folders.
-### Details
+#### Details
 The various scripts are called in alphabetical order.
 
 An example of a recursive script is as follows:  
@@ -130,18 +159,18 @@ Script.include(testsRootPath + "content/overlay/layer/drawHUDLayer/test.js");
 
 nitpick.runRecursive();
 ```
-## Create all Recursive Scripts
-### Usage
+### Create all Recursive Scripts
+#### Usage
 In this case all recursive scripts, from the selected folder down, are created.
 
 Running this function in the tests root folder will create (or update) all the recursive scripts.
-# Windows
+## Windows
 ![](./Windows.PNG)
 
 This tab is Windows-specific.  It provides buttons to hide and show the task bar.
 
 The task bar should be hidden for all tests that use the primary camera.  This is required to ensure that the snapshots are the right size.
-# Run
+## Run
 ![](./Run.PNG)
 The run tab is used to run tests in automatic mode.  The tests require the location of a folder to store files in; this folder can safely be re-used for any number of runs (the "Working Folder"). 
 The test script that is run is `https://github.com/highfidelity/hifi_tests/blob/master/tests/testRecursive.js`.  The user can use a different branch' or even repository, if required.  
@@ -163,7 +192,7 @@ The working folder will ultimately contain the following:
 1.  The `dev-builds.xml` file, if it was downloaded.  
 1.  The HighFidelity installer.  Note that this is always named `HighFidelity-Beta-latest-dev` so as not to store too many installers over time.  
 1.  A log file describing the runs.  This file is appended to after each run.
-# Evaluate
+## Evaluate
 ![](./Evaluate.PNG)
 
 The Evaluate tab provides a single function - evaluating the results of a test run.
@@ -171,11 +200,11 @@ The Evaluate tab provides a single function - evaluating the results of a test r
 A checkbox (defaulting to checked) runs the evaluation in interactive mode.  In this mode - every failure is shown to the user, who can then decide whether to pass the test, fail it or abort the whole evaluation.
 
 If any tests have failed, then a zipped folder will be created in the snapshots folder, with a description of each failed step in each test.
-### Usage
+#### Usage
 Before starting the evaluation, make sure the GitHub user and branch are set correctly.  The user should not normally be changed, but the branch may need to be set to the appropriate RC.
 
 After setting the check-box as required and pressing Evaluate - the user will be asked for the snapshots folder.
-### Details
+#### Details
 Evaluation proceeds in a number of steps:
 
 1. A folder is created to store any failures
@@ -191,7 +220,7 @@ Evaluation proceeds in a number of steps:
 
 1.  At the end of the test, the folder is zipped and the original folder is deleted.  If there are no errors then the zipped folder will be empty.
 
-# Web Interface
+## Web Interface
 ![](./WebInterface.PNG)
 This tab has two functions:  updating the TestRail cases, runs and results, and creating web page reports that are stored on AWS.  
 
@@ -206,8 +235,8 @@ Any access to TestRail will require the TestRail account (default is High Fideli
 - The Project ID defaults to 14 - Interface.
 - The Suite ID defaults to 1147 - Rendering.
 - The TestRail page provides 3 functions for writing to TestRail.
-## Create Test Cases
-### Usage
+### Create Test Cases
+#### Usage
 This function can either create an XML file that can then be imported into TestRail through TestRail itself, or automatically create the appropriate TestRail Sections.
 
 The user will be first asked for the tests root folder and a folder to store temporary files (this is the output folder).
@@ -219,7 +248,7 @@ If Python is selected, the user will then be prompted for TestRail data.  After 
 After selecting the appropriate Release, press OK.  The Python script will be created in the output folder, and the user will be prompted to run it.
 
 A busy window will appear until the process is complete.
-### Details
+#### Details
 A number of Python scripts are created:
 - `testrail.py` is the TestRail interface code.
 - `stack.py` is a simple stack class
@@ -227,7 +256,7 @@ A number of Python scripts are created:
 - `addTestCases` is the script that writes to TestRail.
 
 In addition - a file containing all the releases will be created - `releases.txt`
-## Create Run
+### Create Run
 A Run is created from previously created Test Cases.
 
 The user will first be prompted for a temporary folder (for the Python scripts).
@@ -237,7 +266,7 @@ After entering TestRail data and pressing `Accept` - the Sections combo will be 
 After selecting the appropriate Section, press OK.  The Python script will be created in the output folder, and the user will be prompted to run it.
 
 A busy window will appear until the process is complete.
-### Details
+#### Details
 A number of Python scripts are created:
 - `testrail.py` is the TestRail interface code.
 - `stack.py` is a simple stack class
@@ -245,7 +274,7 @@ A number of Python scripts are created:
 - `addRun` is the script that writes to TestRail.
 
 In addition - a file containing all the releases will be created - `sections.txt`
-## Update Run Results
+### Update Run Results
 This function updates a Run with the results of an automated test.
 
 The user will first be prompted to enter the zipped results folder and a folder to store temporary files (this is the output folder).
@@ -255,13 +284,13 @@ After entering TestRail data and pressing `Accept` - the Run combo will be popul
 After selecting the appropriate Run, press OK.  The Python script will be created in the output folder, and the user will be prompted to run it.
 
 A busy window will appear until the process is complete.
-### Details
+#### Details
 A number of Python scripts are created:
 - `testrail.py` is the TestRail interface code.
 - `getRuns.py` reads the release names from TestRail
 - `addRun` is the script that writes to TestRail.
 
 In addition - a file containing all the releases will be created - `runs.txt`.
-## Create Web Page
+### Create Web Page
 This function requests a zipped results folder and converts it to a web page.  The page is created in a user-selecetd working folder.  
 If the `Update AWS` checkbox is checked then the page will also be copied to AWS, and the appropriate URL will be displayed in the window below the button.

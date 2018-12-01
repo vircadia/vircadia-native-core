@@ -23,6 +23,8 @@ Item {
     width: root.pane.width
     property bool failAfterSignUp: false
 
+    onWidthChanged: d.resize();
+
     function login() {
         flavorText.visible = false
         mainTextContainer.visible = false
@@ -127,7 +129,7 @@ Item {
     Column {
         id: form
         width: parent.width
-        onHeightChanged: d.resize(); onWidthChanged: d.resize();
+        onHeightChanged: d.resize();
 
         anchors {
             top: mainTextContainer.bottom

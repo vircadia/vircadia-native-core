@@ -620,7 +620,7 @@ void Test::createTestAutoScript() {
     } 
     
     if (createTestAutoScript(_testDirectory)) {
-        QMessageBox::information(0, "Success", "'nitpick.js` script has been created");
+        QMessageBox::information(0, "Success", "'testAuto.js` script has been created");
     }
 }
 
@@ -677,7 +677,7 @@ bool Test::createTestAutoScript(const QString& directory) {
 
     stream << "if (typeof PATH_TO_THE_REPO_PATH_UTILS_FILE === 'undefined') PATH_TO_THE_REPO_PATH_UTILS_FILE = 'https://raw.githubusercontent.com/highfidelity/hifi_tests/master/tests/utils/branchUtils.js';\n";
     stream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);\n";
-    stream << "var nitpick = createAutoTester(Script.resolvePath('.'));\n\n";
+    stream << "var nitpick = createNitpick(Script.resolvePath('.'));\n\n";
     stream << "nitpick.enableAuto();\n\n";
     stream << "Script.include('./test.js?raw=true');\n";
 
@@ -748,9 +748,9 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
 
     QTextStream textStream(&allTestsFilename);
 
-    textStream << "// This is an automatically generated file, created by auto-tester" << endl;
+    textStream << "// This is an automatically generated file, created by nitpick" << endl;
 
-    // Include 'autoTest.js'
+    // Include 'nitpick.js'
     QString branch = nitpick->getSelectedBranch();
     QString user = nitpick->getSelectedUser();
 
@@ -758,7 +758,7 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
                       "/tests/utils/branchUtils.js\";"
                << endl;
     textStream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);" << endl;
-    textStream << "var nitpick = createAutoTester(Script.resolvePath(\".\"));" << endl << endl;
+    textStream << "var nitpick = createNitpick(Script.resolvePath(\".\"));" << endl << endl;
 
     textStream << "var testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
 

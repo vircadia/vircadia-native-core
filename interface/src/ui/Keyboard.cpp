@@ -60,7 +60,7 @@ static const float MALLET_TOUCH_Y_OFFSET = 0.050f;
 static const float MALLET_Y_OFFSET = 0.160f;
 
 static const glm::quat MALLET_ROTATION_OFFSET{0.70710678f, 0.0f, -0.70710678f, 0.0f};
-static const glm::vec3 MALLET_MODEL_DIMENSIONS{0.03f, MALLET_LENGTH, 0.03f};
+static const glm::vec3 MALLET_MODEL_DIMENSIONS{0.01f, MALLET_LENGTH, 0.01f};
 static const glm::vec3 MALLET_POSITION_OFFSET{0.0f, -MALLET_Y_OFFSET / 2.0f, 0.0f};
 static const glm::vec3 MALLET_TIP_OFFSET{0.0f, MALLET_LENGTH - MALLET_TOUCH_Y_OFFSET, 0.0f};
 
@@ -241,6 +241,17 @@ void Keyboard::registerKeyboardHighlighting() {
     selection->enableListToScene(KEY_PRESSED_HIGHLIGHT);
 }
 
+bool Keyboard::getUse3DKeyboard() const {
+    return _use3DKeyboardLock.resultWithReadLock<bool>([&] {
+        return _use3DKeyboard.get();
+    });
+}
+
+void Keyboard::setUse3DKeyboard(bool use) {
+    _use3DKeyboardLock.withWriteLock([&] {
+        _use3DKeyboard.set(use);
+    });
+}
 
 void Keyboard::createKeyboard() {
     auto pointerManager = DependencyManager::get<PointerManager>();
