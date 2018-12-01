@@ -28,6 +28,7 @@
 #include <ResourceManager.h>
 
 #include "FBXSerializer.h"
+#include <hfm/HFMSimpleFormat.h>
 #include <hfm/ModelFormatLogging.h>
 #include <shared/PlatformHacks.h>
 
@@ -651,20 +652,13 @@ done:
     return result;
 }
 
-void OBJFormat::registerFormat(hfm::FormatRegistry& registry) {
+MIMEType getOBJMIMEType() {
     MIMEType mimeType("obj");
     mimeType.extensions.push_back("obj");
-    mimeTypeID = registry.registerMIMEType(mimeType, std::make_shared<OBJSerializer::Factory>());
+    return mimeType;
 }
 
-void OBJFormat::unregisterFormat(hfm::FormatRegistry& registry) {
-    registry.unregisterMIMEType(mimeTypeID);
-    mimeTypeID = hfm::FormatRegistry::INVALID_MIME_TYPE_ID;
-}
-
-std::shared_ptr<HFMSerializer> OBJSerializer::Factory::get() {
-    return std::make_shared<OBJSerializer>();
-}
+std::shared_ptr<hfm::Format> OBJSerializer::FORMAT = std::make_shared<hfm::SimpleFormat<OBJSerializer>>(getOBJMIMEType());
 
 HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);

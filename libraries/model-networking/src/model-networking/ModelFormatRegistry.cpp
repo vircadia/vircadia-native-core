@@ -20,9 +20,9 @@ ModelFormatRegistry::ModelFormatRegistry() : hfm::FormatRegistry() {
 }
 
 void ModelFormatRegistry::addDefaultFormats() {
-    addFormat(std::make_shared<FBXFormat>());
-    addFormat(std::make_shared<OBJFormat>());
-    addFormat(std::make_shared<GLTFFormat>());
+    addFormat(FBXSerializer::FORMAT);
+    addFormat(OBJSerializer::FORMAT);
+    addFormat(GLTFSerializer::FORMAT);
 }
 
 void ModelFormatRegistry::addFormat(const std::shared_ptr<hfm::Format>& format) {

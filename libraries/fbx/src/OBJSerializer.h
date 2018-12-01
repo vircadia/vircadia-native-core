@@ -90,20 +90,11 @@ public:
     OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.0f), illuminationModel(-1) {}
 };
 
-class OBJFormat : public hfm::Format {
-public:
-    virtual void registerFormat(hfm::FormatRegistry& registry) override;
-    virtual void unregisterFormat(hfm::FormatRegistry& registry) override;
-protected:
-    hfm::FormatRegistry::MIMETypeID mimeTypeID;
-};
-
 class OBJSerializer: public QObject, public HFMSerializer { // QObject so we can make network requests.
     Q_OBJECT
 public:
-    class Factory : public HFMSerializer::Factory {
-        std::shared_ptr<HFMSerializer> get() override;
-    };
+    static std::shared_ptr<hfm::Format> FORMAT;
+    
     typedef QVector<OBJFace> FaceGroup;
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> vertexColors;

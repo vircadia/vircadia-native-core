@@ -95,19 +95,9 @@ public:
 
 class ExtractedMesh;
 
-class FBXFormat : public hfm::Format {
-public:
-    virtual void registerFormat(hfm::FormatRegistry& registry) override;
-    virtual void unregisterFormat(hfm::FormatRegistry& registry) override;
-protected:
-    hfm::FormatRegistry::MIMETypeID mimeTypeID { hfm::FormatRegistry::INVALID_MIME_TYPE_ID };
-};
-
 class FBXSerializer : public HFMSerializer {
 public:
-    class Factory : public HFMSerializer::Factory {
-        std::shared_ptr<HFMSerializer> get() override;
-    };
+    static std::shared_ptr<hfm::Format> FORMAT;
 
     HFMModel* _hfmModel;
     /// Reads HFMModel from the supplied model and mapping data.

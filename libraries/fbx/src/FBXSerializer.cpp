@@ -33,6 +33,7 @@
 #include <gpu/Format.h>
 #include <LogHandler.h>
 
+#include <hfm/HFMSimpleFormat.h>
 #include <hfm/ModelFormatLogging.h>
 
 // TOOL: Uncomment the following line to enable the filtering of all the unkwnon fields of a node so we can break point easily while loading a model with problems...
@@ -1833,21 +1834,14 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     return hfmModelPtr;
 }
 
-void FBXFormat::registerFormat(hfm::FormatRegistry& registry) {
+MIMEType getFBXMIMEType() {
     MIMEType mimeType("fbx");
     mimeType.extensions.push_back("fbx");
     mimeType.fileSignatures.emplace_back("Kaydara FBX Binary  \x00", 0);
-    mimeTypeID = registry.registerMIMEType(mimeType, std::make_shared<FBXSerializer::Factory>());
+    return mimeType;
 }
 
-void FBXFormat::unregisterFormat(hfm::FormatRegistry& registry) {
-    registry.unregisterMIMEType(mimeTypeID);
-    mimeTypeID = hfm::FormatRegistry::INVALID_MIME_TYPE_ID;
-}
-
-std::shared_ptr<HFMSerializer> FBXSerializer::Factory::get() {
-    return std::make_shared<FBXSerializer>();
-}
+std::shared_ptr<hfm::Format> FBXSerializer::FORMAT = std::make_shared<hfm::SimpleFormat<FBXSerializer>>(getFBXMIMEType());
 
 HFMModel::Pointer FBXSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
