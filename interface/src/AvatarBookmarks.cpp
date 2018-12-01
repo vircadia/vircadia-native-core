@@ -247,25 +247,35 @@ QVariantMap AvatarBookmarks::getAvatarDataToBookmark() {
     bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
     bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
 
-    QScriptEngine scriptEngine;
     QVariantList wearableEntities;
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    auto avatarEntities = myAvatar->getAvatarEntityData();
-    for (auto entityID : avatarEntities.keys()) {
-        auto entity = entityTree->findEntityByID(entityID);
-        if (!entity || !isWearableEntity(entity)) {
-            continue;
+
+    if (entityTree) {
+        QScriptEngine scriptEngine;
+        auto avatarEntities = myAvatar->getAvatarEntityData();
+        for (auto entityID : avatarEntities.keys()) {
+            auto entity = entityTree->findEntityByID(entityID);
+            if (!entity || !isWearableEntity(entity)) {
+                continue;
+            }
+
+            QVariantMap avatarEntityData;
+
+            EncodeBitstreamParams params;
+            auto desiredProperties = entity->getEntityProperties(params);
+            desiredProperties += PROP_LOCAL_POSITION;
+            desiredProperties += PROP_LOCAL_ROTATION;
+            desiredProperties -= PROP_JOINT_ROTATIONS_SET;
+            desiredProperties -= PROP_JOINT_ROTATIONS;
+            desiredProperties -= PROP_JOINT_TRANSLATIONS_SET;
+            desiredProperties -= PROP_JOINT_TRANSLATIONS;
+
+            EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
+            QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
+            avatarEntityData["properties"] = scriptProperties.toVariant();
+            wearableEntities.append(QVariant(avatarEntityData));
         }
-        QVariantMap avatarEntityData;
-        EncodeBitstreamParams params;
-        auto desiredProperties = entity->getEntityProperties(params);
-        desiredProperties += PROP_LOCAL_POSITION;
-        desiredProperties += PROP_LOCAL_ROTATION;
-        EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
-        QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
-        avatarEntityData["properties"] = scriptProperties.toVariant();
-        wearableEntities.append(QVariant(avatarEntityData));
     }
     bookmark.insert(ENTRY_AVATAR_ENTITIES, wearableEntities);
     return bookmark;

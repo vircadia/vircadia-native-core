@@ -25,14 +25,15 @@ Item {
 
     id: root;
 
-    property bool isDisplayingNearby; // as opposed to 'connections'
+    // true when sending to 'nearby' or when a script raises the send asset dialog
+    property bool multiLineDisplay;
     property string displayName;
     property string userName;
     property string profilePic;
     property string textColor: hifi.colors.white;
 
     Item {
-        visible: root.isDisplayingNearby;
+        visible: root.multiLineDisplay;
         anchors.fill: parent;
 
         RalewaySemiBold {
@@ -71,7 +72,7 @@ Item {
     }
 
     Item {
-        visible: !root.isDisplayingNearby;
+        visible: !root.multiLineDisplay;
         anchors.fill: parent;
 
         Image {
