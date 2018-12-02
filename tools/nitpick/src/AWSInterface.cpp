@@ -36,6 +36,9 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
 
     if (updateAWSCheckBox->isChecked()) {
         updateAWS();
+        QMessageBox::information(0, "Success", "HTML file has been created and copied to AWS");
+    } else {
+        QMessageBox::information(0, "Success", "HTML file has been created");
     }
 }
 
