@@ -18,7 +18,7 @@
 
 namespace hfm {
 
-class FormatRegistry : public ReadWriteLockable {
+class FormatRegistry {
 public:
     using MIMETypeID = MIMETypeLibrary::ID;
     static const MIMETypeID INVALID_MIME_TYPE_ID { MIMETypeLibrary::INVALID_ID };
@@ -31,6 +31,7 @@ public:
 
 protected:
     MIMETypeLibrary _mimeTypeLibrary;
+    std::mutex _libraryLock;
     class SupportedFormat {
     public:
         SupportedFormat(const MIMETypeID& mimeTypeID, std::unique_ptr<Serializer::Factory>& factory) :

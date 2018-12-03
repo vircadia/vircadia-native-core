@@ -27,9 +27,10 @@ void ModelFormatRegistry::addDefaultFormats() {
 
 void ModelFormatRegistry::addFormat(const std::shared_ptr<hfm::Format>& format) {
     format->registerFormat(*this);
-    withWriteLock([&](){
+    {
+        std::lock_guard<std::mutex> lock(_formatsLock);
         formats.push_back(format);
-    });
+    }
 }
 
 ModelFormatRegistry::~ModelFormatRegistry() {

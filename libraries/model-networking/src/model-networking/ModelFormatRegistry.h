@@ -24,6 +24,7 @@ public:
 protected:
     void addDefaultFormats();
     std::vector<std::shared_ptr<hfm::Format>> formats;
+    std::mutex _formatsLock;
 };
 
 #endif // hifi_ModelFormatRegistry_h
