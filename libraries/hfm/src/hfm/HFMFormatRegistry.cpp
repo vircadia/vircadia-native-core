@@ -50,7 +50,14 @@ std::shared_ptr<Serializer> FormatRegistry::getSerializerForMIMEType(const hifi:
     {
         // TODO: shared_lock in C++14
         std::lock_guard<std::mutex> lock(*const_cast<std::mutex*>(&_libraryLock));
-        id = _mimeTypeLibrary.findMatchingMIMEType(data, url, webMediaType);
+
+        id = _mimeTypeLibrary.findMIMETypeForData(data);
+        if (id == INVALID_MIME_TYPE_ID) {
+            id = _mimeTypeLibrary.findMIMETypeForURL(url);
+        }
+        if (id == INVALID_MIME_TYPE_ID) {
+            id = _mimeTypeLibrary.findMIMETypeForMediaType(webMediaType);
+        }
     }
     return getSerializerForMIMETypeID(id);
 }

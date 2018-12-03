@@ -35,7 +35,7 @@ MIMEType MIMETypeLibrary::getMIMEType(const MIMETypeLibrary::ID& id) const {
     return MIMEType::NONE;
 }
 
-MIMETypeLibrary::ID MIMETypeLibrary::findMatchingMIMEType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const {
+MIMETypeLibrary::ID MIMETypeLibrary::findMIMETypeForData(const hifi::ByteArray& data) const {
     // Check file contents
     for (auto& mimeType : _mimeTypes) {
         for (auto& fileSignature : mimeType.mimeType.fileSignatures) {
@@ -46,6 +46,10 @@ MIMETypeLibrary::ID MIMETypeLibrary::findMatchingMIMEType(const hifi::ByteArray&
         }
     }
 
+    return INVALID_ID;
+}
+
+MIMETypeLibrary::ID MIMETypeLibrary::findMIMETypeForURL(const hifi::URL& url) const {
     // Check file extension
     std::string urlString = url.path().toStdString();
     std::size_t extensionSeparator = urlString.rfind('.');
@@ -60,6 +64,10 @@ MIMETypeLibrary::ID MIMETypeLibrary::findMatchingMIMEType(const hifi::ByteArray&
         }
     }
 
+    return INVALID_ID;
+}
+
+MIMETypeLibrary::ID MIMETypeLibrary::findMIMETypeForMediaType(const std::string& webMediaType) const {
     // Check web media type
     if (webMediaType != "") {
         for (auto& supportedFormat : _mimeTypes) {
@@ -71,6 +79,5 @@ MIMETypeLibrary::ID MIMETypeLibrary::findMatchingMIMEType(const hifi::ByteArray&
         }
     }
 
-    // Supported file type not found.
     return INVALID_ID;
 }
