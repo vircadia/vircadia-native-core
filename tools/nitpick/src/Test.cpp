@@ -653,7 +653,7 @@ void Test::createAllTestAutoScripts() {
         }
     }
 
-    QMessageBox::information(0, "Success", "'nitpick.js' scripts have been created");
+    QMessageBox::information(0, "Success", "All 'testAuto.js' scripts have been created");
 }
 
 bool Test::createTestAutoScript(const QString& directory) {
@@ -737,16 +737,17 @@ void Test::createAllRecursiveScripts() {
 }
 
 void Test::createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode) {
-    const QString recursiveTestsFilename("testRecursive.js");
-    QFile allTestsFilename(topLevelDirectory + "/" + recursiveTestsFilename);
-    if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    const QString recursiveTestsScriptName("testRecursive.js");
+    const QString recursiveTestsFilename(topLevelDirectory + "/" + recursiveTestsScriptName);
+    QFile recursiveTestsFile(recursiveTestsFilename);
+    if (!recursiveTestsFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Failed to create \"" + recursiveTestsFilename + "\" in directory \"" + topLevelDirectory + "\"");
+                              "Failed to create \"" + recursiveTestsScriptName + "\" in directory \"" + topLevelDirectory + "\"");
 
         exit(-1);
     }
 
-    QTextStream textStream(&allTestsFilename);
+    QTextStream textStream(&recursiveTestsFile);
 
     textStream << "// This is an automatically generated file, created by nitpick" << endl;
 
@@ -809,7 +810,15 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
 
     if (interactiveMode && !testFound) {
         QMessageBox::information(0, "Failure", "No \"" + TEST_FILENAME + "\" files found");
-        allTestsFilename.close();
+        recursiveTestsFile.close();
+        return;
+    }
+
+    // If 'directories' is empty, this means that this recursive script has no tests to call, so it is redundant
+    // The script will be closed and deleted
+    if (directories.length() == 0) {
+        recursiveTestsFile.close();
+        QFile::remove(recursiveTestsFilename);
         return;
     }
 
@@ -821,7 +830,7 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     textStream << endl;
     textStream << "nitpick.runRecursive();" << endl;
 
-    allTestsFilename.close();
+    recursiveTestsFile.close();
 }
 
 void Test::createTestsOutline() {
