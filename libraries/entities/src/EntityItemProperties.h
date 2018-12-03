@@ -80,7 +80,6 @@ class EntityItemProperties {
     friend class LineEntityItem;
     friend class PolyLineEntityItem;
     friend class PolyVoxEntityItem;
-    friend class GridEntityItem;
     friend class LightEntityItem;
     friend class ZoneEntityItem;
     friend class MaterialEntityItem;
