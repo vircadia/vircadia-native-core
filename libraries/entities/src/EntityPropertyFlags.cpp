@@ -67,7 +67,7 @@ QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
     result = f.getHasProperty(PROP_LINE_POINTS) ? result + "linePoints " : result;
     result = f.getHasProperty(PROP_HREF) ? result + "href " : result;
     result = f.getHasProperty(PROP_DESCRIPTION) ? result + "description " : result;
-    result = f.getHasProperty(PROP_FACE_CAMERA) ? result + "faceCamera " : result;
+    result = f.getHasProperty(PROP_BILLBOARD_MODE) ? result + "billboardMode " : result;
     result = f.getHasProperty(PROP_SCRIPT_TIMESTAMP) ? result + "scriptTimestamp " : result;
     result = f.getHasProperty(PROP_ACTION_DATA) ? result + "actionData " : result;
     result = f.getHasProperty(PROP_X_TEXTURE_URL) ? result + "xTextureUrl " : result;

@@ -32,6 +32,8 @@ namespace EntityPsuedoPropertyFlag {
         RenderInfo,
         ClientOnly,
         OwningAvatarID,
+        FaceCamera,
+        IsFacingAvatar,
 
         NumFlags
     };

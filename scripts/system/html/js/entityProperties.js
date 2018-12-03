@@ -471,7 +471,7 @@ const GROUPS = [
                 label: "Image",
                 type: "string",
                 placeholder: "URL",
-                propertyID: "image",
+                propertyID: "imageURL",
             },
         ]
     },
@@ -1783,14 +1783,6 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
     updateProperty(propertyName, propertyValue, isParticleProperty);
 }
 
-function createImageURLUpdateFunction(property) {
-    return function () {
-        let newTextures = JSON.stringify({ "tex.picture": this.value });
-        updateProperty(property.name, newTextures, property.isParticleProperty);
-    };
-}
-
-
 /**
  * PROPERTY ELEMENT CREATION FUNCTIONS
  */
@@ -3035,17 +3027,6 @@ function loaded() {
                         // the event bridge and json parsing handle our avatar id string differently.
                         lastEntityID = '"' + selectedEntityProperties.id + '"';
 
-                        // HTML workaround since image is not yet a separate entity type
-                        let IMAGE_MODEL_NAME = 'default-image-model.fbx';
-                        if (selectedEntityProperties.type === "Model") {
-                            let urlParts = selectedEntityProperties.modelURL.split('/');
-                            let propsFilename = urlParts[urlParts.length - 1];
-
-                            if (propsFilename === IMAGE_MODEL_NAME) {
-                                selectedEntityProperties.type = "Image";
-                            }
-                        }
-
                         showGroupsForType(selectedEntityProperties.type);
                         
                         for (let propertyID in properties) {
@@ -3171,10 +3152,7 @@ function loaded() {
 
                         updateVisibleSpaceModeProperties();
 
-                        if (selectedEntityProperties.type === "Image") {
-                            let imageLink = JSON.parse(selectedEntityProperties.textures)["tex.picture"];
-                            getPropertyInputElement("image").value = imageLink;
-                        } else if (selectedEntityProperties.type === "Material") {
+                        if (selectedEntityProperties.type === "Material") {
                             let elParentMaterialNameString = getPropertyInputElement("materialNameToReplace");
                             let elParentMaterialNameNumber = getPropertyInputElement("submeshToReplace");
                             let elParentMaterialNameCheckbox = getPropertyInputElement("selectSubmesh");
@@ -3339,8 +3317,6 @@ function loaded() {
                 showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
             }
         });
-        
-        getPropertyInputElement("image").addEventListener('change', createImageURLUpdateFunction(properties['textures']));
         
         // Collapsible sections
         let elCollapsible = document.getElementsByClassName("collapse-icon");

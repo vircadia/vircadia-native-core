@@ -42,7 +42,6 @@ var TITLE_OFFSET = 60;
 var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 
-var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
 var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
 
 var createToolsWindow = new CreateWindow(
@@ -398,8 +397,8 @@ const DEFAULT_ENTITY_PROPERTIES = {
         },
         shapeType: "box",
         collisionless: true,
-        modelURL: IMAGE_MODEL,
-        textures: JSON.stringify({ "tex.picture": "" })
+        keepAspectRatio: false,
+        imageURL: DEFAULT_IMAGE
     },
     Web: {
         dimensions: {
@@ -495,9 +494,6 @@ var toolBar = (function () {
         var type = requestedProperties.type;
         if (type === "Box" || type === "Sphere") {
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
-        } else if (type === "Image") {
-            requestedProperties.type = "Model";
-            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Image);
         } else {
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES[type]);
         }
@@ -515,7 +511,7 @@ var toolBar = (function () {
             }
             direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
 
-            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web", "Material"];
+            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Image", "Web", "Material"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
 
                 // Adjust position of entity per bounding box prior to creating it.

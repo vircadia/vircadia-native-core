@@ -681,6 +681,10 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::ClientOnly);
         } else if (extendedPropertyString == "owningAvatarID") {
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::OwningAvatarID);
+        } else if (extendedPropertyString == "faceCamera") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::FaceCamera);
+        } else if (extendedPropertyString == "isFacingAvatar") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::IsFacingAvatar);
         }
     };
 
