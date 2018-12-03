@@ -146,7 +146,7 @@ public:
             Concept(name, config),
             _data(Data(std::forward<A>(args)...)),
             _input(input),
-            _output(Output()) {
+            _output(Output(), name + ".o") {
             applyConfiguration();
         }
 

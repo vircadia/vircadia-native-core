@@ -27,12 +27,13 @@ public:
        _concept = var._concept;
         return (*this);
     }
-    template <class T> Varying(const T& data) : _concept(std::make_shared<Model<T>>(data)) {}
+    template <class T> Varying(const T& data, const std::string& name = "noname") : _concept(std::make_shared<Model<T>>(data, name)) {}
 
     template <class T> bool canCast() const { return !!std::dynamic_pointer_cast<Model<T>>(_concept); }
     template <class T> const T& get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
     template <class T> T& edit() { return std::static_pointer_cast<Model<T>>(_concept)->_data; }
 
+    const std::string& name() const { return _concept->name(); }
 
     // access potential sub varyings contained in this one.
     Varying operator[] (uint8_t index) const { return (*_concept)[index]; }
@@ -46,16 +47,22 @@ public:
 protected:
     class Concept {
     public:
+        Concept(const std::string& name) : _name(name) {}
+
         virtual ~Concept() = default;
 
         virtual Varying operator[] (uint8_t index) const = 0;
         virtual uint8_t length() const = 0;
+
+        const std::string name() { return _name; }
+
+        const std::string _name;
     };
     template <class T> class Model : public Concept {
     public:
         using Data = T;
 
-        Model(const Data& data) : _data(data) {}
+        Model(const Data& data, const std::string& name) : Concept(name), _data(data) {}
         virtual ~Model() = default;
 
         virtual Varying operator[] (uint8_t index) const override {
@@ -406,6 +413,29 @@ public:
 
     const T8& get8() const { return std::get<8>((*this)).template get<T8>(); }
     T8& edit8() { return std::get<8>((*this)).template edit<T8>(); }
+    virtual Varying operator[] (uint8_t index) const {
+        switch (index) {
+        default:
+            return std::get<0>((*this));
+        case 1:
+            return std::get<1>((*this));
+        case 2:
+            return std::get<2>((*this));
+        case 3:
+            return std::get<3>((*this));
+        case 4:
+            return std::get<4>((*this));
+        case 5:
+            return std::get<5>((*this));
+        case 6:
+            return std::get<6>((*this));
+        case 7:
+            return std::get<7>((*this));
+        case 8:
+            return std::get<8>((*this));
+        };
+    }
+    virtual uint8_t length() const { return 9; }
 
     Varying asVarying() const { return Varying((*this)); }
 };
