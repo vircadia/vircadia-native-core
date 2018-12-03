@@ -704,8 +704,6 @@ struct GLTFFile {
 class GLTFSerializer : public QObject, public HFMSerializer {
     Q_OBJECT
 public:
-    GLTFSerializer();
-
     static std::shared_ptr<hfm::Format> FORMAT;
 
     HFMModel::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;

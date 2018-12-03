@@ -36,11 +36,6 @@
 #include "FBXSerializer.h"
 #include <hfm/HFMSimpleFormat.h>
 
-
-GLTFSerializer::GLTFSerializer() {
-
-}
-
 bool GLTFSerializer::getStringVal(const QJsonObject& object, const QString& fieldname,
                               QString& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isString());
