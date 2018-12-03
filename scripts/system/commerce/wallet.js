@@ -615,7 +615,9 @@ function notificationPollCallbackHistory(historyArray) {
                 ui.notificationDisplayBanner(message);
             } else {
                 for (var i = 0; i < notificationCount; i++) {
-                    message = '"' + (historyArray[i].message) + '" ' +
+                    var historyMessage = historyArray[i].message;
+                    var sanitizedHistoryMessage = historyMessage.replace(/<\/?[^>]+(>|$)/g, "");
+                    message = '"' + sanitizedHistoryMessage + '" ' +
                         "Open INVENTORY to see all activity.";
                     ui.notificationDisplayBanner(message);
                 }
