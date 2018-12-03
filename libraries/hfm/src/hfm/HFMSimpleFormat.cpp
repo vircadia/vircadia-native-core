@@ -24,7 +24,7 @@ namespace hfm {
 
     template<typename T>
     void SimpleFormat<T>::registerFormat(FormatRegistry& registry) {
-        _mimeTypeID = registry.registerMIMEType(_mimeType, std::make_shared<SimpleFactory<T>>());
+        _mimeTypeID = registry.registerMIMEType(_mimeType, std::make_unique<SimpleFactory<T>>());
     }
 
     template<typename T>

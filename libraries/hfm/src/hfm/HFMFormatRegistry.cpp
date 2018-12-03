@@ -13,7 +13,7 @@
 
 namespace hfm {
 
-FormatRegistry::MIMETypeID FormatRegistry::registerMIMEType(const MIMEType& mimeType, const std::shared_ptr<Serializer::Factory>& supportedFactory) {
+FormatRegistry::MIMETypeID FormatRegistry::registerMIMEType(const MIMEType& mimeType, std::unique_ptr<Serializer::Factory>& supportedFactory) {
     MIMETypeID id = _mimeTypeLibrary.registerMIMEType(mimeType);
     withWriteLock([&](){
         _supportedFormats.emplace_back(id, supportedFactory);
@@ -33,20 +33,20 @@ void FormatRegistry::unregisterMIMEType(const MIMETypeID& mimeTypeID) {
     _mimeTypeLibrary.unregisterMIMEType(mimeTypeID);
 }
 
-std::shared_ptr<Serializer::Factory> FormatRegistry::getFactoryForMIMETypeID(FormatRegistry::MIMETypeID mimeTypeID) const {
-    return resultWithReadLock<std::shared_ptr<Serializer::Factory>>([&](){
+std::shared_ptr<Serializer> FormatRegistry::getSerializerForMIMETypeID(FormatRegistry::MIMETypeID mimeTypeID) const {
+    return resultWithReadLock<std::shared_ptr<Serializer>>([&](){
         for (auto it = _supportedFormats.begin(); it != _supportedFormats.end(); it++) {
             if ((*it).mimeTypeID == mimeTypeID) {
-                return (*it).factory;
+                return (*it).factory->get();
             }
         }
-        return std::shared_ptr<Serializer::Factory>();
+        return std::shared_ptr<Serializer>();
     });
 }
 
-std::shared_ptr<Serializer::Factory> FormatRegistry::getFactoryForMIMEType(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url, const std::string& webMediaType) const {
+std::shared_ptr<Serializer> FormatRegistry::getSerializerForMIMEType(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url, const std::string& webMediaType) const {
     MIMETypeID id = _mimeTypeLibrary.findMatchingMIMEType(data, mapping, url, webMediaType);
-    return getFactoryForMIMETypeID(id);
+    return getSerializerForMIMETypeID(id);
 }
 
 };
