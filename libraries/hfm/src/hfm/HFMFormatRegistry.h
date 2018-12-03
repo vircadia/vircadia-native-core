@@ -23,7 +23,7 @@ public:
     using MIMETypeID = MIMETypeLibrary::ID;
     static const MIMETypeID INVALID_MIME_TYPE_ID { MIMETypeLibrary::INVALID_ID };
 
-    MIMETypeID registerMIMEType(const MIMEType& mimeType, std::unique_ptr<Serializer::Factory>& supportedFactory);
+    MIMETypeID registerMIMEType(const MIMEType& mimeType, std::unique_ptr<Serializer::Factory> supportedFactory);
     void unregisterMIMEType(const MIMETypeID& id);
 
     std::shared_ptr<Serializer> getSerializerForMIMEType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const;

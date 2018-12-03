@@ -13,7 +13,7 @@
 
 namespace hfm {
 
-FormatRegistry::MIMETypeID FormatRegistry::registerMIMEType(const MIMEType& mimeType, std::unique_ptr<Serializer::Factory>& supportedFactory) {
+FormatRegistry::MIMETypeID FormatRegistry::registerMIMEType(const MIMEType& mimeType, std::unique_ptr<Serializer::Factory> supportedFactory) {
     std::lock_guard<std::mutex> lock(_libraryLock);
 
     MIMETypeID id = _mimeTypeLibrary.registerMIMEType(mimeType);
