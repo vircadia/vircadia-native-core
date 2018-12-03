@@ -45,12 +45,12 @@ std::shared_ptr<Serializer> FormatRegistry::getSerializerForMIMETypeID(FormatReg
     return std::shared_ptr<Serializer>();
 }
 
-std::shared_ptr<Serializer> FormatRegistry::getSerializerForMIMEType(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url, const std::string& webMediaType) const {
+std::shared_ptr<Serializer> FormatRegistry::getSerializerForMIMEType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const {
     MIMETypeID id;
     {
         // TODO: shared_lock in C++14
         std::lock_guard<std::mutex> lock(*const_cast<std::mutex*>(&_libraryLock));
-        id = _mimeTypeLibrary.findMatchingMIMEType(data, mapping, url, webMediaType);
+        id = _mimeTypeLibrary.findMatchingMIMEType(data, url, webMediaType);
     }
     return getSerializerForMIMETypeID(id);
 }

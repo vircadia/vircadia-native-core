@@ -68,7 +68,7 @@ public:
     void unregisterMIMEType(const ID& id);
 
     MIMEType getMIMEType(const ID& id) const;
-    ID findMatchingMIMEType(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url, const std::string& webMediaType) const;
+    ID findMatchingMIMEType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const;
 
 protected:
     ID nextID { 1 };

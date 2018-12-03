@@ -35,7 +35,7 @@ MIMEType MIMETypeLibrary::getMIMEType(const MIMETypeLibrary::ID& id) const {
     return MIMEType::NONE;
 }
 
-MIMETypeLibrary::ID MIMETypeLibrary::findMatchingMIMEType(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url, const std::string& webMediaType) const {
+MIMETypeLibrary::ID MIMETypeLibrary::findMatchingMIMEType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const {
     // Check file contents
     for (auto& mimeType : _mimeTypes) {
         for (auto& fileSignature : mimeType.mimeType.fileSignatures) {
