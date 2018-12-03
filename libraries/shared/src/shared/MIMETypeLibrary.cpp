@@ -11,6 +11,8 @@
 
 #include "MIMETypeLibrary.h"
 
+MIMEType MIMEType::NONE = MIMEType("");
+
 MIMETypeLibrary::ID MIMETypeLibrary::registerMIMEType(const MIMEType& mimeType) {
     ID id = nextID++;
     _mimeTypes.emplace_back(id, mimeType);

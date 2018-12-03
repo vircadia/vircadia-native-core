@@ -57,8 +57,6 @@ public:
     std::vector<FileSignature> fileSignatures;
 };
 
-MIMEType MIMEType::NONE = MIMEType("");
-
 class MIMETypeLibrary {
 public:
     using ID = unsigned int;
