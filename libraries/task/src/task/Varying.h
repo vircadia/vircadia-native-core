@@ -17,6 +17,15 @@
 #include <array>
 
 namespace task {
+class Varying;
+
+template <class T> Varying varyingGetSub(const T& data, uint8_t index) {
+   return Varying();
+}
+
+template <class T> uint8_t varyingGetLength(const T& data) {
+    return 0;
+}
 
 // A varying piece of data, to be used as Job/Task I/O
 class Varying {
@@ -66,10 +75,11 @@ protected:
         virtual ~Model() = default;
 
         virtual Varying operator[] (uint8_t index) const override {
-            Varying var;
-            return var;
+            return varyingGetSub<T>(_data, index);
         }
-        virtual uint8_t length() const override { return 0; }
+        virtual uint8_t length() const override {
+            return varyingGetLength<T>(_data);
+        }
 
         Data _data;
     };
@@ -106,6 +116,12 @@ public:
     Varying asVarying() const { return Varying((*this)); }
 };
 
+template <typename T0, typename T1> Varying varyingGetSub(const VaryingSet2<T0, T1>& dat, uint8_t index) {
+    return data[index];
+}
+template <typename T0, typename T1> uint8_t varyingGetLength(const VaryingSet2<T0, T1>& data) {
+    return data.length();
+}
 
 template <class T0, class T1, class T2>
 class VaryingSet3 : public std::tuple<Varying, Varying,Varying>{
