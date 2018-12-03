@@ -19,8 +19,6 @@
 
 #include "HifiTypes.h"
 
-#include "ReadWriteLockable.h"
-
 // A short sequence of bytes, typically at the beginning of the file, which identifies the file format
 class FileSignature {
 public:
@@ -61,7 +59,7 @@ public:
 
 MIMEType MIMEType::NONE = MIMEType("");
 
-class MIMETypeLibrary : ReadWriteLockable {
+class MIMETypeLibrary {
 public:
     using ID = unsigned int;
     static const ID INVALID_ID { 0 };
