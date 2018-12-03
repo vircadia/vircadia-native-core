@@ -17,7 +17,7 @@
 
 #include <DependencyManager.h>
 
-class ModelFormatRegistry : public hfm::FormatRegistry, Dependency {
+class ModelFormatRegistry : public hfm::FormatRegistry, public Dependency {
 public:
     ModelFormatRegistry();
     ~ModelFormatRegistry();
