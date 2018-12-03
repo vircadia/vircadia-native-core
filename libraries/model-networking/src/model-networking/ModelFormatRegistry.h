@@ -15,7 +15,9 @@
 #include <hfm/HFMFormat.h>
 #include <hfm/HFMFormatRegistry.h>
 
-class ModelFormatRegistry : public hfm::FormatRegistry {
+#include <DependencyManager.h>
+
+class ModelFormatRegistry : public hfm::FormatRegistry, Dependency {
 public:
     ModelFormatRegistry();
     ~ModelFormatRegistry();
