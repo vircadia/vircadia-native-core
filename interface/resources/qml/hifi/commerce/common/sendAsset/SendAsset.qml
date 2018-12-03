@@ -36,7 +36,7 @@ Item {
     property bool isCurrentlySendingAsset: false;
     property string assetName: "";
     property string assetCertID: "";
-    property string secret: "";
+    property string couponID: "";
     property string authorizationID: "";
     property string sendingPubliclyEffectImage;
     property var http;
@@ -120,9 +120,9 @@ Item {
             if (result.status === 'success') {
                 root.authorizationID = result.data.authorization_id;
                 authorizationIDText.text = root.authorizationID;
-                root.secret = result.data.secret;
-                secretText.text = root.secret
-                if (scriptSecretTextField.text !== root.secret) {
+                root.couponID = result.data.secret;
+                couponIDText.text = root.couponID
+                if (couponIDTextField.text !== root.couponID) {
                     console.log("SendAsset: Returned secret doesn't match client-generated secret!");
                 }
                 root.nextActiveView = 'paymentSuccess';
@@ -394,7 +394,7 @@ Item {
             }
 
             Item {
-                id: authorizedScriptButton;
+                id: createCouponButton;
                 // Anchors
                 anchors.top: nearbyButton.bottom;
                 anchors.topMargin: 32;
@@ -404,7 +404,7 @@ Item {
 
                 Image {
                     anchors.top: parent.top;
-                    source: "./images/nearby.svg";
+                    source: "./images/coupon.svg";
                     height: 70;
                     width: parent.width;
                     fillMode: Image.PreserveAspectFit;
@@ -414,7 +414,7 @@ Item {
                 }
 
                 RalewaySemiBold {
-                    text: "Authorized Script";
+                    text: "Create Coupon";
                     // Anchors
                     anchors.bottom: parent.bottom;
                     height: 15;
@@ -429,9 +429,9 @@ Item {
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: {
-                        sendAssetStep.referrer = "authorizedScript";
+                        sendAssetStep.referrer = "createCoupon";
                         sendAssetStep.selectedRecipientNodeID = "";
-                        scriptSecretTextField.text = generateRandomSecret();
+                        couponIDTextField.text = generateRandomCouponID();
 
                         root.nextActiveView = "sendAssetStep";
                     }
@@ -928,7 +928,7 @@ Item {
         id: sendAssetStep;
         z: 996;
 
-        property string referrer; // either "connections", "nearby", "payIn", or "authorizedScript"
+        property string referrer; // either "connections", "nearby", "payIn", or "createCoupon"
         property string selectedRecipientNodeID;
         property string selectedRecipientDisplayName;
         property string selectedRecipientUserName;
@@ -940,7 +940,7 @@ Item {
 
         RalewaySemiBold {
             id: sendAssetText_sendAssetStep;
-            text: ((sendAssetStep.referrer === "payIn" || sendAssetStep.referrer === "authorizedScript") &&
+            text: ((sendAssetStep.referrer === "payIn" || sendAssetStep.referrer === "createCoupon") &&
                 root.assetCertID !== "") ? "Send \"" + root.assetName + "\":" :
                 (root.assetCertID === "" ? "Send Money To:" : "Gift \"" + root.assetName + "\" To:");
             // Anchors
@@ -970,7 +970,7 @@ Item {
 
             RalewaySemiBold {
                 id: sendToText_sendAssetStep;
-                text: sendAssetStep.referrer === "authorizedScript" ? "Script Secret:" :
+                text: sendAssetStep.referrer === "createCoupon" ? "Coupon ID:" :
                     (root.assetCertID === "" || sendAssetStep.referrer === "payIn") ? "Send to:" : "Gift to:";
                 // Anchors
                 anchors.top: parent.top;
@@ -985,7 +985,7 @@ Item {
             }
 
             RecipientDisplay {
-                visible: sendAssetStep.referrer !== "authorizedScript";
+                visible: sendAssetStep.referrer !== "createCoupon";
                 anchors.top: parent.top;
                 anchors.left: sendToText_sendAssetStep.right;
                 anchors.leftMargin: 16;
@@ -1002,15 +1002,15 @@ Item {
             }
 
             Item {
-                id: scriptSecretContainer;
-                visible: sendAssetStep.referrer === "authorizedScript";
+                id: couponIDContainer;
+                visible: sendAssetStep.referrer === "createCoupon";
                 anchors.top: parent.top;
                 anchors.left: sendToText_sendAssetStep.right;
                 anchors.right: parent.right;
                 height: parent.height;
                 
                 RalewaySemiBold {
-                    id: scriptSecretHelp;
+                    id: couponIDHelp;
                     text: "[?]";
                     // Anchors
                     anchors.left: parent.left;
@@ -1032,9 +1032,9 @@ Item {
                             parent.color = hifi.colors.blueAccent;
                         }
                         onClicked: {
-                            lightboxPopup.titleText = "Script Secret";
+                            lightboxPopup.titleText = "Coupon ID";
                             lightboxPopup.bodyText = "This alphanumeric text string will be used to ensure " +
-                                "that only your scripts have access to the asset that you are sending. Keep it private!";
+                                "that only you can redeem the coupon for the asset that you are sending. Keep it private!";
                             lightboxPopup.button1text = "CLOSE";
                             lightboxPopup.button1method = function() {
                                 lightboxPopup.visible = false;
@@ -1045,11 +1045,11 @@ Item {
                 }
 
                 HifiControlsUit.TextField {
-                    id: scriptSecretTextField;
+                    id: couponIDTextField;
                     colorScheme: root.assetCertID === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                     // Anchors
                     anchors.verticalCenter: parent.verticalCenter;
-                    anchors.left: scriptSecretHelp.right;
+                    anchors.left: couponIDHelp.right;
                     anchors.leftMargin: 16;
                     anchors.right: parent.right;
                     height: 50;
@@ -1073,7 +1073,7 @@ Item {
                 height: 35;
                 width: 100;
                 text: "CHANGE";
-                visible: sendAssetStep.referrer !== "payIn" && sendAssetStep.referrer !== "authorizedScript";
+                visible: sendAssetStep.referrer !== "payIn" && sendAssetStep.referrer !== "createCoupon";
                 onClicked: {
                     if (sendAssetStep.referrer === "connections") {
                         root.nextActiveView = "chooseRecipientConnection";
@@ -1397,8 +1397,8 @@ Item {
                                 root.assetCertID,
                                 parseInt(amountTextField.text),
                                 optionalMessage.text);
-                        } else if (sendAssetStep.referrer === "authorizedScript") {
-                            Commerce.authorizeAssetTransfer(scriptSecretTextField.text || "",
+                        } else if (sendAssetStep.referrer === "createCoupon") {
+                            Commerce.authorizeAssetTransfer(couponIDTextField.text || "",
                                 root.assetCertID,
                                 parseInt(amountTextField.text) || 1,
                                 optionalMessage.text)
@@ -1474,22 +1474,22 @@ Item {
         Rectangle {
             anchors.top: parent.top;
             anchors.topMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
-                sendAssetStep.referrer === "authorizedScript" ? 15 : 125;
+                sendAssetStep.referrer === "createCoupon" ? 15 : 125;
             anchors.left: parent.left;
             anchors.leftMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
-                sendAssetStep.referrer === "authorizedScript" ? 15 : 50;
+                sendAssetStep.referrer === "createCoupon" ? 15 : 50;
             anchors.right: parent.right;
             anchors.rightMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
-                sendAssetStep.referrer === "authorizedScript" ? 15 : 50;
+                sendAssetStep.referrer === "createCoupon" ? 15 : 50;
             anchors.bottom: parent.bottom;
             anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
-                sendAssetStep.referrer === "authorizedScript" ? 15 : 125;
+                sendAssetStep.referrer === "createCoupon" ? 15 : 125;
             color: "#FFFFFF";
 
             RalewaySemiBold {
                 id: paymentSentText;
-                text: root.assetCertID === "" ? (sendAssetStep.referrer === "authorizedScript" ? "Payment Authorized" : "Payment Sent") :
-                    (sendAssetStep.referrer === "authorizedScript" ? "Item Transfer Authorized" :
+                text: root.assetCertID === "" ? (sendAssetStep.referrer === "createCoupon" ? "Payment Authorized" : "Payment Sent") :
+                    (sendAssetStep.referrer === "createCoupon" ? "Item Transfer Authorized" :
                     (sendAssetStep.referrer === "payIn" ? "Item Sent" : "Gift Sent"));
                 // Anchors
                 anchors.top: parent.top;
@@ -1528,7 +1528,7 @@ Item {
                     onClicked: {
                         if (sendAssetStep.referrer === "payIn") {
                             sendToScript({method: "closeSendAsset"});
-                        } else if (sendAssetStep.referrer === "authorizedScript") {
+                        } else if (sendAssetStep.referrer === "createCoupon") {
                             showDidYouCopyLightbox();
                         } else {
                             root.nextActiveView = "sendAssetHome";
@@ -1553,7 +1553,7 @@ Item {
 
                 Item {
                     id: sendToScriptContainer_paymentSuccess;
-                    visible: sendAssetStep.referrer === "authorizedScript";
+                    visible: sendAssetStep.referrer === "createCoupon";
                     anchors.top: parent.top;
                     anchors.left: parent.left;
                     anchors.right: parent.right;
@@ -1620,11 +1620,11 @@ Item {
                     }
 
                     RalewaySemiBold {
-                        id: secretLabel;
-                        text: "Secret:";
+                        id: couponIDLabel;
+                        text: "Coupon ID:";
                         // Anchors
                         anchors.left: parent.left;
-                        anchors.top: secretText.top;
+                        anchors.top: couponIDText.top;
                         width: authorizationIDLabel.width;
                         // Text size
                         size: 18;
@@ -1634,13 +1634,13 @@ Item {
                     }
 
                     RalewayRegular {
-                        id: secretText;
-                        text: root.secret;
+                        id: couponIDText;
+                        text: root.couponID;
                         anchors.top: authorizationIDText.bottom;
                         anchors.topMargin: 16;
-                        anchors.left: secretLabel.right;
+                        anchors.left: couponIDLabel.right;
                         anchors.leftMargin: 16;
-                        anchors.right: secretClipboardButton.left;
+                        anchors.right: couponIDClipboardButton.left;
                         anchors.rightMargin: 16;
                         // Text size
                         size: 18;
@@ -1652,31 +1652,31 @@ Item {
                     }                    
 
                     Image {
-                        id: secretClipboardButton;
+                        id: couponIDClipboardButton;
                         source: "images/clipboard.svg"; // clipboard by Bieutuong Bon from the Noun Project
                         fillMode: Image.PreserveAspectFit;
                         // Anchors
                         anchors.right: parent.right;
-                        anchors.top: secretText.top;
+                        anchors.top: couponIDText.top;
                         height: 40;
                         width: height;
 
                         MouseArea {
                             anchors.fill: parent;
                             onClicked: {
-                                Window.copyToClipboard(root.secret);
-                                secretText.text = "Copied to Clipboard!\n";
-                                secretClipboardTimer.start();
+                                Window.copyToClipboard(root.couponID);
+                                couponIDText.text = "Copied to Clipboard!\n";
+                                couponIDClipboardTimer.start();
                             }
                         }
                     }
 
                     Timer {
-                        id: secretClipboardTimer;
+                        id: couponIDClipboardTimer;
                         interval: 2000;
                         repeat: false;
                         onTriggered: {
-                            secretText.text = root.secret;
+                            couponIDText.text = root.couponID;
                         }
                     }
                 }
@@ -1733,7 +1733,7 @@ Item {
 
                 RalewaySemiBold {
                     id: gift_paymentSuccess;
-                    text: sendAssetStep.referrer === "payIn" || sendAssetStep.referrer === "authorizedScript" ?
+                    text: sendAssetStep.referrer === "payIn" || sendAssetStep.referrer === "createCoupon" ?
                         "Item:" : "Gift:";
                     // Anchors
                     anchors.top: parent.top;
@@ -1852,7 +1852,7 @@ Item {
                 onClicked: {
                     if (sendAssetStep.referrer === "payIn") {
                         sendToScript({method: "closeSendAsset"});
-                    } else if (sendAssetStep.referrer === "authorizedScript") {
+                    } else if (sendAssetStep.referrer === "createCoupon") {
                         showDidYouCopyLightbox();
                     } else {
                         root.nextActiveView = "sendAssetHome";
@@ -1888,16 +1888,16 @@ Item {
         Rectangle {
             anchors.top: parent.top;
             anchors.topMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
-                sendAssetStep.referrer === "authorizedScript" ? 15 : 150;
+                sendAssetStep.referrer === "createCoupon" ? 15 : 150;
             anchors.left: parent.left;
             anchors.leftMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
-                sendAssetStep.referrer === "authorizedScript" ? 15 : 50;
+                sendAssetStep.referrer === "createCoupon" ? 15 : 50;
             anchors.right: parent.right;
             anchors.rightMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
-                sendAssetStep.referrer === "authorizedScript" ? 15 : 50;
+                sendAssetStep.referrer === "createCoupon" ? 15 : 50;
             anchors.bottom: parent.bottom;
             anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
-                sendAssetStep.referrer === "authorizedScript" ? 15 : 300;
+                sendAssetStep.referrer === "createCoupon" ? 15 : 300;
             color: "#FFFFFF";
 
             RalewaySemiBold {
@@ -1949,7 +1949,7 @@ Item {
 
             RalewaySemiBold {
                 id: paymentFailureDetailText;
-                text: sendAssetStep.referrer === "authorizedScript" ? "The server was unable to handle your request. Please try again later." :
+                text: sendAssetStep.referrer === "createCoupon" ? "The server was unable to handle your request. Please try again later." :
                 ("The recipient you specified was unable to receive your " +
                     (root.assetCertID === "" ? "payment." : (sendAssetStep.referrer === "payIn" ? "item." : "gift.")));
                 anchors.top: paymentFailureText.bottom;
@@ -1970,7 +1970,7 @@ Item {
             Item {
                 id: sendToContainer_paymentFailure;
                 visible: (root.assetCertID === "" || sendAssetStep.referrer === "payIn") &&
-                    sendAssetStep.referrer !== "authorizedScript";
+                    sendAssetStep.referrer !== "createCoupon";
                 anchors.top: paymentFailureDetailText.bottom;
                 anchors.topMargin: 8;
                 anchors.left: parent.left;
@@ -2134,8 +2134,8 @@ Item {
                             root.assetCertID,
                             parseInt(amountTextField.text),
                             optionalMessage.text);
-                    } else if (sendAssetStep.referrer === "authorizedScript") {
-                        Commerce.authorizeAssetTransfer(scriptSecretTextField.text || "",
+                    } else if (sendAssetStep.referrer === "createCoupon") {
+                        Commerce.authorizeAssetTransfer(couponIDTextField.text || "",
                             root.assetCertID,
                             parseInt(amountTextField.text) || 1,
                             optionalMessage.text)
@@ -2167,22 +2167,22 @@ Item {
         sendAssetStep.referrer = "";
     }
 
-    function generateRandomSecret() {
-        var RANDOM_SECRET_LENGTH = 25;
-        var randomSecret = "";
+    function generateRandomCouponID() {
+        var RANDOM_COUPON_ID_LENGTH = 25;
+        var randomCouponID = "";
         var possibleCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-        for (var i = 0; i < RANDOM_SECRET_LENGTH; i++) {
-            randomSecret += possibleCharacters.charAt(Math.floor(Math.random() * possibleCharacters.length));
+        for (var i = 0; i < RANDOM_COUPON_ID_LENGTH; i++) {
+            randomCouponID += possibleCharacters.charAt(Math.floor(Math.random() * possibleCharacters.length));
         }
 
-        return randomSecret;
+        return randomCouponID;
     }
 
     function showDidYouCopyLightbox() {
         lightboxPopup.titleText = "Close Confirmation";
-        lightboxPopup.bodyText = "Did you copy your Authorization ID and your Script Secret?\n\n" +
-            "You won't be able to see your Authorization ID or your Script Secret once " +
+        lightboxPopup.bodyText = "Did you copy your Authorization ID and your Coupon ID?\n\n" +
+            "You won't be able to see your Authorization ID or your Coupon ID once " +
             "you close this window.";
         lightboxPopup.button1text = "GO BACK";
         lightboxPopup.button1method = function() {
