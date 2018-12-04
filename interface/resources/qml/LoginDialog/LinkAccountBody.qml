@@ -65,7 +65,7 @@ Item {
 
     function login() {
         loginDialog.login(emailField.text, passwordField.text);
-        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "withOculus": false, "fromBody": "" });
+        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "withOculus": false });
     }
 
     function init() {
@@ -386,7 +386,7 @@ Item {
                     }
 
                     bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
-                        "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "fromBody": "LinkAccountBody" });
+                        "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus });
                 }
                 Component.onCompleted: {
                     if (linkAccountBody.linkSteam) {
@@ -402,7 +402,6 @@ Item {
                     } else {
                         continueButton.visible = false;
                     }
-
                 }
             }
         }
@@ -488,6 +487,10 @@ Item {
                 root.tryDestroy();
             }
         }
+    }
+
+    onFocusChanged: {
+        emailField.focus = focus;
     }
 
     Component.onCompleted: {

@@ -26,7 +26,6 @@ Item {
     property bool fontBold: true
     property bool withSteam: withSteam
     property bool withOculus: withOculus
-    property string fromBody: fromBody
 
     QtObject {
         id: d

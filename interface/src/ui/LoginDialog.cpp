@@ -121,6 +121,25 @@ void LoginDialog::login(const QString& username, const QString& password) const 
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
 }
 
+void LoginDialog::loginThroughOculus() {
+    qDebug() << "Attempting to login through Oculus";
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->requestTicket([this](Ticket ticket) {
+            if (ticket.isNull()) {
+                emit handleLoginFailed();
+                return;
+            }
+
+            DependencyManager::get<AccountManager>()->requestAccessTokenWithSteam(ticket);
+        });
+    }
+}
+
+void LoginDialog::linkOculus() {
+    qDebug() << "Attempting to link Oculus account";
+
+}
+
 void LoginDialog::loginThroughSteam() {
     qDebug() << "Attempting to login through Steam";
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {

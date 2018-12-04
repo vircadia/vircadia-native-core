@@ -473,6 +473,14 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
     QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
 }
 
+void Web3DOverlay::setActiveFocus(bool focus) {
+    if (_webSurface && focus) {
+        if (focus) {
+            _webSurface->getRootItem()->forceActiveFocus();
+        }
+    }
+}
+
 void Web3DOverlay::setProperties(const QVariantMap& properties) {
     Billboard3DOverlay::setProperties(properties);
 

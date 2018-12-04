@@ -8178,9 +8178,9 @@ void Application::loadDomainConnectionDialog() {
 }
 
 void Application::toggleLogDialog() {
-    if (getLoginDialogPoppedUp()) {
-        return;
-    }
+    //if (getLoginDialogPoppedUp()) {
+    //    return;
+    //}
     if (! _logDialog) {
         _logDialog = new LogDialog(nullptr, getLogger());
     }
@@ -8749,6 +8749,8 @@ void Application::createLoginDialogOverlay() {
         overlays.editOverlay(keyboard->getAnchorID(), properties);
         keyboard->setResetKeyboardPositionOnRaise(false);
     }
+    auto loginDialogOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_loginDialogOverlayID));
+    loginDialogOverlay->setActiveFocus(true);
     getApplicationCompositor().getReticleInterface()->setAllowMouseCapture(false);
     getApplicationCompositor().getReticleInterface()->setVisible(false);
     if (!_loginStateManager.isSetUp()) {

@@ -44,6 +44,7 @@ public:
     Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
     void handlePointerEventAsTouch(const PointerEvent& event);
     void handlePointerEventAsMouse(const PointerEvent& event);
+    void setActiveFocus(bool focus);
 
     // setters
     void setURL(const QString& url);
