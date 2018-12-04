@@ -1270,11 +1270,6 @@ public slots:
     void sendIdentityPacket();
 
     /**jsdoc
-     * @function MyAvatar.setJointMappingsFromNetworkReply
-     */
-    void setJointMappingsFromNetworkReply();
-
-    /**jsdoc
      * @function MyAvatar.setSessionUUID
      * @param {Uuid} sessionUUID
      */
@@ -1376,7 +1371,6 @@ protected:
     mutable HeadData* _headData { nullptr };
 
     QUrl _skeletonModelURL;
-    QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
     QVector<AttachmentData> _oldAttachmentData;
     QString _displayName;
@@ -1389,9 +1383,6 @@ protected:
     quint64 _errorLogExpiry; ///< time in future when to log an error
 
     QWeakPointer<Node> _owningAvatarMixer;
-
-    /// Loads the joint indices, names from the FST file (if any)
-    virtual void updateJointMappings();
 
     glm::vec3 _targetVelocity;
 

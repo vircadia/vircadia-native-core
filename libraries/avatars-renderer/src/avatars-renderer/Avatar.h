@@ -516,9 +516,6 @@ protected:
     mutable QReadWriteLock _modelJointIndicesCacheLock;
     mutable bool _modelJointsCached { false };
 
-    /// Loads the joint indices, names from the FST file (if any)
-    virtual void updateJointMappings() override;
-
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
     std::vector<bool> _attachmentModelsTexturesLoaded;

@@ -1894,34 +1894,6 @@ QList<QVariant> Avatar::getSkeleton() {
     return QList<QVariant>();
 }
 
-void Avatar::updateJointMappings() {
-        {
-            QWriteLocker writeLock(&_jointDataLock);
-            _fstJointIndices.clear();
-            _fstJointNames.clear();
-            _jointData.clear();
-        }
-
-        //if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
-        //    ////
-        //    // TODO: Should we rely upon HTTPResourceRequest for ResourceRequestObserver instead?
-        //    // HTTPResourceRequest::doSend() covers all of the following and
-        //    // then some. It doesn't cover the connect() call, so we may
-        //    // want to add a HTTPResourceRequest::doSend() method that does
-        //    // connects.
-        //    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        //    QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
-        //    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-        //    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-        //    DependencyManager::get<ResourceRequestObserver>()->update(
-        //        _skeletonModelURL, -1, "AvatarData::updateJointMappings");
-        //    QNetworkReply* networkReply = networkAccessManager.get(networkRequest);
-        //    //
-        //    ////
-        //    connect(networkReply, &QNetworkReply::finished, this, &AvatarData::setJointMappingsFromNetworkReply);
-        //}
-}
-
 void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer& scene) {
     if (scene) {
         auto nodelist = DependencyManager::get<NodeList>();

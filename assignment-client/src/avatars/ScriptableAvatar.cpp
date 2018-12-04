@@ -77,10 +77,6 @@ static AnimPose composeAnimPose(const HFMJoint& joint, const glm::quat rotation,
 }
 
 void ScriptableAvatar::update(float deltatime) {
-    if (_bind.isNull() && !_skeletonFBXURL.isEmpty()) { // AvatarData will parse the .fst, but not get the .fbx skeleton.
-        _bind = DependencyManager::get<AnimationCache>()->getAnimation(_skeletonFBXURL);
-    }
-
     // Run animation
     if (_animation && _animation->isLoaded() && _animation->getFrames().size() > 0 && !_bind.isNull() && _bind->isLoaded()) {
         if (!_animSkeleton) {

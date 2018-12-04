@@ -2000,8 +2000,6 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     
     _skeletonModelURL = expanded;
 
-    updateJointMappings();
-
     if (_clientTraitsHandler) {
         _clientTraitsHandler->markTraitUpdated(AvatarTraits::SkeletonModelURL);
     }
@@ -2097,57 +2095,6 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
     setAttachmentData(attachmentData);
 }
 
-void AvatarData::setJointMappingsFromNetworkReply() {
-
-    QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
-
-    // before we process this update, make sure that the skeleton model URL hasn't changed
-    // since we made the FST request
-    if (networkReply->url() != _skeletonModelURL) {
-        qCDebug(avatars) << "Refusing to set joint mappings for FST URL that does not match the current URL";
-        return;
-    }
-
-    {
-        QWriteLocker writeLock(&_jointDataLock);
-        QByteArray line;
-        while (!(line = networkReply->readLine()).isEmpty()) {
-            line = line.trimmed();
-            if (line.startsWith("filename")) {
-                int filenameIndex = line.indexOf('=') + 1;
-                    if (filenameIndex > 0) {
-                        _skeletonFBXURL = _skeletonModelURL.resolved(QString(line.mid(filenameIndex).trimmed()));
-                    }
-                }
-            if (!line.startsWith("jointIndex")) {
-                continue;
-            }
-            int jointNameIndex = line.indexOf('=') + 1;
-            if (jointNameIndex == 0) {
-                continue;
-            }
-            int secondSeparatorIndex = line.indexOf('=', jointNameIndex);
-            if (secondSeparatorIndex == -1) {
-                continue;
-            }
-            QString jointName = line.mid(jointNameIndex, secondSeparatorIndex - jointNameIndex).trimmed();
-            bool ok;
-            int jointIndex = line.mid(secondSeparatorIndex + 1).trimmed().toInt(&ok);
-            if (ok) {
-                while (_fstJointNames.size() < jointIndex + 1) {
-                    _fstJointNames.append(QString());
-                }
-                _fstJointNames[jointIndex] = jointName;
-            }
-        }
-        for (int i = 0; i < _fstJointNames.size(); i++) {
-            _fstJointIndices.insert(_fstJointNames.at(i), i + 1);
-        }
-    }
-
-    networkReply->deleteLater();
-}
-
 void AvatarData::sendAvatarDataPacket(bool sendAll) {
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -2208,9 +2155,6 @@ void AvatarData::sendIdentityPacket() {
 
     _identityDataChanged = false;
 }
-
-void AvatarData::updateJointMappings()
-{ }
 
 static const QString JSON_ATTACHMENT_URL = QStringLiteral("modelUrl");
 static const QString JSON_ATTACHMENT_JOINT_NAME = QStringLiteral("jointName");
