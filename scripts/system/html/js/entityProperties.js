@@ -557,21 +557,23 @@ const GROUPS = [
                 propertyID: "materialData",
             },
             {
+                label: "Select Submesh",
+                type: "bool",
+                propertyID: "selectSubmesh",
+            },
+            {
                 label: "Submesh to Replace",
                 type: "number",
                 min: 0,
                 step: 1,
                 propertyID: "submeshToReplace",
+                indentedLabel: true,
             },
             {
-                label: "Material Name to Replace",
+                label: "Material to Replace",
                 type: "string",
                 propertyID: "materialNameToReplace",
-            },
-            {
-                label: "Select Submesh",
-                type: "bool",
-                propertyID: "selectSubmesh",
+                indentedLabel: true,
             },
             {
                 label: "Priority",
@@ -582,7 +584,7 @@ const GROUPS = [
             {
                 label: "Material Position",
                 type: "vec2",
-                vec2Type: "xy",
+                vec2Type: "xyz",
                 min: 0,
                 max: 1,
                 step: 0.1,
@@ -593,11 +595,11 @@ const GROUPS = [
             {
                 label: "Material Scale",
                 type: "vec2",
-                vec2Type: "wh",
+                vec2Type: "xyz",
                 min: 0,
                 step: 0.1,
                 decimals: 4,
-                subLabels: [ "width", "height" ],
+                subLabels: [ "x", "y" ],
                 propertyID: "materialMappingScale",
             },
             {
@@ -1858,7 +1860,7 @@ function createNumberProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "draggable-number";
+    elProperty.className += " draggable-number-container";
 
     let dragStartFunction = createDragStartFunction(property);
     let dragEndFunction = createDragEndFunction(property);
@@ -1937,7 +1939,7 @@ function createColorProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "rgb fstuple";
+    elProperty.className += " rgb fstuple";
     
     let elColorPicker = document.createElement('div');
     elColorPicker.className = "color-picker";
@@ -1978,6 +1980,7 @@ function createColorProperty(property, elProperty) {
         color: '000000',
         submit: false, // We don't want to have a submission button
         onShow: function(colpick) {
+            console.log("Showing");
             $(colorPickerID).attr('active', 'true');
             // The original color preview within the picker needs to be updated on show because
             // prior to the picker being shown we don't have access to the selections' starting color.
@@ -2879,20 +2882,20 @@ function loaded() {
                     for (let i = 0; i < propertyData.properties.length; ++i) {
                         let innerPropertyData = propertyData.properties[i];
 
-                        let elWrapper = createElementFromHTML('<div class="flex-column flex-center triple-item"><div></div></div>');
+                        let elWrapper = createElementFromHTML('<div class="triple-item"></div>');
+                        elProperty.appendChild(elWrapper);
 
                         let propertyID = innerPropertyData.propertyID;               
                         let propertyName = innerPropertyData.propertyName !== undefined ? innerPropertyData.propertyName : propertyID;
                         let propertyElementID = "property-" + propertyID;
                         propertyElementID = propertyElementID.replace('.', '-');
 
-                        elWrapper.appendChild(createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`));
-                        elProperty.appendChild(elWrapper);
-
-                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper.childNodes[0]);
+                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper);
                         property.isParticleProperty = group.id.includes("particles");
                         property.elContainer = elContainer;
                         property.spaceMode = propertySpaceMode;
+
+                        elWrapper.appendChild(createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`));
                         
                         if (property.type !== 'placeholder') {
                             properties[propertyID] = property;
