@@ -871,7 +871,7 @@ Flickable {
 
                     editable: true
                     colorScheme: hifi.colorSchemes.dark
-                    model: ["None", "Freeze", "Drop"]
+                    model: ["None", "Freeze", "Drop", "DropAfterDelay"]
                     label: ""
 
                     onCurrentIndexChanged: {
