@@ -54,27 +54,23 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
         return;
     }
 
-    // the properties that get serialized into the avatar identity packet should be the entire set
+    // serialize ALL properties in an "AvatarEntity" packet
     // rather than just the ones being edited.
     EntityItemProperties entityProperties = entity->getProperties();
     entityProperties.merge(properties);
 
-    std::lock_guard<std::mutex> lock(_mutex);
-    QScriptValue scriptProperties = EntityItemNonDefaultPropertiesToScriptValue(&_scriptEngine, entityProperties);
-    QVariant variantProperties = scriptProperties.toVariant();
-    QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
+    OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
+    EncodeBitstreamParams params;
+    EntityTreeElementExtraEncodeDataPointer extra { nullptr };
+    OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
 
-    // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
-    QJsonObject jsonObject = jsonProperties.object();
-    if (jsonObject.contains("parentID")) {
-        if (QUuid(jsonObject["parentID"].toString()) == _myAvatar->getID()) {
-            jsonObject["parentID"] = AVATAR_SELF_ID.toString();
-        }
+    if (appendState != OctreeElement::COMPLETED) {
+        // this entity is too big
+        return;
     }
-    jsonProperties = QJsonDocument(jsonObject);
 
-    QByteArray binaryProperties = jsonProperties.toBinaryData();
-    _myAvatar->updateAvatarEntity(entityItemID, binaryProperties);
+    packetData.shrinkByteArrays();
+    _myAvatar->updateAvatarEntity(entityItemID, packetData.getUncompressedByteArray());
 
     entity->setLastBroadcast(usecTimestampNow());
 }

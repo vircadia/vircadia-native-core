@@ -179,6 +179,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
 
+    // the values of these two properties are known to the receiver by context
+    // therefore they don't need to be packed
+    requestedProperties -= PROP_ENTITY_HOST_TYPE;
+    requestedProperties -= PROP_OWNING_AVATAR_ID;
+
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
     if (entityTreeElementExtraEncodeData && entityTreeElementExtraEncodeData->entities.contains(getEntityItemID())) {

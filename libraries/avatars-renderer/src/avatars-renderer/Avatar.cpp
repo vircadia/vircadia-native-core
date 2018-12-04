@@ -378,19 +378,22 @@ void Avatar::updateAvatarEntities() {
             }
             ++dataItr;
 
-            // see EntityEditPacketSender::queueEditEntityMessage for the other end of this.  unpack properties
-            // and either add or update the entity.
-            QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(data);
-            if (!jsonProperties.isObject()) {
-                qCDebug(avatars_renderer) << "got bad avatarEntity json" << QString(data.toHex());
-                continue;
+            EntityItemProperties properties;
+            {
+                // create a temporary EntityItem to unpack the data
+                int32_t bytesLeftToRead = data.size();
+                unsigned char* dataAt = (unsigned char*)(data.data());
+                ReadBitstreamToTreeParams args;
+                EntityItemPointer tempEntity = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
+                if (!tempEntity) {
+                    continue;
+                }
+                tempEntity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+
+                // extract the properties from tempEntity
+                properties = tempEntity->getProperties();
             }
 
-            QVariant variantProperties = jsonProperties.toVariant();
-            QVariantMap asMap = variantProperties.toMap();
-            QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
-            EntityItemProperties properties;
-            EntityItemPropertiesFromScriptValueIgnoreReadOnly(scriptProperties, properties);
             properties.setEntityHostType(entity::HostType::AVATAR);
             properties.setOwningAvatarID(getID());
 
