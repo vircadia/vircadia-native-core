@@ -48,7 +48,12 @@ using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
-    auto items = input.get<Input>();
+  //  const auto& inputs = input.get<Input>();
+    const auto& fetchedItems = input.get<Input>();
+    //  const auto& fetchedItems = inputs[0];
+    // const auto& items = fetchedItems[0];
+    const auto& items = fetchedItems.get0();
+
     auto fadeEffect = DependencyManager::get<FadeEffect>();
 
     // Prepare the ShapePipelines
@@ -56,15 +61,19 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     initForwardPipelines(*shapePlumber);
 
     // Extract opaques / transparents / lights / metas / overlays / background
-    const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
-    const auto& transparents = items.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-    //const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
-    const auto& metas = items.get0()[RenderFetchCullSortTask::META];
-    const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-    const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
+    const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+    const auto& lights = items[RenderFetchCullSortTask::LIGHT];
+    const auto& metas = items[RenderFetchCullSortTask::META];
+    const auto& overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+    const auto& overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
+    const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
+    const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
+    const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
 
-    //const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
-    //const auto& spatialSelection = items[1];
+    const auto& spatialSelection = fetchedItems[1];
+
 
     fadeEffect->build(task, opaques);
 
@@ -91,12 +100,9 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     task.addJob<PrepareStencil>("PrepareStencil", framebuffer);
 
     // Layered Overlays
-    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, render::hifi::LAYER_3D_FRONT);
-    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, render::hifi::LAYER_3D_FRONT);
-    const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
-    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
     const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
 
+    // Layered Over (in front)
     const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel, nullJitter).asVarying();
     const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel, nullJitter).asVarying();
     task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
