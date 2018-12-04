@@ -775,7 +775,7 @@ private:
     SharedSoundPointer _snapshotSound;
     SharedSoundPointer _sampleSound;
 
-    DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
+    DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin { nullptr };
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
     bool _previousHMDWornStatus;
     void startHMDStandBySession();
