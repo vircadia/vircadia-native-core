@@ -164,7 +164,7 @@ public:
 
         void run(const ContextPointer& jobContext) override {
             jobContext->jobConfig = std::static_pointer_cast<Config>(Concept::_config);
-            if (jobContext->jobConfig->alwaysEnabled || jobContext->jobConfig->isEnabled()) {
+            if (jobContext->jobConfig->isEnabled()) {
                 jobRun(_data, jobContext, _input.get<I>(), _output.edit<O>());
             }
             jobContext->jobConfig.reset();
@@ -340,7 +340,7 @@ public:
 
         void run(const ContextPointer& jobContext) override {
             auto config = std::static_pointer_cast<C>(Concept::_config);
-            if (config->alwaysEnabled || config->enabled) {
+            if (config->isEnabled()) {
                 for (auto job : TaskConcept::_jobs) {
                     job.run(jobContext);
                     if (jobContext->taskFlow.doAbortTask()) {

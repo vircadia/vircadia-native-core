@@ -180,9 +180,7 @@ void Deck::processFrames() {
 #ifdef WANT_RECORDING_DEBUG
     qCDebug(recordingLog) << "Setting timer for next processing " << nextInterval;
 #endif
-    _timer.singleShot(nextInterval, [this] {
-        processFrames();
-    });
+    _timer.singleShot(nextInterval, this, &Deck::processFrames);
 }
 
 void Deck::removeClip(const ClipConstPointer& clip) {

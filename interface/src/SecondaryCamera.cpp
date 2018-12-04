@@ -171,7 +171,7 @@ void SecondaryCameraJobConfig::setOrientation(glm::quat orient) {
 }
 
 void SecondaryCameraJobConfig::enableSecondaryCameraRenderConfigs(bool enabled) {
-    qApp->getRenderEngine()->getConfiguration()->getConfig<SecondaryCameraRenderTask>()->setEnabled(enabled);
+    qApp->getRenderEngine()->getConfiguration()->getConfig<SecondaryCameraRenderTask>("SecondaryCameraJob")->setEnabled(enabled);
     setEnabled(enabled);
 }
 
@@ -187,11 +187,13 @@ public:
 
     void run(const render::RenderContextPointer& renderContext, const RenderArgsPointer& cachedArgs) {
         auto args = renderContext->args;
+        if (cachedArgs) {
         args->_blitFramebuffer = cachedArgs->_blitFramebuffer;
         args->_viewport = cachedArgs->_viewport;
-        args->popViewFrustum();
         args->_displayMode = cachedArgs->_displayMode;
         args->_renderMode = cachedArgs->_renderMode;
+        }
+        args->popViewFrustum();
 
         gpu::doInBatch("EndSecondaryCameraFrame::run", args->_context, [&](gpu::Batch& batch) {
             batch.restoreContextStereo();
