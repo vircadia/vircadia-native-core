@@ -1776,16 +1776,11 @@ int AvatarData::getFauxJointIndex(const QString& name) const {
 
 int AvatarData::getJointIndex(const QString& name) const {
     int result = getFauxJointIndex(name);
-    if (result != -1) {
-        return result;
-    }
-    QReadLocker readLock(&_jointDataLock);
-    return _fstJointIndices.value(name) - 1;
+    return result;
 }
 
 QStringList AvatarData::getJointNames() const {
-    QReadLocker readLock(&_jointDataLock);
-    return _fstJointNames;
+    return QStringList();
 }
 
 glm::quat AvatarData::getOrientationOutbound() const {

@@ -1377,9 +1377,6 @@ protected:
     QString _sessionDisplayName { };
     bool _lookAtSnappingEnabled { true };
 
-    QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
-    QStringList _fstJointNames; ///< in order of depth-first traversal
-
     quint64 _errorLogExpiry; ///< time in future when to log an error
 
     QWeakPointer<Node> _owningAvatarMixer;
@@ -1487,11 +1484,8 @@ protected:
     T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {
         int index = getFauxJointIndex(name);
         QReadLocker readLock(&_jointDataLock);
-        if (index == -1) {
-            index = _fstJointIndices.value(name) - 1;
-        }
 
-        // The first conditional is superfluous, but illsutrative
+        // The first conditional is superfluous, but illustrative
         if (index == -1 || index < _jointData.size()) {
             return defaultValue;
         }
@@ -1508,9 +1502,6 @@ protected:
     void writeLockWithNamedJointIndex(const QString& name, F f) {
         int index = getFauxJointIndex(name);
         QWriteLocker writeLock(&_jointDataLock);
-        if (index == -1) {
-            index = _fstJointIndices.value(name) - 1;
-        }
         if (index == -1) {
             return;
         }
