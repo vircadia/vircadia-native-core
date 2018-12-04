@@ -23,6 +23,20 @@ function DraggableNumber(min, max, step, decimals, dragStart, dragEnd) {
 }
 
 DraggableNumber.prototype = {
+    showInput: function() {
+        this.elText.style.visibility = "hidden";
+        this.elLeftArrow.style.visibility = "hidden";
+        this.elRightArrow.style.visibility = "hidden";
+        this.elInput.style.opacity = 1;
+    },
+
+    hideInput: function() {
+        this.elText.style.visibility = "visible";
+        this.elLeftArrow.style.visibility = "visible";
+        this.elRightArrow.style.visibility = "visible";
+        this.elInput.style.opacity = 0;
+    },
+
     mouseDown: function(event) {
         if (event.target === this.elText) {
             this.initialMouseEvent = event;
@@ -36,8 +50,8 @@ DraggableNumber.prototype = {
         if (event.target === this.elText && this.initialMouseEvent) {
             let dx = event.clientX - this.initialMouseEvent.clientX;
             if (Math.abs(dx) <= DELTA_X_FOCUS_THRESHOLD) {
-                this.elInput.style.visibility = "visible";
-                this.elText.style.visibility = "hidden";
+                this.showInput();
+                this.elInput.focus();
             }
             this.initialMouseEvent = null;
         }
@@ -125,9 +139,8 @@ DraggableNumber.prototype = {
         this.setValue(this.elInput.value);
     },
     
-    inputBlur: function() {
-        this.elInput.style.visibility = "hidden";
-        this.elText.style.visibility = "visible";
+    inputBlur: function(ev) {
+        this.hideInput();
     },
     
     initialize: function() {
@@ -171,13 +184,14 @@ DraggableNumber.prototype = {
         if (this.step !== undefined) {
             this.elInput.setAttribute("step", this.step);
         }
-        this.elInput.style.visibility = "hidden";
+        this.elInput.style.opacity = 0;
         this.elInput.addEventListener("change", this.onInputChange);
         this.elInput.addEventListener("blur", this.onInputBlur);
+        this.elInput.addEventListener("focus", this.showInput.bind(this));
         
-        this.elText.appendChild(this.elLeftArrow);
-        this.elText.appendChild(this.elInput);
-        this.elText.appendChild(this.elRightArrow);
+        this.elDiv.appendChild(this.elLeftArrow);
+        this.elDiv.appendChild(this.elInput);
+        this.elDiv.appendChild(this.elRightArrow);
         this.elDiv.appendChild(this.elText);
     }
 };
