@@ -234,7 +234,7 @@ Item {
         onHandleCreateCompleted: {
             console.log("Create Succeeded")
             loginDialog.loginThroughSteam();
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "fromBody": "UsernameCollisionBody" })
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true })
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error)
