@@ -1,6 +1,8 @@
+
+
     (function() {
-        var TABLET_BUTTON_NAME = "Inspector";
-        var QMLAPP_URL = Script.resolvePath("./engineInspector.qml");
+        var TABLET_BUTTON_NAME = "Profiler";
+        var QMLAPP_URL = Script.resolvePath("./engineProfiler.qml");
         var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
         var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
 
@@ -32,11 +34,11 @@
 
         function createWindow() {
             var qml = Script.resolvePath(QMLAPP_URL);
-            window = new OverlayWindow({
-                title: 'Render Engine Inspector',
-                source: qml,
-                width: 250, 
-                height: 500
+            window = Desktop.createWindow(Script.resolvePath(QMLAPP_URL), {
+                title: 'Render Engine Profiler',
+                flags: Desktop.ALWAYS_ON_TOP,
+                presentationMode: Desktop.PresentationMode.NATIVE,
+                size: {x: 500, y: 100}
             });
             window.setPosition(200, 50);
             window.closed.connect(killWindow);
