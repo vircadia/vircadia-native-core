@@ -48,6 +48,8 @@ signals:
     // occurs upon dismissing the encouraging log in.
     void dismissedLoginDialog();
 
+    void focusEnabled();
+
 public slots:
     void linkCompleted(QNetworkReply* reply);
     void linkFailed(QNetworkReply* reply);
@@ -57,6 +59,8 @@ public slots:
 
     void signupCompleted(QNetworkReply* reply);
     void signupFailed(QNetworkReply* reply);
+
+    void onFocusEnabled();
 
 protected slots:
     Q_INVOKABLE void dismissLoginDialog();

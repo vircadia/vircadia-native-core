@@ -166,7 +166,6 @@ Item {
                     topMargin: loginErrorMessage.height
                 }
                 placeholderText: "Username or Email"
-                focus: true
                 activeFocusOnPress: true
                 Keys.onPressed: {
                     switch (event.key) {
@@ -489,8 +488,13 @@ Item {
         }
     }
 
-    onFocusChanged: {
-        emailField.focus = focus;
+    Connections {
+        target: loginDialog
+        onFocusEnabled: {
+            Qt.callLater(function() {
+                emailField.forceActiveFocus();
+            })
+        }
     }
 
     Component.onCompleted: {

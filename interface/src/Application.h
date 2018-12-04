@@ -344,6 +344,8 @@ signals:
 
     void interstitialModeChanged(bool isInInterstitialMode);
 
+    void loginDialogFocusEnabled();
+
     void miniTabletEnabledChanged(bool enabled);
 
 public slots:

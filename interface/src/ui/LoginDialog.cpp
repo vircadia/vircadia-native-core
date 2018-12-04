@@ -42,8 +42,9 @@ LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
         this, &LoginDialog::handleLoginCompleted);
     connect(accountManager.data(), &AccountManager::loginFailed,
             this, &LoginDialog::handleLoginFailed);
-#endif
+    connect(qApp, SIGNAL(loginDialogFocusEnabled()), this, SLOT(onFocusEnabled()));
     connect(this, SIGNAL(dismissedLoginDialog()), qApp, SLOT(onDismissedLoginDialog()));
+#endif
 }
 
 LoginDialog::~LoginDialog() {
@@ -306,4 +307,9 @@ void LoginDialog::signupFailed(QNetworkReply* reply) {
         static const QString DEFAULT_SIGN_UP_FAILURE_MESSAGE = "There was an unknown error while creating your account. Please try again later.";
         emit handleSignupFailed(DEFAULT_SIGN_UP_FAILURE_MESSAGE);
     }
+}
+
+void LoginDialog::onFocusEnabled() {
+    forceActiveFocus();
+    emit focusEnabled();
 }
