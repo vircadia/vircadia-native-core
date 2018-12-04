@@ -130,7 +130,7 @@ Item {
             height: banner.height
             anchors {
                 top: parent.top
-                topMargin: 85
+                topMargin: 0.18 * parent.height
             }
             Image {
                 id: banner
@@ -260,8 +260,8 @@ Item {
             var errorString = "";
             if (loggingInBody.withSteam) {
                 loggingInGlyph.visible = false;
-                errorString = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again."
-                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
+                errorString = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again.";
+                bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam, "errorString": errorString });
             } else if (loggingInBody.withOculus) {
                 loggingInGlyph.visible = false;
                 errorString = "Your Oculus authentication has failed. Please make sure you are logged into Oculus and try again."
@@ -269,11 +269,7 @@ Item {
             }
             else {
                 errorString = "Username or password is incorrect.";
-                if (loginDialog.isLogIn && loggingInBody.withSteam) {
-                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
-                } else {
-                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
-                }
+                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
             }
         }
     }

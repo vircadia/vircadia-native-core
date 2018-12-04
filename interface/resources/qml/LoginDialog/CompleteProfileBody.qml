@@ -26,14 +26,14 @@ Item {
     readonly property int fontSize: 15
     readonly property bool fontBold: true
 
+    readonly property bool withSteam: withSteam
+
     QtObject {
         id: d
         readonly property int minWidth: 480
-        // readonly property int minWidthButton: !root.isTablet ? 256 : 174
-        readonly property int minWidthButton: 36
+        readonly property int minWidthButton: !root.isTablet ? 256 : 174
         property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
-        // readonly property int minHeightButton: !root.isTablet ? 56 : 42
         readonly property int minHeightButton: 36
         property int maxHeight: root.isTablet ? 720 : root.height
 
@@ -70,7 +70,7 @@ Item {
             height: banner.height
             anchors {
                 top: parent.top
-                topMargin: 85
+                topMargin: 0.18 * parent.height
             }
             Image {
                 id: banner
@@ -121,7 +121,7 @@ Item {
             }
             Item {
                 id: buttons
-                width: Math.max(banner.width, cancelContainer.width + profileButton.width)
+                width: banner.width
                 height: d.minHeightButton
                 anchors {
                     top: parent.top
@@ -129,43 +129,24 @@ Item {
                     left: parent.left
                     leftMargin: (parent.width - banner.width) / 2
                 }
-                Item {
-                    id: cancelContainer
-                    width: cancelText.width
-                    height: d.minHeightButton
+                HifiControlsUit.Button {
+                    id: cancelButton
                     anchors {
                         top: parent.top
                         left: parent.left
                     }
-                    Text {
-                        id: cancelText
-                        text: qsTr("Cancel");
+                    width: (parent.width - hifi.dimensions.contentSpacing.x) / 2
+                    height: d.minHeightButton
 
-                        lineHeight: 1
-                        color: "white"
-                        font.family: completeProfileBody.fontFamily
-                        font.pixelSize: completeProfileBody.fontSize
-                        font.capitalization: Font.AllUppercase;
-                        font.bold: completeProfileBody.fontBold
-                        lineHeightMode: Text.ProportionalHeight
-                        anchors.centerIn: parent
+                    text: qsTr("CANCEL")
+                    color: hifi.buttons.noneBorderlessWhite
+
+                    fontFamily: completeProfileBody.fontFamily
+                    fontSize: completeProfileBody.fontSize
+                    fontBold: completeProfileBody.fontBold
+                    onClicked: {
+                        bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                     }
-                    MouseArea {
-                        id: cancelArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onEntered: {
-                            Tablet.playSound(TabletEnums.ButtonHover);
-                        }
-                        onClicked: {
-                            Tablet.playSound(TabletEnums.ButtonClick);
-                            bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
-                        }
-                }
-                TextMetrics {
-                    id: profileButtonTextMetrics
-                    font: cancelText.font
-                    text: qsTr("CREATE YOUR PROFILE")
                 }
                 HifiControlsUit.Button {
                     id: profileButton
@@ -173,7 +154,7 @@ Item {
                         top: parent.top
                         right: parent.right
                     }
-                    width: Math.max(profileButtonTextMetrics.width + 2 * hifi.dimensions.contentSpacing.x, d.minWidthButton)
+                    width: (parent.width - hifi.dimensions.contentSpacing.x) / 2
                     height: d.minHeightButton
 
                     text: qsTr("Create your profile")
@@ -185,8 +166,6 @@ Item {
                     onClicked: {
                         loginErrorMessage.visible = false;
                         loginDialog.createAccountFromSteam();
-                        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
-                            "withSteam": true, "fromBody": "CompleteProfileBody" })
                     }
                 }
             }
@@ -212,7 +191,7 @@ Item {
 
                 onLinkActivated: {
                     loginDialog.isLogIn = true;
-                    bodyLoader.setSource("SignInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "" });
+                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "", "linkSteam": true });
                 }
             }
 
@@ -246,8 +225,23 @@ Item {
                 lineHeight: 1
                 lineHeightMode: Text.ProportionalHeight
 
-                onLinkActivated: loginDialog.openUrl(link)
+                onLinkActivated: loginDialog.openUrl(link);
             }
+        }
+    }
+
+    Connections {
+        target: loginDialog
+        onHandleCreateCompleted: {
+            console.log("Create Succeeded")
+
+            loginDialog.loginThroughSteam();
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true });
+        }
+        onHandleCreateFailed: {
+            console.log("Create Failed: " + error);
+
+            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
         }
     }
 

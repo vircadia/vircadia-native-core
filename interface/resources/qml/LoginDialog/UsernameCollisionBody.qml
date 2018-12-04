@@ -29,8 +29,7 @@ Item {
 
     function create() {
         mainTextContainer.visible = false
-        loginDialog.createAccountFromSteam(textField.text)
-        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "fromBody": "UsernameCollisionBody" });
+        loginDialog.createAccountFromSteam(textField.text);
     }
 
     property bool keyboardEnabled: false
@@ -45,7 +44,6 @@ Item {
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
         property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
-        // readonly property int minHeightButton: !root.isTablet ? 56 : 42
         readonly property int minHeightButton: 36
         property int maxHeight: root.isTablet ? 720 : root.height
 
@@ -84,7 +82,7 @@ Item {
             height: banner.height
             anchors {
                 top: parent.top
-                topMargin: 85
+                topMargin: 0.18 * parent.height
             }
             Image {
                 id: banner
@@ -110,7 +108,7 @@ Item {
             }
 
             font.family: usernameCollisionBody.fontFamily
-            font.pixelSize: usernameCollisionBody.fontSize - 10
+            font.pixelSize: usernameCollisionBody.fontSize
             font.bold: usernameCollisionBody.fontBold
             text: qsTr("Your Steam username is not available.")
             wrapMode: Text.WordWrap
@@ -130,7 +128,8 @@ Item {
                 topMargin: hifi.dimensions.contentSpacing.y
             }
             font.family: "Fira Sans"
-            font.pixelSize: usernameCollisionBody.fontSize - 10
+            font.pixelSize: usernameCollisionBody.fontSize
+            styleRenderType: Text.QtRendering
             font.bold: usernameCollisionBody.fontBold
             width: banner.width
 
@@ -170,7 +169,7 @@ Item {
 
         Item {
             id: buttons
-            width: Math.max(banner.width, cancelContainer.width + profileButton.width)
+            width: banner.width
             height: d.minHeightButton
             anchors {
                 top: textField.bottom
@@ -179,45 +178,24 @@ Item {
                 leftMargin: (parent.width - banner.width) / 2
             }
 
-            Item {
-                id: cancelContainer
-                width: cancelText.width
-                height: d.minHeightButton
+            HifiControlsUit.Button {
+                id: cancelButton
                 anchors {
                     top: parent.top
                     left: parent.left
                 }
-                Text {
-                    id: cancelText
-                    text: qsTr("Cancel");
+                width: (parent.width - hifi.dimensions.contentSpacing.x) / 2
+                height: d.minHeightButton
 
-                    lineHeight: 1
-                    color: "white"
-                    font.family: usernameCollisionBody.fontFamily
-                    font.pixelSize: usernameCollisionBody.fontSize
-                    font.capitalization: Font.AllUppercase;
-                    font.bold: usernameCollisionBody.fontBold
-                    lineHeightMode: Text.ProportionalHeight
-                    anchors.centerIn: parent
+                text: qsTr("CANCEL")
+                color: hifi.buttons.noneBorderlessWhite
+
+                fontFamily: usernameCollisionBody.fontFamily
+                fontSize: usernameCollisionBody.fontSize
+                fontBold: usernameCollisionBody.fontBold
+                onClicked: {
+                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                 }
-                MouseArea {
-                    id: cancelArea
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    hoverEnabled: true
-                    onEntered: {
-                        Tablet.playSound(TabletEnums.ButtonHover);
-                    }
-                    onClicked: {
-                        Tablet.playSound(TabletEnums.ButtonClick);
-                        bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
-                    }
-                }
-            }
-            TextMetrics {
-                id: profileButtonTextMetrics
-                font: cancelText.font
-                text: qsTr("CREATE YOUR PROFILE")
             }
             HifiControlsUit.Button {
                 id: profileButton
@@ -225,7 +203,7 @@ Item {
                     top: parent.top
                     right: parent.right
                 }
-                width: Math.max(profileButtonTextMetrics.width + 2 * hifi.dimensions.contentSpacing.x, d.minWidthButton)
+                width: (parent.width - hifi.dimensions.contentSpacing.x) / 2
                 height: d.minHeightButton
 
                 text: qsTr("Create your profile")
@@ -241,23 +219,15 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        //dont rise local keyboard
-        keyboardEnabled = !root.isTablet && HMD.active;
-        //but rise Tablet's one instead for Tablet interface
-        if (root.isTablet || root.isOverlay) {
-            root.keyboardEnabled = HMD.active;
-            root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
-        }
-
-        root.text = "";
-        d.resize();
-        textField.focus = true;
-        if (usernameCollisionBody.errorString !== "") {
-            mainTextContainer.visible = true;
-            mainTextContainer.text = usernameCollisionBody.errorString;
-        }
-    }
+    // Component.onCompleted: {
+    //     root.text = "";
+    //     d.resize();
+    //     textField.focus = true;
+    //     if (usernameCollisionBody.errorString !== "") {
+    //         mainTextContainer.visible = true;
+    //         mainTextContainer.text = usernameCollisionBody.errorString;
+    //     }
+    // }
 
     Connections {
         target: loginDialog

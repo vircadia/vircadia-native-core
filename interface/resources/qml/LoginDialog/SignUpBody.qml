@@ -37,6 +37,7 @@ Item {
     onKeyboardRaisedChanged: d.resize();
 
     property string errorString: errorString
+    property bool linkSteam: linkSteam
 
     QtObject {
         id: d
@@ -44,7 +45,6 @@ Item {
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
         property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
-        // readonly property int minHeightButton: !root.isTablet ? 56 : 42
         readonly property int minHeightButton: 36
         property int maxHeight: root.isTablet ? 720 : root.height
 
@@ -110,7 +110,7 @@ Item {
             height: banner.height
             anchors {
                 bottom: loginContainer.top
-                bottomMargin: 0.125 * parent.height
+                bottomMargin: 0.07 * parent.height
             }
             Image {
                 id: banner
@@ -163,6 +163,7 @@ Item {
                 height: signUpBody.textFieldHeight
                 placeholderText: "Username"
                 font.pixelSize: signUpBody.textFieldFontSize
+                styleRenderType: Text.QtRendering
                 anchors {
                     top: parent.top
                     topMargin: loginErrorMessage.height
@@ -210,6 +211,7 @@ Item {
                 }
                 placeholderText: "Username or Email"
                 font.pixelSize: signUpBody.textFieldFontSize
+                styleRenderType: Text.QtRendering
                 activeFocusOnPress: true
                 Keys.onPressed: {
                     switch (event.key) {
@@ -248,6 +250,7 @@ Item {
                 height: signUpBody.textFieldHeight
                 placeholderText: "Password"
                 font.pixelSize: signUpBody.textFieldFontSize
+                styleRenderType: Text.QtRendering
                 activeFocusOnPress: true
                 echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
                 anchors {
@@ -336,16 +339,12 @@ Item {
                 }
                 onCheckedChanged: {
                     Settings.setValue("keepMeLoggedIn", checked);
-                    if (checked) {
-                        Settings.setValue("keepMeLoggedIn/savedUsername", Account.username);
-                        var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
-                        usernameField.text = savedUsername === "Unknown user" ? "" : savedUsername;
-                    } else {
-                        Settings.setValue("keepMeLoggedIn/savedUsername", "");
-                    }
                 }
                 Component.onDestruction: {
                     Settings.setValue("keepMeLoggedIn", checked);
+                    if (checked) {
+                        Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                    }
                 }
             }
 
@@ -370,7 +369,7 @@ Item {
                 fontSize: signUpBody.fontSize
                 fontBold: signUpBody.fontBold
                 onClicked: {
-                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": signUpBody.linkSteam });
                 }
             }
             HifiControlsUit.Button {
