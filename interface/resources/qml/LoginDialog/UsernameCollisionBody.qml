@@ -25,8 +25,6 @@ Item {
     readonly property int fontSize: 15
     readonly property bool fontBold: true
 
-    readonly property string errorString: errorString
-
     function create() {
         mainTextContainer.visible = false
         loginDialog.createAccountFromSteam(textField.text);
@@ -110,7 +108,7 @@ Item {
             font.family: usernameCollisionBody.fontFamily
             font.pixelSize: usernameCollisionBody.fontSize
             font.bold: usernameCollisionBody.fontBold
-            text: qsTr("Your Steam username is not available.")
+            text: qsTr("Your Steam username is not available.");
             wrapMode: Text.WordWrap
             color: hifi.colors.redAccent
             lineHeight: 1
@@ -194,7 +192,7 @@ Item {
                 fontSize: usernameCollisionBody.fontSize
                 fontBold: usernameCollisionBody.fontBold
                 onClicked: {
-                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "" });
                 }
             }
             HifiControlsUit.Button {
@@ -219,28 +217,18 @@ Item {
         }
     }
 
-    // Component.onCompleted: {
-    //     root.text = "";
-    //     d.resize();
-    //     textField.focus = true;
-    //     if (usernameCollisionBody.errorString !== "") {
-    //         mainTextContainer.visible = true;
-    //         mainTextContainer.text = usernameCollisionBody.errorString;
-    //     }
-    // }
-
     Connections {
         target: loginDialog
         onHandleCreateCompleted: {
-            console.log("Create Succeeded")
+            console.log("Create Succeeded");
             loginDialog.loginThroughSteam();
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true })
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "linkSteam": false })
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error)
 
             mainTextContainer.visible = true
-            mainTextContainer.text = "\"" + textField.text + qsTr("\" is invalid or already taken.")
+            mainTextContainer.text = "\"" + textField.text + qsTr("\" is invalid or already taken.");
         }
         onHandleLoginCompleted: {
             console.log("Login Succeeded");

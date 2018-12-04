@@ -65,7 +65,7 @@ Item {
 
     function login() {
         loginDialog.login(emailField.text, passwordField.text);
-        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "withOculus": false });
+        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "withOculus": false, "linkSteam": linkAccountBody.linkSteam });
     }
 
     function init() {
@@ -302,7 +302,7 @@ Item {
                     topMargin: hifi.dimensions.contentSpacing.y
                 }
                 onClicked: {
-                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam, "errorString": errorString });
+                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam, "errorString": "" });
                 }
             }
             HifiControlsUit.Button {
@@ -386,7 +386,7 @@ Item {
                     }
 
                     bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
-                        "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus });
+                        "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam });
                 }
                 Component.onCompleted: {
                     if (linkAccountBody.linkSteam) {
@@ -512,11 +512,7 @@ Item {
             case Qt.Key_Return:
                 event.accepted = true;
                 Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
-                if (linkAccountBody.linkSteam) {
-                    linkAccountBody.linkSteam();
-                } else {
-                    linkAccountBody.login();
-                }
+                linkAccountBody.login();
                 break;
         }
     }

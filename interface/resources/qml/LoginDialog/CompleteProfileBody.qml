@@ -27,6 +27,7 @@ Item {
     readonly property bool fontBold: true
 
     readonly property bool withSteam: withSteam
+    property string errorString: errorString
 
     QtObject {
         id: d
@@ -94,31 +95,14 @@ Item {
                 // above buttons.
                 anchors.topMargin: (parent.height - additionalTextContainer.height) / 2 - hifi.dimensions.contentSpacing.y - profileButton.height
                 anchors.left: parent.left;
+                anchors.leftMargin: (parent.width - loginErrorMessageTextMetrics.width) / 2;
                 color: "red";
-                font.family: "Cairo"
-                font.pixelSize: 12
-                text: ""
+                font.family: completeProfileBody.fontFamily
+                font.pixelSize: completeProfileBody.fontSize
+                text: completeProfileBody.errorString
                 visible: true
             }
 
-            HifiStylesUit.HiFiGlyphs {
-                id: loggedInGlyph;
-                text: hifi.glyphs.steamSquare;
-                // color
-                color: "white"
-                // Size
-                size: 78;
-                // Anchors
-                anchors.left: parent.left;
-                anchors.leftMargin: (parent.width - loggedInGlyph.size) / 2;
-                anchors.top: loginErrorMessage.bottom
-                anchors.topMargin: 2 * hifi.dimensions.contentSpacing.y
-                // Alignment
-                horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
-                visible: false;
-
-            }
             Item {
                 id: buttons
                 width: banner.width
@@ -236,7 +220,7 @@ Item {
             console.log("Create Succeeded")
 
             loginDialog.loginThroughSteam();
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true });
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "linkSteam": false });
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error);

@@ -67,7 +67,7 @@ Item {
     function login() {
         loginDialog.signup(emailField.text, usernameField.text, passwordField.text);
         return;
-        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "withOculus": false });
+        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "withOculus": false, "linkSteam": false });
     }
 
     function init() {
@@ -433,7 +433,7 @@ Item {
             console.log("Sign Up Completed");
 
             loginDialog.login(usernameField.text, passwordField.text);
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false });
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "linkSteam": false });
         }
         onHandleSignupFailed: {
             console.log("Sign Up Failed")

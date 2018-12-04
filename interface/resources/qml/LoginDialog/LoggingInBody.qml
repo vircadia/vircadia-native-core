@@ -26,6 +26,7 @@ Item {
     property bool fontBold: true
     property bool withSteam: withSteam
     property bool withOculus: withOculus
+    property bool linkSteam: linkSteam
 
     QtObject {
         id: d
@@ -88,6 +89,11 @@ Item {
     }
     function loadingSuccess() {
         loggingInSpinner.visible = false;
+        if (loggingInBody.linkSteam) {
+            loggingInText.text = "Linking to Steam";
+            loginDialog.linkSteam();
+            return;
+        }
         if (loggingInBody.withSteam) {
             // reset the flag.
             loggingInGlyph.visible = false;
@@ -247,9 +253,18 @@ Item {
 
     Connections {
         target: loginDialog
+        onHandleLinkCompleted: {
+            console.log("Link Succeeded");
+            loggingInBody.linkSteam = false;
+            loadingSuccess();
+        }
+        onHandleLinkFailed: {
+            console.log("Link Failed: " + error);
+            bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": true, "errorString": error });
+        }
 
         onHandleLoginCompleted: {
-            console.log("Login Succeeded")
+            console.log("Login Succeeded");
             loadingSuccess();
         }
 
