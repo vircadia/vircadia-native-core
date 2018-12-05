@@ -1789,6 +1789,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(offscreenUi.data(), &OffscreenUi::keyboardFocusActive, [this]() {
 #if !defined(Q_OS_ANDROID)
+        // Do not show login dialog if requested not to on the command line
+        QString hifiNoLoginCommandLineKey = QString("--").append(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
+        int index = arguments().indexOf(hifiNoLoginCommandLineKey);
+        if (index != -1) {
+            resumeAfterLoginDialogActionTaken();
+            return;
+        }
+
         // only for non-android. QML is ready to be shown at this time.
         showLoginScreen();
 #endif
@@ -2324,17 +2332,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
-#else
-#if !defined(DISABLE_QML)
-    // Do not show login dialog if requested not to on the command line
-    const QString HIFI_NO_LOGIN_COMMAND_LINE_KEY = "--no-login-suggestion";
-    int index = arguments().indexOf(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
-    if (index == -1) {
-        // request not found
-        pauseUntilLoginDetermined();
-    }
 #endif
-#endif
+    pauseUntilLoginDetermined();
 }
 
 void Application::updateVerboseLogging() {
@@ -2890,6 +2889,7 @@ static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, in
 #endif
 
 void Application::showLoginScreen() {
+#if !defined(DISABLE_QML)
     auto accountManager = DependencyManager::get<AccountManager>();
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     if (!accountManager->isLoggedIn()) {
@@ -2908,6 +2908,9 @@ void Application::showLoginScreen() {
     }
     _loginDialogPoppedUp = !accountManager->isLoggedIn();
     loginDialogPoppedUp.set(_loginDialogPoppedUp);
+#else
+    resumeAfterLoginDialogActionTaken();
+#endif
 }
 
 void Application::initializeUi() {
