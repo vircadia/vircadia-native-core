@@ -333,6 +333,10 @@ Setting::Handle<int> maxOctreePacketsPerSecond{"maxOctreePPS", DEFAULT_MAX_OCTRE
 Setting::Handle<bool> loginDialogPoppedUp{"loginDialogPoppedUp", false};
 static const QUrl OVERLAY_LOGIN_DIALOG_URL(PathUtils::qmlUrl("OverlayLoginDialog.qml"));
 
+static const QString STANDARD_TO_ACTION_MAPPING_NAME = "Standard to Action";
+static const QString NO_MOVEMENT_MAPPING_NAME = "Standard to Action (No Movement)";
+static const QString NO_MOVEMENT_MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/standard_nomovement.json";
+
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
@@ -5209,7 +5213,14 @@ void Application::pauseUntilLoginDetermined() {
     }
 
     getMyAvatar()->setEnableMeshVisible(false);
-    _controllerScriptingInterface->disableMapping("Standard to Action");
+    _controllerScriptingInterface->disableMapping(STANDARD_TO_ACTION_MAPPING_NAME);
+
+    {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        if (userInputMapper->loadMapping(NO_MOVEMENT_MAPPING_JSON)) {
+            _controllerScriptingInterface->enableMapping(NO_MOVEMENT_MAPPING_NAME);
+        }
+    }
 
     const auto& nodeList = DependencyManager::get<NodeList>();
     // save interstitial mode setting until resuming.
@@ -5250,8 +5261,13 @@ void Application::resumeAfterLoginDialogActionTaken() {
 
     updateSystemTabletMode();
 
+    {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        userInputMapper->unloadMapping(NO_MOVEMENT_MAPPING_JSON);
+        _controllerScriptingInterface->disableMapping(NO_MOVEMENT_MAPPING_NAME);
+    }
     getMyAvatar()->setEnableMeshVisible(true);
-    _controllerScriptingInterface->enableMapping("Standard to Action");
+    _controllerScriptingInterface->enableMapping(STANDARD_TO_ACTION_MAPPING_NAME);
 
     const auto& nodeList = DependencyManager::get<NodeList>();
     nodeList->getDomainHandler().setInterstitialModeEnabled(_interstitialModeEnabled);
