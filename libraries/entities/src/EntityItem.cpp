@@ -329,6 +329,36 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
         APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, getStaticCertificateVersion());
 
+        APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
+        APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
+        APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
+        APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getDynamicData());
+
+        QUuid actualParentID = getParentID();
+        if (!getClientOnly() && actualParentID == AVATAR_SELF_ID) {
+            // convert AVATAR_SELF_ID to actual sessionUUID.
+            auto nodeList = DependencyManager::get<NodeList>();
+            actualParentID = nodeList->getSessionUUID();
+        }
+        APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, actualParentID);
+
+        APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
+        APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
+        APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
+
+        APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, getCloneable());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, getCloneLifetime());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, getCloneLimit());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, getCloneDynamic());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, getCloneAvatarEntity());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID());
+
+        withReadLock([&] {
+            _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+                                               propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        });
+
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
                                 propertyFlags,
