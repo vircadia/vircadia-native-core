@@ -531,10 +531,6 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         // Recurse the tree and store the entity in the correct tree element
         AddEntityOperator theOperator(getThisPointer(), result);
         recurseTreeWithOperator(&theOperator);
-        if (!result->getParentID().isNull()) {
-            addToNeedsParentFixupList(result);
-        }
-
         postAddEntity(result);
     }
     return result;
