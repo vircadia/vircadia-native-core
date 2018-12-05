@@ -36,6 +36,8 @@ FocusScope {
     property string title: ""
     property string text: ""
     property int titleWidth: 0
+    property alias bannerWidth: banner.width
+    property alias bannerHeight: banner.height
 
     function tryDestroy() {
         root.destroy()
@@ -50,10 +52,36 @@ FocusScope {
     }
 
     Image {
+        z: -10
         id: loginDialogBackground
         source: "LoginDialog/background.jpg"
         anchors.fill: parent
-        z: -2
+    }
+
+    Rectangle {
+        z: -6
+        id: opaqueRect
+        height: parent.height
+        width: parent.width
+        opacity: 0.5
+        color: "black"
+    }
+
+    Item {
+        z: -5
+        id: bannerContainer
+        width: parent.width
+        height: banner.height
+        anchors {
+            top: parent.top
+            topMargin: 0.18 * parent.height
+        }
+        Image {
+            id: banner
+            anchors.centerIn: parent
+            source: "../images/high-fidelity-banner.svg"
+            horizontalAlignment: Image.AlignHCenter
+        }
     }
 
     Keys.onPressed: {

@@ -66,30 +66,6 @@ Item {
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
         anchors.fill: parent
 
-        Rectangle {
-            id: opaqueRect
-            height: parent.height
-            width: parent.width
-            opacity: 0.9
-            color: "black"
-        }
-
-        Item {
-            id: bannerContainer
-            width: parent.width
-            height: banner.height
-            anchors {
-                top: parent.top
-                topMargin: 0.18 * parent.height
-            }
-            Image {
-                id: banner
-                anchors.centerIn: parent
-                source: "../../images/high-fidelity-banner.svg"
-                horizontalAlignment: Image.AlignHCenter
-            }
-        }
-
         TextMetrics {
             id: mainTextContainerTextMetrics
             font: mainTextContainer.font
@@ -129,7 +105,7 @@ Item {
             font.pixelSize: usernameCollisionBody.fontSize
             styleRenderType: Text.QtRendering
             font.bold: usernameCollisionBody.fontBold
-            width: banner.width
+            width: root.bannerWidth
 
             placeholderText: "Choose your own"
 
@@ -167,13 +143,13 @@ Item {
 
         Item {
             id: buttons
-            width: banner.width
+            width: root.bannerWidth
             height: d.minHeightButton
             anchors {
                 top: textField.bottom
                 topMargin: hifi.dimensions.contentSpacing.y
                 left: parent.left
-                leftMargin: (parent.width - banner.width) / 2
+                leftMargin: (parent.width - root.bannerWidth) / 2
             }
 
             HifiControlsUit.Button {

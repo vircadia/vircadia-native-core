@@ -56,29 +56,6 @@ Item {
         anchors.fill: parent
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
-        Rectangle {
-            id: opaqueRect
-            height: parent.height
-            width: parent.width
-            opacity: 0.9
-            color: "black"
-        }
-        Item {
-            id: bannerContainer
-            width: parent.width
-            height: banner.height
-            anchors {
-                bottom: textContainer.top
-                bottomMargin: 0.125 * parent.height
-            }
-            Image {
-                id: banner
-                anchors.centerIn: parent
-                source: "../../images/high-fidelity-banner.svg"
-                horizontalAlignment: Image.AlignHCenter
-            }
-        }
-
         Item {
             id: textContainer
             width: parent.width

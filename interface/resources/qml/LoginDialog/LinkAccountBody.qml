@@ -96,36 +96,13 @@ Item {
         height: root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
-        Rectangle {
-            id: opaqueRect
-            height: parent.height
-            width: parent.width
-            opacity: 0.9
-            color: "black"
-        }
-
-        Item {
-            id: bannerContainer
-            width: parent.width
-            height: banner.height
-            anchors {
-                bottom: loginContainer.top
-                bottomMargin: 0.07 * parent.height
-            }
-            Image {
-                id: banner
-                anchors.centerIn: parent
-                source: "../../images/high-fidelity-banner.svg"
-                horizontalAlignment: Image.AlignHCenter
-            }
-        }
         Item {
             id: loginContainer
             width: emailField.width
             height: 0.45 * parent.height
             anchors {
                 top: parent.top
-                topMargin: bannerContainer.height + 0.25 * parent.height
+                topMargin: root.bannerHeight + 0.25 * parent.height
                 left: parent.left
                 leftMargin: (parent.width - emailField.width) / 2
             }
@@ -157,7 +134,7 @@ Item {
 
             HifiControlsUit.TextField {
                 id: emailField
-                width: banner.width
+                width: root.bannerWidth
                 height: linkAccountBody.textFieldHeight
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 styleRenderType: Text.QtRendering
@@ -194,7 +171,7 @@ Item {
             }
             HifiControlsUit.TextField {
                 id: passwordField
-                width: banner.width
+                width: root.bannerWidth
                 height: linkAccountBody.textFieldHeight
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 styleRenderType: Text.QtRendering

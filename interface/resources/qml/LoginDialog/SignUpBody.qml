@@ -122,10 +122,10 @@ Item {
         Item {
             id: loginContainer
             width: usernameField.width
-            height: parent.height - bannerContainer.height
+            height: parent.height
             anchors {
                 top: parent.top
-                topMargin: bannerContainer.height + 0.25 * parent.height
+                topMargin: root.bannerHeight + 0.25 * parent.height
                 left: parent.left
                 leftMargin: (parent.width - usernameField.width) / 2
             }
@@ -159,7 +159,7 @@ Item {
 
             HifiControlsUit.TextField {
                 id: usernameField
-                width: banner.width
+                width: root.bannerWidth
                 height: signUpBody.textFieldHeight
                 placeholderText: "Username"
                 font.pixelSize: signUpBody.textFieldFontSize
@@ -204,7 +204,7 @@ Item {
 
             HifiControlsUit.TextField {
                 id: emailField
-                width: banner.width
+                width: root.bannerWidth
                 height: signUpBody.textFieldHeight
                 anchors {
                     top: parent.top
@@ -246,7 +246,7 @@ Item {
             }
             HifiControlsUit.TextField {
                 id: passwordField
-                width: banner.width
+                width: root.bannerWidth
                 height: signUpBody.textFieldHeight
                 placeholderText: "Password"
                 font.pixelSize: signUpBody.textFieldFontSize

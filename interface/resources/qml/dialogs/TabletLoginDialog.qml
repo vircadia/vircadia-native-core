@@ -39,6 +39,8 @@ FocusScope {
     property alias text: loginKeyboard.mirroredText
 
     property int titleWidth: 0
+    property alias bannerWidth: banner.width
+    property alias bannerHeight: banner.height
     property string iconText: hifi.glyphs.avatar
     property int iconSize: 35
 
@@ -90,10 +92,36 @@ FocusScope {
     }
 
     Image {
+        z: -10
         id: loginDialogBackground
         source: "../LoginDialog/background_tablet.jpg"
         anchors.fill: parent
-        z: -2
+    }
+
+    Item {
+        z: -5
+        id: bannerContainer
+        width: parent.width
+        height: banner.height
+        anchors {
+            top: parent.top
+            topMargin: 0.18 * parent.height
+        }
+        Image {
+            id: banner
+            anchors.centerIn: parent
+            source: "../../images/high-fidelity-banner.svg"
+            horizontalAlignment: Image.AlignHCenter
+        }
+    }
+
+    Rectangle {
+        z: -6
+        id: opaqueRect
+        height: parent.height
+        width: parent.width
+        opacity: 0.5
+        color: "black"
     }
 
     HifiControlsUit.Keyboard {

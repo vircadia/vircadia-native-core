@@ -102,7 +102,7 @@ Item {
         } else if (loggingInBody.withOculus) {
             // reset the flag.
             loggingInGlyph.visible = false;
-            loggingInText.text = "You are now logged into Oculus!"
+            loggingInText.text = "You are now logged into  Oculus!"
             loggingInText.anchors.centerIn = loggingInHeader;
             loggingInText.anchors.bottom = loggingInHeader.bottom;
             loggedInGlyph.text = hifi.glyphs.oculus;
@@ -123,7 +123,7 @@ Item {
             id: opaqueRect
             height: parent.height
             width: parent.width
-            opacity: 0.9
+            opacity: 0.7
             color: "black"
         }
 
