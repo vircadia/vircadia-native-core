@@ -72,6 +72,7 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
     QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
     QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
+    QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
 
     parser.addOption(urlOption);
     parser.addOption(noUpdaterOption);
@@ -79,6 +80,7 @@ int main(int argc, const char* argv[]) {
     parser.addOption(runServerOption);
     parser.addOption(serverContentPathOption);
     parser.addOption(overrideAppLocalDataPathOption);
+    parser.addOption(overrideScriptsPathOption);
     parser.addOption(allowMultipleInstancesOption);
 
     if (!parser.parse(arguments)) {
@@ -164,6 +166,15 @@ int main(int argc, const char* argv[]) {
                                   QProcessEnvironment::systemEnvironment().contains("HIFI_ALLOW_MULTIPLE_INSTANCES");
     if (allowMultipleInstances) {
         instanceMightBeRunning = false;
+    }
+    // this needs to be done here in main, as the mechanism for setting the
+    // scripts directory appears not to work.  See the bug report
+    // https://highfidelity.fogbugz.com/f/cases/5759/Issues-changing-scripts-directory-in-ScriptsEngine
+    if (parser.isSet(overrideScriptsPathOption)) {
+        QDir scriptsPath(parser.value(overrideScriptsPathOption));
+        if (scriptsPath.exists()) {
+            PathUtils::defaultScriptsLocation(scriptsPath.path());
+        }
     }
 
     if (instanceMightBeRunning) {

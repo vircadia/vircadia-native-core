@@ -56,7 +56,6 @@ Rectangle {
             keyboardBase.height = raised ? raisedHeight : 0;
             keyboardBase.visible = raised;
         } else {
-            console.log("raising 3d keyboard to " + raised);
             KeyboardScriptingInterface.raised = raised;
             KeyboardScriptingInterface.password = raised ? password : false;
         }

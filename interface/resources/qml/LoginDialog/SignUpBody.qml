@@ -1,5 +1,5 @@
 //
-//  signUpBody.qml
+//  SignUpBody.qml
 //
 //  Created by Stephen Birarda on 7 Dec 2016
 //  Copyright 2016 High Fidelity, Inc.
