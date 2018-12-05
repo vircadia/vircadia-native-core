@@ -225,10 +225,10 @@ void::Test::appendTestResultsToFile(QString testResultFilename, bool hasFailed) 
     QString testName = testResultFilename.left(testNameTemp.lastIndexOf('.'));
     QString resultFolderPath;
     if (hasFailed) {
-        resultFolderPath = _testResultsFolderPath + "/Failure_" + testName;
+        resultFolderPath = _testResultsFolderPath + "/Failure_" + QString::number(_failureIndex) + "--" + testName;
         ++_failureIndex;
     } else {
-        resultFolderPath = _testResultsFolderPath + "/Success_" + testName;
+        resultFolderPath = _testResultsFolderPath + "/Success_" + QString::number(_successIndex) + "--" + testName;
         ++_successIndex;
     }
 
@@ -239,7 +239,7 @@ void::Test::appendTestResultsToFile(QString testResultFilename, bool hasFailed) 
     }
 
     QString source = _snapshotDirectory + "/" + testResultFilename;
-    QString destination = resultFolderPath + "/" + testResultFilename;
+    QString destination = resultFolderPath + "/Result.txt";
     if (!QFile::copy(source, destination)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + source + " to " + destination);
         exit(-1);
