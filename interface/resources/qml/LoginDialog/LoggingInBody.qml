@@ -68,8 +68,6 @@ Item {
     function init() {
         // For the process of logging in.
         loggingInText.wrapMode = Text.NoWrap;
-        print("withSteam " + loggingInBody.withSteam);
-        print("withOculus " + loggingInBody.withOculus);
         if (loggingInBody.withSteam) {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Steam";

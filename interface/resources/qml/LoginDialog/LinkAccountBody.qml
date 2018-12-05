@@ -376,10 +376,11 @@ Item {
                 buttonGlyph: hifi.glyphs.steamSquare
                 buttonGlyphRightMargin: 10
                 onClicked: {
-                    if (loginDialog.isOculusStoreRunning()) {
-                        linkAccountBody.withOculus = true;
-                        loginDialog.loginThroughSteam();
-                    } else if (loginDialog.isSteamRunning()) {
+                    // if (loginDialog.isOculusStoreRunning()) {
+                    //     linkAccountBody.withOculus = true;
+                    //     loginDialog.loginThroughSteam();
+                    // } else
+                    if (loginDialog.isSteamRunning()) {
                         linkAccountBody.withSteam = true;
                         loginDialog.loginThroughSteam();
                     }
@@ -392,10 +393,11 @@ Item {
                         continueButton.visible = false;
                         return;
                     }
-                    if (loginDialog.isOculusStoreRunning()) {
-                        continueButton.text = qsTr("CONTINUE WITH OCULUS");
-                        continueButton.buttonGlyph = hifi.glyphs.oculus;
-                    } else if (loginDialog.isSteamRunning()) {
+                    // if (loginDialog.isOculusStoreRunning()) {
+                    //     continueButton.text = qsTr("CONTINUE WITH OCULUS");
+                    //     continueButton.buttonGlyph = hifi.glyphs.oculus;
+                    // } else
+                    if (loginDialog.isSteamRunning()) {
                         continueButton.text = qsTr("CONTINUE WITH STEAM");
                         continueButton.buttonGlyph = hifi.glyphs.steamSquare;
                     } else {
