@@ -319,6 +319,7 @@ public:
         glBindVertexArray(0);
         glDeleteVertexArrays(1, &_vao);
         _canvas->doneCurrent();
+        _canvas->moveToThread(_plugin.thread());
     }
 
     void update(const CompositeInfo& newCompositeInfo) { _queue.push(newCompositeInfo); }
