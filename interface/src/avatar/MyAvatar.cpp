@@ -50,6 +50,7 @@
 #include <RecordingScriptingInterface.h>
 #include <trackers/FaceTracker.h>
 #include <RenderableModelEntityItem.h>
+#include <VariantMapToScriptValue.h>
 
 #include "MyHead.h"
 #include "MySkeletonModel.h"
@@ -1437,6 +1438,38 @@ void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
     _skeletonModel->getRig().setEnableInverseKinematics(isEnabled);
 }
 
+void MyAvatar::updateAvatarEntity(const QUuid& entityID, const EntityItemProperties& properties) {
+    auto entityTreeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+    EntityItemPointer entity;
+    if (entityTree) {
+        entity = entityTree->findEntityByID(entityID);
+        if (!entity) {
+            entity = entityTree->addEntity(entityID, properties);
+            if (!entity) {
+                // unable to create entity
+                // TODO? handle this case?
+                return;
+            }
+        } else {
+            // TODO: propagate changes to entity
+        }
+    }
+
+    OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
+    EncodeBitstreamParams params;
+    EntityTreeElementExtraEncodeDataPointer extra { nullptr };
+    OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
+
+    if (appendState != OctreeElement::COMPLETED) {
+        // this entity's data is too big
+        return;
+    }
+
+    packetData.shrinkByteArrays();
+    storeAvatarEntityDataPayload(entity->getID(), packetData.getUncompressedByteArray());
+}
+
 void MyAvatar::loadData() {
     getHead()->setBasePitch(_headPitchSetting.get());
 
@@ -1450,13 +1483,29 @@ void MyAvatar::loadData() {
     useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
 
     int numEntities = _avatarEntityCountSetting.get(0);
+    auto entityTree = DependencyManager::get<EntityTreeRenderer>()->getTree();
 
-    for (int i = 0; i < numEntities; i++) {
-        resizeAvatarEntitySettingHandles(i);
-        QUuid entityID = QUuid::createUuid(); // generate a new ID
-        QString propertiesString = _avatarEntityDataSettings[i].get();
-        // TODO: convert propertiesString to EntityItemProperties
-        //updateAvatarEntity(entityID, properties);
+    if (numEntities > 0) {
+        QScriptEngine scriptEngine;
+        for (int i = 0; i < numEntities; i++) {
+            resizeAvatarEntitySettingHandles(i);
+            QUuid entityID = QUuid::createUuid(); // generate a new ID
+
+            // NOTE: this path from EntityItemProperties JSON string to EntityItemProperties is NOT efficient
+            QString propertiesString = _avatarEntityDataSettings[i].get();
+            QJsonDocument propertiesDoc = QJsonDocument::fromJson(propertiesString.toUtf8());
+            QJsonObject propertiesObj = propertiesDoc.object();
+            QVariant propertiesVariant(propertiesObj);
+            QVariantMap propertiesMap = propertiesVariant.toMap();
+            QScriptValue propertiesScriptValue = variantMapToScriptValue(propertiesMap, scriptEngine);
+            EntityItemProperties properties;
+            EntityItemPropertiesFromScriptValueIgnoreReadOnly(propertiesScriptValue, properties);
+
+            // the ClientOnly property can get stripped out elsewhere so we need to always set it true here
+            properties.setClientOnly(true);
+
+            updateAvatarEntity(entityID, properties);
+        }
     }
 
     // Flying preferences must be loaded before calling setFlyingEnabled()

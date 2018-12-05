@@ -2019,7 +2019,7 @@ void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray trai
 void AvatarData::processTraitInstance(AvatarTraits::TraitType traitType,
                                       AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData) {
     if (traitType == AvatarTraits::AvatarEntity) {
-        updateAvatarEntity(instanceID, traitBinaryData);
+        storeAvatarEntityDataPayload(instanceID, traitBinaryData);
     } else if (traitType == AvatarTraits::Grab) {
         updateAvatarGrabData(instanceID, traitBinaryData);
     }
@@ -2569,8 +2569,9 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             if (attachmentJson.isObject()) {
                 QVariantMap entityData = attachmentJson.toObject().toVariantMap();
                 QUuid entityID = entityData.value("id").toUuid();
+                // ADEBUG TODO: fix this broken path
                 QByteArray properties = QByteArray::fromBase64(entityData.value("properties").toByteArray());
-                updateAvatarEntity(entityID, properties);
+                storeAvatarEntityDataPayload(entityID, properties);
             }
         }
     }
@@ -2754,15 +2755,15 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
 
 const int MAX_NUM_AVATAR_ENTITIES = 42;
 
-void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
+void AvatarData::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& data) {
     _avatarEntitiesLock.withWriteLock([&] {
         AvatarEntityMap::iterator itr = _avatarEntityData.find(entityID);
         if (itr == _avatarEntityData.end()) {
             if (_avatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
-                _avatarEntityData.insert(entityID, entityData);
+                _avatarEntityData.insert(entityID, data);
             }
         } else {
-            itr.value() = entityData;
+            itr.value() = data;
         }
     });
 
@@ -2773,6 +2774,10 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
         // so that changes will be sent next frame
         _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
     }
+}
+
+void AvatarData::updateAvatarEntity(const QUuid& entityID, const QString& entityPropertiesString) {
+    // TODO: implement this as API exposed to JS
 }
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {

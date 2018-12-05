@@ -1402,6 +1402,9 @@ public slots:
      */
     bool getEnableMeshVisible() const override;
 
+    // TODO: make this invokable, probably also move down to AvatarData
+    void updateAvatarEntity(const QUuid& entityID, const EntityItemProperties& properties);
+
     /**jsdoc
      * Set whether or not your avatar mesh is visible.
      * @function MyAvatar.setEnableMeshVisible

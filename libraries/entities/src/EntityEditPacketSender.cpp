@@ -39,8 +39,7 @@ void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, QByte
     }
 }
 
-void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
-                                                          EntityTreePointer entityTree,
+void EntityEditPacketSender::queueEditAvatarEntityMessage(EntityTreePointer entityTree,
                                                           EntityItemID entityItemID,
                                                           const EntityItemProperties& properties) {
     assert(_myAvatar);
@@ -53,6 +52,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
         qCDebug(entities) << "EntityEditPacketSender::queueEditAvatarEntityMessage can't find entity: " << entityItemID;
         return;
     }
+    entity->setLastBroadcast(usecTimestampNow());
 
     // serialize ALL properties in an "AvatarEntity" packet
     // rather than just the ones being edited.
@@ -65,16 +65,13 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
 
     if (appendState != OctreeElement::COMPLETED) {
-        // this entity is too big
+        // this entity's payload is too big
         return;
     }
 
     packetData.shrinkByteArrays();
-    _myAvatar->updateAvatarEntity(entityItemID, packetData.getUncompressedByteArray());
-
-    entity->setLastBroadcast(usecTimestampNow());
+    _myAvatar->storeAvatarEntityDataPayload(entity->getID(), packetData.getUncompressedByteArray());
 }
-
 
 void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
                                                     EntityTreePointer entityTree,
@@ -85,7 +82,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
             qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit with no myAvatar";
         } else if (properties.getOwningAvatarID() == _myAvatar->getID()) {
             // this is an avatar-based entity --> update our avatar-data rather than sending to the entity-server
-            queueEditAvatarEntityMessage(type, entityTree, entityItemID, properties);
+            queueEditAvatarEntityMessage(entityTree, entityItemID, properties);
         } else {
             qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit for another avatar";
         }
