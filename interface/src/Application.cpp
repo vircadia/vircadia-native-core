@@ -5279,7 +5279,12 @@ void Application::resumeAfterLoginDialogActionTaken() {
         // this will force the model the look at the correct directory (weird order of operations issue)
         scriptEngines->reloadLocalFiles();
 
-        scriptEngines->loadScripts();
+        if (!_defaultScriptsLocation.exists()) {
+            scriptEngines->loadDefaultScripts();
+            scriptEngines->defaultScriptsLocationOverridden(true);
+        } else {
+            scriptEngines->loadScripts();
+        }
     }
 
     if (_firstRun.get()) {
