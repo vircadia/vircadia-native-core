@@ -490,7 +490,6 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
 }
 
 EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone) {
-    EntityItemPointer result = NULL;
     EntityItemProperties props = properties;
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -517,12 +516,12 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     if (containingElement) {
         qCWarning(entities) << "EntityTree::addEntity() on existing entity item with entityID=" << entityID
                           << "containingElement=" << containingElement.get();
-        return result;
+        return nullptr;
     }
 
     // construct the instance of the entity
     EntityTypes::EntityType type = props.getType();
-    result = EntityTypes::constructEntityItem(type, entityID, props);
+    EntityItemPointer result = EntityTypes::constructEntityItem(type, entityID, props);
 
     if (result) {
         if (recordCreationTime) {
