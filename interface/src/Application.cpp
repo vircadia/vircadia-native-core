@@ -8656,11 +8656,13 @@ void Application::createLoginDialogOverlay() {
 }
 
 void Application::updateLoginDialogOverlayPosition() {
-    auto overlayPosition = getOverlays().getProperty(_loginDialogOverlayID, "position");
+    const float LOOK_AWAY_THRESHOLD_ANGLE = 40.0f;
+    auto& overlays = getOverlays();
+    auto overlayPosition = overlays.getProperty(_loginDialogOverlayID, "position");
     auto overlayPositionVec = vec3FromVariant(overlayPosition.value);
     auto cameraPositionVec = _myCamera.getPosition();
     auto cameraOrientation = _myCamera.getOrientation();
-    cameraOrientation = cancelOutRollAndPitch(cameraOrientation);
+    cameraOrientation = cancelOutRoll(cameraOrientation);
     auto headLookVec = (cameraOrientation * Vectors::FRONT);
     auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
     auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
@@ -8669,12 +8671,15 @@ void Application::updateLoginDialogOverlayPosition() {
     auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
     auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
 
-    if (pointAngle > 40.0f) {
+    //auto isOverlayTooFar = (glm::distance(overlayPositionVec, getMyAvatar()->getWorldPosition()) > 1.0f);
+
+    //if (pointAngle > LOOK_AWAY_THRESHOLD_ANGLE || isOverlayTooFar) {
+    if (pointAngle > LOOK_AWAY_THRESHOLD_ANGLE) {
         QVariantMap properties {
             {"position", vec3toVariant(newOverlayPositionVec)},
             {"orientation", quatToVariant(newOverlayOrientation)}
         };
-        getOverlays().editOverlay(_loginDialogOverlayID, properties);
+        overlays.editOverlay(_loginDialogOverlayID, properties);
     }
 }
 

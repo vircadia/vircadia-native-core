@@ -140,7 +140,7 @@ Item {
                 styleRenderType: Text.QtRendering
                 anchors {
                     top: parent.top
-                    topMargin: loginErrorMessage.height
+                    topMargin: errorContainer.height
                 }
                 placeholderText: "Username or Email"
                 activeFocusOnPress: true

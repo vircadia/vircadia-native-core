@@ -64,22 +64,14 @@ Item {
         }
     }
 
-    function login() {
+    function signup() {
         loginDialog.signup(emailField.text, usernameField.text, passwordField.text);
         return;
-        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "withOculus": false, "linkSteam": false });
     }
 
     function init() {
         // going to/from sign in/up dialog.
         loginDialog.isLogIn = false;
-        loginErrorMessage.visible = (signUpBody.errorString !== "");
-        if (signUpBody.errorString !== "") {
-            loginErrorMessage.text = signUpBody.errorString;
-            errorContainer.anchors.bottom = usernameField.top;
-            errorContainer.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
-            errorContainer.anchors.left = usernameField.left;
-        }
         emailField.placeholderText = "Email";
         emailField.text = "";
         emailField.anchors.top = usernameField.bottom;
@@ -133,7 +125,7 @@ Item {
 
             Item {
                 id: errorContainer
-                width: loginErrorMessageTextMetrics.width
+                width: parent.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
                     bottom: usernameField.top;
@@ -147,6 +139,7 @@ Item {
                 }
                 Text {
                     id: loginErrorMessage;
+                    width: root.bannerWidth
                     color: "red";
                     font.family: signUpBody.fontFamily
                     font.pixelSize: 18
@@ -192,7 +185,7 @@ Item {
                             if (keepMeLoggedInCheckbox.checked) {
                                 Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
                             }
-                            signUpBody.login();
+                            signUpBody.signup();
                             break;
                     }
                 }
@@ -235,7 +228,7 @@ Item {
                             if (keepMeLoggedInCheckbox.checked) {
                                 Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
                             }
-                            signUpBody.login();
+                            signUpBody.signup();
                             break;
                     }
                 }
@@ -319,7 +312,7 @@ Item {
                         if (keepMeLoggedInCheckbox.checked) {
                             Settings.setValue("keepMeLoggedIn/savedUsername", usernameField.text);
                         }
-                        signUpBody.login();
+                        signUpBody.signup();
                         break;
                     }
                 }
@@ -387,7 +380,7 @@ Item {
                 }
 
                 onClicked: {
-                    signUpBody.login()
+                    signUpBody.signup();
                 }
             }
         }
@@ -442,6 +435,13 @@ Item {
             loginErrorMessage.visible = (errorStringEdited !== "");
             if (errorStringEdited !== "") {
                 loginErrorMessage.text = errorStringEdited;
+                loginErrorMessageTextMetrics.text = errorStringEdited;
+                if (loginErrorMessageTextMetrics.width > 350 && root.isTablet) {
+                    loginErrorMessage.wrapMode = Text.WordWrap;
+                    loginErrorMessage.verticalAlignment = Text.AlignLeft;
+                    loginErrorMessage.horizontalAlignment = Text.AlignLeft;
+                    errorContainer.height = 2 * loginErrorMessageTextMetrics.height;
+                }
                 errorContainer.anchors.bottom = usernameField.top;
                 errorContainer.anchors.left = usernameField.left;
             }

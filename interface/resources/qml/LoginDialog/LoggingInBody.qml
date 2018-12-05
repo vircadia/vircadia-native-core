@@ -102,7 +102,7 @@ Item {
         } else if (loggingInBody.withOculus) {
             // reset the flag.
             loggingInGlyph.visible = false;
-            loggingInText.text = "You are now logged into  Oculus!"
+            loggingInText.text = "You are now logged into Oculus!"
             loggingInText.anchors.centerIn = loggingInHeader;
             loggingInText.anchors.bottom = loggingInHeader.bottom;
             loggedInGlyph.text = hifi.glyphs.oculus;
