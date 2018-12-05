@@ -322,7 +322,6 @@ void ScriptEngines::loadScripts() {
 
     for (auto script : runningScripts) {
         auto string = script.toString();
-        qDebug() << string;
         if (!string.isEmpty()) {
             loadScript(string);
         }
