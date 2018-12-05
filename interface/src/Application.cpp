@@ -5259,7 +5259,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
         return;
     }
 
-    if (!isHMDMode()) {
+    if (!isHMDMode() && getDesktopTabletBecomesToolbarSetting()) {
         auto toolbar = DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
         toolbar->writeProperty("visible", true);
     } else {
