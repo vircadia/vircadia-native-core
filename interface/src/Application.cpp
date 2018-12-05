@@ -1799,6 +1799,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         // only for non-android. QML is ready to be shown at this time.
         showLoginScreen();
+#else
+        resumeAfterLoginDialogActionTaken();
 #endif
     });
 
