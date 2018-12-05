@@ -146,6 +146,11 @@ int Test::checkTextResults() {
 
     // Add results to Test Results folder
     foreach(QString currentFilename, testsFailed) {
+        appendTestResultsToFile(currentFilename, true);
+    }
+
+    foreach(QString currentFilename, testsPassed) {
+        appendTestResultsToFile(currentFilename, false);
     }
 
     return testsFailed.length();
@@ -215,17 +220,28 @@ void Test::appendTestResultsToFile(TestResult testResult, QPixmap comparisonImag
 }
 
 void::Test::appendTestResultsToFile(QString testResultFilename, bool hasFailed) {
+    // The test name includes everything until the penultimate period
+    QString testNameTemp = testResultFilename.left(testResultFilename.lastIndexOf('.'));
+    QString testName = testResultFilename.left(testNameTemp.lastIndexOf('.'));
     QString resultFolderPath;
     if (hasFailed) {
-        resultFolderPath = _testResultsFolderPath + "/Failure_";
+        resultFolderPath = _testResultsFolderPath + "/Failure_" + testName;
         ++_failureIndex;
     } else {
-        resultFolderPath = _testResultsFolderPath + "/Success_";
+        resultFolderPath = _testResultsFolderPath + "/Success_" + testName;
         ++_successIndex;
     }
 
-    if (!QFile::copy(testResultFilename, resultFolderPath)) {
-////        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
+    if (!QDir().mkdir(resultFolderPath)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+            "Failed to create folder " + resultFolderPath);
+        exit(-1);
+    }
+
+    QString source = _snapshotDirectory + "/" + testResultFilename;
+    QString destination = resultFolderPath + "/" + testResultFilename;
+    if (!QFile::copy(source, destination)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + source + " to " + destination);
         exit(-1);
     }
 }
@@ -246,7 +262,7 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
         if (!parent.isNull() && parent.right(1) != "/") {
             parent += "/";
         }
-        _snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", parent,
+        _snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the snapshots", parent,
             QFileDialog::ShowDirsOnly);
 
         // If user canceled then restore previous selection and return
@@ -384,7 +400,7 @@ void Test::createTests() {
         parent += "/";
     }
 
-    _snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", parent,
+    _snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the snapshots", parent,
                                                           QFileDialog::ShowDirsOnly);
 
     // If user canceled then restore previous selection and return
