@@ -312,7 +312,7 @@ public:
     QList<QString> blendshapeChannelNames;
 
     QMap<int, glm::quat> jointRotationOffsets;
-    QMap<QString, QString> fbxToHifiJointNameMapping;
+    QMap<QString, QString> hfmToHifiJointNameMapping;
 };
 
 };

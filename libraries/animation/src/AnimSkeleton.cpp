@@ -23,8 +23,6 @@ AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     for (auto& joint : hfmModel.joints) {
         joints.push_back(joint);
     }
-
-    _fbxToHifiJointNameMapping = hfmModel.fbxToHifiJointNameMapping;
     buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
 
     // we make a copy of the inverseBindMatrices in order to prevent mutating the model bind pose
@@ -61,14 +59,8 @@ AnimSkeleton::AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, 
 }
 
 int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
-
     auto itr = _jointIndicesByName.find(jointName);
-    if (_fbxToHifiJointNameMapping.contains(jointName)) {
-        // if the fbx joint name is different than the hifi standard then look up the
-        // index from the fbx joint name.
-        itr = _jointIndicesByName.find(_fbxToHifiJointNameMapping[jointName]);
-    }
-    if (itr != _jointIndicesByName.end()) {
+    if (_jointIndicesByName.end() != itr) {
         return itr.value();
     }
     return -1;
@@ -128,13 +120,8 @@ std::vector<int> AnimSkeleton::getChildrenOfJoint(int jointIndex) const {
     return result;
 }
 
-const QString AnimSkeleton::getJointName(int jointIndex) const {
-
-    QString jointName = _joints[jointIndex].name;
-    if (_fbxToHifiJointNameMapping.contains(_fbxToHifiJointNameMapping.key(jointName))) {
-        jointName = _fbxToHifiJointNameMapping.key(jointName);
-    }
-    return jointName;
+const QString& AnimSkeleton::getJointName(int jointIndex) const {
+    return _joints[jointIndex].name;
 }
 
 AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& relativePoses) const {
@@ -258,25 +245,21 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
     _nonMirroredIndices.clear();
     _mirrorMap.reserve(_jointsSize);
     for (int i = 0; i < _jointsSize; i++) {
-        QString jointName = _joints[i].name;
-        if (_fbxToHifiJointNameMapping.contains(_fbxToHifiJointNameMapping.key(jointName))) {
-            jointName = _fbxToHifiJointNameMapping.key(jointName);
-        }
-        if (jointName != "Hips" && jointName != "Spine" &&
-            jointName != "Spine1" && jointName != "Spine2" &&
-            jointName != "Neck" && jointName != "Head" &&
-            !((jointName.startsWith("Left") || jointName.startsWith("Right")) &&
-                jointName != "LeftEye" && jointName != "RightEye")) {
+        if (_joints[i].name != "Hips" && _joints[i].name != "Spine" &&
+            _joints[i].name != "Spine1" && _joints[i].name != "Spine2" &&
+            _joints[i].name != "Neck" && _joints[i].name != "Head" &&
+            !((_joints[i].name.startsWith("Left") || _joints[i].name.startsWith("Right")) &&
+              _joints[i].name != "LeftEye" && _joints[i].name != "RightEye")) {
             // HACK: we don't want to mirror some joints so we remember their indices
             // so we can restore them after a future mirror operation
             _nonMirroredIndices.push_back(i);
         }
         int mirrorJointIndex = -1;
-        if (jointName.startsWith("Left")) {
-            QString mirrorJointName = QString(jointName).replace(0, 4, "Right");
+        if (_joints[i].name.startsWith("Left")) {
+            QString mirrorJointName = QString(_joints[i].name).replace(0, 4, "Right");
             mirrorJointIndex = nameToJointIndex(mirrorJointName);
-        } else if (jointName.startsWith("Right")) {
-            QString mirrorJointName = QString(jointName).replace(0, 5, "Left");
+        } else if (_joints[i].name.startsWith("Right")) {
+            QString mirrorJointName = QString(_joints[i].name).replace(0, 5, "Left");
             mirrorJointIndex = nameToJointIndex(mirrorJointName);
         }
         if (mirrorJointIndex >= 0) {

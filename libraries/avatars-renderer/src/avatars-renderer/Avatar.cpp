@@ -1437,13 +1437,6 @@ int Avatar::getJointIndex(const QString& name) const {
     withValidJointIndicesCache([&]() {
         if (_modelJointIndicesCache.contains(name)) {
             result = _modelJointIndicesCache[name] - 1;
-        } else {
-            // doesn't contain name. check the fbx-to-hifi joint name mapping
-            if (_skeletonModel && _skeletonModel->isActive()) {
-                if (_modelJointIndicesCache.contains(_skeletonModel->getHFMModel().fbxToHifiJointNameMapping[name])) {
-                    result = _modelJointIndicesCache[_skeletonModel->getHFMModel().fbxToHifiJointNameMapping[name]] - 1;
-                }
-            }
         }
     });
     return result;
