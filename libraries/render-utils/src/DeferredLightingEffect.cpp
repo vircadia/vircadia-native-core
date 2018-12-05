@@ -606,11 +606,16 @@ void RenderDeferredCleanup::run(const render::RenderContextPointer& renderContex
     }
 }
 
+RenderDeferred::RenderDeferred(bool renderShadows):
+   _renderShadows(renderShadows)
+{
+    DependencyManager::get<DeferredLightingEffect>()->init();
+}
+
 void RenderDeferred::configure(const Config& config) {
 }
 
 void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
-    PROFILE_RANGE(render, "DeferredLighting");
 
     auto deferredTransform = inputs.get0();
     auto deferredFramebuffer = inputs.get1();

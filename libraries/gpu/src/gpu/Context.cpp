@@ -51,6 +51,7 @@ Context::~Context() {
         delete batch;
     }
     _batchPool.clear();
+    _syncedPrograms.clear();
 }
 
 void Context::shutdown() {
@@ -360,8 +361,8 @@ void Context::pushProgramsToSync(const std::vector<gpu::ShaderPointer>& programs
 }
 
 void Context::processProgramsToSync() {
-    Lock lock(_programsToSyncMutex);
     if (!_programsToSyncQueue.empty()) {
+        Lock lock(_programsToSyncMutex);
         ProgramsToSync programsToSync = _programsToSyncQueue.front();
         size_t numSynced = 0;
         while (_nextProgramToSyncIndex < programsToSync.programs.size() && numSynced < programsToSync.rate) {

@@ -189,8 +189,7 @@ public:
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 
-    RenderDeferred() {}
-    RenderDeferred(bool renderShadows) : _renderShadows(renderShadows) {}
+    RenderDeferred(bool renderShadows = false);
 
     void configure(const Config& config);
 

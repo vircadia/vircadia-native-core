@@ -471,7 +471,7 @@ function onWebEventReceived(message) {
         wireQmlEventBridge(true);
         ui.open(MARKETPLACE_CHECKOUT_QML_PATH);
         ui.tablet.sendToQml({
-            method: 'updateCheckoutQML',
+            method: 'updateCheckoutQMLItemID',
             params: message
         });
     } else if (message.type === "REQUEST_SETTING") {
@@ -649,8 +649,8 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     case 'purchases_openGoTo':
     case 'purchases_itemInfoClicked':
     case 'purchases_itemCertificateClicked':
-        case 'clearShouldShowDotHistory':
-        case 'giftAsset':
+    case 'clearShouldShowDotHistory':
+    case 'giftAsset':
         break;
     default:
         print('marketplaces.js: Unrecognized message from Checkout.qml');
