@@ -8671,9 +8671,6 @@ void Application::updateLoginDialogOverlayPosition() {
     auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
     auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
 
-    //auto isOverlayTooFar = (glm::distance(overlayPositionVec, getMyAvatar()->getWorldPosition()) > 1.0f);
-
-    //if (pointAngle > LOOK_AWAY_THRESHOLD_ANGLE || isOverlayTooFar) {
     if (pointAngle > LOOK_AWAY_THRESHOLD_ANGLE) {
         QVariantMap properties {
             {"position", vec3toVariant(newOverlayPositionVec)},
