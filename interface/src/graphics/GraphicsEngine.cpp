@@ -56,6 +56,10 @@ void GraphicsEngine::initializeGPU(GLWidget* glwidget) {
     glwidget->makeCurrent();
     _gpuContext = std::make_shared<gpu::Context>();
 
+    _gpuContext->pushProgramsToSync(shader::allPrograms(), [this] {
+        _programsCompiled.store(true);
+    }, 1);
+
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
 }
 
