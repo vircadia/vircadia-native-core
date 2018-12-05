@@ -2572,6 +2572,8 @@ void Application::cleanupBeforeQuit() {
     QString webengineRemoteDebugging = QProcessEnvironment::systemEnvironment().value("QTWEBENGINE_REMOTE_DEBUGGING", "false");
     qCDebug(interfaceapp) << "QTWEBENGINE_REMOTE_DEBUGGING =" << webengineRemoteDebugging;
 
+    DependencyManager::prepareToExit();
+
     if (tracing::enabled()) {
         auto tracer = DependencyManager::get<tracing::Tracer>();
         tracer->stopTracing();
@@ -2684,6 +2686,7 @@ void Application::cleanupBeforeQuit() {
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop");
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<AudioScriptingInterface>();
@@ -2775,7 +2778,7 @@ Application::~Application() {
     // quit the thread used by the closure event sender
     closeEventSender->thread()->quit();
 
-    // Can't log to file passed this point, FileLogger about to be deleted
+    // Can't log to file past this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
     _renderEventHandler->deleteLater();
@@ -6303,6 +6306,11 @@ void Application::update(float deltaTime) {
     { // Game loop is done, mark the end of the frame for the scene transactions and the render loop to take over
         PerformanceTimer perfTimer("enqueueFrame");
         getMain3DScene()->enqueueFrame();
+    }
+
+    // If the display plugin is inactive then the frames won't be processed so process them here.
+    if (!getActiveDisplayPlugin()->isActive()) {
+        getMain3DScene()->processTransactionQueue();
     }
 }
 

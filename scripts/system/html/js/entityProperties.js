@@ -197,7 +197,7 @@ const GROUPS = [
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
-                propertyID: "keyLight.direction.x",
+                propertyID: "keyLight.direction.y",
                 showPropertyRule: { "keyLightMode": "enabled" },
             },
             {
@@ -206,7 +206,7 @@ const GROUPS = [
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
-                propertyID: "keyLight.direction.y",
+                propertyID: "keyLight.direction.x",
                 showPropertyRule: { "keyLightMode": "enabled" },
             },
             {
@@ -2149,7 +2149,7 @@ function createTupleNumberInput(property, subLabel) {
                                                 propertyData.decimals, dragStartFunction, dragEndFunction); 
     elDraggableNumber.elInput.setAttribute("id", elementID);
     elDraggableNumber.elDiv.className += " fstuple";
-    elDraggableNumber.elText.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
+    elDraggableNumber.elDiv.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
     
     return elDraggableNumber;
 }
