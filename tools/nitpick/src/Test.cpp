@@ -105,7 +105,7 @@ int Test::compareImageLists() {
             ++numberOfFailures;
 
             if (!isInteractiveMode) {
-                appendTestResultsToFile(_testResultsFolderPath, testResult, _mismatchWindow.getComparisonImage(), true);
+                appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), true);
             } else {
                 _mismatchWindow.exec();
 
@@ -113,7 +113,7 @@ int Test::compareImageLists() {
                     case USER_RESPONSE_PASS:
                         break;
                     case USE_RESPONSE_FAIL:
-                        appendTestResultsToFile(_testResultsFolderPath, testResult, _mismatchWindow.getComparisonImage(), true);
+                        appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), true);
                         break;
                     case USER_RESPONSE_ABORT:
                         keepOn = false;
@@ -124,7 +124,7 @@ int Test::compareImageLists() {
                 }
             }
         } else {
-            appendTestResultsToFile(_testResultsFolderPath, testResult, _mismatchWindow.getComparisonImage(), false);
+            appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), false);
         }
 
         _progressBar->setValue(i);
@@ -134,12 +134,31 @@ int Test::compareImageLists() {
     return numberOfFailures;
 }
 
-void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestResult testResult, QPixmap comparisonImage, bool hasFailed) {
+int Test::checkTextResults() {
+    // Create lists of failed and passed tests
+    QStringList nameFilterFailed;
+    nameFilterFailed << "*.failed.txt";
+    QStringList testsFailed = QDir(_snapshotDirectory).entryList(nameFilterFailed, QDir::Files, QDir::Name);
+
+    QStringList nameFilterPassed;
+    nameFilterPassed << "*.passed.txt";
+    QStringList testsPassed = QDir(_snapshotDirectory).entryList(nameFilterPassed, QDir::Files, QDir::Name);
+
+    // Add results to Test Results folder
+    foreach(QString currentFilename, testsFailed) {
+    }
+
+    return testsFailed.length();
+}
+
+void Test::appendTestResultsToFile(TestResult testResult, QPixmap comparisonImage, bool hasFailed) {
+    // Critical error if Test Results folder does not exist
     if (!QDir().exists(_testResultsFolderPath)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Folder " + _testResultsFolderPath + " not found");
         exit(-1);
     }
 
+    // There are separate subfolders for failures and passes
     QString resultFolderPath;
     if (hasFailed) {
         resultFolderPath = _testResultsFolderPath + "/Failure_" + QString::number(_failureIndex) + "--" +
@@ -193,6 +212,22 @@ void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestRe
     }
 
     comparisonImage.save(resultFolderPath + "/" + "Difference Image.png");
+}
+
+void::Test::appendTestResultsToFile(QString testResultFilename, bool hasFailed) {
+    QString resultFolderPath;
+    if (hasFailed) {
+        resultFolderPath = _testResultsFolderPath + "/Failure_";
+        ++_failureIndex;
+    } else {
+        resultFolderPath = _testResultsFolderPath + "/Success_";
+        ++_successIndex;
+    }
+
+    if (!QFile::copy(testResultFilename, resultFolderPath)) {
+////        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
+        exit(-1);
+    }
 }
 
 void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
@@ -270,9 +305,14 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
 
     nitpick->downloadFiles(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames, (void *)this);
 }
+
 void Test::finishTestsEvaluation() {
+    // First - compare the pairs of images
     int numberOfFailures = compareImageLists();
-    
+ 
+    // Next - check text results
+    numberOfFailures += checkTextResults();
+
     if (!_isRunningFromCommandLine && !_isRunningInAutomaticTestRun) {
         if (numberOfFailures == 0) {
             QMessageBox::information(0, "Success", "All images are as expected");
