@@ -485,6 +485,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
                 _submitCanvas->doneCurrent();
             });
         }
+        _submitCanvas->moveToThread(_submitThread.get());
     }
 
     return Parent::internalActivate();
