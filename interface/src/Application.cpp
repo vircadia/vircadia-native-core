@@ -6638,11 +6638,16 @@ void Application::resetSensors(bool andReload) {
 }
 
 void Application::hmdVisibleChanged(bool visible) {
+    // TODO
+    // calling start and stop will change audio input and ouput to default audio devices.
+    // we need to add a pause/unpause functionality to AudioClient for this to work properly
+#if 0
     if (visible) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "start", Qt::QueuedConnection);
     } else {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop", Qt::QueuedConnection);
     }
+#endif
 }
 
 void Application::updateWindowTitle() const {
