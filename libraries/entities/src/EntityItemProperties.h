@@ -135,6 +135,8 @@ public:
     EntityPropertyFlags getDesiredProperties() { return _desiredProperties; }
     void setDesiredProperties(EntityPropertyFlags properties) {  _desiredProperties = properties; }
 
+    bool constructFromBuffer(const unsigned char* data, int dataLength);
+
     // Note:  DEFINE_PROPERTY(PROP_FOO, Foo, foo, type, value) creates the following methods and variables:
     // type getFoo() const;
     // void setFoo(type);

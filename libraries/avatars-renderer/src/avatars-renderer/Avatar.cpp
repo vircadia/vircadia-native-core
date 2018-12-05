@@ -383,15 +383,7 @@ void Avatar::updateAvatarEntities() {
                 // create a temporary EntityItem to unpack the data
                 int32_t bytesLeftToRead = data.size();
                 unsigned char* dataAt = (unsigned char*)(data.data());
-                ReadBitstreamToTreeParams args;
-                EntityItemPointer tempEntity = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
-                if (!tempEntity) {
-                    continue;
-                }
-                tempEntity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-
-                // extract the properties from tempEntity
-                properties = tempEntity->getProperties();
+                properties.constructFromBuffer(dataAt, bytesLeftToRead);
             }
 
             properties.setEntityHostType(entity::HostType::AVATAR);

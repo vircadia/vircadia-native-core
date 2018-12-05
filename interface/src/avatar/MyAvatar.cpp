@@ -1263,11 +1263,11 @@ void MyAvatar::resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex) 
     // Create Setting::Handles to mimic this.
 
     while (_avatarEntityIDSettings.size() <= avatarEntityIndex) {
-        Setting::Handle<QUuid> idHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
-                                        << QString::number(avatarEntityIndex + 1) << "id", QUuid());
+        Setting::Handle<QString> idHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
+                                        << QString::number(avatarEntityIndex + 1) << "id", QUuid().toString());
         _avatarEntityIDSettings.push_back(idHandle);
-        Setting::Handle<QByteArray> dataHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
-                                               << QString::number(avatarEntityIndex + 1) << "properties", QByteArray());
+        Setting::Handle<QString> dataHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
+                                               << QString::number(avatarEntityIndex + 1) << "properties", QString());
         _avatarEntityDataSettings.push_back(dataHandle);
     }
 }
@@ -1299,23 +1299,46 @@ void MyAvatar::saveData() {
 
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     _avatarEntitiesLock.withReadLock([&] {
-        QList<QUuid> avatarEntityIDs = _avatarEntityData.keys();
-        unsigned int avatarEntityCount = avatarEntityIDs.size();
-        unsigned int previousAvatarEntityCount = _avatarEntityCountSetting.get(0);
-        resizeAvatarEntitySettingHandles(std::max<unsigned int>(avatarEntityCount, previousAvatarEntityCount));
-        _avatarEntityCountSetting.set(avatarEntityCount);
+        uint32_t numEntities = _avatarEntityData.size();
+        uint32_t prevNumEntities = _avatarEntityCountSetting.get(0);
+        resizeAvatarEntitySettingHandles(std::max<uint32_t>(numEntities, prevNumEntities));
 
-        unsigned int avatarEntityIndex = 0;
-        for (auto entityID : avatarEntityIDs) {
-            _avatarEntityIDSettings[avatarEntityIndex].set(entityID);
-            _avatarEntityDataSettings[avatarEntityIndex].set(_avatarEntityData.value(entityID));
-            avatarEntityIndex++;
+        // Note: this roundabout path from AvatarEntityData to JSON string is NOT efficient
+        QScriptEngine engine;
+        QScriptValue toStringMethod = engine.evaluate("(function() { return JSON.stringify(this) })");
+        AvatarEntityMap::const_iterator itr = _avatarEntityData.begin();
+        numEntities = 0;
+        while (itr != _avatarEntityData.end()) {
+            EntityItemProperties properties;
+            QByteArray buffer = itr.value();
+            if (properties.constructFromBuffer((uint8_t*)buffer.data(), buffer.size())) {
+                if (properties.getParentID() == getSessionUUID()) {
+                    properties.setParentID(AVATAR_SELF_ID);
+                }
+                QScriptValue scriptValue = EntityItemPropertiesToScriptValue(&engine, properties);
+                scriptValue.setProperty("toString", toStringMethod);
+                _avatarEntityDataSettings[numEntities].set(scriptValue.toString());
+                _avatarEntityIDSettings[numEntities].set(itr.key().toString());
+                ++numEntities;
+            } else {
+                // buffer is corrupt --> skip it
+            }
+            ++itr;
         }
+        _avatarEntityCountSetting.set(numEntities);
 
-        // clean up any left-over (due to the list shrinking) slots
-        for (; avatarEntityIndex < previousAvatarEntityCount; avatarEntityIndex++) {
-            _avatarEntityIDSettings[avatarEntityIndex].remove();
-            _avatarEntityDataSettings[avatarEntityIndex].remove();
+        if (numEntities < prevNumEntities) {
+            uint32_t numEntitiesToRemove = prevNumEntities - numEntities;
+            for (uint32_t i = 0; i < numEntitiesToRemove; ++i) {
+                if (_avatarEntityIDSettings.size() > numEntities) {
+                    _avatarEntityIDSettings.back().remove();
+                    _avatarEntityIDSettings.pop_back();
+                }
+                if (_avatarEntityDataSettings.size() > numEntities) {
+                    _avatarEntityDataSettings.back().remove();
+                    _avatarEntityDataSettings.pop_back();
+                }
+            }
         }
     });
 }
@@ -1426,13 +1449,14 @@ void MyAvatar::loadData() {
 
     useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
 
-    int avatarEntityCount = _avatarEntityCountSetting.get(0);
-    for (int i = 0; i < avatarEntityCount; i++) {
+    int numEntities = _avatarEntityCountSetting.get(0);
+
+    for (int i = 0; i < numEntities; i++) {
         resizeAvatarEntitySettingHandles(i);
-        // QUuid entityID = QUuid::createUuid(); // generate a new ID
-        QUuid entityID = _avatarEntityIDSettings[i].get(QUuid());
-        QByteArray properties = _avatarEntityDataSettings[i].get();
-        updateAvatarEntity(entityID, properties);
+        QUuid entityID = QUuid::createUuid(); // generate a new ID
+        QString propertiesString = _avatarEntityDataSettings[i].get();
+        // TODO: convert propertiesString to EntityItemProperties
+        //updateAvatarEntity(entityID, properties);
     }
 
     // Flying preferences must be loaded before calling setFlyingEnabled()

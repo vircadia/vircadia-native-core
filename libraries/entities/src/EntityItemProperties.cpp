@@ -90,6 +90,16 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created;
 }
 
+bool EntityItemProperties::constructFromBuffer(const unsigned char* data, int dataLength) {
+    ReadBitstreamToTreeParams args;
+    EntityItemPointer tempEntity = EntityTypes::constructEntityItem(data, dataLength, args);
+    if (!tempEntity) {
+        return false;
+    }
+    tempEntity->readEntityDataFromBuffer(data, dataLength, args);
+    (*this) = tempEntity->getProperties();
+    return true;
+}
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 

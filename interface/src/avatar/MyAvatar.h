@@ -1936,8 +1936,8 @@ private:
     Setting::Handle<bool> _flyingHMDSetting;
     Setting::Handle<int> _avatarEntityCountSetting;
     Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
-    std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
-    std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
+    std::vector<Setting::Handle<QString>> _avatarEntityIDSettings;
+    std::vector<Setting::Handle<QString>> _avatarEntityDataSettings;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
