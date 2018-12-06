@@ -69,6 +69,26 @@ protected:
     std::shared_ptr<Concept> _concept;
 };
 
+template < typename T0 >
+class VaryingSet1 : public std::tuple<Varying> {
+public:
+    using Parent = std::tuple<Varying>;
+
+    VaryingSet1() : Parent(Varying(T0())) {}
+    VaryingSet1(const VaryingSet1& src) : Parent(std::get<0>(src)) {}
+    VaryingSet1(const Varying& first) : Parent(first) {}
+
+    const T0& get0() const { return std::get<0>((*this)).template get<T0>(); }
+    T0& edit0() { return std::get<0>((*this)).template edit<T0>(); }
+
+    virtual Varying operator[] (uint8_t index) const {
+        return std::get<0>((*this));
+    }
+    virtual uint8_t length() const { return 1; }
+
+    Varying asVarying() const { return Varying((*this)); }
+};
+
 using VaryingPairBase = std::pair<Varying, Varying>;
 template < typename T0, typename T1 >
 class VaryingSet2 : public VaryingPairBase {
