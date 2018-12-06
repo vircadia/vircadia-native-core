@@ -567,9 +567,7 @@
             SHOWING_DELAY = 1000, // ms
             lastInvisible = [0, 0],
             HIDING_DELAY = 1000, // ms
-            lastVisible = [0, 0],
-
-            HALF_PI = Math.PI / 2;
+            lastVisible = [0, 0];
 
 
         function enterMiniDisabled() {
@@ -608,8 +606,12 @@
                 handOrientation,
                 miniPosition,
                 miniToCameraDirection,
+                normalHandVector,
                 medialHandVector,
                 lateralHandVector,
+                normalDot,
+                medialDot,
+                lateralDot,
                 medialAngle,
                 lateralAngle,
                 cameraToMini,
@@ -664,14 +666,18 @@
                 miniToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, miniPosition));
 
                 // Mini tablet aimed toward camera?
-                medialHandVector = Vec3.multiplyQbyV(handOrientation, Vec3.UNIT_NEG_Y);
+                medialHandVector = Vec3.multiplyQbyV(handOrientation, Vec3.UNIT_Y);
                 lateralHandVector = Vec3.multiplyQbyV(handOrientation, hand === LEFT_HAND ? Vec3.UNIT_X : Vec3.UNIT_NEG_X);
-                medialAngle = Math.acos(Vec3.dot(medialHandVector, miniToCameraDirection)) - HALF_PI;
-                lateralAngle = Math.acos(Vec3.dot(lateralHandVector, miniToCameraDirection)) - HALF_PI;
+                normalHandVector = Vec3.multiplyQbyV(handOrientation, Vec3.UNIT_Z);
+                medialDot = Vec3.dot(medialHandVector, miniToCameraDirection);
+                lateralDot = Vec3.dot(lateralHandVector, miniToCameraDirection);
+                normalDot = Vec3.dot(normalHandVector, miniToCameraDirection);
+                medialAngle = Math.atan2(medialDot, normalDot);
+                lateralAngle = Math.atan2(lateralDot, normalDot);
                 show = -MAX_MEDIAL_WRIST_CAMERA_ANGLE_RAD <= medialAngle
                     && medialAngle <= MAX_MEDIAL_FINGER_CAMERA_ANGLE_RAD
-                    && -MAX_LATERAL_PINKY_CAMERA_ANGLE_RAD <= lateralAngle
-                    && lateralAngle <= MAX_LATERAL_THUMB_CAMERA_ANGLE_RAD;
+                    && -MAX_LATERAL_THUMB_CAMERA_ANGLE_RAD <= lateralAngle
+                    && lateralAngle <= MAX_LATERAL_PINKY_CAMERA_ANGLE_RAD;
 
                 // Camera looking at mini tablet?
                 cameraToMini = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
