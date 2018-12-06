@@ -242,7 +242,7 @@ ListView.prototype = {
 
     resize: function() {        
         if (!this.elTableBody || !this.elTableScroll) {
-            debugPrint("ListView.resize - no valid table body or table scroll element");
+            console.log("ListView.resize - no valid table body or table scroll element");
             return;
         }
         this.preResizeFunction();
@@ -284,7 +284,7 @@ ListView.prototype = {
     
     initialize: function() {
         if (!this.elTableBody || !this.elTableScroll) {
-            debugPrint("ListView.initialize - no valid table body or table scroll element");
+            console.log("ListView.initialize - no valid table body or table scroll element");
             return;
         }
         
