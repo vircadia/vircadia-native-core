@@ -40,10 +40,10 @@ public:
 
     void writeTitle(QTextStream& stream);
     void writeTable(QTextStream& stream);
-    void openTable(QTextStream& stream);
+    void openTable(QTextStream& stream, const QString& testResult, const bool isFailure);
     void closeTable(QTextStream& stream);
 
-    void createEntry(int index, const QString& testResult, QTextStream& stream, const bool isFailure);
+    void createEntry(const int index, const QString& testResult, QTextStream& stream, const bool isFailure);
 
     void updateAWS();
 
