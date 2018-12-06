@@ -64,7 +64,7 @@ FocusScope {
         id: opaqueRect
         height: parent.height
         width: parent.width
-        opacity: 0.25
+        opacity: 0.5
         color: "black"
     }
 

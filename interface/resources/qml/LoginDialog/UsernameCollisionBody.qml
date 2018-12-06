@@ -105,7 +105,6 @@ Item {
             font.family: "Fira Sans"
             font.pixelSize: usernameCollisionBody.textFieldFontSize
             styleRenderType: Text.QtRendering
-            font.bold: usernameCollisionBody.fontBold
             width: root.bannerWidth
 
             placeholderText: "Choose your own"

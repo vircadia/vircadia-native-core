@@ -326,6 +326,7 @@ Item {
                 }
                 font.family: linkAccountBody.fontFamily
                 font.pixelSize: linkAccountBody.textFieldFontSize
+                font.bold: linkAccountBody.fontBold
 
                 text: "<a href='https://highfidelity.com/users/password/new'> Can't access your account?</a>"
 
@@ -409,7 +410,8 @@ Item {
                 lineHeight: 1
                 color: "white"
                 font.family: linkAccountBody.fontFamily
-                font.pixelSize: 18
+                font.pixelSize: linkAccountBody.textFieldFontSize
+                font.bold: linkAccountBody.fontBold
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -418,7 +420,8 @@ Item {
                 id: signUpShortcutText
                 z: 10
                 font.family: linkAccountBody.fontFamily
-                font.pixelSize: 18
+                font.pixelSize: linkAccountBody.textFieldFontSize
+                font.bold: linkAccountBody.fontBold
                 anchors {
                      left: signUpText.right
                      leftMargin: hifi.dimensions.contentSpacing.x

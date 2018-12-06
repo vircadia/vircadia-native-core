@@ -160,12 +160,13 @@ Item {
                 text: "<a href='https://fake.link'>Already have a High Fidelity profile? Link to an existing profile here.</a>"
 
                 font.family: completeProfileBody.fontFamily
-                font.pixelSize: 14
+                font.pixelSize: completeProfileBody.fontSize
                 font.bold: completeProfileBody.fontBold
                 wrapMode: Text.WordWrap
                 lineHeight: 2
                 lineHeightMode: Text.ProportionalHeight
                 horizontalAlignment: Text.AlignHCenter
+                linkColor: hifi.colors.blueAccent
 
                 onLinkActivated: {
                     loginDialog.isLogIn = true;
@@ -196,10 +197,11 @@ Item {
 
                 text: completeProfileBody.termsContainerText
                 font.family: completeProfileBody.fontFamily
-                font.pixelSize: 14
+                font.pixelSize: completeProfileBody.fontSize
                 font.bold: completeProfileBody.fontBold
                 wrapMode: Text.WordWrap
-                color: hifi.colors.baseGrayHighlight
+                color: hifi.colors.lightGray
+                linkColor: hifi.colors.blueAccent
                 lineHeight: 1
                 lineHeightMode: Text.ProportionalHeight
 
