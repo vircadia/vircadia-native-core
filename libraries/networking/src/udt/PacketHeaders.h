@@ -245,6 +245,7 @@ enum class EntityVersion : PacketVersion {
     GrabProperties,
     ScriptGlmVectors,
     FixedLightSerialization,
+    MaterialRepeat,
     CleanupProperties,
     ImageEntities
 };

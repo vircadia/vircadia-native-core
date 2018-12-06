@@ -61,7 +61,7 @@ Item {
                 RalewaySemiBold {
                     text: Account.loggedIn ? qsTr("Log out") : qsTr("Log in")
                     horizontalAlignment: Text.AlignRight
-                    anchors.right: parent.right
+                    Layout.alignment: Qt.AlignRight
                     font.pixelSize: 20
                     color: "#afafaf"
                 }
@@ -71,7 +71,7 @@ Item {
                     height: Account.loggedIn ? parent.height/2 - parent.spacing/2 : 0
                     text: Account.loggedIn ? "[" + tabletRoot.usernameShort + "]" : ""
                     horizontalAlignment: Text.AlignRight
-                    anchors.right: parent.right
+                    Layout.alignment: Qt.AlignRight
                     font.pixelSize: 20
                     color: "#afafaf"
                 }
@@ -115,9 +115,9 @@ Item {
             property int previousIndex: -1
             Repeater {
                 id: pageRepeater
-                model: Math.ceil(tabletProxy.buttons.rowCount() / TabletEnums.ButtonsOnPage)
+                model: tabletProxy != null ? Math.ceil(tabletProxy.buttons.rowCount() / TabletEnums.ButtonsOnPage) : 0
                 onItemAdded: {
-                    item.proxyModel.sourceModel = tabletProxy.buttons;
+                    item.proxyModel.sourceModel = tabletProxy != null ? tabletProxy.buttons : null;
                     item.proxyModel.pageIndex = index;
                 }
 

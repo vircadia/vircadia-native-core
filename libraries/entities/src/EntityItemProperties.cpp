@@ -403,6 +403,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_DATA, materialData);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_REPEAT, materialRepeat);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_SPIN, particleSpin);
     CHECK_PROPERTY_CHANGE(PROP_SPIN_SPREAD, spinSpread);
@@ -778,7 +779,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh index to modify. Invalid values are 
  *     parsed to <code>0</code>.
  * @property {string} materialMappingMode="uv" - How the material is mapped to the entity. Either <code>"uv"</code> or 
- *     <code>"projected"</code>. <em>Currently, only <code>"uv"</code> is supported.
+ *     <code>"projected"</code>. In "uv" mode, the material will be evaluated within the UV space of the mesh it is applied to.  In
+ *     "projected" mode, the 3D transform of the Material Entity will be used to evaluate the texture coordinates for the material.
  * @property {Vec2} materialMappingPos=0,0 - Offset position in UV-space of the top left of the material, range 
  *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
  * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
@@ -786,6 +788,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} materialData="" - Used to store {@link MaterialResource} data as a JSON string. You can use 
  *     <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the properties of, and 
  *     use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
+ * @property {boolean} materialRepeat=true - If true, the material will repeat.  If false, fragments outside of texCoord 0 - 1 will be discarded.
+ *     Works in both "uv" and "projected" modes.
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
@@ -1521,6 +1525,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_DATA, materialData);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_REPEAT, materialRepeat);
     }
 
     // Image only
@@ -1729,6 +1734,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, vec2, setMaterialMappingScale);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingRot, float, setMaterialMappingRot);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialData, QString, setMaterialData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialRepeat, bool, setMaterialRepeat);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleSpin, float, setParticleSpin);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(spinSpread, float, setSpinSpread);
@@ -2174,6 +2180,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, vec2);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_REPEAT, MaterialRepeat, materialRepeat, bool);
 
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
 
@@ -2640,6 +2647,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, properties.getMaterialMappingScale());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, properties.getMaterialMappingRot());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_DATA, properties.getMaterialData());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_REPEAT, properties.getMaterialRepeat());
             }
 
             // Image
@@ -3047,6 +3055,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, vec2, setMaterialMappingScale);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_DATA, QString, setMaterialData);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_REPEAT, bool, setMaterialRepeat);
     }
 
     // Image
@@ -3297,6 +3306,7 @@ void EntityItemProperties::markAllChanged() {
     _materialMappingScaleChanged = true;
     _materialMappingRotChanged = true;
     _materialDataChanged = true;
+    _materialRepeatChanged = true;
 
     // Certifiable Properties
     _itemNameChanged = true;
@@ -3751,6 +3761,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (materialDataChanged()) {
         out += "materialData";
+    }
+    if (materialRepeatChanged()) {
+        out += "materialRepeat";
     }
     if (isVisibleInSecondaryCameraChanged()) {
         out += "isVisibleInSecondaryCamera";

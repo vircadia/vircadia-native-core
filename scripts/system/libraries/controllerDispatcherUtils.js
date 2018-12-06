@@ -53,6 +53,7 @@
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
    TEAR_AWAY_CHECK_TIME:true,
+   NEAR_GRAB_DISTANCE: true,
    distanceBetweenPointAndEntityBoundingBox:true,
    entityIsEquipped:true,
    entityIsFarGrabbedByOther:true,
@@ -99,6 +100,10 @@ NEAR_GRAB_RADIUS = 1.0;
 TEAR_AWAY_DISTANCE = 0.15; // ungrab an entity if its bounding-box moves this far from the hand
 TEAR_AWAY_COUNT = 2; // multiply by TEAR_AWAY_CHECK_TIME to know how long the item must be away
 TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
+
+NEAR_GRAB_DISTANCE = 0.14; // Grab an entity if its bounding box is within this distance.
+// Smaller than TEAR_AWAY_DISTANCE for hysteresis.
+
 DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
 DISPATCHER_HOVERING_STYLE = {
     isOutlineSmooth: true,

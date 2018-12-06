@@ -15,13 +15,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <gpu/Batch.h>
-#include <render/Forward.h>
-
 class ShapeEntityItem;
 class ShapeInfo;
-
-void renderWorldBox(RenderArgs* args, gpu::Batch& batch);
 
 void runTimingTests();
 void runUnitTests();

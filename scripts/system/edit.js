@@ -550,8 +550,9 @@ var toolBar = (function () {
                 }
             }
 
-            SelectionManager.saveProperties();
             entityID = Entities.addEntity(properties);
+            SelectionManager.addEntity(entityID, false, this);
+            SelectionManager.saveProperties();
             pushCommandForSelections([{
                 entityID: entityID,
                 properties: properties
@@ -1269,6 +1270,7 @@ function mouseClickEvent(event) {
             } else {
                 selectionManager.addEntity(foundEntity, true, this);
             }
+            selectionManager.saveProperties();
 
             if (wantDebug) {
                 print("Model selected: " + foundEntity);
@@ -2126,12 +2128,17 @@ function applyEntityProperties(data) {
             entityID = DELETED_ENTITY_MAP[entityID];
         }
         Entities.deleteEntity(entityID);
+        var index = selectedEntityIDs.indexOf(entityID);
+        if (index >= 0) {
+            selectedEntityIDs.splice(index, 1);
+        }
     }
 
     // We might be getting an undo while edit.js is disabled. If that is the case, don't set
     // our selections, causing the edit widgets to display.
     if (isActive) {
         selectionManager.setSelections(selectedEntityIDs, this);
+        selectionManager.saveProperties();
     }
 }
 
@@ -2320,7 +2327,6 @@ var PropertiesTool = function (opts) {
         }
         var i, properties, dY, diff, newPosition;
         if (data.type === "update") {
-            selectionManager.saveProperties();
             if (selectionManager.selections.length > 1) {
                 for (i = 0; i < selectionManager.selections.length; i++) {
                     Entities.editEntity(selectionManager.selections[i], data.properties);
@@ -2356,8 +2362,12 @@ var PropertiesTool = function (opts) {
                     entityListTool.sendUpdate();
                 }
             }
-            pushCommandForSelections();
-            blockPropertyUpdates = data.blockUpdateCallback === true;
+            if (data.onlyUpdateEntities) {
+                blockPropertyUpdates = true;
+            } else {
+                pushCommandForSelections();
+                SelectionManager.saveProperties();
+            }
             selectionManager._update(false, this);
             blockPropertyUpdates = false;
         } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
@@ -2469,8 +2479,6 @@ var PropertiesTool = function (opts) {
                 tooltips: Script.require('./assets/data/createAppTooltips.json'),
                 hmdActive: HMD.active,
             });
-        } else if (data.type === "updateProperties") {
-            updateSelections(true);
         }
     };
 
@@ -2735,17 +2743,16 @@ keyUpEventFromUIWindow = function(keyUpEvent) {
         selectionManager.pasteEntities();
     } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "D") {
         selectionManager.duplicateSelection();
-    } else if (keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") {
-        undoHistory.undo();
+    } else if (!isOnMacPlatform && keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") {
+        undoHistory.undo(); // undo is only handled via handleMenuItem on Mac
     } else if (keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
         parentSelectedEntities();
     } else if (keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
         unparentSelectedEntities();
-    } else if (
-        (keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") ||
-        (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "Y")) {
-
-        undoHistory.redo();
+    } else if (!isOnMacPlatform &&
+              ((keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") ||
+               (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "Y"))) {
+        undoHistory.redo(); // redo is only handled via handleMenuItem on Mac
     } else if (WANT_DEBUG_MISSING_SHORTCUTS) {
         console.warn("unhandled key event: " + JSON.stringify(keyUpEvent))
     }
