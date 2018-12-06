@@ -32,3 +32,7 @@ void KeyboardScriptingInterface::setPassword(bool password) {
 void KeyboardScriptingInterface::loadKeyboardFile(const QString& keyboardFile) {
     DependencyManager::get<Keyboard>()->loadKeyboardFile(keyboardFile);
 }
+
+bool KeyboardScriptingInterface::getUse3DKeyboard() {
+    return DependencyManager::get<Keyboard>()->getUse3DKeyboard();
+}

@@ -24,6 +24,7 @@
 #include "Snapshot.h"
 #include "SnapshotAnimated.h"
 #include "UserActivityLogger.h"
+#include "ui/Keyboard.h"
 
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
@@ -117,6 +118,12 @@ void setupPreferences() {
         auto getter = []()->bool { return qApp->getPreferredCursor() == RETICLE_ICON_NAME; };
         auto setter = [](bool value) { qApp->setPreferredCursor(value ? RETICLE_ICON_NAME : QString()); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use reticle cursor instead of arrow", getter, setter));
+    }
+
+    {
+        auto getter = []()->bool { return DependencyManager::get<Keyboard>()->getUse3DKeyboard(); };
+        auto setter = [](bool value) { DependencyManager::get<Keyboard>()->setUse3DKeyboard(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use Virtual Keyboard", getter, setter));
     }
 
     {

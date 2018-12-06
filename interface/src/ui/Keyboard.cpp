@@ -241,6 +241,17 @@ void Keyboard::registerKeyboardHighlighting() {
     selection->enableListToScene(KEY_PRESSED_HIGHLIGHT);
 }
 
+bool Keyboard::getUse3DKeyboard() const {
+    return _use3DKeyboardLock.resultWithReadLock<bool>([&] {
+        return _use3DKeyboard.get();
+    });
+}
+
+void Keyboard::setUse3DKeyboard(bool use) {
+    _use3DKeyboardLock.withWriteLock([&] {
+        _use3DKeyboard.set(use);
+    });
+}
 
 void Keyboard::createKeyboard() {
     auto pointerManager = DependencyManager::get<PointerManager>();

@@ -25,7 +25,6 @@
 
 class DebugDeferredBufferConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(bool enabled MEMBER enabled)
     Q_PROPERTY(int mode MEMBER mode WRITE setMode)
     Q_PROPERTY(glm::vec4 size MEMBER size NOTIFY dirty)
 public:

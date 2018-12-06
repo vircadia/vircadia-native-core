@@ -916,7 +916,7 @@ div.refresh input[type="button"] {
 }
 .draggable-number div {
     height: 28px;
-    width: 92px;
+    width: 124px;
 }
 .draggable-number.text {
     display: inline-block;
@@ -929,6 +929,7 @@ div.refresh input[type="button"] {
     height: 28px;
     width: 100%;
     line-height: 2;
+    box-sizing: border-box;
 }
 .draggable-number.text:hover {
     cursor: ew-resize;
@@ -944,12 +945,12 @@ div.refresh input[type="button"] {
     cursor: default;
 }
 .draggable-number.left-arrow {
-    top: -5px;
+    top: 3px;
     left: 0px;
     transform: rotate(180deg);
 }
 .draggable-number.right-arrow {
-    top: -5px;
+    top: 3px;
     right: 0px;
 }
 .draggable-number input[type=number] {
@@ -971,14 +972,14 @@ div.refresh input[type="button"] {
     left: 12px;
 }
 .draggable-number.fstuple + .draggable-number.fstuple {
-    padding-left: 28px;
+    margin-left: 28px;
 }
 .draggable-number.fstuple input {
     right: -10px;
 }
 .draggable-number.fstuple .sublabel {
     position: absolute;
-    top: 0;
+    top: 6px;
     left: -16px;
     font-family: FiraSans-SemiBold;
     font-size: 15px;

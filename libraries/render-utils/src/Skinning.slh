@@ -81,9 +81,7 @@ void evalSkinning(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
 
         // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
-        if (dot(real, polarityReference) < 0.0) {
-            dqClusterWeight = -clusterWeight;
-        }
+        dqClusterWeight *= mix(1.0, -1.0, float(dot(real, polarityReference) < 0.0));
 
         sAccum += scale * clusterWeight;
         rAccum += real * dqClusterWeight;
@@ -102,12 +100,11 @@ void evalSkinning(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
     // sAccum.w indicates the amount of cauterization for this vertex.
     // 0 indicates no cauterization and 1 indicates full cauterization.
     // TODO: make this cauterization smoother or implement full dual-quaternion scale support.
-    const float CAUTERIZATION_THRESHOLD = 0.1;
-    if (sAccum.w > CAUTERIZATION_THRESHOLD) {
-        skinnedPosition = cAccum;
-    } else {
-        sAccum.w = 1.0;
-        skinnedPosition = m * (sAccum * inPosition);
+    {
+        const float CAUTERIZATION_THRESHOLD = 0.1;
+        float check = float(sAccum.w > CAUTERIZATION_THRESHOLD);
+        sAccum.w = mix(1.0, sAccum.w, check);
+        skinnedPosition = mix(m * (sAccum * inPosition), cAccum, check);
     }
 
  <@if USE_NORMAL@>

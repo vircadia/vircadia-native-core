@@ -126,7 +126,7 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     batch.setModelTransform(renderTransform);
 
     if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        drawMaterial->setTextureTransforms(textureTransform);
+        drawMaterial->setTextureTransforms(textureTransform, MaterialMappingMode::UV, true);
 
         // bind the material
         RenderPipelines::bindMaterial(drawMaterial, batch, args->_enableTexturing);
