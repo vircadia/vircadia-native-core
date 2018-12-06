@@ -80,8 +80,8 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     // rather than pass the legit shape pointer to the ObjectMotionState ctor above.
     setShape(shape);
 
-    if (_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()) {
-        // client-only entities are always thus, so we cache this fact in _ownershipState
+    if (_entity->isAvatarEntity() && _entity->getOwningAvatarID() != Physics::getSessionUUID()) {
+        // avatar entities entities are always thus, so we cache this fact in _ownershipState
         _ownershipState = EntityMotionState::OwnershipState::Unownable;
     }
 
@@ -430,7 +430,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     assert(entityTreeIsLocked());
 
     // this case is prevented by setting _ownershipState to UNOWNABLE in EntityMotionState::ctor
-    assert(!(_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
+    assert(!(_entity->isAvatarEntity() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
 
     if (_entity->getTransitingWithAvatar()) {
         return false;
@@ -595,7 +595,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     EntityTreeElementPointer element = _entity->getElement();
     EntityTreePointer tree = element ? element->getTree() : nullptr;
 
-    properties.setClientOnly(_entity->getClientOnly());
+    properties.setEntityHostType(_entity->getEntityHostType());
     properties.setOwningAvatarID(_entity->getOwningAvatarID());
 
     entityPacketSender->queueEditEntityMessage(PacketType::EntityPhysics, tree, id, properties);
@@ -610,7 +610,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 EntityItemProperties newQueryCubeProperties;
                 newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
                 newQueryCubeProperties.setLastEdited(properties.getLastEdited());
-                newQueryCubeProperties.setClientOnly(entityDescendant->getClientOnly());
+                newQueryCubeProperties.setEntityHostType(entityDescendant->getEntityHostType());
                 newQueryCubeProperties.setOwningAvatarID(entityDescendant->getOwningAvatarID());
 
                 entityPacketSender->queueEditEntityMessage(PacketType::EntityPhysics, tree,
