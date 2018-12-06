@@ -45,7 +45,7 @@ private:
     QString _scriptDir;
 
     QVariantHash _mapping;
-    std::unique_ptr<hfm::Model> _hfmModel;
+    std::shared_ptr<hfm::Model> _hfmModel;
     QStringList _textures;
     QStringList _scripts;
 };

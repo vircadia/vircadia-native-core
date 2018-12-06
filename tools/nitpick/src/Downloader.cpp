@@ -12,12 +12,12 @@
 #include <QtWidgets/QMessageBox>
 
 Downloader::Downloader(QUrl fileURL, QObject *parent) : QObject(parent) {
+    _networkAccessManager.get(QNetworkRequest(fileURL));
+
     connect(
         &_networkAccessManager, SIGNAL (finished(QNetworkReply*)),
         this, SLOT (fileDownloaded(QNetworkReply*))
     );
-
-    _networkAccessManager.get(QNetworkRequest(fileURL));
 }
 
 void Downloader::fileDownloaded(QNetworkReply* reply) {

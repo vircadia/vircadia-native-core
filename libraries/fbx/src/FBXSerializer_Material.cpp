@@ -1,5 +1,5 @@
 //
-//  FBXReader_Material.cpp
+//  FBXSerializer_Material.cpp
 //  interface/src/fbx
 //
 //  Created by Sam Gateau on 8/27/2015.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "FBXReader.h"
+#include "FBXSerializer.h"
 
 #include <iostream>
 #include <memory>
@@ -27,7 +27,7 @@
 
 #include <hfm/ModelFormatLogging.h>
 
-HFMTexture FBXReader::getTexture(const QString& textureID) {
+HFMTexture FBXSerializer::getTexture(const QString& textureID) {
     HFMTexture texture;
     const QByteArray& filepath = _textureFilepaths.value(textureID);
     texture.content = _textureContent.value(filepath);
@@ -69,7 +69,7 @@ HFMTexture FBXReader::getTexture(const QString& textureID) {
     return texture;
 }
 
-void FBXReader::consolidateHFMMaterials(const QVariantHash& mapping) {
+void FBXSerializer::consolidateHFMMaterials(const QVariantHash& mapping) {
 
     QString materialMapString = mapping.value("materialMap").toString();
     QJsonDocument materialMapDocument = QJsonDocument::fromJson(materialMapString.toUtf8());

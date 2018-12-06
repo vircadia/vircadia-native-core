@@ -129,9 +129,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             return getControllerWorldLocation(Controller.Standard.RightHand, true);
         };
 
-        Selection.enableListHighlight(DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE);
-        Selection.enableListToScene(DISPATCHER_HOVERING_LIST);
-
         this.updateTimings = function () {
             _this.intervalCount++;
             var thisInterval = Date.now();
@@ -525,7 +522,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Controller.disableMapping(MAPPING_NAME);
             _this.pointerManager.removePointers();
             Pointers.removePointer(this.mouseRayPick);
-            Selection.disableListHighlight(DISPATCHER_HOVERING_LIST);
         };
     }
 

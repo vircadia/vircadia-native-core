@@ -1,5 +1,5 @@
 //
-//  OBJReader.cpp
+//  OBJSerializer.cpp
 //  libraries/fbx/src/
 //
 //  Created by Seth Alves on 3/7/15.
@@ -12,7 +12,7 @@
 // http://www.scratchapixel.com/old/lessons/3d-advanced-lessons/obj-file-format/obj-file-format/
 // http://paulbourke.net/dataformats/obj/
 
-#include "OBJReader.h"
+#include "OBJSerializer.h"
 
 #include <ctype.h>  // .obj files are not locale-specific. The C/ASCII charset applies.
 #include <sstream> 
@@ -27,7 +27,7 @@
 #include <NetworkAccessManager.h>
 #include <ResourceManager.h>
 
-#include "FBXReader.h"
+#include "FBXSerializer.h"
 #include <hfm/ModelFormatLogging.h>
 #include <shared/PlatformHacks.h>
 
@@ -238,7 +238,7 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
     }
 }
 
-bool OBJReader::isValidTexture(const QByteArray &filename) {
+bool OBJSerializer::isValidTexture(const QByteArray &filename) {
     if (_url.isEmpty()) {
         return false;
     }
@@ -247,7 +247,7 @@ bool OBJReader::isValidTexture(const QByteArray &filename) {
     return DependencyManager::get<ResourceManager>()->resourceExists(candidateUrl);
 }
 
-void OBJReader::parseMaterialLibrary(QIODevice* device) {
+void OBJSerializer::parseMaterialLibrary(QIODevice* device) {
     OBJTokenizer tokenizer(device);
     QString matName = SMART_DEFAULT_MATERIAL_NAME;
     OBJMaterial& currentMaterial = materials[matName];
@@ -255,7 +255,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         switch (tokenizer.nextToken()) {
             case OBJTokenizer::COMMENT_TOKEN:
                 #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader MTLLIB comment:" << tokenizer.getComment();
+                qCDebug(modelformat) << "OBJSerializer MTLLIB comment:" << tokenizer.getComment();
                 #endif
                 break;
             case OBJTokenizer::DATUM_TOKEN:
@@ -264,7 +264,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                 materials[matName] = currentMaterial;
                 #ifdef WANT_DEBUG
                 qCDebug(modelformat) << 
-                                     "OBJ Reader Last material illumination model:" << currentMaterial.illuminationModel <<
+                                     "OBJSerializer Last material illumination model:" << currentMaterial.illuminationModel <<
                                      " shininess:" << currentMaterial.shininess << 
                                      " opacity:" << currentMaterial.opacity <<
                                      " diffuse color:" << currentMaterial.diffuseColor << 
@@ -287,7 +287,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             matName = tokenizer.getDatum();
             currentMaterial = materials[matName];
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Starting new material definition " << matName;
+            qCDebug(modelformat) << "OBJSerializer Starting new material definition " << matName;
             #endif
             currentMaterial.diffuseTextureFilename = "";
             currentMaterial.emissiveTextureFilename = "";
@@ -299,7 +299,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.shininess = tokenizer.getFloat();
         } else if (token == "Ni") {
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Ignoring material Ni " << tokenizer.getFloat();
+            qCDebug(modelformat) << "OBJSerializer Ignoring material Ni " << tokenizer.getFloat();
             #else
             tokenizer.getFloat();
             #endif
@@ -311,13 +311,13 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.illuminationModel = tokenizer.getFloat();
         } else if (token == "Tf") {
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Ignoring material Tf " << tokenizer.getVec3();
+            qCDebug(modelformat) << "OBJSerializer Ignoring material Tf " << tokenizer.getVec3();
             #else
             tokenizer.getVec3();
             #endif
         } else if (token == "Ka") {
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();;
+            qCDebug(modelformat) << "OBJSerializer Ignoring material Ka " << tokenizer.getVec3();;
             #else
             tokenizer.getVec3();
             #endif
@@ -334,7 +334,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             parseTextureLine(textureLine, filename, textureOptions);
             if (filename.endsWith(".tga")) {
                 #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << _url;
+                qCDebug(modelformat) << "OBJSerializer WARNING: currently ignoring tga texture " << filename << " in " << _url;
                 #endif
                 break;
             }
@@ -354,7 +354,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
     }
 } 
 
-void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions) {
+void OBJSerializer::parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions) {
     // Texture options reference http://paulbourke.net/dataformats/mtl/
     // and https://wikivisually.com/wiki/Material_Template_Library
 
@@ -368,7 +368,7 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
             if (option == "-blendu" || option == "-blendv") {
                 #ifdef WANT_DEBUG
                 const std::string& onoff = parser[i++];
-                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
+                qCDebug(modelformat) << "OBJSerializer WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
                 #endif
             } else if (option == "-bm") {
                 const std::string& bm = parser[i++];
@@ -377,22 +377,22 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
                 #ifdef WANT_DEBUG
                 const std::string& boost = parser[i++];
                 float boostFloat = std::stof(boost);
-                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << boost.c_str();
+                qCDebug(modelformat) << "OBJSerializer WARNING: Ignoring texture option" << option.c_str() << boost.c_str();
                 #endif
             } else if (option == "-cc") {
                 #ifdef WANT_DEBUG
                 const std::string& onoff = parser[i++];
-                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
+                qCDebug(modelformat) << "OBJSerializer WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
                 #endif
             } else if (option == "-clamp") {
                 #ifdef WANT_DEBUG
                 const std::string& onoff = parser[i++];
-                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
+                qCDebug(modelformat) << "OBJSerializer WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
                 #endif
             } else if (option == "-imfchan") {
                 #ifdef WANT_DEBUG
                 const std::string& imfchan = parser[i++];
-                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << imfchan.c_str();
+                qCDebug(modelformat) << "OBJSerializer WARNING: Ignoring texture option" << option.c_str() << imfchan.c_str();
                 #endif
             } else if (option == "-mm") {
                 if (i + 1 < parser.size()) {
@@ -401,7 +401,7 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
                     const std::string& mmGain = parser[i++];
                     float mmBaseFloat = std::stof(mmBase);
                     float mmGainFloat = std::stof(mmGain);
-                    qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << mmBase.c_str() << mmGain.c_str();
+                    qCDebug(modelformat) << "OBJSerializer WARNING: Ignoring texture option" << option.c_str() << mmBase.c_str() << mmGain.c_str();
                     #endif
                 }
             } else if (option == "-o" || option == "-s" || option == "-t") {
@@ -413,23 +413,23 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
                     float uFloat = std::stof(u);
                     float vFloat = std::stof(v);
                     float wFloat = std::stof(w);
-                    qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << u.c_str() << v.c_str() << w.c_str();
+                    qCDebug(modelformat) << "OBJSerializer WARNING: Ignoring texture option" << option.c_str() << u.c_str() << v.c_str() << w.c_str();
                     #endif
                 }
             } else if (option == "-texres") {
                 #ifdef WANT_DEBUG
                 const std::string& texres = parser[i++];
                 float texresFloat = std::stof(texres);
-                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << texres.c_str();
+                qCDebug(modelformat) << "OBJSerializer WARNING: Ignoring texture option" << option.c_str() << texres.c_str();
                 #endif
             } else if (option == "-type") {
                 #ifdef WANT_DEBUG
                 const std::string& type = parser[i++];
-                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << type.c_str();
+                qCDebug(modelformat) << "OBJSerializer WARNING: Ignoring texture option" << option.c_str() << type.c_str();
                 #endif
             } else if (option[0] == '-') {
                 #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring unsupported texture option" << option.c_str();
+                qCDebug(modelformat) << "OBJSerializer WARNING: Ignoring unsupported texture option" << option.c_str();
                 #endif
             }
         } else { // assume filename at end when no more options
@@ -444,7 +444,7 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
 
 std::tuple<bool, QByteArray> requestData(QUrl& url) {
     auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
-        nullptr, url, true, -1, "(OBJReader) requestData");
+        nullptr, url, true, -1, "(OBJSerializer) requestData");
 
     if (!request) {
         return std::make_tuple(false, QByteArray());
@@ -488,7 +488,7 @@ QNetworkReply* request(QUrl& url, bool isTest) {
 }
 
 
-bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& hfmModel,
+bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& hfmModel,
                               float& scaleGuess, bool combineParts) {
     FaceGroup faces;
     HFMMesh& mesh = hfmModel.meshes[0];
@@ -557,7 +557,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                     currentMaterialName = nextName;
                 }
                 #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader new current material:" << currentMaterialName;
+                qCDebug(modelformat) << "OBJSerializer new current material:" << currentMaterialName;
                 #endif
             }
         } else if (token == "v") {
@@ -652,12 +652,12 @@ done:
 }
 
 
-HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mapping, bool combineParts, const QUrl& url) {
+HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
-    QBuffer buffer { &data };
+    QBuffer buffer { const_cast<QByteArray*>(&data) };
     buffer.open(QIODevice::ReadOnly);
 
-    auto hfmModelPtr { std::make_shared<HFMModel>() };
+    auto hfmModelPtr = std::make_shared<HFMModel>();
     HFMModel& hfmModel { *hfmModelPtr };
     OBJTokenizer tokenizer { &buffer };
     float scaleGuess = 1.0f;
@@ -665,6 +665,7 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
     bool needsMaterialLibrary = false;
 
     _url = url;
+    bool combineParts = mapping.value("combineParts").toBool();
     hfmModel.meshExtents.reset();
     hfmModel.meshes.append(HFMMesh());
 
@@ -720,7 +721,7 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
                     QString groupMaterialName = face.materialName;
                     if (groupMaterialName.isEmpty() && specifiesUV) {
 #ifdef WANT_DEBUG
-                        qCDebug(modelformat) << "OBJ Reader WARNING: " << url
+                        qCDebug(modelformat) << "OBJSerializer WARNING: " << url
                             << " needs a texture that isn't specified. Using default mechanism.";
 #endif
                         groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
@@ -822,11 +823,11 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
         }
 
         // Build the single mesh.
-        FBXReader::buildModelMesh(mesh, url.toString());
+        FBXSerializer::buildModelMesh(mesh, _url.toString());
 
         // hfmDebugDump(hfmModel);
     } catch(const std::exception& e) {
-        qCDebug(modelformat) << "OBJ reader fail: " << e.what();
+        qCDebug(modelformat) << "OBJSerializer fail: " << e.what();
     }
 
     QString queryPart = _url.query();
@@ -838,14 +839,14 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
     }
     // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use
     // a texture with the same basename as the .obj file.
-    if (preDefinedMaterial.userSpecifiesUV && !url.isEmpty()) {
-        QString filename = url.fileName();
+    if (preDefinedMaterial.userSpecifiesUV && !_url.isEmpty()) {
+        QString filename = _url.fileName();
         int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
         QString basename = filename.remove(extIndex + 1, sizeof("obj"));
         preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
         QVector<QByteArray> extensions = { "jpg", "jpeg", "png", "tga" };
         QByteArray base = basename.toUtf8(), textName = "";
-        qCDebug(modelformat) << "OBJ Reader looking for default texture";
+        qCDebug(modelformat) << "OBJSerializer looking for default texture";
         for (int i = 0; i < extensions.count(); i++) {
             QByteArray candidateString = base + extensions[i];
             if (isValidTexture(candidateString)) {
@@ -856,7 +857,7 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
 
         if (!textName.isEmpty()) {
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader found a default texture: " << textName;
+            qCDebug(modelformat) << "OBJSerializer found a default texture: " << textName;
             #endif
             preDefinedMaterial.diffuseTextureFilename = textName;
         }
@@ -866,7 +867,7 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
         foreach (QString libraryName, librariesSeen.keys()) {
             // Throw away any path part of libraryName, and merge against original url.
             QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
-            qCDebug(modelformat) << "OBJ Reader material library" << libraryName;
+            qCDebug(modelformat) << "OBJSerializer material library" << libraryName;
             bool success;
             QByteArray data;
             std::tie<bool, QByteArray>(success, data) = requestData(libraryUrl);
@@ -875,7 +876,7 @@ HFMModel::Pointer OBJReader::readOBJ(QByteArray& data, const QVariantHash& mappi
                 buffer.open(QIODevice::ReadOnly);
                 parseMaterialLibrary(&buffer);
             } else {
-                qCDebug(modelformat) << "OBJ Reader WARNING:" << libraryName << "did not answer";
+                qCDebug(modelformat) << "OBJSerializer WARNING:" << libraryName << "did not answer";
             }
         }
     }

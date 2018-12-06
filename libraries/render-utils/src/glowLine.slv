@@ -53,13 +53,8 @@ void main(void) {
 
     // Add or subtract the orthogonal vector based on a different vertex ID 
     // calculation
-    if (gl_VertexID < 2) {
-        distanceFromCenter = -1.0;
-        eye.xyz -= orthogonal;
-    } else {
-        distanceFromCenter = 1.0;
-        eye.xyz += orthogonal;
-    }
+    distanceFromCenter = 1.0 - 2.0 * float(gl_VertexID < 2);
+    eye.xyz += distanceFromCenter * orthogonal;
 
     // Finally, put the eyespace vertex into clip space
     <$transformEyeToClipPos(cam, eye, gl_Position)$>

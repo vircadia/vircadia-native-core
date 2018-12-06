@@ -275,6 +275,8 @@ enum EntityPropertyList {
     PROP_GRAB_EQUIPPABLE_INDICATOR_SCALE,
     PROP_GRAB_EQUIPPABLE_INDICATOR_OFFSET,
 
+    PROP_MATERIAL_REPEAT,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

@@ -282,7 +282,7 @@ void BloomEffect::configure(const Config& config) {
     for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
         blurName.back() = '0' + i;
         auto blurConfig = config.getConfig<render::BlurGaussian>(blurName);
-        blurConfig->setProperty("filterScale", 1.0f);
+        blurConfig->filterScale = 1.0f;
     }
 }
 

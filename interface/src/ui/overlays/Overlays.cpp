@@ -232,11 +232,15 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
      */
 
     if (type == ImageOverlay::TYPE) {
+#if !defined(DISABLE_QML)
         thisOverlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+#endif
     } else if (type == Image3DOverlay::TYPE || type == "billboard") { // "billboard" for backwards compatibility
         thisOverlay = Overlay::Pointer(new Image3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == TextOverlay::TYPE) {
+#if !defined(DISABLE_QML)
         thisOverlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+#endif
     } else if (type == Text3DOverlay::TYPE) {
         thisOverlay = Overlay::Pointer(new Text3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Shape3DOverlay::TYPE) {
