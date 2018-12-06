@@ -85,7 +85,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         DependencyManager::get<GeometryCache>()->renderGrid(*batch, minCorner, maxCorner,
             _minorGridRowDivisions, _minorGridColDivisions, MINOR_GRID_EDGE,
             _majorGridRowDivisions, _majorGridColDivisions, MAJOR_GRID_EDGE,
-            gridColor, _drawInFront, _geometryId);
+            gridColor, _geometryId);
     }
 }
 

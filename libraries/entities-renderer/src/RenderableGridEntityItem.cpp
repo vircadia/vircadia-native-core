@@ -91,7 +91,13 @@ Item::Bound GridEntityRenderer::getBound() {
 }
 
 ShapeKey GridEntityRenderer::getShapeKey() {
-    return render::ShapeKey::Builder().withOwnPipeline().withUnlit().withDepthBias();
+    auto builder = render::ShapeKey::Builder().withOwnPipeline().withUnlit().withDepthBias();
+
+    if (isTransparent()) {
+        builder.withTranslucent();
+    }
+
+    return builder.build();
 }
 
 void GridEntityRenderer::doRender(RenderArgs* args) {
@@ -116,7 +122,7 @@ void GridEntityRenderer::doRender(RenderArgs* args) {
     if (_followCamera) {
         // Get the camera position rounded to the nearest major grid line
         // This grid is for UI and should lie on worldlines
-        glm::vec3 localCameraPosition = glm::inverse(transform.getRotation()) * args->getViewFrustum().getPosition();
+        glm::vec3 localCameraPosition = glm::inverse(transform.getRotation()) * (args->getViewFrustum().getPosition() - renderTransform.getTranslation());
         localCameraPosition.z = 0;
         localCameraPosition = (float)_majorGridEvery * glm::round(localCameraPosition / (float)_majorGridEvery);
         transform.setTranslation(renderTransform.getTranslation() + transform.getRotation() * localCameraPosition);
@@ -135,10 +141,8 @@ void GridEntityRenderer::doRender(RenderArgs* args) {
 
     const float MINOR_GRID_EDGE = 0.0025f;
     const float MAJOR_GRID_EDGE = 0.005f;
-    // FIXME: add layered props to entities
-    const float LAYERED = false;
     DependencyManager::get<GeometryCache>()->renderGrid(*batch, minCorner, maxCorner,
         minorGridRowDivisions, minorGridColDivisions, MINOR_GRID_EDGE,
         majorGridRowDivisions, majorGridColDivisions, MAJOR_GRID_EDGE,
-        gridColor, LAYERED, _geometryId);
+        gridColor, _geometryId);
 }
