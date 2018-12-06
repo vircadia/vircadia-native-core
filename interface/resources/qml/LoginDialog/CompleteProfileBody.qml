@@ -61,23 +61,39 @@ Item {
             id: contentItem
             anchors.fill: parent
 
-            TextMetrics {
-                id: loginErrorMessageTextMetrics
-                font: loginErrorMessage.font
-                text: loginErrorMessage.text
-            }
-            Text {
-                id: loginErrorMessage
-                anchors.top: parent.top;
-                // above buttons.
-                anchors.topMargin: (parent.height - additionalTextContainer.height) / 2 - hifi.dimensions.contentSpacing.y - profileButton.height
-                anchors.left: parent.left;
-                anchors.leftMargin: (parent.width - loginErrorMessageTextMetrics.width) / 2;
-                color: "red";
-                font.family: completeProfileBody.fontFamily
-                font.pixelSize: completeProfileBody.fontSize
-                text: completeProfileBody.errorString
-                visible: true
+            Item {
+                id: errorContainer
+                width: parent.width
+                height: loginErrorMessageTextMetrics.height
+                anchors {
+                    bottom: buttons.top;
+                    bottomMargin: hifi.dimensions.contentSpacing.y;
+                    left: buttons.left;
+                }
+                TextMetrics {
+                    id: loginErrorMessageTextMetrics
+                    font: loginErrorMessage.font
+                    text: loginErrorMessage.text
+                }
+                Text {
+                    id: loginErrorMessage;
+                    width: root.bannerWidth
+                    color: "red";
+                    font.family: signUpBody.fontFamily
+                    font.pixelSize: 18
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    text: completeProfileBody.errorString
+                    visible: true
+                }
+                Component.onCompleted: {
+                    if (loginErrorMessageTextMetrics.width > 350 && root.isTablet) {
+                        loginErrorMessage.wrapMode = Text.WordWrap;
+                        loginErrorMessage.verticalAlignment = Text.AlignLeft;
+                        loginErrorMessage.horizontalAlignment = Text.AlignLeft;
+                        errorContainer.height = 2 * loginErrorMessageTextMetrics.height;
+                    }
+                }
             }
 
             Item {
