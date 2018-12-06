@@ -58,7 +58,7 @@ Material& Material::operator= (const Material& material) {
 Material::~Material() {
 }
 
-void Material::setEmissive(const Color&  emissive, bool isSRGB) {
+void Material::setEmissive(const Color& emissive, bool isSRGB) {
     _key.setEmissive(glm::any(glm::greaterThan(emissive, Color(0.0f))));
     _schemaBuffer.edit<Schema>()._key = (uint32) _key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._emissive = (isSRGB ? ColorUtils::sRGBToLinearVec3(emissive) : emissive);
@@ -86,11 +86,6 @@ void Material::setRoughness(float roughness) {
     _key.setGlossy((roughness < 1.0f));
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._roughness = roughness;
-}
-
-void Material::setFresnel(const Color& fresnel, bool isSRGB) {
-    //_key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
-    _schemaBuffer.edit<Schema>()._fresnel = (isSRGB ? ColorUtils::sRGBToLinearVec3(fresnel) : fresnel);
 }
 
 void Material::setMetallic(float metallic) {
@@ -135,8 +130,10 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
     if (channel == MaterialKey::LIGHTMAP_MAP) {
         // update the texcoord1 with lightmap
         _schemaBuffer.edit<Schema>()._texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
-        _schemaBuffer.edit<Schema>()._lightmapParams = (textureMap ? glm::vec4(textureMap->getLightmapOffsetScale(), 0.0, 0.0) : glm::vec4(0.0, 1.0, 0.0, 0.0));
+        _schemaBuffer.edit<Schema>()._lightmapParams = (textureMap ? glm::vec2(textureMap->getLightmapOffsetScale()) : glm::vec2(0.0, 1.0));
     }
+
+    _schemaBuffer.edit<Schema>()._materialParams = (textureMap ? glm::vec2(textureMap->getMappingMode(), textureMap->getRepeat()) : glm::vec2(MaterialMappingMode::UV, 1.0));
 
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
 
@@ -216,13 +213,16 @@ bool Material::calculateMaterialInfo() const {
     return _hasCalculatedTextureInfo;
 }
 
-void Material::setTextureTransforms(const Transform& transform) {
+void Material::setTextureTransforms(const Transform& transform, MaterialMappingMode mode, bool repeat) {
     for (auto &textureMapItem : _textureMaps) {
         if (textureMapItem.second) {
             textureMapItem.second->setTextureTransform(transform);
+            textureMapItem.second->setMappingMode(mode);
+            textureMapItem.second->setRepeat(repeat);
         }
     }
     for (int i = 0; i < NUM_TEXCOORD_TRANSFORMS; i++) {
         _schemaBuffer.edit<Schema>()._texcoordTransforms[i] = transform.getMatrix();
     }
+    _schemaBuffer.edit<Schema>()._materialParams = glm::vec2(mode, repeat);
 }

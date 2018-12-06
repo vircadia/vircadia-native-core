@@ -360,7 +360,9 @@ void Rig::initJointStates(const HFMModel& hfmModel, const glm::mat4& modelOffset
 void Rig::reset(const HFMModel& hfmModel) {
     _geometryOffset = AnimPose(hfmModel.offset);
     _invGeometryOffset = _geometryOffset.inverse();
+
     _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel);
+
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -1874,7 +1876,7 @@ void Rig::initAnimGraph(const QUrl& url) {
             emit onLoadComplete();
         });
         connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
-            qCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
+            qCritical(animation) << "Error loading: code = " << error << "str =" << str;
         });
 
         connect(_networkLoader.get(), &AnimNodeLoader::success, [this, weakSkeletonPtr, networkUrl](AnimNode::Pointer nodeIn) {
@@ -1900,7 +1902,7 @@ void Rig::initAnimGraph(const QUrl& url) {
            
         });
         connect(_networkLoader.get(), &AnimNodeLoader::error, [networkUrl](int error, QString str) {
-            qCritical(animation) << "Error loading" << networkUrl.toDisplayString() << "code = " << error << "str =" << str;
+            qCritical(animation) << "Error loading: code = " << error << "str =" << str;
         });
     }
 }
@@ -1972,6 +1974,7 @@ AnimPose Rig::getJointPose(int jointIndex) const {
 void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 
     const AnimPose geometryToRigPose(_geometryToRigTransform);
+    const glm::vec3 geometryToRigScale(geometryToRigPose.scale());
 
     jointDataVec.resize((int)getJointStateCount());
     for (auto i = 0; i < jointDataVec.size(); i++) {
@@ -1984,9 +1987,10 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 
             // translations are in relative frame but scaled so that they are in meters,
             // instead of model units.
-            glm::vec3 defaultRelTrans = _geometryOffset.scale() * _animSkeleton->getRelativeDefaultPose(i).trans();
-            data.translation = _geometryOffset.scale() * (!_sendNetworkNode ? _internalPoseSet._relativePoses[i].trans() : _networkPoseSet._relativePoses[i].trans());
-            data.translationIsDefaultPose = isEqual(data.translation, defaultRelTrans);
+            glm::vec3 defaultRelTrans = _animSkeleton->getRelativeDefaultPose(i).trans();
+            glm::vec3 currentRelTrans = _sendNetworkNode ? _networkPoseSet._relativePoses[i].trans() : _internalPoseSet._relativePoses[i].trans();
+            data.translation = geometryToRigScale * currentRelTrans;
+            data.translationIsDefaultPose = isEqual(currentRelTrans, defaultRelTrans);
         } else {
             data.translationIsDefaultPose = true;
             data.rotationIsDefaultPose = true;
@@ -2012,6 +2016,8 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     std::vector<glm::quat> rotations;
     rotations.reserve(numJoints);
     const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
+    const glm::vec3 rigToGeometryScale(extractScale(_rigToGeometryTransform));
+
     for (int i = 0; i < numJoints; i++) {
         const JointData& data = jointDataVec.at(i);
         if (data.rotationIsDefaultPose) {
@@ -2037,7 +2043,7 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
             _internalPoseSet._relativePoses[i].trans() = relativeDefaultPoses[i].trans();
         } else {
             // JointData translations are in scaled relative-frame so we scale back to regular relative-frame
-            _internalPoseSet._relativePoses[i].trans() = _invGeometryOffset.scale() * data.translation;
+            _internalPoseSet._relativePoses[i].trans() = rigToGeometryScale * data.translation;
         }
     }
 }

@@ -34,12 +34,10 @@ layout(location=0) out vec4 outFragColor;
 void main(void) {
     Grid grid = getGrid();
 
-    float alpha;
-    if (grid.edge.z == 0.0) {
-        alpha = paintGrid(varTexCoord0, grid.offset.xy, grid.period.xy, grid.edge.xy);
-    } else {
-        alpha = paintGridMajorMinor(varTexCoord0, grid.offset, grid.period, grid.edge);
-    }
+    float alpha = mix(paintGridMajorMinor(varTexCoord0, grid.offset, grid.period, grid.edge),
+                      paintGrid(varTexCoord0, grid.offset.xy, grid.period.xy, grid.edge.xy),
+                      float(grid.edge.z == 0.0));
+
     if (alpha == 0.0) {
         discard;
     }

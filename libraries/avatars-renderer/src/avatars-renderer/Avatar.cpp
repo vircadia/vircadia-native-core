@@ -616,6 +616,8 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "entities");
         updateAvatarEntities();
     }
+
+    updateFadingStatus();
 }
 
 float Avatar::getSimulationRate(const QString& rateName) const {
@@ -761,8 +763,7 @@ void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
 
     if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
         transitionType = render::Transition::BUBBLE_ISECT_TRESPASSER;
-    }
-    else if (reason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+    } else if (reason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         transitionType = render::Transition::BUBBLE_ISECT_OWNER;
     }
     fade(transaction, transitionType);
@@ -779,14 +780,16 @@ void Avatar::fade(render::Transaction& transaction, render::Transition::Type typ
     _isFading = true;
 }
 
-void Avatar::updateFadingStatus(render::ScenePointer scene) {
-    render::Transaction transaction;
-    transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
-        if (transition == nullptr || transition->isFinished) {
-            _isFading = false;
-        }
-    });
-    scene->enqueueTransaction(transaction);
+void Avatar::updateFadingStatus() {
+    if (_isFading) {
+        render::Transaction transaction;
+        transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
+            if (!transition || transition->isFinished) {
+                _isFading = false;
+            }
+        });
+        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+    }
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
@@ -1517,16 +1520,16 @@ void Avatar::setModelURLFinished(bool success) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
             _skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
-            qCWarning(avatars_renderer) << "Using default after failing to load Avatar model: " << _skeletonModelURL
-                                        << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
+            qCWarning(avatars_renderer) << "Using default after failing to load Avatar model, "
+                << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
+
             // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
             // we don't redo this every time we receive an identity packet from the avatar with the bad url.
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
                 Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
         } else {
-            qCWarning(avatars_renderer) << "Avatar model: " << _skeletonModelURL
-                    << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts()
-                    << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
+            qCWarning(avatars_renderer) << "Avatar model failed to load... attempts:" 
+                << _skeletonModel->getResourceDownloadAttempts() << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
     }
     if (success) {
@@ -1724,22 +1727,23 @@ void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
 }
 
 void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
-    // FIXME: this doesn't take into account Avatar rotation
     ShapeInfo shapeInfo;
     computeShapeInfo(shapeInfo);
-    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
-    start = getWorldPosition() - glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
-    end = getWorldPosition() + glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = cylinderHalfHeight + radius
     radius = halfExtents.x;
+    glm::vec3 halfCylinderAxis(0.0f, halfExtents.y - radius, 0.0f);
+    Transform transform = getTransform();
+    start = transform.getTranslation() + transform.getRotation() * (shapeInfo.getOffset() - halfCylinderAxis);
+    end = transform.getTranslation() + transform.getRotation() * (shapeInfo.getOffset() + halfCylinderAxis);
 }
 
 glm::vec3 Avatar::getWorldFeetPosition() {
     ShapeInfo shapeInfo;
-
     computeShapeInfo(shapeInfo);
-    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
-    glm::vec3 localFeet(0.0f, shapeInfo.getOffset().y - halfExtents.y - halfExtents.x, 0.0f);
-    return getWorldOrientation() * localFeet + getWorldPosition();
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = cylinderHalfHeight + radius
+    glm::vec3 localFeet(0.0f, shapeInfo.getOffset().y - halfExtents.y, 0.0f);
+    Transform transform = getTransform();
+    return transform.getTranslation() + transform.getRotation() * localFeet;
 }
 
 float Avatar::computeMass() {

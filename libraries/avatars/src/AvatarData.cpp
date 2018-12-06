@@ -1999,7 +1999,6 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     }
     
     _skeletonModelURL = expanded;
-    qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
     updateJointMappings();
 
@@ -2104,8 +2103,9 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 
     // before we process this update, make sure that the skeleton model URL hasn't changed
     // since we made the FST request
-    if (networkReply->url() != _skeletonModelURL) {
+    if (networkReply->error() != QNetworkReply::NoError || networkReply->url() != _skeletonModelURL) {
         qCDebug(avatars) << "Refusing to set joint mappings for FST URL that does not match the current URL";
+        networkReply->deleteLater();
         return;
     }
 

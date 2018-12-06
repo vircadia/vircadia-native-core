@@ -219,17 +219,12 @@
         });
     }
 
-    function buyButtonClicked(id, name, author, price, href, referrer, edition, type) {
+    function buyButtonClicked(id, referrer, edition) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
-            itemName: name,
-            itemPrice: price ? parseInt(price, 10) : 0,
-            itemHref: href,
             referrer: referrer,
-            itemAuthor: author,
-            itemEdition: edition,
-            itemType: type.trim()
+            itemEdition: edition
         }));
     }
 
@@ -313,13 +308,8 @@
                 return false;
             }
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
-                $(this).closest('.grid-item').find('.item-title').text(),
-                $(this).closest('.grid-item').find('.creator').find('.value').text(),
-                $(this).closest('.grid-item').find('.item-cost').text(),
-                $(this).attr('data-href'),
                 "mainPage",
-                -1,
-                $(this).closest('.grid-item').find('.item-type').text());
+                -1);
         });
     }
 
@@ -427,13 +417,8 @@
                 purchaseButton.on('click', function () {
                     if ('available' === availability || isUpdating) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
-                            $('#top-center').find('h1').text(),
-                            $('#creator').find('.value').text(),
-                            cost,
-                            href,
                             "itemPage",
-                            urlParams.get('edition'),
-                            type);
+                            urlParams.get('edition'));
                     }
                 });
             }
@@ -546,18 +531,9 @@
                             data = {};
                         }
 
-                        // Extract status message.
-                        if (data.hasOwnProperty("message") && data.message !== null) {
-                            statusMessage = data.message;
-                            console.log("Clara.io FBX: " + statusMessage);
-                        }
-
                         // Extract zip file URL.
                         if (data.hasOwnProperty("files") && data.files.length > 0) {
                             zipFileURL = data.files[0].url;
-                            if (zipFileURL.slice(-4) !== ".zip") {
-                                console.log(JSON.stringify(data));  // Data for debugging.
-                            }
                         }
                     }
                 }
@@ -587,15 +563,11 @@
 
             var HTTP_OK = 200;
             if (this.status !== HTTP_OK) {
-                statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
-                console.log("ERROR: Clara.io FBX: " + statusMessage);
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_STATUS,
                     status: statusMessage
                 }));
             } else if (zipFileURL.slice(-4) !== ".zip") {
-                statusMessage = "Error creating zip file for download.";
-                console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_STATUS,
                     status: (statusMessage + ": " + zipFileURL)
@@ -604,15 +576,12 @@
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_DOWNLOAD
                 }));
-                console.log("Clara.io FBX: File download initiated for " + zipFileURL);
             }
 
             xmlHttpRequest = null;
         }
 
         isPreparing = true;
-
-        console.log("Clara.io FBX: Request zip file for " + uuid);
         EventBridge.emitWebEvent(JSON.stringify({
             type: CLARA_IO_STATUS,
             status: "Initiating download"

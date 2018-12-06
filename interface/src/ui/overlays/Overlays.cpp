@@ -232,11 +232,15 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
      */
 
     if (type == ImageOverlay::TYPE) {
+#if !defined(DISABLE_QML)
         thisOverlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+#endif
     } else if (type == Image3DOverlay::TYPE || type == "billboard") { // "billboard" for backwards compatibility
         thisOverlay = Overlay::Pointer(new Image3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == TextOverlay::TYPE) {
+#if !defined(DISABLE_QML)
         thisOverlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+#endif
     } else if (type == Text3DOverlay::TYPE) {
         thisOverlay = Overlay::Pointer(new Text3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Shape3DOverlay::TYPE) {
@@ -535,7 +539,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
     bool bestIsFront = false;
     bool bestIsTablet = false;
     auto tabletIDs = qApp->getTabletIDs();
-
+    const QVector<OverlayID> keyboardKeysToDiscard = DependencyManager::get<Keyboard>()->getKeysID();
     QMutexLocker locker(&_mutex);
     RayToOverlayIntersectionResult result;
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
@@ -545,7 +549,8 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
         auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
 
         if ((overlaysToDiscard.size() > 0 && overlaysToDiscard.contains(thisID)) ||
-            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID))) {
+            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID)) ||
+            (keyboardKeysToDiscard.size() > 0 && keyboardKeysToDiscard.contains(thisID))) {
             continue;
         }
 

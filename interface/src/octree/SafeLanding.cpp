@@ -107,7 +107,7 @@ void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
 }
 
 bool SafeLanding::isLoadSequenceComplete() {
-    if (isEntityLoadingComplete() && isSequenceNumbersComplete()) {
+    if ((isEntityLoadingComplete() && isSequenceNumbersComplete()) || qApp->failedToConnectToEntityServer()) {
         Locker lock(_lock);
         _initialStart = INVALID_SEQUENCE;
         _initialEnd = INVALID_SEQUENCE;

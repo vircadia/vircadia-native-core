@@ -39,13 +39,8 @@ const float taaBias = pow(2.0, TAA_TEXTURE_LOD_BIAS);
 float evalSDF(vec2 texCoord) {
     // retrieve signed distance
     float sdf = textureLod(Font, texCoord, TAA_TEXTURE_LOD_BIAS).g;
-    if (params.outline.x > 0.0) {
-        if (sdf > interiorCutoff) {
-            sdf = 1.0 - sdf;
-        } else {
-            sdf += outlineExpansion;
-        }
-    }
+    sdf = mix(sdf, mix(sdf + outlineExpansion, 1.0 - sdf, float(sdf > interiorCutoff)), float(params.outline.x > 0.0));
+
     // Rely on TAA for anti-aliasing
     return step(0.5, sdf);
 }
@@ -57,15 +52,10 @@ void main() {
     // Perform 4x supersampling for anisotropic filtering
     float a;
     a = evalSDF(_texCoord0);
-    a += evalSDF(_texCoord0+dxTexCoord);
-    a += evalSDF(_texCoord0+dyTexCoord);
-    a += evalSDF(_texCoord0+dxTexCoord+dyTexCoord);
+    a += evalSDF(_texCoord0 + dxTexCoord);
+    a += evalSDF(_texCoord0 + dyTexCoord);
+    a += evalSDF(_texCoord0 + dxTexCoord + dyTexCoord);
     a *= 0.25;
-
-    // discard if invisible
-    if (a < 0.01) {
-        discard;
-    }
 
     packDeferredFragment(
         normalize(_normalWS),

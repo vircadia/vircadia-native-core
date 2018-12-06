@@ -319,7 +319,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         settings = getMyAvatarSettings();
         break;
     default:
-        print('Unrecognized message from AvatarApp.qml:', JSON.stringify(message));
+        print('Unrecognized message from AvatarApp.qml');
     }
 }
 

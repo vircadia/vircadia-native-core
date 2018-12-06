@@ -98,6 +98,9 @@ int AudioMixerClientData::processPackets(ConcurrentAddedStreams& addedStreams) {
             case PacketType::RadiusIgnoreRequest:
                 parseRadiusIgnoreRequest(packet, node);
                 break;
+            case PacketType::AudioSoloRequest:
+                parseSoloRequest(packet, node);
+                break;
             default:
                 Q_UNREACHABLE();
         }
@@ -295,6 +298,25 @@ void AudioMixerClientData::parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessa
     }
 }
 
+
+void AudioMixerClientData::parseSoloRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
+
+    uint8_t addToSolo;
+    message->readPrimitive(&addToSolo);
+
+    while (message->getBytesLeftToRead()) {
+        // parse out the UUID being soloed from the packet
+        QUuid soloedUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        if (addToSolo) {
+            _soloedNodes.push_back(soloedUUID);
+        } else {
+            auto it = std::remove(std::begin(_soloedNodes), std::end(_soloedNodes), soloedUUID);
+            _soloedNodes.erase(it, std::end(_soloedNodes));
+        }
+    }
+}
+
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     auto it = std::find_if(_audioStreams.begin(), _audioStreams.end(), [](const SharedStreamPointer& stream){
         return stream->getStreamIdentifier().isNull();
@@ -315,6 +337,13 @@ void AudioMixerClientData::removeAgentAvatarAudioStream() {
 
     if (it != _audioStreams.end()) {
         _audioStreams.erase(it);
+
+        // Clear mixing structures so that they get recreated with up to date
+        // data if the stream comes back
+        setHasReceivedFirstMix(false);
+        _streams.skipped.clear();
+        _streams.inactive.clear();
+        _streams.active.clear();
     }
 }
 

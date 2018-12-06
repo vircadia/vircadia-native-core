@@ -317,7 +317,7 @@ void OffscreenSurface::loadInternal(const QUrl& qmlSource,
     {
         PROFILE_RANGE(app, "new QQmlComponent");
         qmlComponent = new QQmlComponent(getSurfaceContext()->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
-     }
+    }
     if (qmlComponent->isLoading()) {
         connect(qmlComponent, &QQmlComponent::statusChanged, this,
                 [=](QQmlComponent::Status) { finishQmlLoad(qmlComponent, targetContext, parent, callback); });
@@ -389,6 +389,10 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         }
         // Allow child windows to be destroyed from JS
         QQmlEngine::setObjectOwnership(newObject, QQmlEngine::JavaScriptOwnership);
+
+        // add object to the manual deletion list
+        _sharedObject->addToDeletionList(newObject);
+
         newObject->setParent(parent);
         newItem->setParentItem(parent);
     } else {

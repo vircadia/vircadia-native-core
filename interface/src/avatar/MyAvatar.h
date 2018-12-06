@@ -54,6 +54,7 @@ Q_DECLARE_METATYPE(AudioListenerMode);
 
 class MyAvatar : public Avatar {
     Q_OBJECT
+    friend class AnimStats;
 
     /**jsdoc
      * Your avatar is your in-world representation of you. The <code>MyAvatar</code> API is used to manipulate the avatar.
@@ -1163,7 +1164,7 @@ public:
     virtual QVariantList getAttachmentsVariant() const override;
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
-    glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); };
+    glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
 
 public slots:
 
@@ -1731,7 +1732,7 @@ private:
     glm::vec2 _headControllerFacingMovingAverage { 0.0f, 0.0f };   // facing vector in xz plane (sensor space)
     glm::quat _averageHeadRotation { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    glm::vec2 _hipToHandController { 0.0f, -1.0f };  // spine2 facing vector in xz plane (avatar space)
+    glm::vec2 _hipToHandController { 0.0f, 1.0f };  // spine2 facing vector in xz plane (spine2 space)
 
     float _currentStandingHeight { 0.0f };
     bool _resetMode { true };
@@ -1780,7 +1781,10 @@ private:
         std::atomic<bool> _forceActivateHorizontal { false };
         std::atomic<bool> _toggleHipsFollowing { true };
     };
+
     FollowHelper _follow;
+
+    bool isFollowActive(FollowHelper::FollowType followType) const;
 
     bool _goToPending { false };
     bool _physicsSafetyPending { false };

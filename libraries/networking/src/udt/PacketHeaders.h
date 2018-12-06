@@ -126,14 +126,13 @@ public:
         EntityScriptCallMethod,
         ChallengeOwnershipRequest,
         ChallengeOwnershipReply,
-
         OctreeDataFileRequest,
         OctreeDataFileReply,
         OctreeDataPersist,
-
         EntityClone,
         EntityQueryInitialResultsComplete,
         BulkAvatarTraits,
+        AudioSoloRequest,
 
         NUM_PACKET_TYPE
     };
@@ -246,6 +245,7 @@ enum class EntityVersion : PacketVersion {
     GrabProperties,
     ScriptGlmVectors,
     FixedLightSerialization,
+    MaterialRepeat,
     EntityHostTypes
 };
 
@@ -298,7 +298,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     FarGrabJoints,
     MigrateSkeletonURLToTraits,
     MigrateAvatarEntitiesToTraits,
-    FarGrabJointsRedux
+    FarGrabJointsRedux,
+    JointTransScaled
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

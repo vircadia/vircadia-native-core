@@ -656,6 +656,8 @@ void Agent::queryAvatars() {
     ViewFrustum view;
     view.setPosition(scriptedAvatar->getWorldPosition());
     view.setOrientation(scriptedAvatar->getHeadOrientation());
+    view.setProjection(DEFAULT_FIELD_OF_VIEW_DEGREES, DEFAULT_ASPECT_RATIO,
+                       DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP);
     view.calculate();
     ConicalViewFrustum conicalView { view };
 
@@ -754,13 +756,13 @@ void Agent::processAgentAvatarAudio() {
         const int16_t* nextSoundOutput = NULL;
 
         if (_avatarSound) {
-            const QByteArray& soundByteArray = _avatarSound->getByteArray();
-            nextSoundOutput = reinterpret_cast<const int16_t*>(soundByteArray.data()
+            auto audioData = _avatarSound->getAudioData();
+            nextSoundOutput = reinterpret_cast<const int16_t*>(audioData->rawData()
                     + _numAvatarSoundSentBytes);
 
-            int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
+            int numAvailableBytes = (audioData->getNumBytes() - _numAvatarSoundSentBytes) > AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
                 ? AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
-                : soundByteArray.size() - _numAvatarSoundSentBytes;
+                : audioData->getNumBytes() - _numAvatarSoundSentBytes;
             numAvailableSamples = (int16_t)numAvailableBytes / sizeof(int16_t);
 
 
@@ -773,7 +775,7 @@ void Agent::processAgentAvatarAudio() {
             }
 
             _numAvatarSoundSentBytes += numAvailableBytes;
-            if (_numAvatarSoundSentBytes == soundByteArray.size()) {
+            if (_numAvatarSoundSentBytes == (int)audioData->getNumBytes()) {
                 // we're done with this sound object - so set our pointer back to NULL
                 // and our sent bytes back to zero
                 _avatarSound.clear();
@@ -876,17 +878,29 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<AudioInjectorManager>();
 
     // destroy all other created dependencies
-    DependencyManager::destroy<ScriptCache>();
 
-    DependencyManager::destroy<ResourceCacheSharedItems>();
     DependencyManager::destroy<SoundCacheScriptingInterface>();
-    DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<AudioScriptingInterface>();
-
     DependencyManager::destroy<RecordingScriptingInterface>();
+    DependencyManager::destroy<AnimationCacheScriptingInterface>();
+    DependencyManager::destroy<EntityScriptingInterface>();
+    DependencyManager::destroy<ResourceScriptingInterface>();
+    DependencyManager::destroy<UserActivityLoggerScriptingInterface>();
+
+    DependencyManager::destroy<ScriptCache>();
+    DependencyManager::destroy<SoundCache>();
+    DependencyManager::destroy<AnimationCache>();
+
     DependencyManager::destroy<recording::Deck>();
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
+
+    DependencyManager::destroy<AvatarHashMap>();
+    DependencyManager::destroy<AssignmentParentFinder>();
+    DependencyManager::destroy<MessagesClient>();
+    DependencyManager::destroy<ResourceManager>();
+
+    DependencyManager::destroy<ResourceCacheSharedItems>();
 
     // drop our shared pointer to the script engine, then ask ScriptEngines to shutdown scripting
     // this ensures that the ScriptEngine goes down before ScriptEngines

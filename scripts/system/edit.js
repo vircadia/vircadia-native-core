@@ -12,7 +12,8 @@
 
 /* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager,
    Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera,
-   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, OverlaySystemWindow */
+   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, OverlaySystemWindow,
+   keyUpEventFromUIWindow:true */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -113,7 +114,6 @@ selectionManager.addEventListener(function () {
     entityIconOverlayManager.updatePositions();
 });
 
-var KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
 
@@ -466,7 +466,6 @@ const DEFAULT_ENTITY_PROPERTIES = {
         isSpotlight: false,
         exponent: 1.0,
         cutoff: 75.0,
-        dimensions: { x: 20, y: 20, z: 20 },
     },
 };
 
@@ -555,8 +554,9 @@ var toolBar = (function () {
                 }
             }
 
-            SelectionManager.saveProperties();
             entityID = Entities.addEntity(properties);
+            SelectionManager.addEntity(entityID, false, this);
+            SelectionManager.saveProperties();
             pushCommandForSelections([{
                 entityID: entityID,
                 properties: properties
@@ -1274,6 +1274,7 @@ function mouseClickEvent(event) {
             } else {
                 selectionManager.addEntity(foundEntity, true, this);
             }
+            selectionManager.saveProperties();
 
             if (wantDebug) {
                 print("Model selected: " + foundEntity);
@@ -1965,14 +1966,6 @@ var keyReleaseEvent = function (event) {
     if (isActive) {
         cameraManager.keyReleaseEvent(event);
     }
-    // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.key === KEY_P && event.isControl && !event.isAutoRepeat) {
-        if (event.isShifted) {
-            unparentSelectedEntities();
-        } else {
-            parentSelectedEntities();
-        }
-    }
 };
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
@@ -2139,12 +2132,17 @@ function applyEntityProperties(data) {
             entityID = DELETED_ENTITY_MAP[entityID];
         }
         Entities.deleteEntity(entityID);
+        var index = selectedEntityIDs.indexOf(entityID);
+        if (index >= 0) {
+            selectedEntityIDs.splice(index, 1);
+        }
     }
 
     // We might be getting an undo while edit.js is disabled. If that is the case, don't set
     // our selections, causing the edit widgets to display.
     if (isActive) {
         selectionManager.setSelections(selectedEntityIDs, this);
+        selectionManager.saveProperties();
     }
 }
 
@@ -2232,6 +2230,7 @@ var PropertiesTool = function (opts) {
     // are selected or if no entity is selected this will be `null`.
     var currentSelectedEntityID = null;
     var statusMonitor = null;
+    var blockPropertyUpdates = false;
 
     that.setVisible = function (newVisible) {
         visible = newVisible;
@@ -2269,6 +2268,10 @@ var PropertiesTool = function (opts) {
     };
 
     function updateSelections(selectionUpdated) {
+        if (blockPropertyUpdates) {
+            return;
+        }
+
         var data = {
             type: 'update',
             spaceMode: selectionDisplay.getSpaceMode()
@@ -2327,12 +2330,7 @@ var PropertiesTool = function (opts) {
             return;
         }
         var i, properties, dY, diff, newPosition;
-        if (data.type === "print") {
-            if (data.message) {
-                print(data.message);
-            }
-        } else if (data.type === "update") {
-            selectionManager.saveProperties();
+        if (data.type === "update") {
             if (selectionManager.selections.length > 1) {
                 for (i = 0; i < selectionManager.selections.length; i++) {
                     Entities.editEntity(selectionManager.selections[i], data.properties);
@@ -2368,12 +2366,14 @@ var PropertiesTool = function (opts) {
                     entityListTool.sendUpdate();
                 }
             }
-            pushCommandForSelections();
+            if (data.onlyUpdateEntities) {
+                blockPropertyUpdates = true;
+            } else {
+                pushCommandForSelections();
+                SelectionManager.saveProperties();
+            }
             selectionManager._update(false, this);
-        } else if (data.type === 'parent') {
-            parentSelectedEntities();
-        } else if (data.type === 'unparent') {
-            unparentSelectedEntities();
+            blockPropertyUpdates = false;
         } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
@@ -2686,9 +2686,14 @@ function whenReleased(fn) {
     };
 }
 
+var isOnMacPlatform = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+
 var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
-mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
+if (isOnMacPlatform) {
+    mapping.from([Controller.Hardware.Keyboard.Backspace]).to(deleteKey);
+} else {
+    mapping.from([Controller.Hardware.Keyboard.Delete]).to(deleteKey);
+}
 mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
 mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
 mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
@@ -2711,6 +2716,52 @@ mapping.from([Controller.Hardware.Keyboard.Z])
     .to(whenPressed(function() { undoHistory.redo() }));
 
 
+mapping.from([Controller.Hardware.Keyboard.P])
+    .when([Controller.Hardware.Keyboard.Control, Controller.Hardware.Keyboard.Shift])
+    .to(whenReleased(function() { unparentSelectedEntities(); }));
+
+mapping.from([Controller.Hardware.Keyboard.P])
+    .when([Controller.Hardware.Keyboard.Control, !Controller.Hardware.Keyboard.Shift])
+    .to(whenReleased(function() { parentSelectedEntities(); }));
+
+keyUpEventFromUIWindow = function(keyUpEvent) {
+    var WANT_DEBUG_MISSING_SHORTCUTS = false;
+
+    var pressedValue = 0.0;
+
+    if ((!isOnMacPlatform && keyUpEvent.keyCodeString === "Delete")
+        || (isOnMacPlatform && keyUpEvent.keyCodeString === "Backspace")) {
+
+        deleteKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "T") {
+        toggleKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "F") {
+        focusKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "G") {
+        gridKey(pressedValue);
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "X") {
+        selectionManager.cutSelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "C") {
+        selectionManager.copySelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "V") {
+        selectionManager.pasteEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "D") {
+        selectionManager.duplicateSelection();
+    } else if (!isOnMacPlatform && keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") {
+        undoHistory.undo(); // undo is only handled via handleMenuItem on Mac
+    } else if (keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
+        parentSelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
+        unparentSelectedEntities();
+    } else if (!isOnMacPlatform &&
+              ((keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") ||
+               (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "Y"))) {
+        undoHistory.redo(); // redo is only handled via handleMenuItem on Mac
+    } else if (WANT_DEBUG_MISSING_SHORTCUTS) {
+        console.warn("unhandled key event: " + JSON.stringify(keyUpEvent))
+    }
+};
+
 var propertyMenu = new PopupMenu();
 
 propertyMenu.onSelectMenuItem = function (name) {
@@ -2723,22 +2774,6 @@ propertyMenu.onSelectMenuItem = function (name) {
 var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
-
-entityListTool.webView.webEventReceived.connect(function(data) {
-    try {
-        data = JSON.parse(data);
-    } catch(e) {
-        print("edit.js: Error parsing JSON: " + e.name + " data " + data);
-        return;
-    }
-
-    if (data.type === 'parent') {
-        parentSelectedEntities();
-    } else if (data.type === 'unparent') {
-        unparentSelectedEntities();
-    }
-});
-
 
 selectionDisplay.onSpaceModeChange = function(spaceMode) {
     entityListTool.setSpaceMode(spaceMode);

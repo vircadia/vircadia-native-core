@@ -11,13 +11,9 @@
 
 #include "AudioInjectorLocalBuffer.h"
 
-AudioInjectorLocalBuffer::AudioInjectorLocalBuffer(const QByteArray& rawAudioArray) :
-    _rawAudioArray(rawAudioArray),
-    _shouldLoop(false),
-    _isStopped(false),
-    _currentOffset(0)
+AudioInjectorLocalBuffer::AudioInjectorLocalBuffer(AudioDataPointer audioData) :
+    _audioData(audioData)
 {
-    
 }
 
 void AudioInjectorLocalBuffer::stop() {
@@ -39,7 +35,7 @@ qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
     if (!_isStopped) {
         
         // first copy to the end of the raw audio
-        int bytesToEnd = _rawAudioArray.size() - _currentOffset;
+        int bytesToEnd = (int)_audioData->getNumBytes() - _currentOffset;
         
         int bytesRead = maxSize;
         
@@ -47,7 +43,7 @@ qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
             bytesRead = bytesToEnd;
         }
         
-        memcpy(data, _rawAudioArray.data() + _currentOffset, bytesRead);
+        memcpy(data, _audioData->rawData() + _currentOffset, bytesRead);
         
         // now check if we are supposed to loop and if we can copy more from the beginning
         if (_shouldLoop && maxSize != bytesRead) {
@@ -56,7 +52,7 @@ qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
             _currentOffset += bytesRead;
         }
         
-        if (_shouldLoop && _currentOffset == _rawAudioArray.size()) {
+        if (_shouldLoop && _currentOffset == (int)_audioData->getNumBytes()) {
             _currentOffset = 0;
         }
         
@@ -70,12 +66,12 @@ qint64 AudioInjectorLocalBuffer::recursiveReadFromFront(char* data, qint64 maxSi
     // see how much we can get in this pass
     int bytesRead = maxSize;
     
-    if (bytesRead > _rawAudioArray.size()) {
-        bytesRead = _rawAudioArray.size();
+    if (bytesRead > (int)_audioData->getNumBytes()) {
+        bytesRead = _audioData->getNumBytes();
     }
     
     // copy that amount
-    memcpy(data, _rawAudioArray.data(), bytesRead);
+    memcpy(data, _audioData->rawData(), bytesRead);
     
     // check if we need to call ourselves again and pull from the front again
     if (bytesRead < maxSize) {

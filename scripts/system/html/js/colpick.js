@@ -309,6 +309,9 @@ For usage and examples: colpick.com/plugin
             },
             // Fix the values if the user enters a negative or high value
             fixHSB = function (hsb) {
+                hsb.h = isNaN(hsb.h) ? 0 : hsb.h;
+                hsb.s = isNaN(hsb.s) ? 0 : hsb.s;
+                hsb.b = isNaN(hsb.b) ? 0 : hsb.b;
                 return {
                     h: Math.min(360, Math.max(0, hsb.h)),
                     s: Math.min(100, Math.max(0, hsb.s)),
@@ -316,6 +319,9 @@ For usage and examples: colpick.com/plugin
                 };
             }, 
             fixRGB = function (rgb) {
+                rgb.r = isNaN(rgb.r) ? 0 : rgb.r;
+                rgb.g = isNaN(rgb.g) ? 0 : rgb.g;
+                rgb.b = isNaN(rgb.b) ? 0 : rgb.b;
                 return {
                     r: Math.min(255, Math.max(0, rgb.r)),
                     g: Math.min(255, Math.max(0, rgb.g)),

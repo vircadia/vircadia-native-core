@@ -693,7 +693,6 @@
     }
 
     function onWebEventReceived(eventString) {
-        print("received web event: " + JSON.stringify(eventString));
         if (typeof eventString === "string") {
             var event;
             try {

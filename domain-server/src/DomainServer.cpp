@@ -2258,46 +2258,18 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 // check the file extension to see what kind of file this is
                 // to make sure we handle this filetype for a content restore
                 auto dispositionValue = QString(firstFormData.first.value("Content-Disposition"));
-                auto formDataFilenameRegex = QRegExp("filename=\"(.+)\"");
-                auto matchIndex = formDataFilenameRegex.indexIn(dispositionValue);
+                QRegExp formDataFieldsRegex(R":(name="(restore-file.*)".*filename="(.+)"):");
+                auto matchIndex = formDataFieldsRegex.indexIn(dispositionValue);
 
+                QString formItemName = "";
                 QString uploadedFilename = "";
                 if (matchIndex != -1) {
-                    uploadedFilename = formDataFilenameRegex.cap(1);
+                    formItemName = formDataFieldsRegex.cap(1);
+                    uploadedFilename = formDataFieldsRegex.cap(2);
                 }
 
-                if (uploadedFilename.endsWith(".json", Qt::CaseInsensitive)
-                    || uploadedFilename.endsWith(".json.gz", Qt::CaseInsensitive)) {
-                    // invoke our method to hand the new octree file off to the octree server
-                    QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
-                                              Qt::QueuedConnection, Q_ARG(QByteArray, firstFormData.second));
-
-                    // respond with a 200 for success
-                    connection->respond(HTTPConnection::StatusCode200);
-                } else if (uploadedFilename.endsWith(".zip", Qt::CaseInsensitive)) {
-                    auto deferred = makePromise("recoverFromUploadedBackup");
-
-                    deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
-                        if (!connectionPtr) {
-                            return;
-                        }
-
-                        QJsonObject rootJSON;
-                        auto success = result["success"].toBool();
-                        rootJSON["success"] = success;
-                        QJsonDocument docJSON(rootJSON);
-                        connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
-                                            JSON_MIME_TYPE.toUtf8());
-                    });
-
-                    _contentManager->recoverFromUploadedBackup(deferred, firstFormData.second);
-
-                    return true;
-                } else {
-                    // we don't have handling for this filetype, send back a 400 for failure
-                    connection->respond(HTTPConnection::StatusCode400);
-                }
-
+                // Received a chunk
+                processPendingContent(connection, formItemName, uploadedFilename, firstFormData.second);
             } else {
                 // respond with a 400 for failure
                 connection->respond(HTTPConnection::StatusCode400);
@@ -2544,6 +2516,72 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
     } else {
         return false;
     }
+}
+
+bool DomainServer::processPendingContent(HTTPConnection* connection, QString itemName, QString filename, QByteArray dataChunk) {
+    static const QString UPLOAD_SESSION_KEY { "X-Session-Id" };
+    QByteArray sessionIdBytes = connection->requestHeader(UPLOAD_SESSION_KEY);
+    int sessionId = sessionIdBytes.toInt();
+
+    bool newUpload = itemName == "restore-file" || itemName == "restore-file-chunk-initial" || itemName == "restore-file-chunk-only";
+
+    if (filename.endsWith(".zip", Qt::CaseInsensitive)) {
+        static const QString TEMPORARY_CONTENT_FILEPATH { QDir::tempPath() + "/hifiUploadContent_XXXXXX.zip" };
+
+        if (_pendingContentFiles.find(sessionId) == _pendingContentFiles.end()) {
+            if (!newUpload) {
+                return false;
+            }
+            std::unique_ptr<QTemporaryFile> newTemp(new QTemporaryFile(TEMPORARY_CONTENT_FILEPATH));
+            _pendingContentFiles[sessionId] = std::move(newTemp);
+        } else if (newUpload) {
+            qCDebug(domain_server) << "New upload received using existing session ID";
+            _pendingContentFiles[sessionId]->resize(0);
+        }
+
+        QTemporaryFile& _pendingFileContent = *_pendingContentFiles[sessionId];
+        if (!_pendingFileContent.open()) {
+            _pendingContentFiles.erase(sessionId);
+            connection->respond(HTTPConnection::StatusCode400);
+            return false;
+        }
+        _pendingFileContent.seek(_pendingFileContent.size());
+        _pendingFileContent.write(dataChunk);
+        _pendingFileContent.close();
+        
+        // Respond immediately - will timeout if we wait for restore.
+        connection->respond(HTTPConnection::StatusCode200);
+        if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
+            auto deferred = makePromise("recoverFromUploadedBackup");
+
+            deferred->then([this, sessionId](QString error, QVariantMap result) {
+                _pendingContentFiles.erase(sessionId);
+            });
+
+            _contentManager->recoverFromUploadedFile(deferred, _pendingFileContent.fileName());
+        }
+    } else if (filename.endsWith(".json", Qt::CaseInsensitive)
+        || filename.endsWith(".json.gz", Qt::CaseInsensitive)) {
+        if (_pendingUploadedContents.find(sessionId) == _pendingUploadedContents.end() && !newUpload) {
+            qCDebug(domain_server) << "Json upload with invalid session ID received";
+            return false;
+        }
+        QByteArray& _pendingUploadedContent = _pendingUploadedContents[sessionId];
+        _pendingUploadedContent += dataChunk;
+        connection->respond(HTTPConnection::StatusCode200);
+
+        if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
+            // invoke our method to hand the new octree file off to the octree server
+            QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
+                Qt::QueuedConnection, Q_ARG(QByteArray, _pendingUploadedContent));
+            _pendingUploadedContents.erase(sessionId);
+        }
+    } else {
+        connection->respond(HTTPConnection::StatusCode400);
+        return false;
+    }
+
+    return true;
 }
 
 HTTPSConnection* DomainServer::connectionFromReplyWithState(QNetworkReply* reply) {
@@ -3411,20 +3449,11 @@ void DomainServer::maybeHandleReplacementEntityFile() {
 }
 
 void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
-    //Assume we have compressed data
-    auto compressedOctree = octreeFile;
-    QByteArray jsonOctree;
-
-    bool wasCompressed = gunzip(compressedOctree, jsonOctree);
-    if (!wasCompressed) {
-        // the source was not compressed, assume we were sent regular JSON data
-        jsonOctree = compressedOctree;
-    }
-
     OctreeUtils::RawEntityData data;
-    if (data.readOctreeDataInfoFromData(jsonOctree)) {
+    if (data.readOctreeDataInfoFromData(octreeFile)) {
         data.resetIdAndVersion();
 
+        QByteArray compressedOctree;
         gzip(data.toByteArray(), compressedOctree);
 
         // write the compressed octree data to a special file
