@@ -87,7 +87,6 @@
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
-#include <gpu/gl/GLBackend.h>
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
@@ -122,8 +121,6 @@
 #include <plugins/SteamClientPlugin.h>
 #include <plugins/InputConfiguration.h>
 #include <RecordingScriptingInterface.h>
-#include <UpdateSceneTask.h>
-#include <RenderViewTask.h>
 #include <render/EngineStats.h>
 #include <SecondaryCamera.h>
 #include <ResourceCache.h>
@@ -264,54 +261,7 @@ extern "C" {
 #include "AndroidHelper.h"
 #endif
 
-enum ApplicationEvent {
-    // Execute a lambda function
-    Lambda = QEvent::User + 1,
-    // Trigger the next render
-    Render,
-    // Trigger the next idle
-    Idle,
-};
-
-class RenderEventHandler : public QObject {
-    using Parent = QObject;
-    Q_OBJECT
-public:
-    RenderEventHandler() {
-        // Transfer to a new thread
-        moveToNewNamedThread(this, "RenderThread", [](QThread* renderThread) {
-            hifi::qt::addBlockingForbiddenThread("Render", renderThread);
-            qApp->_lastTimeRendered.start();
-        }, std::bind(&RenderEventHandler::initialize, this), QThread::HighestPriority);
-    }
-
-private:
-    void initialize() {
-        setObjectName("Render");
-        PROFILE_SET_THREAD_NAME("Render");
-        setCrashAnnotation("render_thread_id", std::to_string((size_t)QThread::currentThreadId()));
-    }
-
-    void render() {
-        if (qApp->shouldPaint()) {
-            qApp->paintGL();
-        }
-    }
-
-    bool event(QEvent* event) override {
-        switch ((int)event->type()) {
-            case ApplicationEvent::Render:
-                render();
-                qApp->_pendingRenderEvent.store(false);
-                return true;
-
-            default:
-                break;
-        }
-        return Parent::event(event);
-    }
-};
-
+#include "graphics/RenderEventHandler.h"
 
 Q_LOGGING_CATEGORY(trace_app_input_mouse, "trace.app.input.mouse")
 
@@ -373,8 +323,6 @@ static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 static const int ENTITY_SERVER_ADDED_TIMEOUT = 5000;
 static const int ENTITY_SERVER_CONNECTION_TIMEOUT = 5000;
-
-static const uint32_t INVALID_FRAME = UINT32_MAX;
 
 static const float INITIAL_QUERY_RADIUS = 10.0f;  // priority radius for entities before physics enabled
 
@@ -2060,7 +2008,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         auto displayPlugin = qApp->getActiveDisplayPlugin();
 
-        properties["render_rate"] = _renderLoopCounter.rate();
+        properties["render_rate"] = getRenderLoopRate();
         properties["target_render_rate"] = getTargetRenderFrameRate();
         properties["present_rate"] = displayPlugin->presentRate();
         properties["new_frame_present_rate"] = displayPlugin->newFramePresentRate();
@@ -2372,7 +2320,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<Keyboard>()->createKeyboard();
 
     _pendingIdleEvent = false;
-    _pendingRenderEvent = false;
+    _graphicsEngine.startup();
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 
@@ -2642,11 +2590,6 @@ void Application::cleanupBeforeQuit() {
 
     // Cleanup all overlays after the scripts, as scripts might add more
     _overlays.cleanupAllOverlays();
-    // The cleanup process enqueues the transactions but does not process them.  Calling this here will force the actual
-    // removal of the items.
-    // See https://highfidelity.fogbugz.com/f/cases/5328
-    _main3DScene->enqueueFrame(); // flush all the transactions
-    _main3DScene->processTransactionQueue(); // process and apply deletions
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -2661,7 +2604,6 @@ void Application::cleanupBeforeQuit() {
     }
 
     _window->saveGeometry();
-    _gpuContext->shutdown();
 
     // Destroy third party processes after scripts have finished using them.
 #ifdef HAVE_DDE
@@ -2719,10 +2661,9 @@ Application::~Application() {
     _shapeManager.collectGarbage();
     assert(_shapeManager.getNumShapes() == 0);
 
-    // shutdown render engine
-    _main3DScene = nullptr;
-    _renderEngine = nullptr;
-
+    // shutdown graphics engine
+    _graphicsEngine.shutdown();
+    
     _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
@@ -2780,8 +2721,6 @@ Application::~Application() {
 
     // Can't log to file past this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
-
-    _renderEventHandler->deleteLater();
 }
 
 void Application::initializeGL() {
@@ -2871,26 +2810,13 @@ void Application::initializeGL() {
 #endif
 
 
-    _renderEventHandler = new RenderEventHandler();
-
     // Build an offscreen GL context for the main thread.
     _glWidget->makeCurrent();
     glClearColor(0.2f, 0.2f, 0.2f, 1);
     glClear(GL_COLOR_BUFFER_BIT);
     _glWidget->swapBuffers();
 
-
-    // Create the GPU backend
-
-    // Requires the window context, because that's what's used in the actual rendering
-    // and the GPU backend will make things like the VAO which cannot be shared across
-    // contexts
-    _glWidget->makeCurrent();
-    gpu::Context::init<gpu::gl::GLBackend>();
-    _glWidget->makeCurrent();
-    _gpuContext = std::make_shared<gpu::Context>();
-
-    DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
+    _graphicsEngine.initializeGPU(_glWidget);
 }
 
 static const QString SPLASH_SKYBOX{ "{\"ProceduralEntity\":{ \"version\":2, \"shaderUrl\":\"qrc:///shaders/splashSkybox.frag\" } }" };
@@ -2904,7 +2830,7 @@ void Application::initializeDisplayPlugins() {
     // Once time initialization code
     DisplayPluginPointer targetDisplayPlugin;
     foreach(auto displayPlugin, displayPlugins) {
-        displayPlugin->setContext(_gpuContext);
+        displayPlugin->setContext(_graphicsEngine.getGPUContext());
         if (displayPlugin->getName() == lastActiveDisplayPluginName) {
             targetDisplayPlugin = displayPlugin;
         }
@@ -2974,18 +2900,7 @@ void Application::initializeDisplayPlugins() {
 void Application::initializeRenderEngine() {
     // FIXME: on low end systems os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
     DeadlockWatchdogThread::withPause([&] {
-        // Set up the render engine
-        render::CullFunctor cullFunctor = LODManager::shouldRender;
-        _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
-#ifndef Q_OS_ANDROID
-        _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
-#endif
-        _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
-        _renderEngine->load();
-        _renderEngine->registerScene(_main3DScene);
-
-        // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
-        DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+        _graphicsEngine.initializeRender(DISABLE_DEFERRED);
         DependencyManager::get<Keyboard>()->registerKeyboardHighlighting();
     });
 }
@@ -3186,7 +3101,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
     surfaceContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
     surfaceContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-    surfaceContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface);
+    surfaceContext->setContextProperty("FrameTimings", &_graphicsEngine._frameTimingsScriptingInterface);
     surfaceContext->setContextProperty("Rates", new RatesScriptingInterface(this));
 
     surfaceContext->setContextProperty("TREE_SCALE", TREE_SCALE);
@@ -3235,7 +3150,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
-    surfaceContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
+    surfaceContext->setContextProperty("Render", _graphicsEngine.getRenderEngine()->getConfiguration().get());
     surfaceContext->setContextProperty("Workload", _gameWorkload._engine->getConfiguration().get());
     surfaceContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
     surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
@@ -3523,7 +3438,7 @@ void Application::resizeGL() {
 
     auto renderResolutionScale = getRenderResolutionScale();
     if (displayPlugin->getRenderResolutionScale() != renderResolutionScale) {
-        auto renderConfig = _renderEngine->getConfiguration();
+        auto renderConfig = _graphicsEngine.getRenderEngine()->getConfiguration();
         assert(renderConfig);
         auto mainView = renderConfig->getConfig("RenderMainView.RenderDeferredTask");
         assert(mainView);
@@ -3754,8 +3669,8 @@ void Application::onPresent(quint32 frameCount) {
         postEvent(this, new QEvent((QEvent::Type)ApplicationEvent::Idle), Qt::HighEventPriority);
     }
     expected = false;
-    if (_renderEventHandler && !isAboutToQuit() && _pendingRenderEvent.compare_exchange_strong(expected, true)) {
-        postEvent(_renderEventHandler, new QEvent((QEvent::Type)ApplicationEvent::Render));
+    if (_graphicsEngine.checkPendingRenderEvent() && !isAboutToQuit()) {
+        postEvent(_graphicsEngine._renderEventHandler, new QEvent((QEvent::Type)ApplicationEvent::Render));
     }
 }
 
@@ -4543,39 +4458,6 @@ bool Application::acceptSnapshot(const QString& urlString) {
     return true;
 }
 
-static uint32_t _renderedFrameIndex { INVALID_FRAME };
-
-bool Application::shouldPaint() const {
-    if (_aboutToQuit || _window->isMinimized()) {
-        return false;
-    }
-
-    auto displayPlugin = getActiveDisplayPlugin();
-
-#ifdef DEBUG_PAINT_DELAY
-    static uint64_t paintDelaySamples{ 0 };
-    static uint64_t paintDelayUsecs{ 0 };
-
-    paintDelayUsecs += displayPlugin->getPaintDelayUsecs();
-
-    static const int PAINT_DELAY_THROTTLE = 1000;
-    if (++paintDelaySamples % PAINT_DELAY_THROTTLE == 0) {
-        qCDebug(interfaceapp).nospace() <<
-            "Paint delay (" << paintDelaySamples << " samples): " <<
-            (float)paintDelaySamples / paintDelayUsecs << "us";
-    }
-#endif
-
-    // Throttle if requested
-    if (displayPlugin->isThrottled() && (_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
-        return false;
-    }
-
-    // Sync up the _renderedFrameIndex
-    _renderedFrameIndex = displayPlugin->presentCount();
-    return true;
-}
-
 #ifdef Q_OS_WIN
 #include <Windows.h>
 #include <TCHAR.h>
@@ -4829,26 +4711,13 @@ void Application::idle() {
     if (displayPlugin) {
         PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
     }
-    PROFILE_COUNTER_IF_CHANGED(app, "renderLoopRate", float, _renderLoopCounter.rate());
-    PROFILE_COUNTER_IF_CHANGED(app, "currentDownloads", uint32_t, ResourceCache::getLoadingRequestCount());
+    PROFILE_COUNTER_IF_CHANGED(app, "renderLoopRate", float, getRenderLoopRate());
+    PROFILE_COUNTER_IF_CHANGED(app, "currentDownloads", uint32_t, ResourceCache::getLoadingRequests().length());
     PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", uint32_t, ResourceCache::getPendingRequestCount());
     PROFILE_COUNTER_IF_CHANGED(app, "currentProcessing", int, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
     PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
-    auto renderConfig = _renderEngine->getConfiguration();
-    PROFILE_COUNTER_IF_CHANGED(render, "gpuTime", float, (float)_gpuContext->getFrameTimerGPUAverage());
-    auto opaqueRangeTimer = renderConfig->getConfig("OpaqueRangeTimer");
-    auto linearDepth = renderConfig->getConfig("LinearDepth");
-    auto surfaceGeometry = renderConfig->getConfig("SurfaceGeometry");
-    auto renderDeferred = renderConfig->getConfig("RenderDeferred");
-    auto toneAndPostRangeTimer = renderConfig->getConfig("ToneAndPostRangeTimer");
-
-    PROFILE_COUNTER(render_detail, "gpuTimes", {
-        { "OpaqueRangeTimer", opaqueRangeTimer ? opaqueRangeTimer->property("gpuRunTime") : 0 },
-        { "LinearDepth", linearDepth ? linearDepth->property("gpuRunTime") : 0 },
-        { "SurfaceGeometry", surfaceGeometry ? surfaceGeometry->property("gpuRunTime") : 0 },
-        { "RenderDeferred", renderDeferred ? renderDeferred->property("gpuRunTime") : 0 },
-        { "ToneAndPostRangeTimer", toneAndPostRangeTimer ? toneAndPostRangeTimer->property("gpuRunTime") : 0 }
-    });
+    auto renderConfig = _graphicsEngine.getRenderEngine()->getConfiguration();
+    PROFILE_COUNTER_IF_CHANGED(render, "gpuTime", float, (float)_graphicsEngine.getGPUContext()->getFrameTimerGPUAverage());
 
     PROFILE_RANGE(app, __FUNCTION__);
 
@@ -5223,9 +5092,6 @@ void Application::init() {
 #if !defined(DISABLE_QML)
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
 #endif
-    if (!DISABLE_DEFERRED) {
-        DependencyManager::get<DeferredLightingEffect>()->init();
-    }
     DependencyManager::get<AvatarManager>()->init();
 
     _timerStart.start();
@@ -5294,7 +5160,7 @@ void Application::init() {
         }
     }, Qt::QueuedConnection);
 
-    _gameWorkload.startup(getEntities()->getWorkloadSpace(), _main3DScene, _entitySimulation);
+    _gameWorkload.startup(getEntities()->getWorkloadSpace(), _graphicsEngine.getRenderScene(), _entitySimulation);
     _entitySimulation->setWorkloadSpace(getEntities()->getWorkloadSpace());
 }
 
@@ -5328,7 +5194,7 @@ void Application::updateLOD(float deltaTime) const {
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!isThrottleRendering()) {
         float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
-        float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
+        float engineRunTime = (float)(_graphicsEngine.getRenderEngine()->getConfiguration().get()->getCPURunTime());
         float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
         float batchTime = getGPUContext()->getFrameTimerBatchAverage();
         auto lodManager = DependencyManager::get<LODManager>();
@@ -5729,7 +5595,7 @@ void Application::updateSecondaryCameraViewFrustum() {
     // camera should be.
 
     // Code based on SecondaryCameraJob
-    auto renderConfig = _renderEngine->getConfiguration();
+    auto renderConfig = _graphicsEngine.getRenderEngine()->getConfiguration();
     assert(renderConfig);
     auto camera = dynamic_cast<SecondaryCameraJobConfig*>(renderConfig->getConfig("SecondaryCamera"));
 
@@ -5798,7 +5664,7 @@ void Application::updateSecondaryCameraViewFrustum() {
 static bool domainLoadingInProgress = false;
 
 void Application::update(float deltaTime) {
-    PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_renderFrameCount + 1);
+    PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_graphicsEngine._renderFrameCount + 1);
 
     if (_aboutToQuit) {
         return;
@@ -6214,7 +6080,7 @@ void Application::update(float deltaTime) {
         // TODO: Fix this by modeling the way the secondary camera works on how the main camera works
         // ie. Use a camera object stored in the game logic and informs the Engine on where the secondary
         // camera should be.
-        updateSecondaryCameraViewFrustum();
+    //    updateSecondaryCameraViewFrustum();
     }
 
     quint64 now = usecTimestampNow();
@@ -6290,13 +6156,6 @@ void Application::update(float deltaTime) {
 
     updateRenderArgs(deltaTime);
 
-    // HACK
-    // load the view frustum
-    // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
-    // Then we can move this logic into the Avatar::simulate call.
-    myAvatar->preDisplaySide(&_appRenderArgs._renderArgs);
-
-
     {
         PerformanceTimer perfTimer("AnimDebugDraw");
         AnimDebugDraw::getInstance().update();
@@ -6315,7 +6174,7 @@ void Application::update(float deltaTime) {
 }
 
 void Application::updateRenderArgs(float deltaTime) {
-    editRenderArgs([this, deltaTime](AppRenderArgs& appRenderArgs) {
+    _graphicsEngine.editRenderArgs([this, deltaTime](AppRenderArgs& appRenderArgs) {
         PerformanceTimer perfTimer("editRenderArgs");
         appRenderArgs._headPose = getHMDSensorPose();
 
@@ -6344,7 +6203,7 @@ void Application::updateRenderArgs(float deltaTime) {
                 _viewFrustum.setProjection(adjustedProjection);
                 _viewFrustum.calculate();
             }
-            appRenderArgs._renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
+            appRenderArgs._renderArgs = RenderArgs(_graphicsEngine.getGPUContext(), lodManager->getOctreeSizeScale(),
                 lodManager->getBoundaryLevelAdjust(), lodManager->getLODAngleHalfTan(), RenderArgs::DEFAULT_RENDER_MODE,
                 RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
             appRenderArgs._renderArgs._scene = getMain3DScene();
@@ -6429,6 +6288,13 @@ void Application::updateRenderArgs(float deltaTime) {
             QMutexLocker viewLocker(&_viewMutex);
             appRenderArgs._renderArgs.setViewFrustum(_displayViewFrustum);
         }
+
+
+        // HACK
+        // load the view frustum
+        // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
+        // Then we can move this logic into the Avatar::simulate call.
+        myAvatar->preDisplaySide(&appRenderArgs._renderArgs);
     });
 }
 
@@ -6638,11 +6504,16 @@ void Application::resetSensors(bool andReload) {
 }
 
 void Application::hmdVisibleChanged(bool visible) {
+    // TODO
+    // calling start and stop will change audio input and ouput to default audio devices.
+    // we need to add a pause/unpause functionality to AudioClient for this to work properly
+#if 0
     if (visible) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "start", Qt::QueuedConnection);
     } else {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop", Qt::QueuedConnection);
     }
+#endif
 }
 
 void Application::updateWindowTitle() const {
@@ -7033,7 +6904,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
+    scriptEngine->registerGlobalObject("Render", _graphicsEngine.getRenderEngine()->getConfiguration().get());
     scriptEngine->registerGlobalObject("Workload", _gameWorkload._engine->getConfiguration().get());
 
     GraphicsScriptingInterface::registerMetaTypes(scriptEngine.data());
