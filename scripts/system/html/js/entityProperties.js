@@ -1429,13 +1429,13 @@ const TEXTURE_ELEMENTS = {
 
 const JSON_EDITOR_ROW_DIV_INDEX = 2;
 
-var elGroups = {};
-var properties = {};
-var colorPickers = {};
-var particlePropertyUpdates = {};
-var selectedEntityProperties;
-var lastEntityID = null;
-var createAppTooltip = new CreateAppTooltip();
+let elGroups = {};
+let properties = {};
+let colorPickers = {};
+let particlePropertyUpdates = {};
+let selectedEntityProperties;
+let lastEntityID = null;
+let createAppTooltip = new CreateAppTooltip();
 let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
 function createElementFromHTML(htmlString) {
@@ -1689,7 +1689,7 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty)
     }
 }
 
-var particleSyncDebounce = _.debounce(function () {
+let particleSyncDebounce = _.debounce(function () {
     updateProperties(particlePropertyUpdates);
     particlePropertyUpdates = {};
 }, DEBOUNCE_TIMEOUT);
@@ -2361,7 +2361,7 @@ function saveUserData() {
 
 function setJSONError(property, isError) {
     $("#property-"+ property + "-editor").toggleClass('error', isError);
-    var $propertyUserDataEditorStatus = $("#property-"+ property + "-editorStatus");
+    let $propertyUserDataEditorStatus = $("#property-"+ property + "-editorStatus");
     $propertyUserDataEditorStatus.css('display', isError ? 'block' : 'none');
     $propertyUserDataEditorStatus.text(isError ? 'Invalid JSON code - look for red X in your code' : '');
 }
@@ -2377,7 +2377,7 @@ function setUserDataFromEditor(noUpdate) {
 
     setJSONError('userData', errorFound);
 
-    if (json !== null) {
+    if (errorFound) {
         return;
     }
 
@@ -2452,7 +2452,7 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, r
     updateProperties(propertyUpdate, false);
 }
 
-var editor = null;
+let editor = null;
 
 function createJSONEditor() {
     let container = document.getElementById("property-userData-editor");
@@ -2545,7 +2545,7 @@ function deleteJSONEditor() {
     }
 }
 
-var savedJSONTimer = null;
+let savedJSONTimer = null;
 
 function saveJSONUserData(noUpdate) {
     setUserDataFromEditor(noUpdate);
@@ -2599,7 +2599,7 @@ function setMaterialDataFromEditor(noUpdate) {
 
     setJSONError('materialData', errorFound);
 
-    if (json === null) {
+    if (errorFound) {
         return;
     }
     let text = materialEditor.getText();
@@ -2618,7 +2618,7 @@ function setMaterialDataFromEditor(noUpdate) {
     }
 }
 
-var materialEditor = null;
+let materialEditor = null;
 
 function createJSONMaterialEditor() {
     let container = document.getElementById("property-materialData-editor");
@@ -2711,7 +2711,7 @@ function deleteJSONMaterialEditor() {
     }
 }
 
-var savedMaterialJSONTimer = null;
+let savedMaterialJSONTimer = null;
 
 function saveJSONMaterialData(noUpdate) {
     setMaterialDataFromEditor(noUpdate);
