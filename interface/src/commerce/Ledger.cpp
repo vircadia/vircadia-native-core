@@ -204,6 +204,7 @@ QString transactionString(const QJsonObject& valueObject) {
     int sentMoney = valueObject["sent_money"].toInt();
     int receivedMoney = valueObject["received_money"].toInt();
     int dateInteger = valueObject["created_at"].toInt();
+    QString transactionType = valueObject["transaction_type"].toString();
     QString message = valueObject["message"].toString();
     QDateTime createdAt(QDateTime::fromSecsSinceEpoch(dateInteger, Qt::UTC));
     QString result;
@@ -211,8 +212,12 @@ QString transactionString(const QJsonObject& valueObject) {
     if (sentCerts <= 0 && receivedCerts <= 0 && !KNOWN_USERS.contains(valueObject["sender_name"].toString())) {
         // this is an hfc transfer.
         if (sentMoney > 0) {
-            QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
-            result += QString("Money sent to %1").arg(recipient);
+            if (transactionType == "escrow") {
+                result += QString("Money transferred to coupon");
+            } else {
+                QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
+                result += QString("Money sent to %1").arg(recipient);
+            }
         } else {
             QString sender = userLink(valueObject["sender_name"].toString(), valueObject["place_name"].toString());
             result += QString("Money from %1").arg(sender);
@@ -227,8 +232,12 @@ QString transactionString(const QJsonObject& valueObject) {
         ) {
         // this is a non-HFC asset transfer.
         if (sentCerts > 0) {
-            QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
-            result += QString("Gift sent to %1").arg(recipient);
+            if (transactionType == "escrow") {
+                result += QString("Item transferred to coupon");
+            } else {
+                QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
+                result += QString("Gift sent to %1").arg(recipient);
+            }
         } else {
             QString sender = userLink(valueObject["sender_name"].toString(), valueObject["place_name"].toString());
             result += QString("Gift from %1").arg(sender);
