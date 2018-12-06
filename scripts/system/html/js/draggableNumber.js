@@ -7,12 +7,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 const DELTA_X_FOCUS_THRESHOLD = 1;
+const ENTER_KEY = 13;
 
-function DraggableNumber(min, max, step, decimals) {
+function DraggableNumber(min, max, step, decimals, dragStart, dragEnd) {
     this.min = min;
     this.max = max;
     this.step = step !== undefined ? step : 1;
     this.decimals = decimals;
+    this.dragStartFunction = dragStart;
+    this.dragEndFunction = dragEnd;
+    this.dragging = false;
     this.initialMouseEvent = null;
     this.lastMouseEvent = null;
     this.valueChangeFunction = null;
@@ -20,8 +24,22 @@ function DraggableNumber(min, max, step, decimals) {
 }
 
 DraggableNumber.prototype = {
+    showInput: function() {
+        this.elText.style.visibility = "hidden";
+        this.elLeftArrow.style.visibility = "hidden";
+        this.elRightArrow.style.visibility = "hidden";
+        this.elInput.style.opacity = 1;
+    },
+
+    hideInput: function() {
+        this.elText.style.visibility = "visible";
+        this.elLeftArrow.style.visibility = "visible";
+        this.elRightArrow.style.visibility = "visible";
+        this.elInput.style.opacity = 0;
+    },
+
     mouseDown: function(event) {
-        if (event.target === this.elText) {
+        if (event.target === this.elText && !this.isDisabled()) {
             this.initialMouseEvent = event;
             this.lastMouseEvent = event;
             document.addEventListener("mousemove", this.onDocumentMouseMove);
@@ -30,31 +48,42 @@ DraggableNumber.prototype = {
     },
     
     mouseUp: function(event) {
-        if (event.target === this.elText && this.initialMouseEvent) {
+        if (!this.dragging && event.target === this.elText && this.initialMouseEvent) {
             let dx = event.clientX - this.initialMouseEvent.clientX;
-            if (dx <= DELTA_X_FOCUS_THRESHOLD) {
-                this.elInput.style.visibility = "visible";
-                this.elText.style.visibility = "hidden";
+            if (Math.abs(dx) <= DELTA_X_FOCUS_THRESHOLD) {
+                this.showInput();
+                this.elInput.focus();
             }
             this.initialMouseEvent = null;
         }
     },
     
     documentMouseMove: function(event) {
-        if (this.lastMouseEvent) {
+        if (!this.dragging && this.initialMouseEvent) {
+            let dxFromInitial = event.clientX - this.initialMouseEvent.clientX;
+            if (Math.abs(dxFromInitial) > DELTA_X_FOCUS_THRESHOLD) {
+                if (this.dragStartFunction) {
+                    this.dragStartFunction();
+                }
+                this.dragging = true;
+            }
+            this.lastMouseEvent = event;
+        }
+        if (this.dragging && this.lastMouseEvent) {
             let initialValue = this.elInput.value;
             let dx = event.clientX - this.lastMouseEvent.clientX;
             let changeValue = dx !== 0;
             if (changeValue) {
                 while (dx !== 0) {
                     if (dx > 0) {
-                        this.stepUp();
+                        this.elInput.stepUp();
                         --dx;
                     } else {
-                        this.stepDown();
+                        this.elInput.stepDown();
                         ++dx;
                     }
                 }
+                this.inputChange();
                 if (this.valueChangeFunction) {
                     this.valueChangeFunction();
                 }
@@ -64,19 +93,35 @@ DraggableNumber.prototype = {
     },
     
     documentMouseUp: function(event) {
+        if (this.dragging) {
+            if (this.dragEndFunction) {
+                this.dragEndFunction();
+            }
+            this.dragging = false;
+        }
         this.lastMouseEvent = null;
         document.removeEventListener("mousemove", this.onDocumentMouseMove);
         document.removeEventListener("mouseup", this.onDocumentMouseUp);
     },
     
     stepUp: function() {
-        this.elInput.stepUp();
-        this.inputChange();
+        if (!this.isDisabled()) {
+            this.elInput.stepUp();
+            this.inputChange();
+            if (this.valueChangeFunction) {
+                this.valueChangeFunction();
+            }
+        }
     },
     
     stepDown: function() {
-        this.elInput.stepDown();
-        this.inputChange();
+        if (!this.isDisabled()) {
+            this.elInput.stepDown();
+            this.inputChange();
+            if (this.valueChangeFunction) {
+                this.valueChangeFunction();
+            }
+        }
     },
     
     setValue: function(newValue) {
@@ -89,9 +134,6 @@ DraggableNumber.prototype = {
     },
 
     setValueChangeFunction: function(valueChangeFunction) {
-        if (this.valueChangeFunction) {
-            this.elInput.removeEventListener("change", this.valueChangeFunction);
-        }
         this.valueChangeFunction = valueChangeFunction.bind(this.elInput);
         this.elInput.addEventListener("change", this.valueChangeFunction);
     },
@@ -100,9 +142,18 @@ DraggableNumber.prototype = {
         this.setValue(this.elInput.value);
     },
     
-    inputBlur: function() {
-        this.elInput.style.visibility = "hidden";
-        this.elText.style.visibility = "visible";
+    inputBlur: function(ev) {
+        this.hideInput();
+    },
+
+    keyPress: function(event) {
+        if (event.keyCode === ENTER_KEY) {
+            this.inputBlur();
+        }
+    },
+    
+    isDisabled: function() {
+        return this.elText.getAttribute("disabled") === "disabled";
     },
     
     initialize: function() {
@@ -114,6 +165,7 @@ DraggableNumber.prototype = {
         this.onStepDown = this.stepDown.bind(this);
         this.onInputChange = this.inputChange.bind(this);
         this.onInputBlur = this.inputBlur.bind(this);
+        this.onKeyPress = this.keyPress.bind(this);
         
         this.elDiv = document.createElement('div');
         this.elDiv.className = "draggable-number";
@@ -146,13 +198,15 @@ DraggableNumber.prototype = {
         if (this.step !== undefined) {
             this.elInput.setAttribute("step", this.step);
         }
-        this.elInput.style.visibility = "hidden";
+        this.elInput.style.opacity = 0;
         this.elInput.addEventListener("change", this.onInputChange);
         this.elInput.addEventListener("blur", this.onInputBlur);
+        this.elInput.addEventListener("keypress", this.onKeyPress);
+        this.elInput.addEventListener("focus", this.showInput.bind(this));
         
-        this.elText.appendChild(this.elLeftArrow);
-        this.elText.appendChild(this.elInput);
-        this.elText.appendChild(this.elRightArrow);
+        this.elDiv.appendChild(this.elLeftArrow);
+        this.elDiv.appendChild(this.elInput);
+        this.elDiv.appendChild(this.elRightArrow);
         this.elDiv.appendChild(this.elText);
     }
 };

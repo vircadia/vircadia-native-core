@@ -141,7 +141,7 @@ Menu::Menu() {
         assetServerAction->setEnabled(nodeList->getThisNodeCanWriteAssets());
     }
 
-    // Edit > Package Model as .fst...
+    // Edit > Package Avatar as .fst...
     addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
         qApp, SLOT(packageModel()));
 
@@ -363,8 +363,6 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         qApp->setHmdTabletBecomesToolbarSetting(action->isChecked());
     });
-
-    addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::Use3DKeyboard, 0, true);
 
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");

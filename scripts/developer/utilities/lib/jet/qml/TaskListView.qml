@@ -19,56 +19,23 @@ import "../jet.js" as Jet
 
 Rectangle {
     HifiConstants { id: hifi;}
-    color: hifi.colors.baseGray;
+    color: Qt.rgba(hifi.colors.baseGray.r, hifi.colors.baseGray.g, hifi.colors.baseGray.b, 0.8);
     id: root;
     
     property var rootConfig : Workload
-    property var myArray : []
+    
 
     Component.onCompleted: {
-        var message = ""
-        var maxDepth = 3;
-        
-        var jobTreePath = []
-        var jobsRoot;
-
-        var functor = function (job, depth, index) {
-            var newItem = {"name": job.objectName, "level": depth, "index": index, "subNode": [], "init": depth < maxDepth, "path": ""}
-            if (depth == 0) {
-                jobsModel.append(newItem)
-                jobsRoot = jobsModel.get(0).subNode;
-            } else {
-                if (jobTreePath.length < depth) {
-                    var node = jobsRoot;
-                    var path;
-                    for (var n = 0; n < jobTreePath.length; n++) {
-                        newItem.path += (n > 0 ? "." : "") + node.get(jobTreePath[n]).name
-                        node = node.get(jobTreePath[n]).subNode
-                    }
-                    node.append(newItem)
-                    jobTreePath.push(0);
-                } else if (jobTreePath.length >= depth) {
-                    var node = jobsRoot;
-                    for (var n = 0; n < (depth - 1); n++) {
-                        newItem.path += (n > 0 ? "." : "") + node.get(jobTreePath[n]).name
-                        node = node.get(jobTreePath[n]).subNode
-                    }
-                    node.append(newItem)
-                    jobTreePath[depth-1] = index;
-                    while (jobTreePath.length > depth) {
-                        jobTreePath.pop();
-                    }                       
-                }
-            }
-            return true;
-        }
-
+        var functor = Jet.job_tree_model_functor(jobsModel, 3, function(node) {
+              node["cpuT"] = 0.0
+        })
         Jet.task_traverseTree(rootConfig, functor);
     }
-
+        
     
     ListModel {
         id: jobsModel
+        property var engineJobItemModel : []
     }
 
     Component {
@@ -77,30 +44,46 @@ Rectangle {
             id: objRecursiveColumn
             clip: true
             visible: model.init
-            
-            MouseArea {
-                width: objRow.implicitWidth
-                height: objRow.implicitHeight 
-                onDoubleClicked: {
-                    for(var i = 1; i < parent.children.length - 1; ++i) {
-                        parent.children[i].visible = !parent.children[i].visible
-                    }
+   
+            function switchFold() {
+                for(var i = 1; i < children.length - 1; ++i) {
+                    children[i].visible = !children[i].visible
                 }
-                Row {
-                    id: objRow
-                    Item {
-                        height: 1
-                        width: model.level * 15
+            }
+            
+            Row {
+                id: objRow
+                Item {
+                    height: 1
+                    width: model.level * 15
+                }
+
+                HifiControls.CheckBox {
+                    id: objCheck
+                    property var config: root.rootConfig.getConfig(model.path + "." + model.name);
+                    text: " "
+                    checked: root.rootConfig.getConfig(model.path + "." + model.name).enabled
+                    onCheckedChanged: { root.rootConfig.getConfig(model.path + "." + model.name).enabled = checked }
+                }
+
+                MouseArea {
+                    width: objLabel.implicitWidth
+                    height: objLabel.implicitHeight 
+                    onDoubleClicked: {
+                        parent.parent.switchFold()
                     }
-                    HifiControls.CheckBox {
-                        property var config: root.rootConfig.getConfig(model.path + "." + model.name);
+
+                    HifiControls.Label {
+                        id: objLabel
+                        colorScheme: (root.rootConfig.getConfig(model.path + "." + model.name) ? hifi.colorSchemes.dark : hifi.colorSchemes.light)
                         text: (objRecursiveColumn.children.length > 2 ?
                                 objRecursiveColumn.children[1].visible ?
-                                qsTr("-  ") : qsTr("+ ") : qsTr("   ")) + model.name + " ms=" + config.cpuRunTime.toFixed(2)
-                        checked: config.enabled
+                                qsTr("-  ") : qsTr("+ ") : qsTr("   ")) + model.name
+                                + " id=" + model.id
                     }
                 }
             }
+
             Repeater {
                 model: subNode
                 delegate: objRecursiveDelegate

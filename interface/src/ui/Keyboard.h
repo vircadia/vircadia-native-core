@@ -23,6 +23,7 @@
 #include <Sound.h>
 #include <AudioInjector.h>
 #include <shared/ReadWriteLockable.h>
+#include <SettingHandle.h>
 
 #include "ui/overlays/Overlay.h"
 
@@ -97,6 +98,9 @@ public:
     bool isPassword() const;
     void setPassword(bool password);
 
+    bool getUse3DKeyboard() const;
+    void setUse3DKeyboard(bool use);
+
     void loadKeyboardFile(const QString& keyboardFile);
     QVector<OverlayID> getKeysID();
 
@@ -142,6 +146,9 @@ private:
     unsigned int _rightHandStylus { 0 };
     SharedSoundPointer _keySound { nullptr };
     std::shared_ptr<QTimer> _layerSwitchTimer { std::make_shared<QTimer>() };
+
+    mutable ReadWriteLockable _use3DKeyboardLock;
+    Setting::Handle<bool> _use3DKeyboard { "use3DKeyboard", true };
 
     QString _typedCharacters;
     TextDisplay _textDisplay;
