@@ -84,7 +84,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.entityWithContextOverlay = false;
         this.contextOverlayTimer = false;
         this.locked = false;
-        this.highlightedEntity = null;
         this.reticleMinX = MARGIN;
         this.reticleMaxX = null;
         this.reticleMinY = MARGIN;
@@ -410,9 +409,6 @@ Script.include("/~/system/libraries/controllers.js");
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
                 (this.notPointingAtEntity(controllerData) && Window.isPhysicsEnabled()) || this.targetIsNull()) {
                 this.endFarGrabAction();
-                Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
-                    this.highlightedEntity);
-                this.highlightedEntity = null;
                 this.restoreIgnoredEntities();
                 return makeRunningValues(false, [], []);
             }
@@ -466,9 +462,6 @@ Script.include("/~/system/libraries/controllers.js");
                 if (rayPickInfo.type === Picks.INTERSECTED_ENTITY) {
                     if (controllerData.triggerClicks[this.hand]) {
                         var entityID = rayPickInfo.objectID;
-                        Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
-                            this.highlightedEntity);
-                        this.highlightedEntity = null;
                         var targetProps = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
                         if (targetProps.href !== "") {
                             AddressManager.handleLookupString(targetProps.href);
@@ -513,66 +506,43 @@ Script.include("/~/system/libraries/controllers.js");
                                 this.startFarGrabAction(controllerData, targetProps);
                             }
                         }
-                    } else {
-                        var targetEntityID = rayPickInfo.objectID;
-                        if (this.highlightedEntity !== targetEntityID) {
-                            Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
-                                this.highlightedEntity);
-                            var selectionTargetProps = Entities.getEntityProperties(targetEntityID, DISPATCHER_PROPERTIES);
+                    } else if (!this.entityWithContextOverlay) {
+                        var _this = this;
 
-                            var selectionTargetObject = new TargetObject(targetEntityID, selectionTargetProps);
-                            selectionTargetObject.parentProps = getEntityParents(selectionTargetProps);
-                            var selectionTargetEntity = selectionTargetObject.getTargetEntity();
-
-                            if (entityIsGrabbable(selectionTargetEntity.props) ||
-                                entityIsGrabbable(selectionTargetObject.entityProps)) {
-
-                                Selection.addToSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", rayPickInfo.objectID);
+                        if (_this.potentialEntityWithContextOverlay !== rayPickInfo.objectID) {
+                            if (_this.contextOverlayTimer) {
+                                Script.clearTimeout(_this.contextOverlayTimer);
                             }
-                            this.highlightedEntity = rayPickInfo.objectID;
+                            _this.contextOverlayTimer = false;
+                            _this.potentialEntityWithContextOverlay = rayPickInfo.objectID;
                         }
 
-                        if (!this.entityWithContextOverlay) {
-                            var _this = this;
-
-                            if (_this.potentialEntityWithContextOverlay !== rayPickInfo.objectID) {
-                                if (_this.contextOverlayTimer) {
-                                    Script.clearTimeout(_this.contextOverlayTimer);
+                        if (!_this.contextOverlayTimer) {
+                            _this.contextOverlayTimer = Script.setTimeout(function () {
+                                if (!_this.entityWithContextOverlay &&
+                                    _this.contextOverlayTimer &&
+                                    _this.potentialEntityWithContextOverlay === rayPickInfo.objectID) {
+                                    var props = Entities.getEntityProperties(rayPickInfo.objectID, DISPATCHER_PROPERTIES);
+                                    var pointerEvent = {
+                                        type: "Move",
+                                        id: _this.hand + 1, // 0 is reserved for hardware mouse
+                                        pos2D: projectOntoEntityXYPlane(rayPickInfo.objectID,
+                                                                        rayPickInfo.intersection, props),
+                                        pos3D: rayPickInfo.intersection,
+                                        normal: rayPickInfo.surfaceNormal,
+                                        direction: Vec3.subtract(ZERO_VEC, rayPickInfo.surfaceNormal),
+                                        button: "Secondary"
+                                    };
+                                    if (ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.objectID, pointerEvent)) {
+                                        _this.entityWithContextOverlay = rayPickInfo.objectID;
+                                    }
                                 }
                                 _this.contextOverlayTimer = false;
-                                _this.potentialEntityWithContextOverlay = rayPickInfo.objectID;
-                            }
-
-                            if (!_this.contextOverlayTimer) {
-                                _this.contextOverlayTimer = Script.setTimeout(function () {
-                                    if (!_this.entityWithContextOverlay &&
-                                        _this.contextOverlayTimer &&
-                                        _this.potentialEntityWithContextOverlay === rayPickInfo.objectID) {
-                                        var props = Entities.getEntityProperties(rayPickInfo.objectID, DISPATCHER_PROPERTIES);
-                                        var pointerEvent = {
-                                            type: "Move",
-                                            id: _this.hand + 1, // 0 is reserved for hardware mouse
-                                            pos2D: projectOntoEntityXYPlane(rayPickInfo.objectID,
-                                                                            rayPickInfo.intersection, props),
-                                            pos3D: rayPickInfo.intersection,
-                                            normal: rayPickInfo.surfaceNormal,
-                                            direction: Vec3.subtract(ZERO_VEC, rayPickInfo.surfaceNormal),
-                                            button: "Secondary"
-                                        };
-                                        if (ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.objectID, pointerEvent)) {
-                                            _this.entityWithContextOverlay = rayPickInfo.objectID;
-                                        }
-                                    }
-                                    _this.contextOverlayTimer = false;
-                                }, 500);
-                            }
+                            }, 500);
                         }
                     }
                 } else if (this.distanceRotating) {
                     this.distanceRotate(otherFarGrabModule);
-                } else if (this.highlightedEntity) {
-                    Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", this.highlightedEntity);
-                    this.highlightedEntity = null;
                 }
             }
             return this.exitIfDisabled(controllerData);

@@ -486,6 +486,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     propertiesWithSimID.setLastEditedBy(sessionID);
 
+    propertiesWithSimID.setActionData(QByteArray());
+
     bool scalesWithParent = propertiesWithSimID.getScalesWithParent();
 
     propertiesWithSimID = convertPropertiesFromScriptSemantics(propertiesWithSimID, scalesWithParent);
@@ -829,6 +831,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         // set these to make EntityItemProperties::getScalesWithParent() work correctly
         properties.setClientOnly(entity->getClientOnly());
         properties.setOwningAvatarID(entity->getOwningAvatarID());
+
+        properties.setActionData(entity->getDynamicData());
 
         // make sure the properties has a type, so that the encode can know which properties to include
         properties.setType(entity->getType());

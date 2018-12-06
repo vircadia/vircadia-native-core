@@ -15,7 +15,7 @@
 #include <QObject>
 #include <QScriptable>
 
-#include <FBXReader.h>
+#include <FBXSerializer.h>
 
 class QScriptEngine;
 
