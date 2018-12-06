@@ -229,6 +229,15 @@
         }
         animationData.rightHandRotation = Quat.fromPitchYawRollDegrees(90, 0, 90);
         animationData.rightHandType = 0; // RotationAndPosition, see IKTargets.h
+
+        // turn on the right hand grip overlay
+        animationData.rightHandOverlayAlpha = 1.0;
+
+        // make sure the right hand grip animation is the "grasp", not pointing or thumbs up.
+        animationData.isRightHandGrasp = true;
+        animationData.isRightIndexPoint = false;
+        animationData.isRightThumbRaise = false;
+        animationData.isRightIndexPointAndThumbRaise = false;
     }
     function shakeHandsAnimation() {
         return animationData;

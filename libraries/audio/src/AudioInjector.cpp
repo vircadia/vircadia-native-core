@@ -447,9 +447,9 @@ AudioInjectorPointer AudioInjector::playSound(SharedSoundPointer sound,  const A
         using AudioConstants::AudioSample;
         using AudioConstants::SAMPLE_RATE;
         const int standardRate = SAMPLE_RATE;
-        // limit to 4 octaves
-        const int pitch = glm::clamp(options.pitch, 1 / 16.0f, 16.0f);
-        const int resampledRate = SAMPLE_RATE / pitch;
+        // limit pitch to 4 octaves
+        const float pitch = glm::clamp(options.pitch, 1 / 16.0f, 16.0f);
+        const int resampledRate = glm::round(SAMPLE_RATE / pitch);
 
         auto audioData = sound->getAudioData();
         auto numChannels = audioData->getNumChannels();
@@ -499,9 +499,9 @@ AudioInjectorPointer AudioInjector::playSound(AudioDataPointer audioData, const 
         using AudioConstants::AudioSample;
         using AudioConstants::SAMPLE_RATE;
         const int standardRate = SAMPLE_RATE;
-        // limit to 4 octaves
-        const int pitch = glm::clamp(options.pitch, 1 / 16.0f, 16.0f);
-        const int resampledRate = SAMPLE_RATE / pitch;
+        // limit pitch to 4 octaves
+        const float pitch = glm::clamp(options.pitch, 1 / 16.0f, 16.0f);
+        const int resampledRate = glm::round(SAMPLE_RATE / pitch);
 
         auto numChannels = audioData->getNumChannels();
         auto numFrames = audioData->getNumFrames();

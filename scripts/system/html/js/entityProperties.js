@@ -197,7 +197,7 @@ const GROUPS = [
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
-                propertyID: "keyLight.direction.x",
+                propertyID: "keyLight.direction.y",
                 showPropertyRule: { "keyLightMode": "enabled" },
             },
             {
@@ -206,7 +206,7 @@ const GROUPS = [
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
-                propertyID: "keyLight.direction.y",
+                propertyID: "keyLight.direction.x",
                 showPropertyRule: { "keyLightMode": "enabled" },
             },
             {
@@ -580,6 +580,14 @@ const GROUPS = [
                 propertyID: "priority",
             },
             {
+                label: "Material Mapping Mode",
+                type: "dropdown",
+                options: {
+                    uv: "UV space", projected: "3D projected"
+                },
+                propertyID: "materialMappingMode",
+            },
+            {
                 label: "Material Position",
                 type: "vec2",
                 vec2Type: "xy",
@@ -607,6 +615,11 @@ const GROUPS = [
                 decimals: 2,
                 unit: "deg",
                 propertyID: "materialMappingRot",
+            },
+            {
+                label: "Material Repeat",
+                type: "bool",
+                propertyID: "materialRepeat",
             },
         ]
     },
@@ -882,7 +895,7 @@ const GROUPS = [
         properties: [
             {
                 type: "triple",
-                label: "Alpha",
+                label: "Spin",
                 properties: [
                     {
                         label: "Start",
@@ -951,8 +964,8 @@ const GROUPS = [
                     {
                         label: "Start",
                         type: "number",
-                        min: -180,
-                        max: 0,
+                        min: 0,
+                        max: 180,
                         step: 1,
                         decimals: 0,
                         multiplier: DEGREES_TO_RADIANS,
@@ -979,7 +992,7 @@ const GROUPS = [
                     {
                         label: "Start",
                         type: "number",
-                        min: 0,
+                        min: -180,
                         max: 180,
                         step: 1,
                         decimals: 0,
@@ -990,7 +1003,7 @@ const GROUPS = [
                     {
                         label: "Finish",
                         type: "number",
-                        min: 0,
+                        min: -180,
                         max: 180,
                         step: 1,
                         decimals: 0,
@@ -1182,7 +1195,7 @@ const GROUPS = [
             },
             {
                 label: "Lifetime",
-                type: "number",
+                type: "string",
                 unit: "s",
                 propertyID: "lifetime",
             },
@@ -1370,6 +1383,7 @@ const GROUPS_PER_TYPE = {
 };
 
 const EDITOR_TIMEOUT_DURATION = 1500;
+const IMAGE_DEBOUNCE_TIMEOUT = 250;
 const DEBOUNCE_TIMEOUT = 125;
 
 const COLOR_MIN = 0;
@@ -1641,7 +1655,7 @@ function updateVisibleSpaceModeProperties() {
  * PROPERTY UPDATE FUNCTIONS
  */
 
-function updateProperty(originalPropertyName, propertyValue, isParticleProperty, blockUpdateCallback) {
+function updateProperty(originalPropertyName, propertyValue, isParticleProperty) {
     let propertyUpdate = {};
     // if this is a compound property name (i.e. animation.running) then split it by . up to 3 times
     let splitPropertyName = originalPropertyName.split('.');
@@ -1667,7 +1681,11 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty,
         });
         particleSyncDebounce();
     } else {
-        updateProperties(propertyUpdate, blockUpdateCallback);
+        // only update the entity property value itself if in the middle of dragging
+        // prevent undo command push, saving new property values, and property update 
+        // callback until drag is complete (additional update sent via dragEnd callback)
+        let onlyUpdateEntity = properties[originalPropertyName] && properties[originalPropertyName].dragging === true;
+        updateProperties(propertyUpdate, onlyUpdateEntity);
     }
 }
 
@@ -1676,15 +1694,15 @@ var particleSyncDebounce = _.debounce(function () {
     particlePropertyUpdates = {};
 }, DEBOUNCE_TIMEOUT);
 
-function updateProperties(propertiesToUpdate, blockUpdateCallback) {
-    if (blockUpdateCallback === undefined) {
-        blockUpdateCallback = false;
+function updateProperties(propertiesToUpdate, onlyUpdateEntity) {
+    if (onlyUpdateEntity === undefined) {
+        onlyUpdateEntity = false;
     }
     EventBridge.emitWebEvent(JSON.stringify({
         id: lastEntityID,
         type: "update",
         properties: propertiesToUpdate,
-        blockUpdateCallback: blockUpdateCallback
+        onlyUpdateEntities: onlyUpdateEntity
     }));
 }
 
@@ -1709,9 +1727,8 @@ function createDragStartFunction(property) {
 function createDragEndFunction(property) {
     return function() {
         property.dragging = false;
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: "updateProperties"
-        }));
+        // send an additonal update post-dragging to consider whole property change from dragStart to dragEnd to be 1 action
+        this.valueChangeFunction();
     };
 }
 
@@ -1722,7 +1739,7 @@ function createEmitNumberPropertyUpdateFunction(property) {
             multiplier = 1;
         }
         let value = parseFloat(this.value) * multiplier;
-        updateProperty(property.name, value, property.isParticleProperty, property.dragging);
+        updateProperty(property.name, value, property.isParticleProperty);
     };
 }
 
@@ -1736,7 +1753,7 @@ function createEmitVec2PropertyUpdateFunction(property) {
             x: property.elNumberX.elInput.value * multiplier,
             y: property.elNumberY.elInput.value * multiplier
         };
-        updateProperty(property.name, newValue, property.isParticleProperty, property.dragging);
+        updateProperty(property.name, newValue, property.isParticleProperty);
     };
 }
 
@@ -1751,7 +1768,7 @@ function createEmitVec3PropertyUpdateFunction(property) {
             y: property.elNumberY.elInput.value * multiplier,
             z: property.elNumberZ.elInput.value * multiplier
         };
-        updateProperty(property.name, newValue, property.isParticleProperty, property.dragging);
+        updateProperty(property.name, newValue, property.isParticleProperty);
     };
 }
 
@@ -1877,7 +1894,7 @@ function createNumberProperty(property, elProperty) {
     elProperty.appendChild(elDraggableNumber.elDiv);
 
     if (propertyData.buttons !== undefined) {
-        addButtons(elDraggableNumber.elText, elementID, propertyData.buttons, false);
+        addButtons(elDraggableNumber.elDiv, elementID, propertyData.buttons, false);
     }
     
     return elDraggableNumber;
@@ -2100,7 +2117,7 @@ function createTextureProperty(property, elProperty) {
             elDiv.classList.remove("no-preview");
             elDiv.classList.add("no-texture");
         }
-    }, DEBOUNCE_TIMEOUT * 2);
+    }, IMAGE_DEBOUNCE_TIMEOUT);
     elInput.imageLoad = imageLoad;
     elInput.oninput = function (event) {
         // Add throttle
@@ -2149,7 +2166,7 @@ function createTupleNumberInput(property, subLabel) {
                                                 propertyData.decimals, dragStartFunction, dragEndFunction); 
     elDraggableNumber.elInput.setAttribute("id", elementID);
     elDraggableNumber.elDiv.className += " fstuple";
-    elDraggableNumber.elText.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
+    elDraggableNumber.elDiv.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
     
     return elDraggableNumber;
 }
@@ -3451,7 +3468,8 @@ function loaded() {
         };
 
         document.addEventListener("keyup", function (keyUpEvent) {
-            if (keyUpEvent.target.nodeName === "INPUT") {
+            const FILTERED_NODE_NAMES = ["INPUT", "TEXTAREA"];
+            if (FILTERED_NODE_NAMES.includes(keyUpEvent.target.nodeName)) {
                 return;
             }
             let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;

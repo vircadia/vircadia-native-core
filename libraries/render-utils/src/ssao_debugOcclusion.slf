@@ -39,6 +39,7 @@ layout(location=0) out vec4 outFragColor;
 void main(void) {
     // Stereo side info based on the real viewport size of this pass
     vec2 sideDepthSize = getDepthTextureSideSize(0);
+
     // Pixel Debugged
     vec2 cursorUV = getDebugCursorTexcoord();
     vec2 cursorPixelPos = cursorUV * sideDepthSize;
@@ -46,6 +47,5 @@ void main(void) {
     ivec2 fragUVPos = ivec2(cursorPixelPos);
 
     // TODO
-
     outFragColor = packOcclusionOutput(0.0, 0.0, vec3(0.0, 0.0, 1.0));
 }

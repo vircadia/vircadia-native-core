@@ -22,7 +22,7 @@ ClientTraitsHandler::ClientTraitsHandler(AvatarData* owningAvatar) :
     _owningAvatar(owningAvatar)
 {
     auto nodeList = DependencyManager::get<NodeList>();
-    QObject::connect(nodeList.data(), &NodeList::nodeAdded, [this](SharedNodePointer addedNode){
+    QObject::connect(nodeList.data(), &NodeList::nodeAdded, this, [this](SharedNodePointer addedNode) {
         if (addedNode->getType() == NodeType::AvatarMixer) {
             resetForNewMixer();
         }

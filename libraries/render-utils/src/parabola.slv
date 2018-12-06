@@ -48,11 +48,8 @@ void main(void) {
     } else {
         normal = vec4(normalize(cross(_parabolaData.velocity, _parabolaData.acceleration)), 0);
     }
-    if (gl_VertexID % 2 == 0) {
-        pos += 0.5 * _parabolaData.width * normal;
-    } else {
-        pos -= 0.5 * _parabolaData.width * normal;
-    }
+    
+    pos += 0.5 * _parabolaData.width * normal * (-1.0 + 2.0 * float(gl_VertexID % 2 == 0));
 
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 }
