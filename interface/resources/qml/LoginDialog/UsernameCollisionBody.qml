@@ -23,6 +23,7 @@ Item {
     height: root.height
     readonly property string fontFamily: "Raleway"
     readonly property int fontSize: 15
+    readonly property int textFieldFontSize: 18
     readonly property bool fontBold: true
 
     function create() {
@@ -102,7 +103,7 @@ Item {
                 topMargin: hifi.dimensions.contentSpacing.y
             }
             font.family: "Fira Sans"
-            font.pixelSize: usernameCollisionBody.fontSize
+            font.pixelSize: usernameCollisionBody.textFieldFontSize
             styleRenderType: Text.QtRendering
             font.bold: usernameCollisionBody.fontBold
             width: root.bannerWidth

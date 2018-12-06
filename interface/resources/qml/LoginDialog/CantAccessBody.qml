@@ -22,7 +22,6 @@ Item {
     property int textFieldHeight: 31
     property string fontFamily: "Raleway"
     property int fontSize: 15
-    // property int textFieldFontSize: !root.isTablet ? !root.isOverlay : hifi.fontSizes.textFieldInput ? hifi.fontSizes.textFieldInput : 18
     property int textFontSize: 24
     property bool fontBold: true
 
