@@ -332,23 +332,23 @@ void TestRunner::verifyInstallationSucceeded() {
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
-#ifdef Q_OS_WIN
     QString dataDirectory{ "NOT FOUND" };
-
+#ifdef Q_OS_WIN
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
-
+#elif defined Q_OS_MAC
+    dataDirectory = QDir::homePath() + "/Library/Application Support";
+#endif
     if (_runLatest->isChecked()) {
-        _appDataFolder = dataDirectory + "\\High Fidelity";
+        _appDataFolder = dataDirectory + "/High Fidelity";
     } else {
         // We are running a PR build
-        _appDataFolder = dataDirectory + "\\High Fidelity - " + getPRNumberFromURL(_url->text());
+        _appDataFolder = dataDirectory + "/High Fidelity - " + getPRNumberFromURL(_url->text());
     }
 
     _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
-    if (_savedAppDataFolder.exists()) {
+    if (QDir(_savedAppDataFolder).exists()) {
         _savedAppDataFolder.removeRecursively();
     }
-
     if (_appDataFolder.exists()) {
         // The original folder is saved in a unique name
         _appDataFolder.rename(_appDataFolder.path(), _savedAppDataFolder.path());
@@ -356,9 +356,6 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
 
     // Copy an "empty" AppData folder (i.e. no entities)
     copyFolder(QDir::currentPath() + "/AppDataHighFidelity", _appDataFolder.path());
-#elif defined Q_OS_MAC
-    // TODO:  find Mac equivalent of AppData
-#endif
 }
 
 void TestRunner::createSnapshotFolder() {
@@ -469,12 +466,7 @@ void TestRunner::runInterfaceWithTestScript() {
         // Move to an empty area
         url = "file:///~serverless/tutorial.json";
     } else {
-#ifdef Q_OS_WIN
         url = "hifi://localhost";
-#elif defined Q_OS_MAC
-        // TODO: Find out Mac equivalent of AppData, then this won't be needed
-        url = "hifi://localhost/9999,9999,9999";
-#endif
     }
 
     QString testScript =
@@ -535,8 +527,6 @@ void TestRunner::runInterfaceWithTestScript() {
 }
 
 void TestRunner::interfaceExecutionComplete() {
-    killProcesses();
-
     QFileInfo testCompleted(QDir::toNativeSeparators(_snapshotFolder) +"/tests_completed.txt");
     if (!testCompleted.exists()) {
         QMessageBox::critical(0, "Tests not completed", "Interface seems to have crashed before completion of the test scripts\nExisting images will be evaluated");
@@ -544,6 +534,8 @@ void TestRunner::interfaceExecutionComplete() {
 
     evaluateResults();
 
+    killProcesses();
+    
     // The High Fidelity AppData folder will be restored after evaluation has completed
 }
 
@@ -589,15 +581,11 @@ void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
 }
 
 void TestRunner::restoreHighFidelityAppDataFolder() {
-#ifdef Q_OS_WIN
     _appDataFolder.removeRecursively();
 
     if (_savedAppDataFolder != QDir()) {
         _appDataFolder.rename(_savedAppDataFolder.path(), _appDataFolder.path());
     }
-#elif defined Q_OS_MAC
-    // TODO:  find Mac equivalent of AppData
-#endif
 }
 
 // Copies a folder recursively

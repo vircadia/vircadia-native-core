@@ -33,7 +33,7 @@ using NormalType = glm::vec3;
 #define FBX_NORMAL_ELEMENT gpu::Element::VEC3F_XYZ
 #endif
 
-// See comment in FBXReader::parseFBX().
+// See comment in FBXSerializer::parseFBX().
 static const int FBX_HEADER_BYTES_BEFORE_VERSION = 23;
 static const QByteArray FBX_BINARY_PROLOG("Kaydara FBX Binary  ");
 static const QByteArray FBX_BINARY_PROLOG2("\0\x1a\0", 3);

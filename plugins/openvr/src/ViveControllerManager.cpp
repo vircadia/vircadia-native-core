@@ -892,7 +892,7 @@ glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHead
     glm::vec3 x = glm::normalize(glm::cross(Vectors::UNIT_Y, forward));
     glm::vec3 z = glm::normalize(glm::cross(x, Vectors::UNIT_Y));
     glm::mat3 centerEyeRotMat(x, Vectors::UNIT_Y, z);
-    glm::vec3 centerEyeTrans = headPuckPose.translation + centerEyeRotMat * glm::vec3(0.0f, _headPuckYOffset, _headPuckZOffset);
+    glm::vec3 centerEyeTrans = headPuckPose.translation + centerEyeRotMat * -glm::vec3(0.0f, _headPuckYOffset, _headPuckZOffset);
 
     glm::mat4 E_s(glm::vec4(centerEyeRotMat[0], 0.0f),
                   glm::vec4(centerEyeRotMat[1], 0.0f),
@@ -1056,7 +1056,7 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
         float hapticTime = strength * MAX_HAPTIC_TIME;
         if (hapticTime < duration * 1000.0f) {
             _system->TriggerHapticPulse(deviceIndex, 0, hapticTime);
-       }
+        }
 
         float remainingHapticTime = duration - (hapticTime / 1000.0f + deltaTime * 1000.0f); // in milliseconds
         if (leftHand) {
@@ -1077,23 +1077,20 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(const glm::mat4& defa
     }
 
     // This allows the user to not have to match the t-pose exactly.  We assume that the y facing of the hand lies in the plane of the puck.
-    // Where the plane of the puck is defined by the the local z-axis of the puck, which is facing out of the vive logo/power button.
+    // Where the plane of the puck is defined by the the local z-axis of the puck, which is pointing out of the camera mount on the bottom of the puck.
     glm::vec3 zPrime = handPoseZAxis;
     glm::vec3 xPrime = glm::normalize(glm::cross(referenceHandYAxis, handPoseZAxis));
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-    glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
-    glm::quat initialRotation = handPose.getRotation();
-    glm::quat finalRotation = glmExtractRotation(newHandMat);
-
-    glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
-
-    glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
+    glm::quat initialRot = handPose.getRotation();
+    glm::quat postOffsetRot = glm::inverse(initialRot) * glmExtractRotation(newHandMat);
+    glm::vec3 postOffsetTrans = postOffsetRot * -glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
+    glm::mat4 postOffsetMat = createMatFromQuatAndPos(postOffsetRot, postOffsetTrans);
 
     _jointToPuckMap[controller::LEFT_HAND] = handPair.first;
-    _pucksPostOffset[handPair.first] = offsetMat;
+    _pucksPostOffset[handPair.first] = postOffsetMat;
 }
 
 void ViveControllerManager::InputDevice::calibrateRightHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
@@ -1113,16 +1110,13 @@ void ViveControllerManager::InputDevice::calibrateRightHand(const glm::mat4& def
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-    glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
-    glm::quat initialRotation = handPose.getRotation();
-    glm::quat finalRotation = glmExtractRotation(newHandMat);
-
-    glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
-
-    glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
+    glm::quat initialRot = handPose.getRotation();
+    glm::quat postOffsetRot = glm::inverse(initialRot) * glmExtractRotation(newHandMat);
+    glm::vec3 postOffsetTrans = postOffsetRot * -glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
+    glm::mat4 postOffsetMat = createMatFromQuatAndPos(postOffsetRot, postOffsetTrans);
 
     _jointToPuckMap[controller::RIGHT_HAND] = handPair.first;
-    _pucksPostOffset[handPair.first] = offsetMat;
+    _pucksPostOffset[handPair.first] = postOffsetMat;
 }
 
 

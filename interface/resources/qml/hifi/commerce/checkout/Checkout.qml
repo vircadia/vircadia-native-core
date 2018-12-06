@@ -19,6 +19,7 @@ import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
 import "../common" as HifiCommerceCommon
+import "../.." as HifiCommon
 
 // references XXX from root context
 
@@ -31,6 +32,7 @@ Rectangle {
     property bool ownershipStatusReceived: false;
     property bool balanceReceived: false;
     property bool availableUpdatesReceived: false;
+    property bool itemInfoReceived: false;
     property string baseItemName: "";
     property string itemName;
     property string itemId;
@@ -181,11 +183,14 @@ Rectangle {
 
     onItemIdChanged: {
         root.ownershipStatusReceived = false;
+        root.itemInfoReceived = false;
         Commerce.alreadyOwned(root.itemId);
         root.availableUpdatesReceived = false;
         root.currentUpdatesPage = 1;
         Commerce.getAvailableUpdates(root.itemId);
-        itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
+        
+        var MARKETPLACE_API_URL = Account.metaverseServerURL + "/api/v1/marketplace/items/";
+        http.request({uri: MARKETPLACE_API_URL + root.itemId}, updateCheckoutQMLFromHTTP);
     }
 
     onItemTypeChanged: {
@@ -279,6 +284,7 @@ Rectangle {
             ownershipStatusReceived = false;
             balanceReceived = false;
             availableUpdatesReceived = false;
+            itemInfoReceived = false;
             Commerce.getWalletStatus();
         }
     }
@@ -355,7 +361,7 @@ Rectangle {
         Rectangle {
             id: loading;
             z: 997;
-            visible: !root.ownershipStatusReceived || !root.balanceReceived || !root.availableUpdatesReceived;
+            visible: !root.ownershipStatusReceived || !root.balanceReceived || !root.availableUpdatesReceived || !root.itemInfoReceived;
             anchors.fill: parent;
             color: hifi.colors.white;
 
@@ -1063,10 +1069,33 @@ Rectangle {
             }
         }
     }
+    
+
+    HifiCommon.RootHttpRequest {
+        id: http;
+    }
 
     //
     // FUNCTION DEFINITIONS START
     //
+
+    function updateCheckoutQMLFromHTTP(error, result) {
+        if (error || (result.status !== 'success')) {
+            // The QML will display a loading spinner forever if the user is stuck here.
+            console.log("Error in Checkout.qml when getting marketplace item info!");
+            return;
+        }
+
+        root.itemInfoReceived = true;
+        root.itemName = result.data.title;
+        root.itemPrice = result.data.cost;
+        root.itemHref = Account.metaverseServerURL + result.data.path;
+        root.itemAuthor = result.data.creator;
+        root.itemType = result.data.item_type || "unknown";
+        itemPreviewImage.source = result.data.thumbnail_url;
+        refreshBuyUI();
+    }
+
     //
     // Function Name: fromScript()
     //
@@ -1080,18 +1109,24 @@ Rectangle {
     // Description:
     // Called when a message is received from a script.
     //
+
     function fromScript(message) {
         switch (message.method) {
-            case 'updateCheckoutQML':
-                root.itemId = message.params.itemId;
-                root.itemName = message.params.itemName.trim();
-                root.itemPrice = message.params.itemPrice;
-                root.itemHref = message.params.itemHref;
-                root.referrer = message.params.referrer;
-                root.itemAuthor = message.params.itemAuthor;
+            case 'updateCheckoutQMLItemID':
+                if (!message.params.itemId) {
+                    console.log("A message with method 'updateCheckoutQMLItemID' was sent without an itemId!");
+                    return;
+                }
+
+                // If we end up following the referrer (i.e. in case the wallet "isn't set up" or the user cancels),
+                // we want the user to be placed back on the individual item's page - thus we set the
+                // default of the referrer in this case to "itemPage".
+                root.referrer = message.params.referrer || "itemPage";
                 root.itemEdition = message.params.itemEdition || -1;
-                root.itemType = message.params.itemType || "unknown";
-                refreshBuyUI();
+                root.itemId = message.params.itemId;
+            break;
+            case 'http.response':
+                http.handleHttpResponse(message);
             break;
             default:
                 console.log('Checkout.qml: Unrecognized message from marketplaces.js');

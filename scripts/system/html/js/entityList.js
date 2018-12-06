@@ -1186,7 +1186,8 @@ function loaded() {
         };
     
         document.addEventListener("keyup", function (keyUpEvent) {
-            if (keyUpEvent.target.nodeName === "INPUT") {
+            const FILTERED_NODE_NAMES = ["INPUT", "TEXTAREA"];
+            if (FILTERED_NODE_NAMES.includes(keyUpEvent.target.nodeName)) {
                 return;
             }
 
