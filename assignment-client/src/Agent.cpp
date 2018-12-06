@@ -656,6 +656,8 @@ void Agent::queryAvatars() {
     ViewFrustum view;
     view.setPosition(scriptedAvatar->getWorldPosition());
     view.setOrientation(scriptedAvatar->getHeadOrientation());
+    view.setProjection(DEFAULT_FIELD_OF_VIEW_DEGREES, DEFAULT_ASPECT_RATIO,
+                       DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP);
     view.calculate();
     ConicalViewFrustum conicalView { view };
 
@@ -876,17 +878,29 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<AudioInjectorManager>();
 
     // destroy all other created dependencies
-    DependencyManager::destroy<ScriptCache>();
 
-    DependencyManager::destroy<ResourceCacheSharedItems>();
     DependencyManager::destroy<SoundCacheScriptingInterface>();
-    DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<AudioScriptingInterface>();
-
     DependencyManager::destroy<RecordingScriptingInterface>();
+    DependencyManager::destroy<AnimationCacheScriptingInterface>();
+    DependencyManager::destroy<EntityScriptingInterface>();
+    DependencyManager::destroy<ResourceScriptingInterface>();
+    DependencyManager::destroy<UserActivityLoggerScriptingInterface>();
+
+    DependencyManager::destroy<ScriptCache>();
+    DependencyManager::destroy<SoundCache>();
+    DependencyManager::destroy<AnimationCache>();
+
     DependencyManager::destroy<recording::Deck>();
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
+
+    DependencyManager::destroy<AvatarHashMap>();
+    DependencyManager::destroy<AssignmentParentFinder>();
+    DependencyManager::destroy<MessagesClient>();
+    DependencyManager::destroy<ResourceManager>();
+
+    DependencyManager::destroy<ResourceCacheSharedItems>();
 
     // drop our shared pointer to the script engine, then ask ScriptEngines to shutdown scripting
     // this ensures that the ScriptEngine goes down before ScriptEngines

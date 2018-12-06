@@ -444,10 +444,12 @@ LightStageSetup::LightStageSetup() {
 }
 
 void LightStageSetup::run(const render::RenderContextPointer& renderContext) {
-    auto stage = renderContext->_scene->getStage(LightStage::getName());
-    if (!stage) {
-        stage = std::make_shared<LightStage>();
-        renderContext->_scene->resetStage(LightStage::getName(), stage);
+    if (renderContext->_scene) {
+        auto stage = renderContext->_scene->getStage(LightStage::getName());
+        if (!stage) {
+            stage = std::make_shared<LightStage>();
+            renderContext->_scene->resetStage(LightStage::getName(), stage);
+        }
     }
 }
 

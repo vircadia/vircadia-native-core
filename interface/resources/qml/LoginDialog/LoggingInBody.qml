@@ -26,7 +26,7 @@ Item {
     property bool fontBold: true
     property bool withSteam: withSteam
     property bool withOculus: withOculus
-    property string fromBody: fromBody
+    property bool linkSteam: linkSteam
 
     QtObject {
         id: d
@@ -68,16 +68,13 @@ Item {
     function init() {
         // For the process of logging in.
         loggingInText.wrapMode = Text.NoWrap;
-        print("withSteam " + loggingInBody.withSteam);
-        print("withOculus " + loggingInBody.withOculus);
         if (loggingInBody.withSteam) {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Steam";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
-
         } else if (loggingInBody.withOculus) {
-            loggingInGlyph.visible = true;
             loggingInGlyph.text = hifi.glyphs.oculus;
+            loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Oculus";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
         } else {
@@ -89,19 +86,20 @@ Item {
     }
     function loadingSuccess() {
         loggingInSpinner.visible = false;
+        if (loggingInBody.linkSteam) {
+            loggingInText.text = "Linking to Steam";
+            loginDialog.linkSteam();
+            return;
+        }
         if (loggingInBody.withSteam) {
             // reset the flag.
             loggingInGlyph.visible = false;
-            loggingInText.text = "You are now logged into Steam!"
-            loggingInText.anchors.centerIn = loggingInHeader;
-            loggingInText.anchors.bottom = loggingInHeader.bottom;
+            loggingInText.text = "You are now logged into Steam!";
             loggedInGlyph.visible = true;
         } else if (loggingInBody.withOculus) {
             // reset the flag.
             loggingInGlyph.visible = false;
-            loggingInText.text = "You are now logged into Oculus!"
-            loggingInText.anchors.centerIn = loggingInHeader;
-            loggingInText.anchors.bottom = loggingInHeader.bottom;
+            loggingInText.text = "You are now logged into Oculus!";
             loggedInGlyph.text = hifi.glyphs.oculus;
             loggedInGlyph.visible = true;
         } else {
@@ -115,30 +113,6 @@ Item {
         width: root.width
         height: root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
-
-        Rectangle {
-            id: opaqueRect
-            height: parent.height
-            width: parent.width
-            opacity: 0.9
-            color: "black"
-        }
-
-        Item {
-            id: bannerContainer
-            width: parent.width
-            height: banner.height
-            anchors {
-                top: parent.top
-                topMargin: 85
-            }
-            Image {
-                id: banner
-                anchors.centerIn: parent
-                source: "../../images/high-fidelity-banner.svg"
-                horizontalAlignment: Image.AlignHCenter
-            }
-        }
 
         Item {
             id: loggingInContainer
@@ -173,7 +147,7 @@ Item {
                     // Alignment
                     horizontalAlignment: Text.AlignHCenter;
                     verticalAlignment: Text.AlignVCenter;
-                    visible: loggingInBody.withSteam;
+                    visible: loggingInBody.withSteam || loggingInBody.withOculus;
                 }
 
                 TextMetrics {
@@ -207,7 +181,7 @@ Item {
                 }
                 AnimatedImage {
                     id: loggingInSpinner
-                    source: "../../icons/loader-snake-64-w.gif"
+                    source: "images/loader-snake-298-b.gif"
                     width: 128
                     height: width
                     anchors.left: parent.left;
@@ -248,10 +222,19 @@ Item {
 
     Connections {
         target: loginDialog
+        onHandleLinkCompleted: {
+            console.log("Link Succeeded");
+            loggingInBody.linkSteam = false;
+            loggingInBody.loadingSuccess();
+        }
+        onHandleLinkFailed: {
+            console.log("Link Failed: " + error);
+            bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": true, "errorString": error });
+        }
 
         onHandleLoginCompleted: {
-            console.log("Login Succeeded")
-            loadingSuccess();
+            console.log("Login Succeeded");
+            loggingInBody.loadingSuccess();
         }
 
         onHandleLoginFailed: {
@@ -260,8 +243,8 @@ Item {
             var errorString = "";
             if (loggingInBody.withSteam) {
                 loggingInGlyph.visible = false;
-                errorString = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again."
-                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
+                errorString = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again.";
+                bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam, "errorString": errorString });
             } else if (loggingInBody.withOculus) {
                 loggingInGlyph.visible = false;
                 errorString = "Your Oculus authentication has failed. Please make sure you are logged into Oculus and try again."
@@ -269,11 +252,7 @@ Item {
             }
             else {
                 errorString = "Username or password is incorrect.";
-                if (loginDialog.isLogIn && loggingInBody.withSteam) {
-                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
-                } else {
-                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
-                }
+                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
             }
         }
     }

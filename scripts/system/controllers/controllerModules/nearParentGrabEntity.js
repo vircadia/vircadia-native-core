@@ -11,7 +11,7 @@
    TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
    findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
    HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, findHandChildEntities, TEAR_AWAY_DISTANCE, MSECS_PER_SEC, TEAR_AWAY_CHECK_TIME,
-   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Uuid, highlightTargetEntity, unhighlightTargetEntity,
+   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Uuid, NEAR_GRAB_DISTANCE,
    distanceBetweenEntityLocalPositionAndBoundingBox, getGrabbableData, getGrabPointSphereOffset, DISPATCHER_PROPERTIES
 */
 
@@ -24,15 +24,6 @@ Script.include("/~/system/libraries/controllers.js");
     // XXX this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
     // XXX this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
 
-    // this offset needs to match the one in libraries/display-plugins/src/display-plugins/hmd/HmdDisplayPlugin.cpp:378
-    var GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 };  // x = upward, y = forward, z = lateral
-
-    function getGrabOffset(handController) {
-        var offset = getGrabPointSphereOffset(handController, true);
-        offset.y = -offset.y;
-        return Vec3.multiply(MyAvatar.sensorToWorldScale, offset);
-    }
-
     function NearParentingGrabEntity(hand) {
         this.hand = hand;
         this.targetEntityID = null;
@@ -40,12 +31,10 @@ Script.include("/~/system/libraries/controllers.js");
         this.previousParentID = {};
         this.previousParentJointIndex = {};
         this.previouslyUnhooked = {};
-        this.hapticTargetID = null;
         this.lastUnequipCheckTime = 0;
         this.autoUnequipCounter = 0;
         this.lastUnexpectedChildrenCheckTime = 0;
         this.robbed = false;
-        this.highlightedEntity = null;
         this.cloneAllowed = true;
 
         this.parameters = makeDispatcherModuleParameters(
@@ -95,14 +84,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.startNearParentingGrabEntity = function (controllerData, targetProps) {
             var grabData = getGrabbableData(targetProps);
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-            unhighlightTargetEntity(this.targetEntityID);
-            this.highlightedEntity = null;
-            var message = {
-                hand: this.hand,
-                entityID: this.targetEntityID
-            };
 
-            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var handJointIndex;
             if (grabData.grabFollowsController) {
                 handJointIndex = getControllerJointIndex(this.hand);
@@ -146,7 +128,6 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.endNearParentingGrabEntity = function (controllerData) {
-            this.hapticTargetID = null;
             var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
             if (this.thisHandIsParent(props) && !this.robbed) {
                 Entities.editEntity(this.targetEntityID, {
@@ -164,8 +145,7 @@ Script.include("/~/system/libraries/controllers.js");
                 grabbedEntity: this.targetEntityID,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
-            unhighlightTargetEntity(this.targetEntityID);
-            this.highlightedEntity = null;
+
             this.grabbing = false;
             this.targetEntityID = null;
             this.robbed = false;
@@ -178,8 +158,10 @@ Script.include("/~/system/libraries/controllers.js");
                 this.lastUnequipCheckTime = now;
                 if (props.parentID === MyAvatar.SELF_ID) {
                     var tearAwayDistance = TEAR_AWAY_DISTANCE * MyAvatar.sensorToWorldScale;
-                    var controllerIndex = (this.hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
-                    var controllerGrabOffset = getGrabOffset(controllerIndex);
+                    var controllerIndex =
+                        this.hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
+                    var controllerGrabOffset = getGrabPointSphereOffset(controllerIndex, true);
+                    controllerGrabOffset = Vec3.multiply(-MyAvatar.sensorToWorldScale, controllerGrabOffset);
                     var distance = distanceBetweenEntityLocalPositionAndBoundingBox(props, controllerGrabOffset);
                     if (distance > tearAwayDistance) {
                         this.autoUnequipCounter++;
@@ -242,21 +224,18 @@ Script.include("/~/system/libraries/controllers.js");
             // nearbyEntityProperties is already sorted by length from controller
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
             var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+            var nearGrabDistance = NEAR_GRAB_DISTANCE * sensorScaleFactor;
+            var nearGrabRadius = NEAR_GRAB_RADIUS * sensorScaleFactor;
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
-                var handPosition = controllerData.controllerLocations[this.hand].position;
-                var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
-                var distance = Vec3.distance(handPosition, props.position);
-                if ((dist > TEAR_AWAY_DISTANCE) ||
-                    (distance > NEAR_GRAB_RADIUS * sensorScaleFactor)) {
+                var grabPosition = controllerData.controllerLocations[this.hand].position; // Is offset from hand position.
+                var dist = distanceBetweenPointAndEntityBoundingBox(grabPosition, props);
+                var distance = Vec3.distance(grabPosition, props.position);
+                if ((dist > nearGrabDistance) ||
+                    (distance > nearGrabRadius)) { // Only smallish entities can be near grabbed.
                     continue;
                 }
                 if (entityIsGrabbable(props) || entityIsCloneable(props)) {
-                    // give haptic feedback
-                    if (props.id !== this.hapticTargetID) {
-                        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-                        this.hapticTargetID = props.id;
-                    }
                     if (!entityIsCloneable(props)) {
                         // if we've attempted to grab a non-cloneable child, roll up to the root of the tree
                         var groupRootProps = findGroupParent(controllerData, props);
@@ -290,16 +269,9 @@ Script.include("/~/system/libraries/controllers.js");
                     return makeRunningValues(false, [], []); // let nearActionGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
-                    this.highlightedEntity = this.targetEntityID;
-                    highlightTargetEntity(this.targetEntityID);
                     return makeRunningValues(true, [this.targetEntityID], []);
                 }
             } else {
-                if (this.highlightedEntity) {
-                    unhighlightTargetEntity(this.highlightedEntity);
-                    this.highlightedEntity = null;
-                }
-                this.hapticTargetID = null;
                 this.robbed = false;
                 return makeRunningValues(false, [], []);
             }
@@ -316,11 +288,8 @@ Script.include("/~/system/libraries/controllers.js");
                 var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
                 if (!props) {
                     // entity was deleted
-                    unhighlightTargetEntity(this.targetEntityID);
-                    this.highlightedEntity = null;
                     this.grabbing = false;
                     this.targetEntityID = null;
-                    this.hapticTargetID = null;
                     this.robbed = false;
                     return makeRunningValues(false, [], []);
                 }
@@ -335,12 +304,10 @@ Script.include("/~/system/libraries/controllers.js");
                 var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
                 Entities.callEntityMethod(this.targetEntityID, "continueNearGrab", args);
             } else {
-                // still searching / highlighting
+                // still searching
                 var readiness = this.isReady(controllerData);
                 if (!readiness.active) {
                     this.robbed = false;
-                    unhighlightTargetEntity(this.highlightedEntity);
-                    this.highlightedEntity = null;
                     return readiness;
                 }
                 if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {

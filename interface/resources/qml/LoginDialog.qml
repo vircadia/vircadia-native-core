@@ -1,9 +1,8 @@
 //
 //  LoginDialog.qml
 //
-//  Created by Wayne Chen
-//  Copyright 2018 High Fidelity, Inc.
-//
+//  Created by David Rowe on 3 Jun 2015
+//  Copyright 2015 High Fidelity, Inc.
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -37,6 +36,8 @@ FocusScope {
     property string title: ""
     property string text: ""
     property int titleWidth: 0
+    property alias bannerWidth: banner.width
+    property alias bannerHeight: banner.height
 
     function tryDestroy() {
         root.destroy()
@@ -51,10 +52,36 @@ FocusScope {
     }
 
     Image {
+        z: -10
         id: loginDialogBackground
-        source: "LoginDialog/background.png"
+        source: "LoginDialog/background.jpg"
         anchors.fill: parent
-        z: -2
+    }
+
+    Rectangle {
+        z: -6
+        id: opaqueRect
+        height: parent.height
+        width: parent.width
+        opacity: 0.5
+        color: "black"
+    }
+
+    Item {
+        z: -5
+        id: bannerContainer
+        width: parent.width
+        height: banner.height
+        anchors {
+            top: parent.top
+            topMargin: 0.18 * parent.height
+        }
+        Image {
+            id: banner
+            anchors.centerIn: parent
+            source: "../images/high-fidelity-banner.svg"
+            horizontalAlignment: Image.AlignHCenter
+        }
     }
 
     Keys.onPressed: {
@@ -92,6 +119,6 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+        bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": false });
     }
 }

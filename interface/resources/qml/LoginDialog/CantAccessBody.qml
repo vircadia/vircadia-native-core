@@ -56,29 +56,6 @@ Item {
         anchors.fill: parent
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
-        Rectangle {
-            id: opaqueRect
-            height: parent.height
-            width: parent.width
-            opacity: 0.9
-            color: "black"
-        }
-        Item {
-            id: bannerContainer
-            width: parent.width
-            height: banner.height
-            anchors {
-                bottom: textContainer.top
-                bottomMargin: 0.125 * parent.height
-            }
-            Image {
-                id: banner
-                anchors.centerIn: parent
-                source: "../../images/high-fidelity-banner.svg"
-                horizontalAlignment: Image.AlignHCenter
-            }
-        }
-
         Item {
             id: textContainer
             width: parent.width
@@ -131,7 +108,7 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 Component.onCompleted: {
                     bodyText.text = root.isTablet ? qsTr("Please navigate to your default browser\nto recover your account.\nIf you are in a VR headset, please take it off.") :
-                        qsTr("Please navigate to your default browser to recover your account.\nIf you are in a VR headset, please take it off.");
+                        qsTr("Please navigate to your default browser to recover your account.\nIf you are in a VR headset,\nplease take it off.");
                     bodyTextMetrics.text = bodyText.text;
                     bodyText
                     bodyText.anchors.leftMargin = (parent.width - bodyTextMetrics.width) / 2;

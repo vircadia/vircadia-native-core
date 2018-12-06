@@ -25,12 +25,9 @@ Item {
     readonly property int fontSize: 15
     readonly property bool fontBold: true
 
-    readonly property string errorString: errorString
-
     function create() {
         mainTextContainer.visible = false
-        loginDialog.createAccountFromSteam(textField.text)
-        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "fromBody": "UsernameCollisionBody" });
+        loginDialog.createAccountFromSteam(textField.text);
     }
 
     property bool keyboardEnabled: false
@@ -45,7 +42,6 @@ Item {
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
         property int maxWidth: root.isTablet ? 1280 : root.width
         readonly property int minHeight: 120
-        // readonly property int minHeightButton: !root.isTablet ? 56 : 42
         readonly property int minHeightButton: 36
         property int maxHeight: root.isTablet ? 720 : root.height
 
@@ -70,30 +66,6 @@ Item {
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
         anchors.fill: parent
 
-        Rectangle {
-            id: opaqueRect
-            height: parent.height
-            width: parent.width
-            opacity: 0.9
-            color: "black"
-        }
-
-        Item {
-            id: bannerContainer
-            width: parent.width
-            height: banner.height
-            anchors {
-                top: parent.top
-                topMargin: 85
-            }
-            Image {
-                id: banner
-                anchors.centerIn: parent
-                source: "../../images/high-fidelity-banner.svg"
-                horizontalAlignment: Image.AlignHCenter
-            }
-        }
-
         TextMetrics {
             id: mainTextContainerTextMetrics
             font: mainTextContainer.font
@@ -110,9 +82,9 @@ Item {
             }
 
             font.family: usernameCollisionBody.fontFamily
-            font.pixelSize: usernameCollisionBody.fontSize - 10
+            font.pixelSize: usernameCollisionBody.fontSize
             font.bold: usernameCollisionBody.fontBold
-            text: qsTr("Your Steam username is not available.")
+            text: qsTr("Your Steam username is not available.");
             wrapMode: Text.WordWrap
             color: hifi.colors.redAccent
             lineHeight: 1
@@ -130,9 +102,10 @@ Item {
                 topMargin: hifi.dimensions.contentSpacing.y
             }
             font.family: "Fira Sans"
-            font.pixelSize: usernameCollisionBody.fontSize - 10
+            font.pixelSize: usernameCollisionBody.fontSize
+            styleRenderType: Text.QtRendering
             font.bold: usernameCollisionBody.fontBold
-            width: banner.width
+            width: root.bannerWidth
 
             placeholderText: "Choose your own"
 
@@ -170,54 +143,33 @@ Item {
 
         Item {
             id: buttons
-            width: Math.max(banner.width, cancelContainer.width + profileButton.width)
+            width: root.bannerWidth
             height: d.minHeightButton
             anchors {
                 top: textField.bottom
                 topMargin: hifi.dimensions.contentSpacing.y
                 left: parent.left
-                leftMargin: (parent.width - banner.width) / 2
+                leftMargin: (parent.width - root.bannerWidth) / 2
             }
 
-            Item {
-                id: cancelContainer
-                width: cancelText.width
-                height: d.minHeightButton
+            HifiControlsUit.Button {
+                id: cancelButton
                 anchors {
                     top: parent.top
                     left: parent.left
                 }
-                Text {
-                    id: cancelText
-                    text: qsTr("Cancel");
+                width: (parent.width - hifi.dimensions.contentSpacing.x) / 2
+                height: d.minHeightButton
 
-                    lineHeight: 1
-                    color: "white"
-                    font.family: usernameCollisionBody.fontFamily
-                    font.pixelSize: usernameCollisionBody.fontSize
-                    font.capitalization: Font.AllUppercase;
-                    font.bold: usernameCollisionBody.fontBold
-                    lineHeightMode: Text.ProportionalHeight
-                    anchors.centerIn: parent
+                text: qsTr("CANCEL")
+                color: hifi.buttons.noneBorderlessWhite
+
+                fontFamily: usernameCollisionBody.fontFamily
+                fontSize: usernameCollisionBody.fontSize
+                fontBold: usernameCollisionBody.fontBold
+                onClicked: {
+                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "" });
                 }
-                MouseArea {
-                    id: cancelArea
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    hoverEnabled: true
-                    onEntered: {
-                        Tablet.playSound(TabletEnums.ButtonHover);
-                    }
-                    onClicked: {
-                        Tablet.playSound(TabletEnums.ButtonClick);
-                        bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
-                    }
-                }
-            }
-            TextMetrics {
-                id: profileButtonTextMetrics
-                font: cancelText.font
-                text: qsTr("CREATE YOUR PROFILE")
             }
             HifiControlsUit.Button {
                 id: profileButton
@@ -225,7 +177,7 @@ Item {
                     top: parent.top
                     right: parent.right
                 }
-                width: Math.max(profileButtonTextMetrics.width + 2 * hifi.dimensions.contentSpacing.x, d.minWidthButton)
+                width: (parent.width - hifi.dimensions.contentSpacing.x) / 2
                 height: d.minHeightButton
 
                 text: qsTr("Create your profile")
@@ -241,36 +193,18 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        //dont rise local keyboard
-        keyboardEnabled = !root.isTablet && HMD.active;
-        //but rise Tablet's one instead for Tablet interface
-        if (root.isTablet || root.isOverlay) {
-            root.keyboardEnabled = HMD.active;
-            root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
-        }
-
-        root.text = "";
-        d.resize();
-        textField.focus = true;
-        if (usernameCollisionBody.errorString !== "") {
-            mainTextContainer.visible = true;
-            mainTextContainer.text = usernameCollisionBody.errorString;
-        }
-    }
-
     Connections {
         target: loginDialog
         onHandleCreateCompleted: {
-            console.log("Create Succeeded")
+            console.log("Create Succeeded");
             loginDialog.loginThroughSteam();
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "fromBody": "UsernameCollisionBody" })
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "linkSteam": false })
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error)
 
             mainTextContainer.visible = true
-            mainTextContainer.text = "\"" + textField.text + qsTr("\" is invalid or already taken.")
+            mainTextContainer.text = "\"" + textField.text + qsTr("\" is invalid or already taken.");
         }
         onHandleLoginCompleted: {
             console.log("Login Succeeded");
