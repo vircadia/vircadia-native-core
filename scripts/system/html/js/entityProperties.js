@@ -1532,11 +1532,10 @@ function resetProperties() {
         switch (propertyData.type) {
             case 'number':
             case 'string': {
-                property.elInput.value = "";
                 if (propertyData.defaultValue !== undefined) {
-                    property.elInput.setValue(propertyData.defaultValue);
+                    property.elInput.value = propertyData.defaultValue;
                 } else {
-                    property.elInput.setValue("");
+                    property.elInput.value = "";
                 }
                 break;
             }
@@ -1907,7 +1906,7 @@ function createNumberProperty(property, elProperty) {
         elInput.value = propertyData.defaultValue;
     }
 
-    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
+    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(property));
 
     elProperty.appendChild(elInput);
 
@@ -1918,7 +1917,7 @@ function createNumberProperty(property, elProperty) {
     return elInput;
 }
 
-function createNumberSpinnerProperty(property, elProperty) { 
+function createNumberDraggableProperty(property, elProperty) { 
     let elementID = property.elementID;
     let propertyData = property.data;
     
@@ -2266,7 +2265,7 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
             break;
         }
         case 'number-draggable': {
-            property.elNumber = createNumberSpinnerProperty(property, elProperty);
+            property.elNumber = createNumberDraggableProperty(property, elProperty);
             break;
         }
         case 'vec3': {
