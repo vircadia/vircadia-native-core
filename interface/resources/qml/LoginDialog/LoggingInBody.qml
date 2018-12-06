@@ -72,10 +72,9 @@ Item {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Steam";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
-
         } else if (loggingInBody.withOculus) {
-            loggingInGlyph.visible = true;
             loggingInGlyph.text = hifi.glyphs.oculus;
+            loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Oculus";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
         } else {
@@ -95,16 +94,12 @@ Item {
         if (loggingInBody.withSteam) {
             // reset the flag.
             loggingInGlyph.visible = false;
-            loggingInText.text = "You are now logged into Steam!"
-            loggingInText.anchors.centerIn = loggingInHeader;
-            loggingInText.anchors.bottom = loggingInHeader.bottom;
+            loggingInText.text = "You are now logged into Steam!";
             loggedInGlyph.visible = true;
         } else if (loggingInBody.withOculus) {
             // reset the flag.
             loggingInGlyph.visible = false;
-            loggingInText.text = "You are now logged into Oculus!"
-            loggingInText.anchors.centerIn = loggingInHeader;
-            loggingInText.anchors.bottom = loggingInHeader.bottom;
+            loggingInText.text = "You are now logged into Oculus!";
             loggedInGlyph.text = hifi.glyphs.oculus;
             loggedInGlyph.visible = true;
         } else {
@@ -118,30 +113,6 @@ Item {
         width: root.width
         height: root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
-
-        Rectangle {
-            id: opaqueRect
-            height: parent.height
-            width: parent.width
-            opacity: 0.7
-            color: "black"
-        }
-
-        Item {
-            id: bannerContainer
-            width: parent.width
-            height: banner.height
-            anchors {
-                top: parent.top
-                topMargin: 0.18 * parent.height
-            }
-            Image {
-                id: banner
-                anchors.centerIn: parent
-                source: "../../images/high-fidelity-banner.svg"
-                horizontalAlignment: Image.AlignHCenter
-            }
-        }
 
         Item {
             id: loggingInContainer
@@ -176,7 +147,7 @@ Item {
                     // Alignment
                     horizontalAlignment: Text.AlignHCenter;
                     verticalAlignment: Text.AlignVCenter;
-                    visible: loggingInBody.withSteam;
+                    visible: loggingInBody.withSteam || loggingInBody.withOculus;
                 }
 
                 TextMetrics {
@@ -210,7 +181,7 @@ Item {
                 }
                 AnimatedImage {
                     id: loggingInSpinner
-                    source: "../../icons/loader-snake-64-w.gif"
+                    source: "images/loader-snake-298-b.gif"
                     width: 128
                     height: width
                     anchors.left: parent.left;
@@ -254,7 +225,7 @@ Item {
         onHandleLinkCompleted: {
             console.log("Link Succeeded");
             loggingInBody.linkSteam = false;
-            loadingSuccess();
+            loggingInBody.loadingSuccess();
         }
         onHandleLinkFailed: {
             console.log("Link Failed: " + error);
@@ -263,7 +234,7 @@ Item {
 
         onHandleLoginCompleted: {
             console.log("Login Succeeded");
-            loadingSuccess();
+            loggingInBody.loadingSuccess();
         }
 
         onHandleLoginFailed: {

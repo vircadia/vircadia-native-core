@@ -165,7 +165,9 @@ Item {
                 }
                 onFocusChanged: {
                     root.text = "";
-                    root.isPassword = !focus;
+                    if (focus) {
+                        root.isPassword = false;
+                    }
                 }
             }
             HifiControlsUit.TextField {
@@ -471,7 +473,7 @@ Item {
         onFocusEnabled: {
             Qt.callLater(function() {
                 emailField.forceActiveFocus();
-            })
+            });
         }
     }
 
@@ -482,6 +484,9 @@ Item {
         root.text = "";
         d.resize();
         init();
+        Qt.callLater(function() {
+            emailField.forceActiveFocus();
+        });
     }
 
     Keys.onPressed: {

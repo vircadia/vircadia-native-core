@@ -85,30 +85,6 @@ Item {
         height: root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
-        Rectangle {
-            id: opaqueRect
-            height: parent.height
-            width: parent.width
-            opacity: 0.9
-            color: "black"
-        }
-
-
-        Item {
-            id: bannerContainer
-            width: parent.width
-            height: banner.height
-            anchors {
-                bottom: loginContainer.top
-                bottomMargin: 0.07 * parent.height
-            }
-            Image {
-                id: banner
-                anchors.centerIn: parent
-                source: "../../images/high-fidelity-banner.svg"
-                horizontalAlignment: Image.AlignHCenter
-            }
-        }
         Item {
             id: loginContainer
             width: usernameField.width
@@ -189,7 +165,9 @@ Item {
                 }
                 onFocusChanged: {
                     root.text = "";
-                    root.isPassword = !focus;
+                    if (focus) {
+                        root.isPassword = false;
+                    }
                 }
             }
 
@@ -232,7 +210,9 @@ Item {
                 }
                 onFocusChanged: {
                     root.text = "";
-                    root.isPassword = !focus;
+                    if (focus) {
+                        root.isPassword = false;
+                    }
                 }
             }
             HifiControlsUit.TextField {
@@ -346,13 +326,12 @@ Item {
             }
             HifiControlsUit.Button {
                 id: cancelButton
-                width: emailField.width / 2
+                width: (emailField.width - hifi.dimensions.contentSpacing.x) / 2
                 height: d.minHeightButton
                 anchors {
                     top: keepMeLoggedInCheckbox.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
                     left: parent.left
-                    leftMargin: (parent.width - passwordField.width) / 2
                 }
                 color: hifi.buttons.noneBorderlessWhite
                 text: qsTr("CANCEL")
@@ -365,7 +344,7 @@ Item {
             }
             HifiControlsUit.Button {
                 id: signUpButton
-                width: emailField.width / 2
+                width: (emailField.width - hifi.dimensions.contentSpacing.x) / 2
                 height: d.minHeightButton
                 color: hifi.buttons.blue
                 text: qsTr("Sign Up")

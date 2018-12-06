@@ -94,7 +94,7 @@ FocusScope {
     Image {
         z: -10
         id: loginDialogBackground
-        source: "../LoginDialog/background_tablet.jpg"
+        source: "../LoginDialog/images/background_tablet.jpg"
         anchors.fill: parent
     }
 
@@ -120,7 +120,7 @@ FocusScope {
         id: opaqueRect
         height: parent.height
         width: parent.width
-        opacity: 0.5
+        opacity: 0.25
         color: "black"
     }
 

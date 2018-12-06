@@ -3789,7 +3789,7 @@ bool Application::event(QEvent* event) {
     }
 
     // Allow focused Entities and Overlays to handle keyboard input
-    if (isKeyEvent(event->type()) && handleKeyEventForFocusedEntityOrOverlay(event)) {
+    if (isKeyEvent(event->type()) && handleKeyEventForFocusedEntityOrOverlay(event) && !qApp->getLoginDialogPoppedUp()) {
         return true;
     }
 
@@ -3902,6 +3902,10 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
 static bool _altPressed{ false };
 
 void Application::keyPressEvent(QKeyEvent* event) {
+    if (isHMDMode() && qApp->getLoginDialogPoppedUp()) {
+        return;
+    }
+
     _altPressed = event->key() == Qt::Key_Alt;
 
     if (!event->isAutoRepeat()) {
@@ -4145,6 +4149,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
+    if (isHMDMode() && qApp->getLoginDialogPoppedUp()) {
+        return;
+    }
+
     if (!event->isAutoRepeat()) {
         _keysPressed.remove(event->key());
     }
