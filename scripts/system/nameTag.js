@@ -12,7 +12,7 @@
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-const CLIENTONLY = false;
+const AVATARENTITY = false;
 const ENTITY_CHECK_INTERVAL = 5000; // ms = 5 seconds
 const STARTUP_DELAY = 2000; // ms = 2 second
 const OLD_AGE = 3500; // we recreate the entity if older than this time in seconds 
@@ -43,7 +43,7 @@ function addNameTag() {
         dimensions: dimensionsFromName(),
         position: nameTagPosition
     }
-    nameTagEntityID = Entities.addEntity(nameTagProperties, CLIENTONLY);
+    nameTagEntityID = Entities.addEntity(nameTagProperties, AVATARENTITY);
 }
 
 function updateNameTag() {
