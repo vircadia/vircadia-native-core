@@ -241,7 +241,10 @@ Item {
             console.log("Login Failed")
             loggingInSpinner.visible = false;
             var errorString = "";
-            if (loggingInBody.withSteam) {
+            if (loggingInBody.linkSteam && loggingInBody.withSteam) {
+                errorString = "Username or password is incorrect.";
+                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam, "linkSteam": loggingInBody.linkSteam, "errorString": errorString });
+            } else if (loggingInBody.withSteam) {
                 loggingInGlyph.visible = false;
                 errorString = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again.";
                 bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam, "errorString": errorString });

@@ -64,7 +64,7 @@ Item {
 
     function login() {
         loginDialog.login(emailField.text, passwordField.text);
-        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "withOculus": false, "linkSteam": linkAccountBody.linkSteam });
+        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam });
     }
 
     function init() {

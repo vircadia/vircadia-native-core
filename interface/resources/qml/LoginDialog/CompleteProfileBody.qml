@@ -92,7 +92,7 @@ Item {
                         loginErrorMessage.wrapMode = Text.WordWrap;
                         loginErrorMessage.verticalAlignment = Text.AlignLeft;
                         loginErrorMessage.horizontalAlignment = Text.AlignLeft;
-                        errorContainer.height = 2 * loginErrorMessageTextMetrics.height;
+                        errorContainer.height = 3 * loginErrorMessageTextMetrics.height;
                     }
                 }
             }
@@ -169,7 +169,7 @@ Item {
 
                 onLinkActivated: {
                     loginDialog.isLogIn = true;
-                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "", "linkSteam": true });
+                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "", "withSteam": true, "linkSteam": true });
                 }
             }
 
