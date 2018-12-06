@@ -76,15 +76,10 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
 
     // Diffuse color and unpack the mode and the metallicness
     frag.albedo = diffuseVal.xyz;
-    frag.scattering = 0.0;
     unpackModeMetallic(diffuseVal.w, frag.mode, frag.metallic);
 
     frag.obscurance = min(specularVal.w, frag.obscurance);
-
-    if (frag.mode == FRAG_MODE_SCATTERING) {
-        frag.scattering = specularVal.x;
-    }
-
+    frag.scattering = float(frag.mode == FRAG_MODE_SCATTERING) * specularVal.x;
     frag.fresnel = getFresnelF0(frag.metallic, diffuseVal.xyz);
 
     return frag;
@@ -122,14 +117,11 @@ DeferredFragment unpackDeferredFragmentNoPositionNoAmbient(vec2 texcoord) {
 <$declareDeferredFrameTransform()$>
 
 vec4 unpackDeferredPosition(float depthValue, vec2 texcoord) {
-    int side = 0;
-    if (isStereo()) {
-        if (texcoord.x > 0.5) {
-            texcoord.x -= 0.5;
-            side = 1;
-        }
-        texcoord.x *= 2.0;
-    }
+    float check = float(isStereo());
+    float check2 = check * float(texcoord.x > 0.5);
+    texcoord.x -= check2 * 0.5;
+    int side = int(check2);
+    texcoord.x *= 1.0 + check;
 
     return vec4(evalEyePositionFromZdb(side, depthValue, texcoord), 1.0);
 }
@@ -142,19 +134,17 @@ vec4 unpackDeferredPositionFromZdb(vec2 texcoord) {
 
 vec4 unpackDeferredPositionFromZeye(vec2 texcoord) {
     float Zeye = -texture(linearZeyeMap, texcoord).x;
-    int side = 0;
-    if (isStereo()) {
-        if (texcoord.x > 0.5) {
-            texcoord.x -= 0.5;
-            side = 1;
-        }
-        texcoord.x *= 2.0;
-    }
+
+    float check = float(isStereo());
+    float check2 = check * float(texcoord.x > 0.5);
+    texcoord.x -= check2 * 0.5;
+    int side = int(check2);
+    texcoord.x *= 1.0 + check;
+
     return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
 }
 
 DeferredFragment unpackDeferredFragment(DeferredFrameTransform deferredTransform, vec2 texcoord) {
-
     float depthValue = texture(depthMap, texcoord).r;
 
     DeferredFragment frag = unpackDeferredFragmentNoPosition(texcoord);

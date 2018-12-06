@@ -93,14 +93,14 @@ vec3 drawScatteringTableUV(vec2 cursor, vec2 texcoord) {
     vec3 color = vec3(0.0);
     bool keep = false;
     for (int c = 0; c < 3; c++) {
-        if (distance[c] > threshold) {
-            keep = true;
-            color[c] += 1.0;
-        }
+        bool check = distance[c] > threshold;
+        keep = keep || check;
+        color[c] += float(check);
     }
 
-    if (!keep)
-            discard;
+    if (!keep) {
+        discard;
+    }
 
     return color;
 }

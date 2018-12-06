@@ -30,11 +30,9 @@ void main(void) {
     vec3 color = skybox.color.rgb;
 
     // blend is only set if there is a cubemap
-    if (skybox.color.a > 0.0) {
-        color = texture(cubeMap, coord).rgb;
-        if (skybox.color.a < 1.0) {
-            color *= skybox.color.rgb;
-        }
-    }
+    float check = float(skybox.color.a > 0.0);
+    color = mix(color, texture(cubeMap, coord).rgb, check);
+    color *= mix(vec3(1.0), skybox.color.rgb, check * float(skybox.color.a < 1.0));
+
     _fragColor = vec4(color, 0.0);
 }
