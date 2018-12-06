@@ -120,10 +120,10 @@ Item {
             if (result.status === 'success') {
                 root.authorizationID = result.data.authorization_id;
                 authorizationIDText.text = root.authorizationID;
-                root.couponID = result.data.secret;
+                root.couponID = result.data.coupon_id;
                 couponIDText.text = root.couponID
                 if (couponIDTextField.text !== root.couponID) {
-                    console.log("SendAsset: Returned secret doesn't match client-generated secret!");
+                    console.log("SendAsset: Returned coupon ID doesn't match client-generated coupon ID!");
                 }
                 root.nextActiveView = 'paymentSuccess';
             } else {

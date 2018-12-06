@@ -85,7 +85,7 @@ protected:
 
     Q_INVOKABLE void transferAssetToNode(const QString& nodeID, const QString& certificateID, const int& amount, const QString& optionalMessage);
     Q_INVOKABLE void transferAssetToUsername(const QString& username, const QString& certificateID, const int& amount, const QString& optionalMessage);
-    Q_INVOKABLE void authorizeAssetTransfer(const QString& secret, const QString& certificateID, const int& amount, const QString& optionalMessage);
+    Q_INVOKABLE void authorizeAssetTransfer(const QString& couponID, const QString& certificateID, const int& amount, const QString& optionalMessage);
 
     Q_INVOKABLE void replaceContentSet(const QString& itemHref, const QString& certificateID);
 

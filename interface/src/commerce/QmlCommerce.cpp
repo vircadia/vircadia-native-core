@@ -247,7 +247,7 @@ void QmlCommerce::transferAssetToUsername(const QString& username,
     ledger->transferAssetToUsername(key, username, certificateID, amount, optionalMessage);
 }
 
-void QmlCommerce::authorizeAssetTransfer(const QString& secret,
+void QmlCommerce::authorizeAssetTransfer(const QString& couponID,
     const QString& certificateID,
     const int& amount,
     const QString& optionalMessage) {
@@ -259,7 +259,7 @@ void QmlCommerce::authorizeAssetTransfer(const QString& secret,
         return emit authorizeAssetTransferResult(result);
     }
     QString key = keys[0];
-    ledger->authorizeAssetTransfer(key, secret, certificateID, amount, optionalMessage);
+    ledger->authorizeAssetTransfer(key, couponID, certificateID, amount, optionalMessage);
 }
 
 void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {

@@ -442,10 +442,10 @@ void Ledger::transferAssetToUsername(const QString& hfc_key, const QString& user
     }
 }
 
-void Ledger::authorizeAssetTransfer(const QString& hfc_key, const QString& secret, const QString& certificateID, const int& amount, const QString& optionalMessage) {
+void Ledger::authorizeAssetTransfer(const QString& hfc_key, const QString& couponID, const QString& certificateID, const int& amount, const QString& optionalMessage) {
     QJsonObject transaction;
     transaction["public_key"] = hfc_key;
-    transaction["secret"] = secret;
+    transaction["coupon_id"] = couponID;
     transaction["quantity"] = amount;
     transaction["message"] = optionalMessage;
     if (!certificateID.isEmpty()) {
