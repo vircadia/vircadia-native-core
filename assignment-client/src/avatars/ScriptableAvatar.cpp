@@ -24,7 +24,7 @@
 
 
 ScriptableAvatar::ScriptableAvatar() {
-    _clientTraitsHandler = std::unique_ptr<ClientTraitsHandler>(new ClientTraitsHandler(this));
+    _clientTraitsHandler.reset(new ClientTraitsHandler(this));
 }
 
 QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {

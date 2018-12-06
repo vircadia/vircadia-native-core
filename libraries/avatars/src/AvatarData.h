@@ -1478,7 +1478,7 @@ protected:
     bool _isClientAvatar { false };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
-    std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;
+    std::unique_ptr<ClientTraitsHandler, LaterDeleter> _clientTraitsHandler;
 
     template <typename T, typename F>
     T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {

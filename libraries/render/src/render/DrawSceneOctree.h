@@ -20,7 +20,6 @@
 namespace render {
     class DrawSceneOctreeConfig : public Job::Config {
         Q_OBJECT
-        Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty())
         Q_PROPERTY(bool showVisibleCells READ getShowVisibleCells WRITE setShowVisibleCells NOTIFY dirty())
         Q_PROPERTY(bool showEmptyCells READ getShowEmptyCells WRITE setShowEmptyCells NOTIFY dirty())
         Q_PROPERTY(int numAllocatedCells READ getNumAllocatedCells)
@@ -77,7 +76,6 @@ namespace render {
 
     class DrawItemSelectionConfig : public Job::Config {
         Q_OBJECT
-        Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty())
         Q_PROPERTY(bool showInsideItems READ getShowInsideItems WRITE setShowInsideItems NOTIFY dirty())
         Q_PROPERTY(bool showInsideSubcellItems READ getShowInsideSubcellItems WRITE setShowInsideSubcellItems NOTIFY dirty())
         Q_PROPERTY(bool showPartialItems READ getShowPartialItems WRITE setShowPartialItems NOTIFY dirty())

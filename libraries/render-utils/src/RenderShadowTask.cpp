@@ -38,7 +38,7 @@ using namespace render;
 extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 void RenderShadowTask::configure(const Config& configuration) {
-    DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
+    DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.isEnabled());
     // This is a task, so must still propogate configure() to its Jobs
     //    Task::configure(configuration);
 }
