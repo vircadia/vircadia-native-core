@@ -75,7 +75,9 @@ Item {
         emailField.anchors.top = usernameField.bottom;
         emailField.anchors.topMargin = 1.5 * hifi.dimensions.contentSpacing.y;
         passwordField.text = "";
-        usernameField.focus = true;
+        usernameField.forceActiveFocus();
+        root.text = "";
+        root.isPassword = false;
         loginContainer.visible = true;
     }
 
@@ -117,6 +119,7 @@ Item {
                     color: "red";
                     font.family: signUpBody.fontFamily
                     font.pixelSize: 18
+                    font.bold: signUpBody.fontBold
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                     text: ""
@@ -135,7 +138,6 @@ Item {
                     top: parent.top
                     topMargin: loginErrorMessage.height
                 }
-                focus: true
                 Keys.onPressed: {
                     if (!usernameField.visible) {
                         return;

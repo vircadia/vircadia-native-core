@@ -124,6 +124,7 @@ Item {
                     color: "red";
                     font.family: linkAccountBody.fontFamily
                     font.pixelSize: linkAccountBody.textFieldFontSize
+                    font.bold: linkAccountBody.fontBold
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                     text: ""

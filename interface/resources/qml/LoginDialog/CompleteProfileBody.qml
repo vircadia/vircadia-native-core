@@ -81,6 +81,7 @@ Item {
                     color: "red";
                     font.family: signUpBody.fontFamily
                     font.pixelSize: 18
+                    font.bold: completeProfileBody.fontBold
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                     text: completeProfileBody.errorString

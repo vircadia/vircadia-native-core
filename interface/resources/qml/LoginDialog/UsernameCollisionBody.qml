@@ -102,6 +102,7 @@ Item {
                 leftMargin: (parent.width - width) / 2
                 topMargin: hifi.dimensions.contentSpacing.y
             }
+            focus: true
             font.family: "Fira Sans"
             font.pixelSize: usernameCollisionBody.textFieldFontSize
             styleRenderType: Text.QtRendering
@@ -112,7 +113,9 @@ Item {
 
             onFocusChanged: {
                 root.text = "";
-                root.isPassword = !focus;
+                if (focus) {
+                    root.isPassword = false;
+                }
             }
 
             Keys.onPressed: {
@@ -127,6 +130,10 @@ Item {
                         usernameCollisionBody.create();
                         break;
                 }
+            }
+            Component.onCompleted: {
+                root.text = "";
+                root.isPassword = false;
             }
         }
 
