@@ -1287,10 +1287,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 dialogsManager->hideLoginDialog();
                 createLoginDialogOverlay();
             } else {
-                QVariantMap properties{
-                    { "parentID", QUuid() }
-                };
-                getOverlays().editOverlay(keyboard->getAnchorID(), properties);
                 getOverlays().deleteOverlay(_loginDialogOverlayID);
                 _loginDialogOverlayID = OverlayID();
                 _loginStateManager.tearDown();
@@ -3789,7 +3785,7 @@ bool Application::event(QEvent* event) {
     }
 
     // Allow focused Entities and Overlays to handle keyboard input
-    if (isKeyEvent(event->type()) && handleKeyEventForFocusedEntityOrOverlay(event) && !qApp->getLoginDialogPoppedUp()) {
+    if (isKeyEvent(event->type()) && handleKeyEventForFocusedEntityOrOverlay(event)) {
         return true;
     }
 
@@ -3902,10 +3898,6 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
 static bool _altPressed{ false };
 
 void Application::keyPressEvent(QKeyEvent* event) {
-    if (isHMDMode() && qApp->getLoginDialogPoppedUp()) {
-        return;
-    }
-
     _altPressed = event->key() == Qt::Key_Alt;
 
     if (!event->isAutoRepeat()) {
@@ -4149,10 +4141,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
-    if (isHMDMode() && qApp->getLoginDialogPoppedUp()) {
-        return;
-    }
-
     if (!event->isAutoRepeat()) {
         _keysPressed.remove(event->key());
     }
@@ -5683,6 +5671,9 @@ QUuid Application::getKeyboardFocusEntity() const {
 static const float FOCUS_HIGHLIGHT_EXPANSION_FACTOR = 1.05f;
 
 void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
+    if (qApp->getLoginDialogPoppedUp()) {
+        return;
+    }
     if (_keyboardFocusedEntity.get() != entityItemID) {
         _keyboardFocusedEntity.set(entityItemID);
 
@@ -5723,6 +5714,15 @@ OverlayID Application::getKeyboardFocusOverlay() {
 
 void Application::setKeyboardFocusOverlay(const OverlayID& overlayID) {
     if (overlayID != _keyboardFocusedOverlay.get()) {
+        if (qApp->getLoginDialogPoppedUp()) {
+            if (overlayID == _loginDialogOverlayID) {
+                emit loginDialogFocusEnabled();
+            } else {
+                // that's the only overlay we want in focus;
+                return;
+            }
+        }
+
         _keyboardFocusedOverlay.set(overlayID);
 
         if (_keyboardFocusHighlight && _keyboardFocusedEntity.get() == UNKNOWN_ENTITY_ID) {
@@ -5751,9 +5751,6 @@ void Application::setKeyboardFocusOverlay(const OverlayID& overlayID) {
             } else if (_keyboardFocusHighlight) {
                 _keyboardFocusHighlight->setVisible(false);
             }
-        }
-        if (overlayID == _loginDialogOverlayID) {
-            emit loginDialogFocusEnabled();
         }
     }
 }
@@ -8649,13 +8646,13 @@ void Application::createLoginDialogOverlay() {
         { "visible", true }
     };
     auto& overlays = getOverlays();
-    _loginDialogOverlayID = getOverlays().addOverlay("web3d", overlayProperties);
+    _loginDialogOverlayID = overlays.addOverlay("web3d", overlayProperties);
+    auto loginOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlays.getOverlay(_loginDialogOverlayID));
     auto keyboard = DependencyManager::get<Keyboard>().data();
     if (!keyboard->getAnchorID().isNull() && !_loginDialogOverlayID.isNull()) {
         QVariantMap properties {
-            { "parentID", _loginDialogOverlayID },
-            { "localPosition", vec3toVariant(glm::vec3(-0.3f, -0.3f, 0.2f)) },
-            { "localOrientation", quatToVariant(glm::quat(0.0f, 0.0, 1.0f, 0.25f)) },
+            { "position", vec3toVariant(loginOverlay->getWorldPosition() + glm::vec3(-0.4, -0.3f, 0.2f)) },
+            { "orientation", quatToVariant(loginOverlay->getWorldOrientation() * glm::quat(0.0f, 0.0, 1.0f, 0.25f)) },
         };
         overlays.editOverlay(keyboard->getAnchorID(), properties);
         keyboard->setResetKeyboardPositionOnRaise(false);
@@ -8671,8 +8668,8 @@ void Application::createLoginDialogOverlay() {
 void Application::updateLoginDialogOverlayPosition() {
     const float LOOK_AWAY_THRESHOLD_ANGLE = 40.0f;
     auto& overlays = getOverlays();
-    auto overlayPosition = overlays.getProperty(_loginDialogOverlayID, "position");
-    auto overlayPositionVec = vec3FromVariant(overlayPosition.value);
+    auto loginOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlays.getOverlay(_loginDialogOverlayID));
+    auto overlayPositionVec = loginOverlay->getWorldPosition();
     auto cameraPositionVec = _myCamera.getPosition();
     auto cameraOrientation = _myCamera.getOrientation();
     cameraOrientation = cancelOutRoll(cameraOrientation);
@@ -8690,6 +8687,13 @@ void Application::updateLoginDialogOverlayPosition() {
             {"orientation", quatToVariant(newOverlayOrientation)}
         };
         overlays.editOverlay(_loginDialogOverlayID, properties);
+        auto keyboardPositionOffsetVec = newOverlayOrientation * glm::vec3(-0.4f * getMyAvatar()->getSensorToWorldScale(), -0.3f, 0.2f);
+        QVariantMap keyboardProperties {
+            { "position", vec3toVariant(newOverlayPositionVec + keyboardPositionOffsetVec) },
+            { "orientation", quatToVariant(newOverlayOrientation * glm::quat(0.0f, 0.0, 1.0f, 0.25f)) },
+        };
+        auto keyboard = DependencyManager::get<Keyboard>().data();
+        overlays.editOverlay(keyboard->getAnchorID(), keyboardProperties);
     }
 }
 
@@ -8698,10 +8702,6 @@ void Application::onDismissedLoginDialog() {
     loginDialogPoppedUp.set(false);
     auto keyboard = DependencyManager::get<Keyboard>().data();
     if (!_loginDialogOverlayID.isNull()) {
-        QVariantMap properties{
-            { "parentID", QUuid() }
-        };
-        getOverlays().editOverlay(keyboard->getAnchorID(), properties);
         keyboard->setResetKeyboardPositionOnRaise(true);
         // deleting overlay.
         qDebug() << "Deleting overlay";
