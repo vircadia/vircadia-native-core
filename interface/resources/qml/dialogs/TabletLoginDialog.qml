@@ -94,7 +94,7 @@ FocusScope {
     Image {
         z: -10
         id: loginDialogBackground
-        source: "../LoginDialog/background_tablet.jpg"
+        source: "../LoginDialog/images/background_tablet.jpg"
         anchors.fill: parent
     }
 
