@@ -978,7 +978,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
     }
 
     // Set the grid pipeline
-    useGridPipeline(batch, _registeredGridBuffers[id], color.a < 1.0);
+    useGridPipeline(batch, _registeredGridBuffers[id], color.a < 1.0f);
 
     renderQuad(batch, minCorner, maxCorner, MIN_TEX_COORD, MAX_TEX_COORD, color, id);
 }
