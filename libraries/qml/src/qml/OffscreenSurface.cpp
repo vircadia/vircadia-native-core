@@ -317,7 +317,7 @@ void OffscreenSurface::loadInternal(const QUrl& qmlSource,
     {
         PROFILE_RANGE(app, "new QQmlComponent");
         qmlComponent = new QQmlComponent(getSurfaceContext()->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
-     }
+    }
     if (qmlComponent->isLoading()) {
         connect(qmlComponent, &QQmlComponent::statusChanged, this,
                 [=](QQmlComponent::Status) { finishQmlLoad(qmlComponent, targetContext, parent, callback); });

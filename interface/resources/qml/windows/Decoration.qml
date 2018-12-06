@@ -12,7 +12,7 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 
 import "."
-import "../styles-uit"
+import stylesUit 1.0
 
 Rectangle {
     HifiConstants { id: hifi }

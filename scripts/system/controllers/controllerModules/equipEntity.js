@@ -459,13 +459,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.dropGestureReset();
             this.clearEquipHaptics();
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-            unhighlightTargetEntity(this.targetEntityID);
-            var message = {
-                hand: this.hand,
-                entityID: this.targetEntityID
-            };
 
-            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var grabbedProperties = Entities.getEntityProperties(this.targetEntityID, DISPATCHER_PROPERTIES);
             var grabData = getGrabbableData(grabbedProperties);
 
@@ -485,7 +479,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
 
             var handJointIndex;
-            if (grabData.grabFollowsController) {
+            if (HMD.mounted && HMD.isHandControllerAvailable() && grabData.grabFollowsController) {
                 handJointIndex = this.controllerJointIndex;
             } else {
                 handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");

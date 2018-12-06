@@ -18,25 +18,25 @@
 #include <vector>
 #include <chrono> //c++11 feature
 #include <QFile>
-#include <FBXReader.h>
-#include <OBJReader.h>
 #include <VHACD.h>
+
+#include <hfm/HFM.h>
 
 namespace vhacd {
     class VHACDUtil {
     public:
         void setVerbose(bool verbose) { _verbose = verbose; }
 
-        bool loadFBX(const QString filename, FBXGeometry& result);
+        bool loadFBX(const QString filename, HFMModel& result);
 
-        void fattenMesh(const FBXMesh& mesh, const glm::mat4& gometryOffset, FBXMesh& result) const;
+        void fattenMesh(const HFMMesh& mesh, const glm::mat4& modelOffset, HFMMesh& result) const;
 
-        bool computeVHACD(FBXGeometry& geometry,
+        bool computeVHACD(HFMModel& hfmModel,
                           VHACD::IVHACD::Parameters params,
-                          FBXGeometry& result,
+                          HFMModel& result,
                           float minimumMeshSize, float maximumMeshSize);
 
-        void getConvexResults(VHACD::IVHACD* convexifier, FBXMesh& resultMesh) const;
+        void getConvexResults(VHACD::IVHACD* convexifier, HFMMesh& resultMesh) const;
 
         ~VHACDUtil();
 
@@ -55,6 +55,6 @@ namespace vhacd {
     };
 }
 
-AABox getAABoxForMeshPart(const FBXMeshPart &meshPart);
+AABox getAABoxForMeshPart(const HFMMeshPart &meshPart);
 
 #endif //hifi_VHACDUtil_h

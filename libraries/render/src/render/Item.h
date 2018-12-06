@@ -480,8 +480,8 @@ public:
 protected:
     PayloadPointer _payload;
     ItemKey _key;
-    ItemCell _cell{ INVALID_CELL };
-    Index _transitionId{ INVALID_INDEX };
+    ItemCell _cell { INVALID_CELL };
+    Index _transitionId { INVALID_INDEX };
 
     friend class Scene;
 };

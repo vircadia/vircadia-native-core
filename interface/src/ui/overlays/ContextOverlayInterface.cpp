@@ -223,12 +223,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
 
 bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& entityItemID) {
     EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
-    Setting::Handle<bool> _settingSwitch{ "commerce", true };
-    if (_settingSwitch.get()) {
-        return (entityProperties.getCertificateID().length() != 0);
-    } else {
-        return (entityProperties.getMarketplaceID().length() != 0);
-    }
+    return (entityProperties.getCertificateID().length() != 0);
 }
 
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
@@ -360,7 +355,7 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
                                 }
                             }
                         } else {
-                            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() <<
+                            qCDebug(entities) << "Call failed with error" << networkReply->error() <<
                                 "More info:" << networkReply->readAll();
                         }
 

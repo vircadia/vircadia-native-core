@@ -27,7 +27,7 @@
 
 #include <PathUtils.h>
 
-#include <FBXReader.h>
+#include <FBXSerializer.h>
 #include <FBXWriter.h>
 
 #include "ModelBakingLoggingCategory.h"
@@ -187,10 +187,10 @@ void FBXBaker::importScene() {
         return;
     }
 
-    FBXReader reader;
+    FBXSerializer fbxSerializer;
 
     qCDebug(model_baking) << "Parsing" << _modelURL;
-    _rootNode = reader._rootNode = reader.parseFBX(&fbxFile);
+    _rootNode = fbxSerializer._rootNode = fbxSerializer.parseFBX(&fbxFile);
 
 #ifdef HIFI_DUMP_FBX
     {
@@ -206,8 +206,8 @@ void FBXBaker::importScene() {
     }
 #endif
 
-    _geometry = reader.extractFBXGeometry({}, _modelURL.toString());
-    _textureContentMap = reader._textureContent;
+    _hfmModel = fbxSerializer.extractHFMModel({}, _modelURL.toString());
+    _textureContentMap = fbxSerializer._textureContent;
 }
 
 void FBXBaker::rewriteAndBakeSceneModels() {
@@ -231,8 +231,8 @@ void FBXBaker::rewriteAndBakeSceneModels() {
             for (FBXNode& objectChild : rootChild.children) {
                 if (objectChild.name == "Geometry") {
 
-                    // TODO Pull this out of _geometry instead so we don't have to reprocess it
-                    auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex, false);
+                    // TODO Pull this out of _hfmModel instead so we don't have to reprocess it
+                    auto extractedMesh = FBXSerializer::extractMesh(objectChild, meshIndex, false);
                     
                     // Callback to get MaterialID
                     GetMaterialIDCallback materialIDcallback = [&extractedMesh](int partIndex) {
@@ -293,7 +293,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
     QHash<QString, image::TextureUsage::Type> textureTypes;
 
     // enumerate the materials in the extracted geometry so we can determine the texture type for each texture ID
-    for (const auto& material : _geometry->materials) {
+    for (const auto& material : _hfmModel->materials) {
         if (material.normalTexture.isBumpmap) {
             textureTypes[material.normalTexture.id] = BUMP_TEXTURE;
         } else {
@@ -329,7 +329,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                     for (FBXNode& textureChild : object->children) {
 
                         if (textureChild.name == "RelativeFilename") {
-                            QString fbxTextureFileName { textureChild.properties.at(0).toString() };
+                            QString hfmTextureFileName { textureChild.properties.at(0).toString() };
                             
                             // grab the ID for this texture so we can figure out the
                             // texture type from the loaded materials
@@ -337,7 +337,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                             auto textureType = textureTypes[textureID];
 
                             // Compress the texture information and return the new filename to be added into the FBX scene
-                            auto bakedTextureFile = compressTexture(fbxTextureFileName, textureType);
+                            auto bakedTextureFile = compressTexture(hfmTextureFileName, textureType);
 
                             // If no errors or warnings have occurred during texture compression add the filename to the FBX scene
                             if (!bakedTextureFile.isNull()) {

@@ -128,12 +128,12 @@ describe('Script', function () {
 function run() {}
 function instrument_testrunner() {
     if (typeof describe === 'undefined') {
-        print('instrumenting jasmine', Script.resolvePath(''));
+        print('instrumenting jasmine');
         Script.include('../../libraries/jasmine/jasmine.js');
         Script.include('../../libraries/jasmine/hifi-boot.js');
         jasmine.getEnv().addReporter({ jasmineDone: Script.stop });
         run = function() {
-            print('executing jasmine', Script.resolvePath(''));
+            print('executing jasmine');
             jasmine.getEnv().execute();
         };
     }

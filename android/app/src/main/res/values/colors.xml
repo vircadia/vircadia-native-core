@@ -10,6 +10,8 @@
     <color name="tabs">#1EB5EC</color>
     <color name="colorButton1">#00B4EF</color>
     <color name="colorButton2">#828282</color>
+    <color name="colorButton3">#8F8F8F</color>
+    <color name="colorButton4">#434343</color>
     <color name="backgroundDark">#333333</color>
     <color name="backgroundLight">#4F4F4F</color>
     <color name="backgroundSearch">#33999999</color>

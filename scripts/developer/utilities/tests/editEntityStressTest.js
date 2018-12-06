@@ -30,7 +30,6 @@ var TEST_ENTITY_NAME = "EntitySpawnTest";
 (function () {
     this.makeEntity = function (properties) {
         var entity = Entities.addEntity(properties);
-        // print("spawning entity: " + JSON.stringify(properties));
 
         return {
             update: function (properties) {

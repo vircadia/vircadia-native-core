@@ -41,44 +41,37 @@ void SoftAttachmentModel::updateClusterMatrices() {
 
     _needsUpdateClusterMatrices = false;
 
-    const FBXGeometry& geometry = getFBXGeometry();
+    const HFMModel& hfmModel = getHFMModel();
 
     for (int i = 0; i < (int) _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
-        const FBXMesh& mesh = geometry.meshes.at(i);
-
+        const HFMMesh& mesh = hfmModel.meshes.at(i);
+        int meshIndex = i;
         for (int j = 0; j < mesh.clusters.size(); j++) {
-            const FBXCluster& cluster = mesh.clusters.at(j);
+            const HFMCluster& cluster = mesh.clusters.at(j);
 
+            int clusterIndex = j;
             // TODO: cache these look-ups as an optimization
             int jointIndexOverride = getJointIndexOverride(cluster.jointIndex);
+            glm::mat4 jointMatrix;
+            if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride.getJointStateCount()) {
+                jointMatrix = _rigOverride.getJointTransform(jointIndexOverride);
+            } else {
+                jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+            }
             if (_useDualQuaternionSkinning) {
-                glm::mat4 jointMatrix;
-                if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride.getJointStateCount()) {
-                    jointMatrix = _rigOverride.getJointTransform(jointIndexOverride);
-                } else {
-                    jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                }
-
                 glm::mat4 m;
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+                glm_mat4u_mul(jointMatrix, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindMatrix, m);
                 state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(m);
             } else {
-                glm::mat4 jointMatrix;
-                if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride.getJointStateCount()) {
-                    jointMatrix = _rigOverride.getJointTransform(jointIndexOverride);
-                } else {
-                    jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                }
-
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                glm_mat4u_mul(jointMatrix, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindMatrix, state.clusterMatrices[j]);
             }
         }
     }
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (_blendshapeOffsetsInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (_blendshapeOffsetsInitialized && modelBlender->shouldComputeBlendshapes() && hfmModel.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }

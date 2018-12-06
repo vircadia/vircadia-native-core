@@ -11,8 +11,8 @@
 import Hifi 1.0
 import QtQuick 2.5
 
-import "../controls-uit"
-import "../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 import "../windows"
 
 import "../LoginDialog"
@@ -95,6 +95,18 @@ TabletModalWindow {
         }
     }
 
+    Timer {
+        id: keyboardTimer
+        repeat: false
+        interval: 200
+
+        onTriggered: {
+            if (MenuInterface.isOptionChecked("Use 3D Keyboard")) {
+                KeyboardScriptingInterface.raised = true;
+            }
+        }
+    }
+
     TabletModalFrame {
         id: mfRoot
 
@@ -125,6 +137,15 @@ TabletModalWindow {
                 source: loginDialog.isSteamRunning() ? "../LoginDialog/SignInBody.qml" : "../LoginDialog/LinkAccountBody.qml"
             }
         }
+    }
+
+    Component.onDestruction: {
+        loginKeyboard.raised = false;
+        KeyboardScriptingInterface.raised = false;
+    }
+
+    Component.onCompleted: {
+        keyboardTimer.start();
     }
 
     Keyboard {

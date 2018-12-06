@@ -60,7 +60,8 @@ LightStage::LightStage() {
 }
 
 LightStage::Shadow::Schema::Schema() {
-    ShadowTransform defaultTransform;
+    ShadowTransform defaultTransform = {};
+    defaultTransform.reprojection = mat4();
     defaultTransform.fixedBias = 0.005f;
     std::fill(cascades, cascades + SHADOW_CASCADE_MAX_COUNT, defaultTransform);
     invMapSize = 1.0f / MAP_SIZE;
@@ -443,10 +444,12 @@ LightStageSetup::LightStageSetup() {
 }
 
 void LightStageSetup::run(const render::RenderContextPointer& renderContext) {
-    auto stage = renderContext->_scene->getStage(LightStage::getName());
-    if (!stage) {
-        stage = std::make_shared<LightStage>();
-        renderContext->_scene->resetStage(LightStage::getName(), stage);
+    if (renderContext->_scene) {
+        auto stage = renderContext->_scene->getStage(LightStage::getName());
+        if (!stage) {
+            stage = std::make_shared<LightStage>();
+            renderContext->_scene->resetStage(LightStage::getName(), stage);
+        }
     }
 }
 

@@ -127,16 +127,16 @@ void AvatarManager::setSpace(workload::SpacePointer& space ) {
 void AvatarManager::handleTransitAnimations(AvatarTransit::Status status) {
     switch (status) {
         case AvatarTransit::Status::STARTED:
-            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("preTransitAnim");
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("preTransitAnim");
             break;
         case AvatarTransit::Status::START_TRANSIT:
-            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("transitAnim");
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("transitAnim");
             break;
         case AvatarTransit::Status::END_TRANSIT:
-            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("postTransitAnim");
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("postTransitAnim");
             break;
         case AvatarTransit::Status::ENDED:
-            _myAvatar->getSkeletonModel()->getRig().triggerNetworkAnimation("idleAnim");
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("idleAnim");
             break;
         case AvatarTransit::Status::PRE_TRANSIT:
             break;
@@ -207,7 +207,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     {
         // lock the hash for read to check the size
         QReadLocker lock(&_hashLock);
-        if (_avatarHash.size() < 2 && _avatarsToFade.isEmpty()) {
+        if (_avatarHash.size() < 2 && _avatarsToFadeOut.isEmpty()) {
             return;
         }
     }
@@ -367,23 +367,23 @@ void AvatarManager::sendIdentityRequest(const QUuid& avatarID) const {
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {
-    if (_avatarsToFade.empty()) {
+    if (_avatarsToFadeOut.empty()) {
         return;
     }
 
     QReadLocker locker(&_hashLock);
-    QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFade.begin();
+    QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFadeOut.begin();
     const render::ScenePointer& scene = qApp->getMain3DScene();
     render::Transaction transaction;
-    while (avatarItr != _avatarsToFade.end()) {
+    while (avatarItr != _avatarsToFadeOut.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
-        avatar->updateFadingStatus(scene);
+        avatar->updateFadingStatus();
         if (!avatar->isFading()) {
             // fading to zero is such a rare event we push a unique transaction for each
             if (avatar->isInScene()) {
                 avatar->removeFromScene(*avatarItr, scene, transaction);
             }
-            avatarItr = _avatarsToFade.erase(avatarItr);
+            avatarItr = _avatarsToFadeOut.erase(avatarItr);
         } else {
             ++avatarItr;
         }
@@ -478,7 +478,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
         avatar->fadeOut(qApp->getMain3DScene(), removalReason);
     }
-    _avatarsToFade.push_back(removedAvatar);
+    _avatarsToFadeOut.push_back(removedAvatar);
 }
 
 void AvatarManager::clearOtherAvatars() {
@@ -562,8 +562,13 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 
                 static const int MAX_INJECTOR_COUNT = 3;
                 if (_collisionInjectors.size() < MAX_INJECTOR_COUNT) {
-                    auto injector = AudioInjector::playSound(collisionSound, energyFactorOfFull, AVATAR_STRETCH_FACTOR,
-                                                             myAvatar->getWorldPosition());
+                    AudioInjectorOptions options;
+                    options.stereo = collisionSound->isStereo();
+                    options.position = myAvatar->getWorldPosition();
+                    options.volume = energyFactorOfFull;
+                    options.pitch = 1.0f / AVATAR_STRETCH_FACTOR;
+
+                    auto injector = AudioInjector::playSoundAndDelete(collisionSound, options);
                     _collisionInjectors.emplace_back(injector);
                 }
                 myAvatar->collisionWithEntity(collision);
@@ -837,7 +842,7 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
-QVariantMap AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers) {
+QVariantMap AvatarManager::getPalData(const QStringList& specificAvatarIdentifiers) {
     QJsonArray palData;
 
     auto avatarMap = getHashCopy();

@@ -33,10 +33,26 @@
     <dimen name="domainMarginBottom">6dp</dimen>
     <dimen name="domainNameHeight">64dp</dimen>
 
-    <dimen name="header_hifi_margin_top">56dp</dimen>
-    <dimen name="header_hifi_height">101dp</dimen>
-    <dimen name="header_hifi_width">425dp</dimen>
+    <dimen name="header_hifi_margin_top">32dp</dimen>
+    <dimen name="header_hifi_height">76dp</dimen>
+    <dimen name="header_hifi_width">306dp</dimen>
 
     <dimen name="list_vertical_padding">8dp</dimen>
+    <dimen name="button_medium_width">150dp</dimen>
+    <dimen name="button_medium_height">38dp</dimen>
+    <dimen name="login_margin">65dp</dimen>
+    <dimen name="signup_margin">68dp</dimen>
+    <dimen name="login_form_margin_top">90dp</dimen>
+    <dimen name="button_medium_margin">9dp</dimen>
+    <dimen name="button_medium_text_size">16sp</dimen>
+    <dimen name="button_large_text_size">16sp</dimen>
+    <dimen name="login_edit_text_size">13sp</dimen>
+    <dimen name="login_edit_text_height">24dp</dimen>
+    <dimen name="button_large_width">214dp</dimen>
+    <dimen name="button_large_height">38dp</dimen>
+    <dimen name="login_menu_translucent_rectangle_height">300dp</dimen>
+    <dimen name="login_menu_button_margin_top">77dp</dimen>
+    <dimen name="login_menu_text_size">20sp</dimen>
+    <dimen name="login_edit_text_padding">14dp</dimen>
 
 </resources>

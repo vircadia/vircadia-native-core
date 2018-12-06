@@ -9,11 +9,12 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
+import QtQuick.Window 2.2
 import QtGraphicalEffects 1.0
 import Qt.labs.settings 1.0
-import "../../styles-uit"
+import stylesUit 1.0
 import "../../controls"
-import "../../controls-uit" as HifiControls
+import controlsUit 1.0 as HifiControls
 import "../../dialogs"
 import "../../dialogs/preferences"
 import "tabletWindows"
@@ -72,6 +73,11 @@ Item {
             initialItem: inputConfiguration
             property alias messageVisible: imageMessageBox.visible
             property string selectedPlugin: ""
+
+            property bool keyboardEnabled: false
+            property bool keyboardRaised: false
+            property bool punctuationMode: false
+
             Rectangle {
                 id: inputConfiguration
                 anchors {
@@ -227,6 +233,8 @@ Item {
                 anchors.right: parent.right
                 anchors.top: inputConfiguration.bottom
                 anchors.bottom: parent.bottom
+                anchors.bottomMargin: keyboard.height
+
                 Loader {
                     id: loader
                     asynchronous: false
@@ -248,6 +256,29 @@ Item {
                 }
             }
 
+            HifiControls.Keyboard {
+                id: keyboard
+                raised: parent.keyboardEnabled && parent.keyboardRaised
+                onRaisedChanged: {
+                    if (raised) {
+                        // delayed execution to allow loader and its content to adjust size
+                        Qt.callLater(function() {
+                            loader.item.bringToView(Window.activeFocusItem);
+                        })
+                    }
+                }
+
+                numeric: parent.punctuationMode
+                anchors {
+                    bottom: parent.bottom
+                    left: parent.left
+                    right: parent.right
+                }
+
+                Component.onCompleted: {
+                    parent.keyboardEnabled = HMD.active;
+                }
+            }
 
             function inputPlugins() {
                 if (checkBox.checked) {

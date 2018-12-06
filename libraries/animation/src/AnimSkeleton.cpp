@@ -16,18 +16,46 @@
 
 #include "AnimationLogging.h"
 
-AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry) {
+AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
     // convert to std::vector of joints
-    std::vector<FBXJoint> joints;
-    joints.reserve(fbxGeometry.joints.size());
-    for (auto& joint : fbxGeometry.joints) {
+    std::vector<HFMJoint> joints;
+    joints.reserve(hfmModel.joints.size());
+    for (auto& joint : hfmModel.joints) {
         joints.push_back(joint);
     }
-    buildSkeletonFromJoints(joints);
+    buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
+
+    // we make a copy of the inverseBindMatrices in order to prevent mutating the model bind pose
+    // when we are dealing with a joint offset in the model
+    for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
+        const HFMMesh& mesh = hfmModel.meshes.at(i);
+        std::vector<HFMCluster> dummyClustersList;
+
+        for (int j = 0; j < mesh.clusters.size(); j++) {
+            std::vector<glm::mat4> bindMatrices;
+            // cast into a non-const reference, so we can mutate the FBXCluster
+            HFMCluster& cluster = const_cast<HFMCluster&>(mesh.clusters.at(j));
+
+            HFMCluster localCluster;
+            localCluster.jointIndex = cluster.jointIndex;
+            localCluster.inverseBindMatrix = cluster.inverseBindMatrix;
+            localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
+
+            // if we have a joint offset in the fst file then multiply its inverse by the
+            // model cluster inverse bind matrix
+            if (hfmModel.jointRotationOffsets.contains(cluster.jointIndex)) {
+                AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
+                localCluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
+                localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
+            }
+            dummyClustersList.push_back(localCluster);
+        }
+        _clusterBindMatrixOriginalValues.push_back(dummyClustersList);
+    }
 }
 
-AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
-    buildSkeletonFromJoints(joints);
+AnimSkeleton::AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
+    buildSkeletonFromJoints(joints, jointOffsets);
 }
 
 int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
@@ -166,7 +194,8 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
     }
 }
 
-void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) {
+void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
+
     _joints = joints;
     _jointsSize = (int)joints.size();
     // build a cache of bind poses
@@ -177,7 +206,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
     _relativePreRotationPoses.reserve(_jointsSize);
     _relativePostRotationPoses.reserve(_jointsSize);
 
-    // iterate over FBXJoints and extract the bind pose information.
+    // iterate over HFMJoints and extract the bind pose information.
     for (int i = 0; i < _jointsSize; i++) {
 
         // build pre and post transforms
@@ -189,7 +218,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
         // build relative and absolute default poses
         glm::mat4 relDefaultMat = glm::translate(_joints[i].translation) * preRotationTransform * glm::mat4_cast(_joints[i].rotation) * postRotationTransform;
         AnimPose relDefaultPose(relDefaultMat);
-        _relativeDefaultPoses.push_back(relDefaultPose);
+
         int parentIndex = getParentIndex(i);
         if (parentIndex >= 0) {
             _absoluteDefaultPoses.push_back(_absoluteDefaultPoses[parentIndex] * relDefaultPose);
@@ -197,6 +226,16 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
             _absoluteDefaultPoses.push_back(relDefaultPose);
         }
     }
+
+    for (int k = 0; k < _jointsSize; k++) {
+        if (jointOffsets.contains(k)) {
+            AnimPose localOffset(jointOffsets[k], glm::vec3());
+            _absoluteDefaultPoses[k] = _absoluteDefaultPoses[k] * localOffset;
+        }
+    }
+    // re-compute relative poses
+    _relativeDefaultPoses = _absoluteDefaultPoses;
+    convertAbsolutePosesToRelative(_relativeDefaultPoses);
 
     for (int i = 0; i < _jointsSize; i++) {
         _jointIndicesByName[_joints[i].name] = i;
@@ -240,7 +279,7 @@ void AnimSkeleton::dump(bool verbose) const {
         qCDebug(animation) << "        absDefaultPose =" << getAbsoluteDefaultPose(i);
         qCDebug(animation) << "        relDefaultPose =" << getRelativeDefaultPose(i);
         if (verbose) {
-            qCDebug(animation) << "        fbxJoint =";
+            qCDebug(animation) << "        hfmJoint =";
             qCDebug(animation) << "            isFree =" << _joints[i].isFree;
             qCDebug(animation) << "            freeLineage =" << _joints[i].freeLineage;
             qCDebug(animation) << "            parentIndex =" << _joints[i].parentIndex;

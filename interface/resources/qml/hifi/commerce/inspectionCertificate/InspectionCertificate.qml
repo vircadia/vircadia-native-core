@@ -13,8 +13,8 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
 
@@ -28,7 +28,7 @@ Rectangle {
     property string itemName: "--";
     property string itemOwner: "--";
     property string itemEdition: "--";
-    property string dateOfPurchase: "--";
+    property string dateAcquired: "--";
     property string itemCost: "--";
     property string certTitleTextColor: hifi.colors.darkGray;
     property string certTextColor: hifi.colors.white;
@@ -64,7 +64,7 @@ Rectangle {
                     root.itemName = "";
                     root.itemEdition = "";
                     root.itemOwner = "";
-                    root.dateOfPurchase = "";
+                    root.dateAcquired = "";
                     root.itemCost = "";
                     errorText.text = "Information about this certificate is currently unavailable. Please try again later.";
                 }
@@ -77,8 +77,9 @@ Rectangle {
                     // "\u2022" is the Unicode character 'BULLET' - it's what's used in password fields on the web, etc
                     root.itemOwner = root.isMyCert ? Account.username :
                     "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-                    root.dateOfPurchase = root.isMyCert ? getFormattedDate(result.data.transfer_created_at * 1000) : "Undisclosed";
-                    root.itemCost = (root.isMyCert && result.data.cost !== undefined) ? result.data.cost : "Undisclosed";
+                    root.dateAcquired = root.isMyCert ? getFormattedDate(result.data.transfer_created_at * 1000) : "Undisclosed";
+                    root.itemCost = (root.isMyCert && result.data.cost !== undefined) ? 
+                        (parseInt(result.data.cost) > 0 ? result.data.cost : "Free") : "Undisclosed";
                 }
                 if (root.certInfoReplaceMode > 4) {
                     root.itemEdition = result.data.edition_number + "/" + (result.data.limited_run === -1 ? "\u221e" : result.data.limited_run);
@@ -86,7 +87,7 @@ Rectangle {
 
                 if (root.certificateStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
                     if (root.isMyCert) {
-                        errorText.text = "This item is an uncertified copy of an item you purchased.";
+                        errorText.text = "This item is an uncertified copy of an item you acquired.";
                     } else {
                         errorText.text = "The person who placed this item doesn't own it.";
                     }
@@ -102,8 +103,8 @@ Rectangle {
                     showInMarketplaceButton.visible = false;
                     // "Edition" text previously set above in this function
                     // "Owner" text previously set above in this function
-                    // "Purchase Date" text previously set above in this function
-                    // "Purchase Price" text previously set above in this function
+                    // "Acquisition Date" text previously set above in this function
+                    // "Acquisition Price" text previously set above in this function
                     if (result.data.invalid_reason) {
                         errorText.text = result.data.invalid_reason;
                     }
@@ -117,8 +118,8 @@ Rectangle {
                     showInMarketplaceButton.visible = true;
                     // "Edition" text previously set above in this function
                     // "Owner" text previously set above in this function
-                    // "Purchase Date" text previously set above in this function
-                    // "Purchase Price" text previously set above in this function
+                    // "Acquisition Date" text previously set above in this function
+                    // "Acquisition Price" text previously set above in this function
                     errorText.text = "The status of this item is still pending confirmation. If the purchase is not confirmed, " +
                     "this entity will be cleaned up by the domain.";
                 }
@@ -145,8 +146,8 @@ Rectangle {
             // "Item Name" text will be set in "onCertificateInfoResult()"
             // "Edition" text will be set in "onCertificateInfoResult()"
             // "Owner" text will be set in "onCertificateInfoResult()"
-            // "Purchase Date" text will be set in "onCertificateInfoResult()"
-            // "Purchase Price" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Date" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Price" text will be set in "onCertificateInfoResult()"
             errorText.text = "";
         } else if (root.certificateStatus === 2) { // CERTIFICATE_STATUS_VERIFICATION_TIMEOUT
             root.useGoldCert = false;
@@ -160,7 +161,7 @@ Rectangle {
             root.itemName = "";
             root.itemEdition = "";
             root.itemOwner = "";
-            root.dateOfPurchase = "";
+            root.dateAcquired = "";
             root.itemCost = "";
             errorText.text = "Your request to inspect this item timed out. Please try again later.";
         } else if (root.certificateStatus === 3) { // CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED
@@ -175,8 +176,8 @@ Rectangle {
             // "Item Name" text will be set in "onCertificateInfoResult()"
             // "Edition" text will be set in "onCertificateInfoResult()"
             // "Owner" text will be set in "onCertificateInfoResult()"
-            // "Purchase Date" text will be set in "onCertificateInfoResult()"
-            // "Purchase Price" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Date" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Price" text will be set in "onCertificateInfoResult()"
             errorText.text = "The information associated with this item has been modified and it no longer matches the original certified item.";
         } else if (root.certificateStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
             root.useGoldCert = false;
@@ -190,8 +191,8 @@ Rectangle {
             // "Item Name" text will be set in "onCertificateInfoResult()"
             root.itemEdition = "Uncertified Copy"
             // "Owner" text will be set in "onCertificateInfoResult()"
-            // "Purchase Date" text will be set in "onCertificateInfoResult()"
-            // "Purchase Price" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Date" text will be set in "onCertificateInfoResult()"
+            // "Acquisition Price" text will be set in "onCertificateInfoResult()"
             // "Error Text" text will be set in "onCertificateInfoResult()"
         } else {
             console.log("Unknown certificate status received from ledger signal!");
@@ -485,8 +486,8 @@ Rectangle {
         }
 
         RalewayRegular {
-            id: dateOfPurchaseHeader;
-            text: "PURCHASE DATE";
+            id: dateAcquiredHeader;
+            text: "ACQUISITION DATE";
             // Text size
             size: 16;
             // Anchors
@@ -500,15 +501,15 @@ Rectangle {
             color: hifi.colors.darkGray;
         }
         AnonymousProRegular {
-            id: dateOfPurchase;
-            text: root.dateOfPurchase;
+            id: dateAcquired;
+            text: root.dateAcquired;
             // Text size
             size: 18;
             // Anchors
-            anchors.top: dateOfPurchaseHeader.bottom;
+            anchors.top: dateAcquiredHeader.bottom;
             anchors.topMargin: 8;
-            anchors.left: dateOfPurchaseHeader.left;
-            anchors.right: dateOfPurchaseHeader.right;
+            anchors.left: dateAcquiredHeader.left;
+            anchors.right: dateAcquiredHeader.right;
             height: paintedHeight;
             // Style
             color: root.infoTextColor;
@@ -516,7 +517,7 @@ Rectangle {
 
         RalewayRegular {
             id: priceHeader;
-            text: "PURCHASE PRICE";
+            text: "ACQUISITION PRICE";
             // Text size
             size: 16;
             // Anchors
@@ -530,7 +531,7 @@ Rectangle {
         }
         HiFiGlyphs {
             id: hfcGlyph;
-            visible: priceText.text !== "Undisclosed" && priceText.text !== "";
+            visible: priceText.text !== "Undisclosed" && priceText.text !== "" && priceText.text !== "Free";
             text: hifi.glyphs.hfc;
             // Size
             size: 24;
@@ -596,7 +597,7 @@ Rectangle {
                 resetCert(true);
             break;
             default:
-                console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
+                console.log('InspectionCertificate.qml: Unrecognized message from marketplaces.js');
         }
     }
     signal sendToScript(var message);
@@ -618,7 +619,7 @@ Rectangle {
         root.itemName = "--";
         root.itemOwner = "--";
         root.itemEdition = "--";
-        root.dateOfPurchase = "--";
+        root.dateAcquired = "--";
         root.marketplaceUrl = "";
         root.itemCost = "--";
         root.isMyCert = false;

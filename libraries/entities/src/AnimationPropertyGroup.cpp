@@ -173,7 +173,6 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
 
 void AnimationPropertyGroup::debugDump() const {
     qCDebug(entities) << "   AnimationPropertyGroup: ---------------------------------------------";
-    qCDebug(entities) << "       url:" << getURL() << " has changed:" << urlChanged();
     qCDebug(entities) << "       fps:" << getFPS() << " has changed:" << fpsChanged();
     qCDebug(entities) << "currentFrame:" << getCurrentFrame() << " has changed:" << currentFrameChanged();
     qCDebug(entities) << "allowTranslation:" << getAllowTranslation() << " has changed:" << allowTranslationChanged(); 

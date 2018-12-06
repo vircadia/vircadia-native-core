@@ -13,7 +13,6 @@
 
 #include <PathUtils.h>
 
-#include <FBXReader.h>
 #include <FBXWriter.h>
 
 #ifdef _WIN32
@@ -75,7 +74,7 @@ void ModelBaker::abort() {
     }
 }
 
-bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback) {
+bool ModelBaker::compressMesh(HFMMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback) {
     if (mesh.wasCompressed) {
         handleError("Cannot re-bake a file that contains compressed mesh");
         return false;

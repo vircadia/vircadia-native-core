@@ -2,41 +2,65 @@ package io.highfidelity.hifiinterface.fragment;
 
 import android.app.Activity;
 import android.app.Fragment;
-import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import org.qtproject.qt5.android.QtNative;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.Random;
+
+import io.highfidelity.hifiinterface.BuildConfig;
+import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.R;
+import io.highfidelity.hifiinterface.WebViewActivity;
 
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationActive;
 import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationInactive;
 
-public class LoginFragment extends Fragment {
+public class LoginFragment extends Fragment
+                            implements  OnBackPressedListener {
+
+    private static final String ARG_USE_OAUTH = "use_oauth";
+    private static final String TAG = "Interface";
+
+    private final String OAUTH_CLIENT_ID = BuildConfig.OAUTH_CLIENT_ID;
+    private final String OAUTH_REDIRECT_URI = BuildConfig.OAUTH_REDIRECT_URI;
+    private final String OAUTH_AUTHORIZE_BASE_URL = "https://highfidelity.com/oauth/authorize";
+    private static final int OAUTH_AUTHORIZE_REQUEST = 1;
 
     private EditText mUsername;
     private EditText mPassword;
     private TextView mError;
-    private TextView mForgotPassword;
-    private TextView mSignup;
     private Button mLoginButton;
+    private CheckBox mKeepMeLoggedInCheckbox;
+    private ViewGroup mLoginForm;
+    private ViewGroup mLoggingInFrame;
+    private ViewGroup mLoggedInFrame;
+    private boolean mLoginInProgress;
+    private boolean mLoginSuccess;
+    private boolean mUseOauth;
+    private String mOauthState;
 
-    private ProgressDialog mDialog;
+    public native void login(String username, String password, boolean keepLoggedIn);
+    private native void retrieveAccessToken(String authCode, String clientId, String clientSecret, String redirectUri);
 
-    public native void nativeLogin(String username, String password, Activity usernameChangedListener);
-    public native void nativeCancelLogin();
+    public native void cancelLogin();
 
     private LoginFragment.OnLoginInteractionListener mListener;
 
@@ -44,9 +68,20 @@ public class LoginFragment extends Fragment {
         // Required empty public constructor
     }
 
-    public static LoginFragment newInstance() {
+    public static LoginFragment newInstance(boolean useOauth) {
         LoginFragment fragment = new LoginFragment();
+        Bundle args = new Bundle();
+        args.putBoolean(ARG_USE_OAUTH, useOauth);
+        fragment.setArguments(args);
         return fragment;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            mUseOauth = getArguments().getBoolean(ARG_USE_OAUTH, false);
+        }
     }
 
     @Override
@@ -58,22 +93,29 @@ public class LoginFragment extends Fragment {
         mPassword = rootView.findViewById(R.id.password);
         mError = rootView.findViewById(R.id.error);
         mLoginButton = rootView.findViewById(R.id.loginButton);
-        mForgotPassword = rootView.findViewById(R.id.forgotPassword);
-        mSignup = rootView.findViewById(R.id.signupButton);
+        mLoginForm = rootView.findViewById(R.id.loginForm);
+        mLoggingInFrame = rootView.findViewById(R.id.loggingInFrame);
+        mLoggedInFrame = rootView.findViewById(R.id.loggedInFrame);
+        mKeepMeLoggedInCheckbox = rootView.findViewById(R.id.keepMeLoggedIn);
 
-        mLoginButton.setOnClickListener(view -> login());
+        rootView.findViewById(R.id.forgotPassword).setOnClickListener(view -> onForgotPasswordClicked());
 
-        mForgotPassword.setOnClickListener(view -> forgotPassword());
-        mSignup.setOnClickListener(view -> signup());
+        rootView.findViewById(R.id.cancel).setOnClickListener(view -> onCancelLogin());
 
-        mPassword.setOnEditorActionListener(
-                (textView, actionId, keyEvent) -> {
-                    if (actionId == EditorInfo.IME_ACTION_DONE) {
-                        mLoginButton.performClick();
-                        return true;
-                    }
-                    return false;
-                });
+        rootView.findViewById(R.id.getStarted).setOnClickListener(view -> onGetStartedClicked());
+
+        mLoginButton.setOnClickListener(view -> onLoginButtonClicked());
+
+        rootView.findViewById(R.id.takeMeInWorld).setOnClickListener(view -> skipLogin());
+        mPassword.setOnEditorActionListener((textView, actionId, keyEvent) -> onPasswordEditorAction(textView, actionId, keyEvent));
+
+        mKeepMeLoggedInCheckbox.setChecked(HifiUtils.getInstance().isKeepingLoggedIn());
+
+        if (mUseOauth) {
+            openWebForAuthorization();
+        } else {
+            showLoginForm();
+        }
         return rootView;
     }
 
@@ -104,13 +146,57 @@ public class LoginFragment extends Fragment {
     @Override
     public void onStop() {
         super.onStop();
-        cancelActivityIndicator();
         // Leave the Qt app paused
         QtNative.setApplicationState(ApplicationInactive);
         hideKeyboard();
     }
 
-    public void login() {
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == OAUTH_AUTHORIZE_REQUEST) {
+            if (resultCode == Activity.RESULT_OK) {
+                String authCode = data.getStringExtra(WebViewActivity.RESULT_OAUTH_CODE);
+                String state = data.getStringExtra(WebViewActivity.RESULT_OAUTH_STATE);
+                if (state != null && state.equals(mOauthState) && mListener != null) {
+                    mOauthState = null;
+                    showActivityIndicator();
+                    mLoginInProgress = true;
+                    retrieveAccessToken(authCode, BuildConfig.OAUTH_CLIENT_ID, BuildConfig.OAUTH_CLIENT_SECRET, BuildConfig.OAUTH_REDIRECT_URI);
+                }
+            } else {
+                onCancelLogin();
+            }
+        }
+
+    }
+
+    private void onCancelLogin() {
+        if (mListener != null) {
+            mListener.onCancelLogin();
+        }
+    }
+
+    private boolean onPasswordEditorAction(TextView textView, int actionId, KeyEvent keyEvent) {
+        if (actionId == EditorInfo.IME_ACTION_DONE) {
+            mLoginButton.performClick();
+            return true;
+        }
+        return false;
+    }
+
+    private void skipLogin() {
+        if (mListener != null) {
+            mListener.onSkipLoginClicked();
+        }
+    }
+
+    private void onGetStartedClicked() {
+        if (mListener != null) {
+            mListener.onLoginCompleted();
+        }
+    }
+
+    public void onLoginButtonClicked() {
         String username = mUsername.getText().toString().trim();
         String password = mPassword.getText().toString();
         hideKeyboard();
@@ -120,13 +206,10 @@ public class LoginFragment extends Fragment {
             mLoginButton.setEnabled(false);
             hideError();
             showActivityIndicator();
-            nativeLogin(username, password, getActivity());
-        }
-    }
-
-    public void signup() {
-        if (mListener != null) {
-            mListener.onSignupRequested();
+            mLoginInProgress = true;
+            mLoginSuccess = false;
+            boolean keepUserLoggedIn = mKeepMeLoggedInCheckbox.isChecked();
+            login(username, password, keepUserLoggedIn);
         }
     }
 
@@ -138,33 +221,32 @@ public class LoginFragment extends Fragment {
         }
     }
 
-    private void forgotPassword() {
+    private void onForgotPasswordClicked() {
         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://highfidelity.com/users/password/new"));
         startActivity(intent);
     }
 
     private void showActivityIndicator() {
-        if (mDialog == null) {
-            mDialog = new ProgressDialog(getContext());
-        }
-        mDialog.setMessage(getString(R.string.logging_in));
-        mDialog.setCancelable(true);
-        mDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialogInterface) {
-                nativeCancelLogin();
-                cancelActivityIndicator();
-                mLoginButton.setEnabled(true);
-            }
-        });
-        mDialog.show();
+        mLoginForm.setVisibility(View.GONE);
+        mLoggedInFrame.setVisibility(View.GONE);
+        mLoggingInFrame.setVisibility(View.VISIBLE);
+        mLoggingInFrame.bringToFront();
     }
 
-    private void cancelActivityIndicator() {
-        if (mDialog != null) {
-            mDialog.cancel();
-        }
+    private void showLoginForm() {
+        mLoggingInFrame.setVisibility(View.GONE);
+        mLoggedInFrame.setVisibility(View.GONE);
+        mLoginForm.setVisibility(View.VISIBLE);
+        mLoginForm.bringToFront();
     }
+
+    private void showLoggedInMessage() {
+        mLoginForm.setVisibility(View.GONE);
+        mLoggingInFrame.setVisibility(View.GONE);
+        mLoggedInFrame.setVisibility(View.VISIBLE);
+        mLoggedInFrame.bringToFront();
+    }
+
     private void showError(String error) {
         mError.setText(error);
         mError.setVisibility(View.VISIBLE);
@@ -176,22 +258,71 @@ public class LoginFragment extends Fragment {
     }
 
     public void handleLoginCompleted(boolean success) {
+        mLoginInProgress = false;
         getActivity().runOnUiThread(() -> {
             mLoginButton.setEnabled(true);
-            cancelActivityIndicator();
             if (success) {
-                if (mListener != null) {
-                    mListener.onLoginCompleted();
-                }
+                mLoginSuccess = true;
+                showLoggedInMessage();
             } else {
-                showError(getString(R.string.login_username_or_password_incorrect));
+                if (!mUseOauth) {
+                    showLoginForm();
+                    showError(getString(R.string.login_username_or_password_incorrect));
+                } else {
+                    openWebForAuthorization();
+                }
             }
         });
     }
 
+    @Override
+    public boolean doBack() {
+        if (mLoginInProgress) {
+            cancelLogin();
+            showLoginForm();
+            mLoginInProgress = false;
+            mLoginButton.setEnabled(true);
+            return true;
+        } else if (mLoginSuccess) {
+            onGetStartedClicked();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void updateOauthState() {
+        // as we only use oauth for steam that's ok for now
+        mOauthState = "steam-" + Long.toString(new Random().nextLong());
+    }
+
+    private String buildAuthorizeUrl() {
+        StringBuilder sb = new StringBuilder(OAUTH_AUTHORIZE_BASE_URL);
+        sb.append("?client_id=").append(OAUTH_CLIENT_ID);
+        try {
+            String redirectUri = URLEncoder.encode(OAUTH_REDIRECT_URI, "utf-8");
+            sb.append("&redirect_uri=").append(redirectUri);
+        } catch (UnsupportedEncodingException e) {
+            Log.e(TAG, "Cannot build oauth autorization url", e);
+        }
+        sb.append("&response_type=code&scope=owner");
+        sb.append("&state=").append(mOauthState);
+        return sb.toString();
+    }
+
+    private void openWebForAuthorization() {
+        Intent openUrlIntent = new Intent(getActivity(), WebViewActivity.class);
+        updateOauthState();
+        openUrlIntent.putExtra(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL, buildAuthorizeUrl());
+        openUrlIntent.putExtra(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_CLEAR_COOKIES, true);
+        startActivityForResult(openUrlIntent, OAUTH_AUTHORIZE_REQUEST);
+    }
+
+
     public interface OnLoginInteractionListener {
         void onLoginCompleted();
-        void onSignupRequested();
+        void onCancelLogin();
+        void onSkipLoginClicked();
     }
 
 }

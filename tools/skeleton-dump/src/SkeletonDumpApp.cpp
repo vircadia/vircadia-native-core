@@ -12,7 +12,7 @@
 #include "SkeletonDumpApp.h"
 #include <QCommandLineParser>
 #include <QFile>
-#include <FBXReader.h>
+#include <FBXSerializer.h>
 #include <AnimSkeleton.h>
 
 SkeletonDumpApp::SkeletonDumpApp(int argc, char* argv[]) : QCoreApplication(argc, argv) {
@@ -54,8 +54,8 @@ SkeletonDumpApp::SkeletonDumpApp(int argc, char* argv[]) : QCoreApplication(argc
         return;
     }
     QByteArray blob = file.readAll();
-    std::unique_ptr<FBXGeometry> fbxGeometry(readFBX(blob, QVariantHash()));
-    std::unique_ptr<AnimSkeleton> skeleton(new AnimSkeleton(*fbxGeometry));
+    HFMModel::Pointer geometry = FBXSerializer().read(blob, QVariantHash());
+    std::unique_ptr<AnimSkeleton> skeleton(new AnimSkeleton(*geometry));
     skeleton->dump(verbose);
 }
 

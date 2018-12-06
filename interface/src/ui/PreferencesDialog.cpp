@@ -24,6 +24,7 @@
 #include "Snapshot.h"
 #include "SnapshotAnimated.h"
 #include "UserActivityLogger.h"
+#include "ui/Keyboard.h"
 
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
@@ -119,6 +120,18 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use reticle cursor instead of arrow", getter, setter));
     }
 
+    {
+        auto getter = []()->bool { return DependencyManager::get<Keyboard>()->getUse3DKeyboard(); };
+        auto setter = [](bool value) { DependencyManager::get<Keyboard>()->setUse3DKeyboard(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use Virtual Keyboard", getter, setter));
+    }
+
+    {
+        auto getter = []()->bool { return qApp->getMiniTabletEnabled(); };
+        auto setter = [](bool value) { qApp->setMiniTabletEnabled(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use mini tablet", getter, setter));
+    }
+
     static const QString VIEW_CATEGORY{ "View" };
     {
         auto getter = [myAvatar]()->float { return myAvatar->getRealWorldFieldOfView(); };
@@ -147,7 +160,6 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
     }
     */
-
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
     {
@@ -267,8 +279,10 @@ void setupPreferences() {
                     return 0;
                 case MyAvatar::SitStandModelType::ForceSit:
                     return 1;
-                case MyAvatar::SitStandModelType::DisableHMDLean:
+                case MyAvatar::SitStandModelType::ForceStand:
                     return 2;
+                case MyAvatar::SitStandModelType::DisableHMDLean:
+                    return 3;
             }
         };
         auto setter = [myAvatar](int value) {
@@ -281,13 +295,16 @@ void setupPreferences() {
                     myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceSit);
                     break;
                 case 2:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceStand);
+                    break;
+                case 3:
                     myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::DisableHMDLean);
                     break;
             }
         };
-        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Disable Recenter", getter, setter);
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Force Stand / Disable Recenter", getter, setter);
         QStringList items;
-        items << "Auto - turns on avatar leaning when standing in real world" << "Seated - disables all avatar leaning while sitting in real world" << "Disabled - allows avatar sitting on the floor [Experimental]";
+        items << "Auto - turns on avatar leaning when standing in real world" << "Seated - disables all avatar leaning while sitting in real world" << "Standing - enables avatar leaning while sitting in real world" << "Disabled - allows avatar sitting on the floor [Experimental]";
         preference->setHeading("Avatar leaning behavior");
         preference->setItems(items);
         preferences->addPreference(preference);

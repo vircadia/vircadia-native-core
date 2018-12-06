@@ -4,8 +4,8 @@ import QtWebChannel 1.0
 import "../../controls"
 import "../toolbars"
 import QtGraphicalEffects 1.0
-import "../../controls-uit" as HifiControls
-import "../../styles-uit"
+import controlsUit 1.0 as HifiControls
+import stylesUit 1.0
 
 TabBar {
     id: editTabView
@@ -251,6 +251,7 @@ TabBar {
                 id: entityPropertiesWebView
                 url: Paths.defaultScripts + "/system/html/entityProperties.html"
                 enabled: true
+                blurOnCtrlShift: false
             }
         }
     }
@@ -266,6 +267,7 @@ TabBar {
                 id: gridControlsWebView
                 url: Paths.defaultScripts + "/system/html/gridControls.html"
                 enabled: true
+                blurOnCtrlShift: false
             }
         }
     }
@@ -276,7 +278,7 @@ TabBar {
                 selectTab(message.params.id);
                 break;
             default:
-                console.warn('Unrecognized message:', JSON.stringify(message));
+                console.warn('EditToolsTabView.qml: Unrecognized message');
         }
     }
 

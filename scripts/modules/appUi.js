@@ -95,16 +95,16 @@ function AppUi(properties) {
             activeIcon: isWaiting ? that.activeMessagesButton : that.activeButton
         });
     };
-    that.notificationPollTimeout = false;
-    that.notificationPollTimeoutMs = 60000;
-    that.notificationPollEndpoint = false;
-    that.notificationPollStopPaginatingConditionMet = false;
+    that.notificationPollTimeout = [false];
+    that.notificationPollTimeoutMs = [60000];
+    that.notificationPollEndpoint = [false];
+    that.notificationPollStopPaginatingConditionMet = [false];
     that.notificationDataProcessPage = function (data) {
         return data;
     };
-    that.notificationPollCallback = that.ignore;
-    that.notificationPollCaresAboutSince = false;
-    that.notificationInitialCallbackMade = false;
+    that.notificationPollCallback = [that.ignore];
+    that.notificationPollCaresAboutSince = [false];
+    that.notificationInitialCallbackMade = [false];
     that.notificationDisplayBanner = function (message) {
         if (!that.isOpen) {
             Window.displayAnnouncement(message);
@@ -129,7 +129,9 @@ function AppUi(properties) {
                 }
                 that.isOpen = true;
             }
-        } else { // Not us.  Should we do something for type Home, Menu, and particularly Closed (meaning tablet hidden?
+        } else {
+            // A different screen is now visible, or the tablet has been closed.
+            // Tablet visibility is controlled separately by `tabletShownChanged()`
             that.wireEventBridge(false);
             if (that.isOpen) {
                 that.buttonActive(false);
@@ -139,83 +141,122 @@ function AppUi(properties) {
                 that.isOpen = false;
             }
         }
-        // console.debug(that.buttonName + " app reports: Tablet screen changed.\nNew screen type: " + type +
-        //    "\nNew screen URL: " + url + "\nCurrent app open status: " + that.isOpen + "\n");
     };
 
     // Overwrite with the given properties:
-    Object.keys(properties).forEach(function (key) { that[key] = properties[key]; });
+    Object.keys(properties).forEach(function (key) {
+        that[key] = properties[key];
+    });
 
     //
     // START Notification Handling
     //
+
+    var currentDataPageToRetrieve = [];
+    var concatenatedServerResponse = [];
+    for (var i = 0; i < that.notificationPollEndpoint.length; i++) {
+        currentDataPageToRetrieve[i] = 1;
+        concatenatedServerResponse[i] = new Array();
+    }
+
+    var MAX_LOG_LENGTH_CHARACTERS = 300;
+    function requestCallback(error, response, optionalParams) {
+        var indexOfRequest = optionalParams.indexOfRequest;
+        var urlOfRequest = optionalParams.urlOfRequest;
+
+        if (error || (response.status !== 'success')) {
+            print("Error: unable to complete request from URL. Error:", error || response.status);
+            startNotificationTimer(indexOfRequest);
+            return;
+        }
+
+        if (!that.notificationPollStopPaginatingConditionMet[indexOfRequest] ||
+            that.notificationPollStopPaginatingConditionMet[indexOfRequest](response)) {
+            startNotificationTimer(indexOfRequest);
+
+            var notificationData;
+            if (concatenatedServerResponse[indexOfRequest].length) {
+                notificationData = concatenatedServerResponse[indexOfRequest];
+            } else {
+                notificationData = that.notificationDataProcessPage[indexOfRequest](response);
+            }
+            console.debug(that.buttonName,
+                'truncated notification data for processing:',
+                JSON.stringify(notificationData).substring(0, MAX_LOG_LENGTH_CHARACTERS));
+            that.notificationPollCallback[indexOfRequest](notificationData);
+            that.notificationInitialCallbackMade[indexOfRequest] = true;
+            currentDataPageToRetrieve[indexOfRequest] = 1;
+            concatenatedServerResponse[indexOfRequest] = new Array();
+        } else {
+            concatenatedServerResponse[indexOfRequest] =
+                concatenatedServerResponse[indexOfRequest].concat(that.notificationDataProcessPage[indexOfRequest](response));
+            currentDataPageToRetrieve[indexOfRequest]++;
+            request({
+                json: true,
+                uri: (urlOfRequest + "&page=" + currentDataPageToRetrieve[indexOfRequest])
+            }, requestCallback, optionalParams);
+        }
+    }
+
+
     var METAVERSE_BASE = Account.metaverseServerURL;
-    var currentDataPageToRetrieve = 1;
-    var concatenatedServerResponse = new Array();
-    that.notificationPoll = function () {
-        if (!that.notificationPollEndpoint) {
+    var MS_IN_SEC = 1000;
+    that.notificationPoll = function (i) {
+        if (!that.notificationPollEndpoint[i]) {
             return;
         }
 
-        // User is "appearing offline" or is offline
-        if (GlobalServices.findableBy === "none" || Account.username === "") {
-            that.notificationPollTimeout = Script.setTimeout(that.notificationPoll, that.notificationPollTimeoutMs);
+        // User is "appearing offline" or is not logged in
+        if (GlobalServices.findableBy === "none" || Account.username === "Unknown user") {
+            // The notification polling will restart when the user changes their availability
+            // or when they log in, so it's not necessary to restart a timer here.
+            console.debug(that.buttonName + " Notifications: User is appearing offline or not logged in. " +
+                that.buttonName + " will poll for notifications when user logs in and has their availability " +
+                "set to not appear offline.");
             return;
         }
 
-        var url = METAVERSE_BASE + that.notificationPollEndpoint;
+        var url = METAVERSE_BASE + that.notificationPollEndpoint[i];
 
-        var settingsKey = "notifications/" + that.buttonName + "/lastPoll";
+        var settingsKey = "notifications/" + that.notificationPollEndpoint[i] + "/lastPoll";
         var currentTimestamp = new Date().getTime();
         var lastPollTimestamp = Settings.getValue(settingsKey, currentTimestamp);
-        if (that.notificationPollCaresAboutSince) {
-            url = url + "&since=" + lastPollTimestamp/1000;
+        if (that.notificationPollCaresAboutSince[i]) {
+            url = url + "&since=" + lastPollTimestamp / MS_IN_SEC;
         }
         Settings.setValue(settingsKey, currentTimestamp);
 
-        console.debug(that.buttonName, 'polling for notifications at endpoint', url);
-
-        function requestCallback(error, response) {
-            if (error || (response.status !== 'success')) {
-                print("Error: unable to get", url, error || response.status);
-                that.notificationPollTimeout = Script.setTimeout(that.notificationPoll, that.notificationPollTimeoutMs);
-                return;
-            }
-
-            if (!that.notificationPollStopPaginatingConditionMet || that.notificationPollStopPaginatingConditionMet(response)) {
-                that.notificationPollTimeout = Script.setTimeout(that.notificationPoll, that.notificationPollTimeoutMs);
-
-                var notificationData;
-                if (concatenatedServerResponse.length) {
-                    notificationData = concatenatedServerResponse;
-                } else {
-                    notificationData = that.notificationDataProcessPage(response);
-                }
-                console.debug(that.buttonName, 'notification data for processing:', JSON.stringify(notificationData));
-                that.notificationPollCallback(notificationData);
-                that.notificationInitialCallbackMade = true;
-                currentDataPageToRetrieve = 1;
-                concatenatedServerResponse = new Array();
-            } else {
-                concatenatedServerResponse = concatenatedServerResponse.concat(that.notificationDataProcessPage(response));
-                currentDataPageToRetrieve++;
-                request({ json: true, uri: (url + "&page=" + currentDataPageToRetrieve) }, requestCallback);
-            }
-        }
-
-        request({ json: true, uri: url }, requestCallback);
+        request({
+            json: true,
+            uri: url
+        },
+        requestCallback,
+        {
+            indexOfRequest: i,
+            urlOfRequest: url
+        });
     };
 
     // This won't do anything if there isn't a notification endpoint set
-    that.notificationPoll();
+    for (i = 0; i < that.notificationPollEndpoint.length; i++) {
+        that.notificationPoll(i);
+    }
+
+    function startNotificationTimer(indexOfRequest) {
+        that.notificationPollTimeout[indexOfRequest] = Script.setTimeout(function () {
+            that.notificationPoll(indexOfRequest);
+        }, that.notificationPollTimeoutMs[indexOfRequest]);
+    }
 
     function restartNotificationPoll() {
-        that.notificationInitialCallbackMade = false;
-        if (that.notificationPollTimeout) {
-            Script.clearTimeout(that.notificationPollTimeout);
-            that.notificationPollTimeout = false;
+        for (var j = 0; j < that.notificationPollEndpoint.length; j++) {
+            that.notificationInitialCallbackMade[j] = false;
+            if (that.notificationPollTimeout[j]) {
+                Script.clearTimeout(that.notificationPollTimeout[j]);
+                that.notificationPollTimeout[j] = false;
+            }
+            that.notificationPoll(j);
         }
-        that.notificationPoll();
     }
     //
     // END Notification Handling
@@ -322,9 +363,11 @@ function AppUi(properties) {
             }
             that.tablet.removeButton(that.button);
         }
-        if (that.notificationPollTimeout) {
-            Script.clearInterval(that.notificationPollTimeout);
-            that.notificationPollTimeout = false;
+        for (var i = 0; i < that.notificationPollTimeout.length; i++) {
+            if (that.notificationPollTimeout[i]) {
+                Script.clearInterval(that.notificationPollTimeout[i]);
+                that.notificationPollTimeout[i] = false;
+            }
         }
     };
     // Set up the handlers.
@@ -333,7 +376,7 @@ function AppUi(properties) {
     Script.scriptEnding.connect(that.onScriptEnding);
     GlobalServices.findableByChanged.connect(restartNotificationPoll);
     GlobalServices.myUsernameChanged.connect(restartNotificationPoll);
-    if (that.buttonName == Settings.getValue("startUpApp")) {
+    if (that.buttonName === Settings.getValue("startUpApp")) {
         Settings.setValue("startUpApp", "");
         Script.setTimeout(function () {
             that.open();

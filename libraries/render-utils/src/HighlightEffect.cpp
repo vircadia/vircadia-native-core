@@ -22,6 +22,8 @@
 #include "GeometryCache.h"
 #include "CubeProjectedPolygon.h"
 
+#include "FadeEffect.h"
+
 #include "render-utils/ShaderConstants.h"
 
 using namespace render;
@@ -37,7 +39,7 @@ namespace gr {
 
 #define OUTLINE_STENCIL_MASK    1
 
-extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
+extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 HighlightResources::HighlightResources() {
 }
@@ -156,7 +158,6 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         auto& highlight = highlightStage->getHighlight(highlightId);
 
         RenderArgs* args = renderContext->args;
-        ShapeKey::Builder defaultKeyBuilder;
 
         // Render full screen
         outputs = args->_viewport;
@@ -177,10 +178,6 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         gpu::doInBatch("DrawHighlightMask::run", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
 
-            auto maskPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
-            auto maskDeformedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withDeformed());
-            auto maskDeformedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withDeformed().withDualQuatSkinned());
-
             // Setup camera, projection and viewport for all items
             glm::mat4 projMat;
             Transform viewMat;
@@ -191,38 +188,54 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             batch.setProjectionJitter(jitter.x, jitter.y);
             batch.setViewTransform(viewMat);
 
-            std::vector<ShapeKey> deformedShapeKeys;
-            std::vector<ShapeKey> deformedDQShapeKeys;
+            const std::vector<ShapeKey::Builder> keys = {
+                ShapeKey::Builder(), ShapeKey::Builder().withFade(),
+                ShapeKey::Builder().withDeformed(), ShapeKey::Builder().withDeformed().withFade(),
+                ShapeKey::Builder().withDeformed().withDualQuatSkinned(), ShapeKey::Builder().withDeformed().withDualQuatSkinned().withFade(),
+                ShapeKey::Builder().withOwnPipeline(), ShapeKey::Builder().withOwnPipeline().withFade()
+            };
+            std::vector<std::vector<ShapeKey>> sortedShapeKeys(keys.size());
 
-            // Iterate through all inShapes and render the unskinned
-            args->_shapePipeline = maskPipeline;
-            batch.setPipeline(maskPipeline->pipeline);
+            const int OWN_PIPELINE_INDEX = 6;
             for (const auto& items : inShapes) {
                 itemBounds.insert(itemBounds.end(), items.second.begin(), items.second.end());
-                if (items.first.isDeformed() && items.first.isDualQuatSkinned()) {
-                    deformedDQShapeKeys.push_back(items.first);
-                } else if (items.first.isDeformed()) {
-                    deformedShapeKeys.push_back(items.first);
-                } else {
-                    renderItems(renderContext, items.second);
+
+                int index = items.first.hasOwnPipeline() ? OWN_PIPELINE_INDEX : 0;
+                if (items.first.isDeformed()) {
+                    index += 2;
+                    if (items.first.isDualQuatSkinned()) {
+                        index += 2;
+                    }
+                }
+
+                if (items.first.isFaded()) {
+                    index += 1;
+                }
+
+                sortedShapeKeys[index].push_back(items.first);
+            }
+
+            // Render non-withOwnPipeline things
+            for (size_t i = 0; i < OWN_PIPELINE_INDEX; i++) {
+                auto& shapeKeys = sortedShapeKeys[i];
+                if (shapeKeys.size() > 0) {
+                    const auto& shapePipeline = _shapePlumber->pickPipeline(args, keys[i]);
+                    args->_shapePipeline = shapePipeline;
+                    for (const auto& key : shapeKeys) {
+                        renderShapes(renderContext, _shapePlumber, inShapes.at(key));
+                    }
                 }
             }
 
-            // Reiterate to render the skinned
-            if (deformedShapeKeys.size() > 0) {
-                args->_shapePipeline = maskDeformedPipeline;
-                batch.setPipeline(maskDeformedPipeline->pipeline);
-                for (const auto& key : deformedShapeKeys) {
-                    renderItems(renderContext, inShapes.at(key));
-                }
-            }
-
-            // Reiterate to render the DQ skinned
-            if (deformedDQShapeKeys.size() > 0) {
-                args->_shapePipeline = maskDeformedDQPipeline;
-                batch.setPipeline(maskDeformedDQPipeline->pipeline);
-                for (const auto& key : deformedDQShapeKeys) {
-                    renderItems(renderContext, inShapes.at(key));
+            // Render withOwnPipeline things
+            for (size_t i = OWN_PIPELINE_INDEX; i < keys.size(); i++) {
+                auto& shapeKeys = sortedShapeKeys[i];
+                if (shapeKeys.size() > 0) {
+                    args->_shapePipeline = nullptr;
+                    for (const auto& key : shapeKeys) {
+                        args->_itemShapeKey = key._flags.to_ulong();
+                        renderShapes(renderContext, _shapePlumber, inShapes.at(key));
+                    }
                 }
             }
 
@@ -497,7 +510,9 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         state->setColorWriteMask(false, false, false, false);
 
-        initZPassPipelines(*shapePlumber, state);
+
+        auto fadeEffect = DependencyManager::get<FadeEffect>();
+        initZPassPipelines(*shapePlumber, state, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
     }
     auto sharedParameters = std::make_shared<HighlightSharedParameters>();
 

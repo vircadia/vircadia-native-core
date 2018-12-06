@@ -486,6 +486,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     propertiesWithSimID.setLastEditedBy(sessionID);
 
+    propertiesWithSimID.setActionData(QByteArray());
+
     bool scalesWithParent = propertiesWithSimID.getScalesWithParent();
 
     propertiesWithSimID = convertPropertiesFromScriptSemantics(propertiesWithSimID, scalesWithParent);
@@ -830,6 +832,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         properties.setClientOnly(entity->getClientOnly());
         properties.setOwningAvatarID(entity->getOwningAvatarID());
 
+        properties.setActionData(entity->getDynamicData());
+
         // make sure the properties has a type, so that the encode can know which properties to include
         properties.setType(entity->getType());
 
@@ -954,11 +958,6 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                 const QUuid myNodeID = nodeList->getSessionUUID();
                 if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
                     // don't delete other avatar's avatarEntities
-                    // If you actually own the entity but the onwership property is not set because of a domain switch
-                    // The lines below makes sure the entity is deleted once its properties are set.
-                    auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
-                    AvatarSharedPointer myAvatar = avatarHashMap->getAvatarBySessionID(myNodeID);
-                    myAvatar->insertDetachedEntityID(id);
                     shouldSendDeleteToServer = false;
                     return;
                 }

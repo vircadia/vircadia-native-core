@@ -1,7 +1,7 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import "../../styles-uit"
-import "../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../controls" as HifiControls
 
 Rectangle {
@@ -17,9 +17,6 @@ Rectangle {
     property alias dialogButtons: buttons
 
     property string imageSource: null
-    onImageSourceChanged: {
-        console.debug('imageSource = ', imageSource)
-    }
 
     property string button1color: hifi.buttons.noneBorderlessGray;
     property string button1text: ''
