@@ -13,32 +13,32 @@
 #define hifi_HFMFormatRegistry_h
 
 #include "HFMSerializer.h"
-#include <shared/MIMETypeLibrary.h>
+#include <shared/MediaTypeLibrary.h>
 #include <shared/ReadWriteLockable.h>
 
 namespace hfm {
 
 class FormatRegistry {
 public:
-    using MIMETypeID = MIMETypeLibrary::ID;
-    static const MIMETypeID INVALID_MIME_TYPE_ID { MIMETypeLibrary::INVALID_ID };
+    using MediaTypeID = MediaTypeLibrary::ID;
+    static const MediaTypeID INVALID_MEDIA_TYPE_ID { MediaTypeLibrary::INVALID_ID };
 
-    MIMETypeID registerMIMEType(const MIMEType& mimeType, std::unique_ptr<Serializer::Factory> supportedFactory);
-    void unregisterMIMEType(const MIMETypeID& id);
+    MediaTypeID registerMediaType(const MediaType& mediaType, std::unique_ptr<Serializer::Factory> supportedFactory);
+    void unregisterMediaType(const MediaTypeID& id);
 
-    std::shared_ptr<Serializer> getSerializerForMIMEType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const;
-    std::shared_ptr<Serializer> getSerializerForMIMETypeID(MIMETypeID id) const;
+    std::shared_ptr<Serializer> getSerializerForMediaType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const;
+    std::shared_ptr<Serializer> getSerializerForMediaTypeID(MediaTypeID id) const;
 
 protected:
-    MIMETypeLibrary _mimeTypeLibrary;
+    MediaTypeLibrary _mediaTypeLibrary;
     std::mutex _libraryLock;
     class SupportedFormat {
     public:
-        SupportedFormat(const MIMETypeID& mimeTypeID, std::unique_ptr<Serializer::Factory>& factory) :
-            mimeTypeID(mimeTypeID),
+        SupportedFormat(const MediaTypeID& mediaTypeID, std::unique_ptr<Serializer::Factory>& factory) :
+            mediaTypeID(mediaTypeID),
             factory(std::move(factory)) {
         }
-        MIMETypeID mimeTypeID;
+        MediaTypeID mediaTypeID;
         std::unique_ptr<Serializer::Factory> factory;
     };
     std::vector<SupportedFormat> _supportedFormats;

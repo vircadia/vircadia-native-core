@@ -1,5 +1,5 @@
 //
-//  MIMETypeLibrary.h
+//  MediaTypeLibrary.h
 //  libraries/shared/src/shared
 //
 //  Created by Sabrina Shanman on 2018/11/28.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_MIMETypeLibrary_h
-#define hifi_MIMETypeLibrary_h
+#ifndef hifi_MediaTypeLibrary_h
+#define hifi_MediaTypeLibrary_h
 
 #include <vector>
 #include <string>
@@ -36,20 +36,20 @@ public:
 };
 
 // A named file extension with a list of known ways to positively identify the file type
-class MIMEType {
+class MediaType {
 public:
-    MIMEType(const std::string& name) :
+    MediaType(const std::string& name) :
         name(name) {
     }
-    MIMEType() {};
-    MIMEType(const MIMEType& mimeType) :
-        name(mimeType.name),
-        extensions(mimeType.extensions),
-        webMediaTypes(mimeType.webMediaTypes),
-        fileSignatures(mimeType.fileSignatures) {
+    MediaType() {};
+    MediaType(const MediaType& mediaType) :
+        name(mediaType.name),
+        extensions(mediaType.extensions),
+        webMediaTypes(mediaType.webMediaTypes),
+        fileSignatures(mediaType.fileSignatures) {
     }
 
-    static MIMEType NONE;
+    static MediaType NONE;
 
     std::string name;
     std::vector<std::string> extensions;
@@ -57,34 +57,34 @@ public:
     std::vector<FileSignature> fileSignatures;
 };
 
-class MIMETypeLibrary {
+class MediaTypeLibrary {
 public:
     using ID = unsigned int;
     static const ID INVALID_ID { 0 };
 
-    ID registerMIMEType(const MIMEType& mimeType);
-    void unregisterMIMEType(const ID& id);
+    ID registerMediaType(const MediaType& mediaType);
+    void unregisterMediaType(const ID& id);
 
-    MIMEType getMIMEType(const ID& id) const;
+    MediaType getMediaType(const ID& id) const;
 
-    ID findMIMETypeForData(const hifi::ByteArray& data) const;
-    ID findMIMETypeForURL(const hifi::URL& url) const;
-    ID findMIMETypeForMediaType(const std::string& webMediaType) const;
+    ID findMediaTypeForData(const hifi::ByteArray& data) const;
+    ID findMediaTypeForURL(const hifi::URL& url) const;
+    ID findMediaTypeForWebID(const std::string& webMediaType) const;
 
 protected:
     ID nextID { 1 };
     
     class Entry {
     public:
-        Entry(const ID& id, const MIMEType& mimeType) :
+        Entry(const ID& id, const MediaType& mediaType) :
             id(id),
-            mimeType(mimeType) {
+            mediaType(mediaType) {
         }
         ID id;
-        MIMEType mimeType;
+        MediaType mediaType;
     };
 
-    std::vector<Entry> _mimeTypes;
+    std::vector<Entry> _mediaTypes;
 };
 
-#endif // hifi_MIMETypeLibrary_h
+#endif // hifi_MeidaTypeLibrary_h

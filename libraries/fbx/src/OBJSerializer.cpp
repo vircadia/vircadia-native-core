@@ -652,13 +652,13 @@ done:
     return result;
 }
 
-MIMEType getOBJMIMEType() {
-    MIMEType mimeType("obj");
-    mimeType.extensions.push_back("obj");
-    return mimeType;
+MediaType getOBJMediaType() {
+    MediaType mediaType("obj");
+    mediaType.extensions.push_back("obj");
+    return mediaType;
 }
 
-std::shared_ptr<hfm::Format> OBJSerializer::FORMAT = std::make_shared<hfm::SimpleFormat<OBJSerializer>>(getOBJMIMEType());
+std::shared_ptr<hfm::Format> OBJSerializer::FORMAT = std::make_shared<hfm::SimpleFormat<OBJSerializer>>(getOBJMediaType());
 
 HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);

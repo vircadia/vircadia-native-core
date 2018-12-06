@@ -1,5 +1,5 @@
 //
-//  MIMETypeLibrary.cpp
+//  MediaTypeLibrary.cpp
 //  libraries/shared/src/shared
 //
 //  Created by Sabrina Shanman on 2018/11/29.
@@ -9,41 +9,41 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "MIMETypeLibrary.h"
+#include "MediaTypeLibrary.h"
 
-MIMEType MIMEType::NONE = MIMEType("");
+MediaType MediaType::NONE = MediaType("");
 
-MIMETypeLibrary::ID MIMETypeLibrary::registerMIMEType(const MIMEType& mimeType) {
+MediaTypeLibrary::ID MediaTypeLibrary::registerMediaType(const MediaType& mediaType) {
     ID id = nextID++;
-    _mimeTypes.emplace_back(id, mimeType);
+    _mediaTypes.emplace_back(id, mediaType);
     return id;
 }
 
-void MIMETypeLibrary::unregisterMIMEType(const MIMETypeLibrary::ID& id) {
-    for (auto it = _mimeTypes.begin(); it != _mimeTypes.end(); it++) {
+void MediaTypeLibrary::unregisterMediaType(const MediaTypeLibrary::ID& id) {
+    for (auto it = _mediaTypes.begin(); it != _mediaTypes.end(); it++) {
         if ((*it).id == id) {
-            _mimeTypes.erase(it);
+            _mediaTypes.erase(it);
             break;
         }
     }
 }
 
-MIMEType MIMETypeLibrary::getMIMEType(const MIMETypeLibrary::ID& id) const {
-    for (auto& supportedFormat : _mimeTypes) {
+MediaType MediaTypeLibrary::getMediaType(const MediaTypeLibrary::ID& id) const {
+    for (auto& supportedFormat : _mediaTypes) {
         if (supportedFormat.id == id) {
-            return supportedFormat.mimeType;
+            return supportedFormat.mediaType;
         }
     }
-    return MIMEType::NONE;
+    return MediaType::NONE;
 }
 
-MIMETypeLibrary::ID MIMETypeLibrary::findMIMETypeForData(const hifi::ByteArray& data) const {
+MediaTypeLibrary::ID MediaTypeLibrary::findMediaTypeForData(const hifi::ByteArray& data) const {
     // Check file contents
-    for (auto& mimeType : _mimeTypes) {
-        for (auto& fileSignature : mimeType.mimeType.fileSignatures) {
+    for (auto& mediaType : _mediaTypes) {
+        for (auto& fileSignature : mediaType.mediaType.fileSignatures) {
             auto testBytes = data.mid(fileSignature.byteOffset, (int)fileSignature.bytes.size()).toStdString();
             if (testBytes == fileSignature.bytes) {
-                return mimeType.id;
+                return mediaType.id;
             }
         }
     }
@@ -51,14 +51,14 @@ MIMETypeLibrary::ID MIMETypeLibrary::findMIMETypeForData(const hifi::ByteArray& 
     return INVALID_ID;
 }
 
-MIMETypeLibrary::ID MIMETypeLibrary::findMIMETypeForURL(const hifi::URL& url) const {
+MediaTypeLibrary::ID MediaTypeLibrary::findMediaTypeForURL(const hifi::URL& url) const {
     // Check file extension
     std::string urlString = url.path().toStdString();
     std::size_t extensionSeparator = urlString.rfind('.');
     if (extensionSeparator != std::string::npos) {
         std::string detectedExtension = urlString.substr(extensionSeparator + 1);
-        for (auto& supportedFormat : _mimeTypes) {
-            for (auto& extension : supportedFormat.mimeType.extensions) {
+        for (auto& supportedFormat : _mediaTypes) {
+            for (auto& extension : supportedFormat.mediaType.extensions) {
                 if (extension == detectedExtension) {
                     return supportedFormat.id;
                 }
@@ -69,11 +69,11 @@ MIMETypeLibrary::ID MIMETypeLibrary::findMIMETypeForURL(const hifi::URL& url) co
     return INVALID_ID;
 }
 
-MIMETypeLibrary::ID MIMETypeLibrary::findMIMETypeForMediaType(const std::string& webMediaType) const {
+MediaTypeLibrary::ID MediaTypeLibrary::findMediaTypeForWebID(const std::string& webMediaType) const {
     // Check web media type
     if (webMediaType != "") {
-        for (auto& supportedFormat : _mimeTypes) {
-            for (auto& candidateWebMediaType : supportedFormat.mimeType.webMediaTypes) {
+        for (auto& supportedFormat : _mediaTypes) {
+            for (auto& candidateWebMediaType : supportedFormat.mediaType.webMediaTypes) {
                 if (candidateWebMediaType == webMediaType) {
                     return supportedFormat.id;
                 }

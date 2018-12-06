@@ -26,21 +26,21 @@ namespace hfm {
     template<typename T> // T is an implementation of hfm::Serializer
     class SimpleFormat : public Format {
     public:
-        SimpleFormat(const MIMEType& mimeType) : Format(),
-            _mimeType(mimeType) {
+        SimpleFormat(const MediaType& mediaType) : Format(),
+            _mediaType(mediaType) {
         }
 
         void registerFormat(FormatRegistry& registry) override {
-            _mimeTypeID = registry.registerMIMEType(_mimeType, std::make_unique<SimpleFactory<T>>());
+            _mediaTypeID = registry.registerMediaType(_mediaType, std::make_unique<SimpleFactory<T>>());
         }
 
         void unregisterFormat(FormatRegistry& registry) override {
-            registry.unregisterMIMEType(_mimeTypeID);
-            _mimeTypeID = hfm::FormatRegistry::INVALID_MIME_TYPE_ID;
+            registry.unregisterMediaType(_mediaTypeID);
+            _mediaTypeID = hfm::FormatRegistry::INVALID_MEDIA_TYPE_ID;
         }
     protected:
-        MIMEType _mimeType;
-        hfm::FormatRegistry::MIMETypeID _mimeTypeID;
+        MediaType _mediaType;
+        hfm::FormatRegistry::MediaTypeID _mediaTypeID;
     };
 };
 

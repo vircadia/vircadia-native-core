@@ -906,14 +906,14 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     return true;
 }
 
-MIMEType getGLTFMIMEType() {
-    MIMEType mimeType("gltf");
-    mimeType.extensions.push_back("gltf");
-    mimeType.webMediaTypes.push_back("model/gltf+json");
-    return mimeType;
+MediaType getGLTFMediaType() {
+    MediaType mediaType("gltf");
+    mediaType.extensions.push_back("gltf");
+    mediaType.webMediaTypes.push_back("model/gltf+json");
+    return mediaType;
 }
 
-std::shared_ptr<hfm::Format> GLTFSerializer::FORMAT = std::make_shared<hfm::SimpleFormat<GLTFSerializer>>(getGLTFMIMEType());
+std::shared_ptr<hfm::Format> GLTFSerializer::FORMAT = std::make_shared<hfm::SimpleFormat<GLTFSerializer>>(getGLTFMediaType());
 
 HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     

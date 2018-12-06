@@ -16,7 +16,7 @@
 
 
 hfm::Model::Pointer ModelLoader::load(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url, const std::string& webMediaType) const {
-    auto serializer = DependencyManager::get<ModelFormatRegistry>()->getSerializerForMIMEType(data, url, webMediaType);
+    auto serializer = DependencyManager::get<ModelFormatRegistry>()->getSerializerForMediaType(data, url, webMediaType);
     if (!serializer) {
         return hfm::Model::Pointer();
     }

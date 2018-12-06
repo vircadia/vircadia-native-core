@@ -13,53 +13,53 @@
 
 namespace hfm {
 
-FormatRegistry::MIMETypeID FormatRegistry::registerMIMEType(const MIMEType& mimeType, std::unique_ptr<Serializer::Factory> supportedFactory) {
+FormatRegistry::MediaTypeID FormatRegistry::registerMediaType(const MediaType& mediaType, std::unique_ptr<Serializer::Factory> supportedFactory) {
     std::lock_guard<std::mutex> lock(_libraryLock);
 
-    MIMETypeID id = _mimeTypeLibrary.registerMIMEType(mimeType);
+    MediaTypeID id = _mediaTypeLibrary.registerMediaType(mediaType);
     _supportedFormats.emplace_back(id, supportedFactory);
     return id;
 }
 
-void FormatRegistry::unregisterMIMEType(const MIMETypeID& mimeTypeID) {
+void FormatRegistry::unregisterMediaType(const MediaTypeID& mediaTypeID) {
     std::lock_guard<std::mutex> lock(_libraryLock);
 
     for (auto it = _supportedFormats.begin(); it != _supportedFormats.end(); it++) {
-        if ((*it).mimeTypeID == mimeTypeID) {
+        if ((*it).mediaTypeID == mediaTypeID) {
             _supportedFormats.erase(it);
             break;
         }
     }
-    _mimeTypeLibrary.unregisterMIMEType(mimeTypeID);
+    _mediaTypeLibrary.unregisterMediaType(mediaTypeID);
 }
 
-std::shared_ptr<Serializer> FormatRegistry::getSerializerForMIMETypeID(FormatRegistry::MIMETypeID mimeTypeID) const {
+std::shared_ptr<Serializer> FormatRegistry::getSerializerForMediaTypeID(FormatRegistry::MediaTypeID mediaTypeID) const {
     // TODO: shared_lock in C++14
     std::lock_guard<std::mutex> lock(*const_cast<std::mutex*>(&_libraryLock));
 
     for (auto it = _supportedFormats.begin(); it != _supportedFormats.end(); it++) {
-        if ((*it).mimeTypeID == mimeTypeID) {
+        if ((*it).mediaTypeID == mediaTypeID) {
             return (*it).factory->get();
         }
     }
     return std::shared_ptr<Serializer>();
 }
 
-std::shared_ptr<Serializer> FormatRegistry::getSerializerForMIMEType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const {
-    MIMETypeID id;
+std::shared_ptr<Serializer> FormatRegistry::getSerializerForMediaType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const {
+    MediaTypeID id;
     {
         // TODO: shared_lock in C++14
         std::lock_guard<std::mutex> lock(*const_cast<std::mutex*>(&_libraryLock));
 
-        id = _mimeTypeLibrary.findMIMETypeForData(data);
-        if (id == INVALID_MIME_TYPE_ID) {
-            id = _mimeTypeLibrary.findMIMETypeForURL(url);
+        id = _mediaTypeLibrary.findMediaTypeForData(data);
+        if (id == INVALID_MEDIA_TYPE_ID) {
+            id = _mediaTypeLibrary.findMediaTypeForURL(url);
         }
-        if (id == INVALID_MIME_TYPE_ID) {
-            id = _mimeTypeLibrary.findMIMETypeForMediaType(webMediaType);
+        if (id == INVALID_MEDIA_TYPE_ID) {
+            id = _mediaTypeLibrary.findMediaTypeForWebID(webMediaType);
         }
     }
-    return getSerializerForMIMETypeID(id);
+    return getSerializerForMediaTypeID(id);
 }
 
 };

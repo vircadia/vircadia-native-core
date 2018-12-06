@@ -1834,14 +1834,14 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     return hfmModelPtr;
 }
 
-MIMEType getFBXMIMEType() {
-    MIMEType mimeType("fbx");
-    mimeType.extensions.push_back("fbx");
-    mimeType.fileSignatures.emplace_back("Kaydara FBX Binary  \x00", 0);
-    return mimeType;
+MediaType getFBXMediaType() {
+    MediaType mediaType("fbx");
+    mediaType.extensions.push_back("fbx");
+    mediaType.fileSignatures.emplace_back("Kaydara FBX Binary  \x00", 0);
+    return mediaType;
 }
 
-std::shared_ptr<hfm::Format> FBXSerializer::FORMAT = std::make_shared<hfm::SimpleFormat<FBXSerializer>>(getFBXMIMEType());
+std::shared_ptr<hfm::Format> FBXSerializer::FORMAT = std::make_shared<hfm::SimpleFormat<FBXSerializer>>(getFBXMediaType());
 
 HFMModel::Pointer FBXSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
