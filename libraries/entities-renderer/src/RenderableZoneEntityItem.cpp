@@ -74,36 +74,6 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
 }
 
 void ZoneEntityRenderer::doRender(RenderArgs* args) {
-#if 0
-    if (ZoneEntityItem::getDrawZoneBoundaries()) {
-        switch (_entity->getShapeType()) {
-            case SHAPE_TYPE_BOX:
-            case SHAPE_TYPE_SPHERE:
-                {
-                    PerformanceTimer perfTimer("zone->renderPrimitive");
-                    static const glm::vec4 DEFAULT_COLOR(1.0f, 1.0f, 1.0f, 1.0f);
-                    if (!updateModelTransform()) {
-                        break;
-                    }
-                    auto geometryCache = DependencyManager::get<GeometryCache>();
-                    gpu::Batch& batch = *args->_batch;
-                    batch.setModelTransform(_modelTransform);
-                    if (_entity->getShapeType() == SHAPE_TYPE_SPHERE) {
-                        geometryCache->renderWireSphereInstance(args, batch, DEFAULT_COLOR);
-                    } else {
-                        geometryCache->renderWireCubeInstance(args, batch, DEFAULT_COLOR);
-                    }
-                }
-                break;
-
-            // Compund shapes are handled by the _model member
-            case SHAPE_TYPE_COMPOUND:
-            default:
-                // Not handled
-                break;
-        }
-    }
-#endif
     if (!_stage) {
         _stage = args->_scene->getStage<LightStage>();
         assert(_stage);

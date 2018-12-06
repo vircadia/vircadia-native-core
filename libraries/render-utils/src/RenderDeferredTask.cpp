@@ -207,7 +207,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
     const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
 
-    // Clear Light, Haze, Bloom, and Skybox Stages and render zones from the general metas bucket
+/*    // Clear Light, Haze, Bloom, and Skybox Stages and render zones from the general metas bucket
     const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
@@ -219,7 +219,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto backgroundFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(1);
     const auto hazeFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(2);
     const auto bloomFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(3);
-
+*/
     // Light Clustering
     // Create the cluster grid of lights, cpu job for now
     const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, lightFrame, linearDepthTarget).asVarying();

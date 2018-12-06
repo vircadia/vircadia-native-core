@@ -129,4 +129,15 @@ public:
     void run(const render::RenderContextPointer& renderContext, Outputs& outputs);
 };
 
+class RenderUpdateStageLightingTask {
+public:
+    using Inputs = 
+    using Outputs = render::VaryingSet4<LightStage::FramePointer, BackgroundStage::FramePointer, HazeStage::FramePointer, BloomStage::FramePointer>;
+    using JobModel = render::Job::ModelIO<FetchCurrentFrames, Outputs>;
+
+    RenderUpdateStageLightingTask() {}
+
+    void run(const render::RenderContextPointer& renderContext, Outputs& outputs);
+};
+
 #endif // hifi_RenderDeferredTask_h
