@@ -38,8 +38,8 @@ public:
     void writeBody(QTextStream& stream);
     void finishHTMLpage(QTextStream& stream);
 
-    void writeTitle(QTextStream& stream);
-    void writeTable(QTextStream& stream);
+    void writeTitle(QTextStream& stream, const QStringList& originalNamesFailures, const QStringList& originalNamesSuccesses);
+    void writeTable(QTextStream& stream, const QStringList& originalNamesFailures, const QStringList& originalNamesSuccesses);
     void openTable(QTextStream& stream, const QString& testResult, const bool isFailure);
     void closeTable(QTextStream& stream);
 

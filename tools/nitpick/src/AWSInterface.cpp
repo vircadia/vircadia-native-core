@@ -103,62 +103,8 @@ void AWSInterface::writeHead(QTextStream& stream) {
 
 void AWSInterface::writeBody(QTextStream& stream) {
     stream << "\t" << "<body>\n";
-    writeTitle(stream);
-    writeTable(stream);
-    stream << "\t" << "</body>\n";
-}
 
-void AWSInterface::finishHTMLpage(QTextStream& stream) {
-    stream << "</html>\n";
-}
-
-void AWSInterface::writeTitle(QTextStream& stream) {
-    // Separate relevant components from the results name
-    // The expected format is as follows: `D:/tt/snapshots/TestResults--2018-10-04_11-09-41(PR14128)[DESKTOP-PMKNLSQ].zip`
-    QStringList tokens = _testResults.split('/');
-
-    // date_buildorPR_hostName will be 2018-10-03_15-35-28(9433)[DESKTOP-PMKNLSQ]
-    QString date_buildorPR_hostName = tokens[tokens.length() - 1].split("--")[1].split(".")[0];
-
-    QString buildorPR = date_buildorPR_hostName.split('(')[1].split(')')[0];
-    QString hostName = date_buildorPR_hostName.split('[')[1].split(']')[0];
-
-    QStringList dateList = date_buildorPR_hostName.split('(')[0].split('_')[0].split('-');
-    QString year = dateList[0];
-    QString month = dateList[1];
-    QString day = dateList[2];
-
-    QStringList timeList = date_buildorPR_hostName.split('(')[0].split('_')[1].split('-');
-    QString hour = timeList[0];
-    QString minute = timeList[1];
-    QString second = timeList[2];
-
-    const QString months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-
-    stream << "\t" << "\t" << "<font color=\"red\">\n";
-    stream << "\t" << "\t" << "<h1>Failures for ";
-    stream << months[month.toInt() - 1] << " " << day << ", " << year << ", ";
-    stream << hour << ":" << minute << ":" << second << ", ";
-
-    if (buildorPR.left(2) == "PR") {
-        stream << "PR " << buildorPR.right(buildorPR.length() - 2) << ", ";
-    } else {
-        stream << "build " << buildorPR << ", ";
-    }
-
-    stream << "run on " << hostName << "</h1>\n";
-}
-
-void AWSInterface::writeTable(QTextStream& stream) {
-    QString previousTestName{ "" };
-
-    // Loop over all entries in directory.  This is done in stages, as the names are not in the order of the tests
-    //      The first stage reads the directory names into a list 
-    //      The second stage renames the tests by removing everything up to "--tests."
-    //      The third stage renames the directories
-    //      The fourth and lasts stage creates the HTML entries
-    //
-    // Note that failures are processed first, then successes
+    // The results are read here as they are used both in the title (for the summary) and for table
     QStringList originalNamesFailures;
     QStringList originalNamesSuccesses;
     QDirIterator it1(_workingDirectory);
@@ -184,6 +130,71 @@ void AWSInterface::writeTable(QTextStream& stream) {
             originalNamesSuccesses.append(nextDirectory);
         }
     }
+
+    writeTitle(stream, originalNamesFailures, originalNamesSuccesses);
+    writeTable(stream, originalNamesFailures, originalNamesSuccesses);
+    stream << "\t" << "</body>\n";
+}
+
+void AWSInterface::finishHTMLpage(QTextStream& stream) {
+    stream << "</html>\n";
+}
+
+void AWSInterface::writeTitle(QTextStream& stream, const QStringList& originalNamesFailures, const QStringList& originalNamesSuccesses) {
+    // Separate relevant components from the results name
+    // The expected format is as follows: `D:/tt/snapshots/TestResults--2018-10-04_11-09-41(PR14128)[DESKTOP-PMKNLSQ].zip`
+    QStringList tokens = _testResults.split('/');
+
+    // date_buildorPR_hostName will be 2018-10-03_15-35-28(9433)[DESKTOP-PMKNLSQ]
+    QString date_buildorPR_hostName = tokens[tokens.length() - 1].split("--")[1].split(".")[0];
+
+    QString buildorPR = date_buildorPR_hostName.split('(')[1].split(')')[0];
+    QString hostName = date_buildorPR_hostName.split('[')[1].split(']')[0];
+
+    QStringList dateList = date_buildorPR_hostName.split('(')[0].split('_')[0].split('-');
+    QString year = dateList[0];
+    QString month = dateList[1];
+    QString day = dateList[2];
+
+    QStringList timeList = date_buildorPR_hostName.split('(')[0].split('_')[1].split('-');
+    QString hour = timeList[0];
+    QString minute = timeList[1];
+    QString second = timeList[2];
+
+    const QString months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+    stream << "\t" << "\t" << "<font color=\"Green\">\n";
+    stream << "\t" << "\t" << "<h1>Results for ";
+    stream << months[month.toInt() - 1] << " " << day << ", " << year << ", ";
+    stream << hour << ":" << minute << ":" << second << ", ";
+
+    if (buildorPR.left(2) == "PR") {
+        stream << "PR " << buildorPR.right(buildorPR.length() - 2) << ", ";
+    } else {
+        stream << "build " << buildorPR << ", ";
+    }
+
+    stream << "run on " << hostName << "</h1>\n";
+
+    int numberOfFailures = originalNamesFailures.length();
+    int numberOfSuccesses = originalNamesSuccesses.length();
+
+    stream << "<h2>" << QString::number(numberOfFailures) << " failed, out of a total of " << QString::number(numberOfSuccesses) << " tests</h2>\n";
+
+    stream << "\t" << "\t" << "<font color=\"red\">\n";
+    stream << "\t" << "\t" << "<h1>The following tests failed:</h1>";
+}
+
+void AWSInterface::writeTable(QTextStream& stream, const QStringList& originalNamesFailures, const QStringList& originalNamesSuccesses) {
+    QString previousTestName{ "" };
+
+    // Loop over all entries in directory.  This is done in stages, as the names are not in the order of the tests
+    //      The first stage reads the directory names into a list 
+    //      The second stage renames the tests by removing everything up to "--tests."
+    //      The third stage renames the directories
+    //      The fourth and lasts stage creates the HTML entries
+    //
+    // Note that failures are processed first, then successes
 
     QStringList newNamesFailures;
     for (int i = 0; i < originalNamesFailures.length(); ++i) {
