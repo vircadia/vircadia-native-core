@@ -46,7 +46,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_DIMENSIONS;
     _entityPropertyFlags += PROP_REGISTRATION_POINT;
     _entityPropertyFlags += PROP_CERTIFICATE_ID;
-    _entityPropertyFlags += PROP_CLIENT_ONLY;
+    _entityPropertyFlags += PROP_ENTITY_HOST_TYPE;
     _entityPropertyFlags += PROP_OWNING_AVATAR_ID;
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
@@ -296,7 +296,7 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
     auto nodeList = DependencyManager::get<NodeList>();
 
     if (entityProperties.verifyStaticCertificateProperties()) {
-        if (entityProperties.getClientOnly()) {
+        if (entityProperties.getEntityHostType() == entity::HostType::AVATAR) {
                 SharedNodePointer entityServer = nodeList->soloNodeOfType(NodeType::EntityServer);
 
                 if (entityServer) {

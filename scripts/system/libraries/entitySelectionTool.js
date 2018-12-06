@@ -264,7 +264,7 @@ SelectionManager = (function() {
             if (properties === undefined) {
                 properties = Entities.getEntityProperties(originalEntityID);
             }
-            if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
+            if (!properties.locked && (!properties.avatarEntity || properties.owningAvatarID === MyAvatar.sessionUUID)) {
                 if (nonDynamicEntityIsBeingGrabbedByAvatar(properties)) {
                     properties.parentID = null;
                     properties.parentJointIndex = null;
