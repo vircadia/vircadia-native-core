@@ -1533,6 +1533,11 @@ function resetProperties() {
             case 'number':
             case 'string': {
                 property.elInput.value = "";
+                if (propertyData.defaultValue !== undefined) {
+                    property.elInput.setValue(propertyData.defaultValue);
+                } else {
+                    property.elInput.setValue("");
+                }
                 break;
             }
             case 'bool': {
@@ -1889,6 +1894,18 @@ function createNumberProperty(property, elProperty) {
                ${propertyData.readOnly ? 'readonly' : ''}></input>
         `)
 
+    if (propertyData.min !== undefined) {
+        elInput.setAttribute("min", propertyData.min);
+    }
+    if (propertyData.max !== undefined) {
+        elInput.setAttribute("max", propertyData.max);
+    }
+    if (propertyData.step !== undefined) {
+        elInput.setAttribute("step", propertyData.step);
+    }
+    if (propertyData.defaultValue !== undefined) {
+        elInput.value = propertyData.defaultValue;
+    }
 
     elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
 
