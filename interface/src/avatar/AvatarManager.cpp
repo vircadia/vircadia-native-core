@@ -347,25 +347,6 @@ void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scen
     }
 }
 
-void AvatarManager::sendIdentityRequest(const QUuid& avatarID) const {
-    auto nodeList = DependencyManager::get<NodeList>();
-    QWeakPointer<NodeList> nodeListWeak = nodeList;
-    nodeList->eachMatchingNode(
-        [](const SharedNodePointer& node)->bool {
-            return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
-        },
-        [this, avatarID, nodeListWeak](const SharedNodePointer& node) {
-            auto nodeList = nodeListWeak.lock();
-            if (nodeList) {
-                auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
-                packet->write(avatarID.toRfc4122());
-                nodeList->sendPacket(std::move(packet), *node);
-                ++_identityRequestsSent;
-            }
-        }
-    );
-}
-
 void AvatarManager::simulateAvatarFades(float deltaTime) {
     if (_avatarsToFadeOut.empty()) {
         return;
