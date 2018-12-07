@@ -7,8 +7,6 @@
 //
 #include "Pick.h"
 
-const PickFilter PickFilter::NOTHING;
-
 int pickTypeMetaTypeId = qRegisterMetaType<PickQuery::PickType>("PickType");
 
 PickQuery::PickQuery(const PickFilter& filter, const float maxDistance, const bool enabled) :
@@ -41,7 +39,8 @@ bool PickQuery::isEnabled() const {
 
 void PickQuery::setPrecisionPicking(bool precisionPicking) {
     withWriteLock([&] {
-        _filter.setFlag(PickFilter::PICK_COARSE, !precisionPicking);
+        _filter.setFlag(PickFilter::PRECISE, precisionPicking);
+        _filter.setFlag(PickFilter::COARSE, !precisionPicking);
     });
 }
 
