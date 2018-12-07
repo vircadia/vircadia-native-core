@@ -1188,6 +1188,7 @@ public:
 
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
     void updateAvatarEntities() override;
+    void rememberToReloadOfAvatarEntityDataFromSettings() { _reloadAvatarEntityDataFromSettings = true; }
 
     /**jsdoc
      * Create a new grab.
@@ -1927,6 +1928,7 @@ private:
     bool _haveReceivedHeightLimitsFromDomain { false };
     int _disableHandTouchCount { 0 };
     bool _skeletonModelLoaded { false };
+    bool _reloadAvatarEntityDataFromSettings { true };
 
     Setting::Handle<QString> _dominantHandSetting;
     Setting::Handle<float> _headPitchSetting;

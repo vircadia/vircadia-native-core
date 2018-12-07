@@ -1443,8 +1443,10 @@ void MyAvatar::updateAvatarEntity(const QUuid& entityID, const EntityItemPropert
                 // TODO? handle this case?
                 return;
             }
+            // TODO: remember this entity and its properties, so we can save to settings
         } else {
             // TODO: propagate changes to entity
+            // TODO: and remember these changes so we can save to settings
         }
     }
 
@@ -1474,7 +1476,7 @@ void MyAvatar::updateAvatarEntities() {
     // - ClientTraitsHandler::sendChangedTraitsToMixer sends the entity bytes to the mixer which relays them to other interfaces
     // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processTraitInstace
     // - AvatarData::processTraitInstance calls updateAvatarEntity, which sets _avatarEntityDataChanged = true
-    // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
+    // - (My)Avatar::simulate calls updateAvatarEntities every frame and here we are...
 
     // AVATAR ENTITY DELETE FLOW
     // - EntityScriptingInterface::deleteEntity calls _myAvatar->clearAvatarEntity() for deleted avatar entities
@@ -1483,28 +1485,26 @@ void MyAvatar::updateAvatarEntities() {
     // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processDeletedTraitInstace
     // - AvatarData::processDeletedTraitInstance calls clearAvatarEntity
     // - AvatarData::clearAvatarEntity sets _avatarEntityDataChanged = true and adds the ID to the detached list
-    // - Avatar::simulate notices _avatarEntityDataChanged and here we are...
+    // - Avatar::simulate calls updateAvatarEntities every frame and here we are...
 
-    if (!_avatarEntityDataChanged) {
-        return;
+    if (_reloadAvatarEntityDataFromSettings) {
+
+        if (getID().isNull() ||
+            getID() == AVATAR_SELF_ID ||
+            DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
+            // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong --
+            // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
+            return;
+        }
+
+        auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+        EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+        if (!entityTree) {
+            return;
+        }
+
+        loadAvatarEntityDataFromSettings();
     }
-
-    if (getID().isNull() ||
-        getID() == AVATAR_SELF_ID ||
-        DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
-        // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong --
-        // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
-        return;
-    }
-
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    if (!entityTree) {
-        return;
-    }
-
-    loadAvatarEntityDataFromSettings();
-    setAvatarEntityDataChanged(false);
 }
 
 
@@ -1547,6 +1547,7 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
         _avatarEntityData.clear();
     });
 
+    _reloadAvatarEntityDataFromSettings = false;
     int numEntities = _avatarEntityCountSetting.get(0);
     if (numEntities == 0) {
         return;
@@ -1588,7 +1589,7 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
                     // use the entity to build the data payload
                     OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
                     if (appendState == OctreeElement::COMPLETED) {
-                        // only remember an AvatarEntity that successfully loads
+                        // only remember an AvatarEntity that successfully loads and can be packed
                         QByteArray tempArray = QByteArray::fromRawData((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
                         storeAvatarEntityDataPayload(entityID, tempArray);
                         _avatarEntitiesAsPropertiesStrings[entityID] = _avatarEntityDataSettings[i].get();
@@ -2089,6 +2090,7 @@ void MyAvatar::removeWearableAvatarEntities() {
 }
 
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
+    // NOTE: this method is NOT efficient
     QVariantList avatarEntitiesData;
     QScriptEngine scriptEngine;
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
