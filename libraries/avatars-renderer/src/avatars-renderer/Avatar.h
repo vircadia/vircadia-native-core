@@ -139,7 +139,7 @@ public:
     typedef render::Payload<AvatarData> Payload;
 
     void init();
-    void updateAvatarEntities();
+    virtual void updateAvatarEntities();
     void removeAvatarEntitiesFromTree();
     void simulate(float deltaTime, bool inView);
     virtual void simulateAttachments(float deltaTime);

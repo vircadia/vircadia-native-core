@@ -332,14 +332,6 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    if (getID().isNull() ||
-        getID() == AVATAR_SELF_ID ||
-        DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
-        // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong --
-        // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
-        return;
-    }
-
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (!entityTree) {
@@ -380,7 +372,6 @@ void Avatar::updateAvatarEntities() {
 
             EntityItemProperties properties;
             {
-                // create a temporary EntityItem to unpack the data
                 int32_t bytesLeftToRead = data.size();
                 unsigned char* dataAt = (unsigned char*)(data.data());
                 properties.constructFromBuffer(dataAt, bytesLeftToRead);

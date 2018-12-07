@@ -13,6 +13,7 @@
 #define hifi_MyAvatar_h
 
 #include <bitset>
+#include <iostream> // adebug
 
 #include <glm/glm.hpp>
 
@@ -577,7 +578,9 @@ public:
     // get/set avatar data
     void resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex);
     void saveData();
+    void saveAvatarEntityDataToSettings();
     void loadData();
+    void loadAvatarEntityDataFromSettings();
 
     void saveAttachmentData(const AttachmentData& attachment) const;
     AttachmentData loadAttachmentData(const QUrl& modelURL, const QString& jointName = QString()) const;
@@ -1184,6 +1187,7 @@ public:
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
+    void updateAvatarEntities() override;
 
     /**jsdoc
      * Create a new grab.
