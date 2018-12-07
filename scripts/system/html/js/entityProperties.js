@@ -390,7 +390,9 @@ const GROUPS = [
             {
                 label: "Model",
                 type: "string",
+                placeholder: "URL",
                 propertyID: "modelURL",
+                hideIfCertified: true,
             },
             {
                 label: "Collision Shape",
@@ -404,11 +406,13 @@ const GROUPS = [
                 label: "Compound Shape",
                 type: "string",
                 propertyID: "compoundShapeURL",
+                hideIfCertified: true,
             },
             {
                 label: "Animation",
                 type: "string",
                 propertyID: "animation.url",
+                hideIfCertified: true,
             },
             {
                 label: "Play Automatically",
@@ -460,6 +464,7 @@ const GROUPS = [
                 type: "textarea",
                 propertyID: "originalTextures",
                 readOnly: true,
+                hideIfCertified: true,
             },
         ]
     },
@@ -1187,6 +1192,7 @@ const GROUPS = [
                 buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadScripts } ],
                 propertyID: "script",
                 placeholder: "URL",
+                hideIfCertified: true,
             },
             {
                 label: "Server Script",
@@ -1273,6 +1279,7 @@ const GROUPS = [
                 placeholder: "URL",
                 propertyID: "collisionSoundURL",
                 showPropertyRule: { "collisionless": "false" },
+                hideIfCertified: true,
             },
             {
                 label: "Dynamic",
@@ -3090,6 +3097,15 @@ function loaded() {
 
                         showGroupsForType(selectedEntityProperties.type);
                         
+                        if (selectedEntityProperties.locked) {
+                            disableProperties();
+                            getPropertyInputElement("locked").removeAttribute('disabled');
+                        } else {
+                            enableProperties();
+                            disableSaveUserDataButton();
+                            disableSaveMaterialDataButton()
+                        }
+                        
                         for (let propertyID in properties) {
                             let property = properties[propertyID];
                             let propertyData = property.data;
@@ -3099,6 +3115,14 @@ function loaded() {
                             let isSubProperty = propertyData.subPropertyOf !== undefined;
                             if (propertyValue === undefined && !isSubProperty) {
                                 continue;
+                            }
+
+                            if (propertyData.hideIfCertified) {
+                                let shouldHide = selectedEntityProperties.certificateID !== "";
+                                if (shouldHide) {
+                                    propertyValue = "** Certified **";
+                                }
+                                property.elInput.disabled = shouldHide;
                             }
                             
                             let isPropertyNotNumber = false;
@@ -3276,15 +3300,6 @@ function loaded() {
                             hideMaterialDataTextArea();
                             hideNewJSONMaterialEditorButton();
                             hideMaterialDataSaved();
-                        }
-                        
-                        if (selectedEntityProperties.locked) {
-                            disableProperties();
-                            getPropertyInputElement("locked").removeAttribute('disabled');
-                        } else {
-                            enableProperties();
-                            disableSaveUserDataButton();
-                            disableSaveMaterialDataButton()
                         }
                         
                         let activeElement = document.activeElement;

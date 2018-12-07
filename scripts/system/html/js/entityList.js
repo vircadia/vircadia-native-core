@@ -23,6 +23,7 @@ const SCROLLBAR_WIDTH = 20;
 const RESIZER_WIDTH = 10;
 const DELTA_X_MOVE_COLUMNS_THRESHOLD = 2;
 const DELTA_X_COLUMN_SWAP_POSITION = 5;
+const CERTIFIED_PLACEHOLDER = "** Certified **";
 
 const COLUMNS = {
     type: {
@@ -635,10 +636,11 @@ function loaded() {
                         id: entity.id,
                         name: entity.name,
                         type: type,
-                        url: filename,
-                        fullUrl: entity.url,
+                        url: entity.certificateID === "" ? filename : "<i>" + CERTIFIED_PLACEHOLDER + "</i>",
+                        fullUrl: entity.certificateID === "" ? filename : CERTIFIED_PLACEHOLDER,
                         locked: entity.locked,
                         visible: entity.visible,
+                        certificateID: entity.certificateID,
                         verticesCount: displayIfNonZero(entity.verticesCount),
                         texturesCount: displayIfNonZero(entity.texturesCount),
                         texturesSize: decimalMegabytes(entity.texturesSize),
@@ -876,7 +878,7 @@ function loaded() {
                 if (column.data.glyph) {
                     elCell.innerHTML = itemData[column.data.propertyID] ? column.data.columnHeader : null;
                 } else {
-                    elCell.innerText = itemData[column.data.propertyID];
+                    elCell.innerHTML = itemData[column.data.propertyID];
                 }
                 elCell.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
                 elCell.className = createColumnClassName(column.columnID);
