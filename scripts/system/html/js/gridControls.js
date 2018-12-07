@@ -108,6 +108,7 @@ function loaded() {
         });
 
         augmentSpinButtons();
+        disableDragDrop();
 
         EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
     });
