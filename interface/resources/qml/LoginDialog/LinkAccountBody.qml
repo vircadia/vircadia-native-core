@@ -37,6 +37,7 @@ Item {
     property bool linkSteam: linkSteam
     property bool withOculus: false
     property string errorString: errorString
+    property bool lostFocus: false
 
     QtObject {
         id: d
@@ -475,9 +476,20 @@ Item {
     Connections {
         target: loginDialog
         onFocusEnabled: {
-            Qt.callLater(function() {
-                emailField.forceActiveFocus();
-            });
+            if (!linkAccountBody.lostFocus) {
+                Qt.callLater(function() {
+                    emailField.forceActiveFocus();
+                });
+            }
+        }
+        onFocusDisabled: {
+            linkAccountBody.lostFocus = !root.isTablet && !root.isOverlay;
+            if (linkAccountBody.lostFocus) {
+                Qt.callLater(function() {
+                    emailField.focus = false;
+                    passwordField.focus = false;
+                });
+            }
         }
     }
 
@@ -488,9 +500,6 @@ Item {
         root.text = "";
         d.resize();
         init();
-        Qt.callLater(function() {
-            emailField.forceActiveFocus();
-        });
     }
 
     Keys.onPressed: {

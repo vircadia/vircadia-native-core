@@ -49,6 +49,7 @@ signals:
     void dismissedLoginDialog();
 
     void focusEnabled();
+    void focusDisabled();
 
 public slots:
     void linkCompleted(QNetworkReply* reply);
@@ -59,8 +60,6 @@ public slots:
 
     void signupCompleted(QNetworkReply* reply);
     void signupFailed(QNetworkReply* reply);
-
-    void onFocusEnabled();
 
 protected slots:
     Q_INVOKABLE void dismissLoginDialog();

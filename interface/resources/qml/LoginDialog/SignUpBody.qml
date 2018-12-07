@@ -37,6 +37,7 @@ Item {
 
     property string errorString: errorString
     property bool linkSteam: linkSteam
+    property bool lostFocus: false
 
     QtObject {
         id: d
@@ -423,6 +424,23 @@ Item {
                 }
                 errorContainer.anchors.bottom = usernameField.top;
                 errorContainer.anchors.left = usernameField.left;
+            }
+        }
+        onFocusEnabled: {
+            if (!signUpBody.lostFocus) {
+                Qt.callLater(function() {
+                    emailField.forceActiveFocus();
+                });
+            }
+        }
+        onFocusDisabled: {
+            signUpBody.lostFocus = !root.isTablet && !root.isOverlay;
+            if (signUpBody.lostFocus) {
+                Qt.callLater(function() {
+                    usernameField.focus = false;
+                    emailField.focus = false;
+                    passwordField.focus = false;
+                });
             }
         }
     }

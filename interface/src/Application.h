@@ -346,6 +346,7 @@ signals:
     void interstitialModeChanged(bool isInInterstitialMode);
 
     void loginDialogFocusEnabled();
+    void loginDialogFocusDisabled();
 
     void miniTabletEnabledChanged(bool enabled);
 

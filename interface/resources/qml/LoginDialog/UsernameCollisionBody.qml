@@ -37,6 +37,8 @@ Item {
 
     onKeyboardRaisedChanged: d.resize();
 
+    property bool lostFocus: false
+
     QtObject {
         id: d
         readonly property int minWidth: 480
@@ -221,6 +223,23 @@ Item {
         onHandleLoginFailed: {
             console.log("Login Failed")
             mainTextContainer.text = "Login Failed";
+        }
+
+
+        onFocusEnabled: {
+            if (!usernameCollisionBody.lostFocus) {
+                Qt.callLater(function() {
+                    textField.forceActiveFocus();
+                });
+            }
+        }
+        onFocusDisabled: {
+            usernameCollisionBody.lostFocus = !root.isTablet && !root.isOverlay;
+            if (nusernameCollisionBody.lostFocus) {
+                Qt.callLater(function() {
+                    textField.focus = false;
+                });
+            }
         }
     }
 }

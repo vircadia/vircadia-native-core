@@ -1276,15 +1276,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
     connect(this, &Application::activeDisplayPluginChanged, this, [&](){
-        auto dialogsManager = DependencyManager::get<DialogsManager>();
-        auto keyboard = DependencyManager::get<Keyboard>();
         if (getLoginDialogPoppedUp()) {
+            auto dialogsManager = DependencyManager::get<DialogsManager>();
+            auto keyboard = DependencyManager::get<Keyboard>();
             if (_firstRun.get()) {
                 // display mode changed.  Don't allow auto-switch to work after this session.
                 _firstRun.set(false);
             }
             if (isHMDMode()) {
                 dialogsManager->hideLoginDialog();
+                emit loginDialogFocusDisabled();
                 createLoginDialogOverlay();
             } else {
                 getOverlays().deleteOverlay(_loginDialogOverlayID);
@@ -1293,6 +1294,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 auto toolbar =  DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
                 toolbar->writeProperty("visible", false);
                 dialogsManager->showLoginDialog();
+                emit loginDialogFocusEnabled();
             }
         }
     });
@@ -2897,6 +2899,7 @@ void Application::showLoginScreen() {
         }
         _loginDialogPoppedUp = true;
         dialogsManager->showLoginDialog();
+        emit loginDialogFocusEnabled();
         QJsonObject loginData = {};
         loginData["action"] = "login dialog shown";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
@@ -8651,13 +8654,14 @@ void Application::createLoginDialogOverlay() {
     auto keyboard = DependencyManager::get<Keyboard>().data();
     if (!keyboard->getAnchorID().isNull() && !_loginDialogOverlayID.isNull()) {
         QVariantMap properties {
-            { "position", vec3toVariant(loginOverlay->getWorldPosition() + glm::vec3(-0.4, -0.3f, 0.2f)) },
+            { "position", vec3toVariant(loginOverlay->getWorldPosition() + glm::vec3(-0.4f * getMyAvatar()->getSensorToWorldScale(), -0.3f, 0.2f)) },
             { "orientation", quatToVariant(loginOverlay->getWorldOrientation() * glm::quat(0.0f, 0.0, 1.0f, 0.25f)) },
         };
         overlays.editOverlay(keyboard->getAnchorID(), properties);
         keyboard->setResetKeyboardPositionOnRaise(false);
     }
     setKeyboardFocusOverlay(_loginDialogOverlayID);
+    emit loginDialogFocusEnabled();
     getApplicationCompositor().getReticleInterface()->setAllowMouseCapture(false);
     getApplicationCompositor().getReticleInterface()->setVisible(false);
     if (!_loginStateManager.isSetUp()) {
