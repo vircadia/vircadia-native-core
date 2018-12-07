@@ -19,12 +19,12 @@
 
 class RenderForwardTask {
 public:
-    using Input = render::VaryingSet2<RenderFetchCullSortTask::Output, AssembleLightingStageTask::Outputs>;
+    using Input = render::VaryingSet2<RenderFetchCullSortTask::Output, AssembleLightingStageTask::Output>;
     using JobModel = render::Task::ModelI<RenderForwardTask, Input>;
 
     RenderForwardTask() {}
 
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+    void build(JobModel& task, const render::Varying& input, render::Varying& output);
 };
 
 class PrepareFramebuffer {

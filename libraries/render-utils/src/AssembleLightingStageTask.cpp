@@ -7,46 +7,49 @@
 //
 #include "AssembleLightingStageTask.h"
 
+#include <render/DrawTask.h>
 
-void FetchCurrentFrames::run(const render::RenderContextPointer& renderContext, Outputs& outputs) {
+void FetchCurrentFrames::run(const render::RenderContextPointer& renderContext, Output& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
-    outputs.edit0() = std::make_shared<LightStage::Frame>(lightStage->_currentFrame);
+    output.edit0() = std::make_shared<LightStage::Frame>(lightStage->_currentFrame);
 
     auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
     assert(backgroundStage);
-    outputs.edit1() = std::make_shared<BackgroundStage::Frame>(backgroundStage->_currentFrame);
+    output.edit1() = std::make_shared<BackgroundStage::Frame>(backgroundStage->_currentFrame);
 
     auto hazeStage = renderContext->_scene->getStage<HazeStage>();
     assert(hazeStage);
-    outputs.edit2() = std::make_shared<HazeStage::Frame>(hazeStage->_currentFrame);
+    output.edit2() = std::make_shared<HazeStage::Frame>(hazeStage->_currentFrame);
 
     auto bloomStage = renderContext->_scene->getStage<BloomStage>();
     assert(bloomStage);
-    outputs.edit3() = std::make_shared<BloomStage::Frame>(bloomStage->_currentFrame);
+    output.edit3() = std::make_shared<BloomStage::Frame>(bloomStage->_currentFrame);
 }
 
 
-void RenderUpdateLightingStagesTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
-    const auto& items = input.get<Inputs>();
+void AssembleLightingStageTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
+    const auto& fetchCullSortOut = input.get<Input>();
+    const auto& items = fetchCullSortOut[0];
+    //const auto& items = input.get<Input>();
 
+    const auto& lights = items[RenderFetchCullSortTask::LIGHT];
     const auto& metas = items[RenderFetchCullSortTask::META];
 
     // Clear Light, Haze, Bloom, and Skybox Stages and render zones from the general metas bucket
     const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
-    task.addJob<DrawLight>("DrawLight", lights);
+    task.addJob<render::DrawLight>("DrawLight", lights);
 
     // Fetch the current frame stacks from all the stages
     const auto currentStageFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
 
-    const auto lightFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(0);
+ /*   const auto lightFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(0);
     const auto backgroundFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(1);
     const auto hazeFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(2);
     const auto bloomFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(3);
-
-    outputs.edit0() = currentStageFrames;
-    outputs.edit1() = zones;
+*/
+    output = Output(currentStageFrames, zones);
 }
 

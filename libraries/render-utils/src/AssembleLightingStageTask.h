@@ -22,19 +22,20 @@
 
 class FetchCurrentFrames {
 public:
-    using Outputs = render::VaryingSet4<LightStage::FramePointer, BackgroundStage::FramePointer, HazeStage::FramePointer, BloomStage::FramePointer>;
-    using JobModel = render::Job::ModelO<FetchCurrentFrames, Outputs>;
+    using Output = render::VaryingSet4<LightStage::FramePointer, BackgroundStage::FramePointer, HazeStage::FramePointer, BloomStage::FramePointer>;
+    using JobModel = render::Job::ModelO<FetchCurrentFrames, Output>;
 
     FetchCurrentFrames() {}
 
-    void run(const render::RenderContextPointer& renderContext, Outputs& outputs);
+    void run(const render::RenderContextPointer& renderContext, Output& output);
 };
 
 class AssembleLightingStageTask {
 public:
-    using Inputs = RenderFetchCullSortTask::BucketList;
-    using Outputs = render::VaryingSet2<FetchCurrentFrames::Outputs, ZoneRendererTask::Outputs>;
-    using JobModel = render::Task::ModelIO<FetchCurrentFrames, Inputs, Outputs>;
+   // using Input = RenderFetchCullSortTask::BucketList;
+    using Input = RenderFetchCullSortTask::Output;
+    using Output = render::VaryingSet2<FetchCurrentFrames::Output, ZoneRendererTask::Output>;
+    using JobModel = render::Task::ModelIO<AssembleLightingStageTask, Input, Output, render::Task::Config>;
 
     AssembleLightingStageTask() {}
 

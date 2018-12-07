@@ -84,7 +84,7 @@ public:
 class RenderDeferredTaskDebug {
 public:
     using Input = render::VaryingSet9<RenderFetchCullSortTask::Output, RenderShadowTask::Output,
-        ZoneRendererTask::Outputs, SelectItems::Outputs, FetchCurrentFrames::Outputs,
+        ZoneRendererTask::Output, SelectItems::Outputs, FetchCurrentFrames::Output,
         PrepareDeferred::Outputs, GenerateDeferredFrameTransform::Output, JitterSample::Output, LightingModel>;
    // using Config = RenderDeferredTaskConfig;
     using JobModel = render::Task::ModelI<RenderDeferredTaskDebug, Input>;
@@ -152,11 +152,12 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto& spatialSelection = fetchedItems[1];
 
     // Extract the Lighting Stages Current frame ( and zones)
-    const auto& lightingStageInputs = inputs[1];
+    //const auto lightingStageInputs = inputs[1];
+    const auto lightingStageInputs = input[1];
     // Fetch the current frame stacks from all the stages
-    const auto& currentStageFrames = lightingStageInputs[0];
-    const auto& lightFrame = currentStageFrames[0];
-    const auto& backgroundFrame = currentStageFrames[1];
+    const auto currentStageFrames = lightingStageInputs[0];
+    const auto lightFrame = currentStageFrames[0];
+    const auto backgroundFrame = currentStageFrames[1];
     const auto& hazeFrame = currentStageFrames[2];
     const auto& bloomFrame = currentStageFrames[3];
    

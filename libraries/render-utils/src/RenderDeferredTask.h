@@ -137,14 +137,14 @@ signals:
 
 class RenderDeferredTask {
 public:
-    using Input = render::VaryingSet3<RenderFetchCullSortTask::Output, AssembleLightingStageTask::Outputs, RenderShadowTask::Output>;
+    using Input = render::VaryingSet3<RenderFetchCullSortTask::Output, AssembleLightingStageTask::Output, RenderShadowTask::Output>;
     using Config = RenderDeferredTaskConfig;
     using JobModel = render::Task::ModelI<RenderDeferredTask, Input, Config>;
 
     RenderDeferredTask();
 
     void configure(const Config& config);
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, bool renderShadows);
+    void build(JobModel& task, const render::Varying& input, render::Varying& output, bool renderShadows);
 
 private:
     static const render::Varying addSelectItemJobs(JobModel& task,
