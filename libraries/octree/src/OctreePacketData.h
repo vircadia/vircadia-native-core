@@ -245,8 +245,6 @@ public:
 
     int getBytesAvailable() { return _bytesAvailable; }
 
-    void shrinkByteArrays();
-
     /// displays contents for debugging
     void debugContent();
     void debugBytes();

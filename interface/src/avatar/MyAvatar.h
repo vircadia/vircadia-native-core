@@ -1407,7 +1407,7 @@ public slots:
      */
     bool getEnableMeshVisible() const override;
 
-    void updateAvatarEntity(const QUuid& entityID, const QString& entityPropertiesString) override;
+    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
 
     /**jsdoc
      * Set whether or not your avatar mesh is visible.
@@ -1948,6 +1948,7 @@ private:
     std::vector<Setting::Handle<QString>> _avatarEntityDataSettings;
     std::map<QUuid, QString> _avatarEntityStrings;
     std::map<QUuid, QString> _avatarEntityProperties;
+    std::set<QUuid> _entitiesToSaveToSettings;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

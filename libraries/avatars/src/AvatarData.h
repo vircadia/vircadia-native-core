@@ -952,14 +952,14 @@ public:
     // FIXME: Can this name be improved? Can it be deprecated?
     Q_INVOKABLE virtual void setAttachmentsVariant(const QVariantList& variant);
 
-    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload);
+    virtual void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload);
 
     /**jsdoc
      * @function MyAvatar.updateAvatarEntity
      * @param {Uuid} entityID
      * @param {string} entityData
      */
-    Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QString& entityPropertiesString);
+    Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& entityID, const QString& entityPropertiesString);
 
     /**jsdoc
      * @function MyAvatar.clearAvatarEntity

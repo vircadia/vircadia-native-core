@@ -2777,7 +2777,7 @@ void AvatarData::storeAvatarEntityDataPayload(const QUuid& entityID, const QByte
 }
 
 void AvatarData::updateAvatarEntity(const QUuid& entityID, const QString& entityPropertiesString) {
-    // TODO: implement this as API exposed to JS
+    // TODO: implement this to expose AvatarEntity to JS
 }
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {

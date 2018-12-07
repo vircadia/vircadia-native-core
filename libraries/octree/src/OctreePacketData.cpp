@@ -654,15 +654,6 @@ void OctreePacketData::loadFinalizedContent(const unsigned char* data, int lengt
     }
 }
 
-void OctreePacketData::shrinkByteArrays() {
-    _uncompressedByteArray.resize(_bytesInUse);
-    _compressedByteArray.resize(_compressedBytes);
-    // if you call this method then you are expected to be done packing to raw pointers
-    // and you just want the ByteArrays
-    // therefore we reset
-    reset();
-}
-
 void OctreePacketData::debugContent() {
     qCDebug(octree, "OctreePacketData::debugContent()... COMPRESSED DATA.... size=%d",_compressedBytes);
     int perline=0;

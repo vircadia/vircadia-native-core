@@ -1303,6 +1303,10 @@ void MyAvatar::saveData() {
 }
 
 void MyAvatar::saveAvatarEntityDataToSettings() {
+    if (!_entitiesToSaveToSettings.empty()) {
+        // TODO: save these to settings.
+        _entitiesToSaveToSettings.clear();
+    }
     // save new settings
     uint32_t numEntities = _avatarEntityStrings.size();
     _avatarEntityCountSetting.set(numEntities);
@@ -1429,17 +1433,28 @@ void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
     _skeletonModel->getRig().setEnableInverseKinematics(isEnabled);
 }
 
-void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QString& entityPropertiesString) {
-    /* TODO: implement this so JS can add/update (and delete?) AvatarEntitieskj:w
-    // convert string to properties
-    // NOTE: this path from EntityItemProperties JSON string to EntityItemProperties is NOT efficient
-    EntityItemProperties properties;
-    properties.copyFromJSONString(scriptEngine, entityPropertiesString);
+void MyAvatar::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) {
+    AvatarData::storeAvatarEntityDataPayload(entityID, payload);
+    _entitiesToSaveToSettings.insert(entityID);
+}
 
+/* TODO: verify we don't need this
+void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QString& entityPropertiesString) {
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     EntityItemPointer entity;
     if (entityTree) {
+        return;
+    }
+    // convert string to properties
+    EntityItemProperties properties;
+    {
+        // NOTE: this path from EntityItemProperties JSON string to EntityItemProperties is NOT efficient
+        QScriptEngine scriptEngine;
+        properties.copyFromJSONString(scriptEngine, entityPropertiesString);
+    }
+
+    entityTree->withWriteLock([&] {
         entity = entityTree->findEntityByID(entityID);
         if (!entity) {
             entity = entityTree->addEntity(entityID, properties);
@@ -1450,25 +1465,25 @@ void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QString& entityPr
             }
             // TODO: remember this entity and its properties, so we can save to settings
         } else {
-            // TODO: propagate changes to entity
-            // TODO: and remember these changes so we can save to settings
+            entityTree->updateEntity(entityID, properties);
         }
-    }
+        if (entity) {
+            // build update packet for later
+            OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
+            EncodeBitstreamParams params;
+            EntityTreeElementExtraEncodeDataPointer extra { nullptr };
+            OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
+            if (appendState == OctreeElement::COMPLETED) {
+                QByteArray tempArray = QByteArray::fromRawData((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
+                storeAvatarEntityDataPayload(entity->getID(), tempArray);
+                properties = entity->getProperties();
+                _entitiesToSaveToSettings.insert(entityID);
+            }
 
-    OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
-    EncodeBitstreamParams params;
-    EntityTreeElementExtraEncodeDataPointer extra { nullptr };
-    OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
-
-    if (appendState != OctreeElement::COMPLETED) {
-        // this entity's data is too big
-        return;
-    }
-
-    QByteArray tempArray = QByteArray::fromRawData((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
-    storeAvatarEntityDataPayload(entity->getID(), tempArray);
-    */
+        }
+    });
 }
+*/
 
 void MyAvatar::updateAvatarEntities() {
     // TODO: modify this info for MyAvatar
