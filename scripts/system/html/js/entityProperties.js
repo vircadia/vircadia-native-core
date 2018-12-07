@@ -557,21 +557,23 @@ const GROUPS = [
                 propertyID: "materialData",
             },
             {
+                label: "Select Submesh",
+                type: "bool",
+                propertyID: "selectSubmesh",
+            },
+            {
                 label: "Submesh to Replace",
                 type: "number",
                 min: 0,
                 step: 1,
                 propertyID: "submeshToReplace",
+                indentedLabel: true,
             },
             {
-                label: "Material Name to Replace",
+                label: "Material to Replace",
                 type: "string",
                 propertyID: "materialNameToReplace",
-            },
-            {
-                label: "Select Submesh",
-                type: "bool",
-                propertyID: "selectSubmesh",
+                indentedLabel: true,
             },
             {
                 label: "Priority",
@@ -580,9 +582,17 @@ const GROUPS = [
                 propertyID: "priority",
             },
             {
+                label: "Material Mapping Mode",
+                type: "dropdown",
+                options: {
+                    uv: "UV space", projected: "3D projected"
+                },
+                propertyID: "materialMappingMode",
+            },
+            {
                 label: "Material Position",
                 type: "vec2",
-                vec2Type: "xy",
+                vec2Type: "xyz",
                 min: 0,
                 max: 1,
                 step: 0.1,
@@ -593,11 +603,11 @@ const GROUPS = [
             {
                 label: "Material Scale",
                 type: "vec2",
-                vec2Type: "wh",
+                vec2Type: "xyz",
                 min: 0,
                 step: 0.1,
                 decimals: 4,
-                subLabels: [ "width", "height" ],
+                subLabels: [ "x", "y" ],
                 propertyID: "materialMappingScale",
             },
             {
@@ -607,6 +617,11 @@ const GROUPS = [
                 decimals: 2,
                 unit: "deg",
                 propertyID: "materialMappingRot",
+            },
+            {
+                label: "Material Repeat",
+                type: "bool",
+                propertyID: "materialRepeat",
             },
         ]
     },
@@ -882,7 +897,7 @@ const GROUPS = [
         properties: [
             {
                 type: "triple",
-                label: "Alpha",
+                label: "Spin",
                 properties: [
                     {
                         label: "Start",
@@ -951,8 +966,8 @@ const GROUPS = [
                     {
                         label: "Start",
                         type: "number",
-                        min: -180,
-                        max: 0,
+                        min: 0,
+                        max: 180,
                         step: 1,
                         decimals: 0,
                         multiplier: DEGREES_TO_RADIANS,
@@ -979,7 +994,7 @@ const GROUPS = [
                     {
                         label: "Start",
                         type: "number",
-                        min: 0,
+                        min: -180,
                         max: 180,
                         step: 1,
                         decimals: 0,
@@ -990,7 +1005,7 @@ const GROUPS = [
                     {
                         label: "Finish",
                         type: "number",
-                        min: 0,
+                        min: -180,
                         max: 180,
                         step: 1,
                         decimals: 0,
@@ -1182,7 +1197,7 @@ const GROUPS = [
             },
             {
                 label: "Lifetime",
-                type: "number",
+                type: "string",
                 unit: "s",
                 propertyID: "lifetime",
             },
@@ -1370,6 +1385,7 @@ const GROUPS_PER_TYPE = {
 };
 
 const EDITOR_TIMEOUT_DURATION = 1500;
+const IMAGE_DEBOUNCE_TIMEOUT = 250;
 const DEBOUNCE_TIMEOUT = 125;
 
 const COLOR_MIN = 0;
@@ -1641,7 +1657,7 @@ function updateVisibleSpaceModeProperties() {
  * PROPERTY UPDATE FUNCTIONS
  */
 
-function updateProperty(originalPropertyName, propertyValue, isParticleProperty, blockUpdateCallback) {
+function updateProperty(originalPropertyName, propertyValue, isParticleProperty) {
     let propertyUpdate = {};
     // if this is a compound property name (i.e. animation.running) then split it by . up to 3 times
     let splitPropertyName = originalPropertyName.split('.');
@@ -1667,7 +1683,11 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty,
         });
         particleSyncDebounce();
     } else {
-        updateProperties(propertyUpdate, blockUpdateCallback);
+        // only update the entity property value itself if in the middle of dragging
+        // prevent undo command push, saving new property values, and property update 
+        // callback until drag is complete (additional update sent via dragEnd callback)
+        let onlyUpdateEntity = properties[originalPropertyName] && properties[originalPropertyName].dragging === true;
+        updateProperties(propertyUpdate, onlyUpdateEntity);
     }
 }
 
@@ -1676,15 +1696,15 @@ var particleSyncDebounce = _.debounce(function () {
     particlePropertyUpdates = {};
 }, DEBOUNCE_TIMEOUT);
 
-function updateProperties(propertiesToUpdate, blockUpdateCallback) {
-    if (blockUpdateCallback === undefined) {
-        blockUpdateCallback = false;
+function updateProperties(propertiesToUpdate, onlyUpdateEntity) {
+    if (onlyUpdateEntity === undefined) {
+        onlyUpdateEntity = false;
     }
     EventBridge.emitWebEvent(JSON.stringify({
         id: lastEntityID,
         type: "update",
         properties: propertiesToUpdate,
-        blockUpdateCallback: blockUpdateCallback
+        onlyUpdateEntities: onlyUpdateEntity
     }));
 }
 
@@ -1709,9 +1729,8 @@ function createDragStartFunction(property) {
 function createDragEndFunction(property) {
     return function() {
         property.dragging = false;
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: "updateProperties"
-        }));
+        // send an additonal update post-dragging to consider whole property change from dragStart to dragEnd to be 1 action
+        this.valueChangeFunction();
     };
 }
 
@@ -1722,7 +1741,7 @@ function createEmitNumberPropertyUpdateFunction(property) {
             multiplier = 1;
         }
         let value = parseFloat(this.value) * multiplier;
-        updateProperty(property.name, value, property.isParticleProperty, property.dragging);
+        updateProperty(property.name, value, property.isParticleProperty);
     };
 }
 
@@ -1736,7 +1755,7 @@ function createEmitVec2PropertyUpdateFunction(property) {
             x: property.elNumberX.elInput.value * multiplier,
             y: property.elNumberY.elInput.value * multiplier
         };
-        updateProperty(property.name, newValue, property.isParticleProperty, property.dragging);
+        updateProperty(property.name, newValue, property.isParticleProperty);
     };
 }
 
@@ -1751,7 +1770,7 @@ function createEmitVec3PropertyUpdateFunction(property) {
             y: property.elNumberY.elInput.value * multiplier,
             z: property.elNumberZ.elInput.value * multiplier
         };
-        updateProperty(property.name, newValue, property.isParticleProperty, property.dragging);
+        updateProperty(property.name, newValue, property.isParticleProperty);
     };
 }
 
@@ -1858,7 +1877,7 @@ function createNumberProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "draggable-number";
+    elProperty.className += " draggable-number-container";
 
     let dragStartFunction = createDragStartFunction(property);
     let dragEndFunction = createDragEndFunction(property);
@@ -1877,7 +1896,7 @@ function createNumberProperty(property, elProperty) {
     elProperty.appendChild(elDraggableNumber.elDiv);
 
     if (propertyData.buttons !== undefined) {
-        addButtons(elDraggableNumber.elText, elementID, propertyData.buttons, false);
+        addButtons(elDraggableNumber.elDiv, elementID, propertyData.buttons, false);
     }
     
     return elDraggableNumber;
@@ -1937,7 +1956,7 @@ function createColorProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "rgb fstuple";
+    elProperty.className += " rgb fstuple";
     
     let elColorPicker = document.createElement('div');
     elColorPicker.className = "color-picker";
@@ -1978,6 +1997,7 @@ function createColorProperty(property, elProperty) {
         color: '000000',
         submit: false, // We don't want to have a submission button
         onShow: function(colpick) {
+            console.log("Showing");
             $(colorPickerID).attr('active', 'true');
             // The original color preview within the picker needs to be updated on show because
             // prior to the picker being shown we don't have access to the selections' starting color.
@@ -2100,7 +2120,7 @@ function createTextureProperty(property, elProperty) {
             elDiv.classList.remove("no-preview");
             elDiv.classList.add("no-texture");
         }
-    }, DEBOUNCE_TIMEOUT * 2);
+    }, IMAGE_DEBOUNCE_TIMEOUT);
     elInput.imageLoad = imageLoad;
     elInput.oninput = function (event) {
         // Add throttle
@@ -2879,20 +2899,20 @@ function loaded() {
                     for (let i = 0; i < propertyData.properties.length; ++i) {
                         let innerPropertyData = propertyData.properties[i];
 
-                        let elWrapper = createElementFromHTML('<div class="flex-column flex-center triple-item"><div></div></div>');
+                        let elWrapper = createElementFromHTML('<div class="triple-item"></div>');
+                        elProperty.appendChild(elWrapper);
 
                         let propertyID = innerPropertyData.propertyID;               
                         let propertyName = innerPropertyData.propertyName !== undefined ? innerPropertyData.propertyName : propertyID;
                         let propertyElementID = "property-" + propertyID;
                         propertyElementID = propertyElementID.replace('.', '-');
 
-                        elWrapper.appendChild(createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`));
-                        elProperty.appendChild(elWrapper);
-
-                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper.childNodes[0]);
+                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper);
                         property.isParticleProperty = group.id.includes("particles");
                         property.elContainer = elContainer;
                         property.spaceMode = propertySpaceMode;
+
+                        elWrapper.appendChild(createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`));
                         
                         if (property.type !== 'placeholder') {
                             properties[propertyID] = property;
@@ -3451,7 +3471,8 @@ function loaded() {
         };
 
         document.addEventListener("keyup", function (keyUpEvent) {
-            if (keyUpEvent.target.nodeName === "INPUT") {
+            const FILTERED_NODE_NAMES = ["INPUT", "TEXTAREA"];
+            if (FILTERED_NODE_NAMES.includes(keyUpEvent.target.nodeName)) {
                 return;
             }
             let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;

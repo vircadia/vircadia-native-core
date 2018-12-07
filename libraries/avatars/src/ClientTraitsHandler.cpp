@@ -66,7 +66,7 @@ void ClientTraitsHandler::resetForNewMixer() {
 }
 
 void ClientTraitsHandler::sendChangedTraitsToMixer() {
-    Lock lock(_traitLock);
+    std::unique_lock<Mutex> lock(_traitLock);
 
     if (hasChangedTraits() || _shouldPerformInitialSend) {
         // we have at least one changed trait to send
@@ -90,6 +90,14 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
         _traitStatuses.reset();
         _hasChangedTraits = false;
 
+        // if this was an initial send of all traits, consider it completed
+        bool initialSend = _shouldPerformInitialSend;
+        _shouldPerformInitialSend = false;
+
+        // we can release the lock here since we've taken a copy of statuses
+        // and will setup the packet using the information in the copy
+        lock.unlock();
+
         auto simpleIt = traitStatusesCopy.simpleCBegin();
         while (simpleIt != traitStatusesCopy.simpleCEnd()) {
             // because the vector contains all trait types (for access using trait type as index)
@@ -111,12 +119,12 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
         auto instancedIt = traitStatusesCopy.instancedCBegin();
         while (instancedIt != traitStatusesCopy.instancedCEnd()) {
             for (auto& instanceIDValuePair : instancedIt->instances) {
-                if ((_shouldPerformInitialSend && instanceIDValuePair.value != Deleted)
+                if ((initialSend && instanceIDValuePair.value != Deleted)
                     || instanceIDValuePair.value == Updated) {
                     // this is a changed trait we need to send or we haven't send out trait information yet
                     // ask the owning avatar to pack it
                     _owningAvatar->packTraitInstance(instancedIt->traitType, instanceIDValuePair.id, *traitsPacketList);
-                } else if (!_shouldPerformInitialSend && instanceIDValuePair.value == Deleted) {
+                } else if (!initialSend && instanceIDValuePair.value == Deleted) {
                     // pack delete for this trait instance
                     AvatarTraits::packInstancedTraitDelete(instancedIt->traitType, instanceIDValuePair.id,
                                                            *traitsPacketList);
@@ -127,9 +135,6 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
         }
 
         nodeList->sendPacketList(std::move(traitsPacketList), *avatarMixer);
-
-        // if this was an initial send of all traits, consider it completed
-        _shouldPerformInitialSend = false;
     }
 }
 

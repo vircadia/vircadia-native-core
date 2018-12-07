@@ -219,26 +219,24 @@ vec3 getTapLocationClampedSSAO(int sampleNumber, float spinAngle, float outerRad
     }
     bool redoTap = false;
 
-    if ((tapPos.x < 0.5)) {
-        tapPos.x = -tapPos.x;
-        redoTap = true;
-    } else if ((tapPos.x > sideImageSize.x - 0.5)) {
-        tapPos.x -= (sideImageSize.x - tapPos.x);
-        redoTap = true;
+    {
+        float check1 = float(tapPos.x < 0.5);
+        float check2 = (1.0 - check1) * float(tapPos.x > sideImageSize.x - 0.5);
+        tapPos.x = tapPos.x - 2.0 * tapPos.x * check1 - check2 * (sideImageSize.x - tapPos.x);
+        redoTap = (check1 > 0.0 || check2 > 0.0);
     }
 
-    if ((tapPos.y < 0.5)) {
-        tapPos.y = -tapPos.y;
-        redoTap = true;
-    } else if ((tapPos.y > sideImageSize.y - 0.5)) {
-        tapPos.y -= (sideImageSize.y - tapPos.y);
-        redoTap = true;
+    {
+        float check1 = float(tapPos.y < 0.5);
+        float check2 = (1.0 - check1) * float(tapPos.y > sideImageSize.y - 0.5);
+        tapPos.y =  tapPos.y - 2.0 * tapPos.y * check1 - check2 * (sideImageSize.y - tapPos.y);
+        redoTap = (check1 > 0.0 || check2 > 0.0);
     }
 
-    if (redoTap) {
-        tap.xy = tapPos - pixelPos;
-        tap.z = length(tap.xy);
-        tap.z = 0.0;  
+    {
+        float check = float(redoTap);
+        tap.xy = mix(tap.xy, tapPos - pixelPos, check);
+        tap.z = (1.0 - check) * tap.z;
     }
     
     return tap;

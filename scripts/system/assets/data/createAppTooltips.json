@@ -267,7 +267,7 @@
         "jsPropertyName": "parentMaterialName"
     },
     "selectSubmesh": {
-        "tooltip": "If enabled, \"Select Submesh\" property will show up, otherwise \"Material Name to Replace\" will be shown.",
+        "tooltip": "If enabled, \"Submesh to Replace\" property will show up, otherwise \"Material to Replace\" will be shown.",
         "skipJSProperty": true
     },
     "priority": {

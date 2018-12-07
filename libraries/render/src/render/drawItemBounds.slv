@@ -98,11 +98,6 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    if (params.color.w < 0.0) {
-        varColor = vec4(colorWheel(float(boundID)/(-params.color.w)), 1.0);
-    } else {
-        varColor = vec4(colorWheel(float(params.color.w)), 1.0);
-    }
+    varColor = mix(vec4(colorWheel(float(params.color.w)), 1.0), vec4(colorWheel(float(boundID)/(-params.color.w)), 1.0), float(params.color.w < 0.0));
     varTexcoord = vec2(cubeVec.w, length(boundDim));
-
 }

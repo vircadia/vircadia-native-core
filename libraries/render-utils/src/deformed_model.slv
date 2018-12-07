@@ -44,13 +44,13 @@ void main(void) {
     _color.rgb = color_sRGBToLinear(inColor.rgb);
     _color.a = inColor.a;
 
-    TexMapArray texMapArray = getTexMapArray();
-    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord01.xy)$>
-    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord1, _texCoord01.zw)$>
-
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToWorldAndEyeAndClipPos(cam, obj, deformedPosition, _positionWS, _positionES, gl_Position)$>
     <$transformModelToWorldDir(cam, obj, deformedNormal, _normalWS.xyz)$>
+
+    TexMapArray texMapArray = getTexMapArray();
+    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _positionWS, _texCoord01.xy)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord1, _positionWS, _texCoord01.zw)$>
 }

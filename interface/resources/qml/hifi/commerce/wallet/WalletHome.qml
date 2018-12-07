@@ -270,9 +270,11 @@ Item {
                 model: transactionHistoryModel;
                 delegate: Item {
                     width: parent.width;
-                    height: (model.transaction_type === "pendingCount" && model.count !== 0) ? 40 : ((model.status === "confirmed" || model.status === "invalidated") ? transactionText.height + 30 : 0);
+                    height: (model.transaction_type === "pendingCount" && model.count !== 0) ? 40 :
+                        (transactionContainer.visible ? transactionText.height + 30 : 0);
 
                     Item {
+                        id: pendingCountContainer;
                         visible: model.transaction_type === "pendingCount" && model.count !== 0;
                         anchors.top: parent.top;
                         anchors.left: parent.left;
@@ -291,7 +293,9 @@ Item {
                     }
 
                     Item {
-                        visible: model.transaction_type !== "pendingCount" && (model.status === "confirmed" || model.status === "invalidated");
+                        id: transactionContainer;
+                        visible: model.transaction_type !== "pendingCount" &&
+                            (model.status === "confirmed" || model.status === "invalidated");
                         anchors.top: parent.top;
                         anchors.left: parent.left;
                         width: parent.width;
