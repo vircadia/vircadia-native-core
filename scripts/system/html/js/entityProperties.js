@@ -557,21 +557,23 @@ const GROUPS = [
                 propertyID: "materialData",
             },
             {
+                label: "Select Submesh",
+                type: "bool",
+                propertyID: "selectSubmesh",
+            },
+            {
                 label: "Submesh to Replace",
                 type: "number",
                 min: 0,
                 step: 1,
                 propertyID: "submeshToReplace",
+                indentedLabel: true,
             },
             {
-                label: "Material Name to Replace",
+                label: "Material to Replace",
                 type: "string",
                 propertyID: "materialNameToReplace",
-            },
-            {
-                label: "Select Submesh",
-                type: "bool",
-                propertyID: "selectSubmesh",
+                indentedLabel: true,
             },
             {
                 label: "Priority",
@@ -590,7 +592,7 @@ const GROUPS = [
             {
                 label: "Material Position",
                 type: "vec2",
-                vec2Type: "xy",
+                vec2Type: "xyz",
                 min: 0,
                 max: 1,
                 step: 0.1,
@@ -601,11 +603,11 @@ const GROUPS = [
             {
                 label: "Material Scale",
                 type: "vec2",
-                vec2Type: "wh",
+                vec2Type: "xyz",
                 min: 0,
                 step: 0.1,
                 decimals: 4,
-                subLabels: [ "width", "height" ],
+                subLabels: [ "x", "y" ],
                 propertyID: "materialMappingScale",
             },
             {
@@ -1435,13 +1437,13 @@ const TEXTURE_ELEMENTS = {
 
 const JSON_EDITOR_ROW_DIV_INDEX = 2;
 
-var elGroups = {};
-var properties = {};
-var colorPickers = {};
-var particlePropertyUpdates = {};
-var selectedEntityProperties;
-var lastEntityID = null;
-var createAppTooltip = new CreateAppTooltip();
+let elGroups = {};
+let properties = {};
+let colorPickers = {};
+let particlePropertyUpdates = {};
+let selectedEntityProperties;
+let lastEntityID = null;
+let createAppTooltip = new CreateAppTooltip();
 let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
 function createElementFromHTML(htmlString) {
@@ -1695,7 +1697,7 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty)
     }
 }
 
-var particleSyncDebounce = _.debounce(function () {
+let particleSyncDebounce = _.debounce(function () {
     updateProperties(particlePropertyUpdates);
     particlePropertyUpdates = {};
 }, DEBOUNCE_TIMEOUT);
@@ -1829,7 +1831,7 @@ function createStringProperty(property, elProperty) {
                type="text"
                ${propertyData.placeholder ? 'placeholder="' + propertyData.placeholder + '"' : ''}
                ${propertyData.readOnly ? 'readonly' : ''}></input>
-        `)
+        `);
 
     
     elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
@@ -1881,7 +1883,7 @@ function createNumberProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "draggable-number";
+    elProperty.className += " draggable-number-container";
 
     let dragStartFunction = createDragStartFunction(property);
     let dragEndFunction = createDragEndFunction(property);
@@ -1960,7 +1962,7 @@ function createColorProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "rgb fstuple";
+    elProperty.className += " rgb fstuple";
     
     let elColorPicker = document.createElement('div');
     elColorPicker.className = "color-picker";
@@ -2001,6 +2003,7 @@ function createColorProperty(property, elProperty) {
         color: '000000',
         submit: false, // We don't want to have a submission button
         onShow: function(colpick) {
+            console.log("Showing");
             $(colorPickerID).attr('active', 'true');
             // The original color preview within the picker needs to be updated on show because
             // prior to the picker being shown we don't have access to the selections' starting color.
@@ -2365,31 +2368,41 @@ function saveUserData() {
     saveJSONUserData(true);
 }
 
+function setJSONError(property, isError) {
+    $("#property-"+ property + "-editor").toggleClass('error', isError);
+    let $propertyUserDataEditorStatus = $("#property-"+ property + "-editorStatus");
+    $propertyUserDataEditorStatus.css('display', isError ? 'block' : 'none');
+    $propertyUserDataEditorStatus.text(isError ? 'Invalid JSON code - look for red X in your code' : '');
+}
+
 function setUserDataFromEditor(noUpdate) {
     let json = null;
+    let errorFound = false;
     try {
         json = editor.get();
     } catch (e) {
-        alert('Invalid JSON code - look for red X in your code ', +e);
+        errorFound = true;
     }
-    if (json === null) {
+
+    setJSONError('userData', errorFound);
+
+    if (errorFound) {
         return;
+    }
+
+    let text = editor.getText();
+    if (noUpdate) {
+        EventBridge.emitWebEvent(
+            JSON.stringify({
+                id: lastEntityID,
+                type: "saveUserData",
+                properties: {
+                    userData: text
+                }
+            })
+        );
     } else {
-        let text = editor.getText();
-        if (noUpdate === true) {
-            EventBridge.emitWebEvent(
-                JSON.stringify({
-                    id: lastEntityID,
-                    type: "saveUserData",
-                    properties: {
-                        userData: text
-                    }
-                })
-            );
-            return;
-        } else {
-            updateProperty('userData', text, false);
-        }
+        updateProperty('userData', text, false);
     }
 }
 
@@ -2448,7 +2461,7 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, r
     updateProperties(propertyUpdate, false);
 }
 
-var editor = null;
+let editor = null;
 
 function createJSONEditor() {
     let container = document.getElementById("property-userData-editor");
@@ -2511,9 +2524,10 @@ function hideUserDataSaved() {
 
 function showStaticUserData() {
     if (editor !== null) {
-        $('#property-userData-static').show();
-        $('#property-userData-static').css('height', $('#property-userData-editor').height());
-        $('#property-userData-static').text(editor.getText());
+        let $propertyUserDataStatic = $('#property-userData-static');
+        $propertyUserDataStatic.show();
+        $propertyUserDataStatic.css('height', $('#property-userData-editor').height());
+        $propertyUserDataStatic.text(editor.getText());
     }
 }
 
@@ -2534,12 +2548,13 @@ function getEditorJSON() {
 
 function deleteJSONEditor() {
     if (editor !== null) {
+        setJSONError('userData', false);
         editor.destroy();
         editor = null;
     }
 }
 
-var savedJSONTimer = null;
+let savedJSONTimer = null;
 
 function saveJSONUserData(noUpdate) {
     setUserDataFromEditor(noUpdate);
@@ -2584,33 +2599,35 @@ function saveMaterialData() {
 
 function setMaterialDataFromEditor(noUpdate) {
     let json = null;
+    let errorFound = false;
     try {
         json = materialEditor.get();
     } catch (e) {
-        alert('Invalid JSON code - look for red X in your code ', +e);
+        errorFound = true;
     }
-    if (json === null) {
+
+    setJSONError('materialData', errorFound);
+
+    if (errorFound) {
         return;
+    }
+    let text = materialEditor.getText();
+    if (noUpdate) {
+        EventBridge.emitWebEvent(
+            JSON.stringify({
+                id: lastEntityID,
+                type: "saveMaterialData",
+                properties: {
+                    materialData: text
+                }
+            })
+        );
     } else {
-        let text = materialEditor.getText();
-        if (noUpdate === true) {
-            EventBridge.emitWebEvent(
-                JSON.stringify({
-                    id: lastEntityID,
-                    type: "saveMaterialData",
-                    properties: {
-                        materialData: text
-                    }
-                })
-            );
-            return;
-        } else {
-            updateProperty('materialData', text, false);
-        }
+        updateProperty('materialData', text, false);
     }
 }
 
-var materialEditor = null;
+let materialEditor = null;
 
 function createJSONMaterialEditor() {
     let container = document.getElementById("property-materialData-editor");
@@ -2673,9 +2690,10 @@ function hideMaterialDataSaved() {
 
 function showStaticMaterialData() {
     if (materialEditor !== null) {
-        $('#property-materialData-static').show();
-        $('#property-materialData-static').css('height', $('#property-materialData-editor').height());
-        $('#property-materialData-static').text(materialEditor.getText());
+        let $propertyMaterialDataStatic = $('#property-materialData-static');
+        $propertyMaterialDataStatic.show();
+        $propertyMaterialDataStatic.css('height', $('#property-materialData-editor').height());
+        $propertyMaterialDataStatic.text(materialEditor.getText());
     }
 }
 
@@ -2696,12 +2714,13 @@ function getMaterialEditorJSON() {
 
 function deleteJSONMaterialEditor() {
     if (materialEditor !== null) {
+        setJSONError('materialData', false);
         materialEditor.destroy();
         materialEditor = null;
     }
 }
 
-var savedMaterialJSONTimer = null;
+let savedMaterialJSONTimer = null;
 
 function saveJSONMaterialData(noUpdate) {
     setMaterialDataFromEditor(noUpdate);
@@ -2899,23 +2918,23 @@ function loaded() {
                     for (let i = 0; i < propertyData.properties.length; ++i) {
                         let innerPropertyData = propertyData.properties[i];
 
-                        let elWrapper = createElementFromHTML('<div class="flex-column flex-center triple-item"><div></div></div>');
+                        let elWrapper = createElementFromHTML('<div class="triple-item"></div>');
+                        elProperty.appendChild(elWrapper);
 
                         let propertyID = innerPropertyData.propertyID;               
                         let propertyName = innerPropertyData.propertyName !== undefined ? innerPropertyData.propertyName : propertyID;
                         let propertyElementID = "property-" + propertyID;
                         propertyElementID = propertyElementID.replace('.', '-');
 
+                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper);
+                        property.isParticleProperty = group.id.includes("particles");
+                        property.elContainer = elContainer;
+                        property.spaceMode = propertySpaceMode;
+
                         let elLabel = createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`);
                         createAppTooltip.registerTooltipElement(elLabel, propertyID);
 
                         elWrapper.appendChild(elLabel);
-                        elProperty.appendChild(elWrapper);
-
-                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper.childNodes[0]);
-                        property.isParticleProperty = group.id.includes("particles");
-                        property.elContainer = elContainer;
-                        property.spaceMode = propertySpaceMode;
                         
                         if (property.type !== 'placeholder') {
                             properties[propertyID] = property;
@@ -2961,7 +2980,7 @@ function loaded() {
                     let elServerScriptError = document.getElementById("property-serverScripts-error");
                     let elServerScriptStatus = document.getElementById("property-serverScripts-status");
                     elServerScriptError.value = data.errorInfo;
-                    // If we just set elServerScriptError's diplay to block or none, we still end up with
+                    // If we just set elServerScriptError's display to block or none, we still end up with
                     // it's parent contributing 21px bottom padding even when elServerScriptError is display:none.
                     // So set it's parent to block or none
                     elServerScriptError.parentElement.style.display = data.errorInfo ? "block" : "none";
@@ -3320,12 +3339,15 @@ function loaded() {
         elStaticUserData.setAttribute("id", userDataElementID + "-static");
         let elUserDataEditor = document.createElement('div');
         elUserDataEditor.setAttribute("id", userDataElementID + "-editor");
+        let elUserDataEditorStatus = document.createElement('div');
+        elUserDataEditorStatus.setAttribute("id", userDataElementID + "-editorStatus");
         let elUserDataSaved = document.createElement('span');
         elUserDataSaved.setAttribute("id", userDataElementID + "-saved");
         elUserDataSaved.innerText = "Saved!";
         elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elUserDataSaved);
         elDiv.insertBefore(elStaticUserData, elUserData);
         elDiv.insertBefore(elUserDataEditor, elUserData);
+        elDiv.insertBefore(elUserDataEditorStatus, elUserData);
         
         // Material Data
         let materialDataProperty = properties["materialData"];
@@ -3336,12 +3358,15 @@ function loaded() {
         elStaticMaterialData.setAttribute("id", materialDataElementID + "-static");
         let elMaterialDataEditor = document.createElement('div');
         elMaterialDataEditor.setAttribute("id", materialDataElementID + "-editor");
+        let elMaterialDataEditorStatus = document.createElement('div');
+        elMaterialDataEditorStatus.setAttribute("id", materialDataElementID + "-editorStatus");
         let elMaterialDataSaved = document.createElement('span');
         elMaterialDataSaved.setAttribute("id", materialDataElementID + "-saved");
         elMaterialDataSaved.innerText = "Saved!";
         elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elMaterialDataSaved);
         elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
+        elDiv.insertBefore(elMaterialDataEditorStatus, elMaterialData);
         
         // Special Property Callbacks
         let elParentMaterialNameString = getPropertyInputElement("materialNameToReplace");
@@ -3532,6 +3557,7 @@ function loaded() {
     });
 
     augmentSpinButtons();
+    disableDragDrop();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function(event) {

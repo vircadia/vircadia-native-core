@@ -39,7 +39,7 @@ enum class RenderItemStatusIcon {
     SIMULATION_OWNER = 3,
     HAS_ACTIONS = 4,
     OTHER_SIMULATION_OWNER = 5,
-    CLIENT_ONLY = 6,
+    ENTITY_HOST_TYPE = 6,
     NONE = 255
 };
 
@@ -115,17 +115,20 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
     });
 
     statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
-        if (entity->getClientOnly()) {
+        if (entity->isAvatarEntity()) {
             if (entity->getOwningAvatarID() == myNodeID) {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
-                    (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+                    (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
             } else {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::RED,
-                    (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+                    (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
             }
+        } else if (entity->isLocalEntity()) {
+            return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
+                (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::GREEN,
-            (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+            (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
     });
 }
 

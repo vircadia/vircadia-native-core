@@ -9,10 +9,6 @@
 const SCROLL_ROWS = 2; // number of rows used as scrolling buffer, each time we pass this number of rows we scroll
 const FIRST_ROW_INDEX = 2; // the first elRow element's index in the child nodes of the table body
 
-debugPrint = function (message) {
-    console.log(message);
-};
-
 function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunction, updateRowFunction, clearRowFunction,
                   preRefreshFunction, postRefreshFunction, preResizeFunction, WINDOW_NONVARIABLE_HEIGHT) {
     this.elTableBody = elTableBody;
@@ -246,7 +242,7 @@ ListView.prototype = {
 
     resize: function() {        
         if (!this.elTableBody || !this.elTableScroll) {
-            debugPrint("ListView.resize - no valid table body or table scroll element");
+            console.log("ListView.resize - no valid table body or table scroll element");
             return;
         }
         this.preResizeFunction();
@@ -288,7 +284,7 @@ ListView.prototype = {
     
     initialize: function() {
         if (!this.elTableBody || !this.elTableScroll) {
-            debugPrint("ListView.initialize - no valid table body or table scroll element");
+            console.log("ListView.initialize - no valid table body or table scroll element");
             return;
         }
         

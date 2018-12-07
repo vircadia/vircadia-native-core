@@ -84,15 +84,18 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
                                                     EntityTreePointer entityTree,
                                                     EntityItemID entityItemID,
                                                     const EntityItemProperties& properties) {
-    if (properties.getClientOnly()) {
+    if (properties.getEntityHostType() == entity::HostType::AVATAR) {
         if (!_myAvatar) {
-            qCWarning(entities) << "Suppressing entity edit message: cannot send clientOnly edit with no myAvatar";
+            qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit with no myAvatar";
         } else if (properties.getOwningAvatarID() == _myAvatar->getID()) {
             // this is an avatar-based entity --> update our avatar-data rather than sending to the entity-server
             queueEditAvatarEntityMessage(type, entityTree, entityItemID, properties);
         } else {
-            qCWarning(entities) << "Suppressing entity edit message: cannot send clientOnly edit for another avatar";
+            qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit for another avatar";
         }
+        return;
+    } else if (properties.getEntityHostType() == entity::HostType::LOCAL) {
+        // Don't send edits for local entities
         return;
     }
 
