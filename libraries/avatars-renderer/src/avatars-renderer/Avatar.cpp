@@ -310,7 +310,7 @@ void Avatar::updateAvatarEntities() {
     PerformanceTimer perfTimer("attachments");
 
     // AVATAR ENTITY UPDATE FLOW
-    // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
+    // - if queueEditEntityMessage sees avatarEntity flag it does _myAvatar->updateAvatarEntity()
     // - updateAvatarEntity saves the bytes and flags the trait instance for the entity as updated
     // - ClientTraitsHandler::sendChangedTraitsToMixer sends the entity bytes to the mixer which relays them to other interfaces
     // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processTraitInstace
@@ -389,7 +389,7 @@ void Avatar::updateAvatarEntities() {
             QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
             EntityItemProperties properties;
             EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, properties);
-            properties.setClientOnly(true);
+            properties.setEntityHostType(entity::HostType::AVATAR);
             properties.setOwningAvatarID(getID());
 
             // there's no entity-server to tell us we're the simulation owner, so always set the

@@ -241,6 +241,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glm::vec2, glm::vec2(1.0f));
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float, 0);
     DEFINE_PROPERTY_REF(PROP_MATERIAL_DATA, MaterialData, materialData, QString, "");
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_REPEAT, MaterialRepeat, materialRepeat, bool, true);
 
     DEFINE_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool, ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA);
 
@@ -279,7 +280,7 @@ public:
     DEFINE_PROPERTY(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool, ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED);
     DEFINE_PROPERTY(PROP_FILTER_URL, FilterURL, filterURL, QString, ZoneEntityItem::DEFAULT_FILTER_URL);
 
-    DEFINE_PROPERTY(PROP_CLIENT_ONLY, ClientOnly, clientOnly, bool, false);
+    DEFINE_PROPERTY_REF_ENUM(PROP_ENTITY_HOST_TYPE, EntityHostType, entityHostType, entity::HostType, entity::HostType::DOMAIN);
     DEFINE_PROPERTY_REF(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid, UNKNOWN_ENTITY_ID);
 
     DEFINE_PROPERTY_REF(PROP_DPI, DPI, dpi, uint16_t, ENTITY_ITEM_DEFAULT_DPI);
@@ -589,7 +590,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, GhostingAllowed, ghostingAllowed, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, FilterURL, filterURL, "");
 
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ClientOnly, clientOnly, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EntityHostTypeAsString, entityHostType, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, OwningAvatarID, owningAvatarID, "");
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LastEditedBy, lastEditedBy, "");

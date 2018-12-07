@@ -151,6 +151,9 @@ float fetchScatteringMap(vec2 uv) {
 
 
 <@func fetchMaterialTexturesCoord0(matKey, texcoord0, albedo, roughness, normal, metallic, emissive, scattering)@>
+    if (getTexMapArray()._materialParams.y != 1.0 && clamp(<$texcoord0$>, vec2(0.0), vec2(1.0)) != <$texcoord0$>) {
+        discard;
+    }
 <@if albedo@>
     vec4 <$albedo$> = mix(vec4(1.0), fetchAlbedoMap(<$texcoord0$>), float((<$matKey$> & (ALBEDO_MAP_BIT | OPACITY_MASK_MAP_BIT | OPACITY_TRANSLUCENT_MAP_BIT)) != 0));
 <@endif@>
@@ -188,7 +191,7 @@ float fetchScatteringMap(vec2 uv) {
 
 LAYOUT(binding=GRAPHICS_TEXTURE_MATERIAL_EMISSIVE_LIGHTMAP) uniform sampler2D emissiveMap;
 vec3 fetchLightmapMap(vec2 uv) {
-    vec2 lightmapParams = getTexMapArray()._lightmapParams.xy;
+    vec2 lightmapParams = getTexMapArray()._lightmapParams;
     return (vec3(lightmapParams.x) + lightmapParams.y * texture(emissiveMap, uv).rgb);
 }
 <@endfunc@>

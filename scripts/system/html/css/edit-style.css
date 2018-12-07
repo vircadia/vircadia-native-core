@@ -598,11 +598,16 @@ div.section[collapsed="true"], div.section[collapsed="true"] > .section-header {
 
 .triple-label {
     text-transform: uppercase;
+    text-align: center;
     padding: 6px 0;
 }
 
 .triple-item {
     margin-right: 10px;
+}
+
+.triple-item.rgb.fstuple {
+    display: block !important;
 }
 
 .section-header[collapsed="true"] {
@@ -911,14 +916,17 @@ div.refresh input[type="button"] {
     clear: both;
 }
 
+.draggable-number-container {
+    flex: 0 1 124px;
+}
 .draggable-number {
     position: relative;
-}
-.draggable-number div {
     height: 28px;
-    width: 124px;
+    flex: 0 1 124px;
 }
-.draggable-number.text {
+
+.draggable-number .text {
+    position: absolute;
     display: inline-block;
     color: #afafaf;
     background-color: #252525;
@@ -930,11 +938,12 @@ div.refresh input[type="button"] {
     width: 100%;
     line-height: 2;
     box-sizing: border-box;
+    z-index: 1;
 }
-.draggable-number.text:hover {
+.draggable-number .text:hover {
     cursor: ew-resize;
 }
-.draggable-number span {
+.draggable-number .left-arrow, .draggable-number .right-arrow {
     position: absolute;
     display: inline-block;
     font-family: HiFi-Glyphs;
@@ -944,12 +953,12 @@ div.refresh input[type="button"] {
 .draggable-number span:hover {
     cursor: default;
 }
-.draggable-number.left-arrow {
+.draggable-number .left-arrow {
     top: 3px;
     left: 0px;
     transform: rotate(180deg);
 }
-.draggable-number.right-arrow {
+.draggable-number .right-arrow {
     top: 3px;
     right: 0px;
 }
@@ -1514,6 +1523,7 @@ input.rename-entity {
     width: 258px;
     min-height: 20px;
     padding: 5px;
+    z-index: 100;
 }
 
 .create-app-tooltip .create-app-tooltip-description {
@@ -1627,10 +1637,6 @@ input.number-slider {
 .flex-column {
     display: flex;
     flex-flow: column;
-}
-
-.flex-column + .flex-column {
-    padding-left: 50px;
 }
 
 .flex-center {

@@ -176,7 +176,7 @@ enum EntityPropertyList {
     PROP_FLYING_ALLOWED, // can avatars in a zone fly?
     PROP_GHOSTING_ALLOWED, // can avatars in a zone turn off physics?
 
-    PROP_CLIENT_ONLY, // doesn't go over wire
+    PROP_ENTITY_HOST_TYPE, // doesn't go over wire
     PROP_OWNING_AVATAR_ID, // doesn't go over wire
 
     PROP_SHAPE,
@@ -274,6 +274,8 @@ enum EntityPropertyList {
     PROP_GRAB_EQUIPPABLE_INDICATOR_URL,
     PROP_GRAB_EQUIPPABLE_INDICATOR_SCALE,
     PROP_GRAB_EQUIPPABLE_INDICATOR_OFFSET,
+
+    PROP_MATERIAL_REPEAT,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

@@ -2833,35 +2833,47 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
         qCDebug(avatars) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
         return;
     }
+
+    std::vector<QUuid> deletedEntityIDs;
+    QList<QUuid> updatedEntityIDs;
+
     _avatarEntitiesLock.withWriteLock([&] {
         if (_avatarEntityData != avatarEntityData) {
+
             // keep track of entities that were attached to this avatar but no longer are
             AvatarEntityIDs previousAvatarEntityIDs = QSet<QUuid>::fromList(_avatarEntityData.keys());
 
             _avatarEntityData = avatarEntityData;
             setAvatarEntityDataChanged(true);
 
+            deletedEntityIDs.reserve(previousAvatarEntityIDs.size());
+
             foreach (auto entityID, previousAvatarEntityIDs) {
                 if (!_avatarEntityData.contains(entityID)) {
                     _avatarEntityDetached.insert(entityID);
-
-                    if (_clientTraitsHandler) {
-                        // we have a client traits handler, so we flag this removed entity as deleted
-                        // so that changes are sent next frame
-                        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
-                    }
+                    deletedEntityIDs.push_back(entityID);
                 }
             }
 
-            if (_clientTraitsHandler) {
-                // if we have a client traits handler, flag any updated or created entities
-                // so that we send changes for them next frame
-                foreach (auto entityID, _avatarEntityData.keys()) {
-                    _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
-                }
-            }
+            updatedEntityIDs = _avatarEntityData.keys();
         }
     });
+
+    if (_clientTraitsHandler) {
+        // we have a client traits handler
+
+        // flag removed entities as deleted so that changes are sent next frame
+        for (auto& deletedEntityID : deletedEntityIDs) {
+            _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, deletedEntityID);
+        }
+
+        // flag any updated or created entities so that we send changes for them next frame
+        for (auto& entityID : updatedEntityIDs) {
+            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+        }
+    }
+
+
 }
 
 AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
