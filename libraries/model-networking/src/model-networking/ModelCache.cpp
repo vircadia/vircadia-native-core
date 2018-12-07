@@ -23,6 +23,10 @@
 #include "ModelNetworkingLogging.h"
 #include <Trace.h>
 #include <StatTracker.h>
+#include <hfm/ModelFormatRegistry.h>
+#include <FBXSerializer.h>
+#include <OBJSerializer.h>
+#include <GLTFSerializer.h>
 
 Q_LOGGING_CATEGORY(trace_resource_parse_geometry, "trace.resource.parse.geometry")
 
@@ -308,6 +312,11 @@ ModelCache::ModelCache() {
     const qint64 GEOMETRY_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(GEOMETRY_DEFAULT_UNUSED_MAX_SIZE);
     setObjectName("ModelCache");
+
+    auto modelFormatRegistry = DependencyManager::get<ModelFormatRegistry>();
+    modelFormatRegistry->addFormat(FBXSerializer());
+    modelFormatRegistry->addFormat(OBJSerializer());
+    modelFormatRegistry->addFormat(GLTFSerializer());
 }
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,

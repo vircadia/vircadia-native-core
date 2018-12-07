@@ -12,7 +12,7 @@
 #include "ModelLoader.h"
 
 #include <DependencyManager.h>
-#include "ModelFormatRegistry.h"
+#include <hfm/ModelFormatRegistry.h>
 
 
 hfm::Model::Pointer ModelLoader::load(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url, const std::string& webMediaType) const {

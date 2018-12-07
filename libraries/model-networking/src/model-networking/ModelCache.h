@@ -21,6 +21,7 @@
 #include "FBXSerializer.h"
 #include "TextureCache.h"
 #include "ModelLoader.h"
+#include "hfm/FormatSerializerRegister.h"
 
 // Alias instead of derive to avoid copying
 

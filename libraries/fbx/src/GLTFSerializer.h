@@ -16,8 +16,6 @@
 #include <QtNetwork/QNetworkReply>
 #include <hfm/ModelFormatLogging.h>
 #include <hfm/HFMSerializer.h>
-#include <hfm/HFMFormat.h>
-#include "FBXSerializer.h"
 
 
 struct GLTFAsset {
@@ -704,7 +702,8 @@ struct GLTFFile {
 class GLTFSerializer : public QObject, public HFMSerializer {
     Q_OBJECT
 public:
-    static std::shared_ptr<hfm::Format> FORMAT;
+    MediaType getMediaType() const override;
+    std::unique_ptr<hfm::Serializer::Factory> getFactory() const override;
 
     HFMModel::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
 private:

@@ -14,8 +14,6 @@
 
 #include <QtNetwork/QNetworkReply>
 #include <hfm/HFMSerializer.h>
-#include <hfm/HFMFormat.h>
-#include "FBXSerializer.h"
 
 class OBJTokenizer {
 public:
@@ -93,7 +91,8 @@ public:
 class OBJSerializer: public QObject, public HFMSerializer { // QObject so we can make network requests.
     Q_OBJECT
 public:
-    static std::shared_ptr<hfm::Format> FORMAT;
+    MediaType getMediaType() const override;
+    std::unique_ptr<hfm::Serializer::Factory> getFactory() const;
     
     typedef QVector<OBJFace> FaceGroup;
     QVector<glm::vec3> vertices;

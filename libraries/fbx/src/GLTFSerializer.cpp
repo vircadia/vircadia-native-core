@@ -34,7 +34,6 @@
 #include <PathUtils.h>
 
 #include "FBXSerializer.h"
-#include <hfm/HFMSimpleFormat.h>
 
 bool GLTFSerializer::getStringVal(const QJsonObject& object, const QString& fieldname,
                               QString& value, QMap<QString, bool>&  defined) {
@@ -906,14 +905,16 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     return true;
 }
 
-MediaType getGLTFMediaType() {
+MediaType GLTFSerializer::getMediaType() const {
     MediaType mediaType("gltf");
     mediaType.extensions.push_back("gltf");
     mediaType.webMediaTypes.push_back("model/gltf+json");
     return mediaType;
 }
 
-std::shared_ptr<hfm::Format> GLTFSerializer::FORMAT = std::make_shared<hfm::SimpleFormat<GLTFSerializer>>(getGLTFMediaType());
+std::unique_ptr<hfm::Serializer::Factory> GLTFSerializer::getFactory() const {
+    return std::make_unique<hfm::Serializer::SimpleFactory<GLTFSerializer>>();
+}
 
 HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     

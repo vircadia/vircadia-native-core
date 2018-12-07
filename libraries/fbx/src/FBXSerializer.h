@@ -28,7 +28,6 @@
 
 #include "FBX.h"
 #include <hfm/HFMSerializer.h>
-#include <hfm/HFMFormat.h>
 
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
@@ -97,7 +96,8 @@ class ExtractedMesh;
 
 class FBXSerializer : public HFMSerializer {
 public:
-    static std::shared_ptr<hfm::Format> FORMAT;
+    MediaType getMediaType() const override;
+    std::unique_ptr<hfm::Serializer::Factory> getFactory() const override;
 
     HFMModel* _hfmModel;
     /// Reads HFMModel from the supplied model and mapping data.

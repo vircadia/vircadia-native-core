@@ -28,7 +28,6 @@
 #include <ResourceManager.h>
 
 #include "FBXSerializer.h"
-#include <hfm/HFMSimpleFormat.h>
 #include <hfm/ModelFormatLogging.h>
 #include <shared/PlatformHacks.h>
 
@@ -652,13 +651,15 @@ done:
     return result;
 }
 
-MediaType getOBJMediaType() {
+MediaType OBJSerializer::getMediaType() const {
     MediaType mediaType("obj");
     mediaType.extensions.push_back("obj");
     return mediaType;
 }
 
-std::shared_ptr<hfm::Format> OBJSerializer::FORMAT = std::make_shared<hfm::SimpleFormat<OBJSerializer>>(getOBJMediaType());
+std::unique_ptr<hfm::Serializer::Factory> OBJSerializer::getFactory() const {
+    return std::make_unique<hfm::Serializer::SimpleFactory<OBJSerializer>>();
+}
 
 HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);

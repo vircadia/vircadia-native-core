@@ -101,7 +101,7 @@
 #include <MainWindow.h>
 #include <MappingRequest.h>
 #include <MessagesClient.h>
-#include <model-networking/ModelFormatRegistry.h>
+#include <hfm/ModelFormatRegistry.h>
 #include <model-networking/ModelCacheScriptingInterface.h>
 #include <model-networking/TextureCacheScriptingInterface.h>
 #include <ModelEntityItem.h>
@@ -884,7 +884,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     DependencyManager::set<recording::ClipCache>();
     DependencyManager::set<GeometryCache>();
-    DependencyManager::set<ModelFormatRegistry>();
+    DependencyManager::set<ModelFormatRegistry>(); // ModelFormatRegistry must be defined before ModelCache. See the ModelCache constructor.
     DependencyManager::set<ModelCache>();
     DependencyManager::set<ModelCacheScriptingInterface>();
     DependencyManager::set<ScriptCache>();
@@ -2747,9 +2747,9 @@ Application::~Application() {
     DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCacheScriptingInterface>();
     DependencyManager::destroy<TextureCache>();
-    DependencyManager::destroy<ModelFormatRegistry>();
     DependencyManager::destroy<ModelCacheScriptingInterface>();
     DependencyManager::destroy<ModelCache>();
+    DependencyManager::destroy<ModelFormatRegistry>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCacheScriptingInterface>();
     DependencyManager::destroy<SoundCache>();

@@ -27,9 +27,10 @@ public:
     void unregisterMediaType(const MediaTypeID& id);
 
     std::shared_ptr<Serializer> getSerializerForMediaType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const;
-    std::shared_ptr<Serializer> getSerializerForMediaTypeID(MediaTypeID id) const;
 
 protected:
+    std::shared_ptr<Serializer> getSerializerForMediaTypeID(MediaTypeID id) const;
+
     MediaTypeLibrary _mediaTypeLibrary;
     std::mutex _libraryLock;
     class SupportedFormat {

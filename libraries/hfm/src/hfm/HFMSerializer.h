@@ -15,6 +15,7 @@
 #include <shared/HifiTypes.h>
 
 #include "HFM.h"
+#include <shared/MediaTypeLibrary.h>
 
 namespace hfm {
 
@@ -24,6 +25,16 @@ public:
     public:
         virtual std::shared_ptr<Serializer> get() = 0;
     };
+
+    template<typename T>
+    class SimpleFactory : public Factory {
+        std::shared_ptr<Serializer> get() override {
+            return std::make_shared<T>();
+        }
+    };
+
+    virtual MediaType getMediaType() const = 0;
+    virtual std::unique_ptr<Factory> getFactory() const = 0;
 
     virtual Model::Pointer read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url = hifi::URL()) = 0;
 };
