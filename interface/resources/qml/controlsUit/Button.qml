@@ -25,6 +25,7 @@ Original.Button {
     property int radius: hifi.buttons.radius
     property alias implicitTextWidth: buttonText.implicitWidth
     property string buttonGlyph: "";
+    property int buttonGlyphSize: 34;
     property int buttonGlyphRightMargin: 0;
     property int fontCapitalization: Font.AllUppercase
 
@@ -103,7 +104,7 @@ Original.Button {
             visible: control.buttonGlyph !== "";
             text: control.buttonGlyph === "" ? hifi.glyphs.question : control.buttonGlyph;
             // Size
-            size: 34;
+            size: control.buttonGlyphSize;
             // Anchors
             anchors.right: buttonText.left;
             anchors.rightMargin: control.buttonGlyphRightMargin

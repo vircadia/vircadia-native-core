@@ -43,10 +43,10 @@ Item {
         id: d
         readonly property int minWidth: 480
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
-        property int maxWidth: root.isTablet ? 1280 : root.width
+        property int maxWidth: root.width
         readonly property int minHeight: 120
         readonly property int minHeightButton: 36
-        property int maxHeight: root.isTablet ? 720 : root.height
+        property int maxHeight: root.height
 
         function resize() {
             maxWidth = root.isTablet ? 1280 : root.width;
@@ -222,7 +222,7 @@ Item {
                 id: passwordField
                 width: root.bannerWidth
                 height: signUpBody.textFieldHeight
-                placeholderText: "Password"
+                placeholderText: "Password (min. 6 characters)"
                 font.pixelSize: signUpBody.textFieldFontSize
                 styleRenderType: Text.QtRendering
                 activeFocusOnPress: true
@@ -411,18 +411,19 @@ Item {
         onHandleSignupFailed: {
             console.log("Sign Up Failed")
 
-            var errorStringEdited = errorString.replace(/[\n\r]+/g, ' ');
-            loginErrorMessage.visible = (errorStringEdited !== "");
-            if (errorStringEdited !== "") {
+            if (errorString !== "") {
+                loginErrorMessage.visible = true;
+                var errorStringEdited = errorString.replace(/[\n\r]+/g, "\n");
                 loginErrorMessage.text = errorStringEdited;
-                loginErrorMessageTextMetrics.text = errorStringEdited;
-                if (loginErrorMessageTextMetrics.width > 350 && root.isTablet) {
+                loginErrorMessageTextMetrics.text = errorString;
+                if (loginErrorMessageTextMetrics.width > usernameField.width) {
                     loginErrorMessage.wrapMode = Text.WordWrap;
                     loginErrorMessage.verticalAlignment = Text.AlignLeft;
                     loginErrorMessage.horizontalAlignment = Text.AlignLeft;
-                    errorContainer.height = 2 * loginErrorMessageTextMetrics.height;
+                    errorContainer.height = (loginErrorMessageTextMetrics.width / usernameField.width) * loginErrorMessageTextMetrics.height;
                 }
                 errorContainer.anchors.bottom = usernameField.top;
+                errorContainer.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
                 errorContainer.anchors.left = usernameField.left;
             }
         }

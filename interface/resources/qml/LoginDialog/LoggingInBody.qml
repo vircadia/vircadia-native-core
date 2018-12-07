@@ -32,10 +32,10 @@ Item {
         id: d
         readonly property int minWidth: 480
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
-        property int maxWidth: root.isTablet ? 1280 : root.width
+        property int maxWidth: root.width
         readonly property int minHeight: 120
-        readonly property int minHeightButton: !root.isTablet ? 56 : 42
-        property int maxHeight: root.isTablet ? 720 : root.height
+        readonly property int minHeightButton: 36
+        property int maxHeight: root.height
 
         function resize() {
             maxWidth = root.isTablet ? 1280 : root.width;
@@ -68,7 +68,12 @@ Item {
     function init() {
         // For the process of logging in.
         loggingInText.wrapMode = Text.NoWrap;
-        if (loggingInBody.withSteam) {
+
+        if (loggingInBody.linkSteam) {
+            loggingInText.centerIn = loggingInHeader;
+            loggingInText.text = "Linking to Steam";
+            loginDialog.linkSteam();
+        } else if (loggingInBody.withSteam) {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Steam";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
@@ -78,6 +83,7 @@ Item {
             loggingInText.text = "Logging in to Oculus";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
         } else {
+            loggingInText.centerIn = loggingInHeader;
             loggingInText.text = "Logging in";
             loggingInText.anchors.bottom = loggingInHeader.bottom;
             loggingInText.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
@@ -123,9 +129,11 @@ Item {
             Item {
                 id: loggingInHeader
                 width: parent.width
-                height: 0.5 * parent.height
+                height: loggingInGlyph.height
                 anchors {
                     top: parent.top
+                    topMargin: 0.4 * parent.height
+                    left: parent.left
                 }
                 TextMetrics {
                     id: loggingInGlyphTextMetrics;
@@ -138,12 +146,11 @@ Item {
                     // Color
                     color: "white";
                     // Size
-                    size: 31;
+                    size: 36;
                     // Anchors
                     anchors.right: loggingInText.left;
                     anchors.rightMargin: loggingInBody.loggingInGlyphRightMargin
                     anchors.bottom: parent.bottom;
-                    anchors.bottomMargin: hifi.dimensions.contentSpacing.y
                     // Alignment
                     horizontalAlignment: Text.AlignHCenter;
                     verticalAlignment: Text.AlignVCenter;
@@ -158,13 +165,10 @@ Item {
                 Text {
                     id: loggingInText;
                     width: loggingInTextMetrics.width
-                    anchors.bottom: parent.bottom;
-                    anchors.bottomMargin: hifi.dimensions.contentSpacing.y
-                    anchors.left: parent.left;
-                    anchors.leftMargin: (parent.width - loggingInTextMetrics.width) / 2
+                    anchors.verticalCenter: parent.verticalCenter
                     color: "white";
                     font.family: loggingInBody.fontFamily
-                    font.pixelSize: loggingInBody.fontSize
+                    font.pixelSize: 24
                     font.bold: loggingInBody.fontBold
                     wrapMode: Text.NoWrap
                     verticalAlignment: Text.AlignVCenter
@@ -178,11 +182,12 @@ Item {
                 height: 0.5 * parent.height
                 anchors {
                     top: loggingInHeader.bottom
+                    topMargin: 2 * hifi.dimensions.contentSpacing.y
                 }
                 AnimatedImage {
                     id: loggingInSpinner
-                    source: "images/loader-snake-298-b.gif"
-                    width: 128
+                    source: "images/loader-snake-256.gif"
+                    width: 64
                     height: width
                     anchors.left: parent.left;
                     anchors.leftMargin: (parent.width - width) / 2;

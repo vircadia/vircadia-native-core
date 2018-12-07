@@ -13,6 +13,8 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
+import "." as LoginDialog
+
 import controlsUit 1.0 as HifiControlsUit
 import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
@@ -43,10 +45,10 @@ Item {
         id: d
         readonly property int minWidth: 480
         readonly property int minWidthButton: !root.isTablet ? 256 : 174
-        property int maxWidth: root.isTablet ? 1280 : root.width
+        property int maxWidth: root.width
         readonly property int minHeight: 120
         readonly property int minHeightButton: 36
-        property int maxHeight: root.isTablet ? 720 : root.height
+        property int maxHeight: root.height
 
         function resize() {
             maxWidth = root.isTablet ? 1280 : root.width;
@@ -96,16 +98,24 @@ Item {
         height: root.height
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
+        LoginDialog.LoginDialogLightbox {
+            id: lightboxPopup;
+            visible: false;
+            anchors.fill: parent;
+        }
+
         Item {
             id: loginContainer
             width: emailField.width
-            height: 0.45 * parent.height
+            height: errorContainer.height + emailField.height + passwordField.height + 5.5 * hifi.dimensions.contentSpacing.y +
+                keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height
             anchors {
                 top: parent.top
                 topMargin: root.bannerHeight + 0.25 * parent.height
                 left: parent.left
                 leftMargin: (parent.width - emailField.width) / 2
             }
+
             Item {
                 id: errorContainer
                 width: loginErrorMessageTextMetrics.width
@@ -316,6 +326,11 @@ Item {
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
             }
+            TextMetrics {
+                id: cantAccessTextMetrics
+                font: cantAccessText.font
+                text: "Can't access your account?"
+            }
             HifiStylesUit.ShortcutText {
                 id: cantAccessText
                 z: 10
@@ -337,7 +352,14 @@ Item {
                 onLinkActivated: {
                     Tablet.playSound(TabletEnums.ButtonClick);
                     loginDialog.openUrl(link);
-                    bodyLoader.setSource("CantAccessBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                    lightboxPopup.titleText = "Can't Access Account";
+                    lightboxPopup.bodyText = lightboxPopup.cantAccessBodyText;
+                    lightboxPopup.button2text = "CLOSE";
+                    lightboxPopup.button2method = function() {
+                        lightboxPopup.visible = false;
+                    }
+                    lightboxPopup.visible = true;
+                    // bodyLoader.setSource("CantAccessBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                 }
             }
             HifiControlsUit.Button {
@@ -355,6 +377,7 @@ Item {
                 fontSize: linkAccountBody.fontSize
                 fontBold: linkAccountBody.fontBold
                 buttonGlyph: hifi.glyphs.steamSquare
+                buttonGlyphSize: 24
                 buttonGlyphRightMargin: 10
                 onClicked: {
                     // if (loginDialog.isOculusStoreRunning()) {
@@ -395,7 +418,7 @@ Item {
             anchors {
                 left: loginContainer.left
                 top: loginContainer.bottom
-                topMargin: 0.05 * parent.height
+                topMargin: 0.15 * parent.height
             }
             TextMetrics {
                 id: signUpTextMetrics
@@ -500,6 +523,9 @@ Item {
         root.text = "";
         d.resize();
         init();
+        Qt.callLater(function() {
+            emailField.forceActiveFocus();
+        });
     }
 
     Keys.onPressed: {
