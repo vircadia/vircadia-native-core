@@ -274,6 +274,7 @@ public:
     int rightEyeJointIndex = -1;
     int neckJointIndex = -1;
     int rootJointIndex = -1;
+    int leanJointIndex = -1;
     int headJointIndex = -1;
     int leftHandJointIndex = -1;
     int rightHandJointIndex = -1;

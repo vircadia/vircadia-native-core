@@ -1186,6 +1186,7 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "  rightEyeJointIndex =" << hfmModel.rightEyeJointIndex;
     qCDebug(modelformat) << "  neckJointIndex =" << hfmModel.neckJointIndex;
     qCDebug(modelformat) << "  rootJointIndex =" << hfmModel.rootJointIndex;
+    qCDebug(modelformat) << "  leanJointIndex =" << hfmModel.leanJointIndex;
     qCDebug(modelformat) << "  headJointIndex =" << hfmModel.headJointIndex;
     qCDebug(modelformat) << "  leftHandJointIndex" << hfmModel.leftHandJointIndex;
     qCDebug(modelformat) << "  rightHandJointIndex" << hfmModel.rightHandJointIndex;

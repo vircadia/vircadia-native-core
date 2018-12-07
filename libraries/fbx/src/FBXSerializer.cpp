@@ -482,6 +482,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     QString jointEyeRightName = "EyeRight";
     QString jointNeckName = "Neck";
     QString jointRootName = "Hips";
+    QString jointLeanName = "Spine";
     QString jointHeadName = "Head";
     QString jointLeftHandName = "LeftHand";
     QString jointRightHandName = "RightHand";
@@ -489,6 +490,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     QString jointEyeRightID;
     QString jointNeckID;
     QString jointRootID;
+    QString jointLeanID;
     QString jointHeadID;
     QString jointLeftHandID;
     QString jointRightHandID;
@@ -611,6 +613,9 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
 
                     } else if (name == jointRootName || (hfmModel.hfmToHifiJointNameMapping.contains(jointRootName) && (name == hfmModel.hfmToHifiJointNameMapping[jointRootName]))) {
                         jointRootID = getID(object.properties);
+
+                    } else if (name == jointLeanName || (hfmModel.hfmToHifiJointNameMapping.contains(jointLeanName) && (name == hfmModel.hfmToHifiJointNameMapping[jointLeanName]))) {
+                        jointLeanID = getID(object.properties);
 
                     } else if ((name == jointHeadName) || (hfmModel.hfmToHifiJointNameMapping.contains(jointHeadName) && (name == hfmModel.hfmToHifiJointNameMapping[jointHeadName]))) {
                         jointHeadID = getID(object.properties);
@@ -1449,6 +1454,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     hfmModel.rightEyeJointIndex = modelIDs.indexOf(jointEyeRightID);
     hfmModel.neckJointIndex = modelIDs.indexOf(jointNeckID);
     hfmModel.rootJointIndex = modelIDs.indexOf(jointRootID);
+    hfmModel.leanJointIndex = modelIDs.indexOf(jointLeanID);
     hfmModel.headJointIndex = modelIDs.indexOf(jointHeadID);
     hfmModel.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
     hfmModel.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
