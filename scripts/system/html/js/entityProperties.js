@@ -75,7 +75,7 @@ const GROUPS = [
             },
             {
                 label: "Parent Joint Index",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "parentJointIndex",
             },
             {
@@ -135,7 +135,7 @@ const GROUPS = [
             },
             {
                 label: "Line Height",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 step: 0.005,
                 decimals: 4,
@@ -183,7 +183,7 @@ const GROUPS = [
             },
             {
                 label: "Light Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 10,
                 step: 0.1,
@@ -193,7 +193,7 @@ const GROUPS = [
             },
             {
                 label: "Light Horizontal Angle",
-                type: "number",
+                type: "number-draggable",
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
@@ -202,7 +202,7 @@ const GROUPS = [
             },
             {
                 label: "Light Vertical Angle",
-                type: "number",
+                type: "number-draggable",
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
@@ -241,7 +241,7 @@ const GROUPS = [
             },
             {
                 label: "Ambient Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 10,
                 step: 0.1,
@@ -270,7 +270,7 @@ const GROUPS = [
             },
             {
                 label: "Range",
-                type: "number",
+                type: "number-draggable",
                 min: 5,
                 max: 10000,
                 step: 5,
@@ -287,7 +287,7 @@ const GROUPS = [
             },
             {
                 label: "Base",
-                type: "number",
+                type: "number-draggable",
                 min: -1000,
                 max: 1000,
                 step: 10,
@@ -298,7 +298,7 @@ const GROUPS = [
             },
             {
                 label: "Ceiling",
-                type: "number",
+                type: "number-draggable",
                 min: -1000,
                 max: 5000,
                 step: 10,
@@ -315,7 +315,7 @@ const GROUPS = [
             },
             {
                 label: "Background Blend",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -337,7 +337,7 @@ const GROUPS = [
             },
             {
                 label: "Glare Angle",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 180,
                 step: 1,
@@ -353,7 +353,7 @@ const GROUPS = [
             },
             {
                 label: "Bloom Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -363,7 +363,7 @@ const GROUPS = [
             },
             {
                 label: "Bloom Threshold",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -373,7 +373,7 @@ const GROUPS = [
             },
             {
                 label: "Bloom Size",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 2,
                 step: 0.01,
@@ -436,22 +436,22 @@ const GROUPS = [
             },
             {
                 label: "Animation Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.currentFrame",
             },
             {
                 label: "First Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.firstFrame",
             },
             {
                 label: "Last Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.lastFrame",
             },
             {
                 label: "Animation FPS",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.fps",
             },
             {
@@ -491,7 +491,7 @@ const GROUPS = [
             },
             {
                 label: "Source Resolution",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "dpi",
             },
         ]
@@ -508,7 +508,7 @@ const GROUPS = [
             },
             {
                 label: "Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 step: 0.1,
                 decimals: 1,
@@ -516,7 +516,7 @@ const GROUPS = [
             },
             {
                 label: "Fall-Off Radius",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 step: 0.1,
                 decimals: 1,
@@ -530,14 +530,14 @@ const GROUPS = [
             },
             {
                 label: "Spotlight Exponent",
-                type: "number",
+                type: "number-draggable",
                 step: 0.01,
                 decimals: 2,
                 propertyID: "exponent",
             },
             {
                 label: "Spotlight Cut-Off",
-                type: "number",
+                type: "number-draggable",
                 step: 0.01,
                 decimals: 2,
                 propertyID: "cutoff",
@@ -568,7 +568,7 @@ const GROUPS = [
             },
             {
                 label: "Submesh to Replace",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 step: 1,
                 propertyID: "submeshToReplace",
@@ -582,7 +582,7 @@ const GROUPS = [
             },
             {
                 label: "Priority",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 propertyID: "priority",
             },
@@ -617,7 +617,7 @@ const GROUPS = [
             },
             {
                 label: "Material Rotation",
-                type: "number",
+                type: "number-draggable",
                 step: 0.1,
                 decimals: 2,
                 unit: "deg",
@@ -641,7 +641,7 @@ const GROUPS = [
             },
             {
                 label: "Lifespan",
-                type: "number",
+                type: "number-draggable",
                 unit: "s",
                 min: 0.01,
                 max: 10,
@@ -651,7 +651,7 @@ const GROUPS = [
             },
             {
                 label: "Max Particles",
-                type: "number",
+                type: "number-draggable",
                 min: 1,
                 max: 10000,
                 step: 1,
@@ -672,7 +672,7 @@ const GROUPS = [
         properties: [
             {
                 label: "Emit Rate",
-                type: "number",
+                type: "number-draggable",
                 min: 1,
                 max: 1000,
                 step: 1,
@@ -680,7 +680,7 @@ const GROUPS = [
             },
             {
                 label: "Emit Speed",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 5,
                 step: 0.01,
@@ -689,7 +689,7 @@ const GROUPS = [
             },
             {
                 label: "Speed Spread",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 5,
                 step: 0.01,
@@ -708,7 +708,7 @@ const GROUPS = [
             },
             {
                 label: "Emit Radius Start",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -744,7 +744,7 @@ const GROUPS = [
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 4,
                         step: 0.01,
@@ -754,7 +754,7 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 4,
                         step: 0.01,
@@ -763,7 +763,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 4,
                         step: 0.01,
@@ -775,7 +775,7 @@ const GROUPS = [
             },
             {
                 label: "Size Spread",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 4,
                 step: 0.01,
@@ -833,7 +833,7 @@ const GROUPS = [
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 1,
                         step: 0.01,
@@ -843,7 +843,7 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 1,
                         step: 0.01,
@@ -852,7 +852,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 1,
                         step: 0.01,
@@ -864,7 +864,7 @@ const GROUPS = [
             },
             {
                 label: "Alpha Spread",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -910,7 +910,7 @@ const GROUPS = [
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
+                        type: "number-draggable",
                         min: -360,
                         max: 360,
                         step: 1,
@@ -922,7 +922,7 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "number",
+                        type: "number-draggable",
                         min: -360,
                         max: 360,
                         step: 1,
@@ -933,7 +933,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "number",
+                        type: "number-draggable",
                         min: -360,
                         max: 360,
                         step: 1,
@@ -947,7 +947,7 @@ const GROUPS = [
             },
             {
                 label: "Spin Spread",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 360,
                 step: 1,
@@ -975,7 +975,7 @@ const GROUPS = [
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 180,
                         step: 1,
@@ -986,7 +986,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 180,
                         step: 1,
@@ -1004,7 +1004,7 @@ const GROUPS = [
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
+                        type: "number-draggable",
                         min: -180,
                         max: 180,
                         step: 1,
@@ -1015,7 +1015,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "number",
+                        type: "number-draggable",
                         min: -180,
                         max: 180,
                         step: 1,
@@ -1100,7 +1100,7 @@ const GROUPS = [
             },
             {
                 label: "Scale",
-                type: "number",
+                type: "number-draggable",
                 defaultValue: 100,
                 unit: "%",
                 buttons: [ { id: "rescale", label: "Rescale", className: "blue", onClick: rescaleDimensions }, 
@@ -1142,14 +1142,14 @@ const GROUPS = [
             },
             {
                 label: "Clone Lifetime",
-                type: "number",
+                type: "number-draggable",
                 unit: "s",
                 propertyID: "cloneLifetime",
                 showPropertyRule: { "cloneable": "true" },
             },
             {
                 label: "Clone Limit",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "cloneLimit",
                 showPropertyRule: { "cloneable": "true" },
             },
@@ -1209,7 +1209,7 @@ const GROUPS = [
             },
             {
                 label: "Lifetime",
-                type: "string",
+                type: "number",
                 unit: "s",
                 propertyID: "lifetime",
             },
@@ -1304,7 +1304,7 @@ const GROUPS = [
             },
             {
                 label: "Linear Damping",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -1323,7 +1323,7 @@ const GROUPS = [
             },
             {
                 label: "Angular Damping",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -1332,7 +1332,7 @@ const GROUPS = [
             },
             {
                 label: "Bounciness",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -1341,7 +1341,7 @@ const GROUPS = [
             },
             {
                 label: "Friction",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 10,
                 step: 0.1,
@@ -1350,7 +1350,7 @@ const GROUPS = [
             },
             {
                 label: "Density",
-                type: "number",
+                type: "number-draggable",
                 min: 100,
                 max: 10000,
                 step: 1,
@@ -1467,12 +1467,13 @@ function getPropertyInputElement(propertyID) {
     let property = properties[propertyID];          
     switch (property.data.type) {
         case 'string':
+        case 'number':
         case 'bool':
         case 'dropdown':
         case 'textarea':
         case 'texture':
             return property.elInput;
-        case 'number':
+        case 'number-draggable':
             return property.elNumber.elInput;
         case 'vec3': 
         case 'vec2':
@@ -1542,15 +1543,20 @@ function resetProperties() {
         let propertyData = property.data;
         
         switch (propertyData.type) {
+            case 'number':
             case 'string': {
-                property.elInput.value = "";
+                if (propertyData.defaultValue !== undefined) {
+                    property.elInput.value = propertyData.defaultValue;
+                } else {
+                    property.elInput.value = "";
+                }
                 break;
             }
             case 'bool': {
                 property.elInput.checked = false;
                 break;
             }
-            case 'number': {
+            case 'number-draggable': {
                 if (propertyData.defaultValue !== undefined) {
                     property.elNumber.setValue(propertyData.defaultValue);
                 } else { 
@@ -1886,7 +1892,45 @@ function createBoolProperty(property, elProperty) {
     return elInput;
 }
 
-function createNumberProperty(property, elProperty) { 
+function createNumberProperty(property, elProperty) {
+    let elementID = property.elementID;
+    let propertyData = property.data;
+
+    elProperty.className = "text";
+
+    let elInput = createElementFromHTML(`
+        <input id="${elementID}"
+               class='hide-spinner'
+               type="number"
+               ${propertyData.placeholder ? 'placeholder="' + propertyData.placeholder + '"' : ''}
+               ${propertyData.readOnly ? 'readonly' : ''}></input>
+        `)
+
+    if (propertyData.min !== undefined) {
+        elInput.setAttribute("min", propertyData.min);
+    }
+    if (propertyData.max !== undefined) {
+        elInput.setAttribute("max", propertyData.max);
+    }
+    if (propertyData.step !== undefined) {
+        elInput.setAttribute("step", propertyData.step);
+    }
+    if (propertyData.defaultValue !== undefined) {
+        elInput.value = propertyData.defaultValue;
+    }
+
+    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(property));
+
+    elProperty.appendChild(elInput);
+
+    if (propertyData.buttons !== undefined) {
+        addButtons(elProperty, elementID, propertyData.buttons, false);
+    }
+
+    return elInput;
+}
+
+function createNumberDraggableProperty(property, elProperty) { 
     let elementID = property.elementID;
     let propertyData = property.data;
     
@@ -2230,7 +2274,11 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
             break;
         }
         case 'number': {
-            property.elNumber = createNumberProperty(property, elProperty);
+            property.elInput = createNumberProperty(property, elProperty);
+            break;
+        }
+        case 'number-draggable': {
+            property.elNumber = createNumberDraggableProperty(property, elProperty);
             break;
         }
         case 'vec3': {
@@ -3128,6 +3176,7 @@ function loaded() {
                             let isPropertyNotNumber = false;
                             switch (propertyData.type) {
                                 case 'number':
+                                case 'number-draggable':
                                     isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
                                     break;
                                 case 'vec3':
@@ -3160,6 +3209,10 @@ function loaded() {
                                     break;
                                 }
                                 case 'number': {
+                                    property.elInput.value = propertyValue;
+                                    break;
+                                }
+                                case 'number-draggable': {
                                     let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
                                     let value = propertyValue / multiplier;
                                     if (propertyData.round !== undefined) {

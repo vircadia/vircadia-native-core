@@ -1700,3 +1700,8 @@ input.number-slider {
     display: none;
     cursor: pointer;
 }
+
+input[type=number].hide-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    visibility: hidden;
+}
