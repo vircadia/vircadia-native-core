@@ -945,14 +945,14 @@ void AssetServer::sendStatsPacket() {
         upstreamStats["2. Sent Packets"] = stat.second.sentPackets;
         upstreamStats["3. Recvd ACK"] = events[Events::ReceivedACK];
         upstreamStats["4. Procd ACK"] = events[Events::ProcessedACK];
-        upstreamStats["5. Retransmitted"] = events[Events::Retransmission];
+        upstreamStats["5. Retransmitted"] = stat.second.retransmittedPackets;
         nodeStats["Upstream Stats"] = upstreamStats;
 
         QJsonObject downstreamStats;
         downstreamStats["1. Recvd (P/s)"] = stat.second.receiveRate;
         downstreamStats["2. Recvd Packets"] = stat.second.receivedPackets;
         downstreamStats["3. Sent ACK"] = events[Events::SentACK];
-        downstreamStats["4. Duplicates"] = events[Events::Duplicate];
+        downstreamStats["4. Duplicates"] = stat.second.duplicatePackets;
         nodeStats["Downstream Stats"] = downstreamStats;
 
         QString uuid;

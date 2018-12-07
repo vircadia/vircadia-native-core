@@ -372,8 +372,6 @@ protected:
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                       const HifiSockAddr& overridenSockAddr);
-    qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
-                       const QUuid& connectionSecret = QUuid());
     void collectPacketStats(const NLPacket& packet);
     void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
 

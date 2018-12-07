@@ -60,6 +60,28 @@ void ConnectionStats::recordReceivedPackets(int payload, int total) {
     _total.receivedBytes += total;
 }
 
+void ConnectionStats::recordRetransmittedPackets(int payload, int total) {
+    ++_currentSample.retransmittedPackets;
+    ++_total.retransmittedPackets;
+
+    _currentSample.retransmittedUtilBytes += payload;
+    _total.retransmittedUtilBytes += payload;
+
+    _currentSample.retransmittedBytes += total;
+    _total.retransmittedBytes += total;
+}
+
+void ConnectionStats::recordDuplicatePackets(int payload, int total) {
+    ++_currentSample.duplicatePackets;
+    ++_total.duplicatePackets;
+
+    _currentSample.duplicateUtilBytes += payload;
+    _total.duplicateUtilBytes += payload;
+
+    _currentSample.duplicateBytes += total;
+    _total.duplicateBytes += total;
+}
+
 void ConnectionStats::recordUnreliableSentPackets(int payload, int total) {
     ++_currentSample.sentUnreliablePackets;
     ++_total.sentUnreliablePackets;
@@ -117,13 +139,13 @@ QDebug& operator<<(QDebug&& debug, const udt::ConnectionStats::Stats& stats) {
     HIFI_LOG_EVENT(SentACK)
     HIFI_LOG_EVENT(ReceivedACK)
     HIFI_LOG_EVENT(ProcessedACK)
-    HIFI_LOG_EVENT(Retransmission)
-    HIFI_LOG_EVENT(Duplicate)
     ;
 #undef HIFI_LOG_EVENT
 
     debug << "    Sent packets: " << stats.sentPackets;
+    debug << "\n    Retransmitted packets: " << stats.retransmittedPackets;
     debug << "\n     Received packets: " << stats.receivedPackets;
+    debug << "\n     Duplicate packets: " << stats.duplicatePackets;
     debug << "\n     Sent util bytes: " << stats.sentUtilBytes;
     debug << "\n     Sent bytes: " << stats.sentBytes;
     debug << "\n     Received bytes: " << stats.receivedBytes << "\n";

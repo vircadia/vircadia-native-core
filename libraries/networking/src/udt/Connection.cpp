@@ -192,8 +192,9 @@ void Connection::recordSentPackets(int wireSize, int payloadSize,
     _congestionControl->onPacketSent(wireSize, seqNum, timePoint);
 }
 
-void Connection::recordRetransmission(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
-    _stats.record(ConnectionStats::Stats::Retransmission);
+void Connection::recordRetransmission(int wireSize, int payloadSize,
+                                      SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
+    _stats.recordRetransmittedPackets(payloadSize, wireSize);
 
     _congestionControl->onPacketReSent(wireSize, seqNum, timePoint);
 }
@@ -270,7 +271,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     sendACK();
     
     if (wasDuplicate) {
-        _stats.record(ConnectionStats::Stats::Duplicate);
+        _stats.recordDuplicatePackets(payloadSize, packetSize);
     } else {
         _stats.recordReceivedPackets(payloadSize, packetSize);
     }
