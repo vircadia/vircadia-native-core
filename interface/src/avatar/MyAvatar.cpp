@@ -1252,7 +1252,7 @@ void MyAvatar::saveAvatarUrl() {
     }
 }
 
-void MyAvatar::resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex) {
+void MyAvatar::resizeAvatarEntitySettingHandles(uint32_t maxIndex) {
     // The original Settings interface saved avatar-entity array data like this:
     // Avatar/avatarEntityData/size: 5
     // Avatar/avatarEntityData/1/id: ...
@@ -1262,14 +1262,15 @@ void MyAvatar::resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex) 
     // Avatar/avatarEntityData/5/properties: ...
     //
     // Create Setting::Handles to mimic this.
-
-    while (_avatarEntityIDSettings.size() <= avatarEntityIndex) {
+    uint32_t settingsIndex = _avatarEntityIDSettings.size() + 1;
+    while (settingsIndex <= maxIndex) {
         Setting::Handle<QString> idHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
-                                        << QString::number(avatarEntityIndex + 1) << "id", QUuid().toString());
+                                        << QString::number(settingsIndex) << "id", QUuid().toString());
         _avatarEntityIDSettings.push_back(idHandle);
         Setting::Handle<QString> dataHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
-                                               << QString::number(avatarEntityIndex + 1) << "properties", QString());
+                                               << QString::number(settingsIndex) << "properties", QString());
         _avatarEntityDataSettings.push_back(dataHandle);
+        settingsIndex++;
     }
 }
 
@@ -1303,41 +1304,23 @@ void MyAvatar::saveData() {
 }
 
 void MyAvatar::saveAvatarEntityDataToSettings() {
-    uint32_t numEntities = _avatarEntityData.size();
+    // save new settings
+    uint32_t numEntities = _avatarEntitiesAsPropertiesStrings.size();
+    _avatarEntityCountSetting.set(numEntities);
     uint32_t prevNumEntities = _avatarEntityCountSetting.get(0);
     resizeAvatarEntitySettingHandles(std::max<uint32_t>(numEntities, prevNumEntities));
     if (numEntities > 0) {
         _avatarEntitiesLock.withReadLock([&] {
-
-        // Note: this roundabout path from AvatarEntityData to JSON string is NOT efficient
-        //QScriptEngine engine;
-        //QScriptValue toStringMethod = engine.evaluate("(function() { return JSON.stringify(this) })");
-        AvatarEntityMap::const_iterator itr = _avatarEntityData.begin();
-        numEntities = 0;
-        while (itr != _avatarEntityData.end()) {
-            EntityItemProperties properties;
-            QByteArray buffer = itr.value();
-            /* TODO: fix this to read data from elsewhere
-            if (properties.constructFromBuffer((uint8_t*)buffer.data(), buffer.size())) {
-                if (properties.getParentID() == getSessionUUID()) {
-                    properties.setParentID(AVATAR_SELF_ID);
-                }
-                QScriptValue scriptValue = EntityItemPropertiesToScriptValue(&engine, properties);
-                scriptValue.setProperty("toString", toStringMethod);
-                _avatarEntityDataSettings[numEntities].set(scriptValue.toString());
-                _avatarEntityIDSettings[numEntities].set(itr.key().toString());
-                ++numEntities;
-            } else {
-                // buffer is corrupt --> skip it
+            uint32_t i = 0;
+            for (const auto& mapEntry : _avatarEntitiesAsPropertiesStrings) {
+                _avatarEntityDataSettings[i].set(mapEntry.second);
+                _avatarEntityIDSettings[i].set(mapEntry.first.toString());
+                ++i;
             }
-           */
-            ++numEntities;
-            ++itr;
-        }
-    });
+        });
     }
-    _avatarEntityCountSetting.set(numEntities);
 
+    // remove old settings if any
     if (numEntities < prevNumEntities) {
         uint32_t numEntitiesToRemove = prevNumEntities - numEntities;
         for (uint32_t i = 0; i < numEntitiesToRemove; ++i) {
@@ -1468,7 +1451,6 @@ void MyAvatar::updateAvatarEntity(const QUuid& entityID, const EntityItemPropert
     OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
     EncodeBitstreamParams params;
     EntityTreeElementExtraEncodeDataPointer extra { nullptr };
-    QUuid parentID = entity->getParentID();
     OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
 
     if (appendState != OctreeElement::COMPLETED) {
@@ -1571,12 +1553,10 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
     }
 
     QScriptEngine scriptEngine;
-
     std::vector<EntityItemProperties> entitiesToLoad;
     entitiesToLoad.resize(numEntities);
+    resizeAvatarEntitySettingHandles(numEntities);
     for (int i = 0; i < numEntities; i++) {
-        resizeAvatarEntitySettingHandles(i);
-
         // NOTE: this path from EntityItemProperties JSON string to EntityItemProperties is NOT efficient
         QString propertiesString = _avatarEntityDataSettings[i].get();
         QJsonDocument propertiesDoc = QJsonDocument::fromJson(propertiesString.toUtf8());
@@ -1584,13 +1564,15 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
         QVariant propertiesVariant(propertiesObj);
         QVariantMap propertiesMap = propertiesVariant.toMap();
         QScriptValue propertiesScriptValue = variantMapToScriptValue(propertiesMap, scriptEngine);
+
+        // NOTE: we grab properties by reference and wrangle it:
         EntityItemProperties& properties = entitiesToLoad[i];
         EntityItemPropertiesFromScriptValueIgnoreReadOnly(propertiesScriptValue, properties);
-
         // the ClientOnly property can get stripped out elsewhere so we need to always set it true here
         properties.setClientOnly(true);
     }
 
+    _avatarEntitiesAsPropertiesStrings.clear();
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
@@ -1606,13 +1588,17 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
                     // use the entity to build the data payload
                     OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
                     if (appendState == OctreeElement::COMPLETED) {
+                        // only remember an AvatarEntity that successfully loads
                         QByteArray tempArray = QByteArray::fromRawData((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
                         storeAvatarEntityDataPayload(entityID, tempArray);
+                        _avatarEntitiesAsPropertiesStrings[entityID] = _avatarEntityDataSettings[i].get();
                     }
                     packetData.reset();
                 }
             });
         }
+    } else {
+        // TODO? handle this case: try to load AvatatEntityData from settings again later?
     }
 }
 

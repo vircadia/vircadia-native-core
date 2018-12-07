@@ -576,7 +576,7 @@ public:
     float getHMDRollControlRate() const { return _hmdRollControlRate; }
 
     // get/set avatar data
-    void resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex);
+    void resizeAvatarEntitySettingHandles(uint32_t maxIndex);
     void saveData();
     void saveAvatarEntityDataToSettings();
     void loadData();
@@ -1945,6 +1945,7 @@ private:
     Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
     std::vector<Setting::Handle<QString>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QString>> _avatarEntityDataSettings;
+    std::map<QUuid, QString> _avatarEntitiesAsPropertiesStrings;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
