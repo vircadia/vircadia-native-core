@@ -1418,7 +1418,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         joint.bindTransformFoundInCluster = false;
 
         hfmModel.joints.append(joint);
-        hfmModel.jointIndices.insert(fbxModel.name, hfmModel.joints.size());
+        hfmModel.jointIndices.insert(joint.name, hfmModel.joints.size());
 
         QString rotationID = localRotations.value(modelID);
         AnimationCurve xRotCurve = animationCurves.value(xComponents.value(rotationID));
@@ -1843,7 +1843,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         glm::quat rotationOffset = itr.value();
         int jointIndex = hfmModel.getJointIndex(jointName);
         if (hfmModel.hfmToHifiJointNameMapping.contains(jointName)) {
-            jointIndex = hfmModel.getJointIndex(hfmModel.hfmToHifiJointNameMapping[jointName]);
+            jointIndex = hfmModel.getJointIndex(jointName);
         }
         if (jointIndex != -1) {
             hfmModel.jointRotationOffsets.insert(jointIndex, rotationOffset);
