@@ -151,6 +151,17 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     const auto& spatialSelection = fetchedItems[1];
 
+    // Extract the Lighting Stages Current frame ( and zones)
+    const auto& lightingStageInputs = inputs[1];
+    // Fetch the current frame stacks from all the stages
+    const auto& currentStageFrames = lightingStageInputs[0];
+    const auto& lightFrame = currentStageFrames[0];
+    const auto& backgroundFrame = currentStageFrames[1];
+    const auto& hazeFrame = currentStageFrames[2];
+    const auto& bloomFrame = currentStageFrames[3];
+   
+    const auto& zones = lightingStageInputs[1];
+
     fadeEffect->build(task, opaques);
 
     const auto jitter = task.addJob<JitterSample>("JitterCam");
@@ -206,19 +217,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto velocityBufferInputs = VelocityBufferPass::Inputs(deferredFrameTransform, deferredFramebuffer).asVarying();
     const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
     const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
-
-    // Clear Light, Haze, Bloom, and Skybox Stages and render zones from the general metas bucket
-    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
-
-    // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
-    task.addJob<DrawLight>("DrawLight", lights);
-
-    // Fetch the current frame stacks from all the stages
-    const auto currentStageFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
-    const auto lightFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(0);
-    const auto backgroundFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(1);
-    const auto hazeFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(2);
-    const auto bloomFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(3);
 
     // Light Clustering
     // Create the cluster grid of lights, cpu job for now
@@ -279,7 +277,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Debugging task is happening in the "over" layer after tone mapping and just before HUD
     { // Debug the bounds of the rendered items, still look at the zbuffer
-        const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, inputs[1], zones, selectedItems, currentStageFrames, prepareDeferredOutputs, deferredFrameTransform, jitter, lightingModel).asVarying();
+        const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, inputs[2], zones, selectedItems, currentStageFrames, prepareDeferredOutputs, deferredFrameTransform, jitter, lightingModel).asVarying();
         task.addJob<RenderDeferredTaskDebug>("DebugRenderDeferredTask", debugInputs);
     }
 

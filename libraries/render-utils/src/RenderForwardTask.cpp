@@ -48,11 +48,23 @@ using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
-  //  const auto& inputs = input.get<Input>();
-    const auto& fetchedItems = input.get<Input>();
+    const auto& inputs = input.get<Input>();
+    const auto& fetchedItems = inputs.get0();
     //  const auto& fetchedItems = inputs[0];
     // const auto& items = fetchedItems[0];
     const auto& items = fetchedItems.get0();
+
+
+    const auto& lightingStageInputs = inputs[1];
+    // Fetch the current frame stacks from all the stages
+    const auto& currentStageFrames = lightingStageInputs[0];
+    const auto& lightFrame = currentStageFrames[0];
+    const auto& backgroundFrame = currentStageFrames[1];
+    const auto& hazeFrame = currentStageFrames[2];
+    const auto& bloomFrame = currentStageFrames[3];
+
+    const auto& zones = lightingStageInputs[1];
+
 
     auto fadeEffect = DependencyManager::get<FadeEffect>();
 
@@ -82,12 +94,12 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
 
     // Filter zones from the general metas bucket
-    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
+   // const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
     // Fetch the current frame stacks from all the stages
-    const auto currentFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
-    const auto lightFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(0);
-    const auto backgroundFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(1);
+   // const auto currentFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
+   // const auto lightFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(0);
+   // const auto backgroundFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(1);
     //const auto hazeFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(2);
     //const auto bloomFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(3);
 

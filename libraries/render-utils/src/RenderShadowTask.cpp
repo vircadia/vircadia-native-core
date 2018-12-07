@@ -25,6 +25,7 @@
 #include "RenderUtilsLogging.h"
 
 #include "RenderCommonTask.h"
+#include "AssembleLightingStageTask.h"
 
 #include "FadeEffect.h"
 

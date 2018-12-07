@@ -232,20 +232,3 @@ void ExtractFrustums::run(const render::RenderContextPointer& renderContext, con
     }
 }
 
-void FetchCurrentFrames::run(const render::RenderContextPointer& renderContext, Outputs& outputs) {
-    auto lightStage = renderContext->_scene->getStage<LightStage>();
-    assert(lightStage);
-    outputs.edit0() = std::make_shared<LightStage::Frame>(lightStage->_currentFrame);
-
-    auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
-    assert(backgroundStage);
-    outputs.edit1() = std::make_shared<BackgroundStage::Frame>(backgroundStage->_currentFrame);
-
-    auto hazeStage = renderContext->_scene->getStage<HazeStage>();
-    assert(hazeStage);
-    outputs.edit2() = std::make_shared<HazeStage::Frame>(hazeStage->_currentFrame);
-
-    auto bloomStage = renderContext->_scene->getStage<BloomStage>();
-    assert(bloomStage);
-    outputs.edit3() = std::make_shared<BloomStage::Frame>(bloomStage->_currentFrame);
-}
