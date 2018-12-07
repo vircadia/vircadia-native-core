@@ -11,13 +11,17 @@
 function disableDragDrop() {
     document.addEventListener("drop", function(event) {
         event.preventDefault();
-        event.dataTransfer.effectAllowed = "none";
-        event.dataTransfer.dropEffect = "none";
-    }, false);
+    });
     
     document.addEventListener("dragover", function(event) {
-        event.preventDefault();
         event.dataTransfer.effectAllowed = "none";
         event.dataTransfer.dropEffect = "none";
+        event.preventDefault();
+    });
+    
+    document.addEventListener("dragenter", function(event) {
+        event.dataTransfer.effectAllowed = "none";
+        event.dataTransfer.dropEffect = "none";
+        event.preventDefault();
     }, false);
 }
