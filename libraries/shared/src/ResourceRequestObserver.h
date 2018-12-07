@@ -1,6 +1,6 @@
 //
 //  ResourceRequestObserver.h
-//  libraries/commerce/src
+//  libraries/shared/src
 //
 //  Created by Kerry Ivan Kurian on 9/27/18.
 //  Copyright 2018 High Fidelity, Inc.

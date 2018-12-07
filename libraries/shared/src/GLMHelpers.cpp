@@ -9,9 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <limits>
 #include "GLMHelpers.h"
+
+#include <limits>
+
 #include <glm/gtc/matrix_transform.hpp>
+
 #include "NumericalConstants.h"
 
 const vec3 Vectors::UNIT_X{ 1.0f, 0.0f, 0.0f };
