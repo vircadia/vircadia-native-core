@@ -600,6 +600,7 @@ div.section[collapsed="true"], div.section[collapsed="true"] > .section-header {
     text-transform: uppercase;
     text-align: center;
     padding: 6px 0;
+    cursor: default;
 }
 
 .triple-item {
@@ -1521,6 +1522,7 @@ input.rename-entity {
 }
 
 .create-app-tooltip {
+    z-index: 100;
     position: absolute;
     background: #6a6a6a;
     border: 1px solid black;
@@ -1655,6 +1657,7 @@ input.number-slider {
     font-family: Raleway-Light;
     font-size: 14px;
     margin: 6px 0;
+    cursor: default;
 }
 
 #property-name, #property-id {
@@ -1667,7 +1670,7 @@ input.number-slider {
 }
 
 #placeholder-property-type {
-    min-width: 0px;
+    min-width: 0;
 }
 
 .collapse-icon {
