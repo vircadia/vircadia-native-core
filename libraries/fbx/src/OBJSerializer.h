@@ -92,7 +92,7 @@ class OBJSerializer: public QObject, public HFMSerializer { // QObject so we can
     Q_OBJECT
 public:
     MediaType getMediaType() const override;
-    std::unique_ptr<hfm::Serializer::Factory> getFactory() const;
+    std::unique_ptr<hfm::Serializer::Factory> getFactory() const override;
     
     typedef QVector<OBJFace> FaceGroup;
     QVector<glm::vec3> vertices;
