@@ -1390,6 +1390,10 @@ input[type=button]#export {
     cursor: col-resize;
 }
 
+#entity-table .dragging {
+    background-color: #b3ecff;
+}
+
 #entity-table td {
     box-sizing: border-box;
 }
