@@ -42,12 +42,8 @@ LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
         this, &LoginDialog::handleLoginCompleted);
     connect(accountManager.data(), &AccountManager::loginFailed,
             this, &LoginDialog::handleLoginFailed);
-    connect(qApp, &Application::loginDialogFocusEnabled, [this]() {
-        emit focusEnabled();
-    });
-    connect(qApp, &Application::loginDialogFocusDisabled, [this]() {
-        emit focusDisabled();
-    });
+    connect(qApp, &Application::loginDialogFocusEnabled, this, &LoginDialog::focusEnabled);
+    connect(qApp, &Application::loginDialogFocusDisabled, this, &LoginDialog::focusDisabled);
     connect(this, SIGNAL(dismissedLoginDialog()), qApp, SLOT(onDismissedLoginDialog()));
 #endif
 }

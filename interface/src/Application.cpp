@@ -1284,15 +1284,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 _firstRun.set(false);
             }
             if (isHMDMode()) {
-                dialogsManager->hideLoginDialog();
                 emit loginDialogFocusDisabled();
+                dialogsManager->hideLoginDialog();
                 createLoginDialogOverlay();
             } else {
                 getOverlays().deleteOverlay(_loginDialogOverlayID);
                 _loginDialogOverlayID = OverlayID();
                 _loginStateManager.tearDown();
-                auto toolbar =  DependencyManager::get<ToolbarScriptingInterface>()->getToolbar("com.highfidelity.interface.toolbar.system");
-                toolbar->writeProperty("visible", false);
                 dialogsManager->showLoginDialog();
                 emit loginDialogFocusEnabled();
             }
@@ -5647,6 +5645,9 @@ void Application::rotationModeChanged() const {
 
 void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions) {
     // Create focus
+    if (qApp->getLoginDialogPoppedUp()) {
+        return;
+    }
     if (_keyboardFocusHighlightID == UNKNOWN_OVERLAY_ID || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
         _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
         _keyboardFocusHighlight->setAlpha(1.0f);
@@ -5717,7 +5718,7 @@ OverlayID Application::getKeyboardFocusOverlay() {
 
 void Application::setKeyboardFocusOverlay(const OverlayID& overlayID) {
     if (overlayID != _keyboardFocusedOverlay.get()) {
-        if (qApp->getLoginDialogPoppedUp()) {
+        if (qApp->getLoginDialogPoppedUp() && !_loginDialogOverlayID.isNull()) {
             if (overlayID == _loginDialogOverlayID) {
                 emit loginDialogFocusEnabled();
             } else {
@@ -6226,6 +6227,11 @@ void Application::update(float deltaTime) {
 
     updateLOD(deltaTime);
 
+    if (!_loginDialogOverlayID.isNull()) {
+        _loginStateManager.update(getMyAvatar()->getDominantHand(), _loginDialogOverlayID);
+        updateLoginDialogOverlayPosition();
+    }
+
     // TODO: break these out into distinct perfTimers when they prove interesting
     {
         PROFILE_RANGE(app, "PickManager");
@@ -6243,10 +6249,6 @@ void Application::update(float deltaTime) {
         PROFILE_RANGE_EX(app, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
-    }
-    if (!_loginDialogOverlayID.isNull()) {
-        _loginStateManager.update(getMyAvatar()->getDominantHand(), _loginDialogOverlayID);
-        updateLoginDialogOverlayPosition();
     }
 
     // Update _viewFrustum with latest camera and view frustum data...
@@ -8705,8 +8707,8 @@ void Application::onDismissedLoginDialog() {
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
     auto keyboard = DependencyManager::get<Keyboard>().data();
+    keyboard->setResetKeyboardPositionOnRaise(true);
     if (!_loginDialogOverlayID.isNull()) {
-        keyboard->setResetKeyboardPositionOnRaise(true);
         // deleting overlay.
         qDebug() << "Deleting overlay";
         getOverlays().deleteOverlay(_loginDialogOverlayID);
