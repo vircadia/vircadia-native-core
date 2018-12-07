@@ -27,10 +27,15 @@ PickRay RayPick::getMathematicalPick() const {
 }
 
 PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
-    bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
+    PickFilter searchFilter = getFilter();
+    if (DependencyManager::get<PickManager>()->getForceCoarsePicking()) {
+        searchFilter.setFlag(PickFilter::COARSE, true);
+        searchFilter.setFlag(PickFilter::PRECISE, false);
+    }
+
     RayToEntityIntersectionResult entityRes =
-        DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(pick, precisionPicking,
-            getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
+        DependencyManager::get<EntityScriptingInterface>()->evalRayIntersectionVector(pick, searchFilter,
+            getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
     if (entityRes.intersects) {
         return std::make_shared<RayPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
     } else {
@@ -39,7 +44,7 @@ PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
 }
 
 PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
-    bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
+    bool precisionPicking = !(getFilter().isCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
     RayToOverlayIntersectionResult overlayRes =
         qApp->getOverlays().findRayIntersectionVector(pick, precisionPicking,
             getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());

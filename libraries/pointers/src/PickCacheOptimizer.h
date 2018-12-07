@@ -85,10 +85,10 @@ QVector4D PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared
         T mathematicalPick = pick->getMathematicalPick();
         PickResultPointer res = pick->getDefaultResult(mathematicalPick.toVariantMap());
 
-        if (!pick->isEnabled() || pick->getFilter().doesPickNothing() || pick->getMaxDistance() < 0.0f || !mathematicalPick) {
+        if (!pick->isEnabled() || pick->getMaxDistance() < 0.0f || !mathematicalPick) {
             pick->setPickResult(res);
         } else {
-            if (pick->getFilter().doesPickEntities()) {
+            if (pick->getFilter().doesPickDomainEntities() || pick->getFilter().doesPickAvatarEntities()) {
                 PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, entityKey)) {
                     PickResultPointer entityRes = pick->getEntityIntersection(mathematicalPick);
@@ -99,7 +99,7 @@ QVector4D PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared
                 }
             }
 
-            if (pick->getFilter().doesPickOverlays()) {
+            if (pick->getFilter().doesPickLocalEntities()) {
                 PickCacheKey overlayKey = { pick->getFilter().getOverlayFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, overlayKey)) {
                     PickResultPointer overlayRes = pick->getOverlayIntersection(mathematicalPick);
