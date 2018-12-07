@@ -1407,8 +1407,7 @@ public slots:
      */
     bool getEnableMeshVisible() const override;
 
-    // TODO: make this invokable, probably also move down to AvatarData
-    void updateAvatarEntity(const QUuid& entityID, const EntityItemProperties& properties);
+    void updateAvatarEntity(const QUuid& entityID, const QString& entityPropertiesString) override;
 
     /**jsdoc
      * Set whether or not your avatar mesh is visible.
@@ -1947,7 +1946,8 @@ private:
     Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
     std::vector<Setting::Handle<QString>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QString>> _avatarEntityDataSettings;
-    std::map<QUuid, QString> _avatarEntitiesAsPropertiesStrings;
+    std::map<QUuid, QString> _avatarEntityStrings;
+    std::map<QUuid, QString> _avatarEntityProperties;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
