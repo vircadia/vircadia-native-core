@@ -42,16 +42,6 @@
 
 using vec2h = glm::tvec2<glm::detail::hdata>;
 
-#define HFM_PACK_COLORS 1
-
-#if HFM_PACK_COLORS
-using ColorType = glm::uint32;
-#define FBX_COLOR_ELEMENT gpu::Element::COLOR_RGBA_32
-#else
-using ColorType = glm::vec3;
-#define FBX_COLOR_ELEMENT gpu::Element::VEC3F_XYZ
-#endif
-
 class Vertex {
 public:
     int originalIndex;
@@ -608,7 +598,7 @@ void FBXSerializer::buildModelMesh(HFMMesh& extractedMesh, const QString& url) {
     const int positionsSize = numVerts * positionElement.getSize();
 
     // Normal and tangent are always there together packed in normalized xyz32bits word (times 2)
-    const auto normalElement = FBX_NORMAL_ELEMENT;
+    const auto normalElement = HFM_NORMAL_ELEMENT;
     const int normalsSize = hfmMesh.normals.size() * normalElement.getSize();
     const int tangentsSize = hfmMesh.tangents.size() * normalElement.getSize();
     // If there are normals then there should be tangents
@@ -619,7 +609,7 @@ void FBXSerializer::buildModelMesh(HFMMesh& extractedMesh, const QString& url) {
     const auto normalsAndTangentsSize = normalsSize + tangentsSize;
 
     // Color attrib
-    const auto colorElement = FBX_COLOR_ELEMENT;
+    const auto colorElement = HFM_COLOR_ELEMENT;
     const int colorsSize = hfmMesh.colors.size() * colorElement.getSize();
    
     // Texture coordinates are stored in 2 half floats
@@ -664,7 +654,7 @@ void FBXSerializer::buildModelMesh(HFMMesh& extractedMesh, const QString& url) {
         for (auto normalIt = hfmMesh.normals.constBegin(), tangentIt = hfmMesh.tangents.constBegin();
             normalIt != hfmMesh.normals.constEnd();
             ++normalIt, ++tangentIt) {
-#if FBX_PACK_NORMALS
+#if HFM_PACK_NORMALS
             const auto normal = normalizeDirForPacking(*normalIt);
             const auto tangent = normalizeDirForPacking(*tangentIt);
             const auto packedNormal = glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f));
