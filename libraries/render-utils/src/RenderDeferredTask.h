@@ -14,10 +14,10 @@
 
 #include <gpu/Pipeline.h>
 #include <render/RenderFetchCullSortTask.h>
+#include "AssembleLightingStageTask.h"
 #include "LightingModel.h"
 #include "LightClusters.h"
 #include "RenderShadowTask.h"
-#include "HazeStage.h"
 
 class DrawDeferredConfig : public render::Job::Config {
     Q_OBJECT
@@ -137,7 +137,7 @@ signals:
 
 class RenderDeferredTask {
 public:
-    using Input = render::VaryingSet2<RenderFetchCullSortTask::Output, RenderShadowTask::Output>;
+    using Input = render::VaryingSet3<RenderFetchCullSortTask::Output, AssembleLightingStageTask::Outputs, RenderShadowTask::Output>;
     using Config = RenderDeferredTaskConfig;
     using JobModel = render::Task::ModelI<RenderDeferredTask, Input, Config>;
 

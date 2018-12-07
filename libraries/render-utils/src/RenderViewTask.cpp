@@ -10,6 +10,7 @@
 //
 #include "RenderViewTask.h"
 
+#include "AssembleLightingStageTask.h"
 #include "RenderShadowTask.h"
 #include "RenderDeferredTask.h"
 #include "RenderForwardTask.h"
@@ -20,14 +21,17 @@ void RenderViewTask::build(JobModel& task, const render::Varying& input, render:
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, tagBits, tagMask);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
 
+
+    const auto lightingStageFramesAndZones = task.addJob<AssembleLightingStageTask>("AssembleStages", items[0]);
+
     if (isDeferred) {
         // Warning : the cull functor passed to the shadow pass should only be testing for LOD culling. If frustum culling
         // is performed, then casters not in the view frustum will be removed, which is not what we wish.
         const auto cascadeSceneBBoxes = task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor, tagBits, tagMask);
-        const auto renderInput = RenderDeferredTask::Input(items, cascadeSceneBBoxes).asVarying();
+        const auto renderInput = RenderDeferredTask::Input(items, lightingStageFramesAndZones, cascadeSceneBBoxes).asVarying();
         task.addJob<RenderDeferredTask>("RenderDeferredTask", renderInput, true);
     } else {
-        task.addJob<RenderForwardTask>("Forward", items);
+        task.addJob<RenderForwardTask>("Forward", items, lightingStageFramesAndZones);
     }
 }
 

@@ -14,12 +14,12 @@
 
 #include <gpu/Pipeline.h>
 #include <render/RenderFetchCullSortTask.h>
+#include "AssembleLightingStageTask.h"
 #include "LightingModel.h"
-#include "LightStage.h"
 
 class RenderForwardTask {
 public:
-    using Input = RenderFetchCullSortTask::Output;
+    using Input = render::VaryingSet2<RenderFetchCullSortTask::Output, AssembleLightingStageTask::Outputs>;
     using JobModel = render::Task::ModelI<RenderForwardTask, Input>;
 
     RenderForwardTask() {}
