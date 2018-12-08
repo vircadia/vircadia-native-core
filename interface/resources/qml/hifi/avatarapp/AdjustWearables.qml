@@ -153,7 +153,7 @@ Rectangle {
         visible = false;
         adjustWearablesClosed(status, avatarName);
     }
-    
+
 
     HifiConstants { id: hifi }
 
@@ -226,7 +226,7 @@ Rectangle {
                     lineHeightMode: Text.FixedHeight
                     lineHeight: 18;
                     text: "Wearable"
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 spacing: 10
@@ -237,7 +237,7 @@ Rectangle {
                     lineHeight: 18;
                     text: "<a href='#'>Get more</a>"
                     linkColor: hifi.colors.blueHighlight
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                     onLinkActivated: {
                         popup.showGetWearables(function() {
                             emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland/11.5848,-8.10862,-2.80195'})

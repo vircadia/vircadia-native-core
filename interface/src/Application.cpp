@@ -1779,7 +1779,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
-        // This needs to run on the settings thread, so we need to pass the `settingsTimer` as the 
+        // This needs to run on the settings thread, so we need to pass the `settingsTimer` as the
         // receiver object, otherwise it will run on the application thread and trigger a warning
         // about trying to kill the timer on the main thread.
         connect(qApp, &Application::beforeAboutToQuit, settingsTimer, [this, settingsTimer]{
@@ -2662,7 +2662,7 @@ Application::~Application() {
 
     // shutdown graphics engine
     _graphicsEngine.shutdown();
-    
+
     _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
@@ -2838,6 +2838,8 @@ void Application::initializeDisplayPlugins() {
             auto hmdDisplayPlugin = dynamic_cast<HmdDisplayPlugin*>(displayPlugin.get());
             QObject::connect(hmdDisplayPlugin, &HmdDisplayPlugin::hmdMountedChanged,
                 DependencyManager::get<HMDScriptingInterface>().data(), &HMDScriptingInterface::mountedChanged);
+            QObject::connect(hmdDisplayPlugin, &HmdDisplayPlugin::hmdMountedChanged,
+                DependencyManager::get<HMDScriptingInterface>().data(), &HMDScriptingInterface::activeChanged);
             QObject::connect(hmdDisplayPlugin, &HmdDisplayPlugin::hmdVisibleChanged, this, &Application::hmdVisibleChanged);
         }
     }
@@ -8572,7 +8574,7 @@ QUuid Application::getTabletFrameID() const {
 }
 
 QVector<QUuid> Application::getTabletIDs() const {
-    // Most important overlays first. 
+    // Most important overlays first.
     QVector<QUuid> result;
     auto HMD = DependencyManager::get<HMDScriptingInterface>();
     result << HMD->getCurrentTabletScreenID();
