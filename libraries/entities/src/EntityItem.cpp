@@ -335,9 +335,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
         APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getDynamicData());
 
+        // convert AVATAR_SELF_ID to actual sessionUUID.
         QUuid actualParentID = getParentID();
-        if (!getClientOnly() && actualParentID == AVATAR_SELF_ID) {
-            // convert AVATAR_SELF_ID to actual sessionUUID.
+        if (actualParentID == AVATAR_SELF_ID) {
             auto nodeList = DependencyManager::get<NodeList>();
             actualParentID = nodeList->getSessionUUID();
         }

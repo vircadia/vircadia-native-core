@@ -1569,7 +1569,7 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
         EntityItemProperties& properties = entitiesToLoad[i];
         properties.copyFromJSONString(scriptEngine, _avatarEntityDataSettings[i].get());
         // the ClientOnly property can get stripped out elsewhere so we need to always set it true here
-        properties.setClientOnly(true);
+        properties.setEntityHostType(entity::HostType::AVATAR);
         properties.setOwningAvatarID(getID());
     }
 
