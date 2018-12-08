@@ -67,7 +67,12 @@ public:
 
     // Helpers for RayPickManager
     Flags getEntityFlags() const {
-        unsigned int toReturn = getBitMask(DOMAIN_ENTITIES) || getBitMask(AVATAR_ENTITIES);
+        unsigned int toReturn = 0;
+        for (int i = DOMAIN_ENTITIES; i < LOCAL_ENTITIES; i++) {
+            if (_flags[i]) {
+                toReturn |= getBitMask(FlagBit(i));
+            }
+        }
         for (int i = HUD + 1; i < NUM_FLAGS; i++) {
             if (_flags[i]) {
                 toReturn |= getBitMask(FlagBit(i));
