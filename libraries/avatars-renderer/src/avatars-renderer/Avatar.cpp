@@ -367,6 +367,15 @@ void Avatar::updateAvatarEntities() {
                     // TODO? put a maximum number of tries on this?
                 }
             } else {
+                // sanity check data
+                QUuid id;
+                EntityTypes::EntityType type;
+                EntityTypes::extractEntityTypeAndID((unsigned char*)(data.data()), data.size(), type, id);
+                if (id != entityID || !EntityTypes::typeIsValid(type)) {
+                    // skip for corrupt
+                    ++dataItr;
+                    continue;
+                }
                 // remember this hash for the future
                 stateItr = _avatarEntityDataHashes.insert(entityID, AvatarEntityDataHash(newHash));
             }
