@@ -312,12 +312,13 @@ void Avatar::updateAvatarEntities() {
     PerformanceTimer perfTimer("attachments");
 
     // AVATAR ENTITY UPDATE FLOW
-    // - if queueEditEntityMessage sees avatarEntity flag it does _myAvatar->updateAvatarEntity()
-    // - updateAvatarEntity saves the bytes and flags the trait instance for the entity as updated
+    // - if queueEditEntityMessage sees clientOnly flag it calls _myAvatar->storeAvatarEntityDataPayload
+    // - storeAvatarEntityDataPayload saves the payload and flags the trait instance for the entity as updated,
     // - ClientTraitsHandler::sendChangedTraitsToMixer sends the entity bytes to the mixer which relays them to other interfaces
     // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processTraitInstace
-    // - AvatarData::processTraitInstance calls updateAvatarEntity, which sets _avatarEntityDataChanged = true
-    // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
+    // - AvatarData::processTraitInstance calls storeAvatarEntityDataPayload, which sets _avatarEntityDataChanged = true
+    // - (My)Avatar::simulate calls updateAvatarEntities every frame which checks _avatarEntityDataChanged
+    // and here we are...
 
     // AVATAR ENTITY DELETE FLOW
     // - EntityScriptingInterface::deleteEntity calls _myAvatar->clearAvatarEntity() for deleted avatar entities
@@ -326,7 +327,8 @@ void Avatar::updateAvatarEntities() {
     // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processDeletedTraitInstace
     // - AvatarData::processDeletedTraitInstance calls clearAvatarEntity
     // - AvatarData::clearAvatarEntity sets _avatarEntityDataChanged = true and adds the ID to the detached list
-    // - Avatar::simulate notices _avatarEntityDataChanged and here we are...
+    // - (My)Avatar::simulate calls updateAvatarEntities every frame which checks _avatarEntityDataChanged
+    // and here we are...
 
     if (!_avatarEntityDataChanged) {
         return;

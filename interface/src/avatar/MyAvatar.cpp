@@ -1303,25 +1303,74 @@ void MyAvatar::saveData() {
 }
 
 void MyAvatar::saveAvatarEntityDataToSettings() {
-    if (!_entitiesToSaveToSettings.empty()) {
-        // TODO: save these to settings.
-        _entitiesToSaveToSettings.clear();
+    if (_entitiesToSaveToSettings.size() + _entitiesToRemoveFromSettings.size() == 0) {
+        // nothing to do
+        return;
     }
-    // save new settings
-    uint32_t numEntities = _avatarEntityStrings.size();
-    _avatarEntityCountSetting.set(numEntities);
+    auto entityTreeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+    if (!entityTree) {
+        return;
+    }
+
+    // find set of things that changed
+    std::set<QUuid> entitiesToSave;
+    _avatarEntitiesLock.withWriteLock([&] {
+        // TODO: save these to settings.
+        entitiesToSave = std::move(_entitiesToSaveToSettings);
+        for (const auto& id : _entitiesToRemoveFromSettings) {
+            // remove
+            entitiesToSave.erase(id);
+            std::map<QUuid, QString>::iterator itr =  _avatarEntityStrings.find(id);
+            if (itr != _avatarEntityStrings.end()) {
+                _avatarEntityStrings.erase(itr);
+            }
+        }
+        for (const auto& id : entitiesToSave) {
+            // remove old strings to be replaced by new saves
+            std::map<QUuid, QString>::iterator itr =  _avatarEntityStrings.find(id);
+            if (itr != _avatarEntityStrings.end()) {
+                _avatarEntityStrings.erase(itr);
+            }
+        }
+        _entitiesToRemoveFromSettings.clear();
+    });
+
+    uint32_t numEntities = entitiesToSave.size() + _avatarEntityStrings.size();
     uint32_t prevNumEntities = _avatarEntityCountSetting.get(0);
     resizeAvatarEntitySettingHandles(std::max<uint32_t>(numEntities, prevNumEntities));
+
+    // save new settings
     if (numEntities > 0) {
-        _avatarEntitiesLock.withReadLock([&] {
-            uint32_t i = 0;
-            for (const auto& mapEntry : _avatarEntityStrings) {
-                _avatarEntityDataSettings[i].set(mapEntry.second);
-                _avatarEntityIDSettings[i].set(mapEntry.first.toString());
-                ++i;
+        // get all properties to save
+        std::map<QUuid, EntityItemProperties> allProperties;
+        EntityItemPointer entity;
+        entityTree->withWriteLock([&] {
+            for (auto& id : entitiesToSave) {
+                EntityItemPointer entity = entityTree->findEntityByID(id);
+                if (entity) {
+                    allProperties[id] = entity->getProperties();
+                }
             }
         });
+        // convert properties to strings
+        QScriptEngine scriptEngine;
+        QScriptValue toStringMethod = scriptEngine.evaluate("(function() { return JSON.stringify(this) })");
+        for (const auto& entry : allProperties) {
+            QScriptValue scriptValue = EntityItemPropertiesToScriptValue(&scriptEngine, entry.second);
+            scriptValue.setProperty("toString", toStringMethod);
+            _avatarEntityStrings[entry.first] = scriptValue.toString();
+        }
+        // save all strings
+        uint32_t i = 0;
+        for (const auto& entry : _avatarEntityStrings) {
+            _avatarEntityIDSettings[i].set(entry.first.toString());
+            _avatarEntityDataSettings[i].set(entry.second);
+            ++i;
+        }
+        numEntities = i;
     }
+    _avatarEntityCountSetting.set(numEntities);
 
     // remove old settings if any
     if (numEntities < prevNumEntities) {
@@ -1435,91 +1484,32 @@ void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
 
 void MyAvatar::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) {
     AvatarData::storeAvatarEntityDataPayload(entityID, payload);
-    _entitiesToSaveToSettings.insert(entityID);
-}
-
-/* TODO: verify we don't need this
-void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QString& entityPropertiesString) {
-    auto entityTreeRenderer = qApp->getEntities();
-    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
-    EntityItemPointer entity;
-    if (entityTree) {
-        return;
-    }
-    // convert string to properties
-    EntityItemProperties properties;
-    {
-        // NOTE: this path from EntityItemProperties JSON string to EntityItemProperties is NOT efficient
-        QScriptEngine scriptEngine;
-        properties.copyFromJSONString(scriptEngine, entityPropertiesString);
-    }
-
-    entityTree->withWriteLock([&] {
-        entity = entityTree->findEntityByID(entityID);
-        if (!entity) {
-            entity = entityTree->addEntity(entityID, properties);
-            if (!entity) {
-                // unable to create entity
-                // TODO? handle this case?
-                return;
-            }
-            // TODO: remember this entity and its properties, so we can save to settings
-        } else {
-            entityTree->updateEntity(entityID, properties);
-        }
-        if (entity) {
-            // build update packet for later
-            OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
-            EncodeBitstreamParams params;
-            EntityTreeElementExtraEncodeDataPointer extra { nullptr };
-            OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
-            if (appendState == OctreeElement::COMPLETED) {
-                QByteArray tempArray = QByteArray::fromRawData((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
-                storeAvatarEntityDataPayload(entity->getID(), tempArray);
-                properties = entity->getProperties();
-                _entitiesToSaveToSettings.insert(entityID);
-            }
-
-        }
+    _avatarEntitiesLock.withWriteLock([&] {
+        _entitiesToSaveToSettings.insert(entityID);
     });
 }
-*/
+
+void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
+    _avatarEntitiesLock.withWriteLock([&] {
+        _entitiesToRemoveFromSettings.insert(entityID);
+    });
+    AvatarData::clearAvatarEntity(entityID, requiresRemovalFromTree);
+}
 
 void MyAvatar::updateAvatarEntities() {
-    // TODO: modify this info for MyAvatar
-    // AVATAR ENTITY UPDATE FLOW
-    // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
-    // - updateAvatarEntity saves the bytes and flags the trait instance for the entity as updated
-    // - ClientTraitsHandler::sendChangedTraitsToMixer sends the entity bytes to the mixer which relays them to other interfaces
-    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processTraitInstace
-    // - AvatarData::processTraitInstance calls updateAvatarEntity, which sets _avatarEntityDataChanged = true
-    // - (My)Avatar::simulate calls updateAvatarEntities every frame and here we are...
-
-    // AVATAR ENTITY DELETE FLOW
-    // - EntityScriptingInterface::deleteEntity calls _myAvatar->clearAvatarEntity() for deleted avatar entities
-    // - clearAvatarEntity removes the avatar entity and flags the trait instance for the entity as deleted
-    // - ClientTraitsHandler::sendChangedTraitsToMixer sends a deletion to the mixer which relays to other interfaces
-    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processDeletedTraitInstace
-    // - AvatarData::processDeletedTraitInstance calls clearAvatarEntity
-    // - AvatarData::clearAvatarEntity sets _avatarEntityDataChanged = true and adds the ID to the detached list
-    // - Avatar::simulate calls updateAvatarEntities every frame and here we are...
-
     if (_reloadAvatarEntityDataFromSettings) {
-
         if (getID().isNull() ||
             getID() == AVATAR_SELF_ID ||
             DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
-            // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong --
+            // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong:
             // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
             return;
         }
-
         auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
         EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
         if (!entityTree) {
             return;
         }
-
         loadAvatarEntityDataFromSettings();
     }
 }
@@ -1580,6 +1570,7 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
         properties.copyFromJSONString(scriptEngine, _avatarEntityDataSettings[i].get());
         // the ClientOnly property can get stripped out elsewhere so we need to always set it true here
         properties.setClientOnly(true);
+        properties.setOwningAvatarID(getID());
     }
 
     _avatarEntityStrings.clear();
