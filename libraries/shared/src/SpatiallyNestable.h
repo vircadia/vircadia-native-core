@@ -75,7 +75,7 @@ public:
     static QString nestableTypeToString(NestableType nestableType);
 
 
-    virtual bool isParentPathComplete() const;
+    virtual bool isParentPathComplete(int depth = 0) const;
 
 
     // world frame
@@ -187,8 +187,8 @@ public:
     bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
     virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
-    bool hasAncestorOfType(NestableType nestableType) const;
-    const QUuid findAncestorOfType(NestableType nestableType) const;
+    bool hasAncestorOfType(NestableType nestableType, int depth = 0) const;
+    const QUuid findAncestorOfType(NestableType nestableType, int depth = 0) const;
     SpatiallyNestablePointer getParentPointer(bool& success) const;
     static SpatiallyNestablePointer findByID(QUuid id, bool& success);
 
@@ -246,6 +246,8 @@ private:
     mutable bool _parentKnowsMe { false };
     bool _isDead { false };
     bool _queryAACubeIsPuffed { false };
+
+    void breakParentingLoop() const;
 };
 
 
