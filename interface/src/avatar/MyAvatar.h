@@ -13,7 +13,6 @@
 #define hifi_MyAvatar_h
 
 #include <bitset>
-#include <iostream> // adebug
 
 #include <glm/glm.hpp>
 
