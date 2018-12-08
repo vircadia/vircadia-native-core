@@ -2639,7 +2639,7 @@ Application::~Application() {
 
     // shutdown graphics engine
     _graphicsEngine.shutdown();
-    
+
     _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
@@ -8678,7 +8678,7 @@ void Application::updateLoginDialogOverlayPosition() {
     auto overlayPositionVec = loginOverlay->getWorldPosition();
     auto cameraPositionVec = _myCamera.getPosition();
     auto cameraOrientation = _myCamera.getOrientation();
-    cameraOrientation = cancelOutRoll(cameraOrientation);
+    cameraOrientation = cancelOutRollAndPitch(cameraOrientation);
     auto headLookVec = (cameraOrientation * Vectors::FRONT);
     auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
     auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
@@ -8687,7 +8687,9 @@ void Application::updateLoginDialogOverlayPosition() {
     auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
     auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
 
-    if (pointAngle > LOOK_AWAY_THRESHOLD_ANGLE) {
+    bool overlayOutOfBounds = glm::distance(overlayPositionVec, cameraPositionVec) > 0.5f;
+
+    if (pointAngle > LOOK_AWAY_THRESHOLD_ANGLE || overlayOutOfBounds) {
         QVariantMap properties {
             {"position", vec3toVariant(newOverlayPositionVec)},
             {"orientation", quatToVariant(newOverlayOrientation)}
