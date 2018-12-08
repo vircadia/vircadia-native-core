@@ -55,9 +55,9 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     const auto& items = fetchedItems.get0();
 
 
-    const auto& lightingStageInputs = inputs[1];
+    const auto& lightingStageInputs = inputs.get1();
     // Fetch the current frame stacks from all the stages
-    const auto& currentStageFrames = lightingStageInputs[0];
+    const auto& currentStageFrames = lightingStageInputs.get0();
     const auto& lightFrame = currentStageFrames[0];
     const auto& backgroundFrame = currentStageFrames[1];
     const auto& hazeFrame = currentStageFrames[2];

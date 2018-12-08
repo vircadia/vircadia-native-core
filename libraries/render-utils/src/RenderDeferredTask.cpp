@@ -152,10 +152,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto& spatialSelection = fetchedItems[1];
 
     // Extract the Lighting Stages Current frame ( and zones)
-    //const auto lightingStageInputs = inputs[1];
-    const auto lightingStageInputs = input[1];
+    const auto lightingStageInputs = inputs.get1();
     // Fetch the current frame stacks from all the stages
-    const auto currentStageFrames = lightingStageInputs[0];
+    const auto currentStageFrames = lightingStageInputs.get0();
     const auto lightFrame = currentStageFrames[0];
     const auto backgroundFrame = currentStageFrames[1];
     const auto& hazeFrame = currentStageFrames[2];

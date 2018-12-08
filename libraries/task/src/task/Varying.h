@@ -19,13 +19,6 @@
 namespace task {
 class Varying;
 
-template <class T> Varying varyingGetSub(const T& data, uint8_t index) {
-   return Varying();
-}
-
-template <class T> uint8_t varyingGetLength(const T& data) {
-    return 0;
-}
 
 // A varying piece of data, to be used as Job/Task I/O
 class Varying {
@@ -75,10 +68,10 @@ protected:
         virtual ~Model() = default;
 
         virtual Varying operator[] (uint8_t index) const override {
-            return varyingGetSub<T>(_data, index);
+            return Varying();
         }
         virtual uint8_t length() const override {
-            return varyingGetLength<T>(_data);
+            return 0;
         }
 
         Data _data;
@@ -87,11 +80,10 @@ protected:
     std::shared_ptr<Concept> _concept;
 };
 
-using VaryingPairBase = std::pair<Varying, Varying>;
 template < typename T0, typename T1 >
-class VaryingSet2 : public VaryingPairBase {
+class VaryingSet2 : public std::pair<Varying, Varying> {
 public:
-    using Parent = VaryingPairBase;
+    using Parent = std::pair<Varying, Varying>;
     typedef void is_proxy_tag;
 
     VaryingSet2() : Parent(Varying(T0()), Varying(T1())) {}
@@ -115,13 +107,6 @@ public:
 
     Varying asVarying() const { return Varying((*this)); }
 };
-
-template <typename T0, typename T1> Varying varyingGetSub(const VaryingSet2<T0, T1>& dat, uint8_t index) {
-    return data[index];
-}
-template <typename T0, typename T1> uint8_t varyingGetLength(const VaryingSet2<T0, T1>& data) {
-    return data.length();
-}
 
 template <class T0, class T1, class T2>
 class VaryingSet3 : public std::tuple<Varying, Varying,Varying>{
@@ -154,13 +139,6 @@ public:
 
     Varying asVarying() const { return Varying((*this)); }
 };
-
-template <class T0, class T1, class T2> Varying varyingGetSub(const VaryingSet3<T0, T1, T2>& dat, uint8_t index) {
-    return data[index];
-}
-template <class T0, class T1, class T2> uint8_t varyingGetLength(const VaryingSet3<T0, T1, T2>& data) {
-    return data.length();
-}
 
 template <class T0, class T1, class T2, class T3>
 class VaryingSet4 : public std::tuple<Varying, Varying, Varying, Varying>{
@@ -198,12 +176,6 @@ public:
 
     Varying asVarying() const { return Varying((*this)); }
 };
-template <class T0, class T1, class T2, class T3> Varying varyingGetSub(const VaryingSet4<T0, T1, T2, T3>& dat, uint8_t index) {
-    return data[index];
-}
-template <class T0, class T1, class T2, class T3> uint8_t varyingGetLength(const VaryingSet4<T0, T1, T2, T3>& data) {
-    return data.length();
-}
 
 template <class T0, class T1, class T2, class T3, class T4>
 class VaryingSet5 : public std::tuple<Varying, Varying, Varying, Varying, Varying>{
@@ -246,12 +218,6 @@ public:
 
     Varying asVarying() const { return Varying((*this)); }
 };
-template <class T0, class T1, class T2, class T3, class T4> Varying varyingGetSub(const VaryingSet5<T0, T1, T2, T3, T4>& dat, uint8_t index) {
-    return data[index];
-}
-template <class T0, class T1, class T2, class T3, class T4> uint8_t varyingGetLength(const VaryingSet5<T0, T1, T2, T3, T4>& data) {
-    return data.length();
-}
 
 template <class T0, class T1, class T2, class T3, class T4, class T5>
 class VaryingSet6 : public std::tuple<Varying, Varying, Varying, Varying, Varying, Varying>{
@@ -300,12 +266,6 @@ public:
 
     Varying asVarying() const { return Varying((*this)); }
 };
-template <class T0, class T1, class T2, class T3, class T4, class T5> Varying varyingGetSub(const VaryingSet6<T0, T1, T2, T3, T4, T5>& dat, uint8_t index) {
-    return data[index];
-}
-template <class T0, class T1, class T2, class T3, class T4, class T5> uint8_t varyingGetLength(const VaryingSet6<T0, T1, T2, T3, T4, T5>& data) {
-    return data.length();
-}
 
 template <class T0, class T1, class T2, class T3, class T4, class T5, class T6>
 class VaryingSet7 : public std::tuple<Varying, Varying, Varying, Varying, Varying, Varying, Varying>{
@@ -359,12 +319,6 @@ public:
 
     Varying asVarying() const { return Varying((*this)); }
 };
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6> Varying varyingGetSub(const VaryingSet7<T0, T1, T2, T3, T4, T5, T6>& dat, uint8_t index) {
-    return data[index];
-}
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6> uint8_t varyingGetLength(const VaryingSet7<T0, T1, T2, T3, T4, T5, T6>& data) {
-    return data.length();
-}
 
 template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
 class VaryingSet8 : public std::tuple<Varying, Varying, Varying, Varying, Varying, Varying, Varying, Varying> {
@@ -423,12 +377,6 @@ public:
 
     Varying asVarying() const { return Varying((*this)); }
 };
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7> Varying varyingGetSub(const VaryingSet8<T0, T1, T2, T3, T4, T5, T6, T7>& dat, uint8_t index) {
-    return data[index];
-}
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7> uint8_t varyingGetLength(const VaryingSet8<T0, T1, T2, T3, T4, T5, T6, T7>& data) {
-    return data.length();
-}
 
 template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8>
 class VaryingSet9 : public std::tuple<Varying, Varying, Varying, Varying, Varying, Varying, Varying, Varying, Varying> {
@@ -491,12 +439,6 @@ public:
 
     Varying asVarying() const { return Varying((*this)); }
 };
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8> Varying varyingGetSub(const VaryingSet9<T0, T1, T2, T3, T4, T5, T6, T7, T8>& dat, uint8_t index) {
-    return data[index];
-}
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8> uint8_t varyingGetLength(const VaryingSet9<T0, T1, T2, T3, T4, T5, T6, T7, T8>& data) {
-    return data.length();
-}
 
 template < class T, int NUM >
 class VaryingArray : public std::array<Varying, NUM> {
@@ -512,12 +454,6 @@ public:
         std::copy(list.begin(), list.end(), std::array<Varying, NUM>::begin());
     }
 };
-template <class T, int NUM > Varying varyingGetSub(const VaryingArray<T, NUM>& dat, uint8_t index) {
-    return data[index];
-}
-template <class T, int NUM > uint8_t varyingGetLength(const VaryingArray<T, NUM>& data) {
-    return NUM;
-}
 
 }
 
