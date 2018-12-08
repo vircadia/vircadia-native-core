@@ -112,8 +112,9 @@ public:
     static const QString& getEntityTypeName(EntityType entityType);
     static EntityTypes::EntityType getEntityTypeFromName(const QString& name);
     static bool registerEntityType(EntityType entityType, const char* name, EntityTypeFactory factoryMethod);
+    static void extractEntityTypeAndID(const unsigned char* data, int dataLength, EntityTypes::EntityType& typeOut, QUuid& idOut);
     static EntityItemPointer constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
-    static EntityItemPointer constructEntityItem(const unsigned char* data, int bytesToRead, ReadBitstreamToTreeParams& args);
+    static EntityItemPointer constructEntityItem(const unsigned char* data, int bytesToRead);
 
 private:
     static QMap<EntityType, QString> _typeToNameMap;

@@ -174,7 +174,7 @@ int EntityTree::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                         addToNeedsParentFixupList(entity);
                     }
                 } else {
-                    entity = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
+                    entity = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead);
                     if (entity) {
                         bytesForThisEntity = entity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
 

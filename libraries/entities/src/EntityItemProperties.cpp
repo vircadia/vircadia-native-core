@@ -93,7 +93,7 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
 
 bool EntityItemProperties::constructFromBuffer(const unsigned char* data, int dataLength) {
     ReadBitstreamToTreeParams args;
-    EntityItemPointer tempEntity = EntityTypes::constructEntityItem(data, dataLength, args);
+    EntityItemPointer tempEntity = EntityTypes::constructEntityItem(data, dataLength);
     if (!tempEntity) {
         return false;
     }
