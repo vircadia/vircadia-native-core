@@ -69,7 +69,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(EntityTreePointer enti
         return;
     }
 
-    QByteArray tempArray = QByteArray::fromRawData((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
+    QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
     _myAvatar->storeAvatarEntityDataPayload(entityItemID, tempArray);
 }
 

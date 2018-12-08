@@ -1590,7 +1590,7 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
                     OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
                     if (appendState == OctreeElement::COMPLETED) {
                         // only remember an AvatarEntity that successfully loads and can be packed
-                        QByteArray tempArray = QByteArray::fromRawData((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
+                        QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
                         storeAvatarEntityDataPayload(entityID, tempArray);
                         _avatarEntityStrings[entityID] = _avatarEntityDataSettings[i].get();
                     }
