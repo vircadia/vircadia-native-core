@@ -63,7 +63,8 @@ public:
     enum class OutOfRangeDataStrategy {
         None,
         Freeze,
-        Drop
+        Drop,
+        DropAfterDelay
     };
 
 private:
@@ -204,6 +205,8 @@ private:
         mutable std::recursive_mutex _lock;
 
         bool _hmdTrackingEnabled { true };
+
+        std::map<uint32_t, uint64_t> _simDataRunningOkTimestampMap;
 
         QString configToString(Config config);
         friend class ViveControllerManager;

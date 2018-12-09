@@ -29,7 +29,7 @@ layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0);
-    texel = mix(color_sRGBAToLinear(texel), texel, float(_color.a <= 0.0));
+    texel = mix(texel, color_sRGBAToLinear(texel), float(_color.a <= 0.0));
     texel.rgb *= _color.rgb;
 
     packDeferredFragment(
