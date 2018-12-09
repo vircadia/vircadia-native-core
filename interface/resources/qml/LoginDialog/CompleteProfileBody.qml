@@ -39,8 +39,8 @@ Item {
         property int maxHeight: root.height
 
         function resize() {
-            maxWidth = root.isTablet ? 1280 : root.width;
-            maxHeight = root.isTablet ? 720 : root.height;
+            maxWidth = root.width;
+            maxHeight = root.height;
             if (root.isTablet === false) {
                 var targetWidth = Math.max(Math.max(titleWidth, Math.max(additionalTextContainer.contentWidth,
                                                                 termsContainer.contentWidth)), mainContainer.width)

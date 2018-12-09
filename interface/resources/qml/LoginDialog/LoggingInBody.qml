@@ -38,8 +38,8 @@ Item {
         property int maxHeight: root.height
 
         function resize() {
-            maxWidth = root.isTablet ? 1280 : root.width;
-            maxHeight = root.isTablet ? 720 : root.height;
+            maxWidth = root.width;
+            maxHeight = root.height;
             var targetWidth = Math.max(titleWidth, mainContainer.width);
             var targetHeight =  hifi.dimensions.contentSpacing.y + mainContainer.height +
                     4 * hifi.dimensions.contentSpacing.y;
