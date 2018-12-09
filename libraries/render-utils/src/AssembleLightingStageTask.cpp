@@ -30,7 +30,7 @@ void FetchCurrentFrames::run(const render::RenderContextPointer& renderContext, 
 
 void AssembleLightingStageTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     const auto& fetchCullSortOut = input.get<Input>();
-    const auto& items = fetchCullSortOut[0];
+    const auto& items = fetchCullSortOut.get0();
     //const auto& items = input.get<Input>();
 
     const auto& lights = items[RenderFetchCullSortTask::LIGHT];
