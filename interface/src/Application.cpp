@@ -8687,7 +8687,7 @@ void Application::updateLoginDialogOverlayPosition() {
     auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * -0.1f);
     auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
 
-    bool overlayOutOfBounds = glm::distance(overlayPositionVec, cameraPositionVec) > 0.5f;
+    bool overlayOutOfBounds = glm::distance(overlayPositionVec, cameraPositionVec) > 1.0f;
 
     if (pointAngle > LOOK_AWAY_THRESHOLD_ANGLE || overlayOutOfBounds) {
         QVariantMap properties {
