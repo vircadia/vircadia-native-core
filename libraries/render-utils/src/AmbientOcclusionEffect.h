@@ -78,7 +78,6 @@ using AmbientOcclusionFramebufferPointer = std::shared_ptr<AmbientOcclusionFrame
 
 class AmbientOcclusionEffectConfig : public render::GPUJobConfig::Persistent {
     Q_OBJECT
-    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
     Q_PROPERTY(bool horizonBased MEMBER horizonBased NOTIFY dirty)
     Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled NOTIFY dirty)
     Q_PROPERTY(bool borderingEnabled MEMBER borderingEnabled NOTIFY dirty)

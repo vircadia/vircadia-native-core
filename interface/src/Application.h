@@ -70,11 +70,10 @@
 #include "ui/overlays/Overlays.h"
 
 #include "workload/GameWorkload.h"
+#include "graphics/GraphicsEngine.h"
 
-#include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
-#include "FrameTimingsScriptingInterface.h"
 
 #include "Sound.h"
 
@@ -153,7 +152,6 @@ public:
     void updateSecondaryCameraViewFrustum();
 
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
-    void paintGL();
     void resizeGL();
 
     bool event(QEvent* event) override;
@@ -203,8 +201,8 @@ public:
 
     Overlays& getOverlays() { return _overlays; }
 
-    size_t getRenderFrameCount() const { return _renderFrameCount; }
-    float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    size_t getRenderFrameCount() const { return _graphicsEngine.getRenderFrameCount(); }
+    float getRenderLoopRate() const { return _graphicsEngine.getRenderLoopRate(); }
     float getNumCollisionObjects() const;
     float getTargetRenderFrameRate() const; // frames/second
 
@@ -275,10 +273,10 @@ public:
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond() const;
 
-    render::ScenePointer getMain3DScene() override { return _main3DScene; }
-    const render::ScenePointer& getMain3DScene() const { return _main3DScene; }
-    render::EnginePointer getRenderEngine() override { return _renderEngine; }
-    gpu::ContextPointer getGPUContext() const { return _gpuContext; }
+    render::ScenePointer getMain3DScene() override { return _graphicsEngine.getRenderScene(); }
+    render::EnginePointer getRenderEngine() override { return  _graphicsEngine.getRenderEngine(); }
+    gpu::ContextPointer getGPUContext() const { return _graphicsEngine.getGPUContext(); }
+
 
     const GameWorkload& getGameWorkload() const { return _gameWorkload; }
 
@@ -515,7 +513,6 @@ private:
     bool handleFileOpenEvent(QFileOpenEvent* event);
     void cleanupBeforeQuit();
 
-    bool shouldPaint() const;
     void idle();
     void update(float deltaTime);
 
@@ -534,8 +531,6 @@ private:
     void checkSkeleton() const;
 
     void initializeAcceptedFiles();
-
-    void runRenderFrame(RenderArgs* renderArgs/*, Camera& whichCamera, bool selfAvatarOnly = false*/);
 
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
@@ -586,18 +581,12 @@ private:
 
     bool _activatingDisplayPlugin { false };
 
-    uint32_t _renderFrameCount { 0 };
-
     // Frame Rate Measurement
-    RateCounter<500> _renderLoopCounter;
     RateCounter<500> _gameLoopCounter;
-
-    FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
     QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
-    QElapsedTimer _lastTimeRendered;
 
     int _minimumGPUTextureMemSizeStabilityCount { 30 };
 
@@ -683,29 +672,9 @@ private:
 
     quint64 _lastFaceTrackerUpdate;
 
-    render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
-    render::EnginePointer _renderEngine{ new render::RenderEngine() };
-    gpu::ContextPointer _gpuContext; // initialized during window creation
-
     GameWorkload _gameWorkload;
 
-    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
-    struct AppRenderArgs {
-        render::Args _renderArgs;
-        glm::mat4 _eyeToWorld;
-        glm::mat4 _view;
-        glm::mat4 _eyeOffsets[2];
-        glm::mat4 _eyeProjections[2];
-        glm::mat4 _headPose;
-        glm::mat4 _sensorToWorld;
-        float _sensorToWorldScale { 1.0f };
-        bool _isStereo{ false };
-    };
-    AppRenderArgs _appRenderArgs;
-
-
-    using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
-    void editRenderArgs(RenderArgsEditor editor);
+    GraphicsEngine _graphicsEngine;
     void updateRenderArgs(float deltaTime);
 
 
@@ -751,8 +720,6 @@ private:
 
     bool _keyboardDeviceHasFocus { true };
 
-    QString _returnFromFullScreenMirrorTo;
-
     ConnectionMonitor _connectionMonitor;
 
     QTimer _addAssetToWorldResizeTimer;
@@ -786,16 +753,13 @@ private:
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
-    QObject* _renderEventHandler{ nullptr };
-
-    friend class RenderEventHandler;
 
     std::atomic<bool> _pendingIdleEvent { true };
-    std::atomic<bool> _pendingRenderEvent { true };
 
     bool quitWhenFinished { false };
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
 };
 #endif // hifi_Application_h

@@ -1776,16 +1776,11 @@ int AvatarData::getFauxJointIndex(const QString& name) const {
 
 int AvatarData::getJointIndex(const QString& name) const {
     int result = getFauxJointIndex(name);
-    if (result != -1) {
-        return result;
-    }
-    QReadLocker readLock(&_jointDataLock);
-    return _fstJointIndices.value(name) - 1;
+    return result;
 }
 
 QStringList AvatarData::getJointNames() const {
-    QReadLocker readLock(&_jointDataLock);
-    return _fstJointNames;
+    return QStringList();
 }
 
 glm::quat AvatarData::getOrientationOutbound() const {
@@ -2000,8 +1995,6 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     
     _skeletonModelURL = expanded;
 
-    updateJointMappings();
-
     if (_clientTraitsHandler) {
         _clientTraitsHandler->markTraitUpdated(AvatarTraits::SkeletonModelURL);
     }
@@ -2097,57 +2090,6 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
     setAttachmentData(attachmentData);
 }
 
-void AvatarData::setJointMappingsFromNetworkReply() {
-
-    QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
-
-    // before we process this update, make sure that the skeleton model URL hasn't changed
-    // since we made the FST request
-    if (networkReply->url() != _skeletonModelURL) {
-        qCDebug(avatars) << "Refusing to set joint mappings for FST URL that does not match the current URL";
-        return;
-    }
-
-    {
-        QWriteLocker writeLock(&_jointDataLock);
-        QByteArray line;
-        while (!(line = networkReply->readLine()).isEmpty()) {
-            line = line.trimmed();
-            if (line.startsWith("filename")) {
-                int filenameIndex = line.indexOf('=') + 1;
-                    if (filenameIndex > 0) {
-                        _skeletonFBXURL = _skeletonModelURL.resolved(QString(line.mid(filenameIndex).trimmed()));
-                    }
-                }
-            if (!line.startsWith("jointIndex")) {
-                continue;
-            }
-            int jointNameIndex = line.indexOf('=') + 1;
-            if (jointNameIndex == 0) {
-                continue;
-            }
-            int secondSeparatorIndex = line.indexOf('=', jointNameIndex);
-            if (secondSeparatorIndex == -1) {
-                continue;
-            }
-            QString jointName = line.mid(jointNameIndex, secondSeparatorIndex - jointNameIndex).trimmed();
-            bool ok;
-            int jointIndex = line.mid(secondSeparatorIndex + 1).trimmed().toInt(&ok);
-            if (ok) {
-                while (_fstJointNames.size() < jointIndex + 1) {
-                    _fstJointNames.append(QString());
-                }
-                _fstJointNames[jointIndex] = jointName;
-            }
-        }
-        for (int i = 0; i < _fstJointNames.size(); i++) {
-            _fstJointIndices.insert(_fstJointNames.at(i), i + 1);
-        }
-    }
-
-    networkReply->deleteLater();
-}
-
 void AvatarData::sendAvatarDataPacket(bool sendAll) {
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -2207,34 +2149,6 @@ void AvatarData::sendIdentityPacket() {
     });
 
     _identityDataChanged = false;
-}
-
-void AvatarData::updateJointMappings() {
-    {
-        QWriteLocker writeLock(&_jointDataLock);
-        _fstJointIndices.clear();
-        _fstJointNames.clear();
-        _jointData.clear();
-    }
-
-    if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
-        ////
-        // TODO: Should we rely upon HTTPResourceRequest for ResourceRequestObserver instead?
-        // HTTPResourceRequest::doSend() covers all of the following and
-        // then some. It doesn't cover the connect() call, so we may
-        // want to add a HTTPResourceRequest::doSend() method that does
-        // connects.
-        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
-        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-        DependencyManager::get<ResourceRequestObserver>()->update(
-            _skeletonModelURL, -1, "AvatarData::updateJointMappings");
-        QNetworkReply* networkReply = networkAccessManager.get(networkRequest);
-        //
-        ////
-        connect(networkReply, &QNetworkReply::finished, this, &AvatarData::setJointMappingsFromNetworkReply);
-    }
 }
 
 static const QString JSON_ATTACHMENT_URL = QStringLiteral("modelUrl");
@@ -2832,35 +2746,47 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
         qCDebug(avatars) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
         return;
     }
+
+    std::vector<QUuid> deletedEntityIDs;
+    QList<QUuid> updatedEntityIDs;
+
     _avatarEntitiesLock.withWriteLock([&] {
         if (_avatarEntityData != avatarEntityData) {
+
             // keep track of entities that were attached to this avatar but no longer are
             AvatarEntityIDs previousAvatarEntityIDs = QSet<QUuid>::fromList(_avatarEntityData.keys());
 
             _avatarEntityData = avatarEntityData;
             setAvatarEntityDataChanged(true);
 
+            deletedEntityIDs.reserve(previousAvatarEntityIDs.size());
+
             foreach (auto entityID, previousAvatarEntityIDs) {
                 if (!_avatarEntityData.contains(entityID)) {
                     _avatarEntityDetached.insert(entityID);
-
-                    if (_clientTraitsHandler) {
-                        // we have a client traits handler, so we flag this removed entity as deleted
-                        // so that changes are sent next frame
-                        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
-                    }
+                    deletedEntityIDs.push_back(entityID);
                 }
             }
 
-            if (_clientTraitsHandler) {
-                // if we have a client traits handler, flag any updated or created entities
-                // so that we send changes for them next frame
-                foreach (auto entityID, _avatarEntityData.keys()) {
-                    _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
-                }
-            }
+            updatedEntityIDs = _avatarEntityData.keys();
         }
     });
+
+    if (_clientTraitsHandler) {
+        // we have a client traits handler
+
+        // flag removed entities as deleted so that changes are sent next frame
+        for (auto& deletedEntityID : deletedEntityIDs) {
+            _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, deletedEntityID);
+        }
+
+        // flag any updated or created entities so that we send changes for them next frame
+        for (auto& entityID : updatedEntityIDs) {
+            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+        }
+    }
+
+
 }
 
 AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {

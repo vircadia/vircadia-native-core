@@ -306,6 +306,29 @@ void EntityItemProperties::setMaterialMappingModeFromString(const QString& mater
     }
 }
 
+QString EntityItemProperties::getEntityHostTypeAsString() const {
+    switch (_entityHostType) {
+        case entity::HostType::DOMAIN:
+            return "domain";
+        case entity::HostType::AVATAR:
+            return "avatar";
+        case entity::HostType::LOCAL:
+            return "local";
+        default:
+            return "";
+    }
+}
+
+void EntityItemProperties::setEntityHostTypeFromString(const QString& entityHostType) {
+    if (entityHostType == "domain") {
+        _entityHostType = entity::HostType::DOMAIN;
+    } else if (entityHostType == "avatar") {
+        _entityHostType = entity::HostType::AVATAR;
+    } else if (entityHostType == "local") {
+        _entityHostType = entity::HostType::LOCAL;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
@@ -385,6 +408,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_DATA, materialData);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_REPEAT, materialRepeat);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_SPIN, particleSpin);
     CHECK_PROPERTY_CHANGE(PROP_SPIN_SPREAD, spinSpread);
@@ -453,7 +477,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
     CHECK_PROPERTY_CHANGE(PROP_FILTER_URL, filterURL);
 
-    CHECK_PROPERTY_CHANGE(PROP_CLIENT_ONLY, clientOnly);
+    CHECK_PROPERTY_CHANGE(PROP_ENTITY_HOST_TYPE, entityHostType);
     CHECK_PROPERTY_CHANGE(PROP_OWNING_AVATAR_ID, owningAvatarID);
 
     CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
@@ -489,12 +513,18 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.EntityType} type - The entity type. You cannot change the type of an entity after it's created. (Though 
  *     its value may switch among <code>"Box"</code>, <code>"Shape"</code>, and <code>"Sphere"</code> depending on changes to 
  *     the <code>shape</code> property set for entities of these types.) <em>Read-only.</em>
- * @property {boolean} clientOnly=false - If <code>true</code> then the entity is an avatar entity; otherwise it is a server
- *     entity. An avatar entity follows you to each domain you visit, rendering at the same world coordinates unless it's 
- *     parented to your avatar. <em>Value cannot be changed after the entity is created.</em><br />
- *     The value can also be set at entity creation by using the <code>clientOnly</code> parameter in 
+ * @property {EntityHostType} entityHostType="domain" - How this entity will behave, including if and how it is sent to other people.
+ *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
  *     {@link Entities.addEntity}.
- * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>clientOnly</code> is 
+ * @property {boolean} avatarEntity=false - If <code>true</code> then the entity is an avatar entity;  An avatar entity follows you to each domain you visit,
+ *     rendering at the same world coordinates unless it's parented to your avatar. <em>Value cannot be changed after the entity is created.</em><br />
+ *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in 
+ *     {@link Entities.addEntity}.  <code>clientOnly</code> is an alias.
+ * @property {boolean} localEntity=false - If <code>true</code> then the entity is a local entity;  Local entities only render for you and are not sent over the wire.
+ *     <em>Value cannot be changed after the entity is created.</em><br />
+ *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
+ *     {@link Entities.addEntity}.
+ * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>avatarEntity</code> is 
  *     <code>true</code>, otherwise {@link Uuid|Uuid.NULL}. <em>Read-only.</em>
  *
  * @property {string} created - The UTC date and time that the entity was created, in ISO 8601 format as
@@ -594,7 +624,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} parentJointIndex=65535 - The joint of the entity or avatar that this entity is parented to. Use 
  *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a joint.
  * @property {Vec3} localPosition=0,0,0 - The position of the entity relative to its parent if the entity is parented, 
- *     otherwise the same value as <code>position</code>. If the entity is parented to an avatar and is <code>clientOnly</code> 
+ *     otherwise the same value as <code>position</code>. If the entity is parented to an avatar and is an <code>avatarEntity</code> 
  *     so that it scales with the avatar, this value remains the original local position value while the avatar scale changes.
  * @property {Quat} localRotation=0,0,0,1 - The rotation of the entity relative to its parent if the entity is parented, 
  *     otherwise the same value as <code>rotation</code>.
@@ -602,8 +632,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     otherwise the same value as <code>velocity</code>.
  * @property {Vec3} localAngularVelocity=0,0,0 - The angular velocity of the entity relative to its parent if the entity is 
  *     parented, otherwise the same value as <code>position</code>.
- * @property {Vec3} localDimensions - The dimensions of the entity. If the entity is parented to an avatar and is 
- *     <code>clientOnly</code> so that it scales with the avatar, this value remains the original dimensions value while the 
+ * @property {Vec3} localDimensions - The dimensions of the entity. If the entity is parented to an avatar and is an
+ *     <code>avatarEntity</code> so that it scales with the avatar, this value remains the original dimensions value while the 
  *     avatar scale changes.
  *
  * @property {Entities.BoundingBox} boundingBox - The axis-aligned bounding box that tightly encloses the entity. 
@@ -628,7 +658,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} cloneDynamic=false - If <code>true</code> then clones created from this entity will have their 
  *     <code>dynamic</code> property set to <code>true</code>.
  * @property {boolean} cloneAvatarEntity=false - If <code>true</code> then clones created from this entity will be created as 
- *     avatar entities: their <code>clientOnly</code> property will be set to <code>true</code>.
+ *     avatar entities: their <code>avatarEntity</code> property will be set to <code>true</code>.
  * @property {Uuid} cloneOriginID - The ID of the entity that this entity was cloned from.
  *
  * @property {Entities.Grab} grab - The grab-related properties.
@@ -739,7 +769,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * overlay's ID.
  * To apply a material to an avatar, set the material entity's <code>parentID</code> property to the avatar's session UUID.
  * To apply a material to your avatar such that it persists across domains and log-ins, create the material as an avatar entity 
- * by setting the <code>clientOnly</code> parameter in {@link Entities.addEntity} to <code>true</code>.
+ * by setting the <code>entityHostType</code> parameter in {@link Entities.addEntity} to <code>"avatar"</code>.
  * Material entities render as non-scalable spheres if they don't have their parent set.
  * @typedef {object} Entities.EntityProperties-Material
  * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
@@ -754,7 +784,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh index to modify. Invalid values are 
  *     parsed to <code>0</code>.
  * @property {string} materialMappingMode="uv" - How the material is mapped to the entity. Either <code>"uv"</code> or 
- *     <code>"projected"</code>. <em>Currently, only <code>"uv"</code> is supported.
+ *     <code>"projected"</code>. In "uv" mode, the material will be evaluated within the UV space of the mesh it is applied to.  In
+ *     "projected" mode, the 3D transform of the Material Entity will be used to evaluate the texture coordinates for the material.
  * @property {Vec2} materialMappingPos=0,0 - Offset position in UV-space of the top left of the material, range 
  *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
  * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
@@ -762,6 +793,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} materialData="" - Used to store {@link MaterialResource} data as a JSON string. You can use 
  *     <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the properties of, and 
  *     use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
+ * @property {boolean} materialRepeat=true - If true, the material will repeat.  If false, fragments outside of texCoord 0 - 1 will be discarded.
+ *     Works in both "uv" and "projected" modes.
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
@@ -1485,6 +1518,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_DATA, materialData);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_REPEAT, materialRepeat);
     }
 
     /**jsdoc
@@ -1527,8 +1561,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);  // Gettable but not settable except at entity creation
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);  // Gettable but not settable
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ENTITY_HOST_TYPE, entityHostType, getEntityHostTypeAsString());  // Gettable but not settable except at entity creation
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);                                      // Gettable but not settable
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONEABLE, cloneable);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_LIFETIME, cloneLifetime);
@@ -1567,12 +1601,14 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(renderInfo, renderInfo);  // Gettable but not settable
     }
 
-    // FIXME: These properties should already have been set above.
     if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::ClientOnly)) {
-        properties.setProperty("clientOnly", convertScriptValue(engine, getClientOnly()));
+        properties.setProperty("clientOnly", convertScriptValue(engine, getEntityHostType() == entity::HostType::AVATAR));
     }
-    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::OwningAvatarID)) {
-        properties.setProperty("owningAvatarID", convertScriptValue(engine, getOwningAvatarID()));
+    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::AvatarEntity)) {
+        properties.setProperty("avatarEntity", convertScriptValue(engine, getEntityHostType() == entity::HostType::AVATAR));
+    }
+    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::LocalEntity)) {
+        properties.setProperty("localEntity", convertScriptValue(engine, getEntityHostType() == entity::HostType::LOCAL));
     }
 
     // FIXME - I don't think these properties are supported any more
@@ -1666,6 +1702,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, vec2, setMaterialMappingScale);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingRot, float, setMaterialMappingRot);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialData, QString, setMaterialData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialRepeat, bool, setMaterialRepeat);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleSpin, float, setParticleSpin);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(spinSpread, float, setSpinSpread);
@@ -1761,7 +1798,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(ghostingAllowed, bool, setGhostingAllowed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(filterURL, QString, setFilterURL);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(clientOnly, bool, setClientOnly);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(entityHostType, EntityHostType);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
@@ -1927,7 +1964,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(ghostingAllowed);
     COPY_PROPERTY_IF_CHANGED(filterURL);
 
-    COPY_PROPERTY_IF_CHANGED(clientOnly);
+    COPY_PROPERTY_IF_CHANGED(entityHostType);
     COPY_PROPERTY_IF_CHANGED(owningAvatarID);
 
     COPY_PROPERTY_IF_CHANGED(dpi);
@@ -2061,6 +2098,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, vec2);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_REPEAT, MaterialRepeat, materialRepeat, bool);
 
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
 
@@ -2511,6 +2549,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, properties.getMaterialMappingScale());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, properties.getMaterialMappingRot());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_DATA, properties.getMaterialData());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_REPEAT, properties.getMaterialRepeat());
             }
 
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
@@ -2898,6 +2937,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, vec2, setMaterialMappingScale);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_DATA, QString, setMaterialData);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_REPEAT, bool, setMaterialRepeat);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
@@ -3137,6 +3177,7 @@ void EntityItemProperties::markAllChanged() {
     _materialMappingScaleChanged = true;
     _materialMappingRotChanged = true;
     _materialDataChanged = true;
+    _materialRepeatChanged = true;
 
     // Certifiable Properties
     _itemNameChanged = true;
@@ -3213,7 +3254,7 @@ void EntityItemProperties::markAllChanged() {
     _ghostingAllowedChanged = true;
     _filterURLChanged = true;
 
-    _clientOnlyChanged = true;
+    _entityHostTypeChanged = true;
     _owningAvatarIDChanged = true;
 
     _dpiChanged = true;
@@ -3587,6 +3628,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (materialDataChanged()) {
         out += "materialData";
     }
+    if (materialRepeatChanged()) {
+        out += "materialRepeat";
+    }
     if (isVisibleInSecondaryCameraChanged()) {
         out += "isVisibleInSecondaryCamera";
     }
@@ -3712,8 +3756,8 @@ QList<QString> EntityItemProperties::listChangedProperties() {
         out += "queryAACube";
     }
 
-    if (clientOnlyChanged()) {
-        out += "clientOnly";
+    if (entityHostTypeChanged()) {
+        out += "entityHostType";
     }
     if (owningAvatarIDChanged()) {
         out += "owningAvatarID";
@@ -3788,7 +3832,7 @@ bool EntityItemProperties::getScalesWithParent() const {
         if (success && parent) {
             bool avatarAncestor = (parent->getNestableType() == NestableType::Avatar ||
                                    parent->hasAncestorOfType(NestableType::Avatar));
-            scalesWithParent = getClientOnly() && avatarAncestor;
+            scalesWithParent = getEntityHostType() == entity::HostType::AVATAR && avatarAncestor;
         }
     }
     return scalesWithParent;
@@ -3946,7 +3990,13 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
     setParentJointIndex(-1);
     setLifetime(getCloneLifetime());
     setDynamic(getCloneDynamic());
-    setClientOnly(getCloneAvatarEntity());
+    if (getEntityHostType() != entity::HostType::LOCAL) {
+        setEntityHostType(getCloneAvatarEntity() ? entity::HostType::AVATAR : entity::HostType::DOMAIN);
+    } else {
+        // Local Entities clone as local entities
+        setEntityHostType(entity::HostType::LOCAL);
+        setCollisionless(true);
+    }
     setCreated(usecTimestampNow());
     setLastEdited(usecTimestampNow());
     setCloneable(ENTITY_ITEM_DEFAULT_CLONEABLE);

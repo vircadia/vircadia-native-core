@@ -19,7 +19,7 @@ If you do not wish to use the Python installation bundled with Visual Studio, yo
 
 ### Step 2. Installing CMake
 
-Download and install the latest version of CMake 3.9. 
+Download and install the latest version of CMake 3.9.
 
 Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.9 Version page](https://cmake.org/files/v3.9/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
 
@@ -35,20 +35,7 @@ Go to `Control Panel > System > Advanced System Settings > Environment Variables
 * Set "Variable name": `QT_CMAKE_PREFIX_PATH`
 * Set "Variable value": `C:\Qt\5.10.1\msvc2017_64\lib\cmake`
 
-### Step 5. Installing [vcpkg](https://github.com/Microsoft/vcpkg)
-
- * Clone the VCPKG [repository](https://github.com/Microsoft/vcpkg)
- * Follow the instructions in the [readme](https://github.com/Microsoft/vcpkg/blob/master/README.md) to bootstrap vcpkg
-   * Note, you may need to do these in a _Developer Command Prompt_
- * Set an environment variable VCPKG_ROOT to the location of the cloned repository
-   * Close and re-open any command prompts after setting the environment variable so that they will pick up the change
-
-### Step 6. Installing OpenSSL via vcpkg
-
- * In the vcpkg directory, install the 64 bit OpenSSL package with the command `.\vcpkg install openssl:x64-windows`
- * Once the build completes you should have a file `ssl.h` in `${VCPKG_ROOT}/installed/x64-windows/include/openssl`
-
-### Step 7. Running CMake to Generate Build Files
+### Step 5. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:
 ```
@@ -58,9 +45,9 @@ cd build
 cmake .. -G "Visual Studio 15 Win64"
 ```
 
-Where `%HIFI_DIR%` is the directory for the highfidelity repository.     
+Where `%HIFI_DIR%` is the directory for the highfidelity repository.
 
-### Step 8. Making a Build
+### Step 6. Making a Build
 
 Open `%HIFI_DIR%\build\hifi.sln` using Visual Studio.
 
@@ -68,7 +55,7 @@ Change the Solution Configuration (menu ribbon under the menu bar, next to the g
 
 Run from the menu bar `Build > Build Solution`.
 
-### Step 9. Testing Interface
+### Step 7. Testing Interface
 
 Create another environment variable (see Step #4)
 * Set "Variable name": `_NO_DEBUG_HEAP`
