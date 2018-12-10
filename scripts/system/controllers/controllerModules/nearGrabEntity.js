@@ -6,13 +6,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex,
-   enableDispatcherModule, disableDispatcherModule, propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
-   TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
-   findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
-   HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, findHandChildEntities, TEAR_AWAY_DISTANCE, MSECS_PER_SEC, TEAR_AWAY_CHECK_TIME,
-   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, Uuid, highlightTargetEntity, unhighlightTargetEntity,
-   distanceBetweenEntityLocalPositionAndBoundingBox, getGrabbableData, getGrabPointSphereOffset, DISPATCHER_PROPERTIES
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex, enableDispatcherModule,
+   disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE,
+   makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS, findGroupParent, Vec3,
+   cloneEntity, entityIsCloneable, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, TEAR_AWAY_DISTANCE,
+   distanceBetweenPointAndEntityBoundingBox, highlightTargetEntity, unhighlightTargetEntity, getGrabbableData,
+   DISPATCHER_PROPERTIES, HMD
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -20,18 +19,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
-
-    // XXX this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
-    // XXX this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
-
-    // this offset needs to match the one in libraries/display-plugins/src/display-plugins/hmd/HmdDisplayPlugin.cpp:378
-    var GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 };  // x = upward, y = forward, z = lateral
-
-    function getGrabOffset(handController) {
-        var offset = getGrabPointSphereOffset(handController, true);
-        offset.y = -offset.y;
-        return Vec3.multiply(MyAvatar.sensorToWorldScale, offset);
-    }
 
     function NearGrabEntity(hand) {
         this.hand = hand;
@@ -95,7 +82,6 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             this.hapticTargetID = null;
-            var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseGrab", args);
@@ -172,6 +158,13 @@ Script.include("/~/system/libraries/controllers.js");
             if (this.grabbing) {
                 if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE &&
                     controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
+                    this.endNearGrabEntity(controllerData);
+                    return makeRunningValues(false, [], []);
+                }
+
+                if (controllerData.secondaryValues[LEFT_HAND] >= TRIGGER_ON_VALUE &&
+                    controllerData.secondaryValues[RIGHT_HAND] >= TRIGGER_ON_VALUE) {
+                    // let scaleEntity module take over
                     this.endNearGrabEntity(controllerData);
                     return makeRunningValues(false, [], []);
                 }

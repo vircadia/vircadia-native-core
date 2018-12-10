@@ -19,7 +19,7 @@
 
         this.parameters = dispatcherUtils.makeDispatcherModuleParameters(
             120,
-            this.hand === RIGHT_HAND ? ["rightHandTrigger"] : ["leftHandTrigger"],
+            this.hand === RIGHT_HAND ? ["rightHandTrigger", "rightHand"] : ["leftHandTrigger", "leftHand"],
             [],
             100
         );
