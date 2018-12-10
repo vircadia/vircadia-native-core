@@ -57,7 +57,7 @@ Item {
                                 hifi.dimensions.contentSpacing.y + buttons.height;
 
             parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
-            parent.height = root.height = Math.max(Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)), mainContainer.height + hifi.dimensions.contentSpacing.y));
+            parent.height = root.height = Math.max(Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight)), mainContainer.height + hifi.dimensions.contentSpacing.y);
         }
     }
 

@@ -17,8 +17,10 @@ import controlsUit 1.0 as HifiControlsUit
 import stylesUit 1.0 as HifiStylesUit
 
 Item {
-
     id: loggingInBody
+    clip: true
+    height: root.height
+    width: root.width
     property int textFieldHeight: 31
     property int loggingInGlyphRightMargin: 10
     property string fontFamily: "Raleway"
@@ -70,8 +72,9 @@ Item {
         loggingInText.wrapMode = Text.NoWrap;
 
         if (loggingInBody.linkSteam) {
-            loggingInText.centerIn = loggingInHeader;
+            loggingInGlyph.visible = true;
             loggingInText.text = "Linking to Steam";
+            loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
             loginDialog.linkSteam();
         } else if (loggingInBody.withSteam) {
             loggingInGlyph.visible = true;
@@ -83,10 +86,8 @@ Item {
             loggingInText.text = "Logging in to Oculus";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
         } else {
-            loggingInText.centerIn = loggingInHeader;
             loggingInText.text = "Logging in";
-            loggingInText.anchors.bottom = loggingInHeader.bottom;
-            loggingInText.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
+            loggingInText.anchors.centerIn = loggingInHeader;
         }
         loggingInSpinner.visible = true;
     }
@@ -101,11 +102,15 @@ Item {
             // reset the flag.
             loggingInGlyph.visible = false;
             loggingInText.text = "You are now logged into Steam!";
+            loggingInText.x = 0;
+            loggingInText.anchors.centerIn = loggingInHeader;
             loggedInGlyph.visible = true;
         } else if (loggingInBody.withOculus) {
             // reset the flag.
             loggingInGlyph.visible = false;
             loggingInText.text = "You are now logged into Oculus!";
+            loggingInText.x = 0;
+            loggingInText.anchors.centerIn = loggingInHeader;
             loggedInGlyph.text = hifi.glyphs.oculus;
             loggedInGlyph.visible = true;
         } else {
@@ -116,14 +121,12 @@ Item {
 
     Item {
         id: mainContainer
-        width: root.width
-        height: root.height
+        anchors.fill: parent
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
         Item {
             id: loggingInContainer
-            width: parent.width
-            height: parent.height
+            anchors.fill: parent
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
             Item {
