@@ -69,12 +69,12 @@ function getMyAvatarSettings() {
     }
 }
 
-function updateAvatarWearables(avatar, bookmarkAvatarName, callback) {
+function updateAvatarWearables(avatar, callback) {
     executeLater(function() {
         var wearables = getMyAvatarWearables();
         avatar[ENTRY_AVATAR_ENTITIES] = wearables;
 
-        sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables, 'avatarName' : bookmarkAvatarName})
+        sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables})
 
         if(callback)
             callback();
@@ -188,7 +188,11 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         sendToQml(message)
         break;
     case 'selectAvatar':
+        Entities.addingWearable.disconnect(onAddingWearable);
+        Entities.deletingWearable.disconnect(onDeletingWearable);
         AvatarBookmarks.loadBookmark(message.name);
+        Entities.addingWearable.connect(onAddingWearable);
+        Entities.deletingWearable.connect(onDeletingWearable);
         break;
     case 'deleteAvatar':
         AvatarBookmarks.removeBookmark(message.name);
@@ -223,7 +227,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             // revert changes using snapshot of wearables
             if(currentAvatarWearablesBackup !== null) {
                 AvatarBookmarks.updateAvatarEntities(currentAvatarWearablesBackup);
-                updateAvatarWearables(currentAvatar, message.avatarName);
+                updateAvatarWearables(currentAvatar);
             }
         } else {
             sendToQml({'method' : 'updateAvatarInBookmarks'});
@@ -256,8 +260,11 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             parentJointIndex: hipsIndex
         };
 
+        Entities.addingWearable.disconnect(onAddingWearable);
         var entityID = Entities.addEntity(properties, true);
-        updateAvatarWearables(currentAvatar, message.avatarName, function() {
+        Entities.addingWearable.connect(onAddingWearable);
+
+        updateAvatarWearables(currentAvatar, function() {
             onSelectedEntity(entityID);
         });
         break;
@@ -265,8 +272,12 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         ensureWearableSelected(message.entityID);
         break;
     case 'deleteWearable':
+
+        Entities.deletingWearable.disconnect(onDeletingWearable);
         Entities.deleteEntity(message.entityID);
-        updateAvatarWearables(currentAvatar, message.avatarName);
+        Entities.deletingWearable.connect(onDeletingWearable);
+
+        updateAvatarWearables(currentAvatar);
         break;
     case 'changeDisplayName':
         if (MyAvatar.displayName !== message.displayName) {
@@ -380,6 +391,18 @@ function onSelectedEntity(entityID, pointerEvent) {
     }
 }
 
+function onAddingWearable(entityID) {
+    updateAvatarWearables(currentAvatar, function() {
+        sendToQml({'method' : 'updateAvatarInBookmarks'});
+    });
+}
+
+function onDeletingWearable(entityID) {
+    updateAvatarWearables(currentAvatar, function() {
+        sendToQml({'method' : 'updateAvatarInBookmarks'});
+    });
+}
+
 function handleWearableMessages(channel, message, sender) {
     if (channel !== 'Hifi-Object-Manipulation') {
         return;
@@ -485,6 +508,8 @@ function off() {
         AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
         AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
 
+        Entities.addingWearable.disconnect(onAddingWearable);
+        Entities.deletingWearable.disconnect(onDeletingWearable);
         MyAvatar.skeletonModelURLChanged.disconnect(onSkeletonModelURLChanged);
         MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
         MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
@@ -495,16 +520,23 @@ function off() {
 }
 
 function on() {
-    AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
-    AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
-    AvatarBookmarks.bookmarkAdded.connect(onBookmarkAdded);
 
-    MyAvatar.skeletonModelURLChanged.connect(onSkeletonModelURLChanged);
-    MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
-    MyAvatar.collisionsEnabledChanged.connect(onCollisionsEnabledChanged);
-    MyAvatar.newCollisionSoundURL.connect(onNewCollisionSoundUrl);
-    MyAvatar.animGraphUrlChanged.connect(onAnimGraphUrlChanged);
-    MyAvatar.targetScaleChanged.connect(onTargetScaleChanged);
+    if (!isWired) { // It is not ok to connect these twice, hence guard.
+        isWired = true;
+
+        AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
+        AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
+        AvatarBookmarks.bookmarkAdded.connect(onBookmarkAdded);
+
+        Entities.addingWearable.connect(onAddingWearable);
+        Entities.deletingWearable.connect(onDeletingWearable);
+        MyAvatar.skeletonModelURLChanged.connect(onSkeletonModelURLChanged);
+        MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
+        MyAvatar.collisionsEnabledChanged.connect(onCollisionsEnabledChanged);
+        MyAvatar.newCollisionSoundURL.connect(onNewCollisionSoundUrl);
+        MyAvatar.animGraphUrlChanged.connect(onAnimGraphUrlChanged);
+        MyAvatar.targetScaleChanged.connect(onTargetScaleChanged);
+    }
 }
 
 function onTabletButtonClicked() {
@@ -514,7 +546,6 @@ function onTabletButtonClicked() {
     } else {
         ContextOverlay.enabled = false;
         tablet.loadQMLSource(AVATARAPP_QML_SOURCE);
-        isWired = true;
     }
 }
 var hasEventBridge = false;
