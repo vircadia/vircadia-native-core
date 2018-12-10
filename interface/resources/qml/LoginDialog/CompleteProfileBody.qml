@@ -79,7 +79,7 @@ Item {
                     id: loginErrorMessage;
                     width: root.bannerWidth
                     color: "red";
-                    font.family: signUpBody.fontFamily
+                    font.family: completeProfileBody.fontFamily
                     font.pixelSize: 18
                     font.bold: completeProfileBody.fontBold
                     verticalAlignment: Text.AlignVCenter
