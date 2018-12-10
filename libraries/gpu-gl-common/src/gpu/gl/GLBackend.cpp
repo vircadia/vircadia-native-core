@@ -859,3 +859,7 @@ void GLBackend::setCameraCorrection(const Mat4& correction, const Mat4& prevRend
     _pipeline._cameraCorrectionBuffer._buffer->setSubData(0, _transform._correction);
     _pipeline._cameraCorrectionBuffer._buffer->flush();
 }
+
+void GLBackend::syncProgram(const gpu::ShaderPointer& program) {
+    gpu::gl::GLShader::sync(*this, *program);
+}

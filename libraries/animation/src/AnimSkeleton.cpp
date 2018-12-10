@@ -327,7 +327,7 @@ std::vector<int> AnimSkeleton::lookUpJointIndices(const std::vector<QString>& jo
     for (auto& name : jointNames) {
         int index = nameToJointIndex(name);
         if (index == -1) {
-            qWarning(animation) << "AnimSkeleton::lookUpJointIndices(): could not find bone with named " << name;
+            qWarning(animation) << "AnimSkeleton::lookUpJointIndices(): could not find bone with name " << name;
         }
         result.push_back(index);
     }

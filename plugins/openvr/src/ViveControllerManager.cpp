@@ -138,6 +138,8 @@ static QString outOfRangeDataStrategyToString(ViveControllerManager::OutOfRangeD
         return "Freeze";
     case ViveControllerManager::OutOfRangeDataStrategy::Drop:
         return "Drop";
+    case ViveControllerManager::OutOfRangeDataStrategy::DropAfterDelay:
+        return "DropAfterDelay";
     }
 }
 
@@ -146,6 +148,8 @@ static ViveControllerManager::OutOfRangeDataStrategy stringToOutOfRangeDataStrat
         return ViveControllerManager::OutOfRangeDataStrategy::Drop;
     } else if (string == "Freeze") {
         return ViveControllerManager::OutOfRangeDataStrategy::Freeze;
+    } else if (string == "DropAfterDelay") {
+        return ViveControllerManager::OutOfRangeDataStrategy::DropAfterDelay;
     } else {
         return ViveControllerManager::OutOfRangeDataStrategy::None;
     }
@@ -302,7 +306,7 @@ void ViveControllerManager::loadSettings() {
         if (_inputDevice) {
             const double DEFAULT_ARM_CIRCUMFERENCE = 0.33;
             const double DEFAULT_SHOULDER_WIDTH = 0.48;
-            const QString DEFAULT_OUT_OF_RANGE_STRATEGY = "Drop";
+            const QString DEFAULT_OUT_OF_RANGE_STRATEGY = "DropAfterDelay";
             _inputDevice->_armCircumference = settings.value("armCircumference", QVariant(DEFAULT_ARM_CIRCUMFERENCE)).toDouble();
             _inputDevice->_shoulderWidth = settings.value("shoulderWidth", QVariant(DEFAULT_SHOULDER_WIDTH)).toDouble();
             _inputDevice->_outOfRangeDataStrategy = stringToOutOfRangeDataStrategy(settings.value("outOfRangeDataStrategy", QVariant(DEFAULT_OUT_OF_RANGE_STRATEGY)).toString());
@@ -516,6 +520,7 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
         _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid &&
         poseIndex <= controller::TRACKED_OBJECT_15) {
 
+        uint64_t now = usecTimestampNow();
         controller::Pose pose;
         switch (_outOfRangeDataStrategy) {
         case OutOfRangeDataStrategy::Drop:
@@ -542,6 +547,22 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
                 _nextSimPoseData.poses[deviceIndex] = _lastSimPoseData.poses[deviceIndex];
                 _nextSimPoseData.linearVelocities[deviceIndex] = _lastSimPoseData.linearVelocities[deviceIndex];
                 _nextSimPoseData.angularVelocities[deviceIndex] = _lastSimPoseData.angularVelocities[deviceIndex];
+            }
+            break;
+        case OutOfRangeDataStrategy::DropAfterDelay:
+            const uint64_t DROP_DELAY_TIME = 500 * USECS_PER_MSEC;
+
+            // All Running_OK results are valid.
+            if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult == vr::TrackingResult_Running_OK) {
+                pose = buildPose(_nextSimPoseData.poses[deviceIndex], _nextSimPoseData.linearVelocities[deviceIndex], _nextSimPoseData.angularVelocities[deviceIndex]);
+                // update the timer
+                _simDataRunningOkTimestampMap[deviceIndex] = now;
+            } else if (now - _simDataRunningOkTimestampMap[deviceIndex] < DROP_DELAY_TIME) {
+                // report the pose, even though pose is out-of-range
+                pose = buildPose(_nextSimPoseData.poses[deviceIndex], _nextSimPoseData.linearVelocities[deviceIndex], _nextSimPoseData.angularVelocities[deviceIndex]);
+            } else {
+                // this pose has been out-of-range for too long.
+                pose.valid = false;
             }
             break;
         }

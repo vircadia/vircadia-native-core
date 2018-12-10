@@ -489,7 +489,7 @@ public:
     void scriptHasUnloaded();
     void setScriptHasFinishedPreload(bool value);
     bool isScriptPreloadFinished();
-
+    virtual bool isWearable() const;
     bool isDomainEntity() const { return _hostType == entity::HostType::DOMAIN; }
     bool isAvatarEntity() const { return _hostType == entity::HostType::AVATAR; }
     bool isLocalEntity() const { return _hostType == entity::HostType::LOCAL; }

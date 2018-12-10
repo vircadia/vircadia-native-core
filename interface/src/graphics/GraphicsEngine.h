@@ -15,6 +15,7 @@
 #include <qmutex.h>
 
 #include <render/Engine.h>
+#include <procedural/ProceduralSkybox.h>
 
 #include <OctreeConstants.h>
 #include <shared/RateCounter.h>
@@ -83,6 +84,9 @@ protected:
     friend class RenderEventHandler;
 
     FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
+
+    std::shared_ptr<ProceduralSkybox> _splashScreen { std::make_shared<ProceduralSkybox>() };
+    std::atomic<bool> _programsCompiled { false };
 
     friend class Application;
 };

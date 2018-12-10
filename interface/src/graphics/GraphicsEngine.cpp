@@ -34,6 +34,8 @@
 #include "Application.h"
 
 GraphicsEngine::GraphicsEngine() {
+    const QString SPLASH_SKYBOX { "{\"ProceduralEntity\":{ \"version\":2, \"shaderUrl\":\"qrc:///shaders/splashSkybox.frag\" } }" };
+    _splashScreen->parse(SPLASH_SKYBOX);
 }
 
 GraphicsEngine::~GraphicsEngine() {
@@ -53,6 +55,10 @@ void GraphicsEngine::initializeGPU(GLWidget* glwidget) {
     gpu::Context::init<gpu::gl::GLBackend>();
     glwidget->makeCurrent();
     _gpuContext = std::make_shared<gpu::Context>();
+
+    _gpuContext->pushProgramsToSync(shader::allPrograms(), [this] {
+        _programsCompiled.store(true);
+    }, 1);
 
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
 }
@@ -122,11 +128,7 @@ void GraphicsEngine::render_runRenderFrame(RenderArgs* renderArgs) {
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 
-
-
-
 bool GraphicsEngine::shouldPaint() const {
-
     auto displayPlugin = qApp->getActiveDisplayPlugin();
 
 #ifdef DEBUG_PAINT_DELAY
@@ -145,7 +147,7 @@ bool GraphicsEngine::shouldPaint() const {
 
     // Throttle if requested
     //if (displayPlugin->isThrottled() && (_graphicsEngine._renderEventHandler->_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
-    if (    displayPlugin->isThrottled() &&
+    if (displayPlugin->isThrottled() &&
             (static_cast<RenderEventHandler*>(_renderEventHandler)->_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
         return false;
     }
@@ -157,8 +159,6 @@ bool GraphicsEngine::checkPendingRenderEvent() {
     bool expected = false;
     return (_renderEventHandler && static_cast<RenderEventHandler*>(_renderEventHandler)->_pendingRenderEvent.compare_exchange_strong(expected, true));
 }
-
-
 
 void GraphicsEngine::render_performFrame() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
@@ -189,6 +189,7 @@ void GraphicsEngine::render_performFrame() {
     glm::mat4  HMDSensorPose;
     glm::mat4  eyeToWorld;
     glm::mat4  sensorToWorld;
+    ViewFrustum viewFrustum;
 
     bool isStereo;
     glm::mat4  stereoEyeOffsets[2];
@@ -211,6 +212,7 @@ void GraphicsEngine::render_performFrame() {
             stereoEyeOffsets[eye] = _appRenderArgs._eyeOffsets[eye];
             stereoEyeProjections[eye] = _appRenderArgs._eyeProjections[eye];
         });
+        viewFrustum = _appRenderArgs._renderArgs.getViewFrustum();
     }
 
     {
@@ -221,21 +223,12 @@ void GraphicsEngine::render_performFrame() {
         gpu::doInBatch("Application_render::gpuContextReset", getGPUContext(), [&](gpu::Batch& batch) {
             batch.resetStages();
         });
-    }
 
-
-    {
-        PROFILE_RANGE(render, "/renderOverlay");
-        PerformanceTimer perfTimer("renderOverlay");
-        // NOTE: There is no batch associated with this renderArgs
-        // the ApplicationOverlay class assumes it's viewport is setup to be the device size
-        renderArgs._viewport = glm::ivec4(0, 0, qApp->getDeviceSize());
-        qApp->getApplicationOverlay().renderOverlay(&renderArgs);
-    }
-
-    {
-        PROFILE_RANGE(render, "/updateCompositor");
-        qApp->getApplicationCompositor().setFrameInfo(_renderFrameCount, eyeToWorld, sensorToWorld);
+        if (isStereo) {
+            renderArgs._context->enableStereo(true);
+            renderArgs._context->setStereoProjections(stereoEyeProjections);
+            renderArgs._context->setStereoViews(stereoEyeOffsets);
+        }
     }
 
     gpu::FramebufferPointer finalFramebuffer;
@@ -245,21 +238,40 @@ void GraphicsEngine::render_performFrame() {
         // Primary rendering pass
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
         finalFramebufferSize = framebufferCache->getFrameBufferSize();
-        // Final framebuffer that will be handled to the display-plugin
+        // Final framebuffer that will be handed to the display-plugin
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
-    {
-        if (isStereo) {
-            renderArgs._context->enableStereo(true);
-            renderArgs._context->setStereoProjections(stereoEyeProjections);
-            renderArgs._context->setStereoViews(stereoEyeOffsets);
+    if (!_programsCompiled.load()) {
+        gpu::doInBatch("splashFrame", _gpuContext, [&](gpu::Batch& batch) {
+            batch.setFramebuffer(finalFramebuffer);
+            batch.enableSkybox(true);
+            batch.enableStereo(isStereo);
+            batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
+            _splashScreen->render(batch, viewFrustum);
+        });
+    } else {
+        {
+            PROFILE_RANGE(render, "/renderOverlay");
+            PerformanceTimer perfTimer("renderOverlay");
+            // NOTE: There is no batch associated with this renderArgs
+            // the ApplicationOverlay class assumes it's viewport is setup to be the device size
+            renderArgs._viewport = glm::ivec4(0, 0, qApp->getDeviceSize());
+            qApp->getApplicationOverlay().renderOverlay(&renderArgs);
         }
 
-        renderArgs._hudOperator = displayPlugin->getHUDOperator();
-        renderArgs._hudTexture = qApp->getApplicationOverlay().getOverlayTexture();
-        renderArgs._blitFramebuffer = finalFramebuffer;
-        render_runRenderFrame(&renderArgs);
+        {
+            PROFILE_RANGE(render, "/updateCompositor");
+            qApp->getApplicationCompositor().setFrameInfo(_renderFrameCount, eyeToWorld, sensorToWorld);
+        }
+
+        {
+            PROFILE_RANGE(render, "/runRenderFrame");
+            renderArgs._hudOperator = displayPlugin->getHUDOperator();
+            renderArgs._hudTexture = qApp->getApplicationOverlay().getOverlayTexture();
+            renderArgs._blitFramebuffer = finalFramebuffer;
+            render_runRenderFrame(&renderArgs);
+        }
     }
 
     auto frame = getGPUContext()->endFrame();
@@ -283,17 +295,18 @@ void GraphicsEngine::render_performFrame() {
     renderArgs._blitFramebuffer.reset();
     renderArgs._context->enableStereo(false);
 
+#if !defined(DISABLE_QML)
     {
         auto stats = Stats::getInstance();
         if (stats) {
             stats->setRenderDetails(renderArgs._details);
         }
     }
+#endif
 
     uint64_t lastPaintDuration = usecTimestampNow() - lastPaintBegin;
     _frameTimingsScriptingInterface.addValue(lastPaintDuration);
 }
-
 
 void GraphicsEngine::editRenderArgs(RenderArgsEditor editor) {
     QMutexLocker renderLocker(&_renderArgsMutex);

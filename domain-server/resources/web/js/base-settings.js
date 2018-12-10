@@ -364,7 +364,7 @@ function validateInputs() {
       if (keyVal.length === 0) {
         empty = true
 
-        markParentRowInvalid(input);
+        markParentRowInvalid(input)
         return;
       }
 
@@ -373,11 +373,13 @@ function validateInputs() {
       _.each(otherKeys, function(otherKeyCell) {
         var keyInput = $(otherKeyCell).children('input');
 
+        var lowerNewValue  = keyVal.toLowerCase();
+
         if (keyInput.length) {
-          if ($(keyInput).val() == keyVal) {
+          if ($(keyInput).val().toLowerCase() == lowerNewValue) {
             duplicateKey = true;
           }
-        } else if ($(otherKeyCell).html() == keyVal) {
+        } else if ($(otherKeyCell).html().toLowerCase() == lowerNewValue) {
             duplicateKey = true;
         }
 
