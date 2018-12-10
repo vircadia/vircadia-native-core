@@ -70,17 +70,22 @@ Item {
         loggingInText.wrapMode = Text.NoWrap;
 
         if (loggingInBody.linkSteam) {
-            loggingInText.centerIn = loggingInHeader;
             loggingInText.text = "Linking to Steam";
+            loggingInText.left = loggingInHeader.left;
+            loggingInText.leftMargin = (loggingInHeader.width - loggingInTextMetrics.width) / 2;
             loginDialog.linkSteam();
         } else if (loggingInBody.withSteam) {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Steam";
+            loggingInText.left = loggingInHeader.left;
+            loggingInText.leftMargin = 0;
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
         } else if (loggingInBody.withOculus) {
             loggingInGlyph.text = hifi.glyphs.oculus;
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Oculus";
+            loggingInText.left = loggingInHeader.left;
+            loggingInText.leftMargin = 0;
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
         } else {
             loggingInText.centerIn = loggingInHeader;
