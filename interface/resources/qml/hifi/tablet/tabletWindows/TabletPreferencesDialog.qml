@@ -138,6 +138,15 @@ Item {
                         }
                     }
 
+                    var useKeyboardPreference = findPreference("User Interface", "Use Virtual Keyboard");
+                    var keyboardInputPreference = findPreference("User Interface", "Keyboard laser / mallets");
+                    if (useKeyboardPreference && keyboardInputPreference) {
+                        keyboardInputPreference.visible = useKeyboardPreference.value;
+                        useKeyboardPreference.valueChanged.connect(function() {
+                            keyboardInputPreference.visible = useKeyboardPreference.value;
+                        });
+                    }
+
                     if (sections.length) {
                         // Default sections to expanded/collapsed as appropriate for dialog.
                         if (sections.length === 1) {
