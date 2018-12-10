@@ -147,11 +147,6 @@ public:
     void build(JobModel& task, const render::Varying& input, render::Varying& output, bool renderShadows);
 
 private:
-    static const render::Varying addSelectItemJobs(JobModel& task,
-                                                   const char* selectionName,
-                                                   const render::Varying& metas,
-                                                   const render::Varying& opaques,
-                                                   const render::Varying& transparents);
 };
 
 #endif  // hifi_RenderDeferredTask_h

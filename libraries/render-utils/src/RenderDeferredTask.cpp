@@ -84,7 +84,7 @@ public:
 class RenderDeferredTaskDebug {
 public:
     using Input = render::VaryingSet9<RenderFetchCullSortTask::Output, RenderShadowTask::Output,
-        ZoneRendererTask::Output, SelectItems::Outputs, FetchCurrentFrames::Output,
+        AssembleLightingStageTask::Output, LightClusteringPass::Output, LinearDepthFramebufferPointer,
         PrepareDeferred::Outputs, GenerateDeferredFrameTransform::Output, JitterSample::Output, LightingModel>;
    // using Config = RenderDeferredTaskConfig;
     using JobModel = render::Task::ModelI<RenderDeferredTaskDebug, Input>;
@@ -110,18 +110,6 @@ void RenderDeferredTask::configure(const Config& config) {
     assert(upsamplePrimaryBufferConfig);
     preparePrimaryBufferConfig->setProperty("resolutionScale", config.resolutionScale);
     upsamplePrimaryBufferConfig->setProperty("factor", 1.0f / config.resolutionScale);
-}
-
-const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, const char* selectionName,
-                                                            const render::Varying& metas,
-                                                            const render::Varying& opaques,
-                                                            const render::Varying& transparents) {
-    const auto selectMetaInput = SelectItems::Inputs(metas, Varying(), std::string()).asVarying();
-    const auto selectedMetas = task.addJob<SelectItems>("MetaSelection", selectMetaInput, selectionName);
-    const auto selectMetaAndOpaqueInput = SelectItems::Inputs(opaques, selectedMetas, std::string()).asVarying();
-    const auto selectedMetasAndOpaques = task.addJob<SelectItems>("OpaqueSelection", selectMetaAndOpaqueInput, selectionName);
-    const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques, std::string()).asVarying();
-    return task.addJob<SelectItems>("TransparentSelection", selectItemInput, selectionName);
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output, bool renderShadows) {
@@ -220,7 +208,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Light Clustering
     // Create the cluster grid of lights, cpu job for now
-    const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, lightFrame, linearDepthTarget).asVarying();
+    const auto lightClusteringPassInputs = LightClusteringPass::Input(deferredFrameTransform, lightingModel, lightFrame, linearDepthTarget).asVarying();
     const auto lightClusters = task.addJob<LightClusteringPass>("LightClustering", lightClusteringPassInputs);
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
@@ -239,16 +227,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, hazeFrame, lightFrame, lightingModel, lightClusters, jitter).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
-    // Light Cluster Grid Debuging job
-    {
-        const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget, lightClusters).asVarying();
-        task.addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
-    }
-
     const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginHighlightRangeTimer", "Highlight");
-    // Select items that need to be outlined
-    const auto selectionBaseName = "contextOverlayHighlightList";
-    const auto selectedItems = addSelectItemJobs(task, selectionBaseName, metas, opaques, transparents);
 
     const auto outlineInputs = DrawHighlightTask::Inputs(items, deferredFramebuffer, lightingFramebuffer, deferredFrameTransform, jitter).asVarying();
     task.addJob<DrawHighlightTask>("DrawHighlight", outlineInputs);
@@ -277,7 +256,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Debugging task is happening in the "over" layer after tone mapping and just before HUD
     { // Debug the bounds of the rendered items, still look at the zbuffer
-        const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, inputs[2], zones, selectedItems, currentStageFrames, prepareDeferredOutputs, deferredFrameTransform, jitter, lightingModel).asVarying();
+        const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, inputs[2], lightingStageInputs, lightClusters, linearDepthTarget, prepareDeferredOutputs, deferredFrameTransform, jitter, lightingModel).asVarying();
         task.addJob<RenderDeferredTaskDebug>("DebugRenderDeferredTask", debugInputs);
     }
 
@@ -308,9 +287,6 @@ void RenderDeferredTaskDebug::configure(const Config& config) {
 }*/
 
 void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input, render::Varying& outputs) {
-//    RenderFetchCullSortTask::Output, RenderShadowTask::Output,
-//        ZoneRendererTask::Outputs, SelectItems::Outputs, FetchCurrentFrames::Outputs,
-//        PrepareDeferred::Outputs, GenerateDeferredFrameTransform::Output, JitterSample::Output
 
     const auto& inputs = input.get<Input>();
 
@@ -334,18 +310,23 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
     // RenderShadowTask out
     const auto& renderShadowTaskOut = inputs[1];
 
-    // Zones
-    const auto& zones = inputs[2];
+    // Extract the Lighting Stages Current frame ( and zones)
+    const auto lightingStageInputs = inputs.get2();
+        // Fetch the current frame stacks from all the stages
+        const auto stageCurrentFrames = lightingStageInputs.get0();
+        const auto lightFrame = stageCurrentFrames[0];
+        const auto backgroundFrame = stageCurrentFrames[1];
+        const auto hazeFrame = stageCurrentFrames[2];
+        const auto bloomFrame = stageCurrentFrames[3];
 
-    // Selected objects
-    const auto& selectedItems = inputs[3];
+        // Zones
+        const auto& zones = lightingStageInputs[1];
 
-    // Stage current frames
-    const auto& stageCurrentFrames = inputs.get4();//[4];
-    const auto lightFrame = stageCurrentFrames[0];
-    const auto backgroundFrame = stageCurrentFrames[1];
-    const auto hazeFrame = stageCurrentFrames[2];
-    const auto bloomFrame = stageCurrentFrames[3];
+    // Light CLuster
+    const auto& lightClusters = inputs[3];
+
+    // linear Depth Target
+    const auto& linearDepthTarget = inputs[4];
 
     // PrepareDeferred out
     const auto& deferredFramebuffer = inputs[5];
@@ -358,6 +339,14 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
 
     // Lighting Model out
     const auto& lightingModel = inputs[8];
+
+
+
+    // Light Cluster Grid Debuging job
+    {
+        const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, lightingModel, linearDepthTarget, lightClusters).asVarying();
+        task.addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
+    }
 
 
     { // Debug the bounds of the rendered items, still look at the zbuffer
@@ -383,6 +372,19 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
                 task.addJob<DrawAABox>(jobName, shadowBBox, glm::vec3(1.0f, tint, 0.0f));
             }
         }
+    }
+
+    { // Debug Selection... 
+      // TODO: It s busted
+        // Select items that need to be outlined and show them
+        const auto selectionBaseName = "contextOverlayHighlightList";
+
+        const auto selectMetaInput = SelectItems::Inputs(metas, Varying(), std::string()).asVarying();
+        const auto selectedMetas = task.addJob<SelectItems>("MetaSelection", selectMetaInput, selectionBaseName);
+        const auto selectMetaAndOpaqueInput = SelectItems::Inputs(opaques, selectedMetas, std::string()).asVarying();
+        const auto selectedMetasAndOpaques = task.addJob<SelectItems>("OpaqueSelection", selectMetaAndOpaqueInput, selectionBaseName);
+        const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques, std::string()).asVarying();
+        const auto selectedItems = task.addJob<SelectItems>("TransparentSelection", selectItemInput, selectionBaseName);
 
         // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
         task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
