@@ -11,8 +11,8 @@
 
 #include "ModelFormatRegistry.h"
 
-std::unique_ptr<hfm::FormatSerializerRegister> ModelFormatRegistry::addFormat(const hfm::Serializer& serializer) {
-    return std::make_unique<hfm::DoFormatSerializerRegister>(serializer.getMediaType(), serializer.getFactory());
+void ModelFormatRegistry::addFormat(const hfm::Serializer& serializer) {
+    _hfmFormatRegistry.registerMediaType(serializer.getMediaType(), std::move(serializer.getFactory()));
 }
 
 std::shared_ptr<hfm::Serializer> ModelFormatRegistry::getSerializerForMediaType(const hifi::ByteArray& data, const hifi::URL& url, const std::string& webMediaType) const {
