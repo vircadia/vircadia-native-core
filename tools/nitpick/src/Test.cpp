@@ -215,17 +215,17 @@ void Test::appendTestResultsToFile(TestResult testResult, QPixmap comparisonImag
 }
 
 void::Test::appendTestResultsToFile(QString testResultFilename, bool hasFailed) {
-    QString resultFolderPath;
+    QString resultFolderPath { _testResultsFolderPath };
     if (hasFailed) {
-        resultFolderPath = _testResultsFolderPath + "/Failure_";
+        resultFolderPath += "/Failure_";
         ++_failureIndex;
     } else {
-        resultFolderPath = _testResultsFolderPath + "/Success_";
+        resultFolderPath += "/Success_";
         ++_successIndex;
     }
 
     if (!QFile::copy(testResultFilename, resultFolderPath)) {
-////        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + testResultFilename + " to " + resultFolderPath);
         exit(-1);
     }
 }
