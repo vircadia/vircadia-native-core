@@ -340,7 +340,6 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    QScriptEngine scriptEngine;
     entityTree->withWriteLock([&] {
         AvatarEntityMap avatarEntities = getAvatarEntityData();
         AvatarEntityMap::const_iterator dataItr = avatarEntities.begin();
