@@ -578,7 +578,7 @@ function notificationDataProcessPageHistory(data) {
 
 var shouldShowDotUpdates = false;
 function notificationPollCallbackUpdates(updatesArray) {
-    shouldShowDotUpdates = shouldShowDotUpdates || updatesArray.length > 0;
+    shouldShowDotUpdates = updatesArray.length > 0;
     ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
 
     if (updatesArray.length > 0) {
