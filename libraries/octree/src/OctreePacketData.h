@@ -220,8 +220,6 @@ public:
     /// get pointer to the uncompressed stream buffer at the byteOffset
     const unsigned char* getUncompressedData(int byteOffset = 0) { return &_uncompressed[byteOffset]; }
 
-    const QByteArray& getUncompressedByteArray() { return _uncompressedByteArray; }
-
     /// the size of the packet in uncompressed form
     int getUncompressedSize() { return _bytesInUse; }
 
