@@ -563,7 +563,7 @@ void Avatar::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& g
         foreach (auto grabID, _avatarGrabs.keys()) {
             const GrabPointer& grab = _avatarGrabs.value(grabID);
 
-            if (!grab->getActionID().isNull()) {
+            if (!grab || !grab->getActionID().isNull()) {
                 continue; // the accumulated value isn't used, in this case.
             }
 
