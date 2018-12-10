@@ -6784,7 +6784,7 @@ void Application::clearDomainOctreeDetails() {
     DependencyManager::get<recording::ClipCache>()->clearUnusedResources();
 
     // we just deleted all of MyAvatar's AvatarEntities so we flag it to reload from settings
-    getMyAvatar()->rememberToReloadOfAvatarEntityDataFromSettings();
+    getMyAvatar()->rememberToReloadAvatarEntityDataFromSettings();
 }
 
 void Application::domainURLChanged(QUrl domainURL) {
