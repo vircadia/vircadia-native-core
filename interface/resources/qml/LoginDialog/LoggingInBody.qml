@@ -101,11 +101,17 @@ Item {
             // reset the flag.
             loggingInGlyph.visible = false;
             loggingInText.text = "You are now logged into Steam!";
+            loggingInText.left = loggingInHeader.left;
+            loggingInText.leftMargin = (loggingInHeader.width - loggingInTextMetrics.width) / 2;
+            loggingInText.x = 0;
             loggedInGlyph.visible = true;
         } else if (loggingInBody.withOculus) {
             // reset the flag.
             loggingInGlyph.visible = false;
             loggingInText.text = "You are now logged into Oculus!";
+            loggingInText.left = loggingInHeader.left;
+            loggingInText.leftMargin = (loggingInHeader.width - loggingInTextMetrics.width) / 2;
+            loggingInText.x = 0;
             loggedInGlyph.text = hifi.glyphs.oculus;
             loggedInGlyph.visible = true;
         } else {
