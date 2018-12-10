@@ -1261,7 +1261,7 @@ void MyAvatar::resizeAvatarEntitySettingHandles(uint32_t maxIndex) {
     // Avatar/avatarEntityData/5/properties: ...
     //
     // Create Setting::Handles to mimic this.
-    uint32_t settingsIndex = _avatarEntityIDSettings.size() + 1;
+    uint32_t settingsIndex = (uint32_t)_avatarEntityIDSettings.size() + 1;
     while (settingsIndex <= maxIndex) {
         Setting::Handle<QString> idHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
                                         << QString::number(settingsIndex) << "id", QUuid().toString());
@@ -1335,7 +1335,7 @@ void MyAvatar::saveAvatarEntityDataToSettings() {
         _entitiesToRemoveFromSettings.clear();
     });
 
-    uint32_t numEntities = entitiesToSave.size() + _avatarEntityStrings.size();
+    uint32_t numEntities = (uint32_t)(entitiesToSave.size() + _avatarEntityStrings.size());
     uint32_t prevNumEntities = _avatarEntityCountSetting.get(0);
     resizeAvatarEntitySettingHandles(std::max<uint32_t>(numEntities, prevNumEntities));
 
