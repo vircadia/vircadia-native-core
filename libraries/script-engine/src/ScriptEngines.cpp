@@ -31,6 +31,8 @@ static const QUrl DEFAULT_SCRIPTS_LOCATION { "file:///~//defaultScripts.js" };
 // Using a QVariantList so this is human-readable in the settings file
 static Setting::Handle<QVariantList> runningScriptsHandle(SETTINGS_KEY, { QVariant(DEFAULT_SCRIPTS_LOCATION) });
 
+const int RELOAD_ALL_SCRIPTS_TIMEOUT = 1000;
+
 
 ScriptsModel& getScriptsModel() {
     static ScriptsModel scriptsModel;
@@ -386,15 +388,10 @@ void ScriptEngines::stopAllScripts(bool restart) {
         // queue user scripts if restarting
         if (restart && scriptEngine->isUserLoaded()) {
             _isReloading = true;
-            bool lastScript = (it == _scriptEnginesHash.constEnd() - 1);
             ScriptEngine::Type type = scriptEngine->getType();
 
-            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type, lastScript] (QString scriptName) {
+            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type] (QString scriptName) {
                 reloadScript(scriptName, true)->setType(type);
-
-                if (lastScript) {
-                    _isReloading = false;
-                }
             });
         }
 
@@ -404,6 +401,9 @@ void ScriptEngines::stopAllScripts(bool restart) {
 
     if (restart) {
         qCDebug(scriptengine) << "stopAllScripts -- emitting scriptsReloading";
+        QTimer::singleShot(RELOAD_ALL_SCRIPTS_TIMEOUT, this, [&] {
+            _isReloading = false;
+        });
         emit scriptsReloading();
     }
 }

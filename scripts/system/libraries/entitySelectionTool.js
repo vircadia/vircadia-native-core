@@ -639,6 +639,8 @@ SelectionDisplay = (function() {
         ROLL: 2
     };
 
+    const INEDIT_STATUS_CHANNEL = "Hifi-InEdit-Status";
+
     /**
      * The current space mode, this could have been a forced space mode since we do not support multi selection while in
      * local space mode.
@@ -985,6 +987,7 @@ SelectionDisplay = (function() {
     that.triggerPressMapping = Controller.newMapping(Script.resolvePath('') + '-press');
     that.triggeredHand = NO_HAND;
     that.pressedHand = NO_HAND;
+    that.editingHand = NO_HAND;
     that.triggered = function() {
         return that.triggeredHand !== NO_HAND;
     };
@@ -1117,6 +1120,12 @@ SelectionDisplay = (function() {
                 activeTool = hitTool;
                 that.clearDebugPickPlane();
                 if (activeTool.onBegin) {
+                    that.editingHand = that.triggeredHand;
+                    Messages.sendLocalMessage(INEDIT_STATUS_CHANNEL, JSON.stringify({
+                        method: "editing",
+                        hand: that.editingHand === Controller.Standard.LeftHand ? LEFT_HAND : RIGHT_HAND,
+                        editing: true
+                    }));
                     activeTool.onBegin(event, pickRay, results);
                 } else {
                     print("ERROR: entitySelectionTool.mousePressEvent - ActiveTool(" + activeTool.mode + ") missing onBegin");
@@ -1265,6 +1274,12 @@ SelectionDisplay = (function() {
                 if (wantDebug) {
                     print("    Triggering ActiveTool(" + activeTool.mode + ")'s onEnd");
                 }
+                Messages.sendLocalMessage(INEDIT_STATUS_CHANNEL, JSON.stringify({
+                    method: "editing",
+                    hand: that.editingHand === Controller.Standard.LeftHand ? LEFT_HAND : RIGHT_HAND,
+                    editing: false
+                }));
+                that.editingHand = NO_HAND;
                 activeTool.onEnd(event);
             } else if (wantDebug) {
                 print("    ActiveTool(" + activeTool.mode + ")'s missing onEnd");
