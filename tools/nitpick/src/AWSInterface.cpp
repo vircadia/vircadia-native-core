@@ -10,6 +10,8 @@
 #include "AWSInterface.h"
 
 #include <QDirIterator>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMessageBox>
 #include <QProcess>
 
@@ -101,8 +103,36 @@ void AWSInterface::writeHead(QTextStream& stream) {
 
 void AWSInterface::writeBody(QTextStream& stream) {
     stream << "\t" << "<body>\n";
-    writeTitle(stream);
-    writeTable(stream);
+
+    // The results are read here as they are used both in the title (for the summary) and for table
+    QStringList originalNamesFailures;
+    QStringList originalNamesSuccesses;
+    QDirIterator it1(_workingDirectory);
+    while (it1.hasNext()) {
+        QString nextDirectory = it1.next();
+
+        // Skip `.` and `..` directories
+        if (nextDirectory.right(1) == ".") {
+            continue;
+        }
+
+        // Only process result folders
+        if (!nextDirectory.contains("--tests.")) {
+            continue;
+        }
+
+        // Look at the filename at the end of the path
+        QStringList parts = nextDirectory.split('/');
+        QString name = parts[parts.length() - 1];
+        if (name.left(7) == "Failure") {
+            originalNamesFailures.append(nextDirectory);
+        } else {
+            originalNamesSuccesses.append(nextDirectory);
+        }
+    }
+
+    writeTitle(stream, originalNamesFailures, originalNamesSuccesses);
+    writeTable(stream, originalNamesFailures, originalNamesSuccesses);
     stream << "\t" << "</body>\n";
 }
 
@@ -110,7 +140,7 @@ void AWSInterface::finishHTMLpage(QTextStream& stream) {
     stream << "</html>\n";
 }
 
-void AWSInterface::writeTitle(QTextStream& stream) {
+void AWSInterface::writeTitle(QTextStream& stream, const QStringList& originalNamesFailures, const QStringList& originalNamesSuccesses) {
     // Separate relevant components from the results name
     // The expected format is as follows: `D:/tt/snapshots/TestResults--2018-10-04_11-09-41(PR14128)[DESKTOP-PMKNLSQ].zip`
     QStringList tokens = _testResults.split('/');
@@ -133,8 +163,8 @@ void AWSInterface::writeTitle(QTextStream& stream) {
 
     const QString months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-    stream << "\t" << "\t" << "<font color=\"red\">\n";
-    stream << "\t" << "\t" << "<h1>Failures for ";
+    stream << "\t" << "\t" << "<font color=\"Green\">\n";
+    stream << "\t" << "\t" << "<h1>Results for ";
     stream << months[month.toInt() - 1] << " " << day << ", " << year << ", ";
     stream << hour << ":" << minute << ":" << second << ", ";
 
@@ -145,9 +175,17 @@ void AWSInterface::writeTitle(QTextStream& stream) {
     }
 
     stream << "run on " << hostName << "</h1>\n";
+
+    int numberOfFailures = originalNamesFailures.length();
+    int numberOfSuccesses = originalNamesSuccesses.length();
+
+    stream << "<h2>" << QString::number(numberOfFailures) << " failed, out of a total of " << QString::number(numberOfSuccesses) << " tests</h2>\n";
+
+    stream << "\t" << "\t" << "<font color=\"red\">\n";
+    stream << "\t" << "\t" << "<h1>The following tests failed:</h1>";
 }
 
-void AWSInterface::writeTable(QTextStream& stream) {
+void AWSInterface::writeTable(QTextStream& stream, const QStringList& originalNamesFailures, const QStringList& originalNamesSuccesses) {
     QString previousTestName{ "" };
 
     // Loop over all entries in directory.  This is done in stages, as the names are not in the order of the tests
@@ -157,31 +195,6 @@ void AWSInterface::writeTable(QTextStream& stream) {
     //      The fourth and lasts stage creates the HTML entries
     //
     // Note that failures are processed first, then successes
-    QStringList originalNamesFailures;
-    QStringList originalNamesSuccesses;
-    QDirIterator it1(_workingDirectory);
-    while (it1.hasNext()) {
-        QString nextDirectory = it1.next();
-
-        // Skip `.` and `..` directories
-        if (nextDirectory.right(1) == ".") {
-            continue;
-        }
-
-        // Only process failure folders
-        if (!nextDirectory.contains("--tests.")) {
-            continue;
-        }
-
-        // Look at the filename at the end of the path
-        QStringList parts = nextDirectory.split('/');
-        QString name = parts[parts.length() - 1];
-        if (name.left(7) == "Failure") {
-            originalNamesFailures.append(nextDirectory);
-        } else {
-            originalNamesSuccesses.append(nextDirectory);
-        }
-    }
 
     QStringList newNamesFailures;
     for (int i = 0; i < originalNamesFailures.length(); ++i) {
@@ -209,9 +222,9 @@ void AWSInterface::writeTable(QTextStream& stream) {
 
     // Mac does not read folders in lexicographic order, so this step is divided into 2
     // Each test consists of the test name and its index.
-    QDirIterator it2(_htmlFailuresFolder);
     QStringList folderNames;
 
+    QDirIterator it2(_htmlFailuresFolder);
     while (it2.hasNext()) {
         QString nextDirectory = it2.next();
 
@@ -242,8 +255,7 @@ void AWSInterface::writeTable(QTextStream& stream) {
             previousTestName = testName;
 
             stream << "\t\t<h2>" << testName << "</h2>\n";
-
-            openTable(stream);
+            openTable(stream, folderName, true);
         }
 
         createEntry(testNumber, folderName, stream, true);
@@ -252,6 +264,9 @@ void AWSInterface::writeTable(QTextStream& stream) {
     closeTable(stream);
     stream << "\t" << "\t" << "<font color=\"blue\">\n";
     stream << "\t" << "\t" << "<h1>The following tests passed:</h1>";
+
+    // Now do the same for passes
+    folderNames.clear();
 
     QDirIterator it3(_htmlSuccessesFolder);
     while (it3.hasNext()) {
@@ -263,10 +278,17 @@ void AWSInterface::writeTable(QTextStream& stream) {
         }
 
         QStringList pathComponents = nextDirectory.split('/');
-        QString filename = pathComponents[pathComponents.length() - 1];
-        int splitIndex = filename.lastIndexOf(".");
-        QString testName = filename.left(splitIndex).replace(".", " / ");
-        QString testNumber = filename.right(filename.length() - (splitIndex + 1));
+        QString folderName = pathComponents[pathComponents.length() - 1];
+
+        folderNames << folderName;
+    }
+
+    folderNames.sort();
+    for (const auto& folderName : folderNames) {
+        int splitIndex = folderName.lastIndexOf(".");
+        QString testName = folderName.left(splitIndex).replace('.', " / ");
+
+        int testNumber = folderName.right(folderName.length() - (splitIndex + 1)).toInt();
 
         // The failures are ordered lexicographically, so we know that we can rely on the testName changing to create a new table
         if (testName != previousTestName) {
@@ -277,38 +299,66 @@ void AWSInterface::writeTable(QTextStream& stream) {
             previousTestName = testName;
 
             stream << "\t\t<h2>" << testName << "</h2>\n";
-
-            openTable(stream);
+            openTable(stream, folderName, false);
         }
 
-        createEntry(testNumber.toInt(), filename, stream, false);
+        createEntry(testNumber, folderName, stream, false);
     }
 
     closeTable(stream);
 }
 
-void AWSInterface::openTable(QTextStream& stream) {
-    stream << "\t\t<table>\n";
-    stream << "\t\t\t<tr>\n";
-    stream << "\t\t\t\t<th><h1>Test</h1></th>\n";
-    stream << "\t\t\t\t<th><h1>Actual Image</h1></th>\n";
-    stream << "\t\t\t\t<th><h1>Expected Image</h1></th>\n";
-    stream << "\t\t\t\t<th><h1>Difference Image</h1></th>\n";
-    stream << "\t\t\t</tr>\n";
+void AWSInterface::openTable(QTextStream& stream, const QString& testResult, const bool isFailure) {
+    QStringList resultNameComponents = testResult.split('/');
+    QString resultName = resultNameComponents[resultNameComponents.length() - 1];
+
+    bool textResultsFileFound;
+    if (isFailure) {
+        textResultsFileFound = QFile::exists(_htmlFailuresFolder + "/" + resultName + "/Result.txt");
+    } else {
+        textResultsFileFound = QFile::exists(_htmlSuccessesFolder + "/" + resultName + "/Result.txt");
+    }
+
+    if (textResultsFileFound) {
+        if (isFailure) {
+            stream << "\t\t<table>\n";
+            stream << "\t\t\t<tr>\n";
+            stream << "\t\t\t\t<th><h1>Element</h1></th>\n";
+            stream << "\t\t\t\t<th><h1>Actual Value</h1></th>\n";
+            stream << "\t\t\t\t<th><h1>Expected Value</h1></th>\n";
+            stream << "\t\t\t</tr>\n";
+        } else {
+            stream << "\t\t<h3>No errors found</h3>\n\n";
+            stream << "\t\t<h3>===============</h3>\n\n";
+        }
+    } else {
+        stream << "\t\t<table>\n";
+        stream << "\t\t\t<tr>\n";
+        stream << "\t\t\t\t<th><h1>Test</h1></th>\n";
+        stream << "\t\t\t\t<th><h1>Actual Image</h1></th>\n";
+        stream << "\t\t\t\t<th><h1>Expected Image</h1></th>\n";
+        stream << "\t\t\t\t<th><h1>Difference Image</h1></th>\n";
+        stream << "\t\t\t</tr>\n";
+    }
 }
 
 void AWSInterface::closeTable(QTextStream& stream) {
     stream << "\t\t</table>\n";
 }
 
-void AWSInterface::createEntry(int index, const QString& testResult, QTextStream& stream, const bool isFailure) {
-    stream << "\t\t\t<tr>\n";
-    stream << "\t\t\t\t<td><h1>" << QString::number(index) << "</h1></td>\n";
-
+void AWSInterface::createEntry(const int index, const QString& testResult, QTextStream& stream, const bool isFailure) {
     // For a test named `D:/t/fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf/Failure_1--tests.engine.interaction.pick.collision.many.00000`
     // we need `Failure_1--tests.engine.interaction.pick.collision.many.00000`
     QStringList resultNameComponents = testResult.split('/');
     QString resultName = resultNameComponents[resultNameComponents.length() - 1];
+
+    QString textResultFilename;
+    if (isFailure) {
+        textResultFilename = _htmlFailuresFolder + "/" + resultName + "/Result.txt";
+    } else {
+        textResultFilename = _htmlSuccessesFolder + "/" + resultName + "/Result.txt";
+    }
+    bool textResultsFileFound{ QFile::exists(textResultFilename) };
 
     QString folder;
     bool differenceFileFound;
@@ -320,17 +370,78 @@ void AWSInterface::createEntry(int index, const QString& testResult, QTextStream
         differenceFileFound = QFile::exists(_htmlSuccessesFolder + "/" + resultName + "/Difference Image.png");
     }
 
+    if (textResultsFileFound) {
+        // Parse the JSON file
+        QFile file;
+        file.setFileName(textResultFilename);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                "Failed to open file " + textResultFilename);
+        }
 
-    stream << "\t\t\t\t<td><img src=\"./" << folder << "/" << resultName << "/Actual Image.png\" width = \"576\" height = \"324\" ></td>\n";
-    stream << "\t\t\t\t<td><img src=\"./" << folder << "/" << resultName << "/Expected Image.png\" width = \"576\" height = \"324\" ></td>\n";
+        QString value = file.readAll();
+        file.close();
 
-    if (differenceFileFound) {
-        stream << "\t\t\t\t<td><img src=\"./" << folder << "/" << resultName << "/Difference Image.png\" width = \"576\" height = \"324\" ></td>\n";
+        // The Result.txt file is an object containing elements such as the following:
+        //    "angularDamping": {
+        //        "actual": 0.3938899040222168,
+        //        "expected" : 0.3938899,
+        //        "result" : "pass"
+        //    },
+        //
+        // Failures are thos element that have "fail for the result
+
+        QJsonDocument document = QJsonDocument::fromJson(value.toUtf8());
+        QJsonObject json = document.object();
+        foreach(const QString& key, json.keys()) {
+            QJsonValue value = json.value(key);
+            QJsonObject object = value.toObject();
+
+            QJsonValue actualValue = object.value("actual");
+            QString actualValueString;
+            if (actualValue.isString()) {
+                actualValueString = actualValue.toString();
+            } else if (actualValue.isBool()) {
+                actualValueString = actualValue.toBool() ? "true" : "false";
+            } else if (actualValue.isDouble()) {
+                actualValueString = QString::number(actualValue.toDouble());
+            }
+
+            QJsonValue expectedValue = object.value("expected");
+            QString expectedValueString;
+            if (expectedValue.isString()) {
+                expectedValueString = expectedValue.toString();
+            } else if (expectedValue.isBool()) {
+                expectedValueString = expectedValue.toBool() ? "true" : "false";
+            } else if (expectedValue.isDouble()) {
+                expectedValueString = QString::number(expectedValue.toDouble());
+            }
+            QString result = object.value("result").toString();
+           
+            if (result == "fail") {
+                stream << "\t\t\t<tr>\n";
+                stream << "\t\t\t\t<td><font size=\"6\">" + key + "</td>\n";
+                stream << "\t\t\t\t<td><font size=\"6\">" + actualValueString + "</td>\n";
+                stream << "\t\t\t\t<td><font size=\"6\">" + expectedValueString + "</td>\n";
+                stream << "\t\t\t</tr>\n";
+            }
+        }
     } else {
-        stream << "\t\t\t\t<td><h2>No Image Found</h2>\n";
+        stream << "\t\t\t<tr>\n";
+        stream << "\t\t\t\t<td><h1>" << QString::number(index) << "</h1></td>\n";
+
+        stream << "\t\t\t\t<td><img src=\"./" << folder << "/" << resultName << "/Actual Image.png\" width = \"576\" height = \"324\" ></td>\n";
+        stream << "\t\t\t\t<td><img src=\"./" << folder << "/" << resultName << "/Expected Image.png\" width = \"576\" height = \"324\" ></td>\n";
+
+        if (differenceFileFound) {
+            stream << "\t\t\t\t<td><img src=\"./" << folder << "/" << resultName << "/Difference Image.png\" width = \"576\" height = \"324\" ></td>\n";
+        } else {
+            stream << "\t\t\t\t<td><h2>No Image Found</h2>\n";
+        }
+
+        stream << "\t\t\t</tr>\n";
     }
 
-    stream << "\t\t\t</tr>\n";
 }
 
 void AWSInterface::updateAWS() {
