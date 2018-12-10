@@ -1080,11 +1080,12 @@ void EntityScriptingInterface::onDeletingEntity(EntityItem* entity) {
     }
 }
 
-QUuid EntityScriptingInterface::evalClosestEntity(const glm::vec3& center, float radius, unsigned int searchFilter) const {
+QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     EntityItemID result;
     if (_entityTree) {
+        unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
         _entityTree->withReadLock([&] {
             result = _entityTree->evalClosestEntity(center, radius, PickFilter(searchFilter));
         });
@@ -1101,11 +1102,12 @@ void EntityScriptingInterface::dumpTree() const {
     }
 }
 
-QVector<QUuid> EntityScriptingInterface::evalEntitiesInSphere(const glm::vec3& center, float radius, unsigned int searchFilter) const {
+QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     QVector<QUuid> result;
     if (_entityTree) {
+        unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
         _entityTree->withReadLock([&] {
             _entityTree->evalEntitiesInSphere(center, radius, PickFilter(searchFilter), result);
         });
@@ -1113,11 +1115,12 @@ QVector<QUuid> EntityScriptingInterface::evalEntitiesInSphere(const glm::vec3& c
     return result;
 }
 
-QVector<QUuid> EntityScriptingInterface::evalEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions, unsigned int searchFilter) const {
+QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     QVector<QUuid> result;
     if (_entityTree) {
+        unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
         _entityTree->withReadLock([&] {
             AABox box(corner, dimensions);
             _entityTree->evalEntitiesInBox(box, PickFilter(searchFilter), result);
@@ -1126,7 +1129,7 @@ QVector<QUuid> EntityScriptingInterface::evalEntitiesInBox(const glm::vec3& corn
     return result;
 }
 
-QVector<QUuid> EntityScriptingInterface::evalEntitiesInFrustum(QVariantMap frustum, unsigned int searchFilter) const {
+QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frustum) const {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     QVector<QUuid> result;
@@ -1156,6 +1159,7 @@ QVector<QUuid> EntityScriptingInterface::evalEntitiesInFrustum(QVariantMap frust
         viewFrustum.calculate();
 
         if (_entityTree) {
+            unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
             _entityTree->withReadLock([&] {
                 _entityTree->evalEntitiesInFrustum(viewFrustum, PickFilter(searchFilter), result);
             });
@@ -1165,11 +1169,12 @@ QVector<QUuid> EntityScriptingInterface::evalEntitiesInFrustum(QVariantMap frust
     return result;
 }
 
-QVector<QUuid> EntityScriptingInterface::evalEntitiesInSphereWithType(const QString entityType, const glm::vec3& center, float radius, unsigned int searchFilter) const {
+QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const {
     EntityTypes::EntityType type = EntityTypes::getEntityTypeFromName(entityType);
 
     QVector<QUuid> result;
     if (_entityTree) {
+        unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
         _entityTree->withReadLock([&] {
             _entityTree->evalEntitiesInSphereWithType(center, radius, type, PickFilter(searchFilter), result);
         });
@@ -1177,21 +1182,36 @@ QVector<QUuid> EntityScriptingInterface::evalEntitiesInSphereWithType(const QStr
     return result;
 }
 
-QVector<QUuid> EntityScriptingInterface::evalEntitiesInSphereWithName(const QString entityName, const glm::vec3& center, float radius, bool caseSensitiveSearch, unsigned int searchFilter) const {
+QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, bool caseSensitiveSearch) const {
     QVector<QUuid> result;
     if (_entityTree) {
         _entityTree->withReadLock([&] {
+            unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
             _entityTree->evalEntitiesInSphereWithName(center, radius, entityName, caseSensitiveSearch, PickFilter(searchFilter), result);
         });
     }
     return result;
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::evalRayIntersection(const PickRay& ray, unsigned int searchFilter, 
-                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking,
+        const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) const {
     PROFILE_RANGE(script_entities, __FUNCTION__);
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
+
+    unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
+
+    if (!precisionPicking) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::COARSE);
+    }
+
+    if (visibleOnly) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::VISIBLE);
+    }
+
+    if (collidableOnly) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE);
+    }
 
     return evalRayIntersectionWorker(ray, Octree::Lock, PickFilter(searchFilter), entitiesToInclude, entitiesToDiscard);
 }
@@ -1205,7 +1225,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::evalRayIntersectionVecto
 
 RayToEntityIntersectionResult EntityScriptingInterface::evalRayIntersectionWorker(const PickRay& ray,
         Octree::lockType lockType, PickFilter searchFilter, const QVector<EntityItemID>& entityIdsToInclude,
-        const QVector<EntityItemID>& entityIdsToDiscard) {
+        const QVector<EntityItemID>& entityIdsToDiscard) const {
 
     RayToEntityIntersectionResult result;
     if (_entityTree) {
@@ -1231,7 +1251,7 @@ ParabolaToEntityIntersectionResult EntityScriptingInterface::evalParabolaInterse
 
 ParabolaToEntityIntersectionResult EntityScriptingInterface::evalParabolaIntersectionWorker(const PickParabola& parabola,
     Octree::lockType lockType, PickFilter searchFilter, const QVector<EntityItemID>& entityIdsToInclude,
-    const QVector<EntityItemID>& entityIdsToDiscard) {
+    const QVector<EntityItemID>& entityIdsToDiscard) const {
 
     ParabolaToEntityIntersectionResult result;
     if (_entityTree) {
