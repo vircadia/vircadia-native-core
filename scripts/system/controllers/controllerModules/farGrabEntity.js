@@ -47,6 +47,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     function FarGrabEntity(hand) {
         this.hand = hand;
+        this.grabbing = false;
         this.targetEntityID = null;
         this.targetObject = null;
         this.previouslyUnhooked = {};
@@ -335,8 +336,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
-                this.notPointingAtEntity(controllerData) || this.targetIsNull()) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
                 this.endFarGrabEntity(controllerData);
                 return makeRunningValues(false, [], []);
             }
@@ -346,10 +346,12 @@ Script.include("/~/system/libraries/controllers.js");
             var nearGrabNames = [
                 this.hand === RIGHT_HAND ? "RightScaleAvatar" : "LeftScaleAvatar",
                 this.hand === RIGHT_HAND ? "RightFarTriggerEntity" : "LeftFarTriggerEntity",
-                this.hand === RIGHT_HAND ? "RightNearGrabEntity" : "LeftNearGrabEntity",
-                this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay",
-                this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight"
+                this.hand === RIGHT_HAND ? "RightNearGrabEntity" : "LeftNearGrabEntity"
             ];
+            if (!this.grabbing) {
+                nearGrabNames.push(this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
+                nearGrabNames.push(this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            }
 
             var nearGrabReadiness = [];
             for (var i = 0; i < nearGrabNames.length; i++) {
@@ -359,11 +361,10 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             if (this.targetEntityID) {
-                // if we are doing a distance grab and the object or tablet gets close enough to the controller,
+                // if we are doing a distance grab and the object gets close enough to the controller,
                 // stop the far-grab so the near-grab or equip can take over.
                 for (var k = 0; k < nearGrabReadiness.length; k++) {
-                    if (nearGrabReadiness[k].active && (nearGrabReadiness[k].targets[0] === this.targetEntityID ||
-                                                        HMD.tabletID && nearGrabReadiness[k].targets[0] === HMD.tabletID)) {
+                    if (nearGrabReadiness[k].active && (nearGrabReadiness[k].targets[0] === this.targetEntityID)) {
                         this.endFarGrabEntity(controllerData);
                         return makeRunningValues(false, [], []);
                     }
