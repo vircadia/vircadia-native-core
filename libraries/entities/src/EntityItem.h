@@ -467,6 +467,7 @@ public:
     // these are in the frame of this object
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override { return glm::vec3(0.0f); }
+    virtual int getJointParent(int index) const override { return -1; }
 
     virtual bool setLocalJointRotation(int index, const glm::quat& rotation) override { return false; }
     virtual bool setLocalJointTranslation(int index, const glm::vec3& translation) override { return false; }
@@ -489,7 +490,7 @@ public:
     void scriptHasUnloaded();
     void setScriptHasFinishedPreload(bool value);
     bool isScriptPreloadFinished();
-
+    virtual bool isWearable() const;
     bool isDomainEntity() const { return _hostType == entity::HostType::DOMAIN; }
     bool isAvatarEntity() const { return _hostType == entity::HostType::AVATAR; }
     bool isLocalEntity() const { return _hostType == entity::HostType::LOCAL; }

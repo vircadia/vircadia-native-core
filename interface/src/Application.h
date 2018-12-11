@@ -72,7 +72,6 @@
 #include "workload/GameWorkload.h"
 #include "graphics/GraphicsEngine.h"
 
-#include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
 
@@ -761,5 +760,6 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
 };
 #endif // hifi_Application_h

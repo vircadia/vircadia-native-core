@@ -100,6 +100,7 @@
 #include <MainWindow.h>
 #include <MappingRequest.h>
 #include <MessagesClient.h>
+#include <hfm/ModelFormatRegistry.h>
 #include <model-networking/ModelCacheScriptingInterface.h>
 #include <model-networking/TextureCacheScriptingInterface.h>
 #include <ModelEntityItem.h>
@@ -150,7 +151,6 @@
 #include <trackers/EyeTracker.h>
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
-#include <procedural/ProceduralSkybox.h>
 #include <model-networking/MaterialCache.h>
 #include "recording/ClipCache.h"
 
@@ -831,6 +831,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     DependencyManager::set<recording::ClipCache>();
     DependencyManager::set<GeometryCache>();
+    DependencyManager::set<ModelFormatRegistry>(); // ModelFormatRegistry must be defined before ModelCache. See the ModelCache constructor.
     DependencyManager::set<ModelCache>();
     DependencyManager::set<ModelCacheScriptingInterface>();
     DependencyManager::set<ScriptCache>();
@@ -2695,6 +2696,7 @@ Application::~Application() {
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<ModelCacheScriptingInterface>();
     DependencyManager::destroy<ModelCache>();
+    DependencyManager::destroy<ModelFormatRegistry>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCacheScriptingInterface>();
     DependencyManager::destroy<SoundCache>();
@@ -2823,8 +2825,6 @@ void Application::initializeGL() {
     _graphicsEngine.initializeGPU(_glWidget);
 }
 
-static const QString SPLASH_SKYBOX{ "{\"ProceduralEntity\":{ \"version\":2, \"shaderUrl\":\"qrc:///shaders/splashSkybox.frag\" } }" };
-
 void Application::initializeDisplayPlugins() {
     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
     Setting::Handle<QString> activeDisplayPluginSetting{ ACTIVE_DISPLAY_PLUGIN_SETTING_NAME, displayPlugins.at(0)->getName() };
@@ -2860,45 +2860,6 @@ void Application::initializeDisplayPlugins() {
 
     // Submit a default frame to render until the engine starts up
     updateRenderArgs(0.0f);
-
-#define ENABLE_SPLASH_FRAME 0
-#if ENABLE_SPLASH_FRAME
-    {
-        QMutexLocker viewLocker(&_renderArgsMutex);
-
-        if (_appRenderArgs._isStereo) {
-            _gpuContext->enableStereo(true);
-            _gpuContext->setStereoProjections(_appRenderArgs._eyeProjections);
-            _gpuContext->setStereoViews(_appRenderArgs._eyeOffsets);
-        }
-
-        // Frame resources
-        auto framebufferCache = DependencyManager::get<FramebufferCache>();
-        gpu::FramebufferPointer finalFramebuffer = framebufferCache->getFramebuffer();
-        std::shared_ptr<ProceduralSkybox> procedural = std::make_shared<ProceduralSkybox>();
-        procedural->parse(SPLASH_SKYBOX);
-
-        _gpuContext->beginFrame(_appRenderArgs._view, _appRenderArgs._headPose);
-        gpu::doInBatch("splashFrame", _gpuContext, [&](gpu::Batch& batch) {
-            batch.resetStages();
-            batch.enableStereo(false);
-            batch.setFramebuffer(finalFramebuffer);
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, { 0, 0, 0, 1 });
-            batch.enableSkybox(true);
-            batch.enableStereo(_appRenderArgs._isStereo);
-            batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
-            procedural->render(batch, _appRenderArgs._renderArgs.getViewFrustum());
-        });
-        auto frame = _gpuContext->endFrame();
-        frame->frameIndex = 0;
-        frame->framebuffer = finalFramebuffer;
-        frame->pose = _appRenderArgs._headPose;
-        frame->framebufferRecycler = [framebufferCache, procedural](const gpu::FramebufferPointer& framebuffer) {
-            framebufferCache->releaseFramebuffer(framebuffer);
-        };
-        _displayPlugin->submitFrame(frame);
-    }
-#endif
 }
 
 void Application::initializeRenderEngine() {
