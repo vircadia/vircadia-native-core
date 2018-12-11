@@ -58,7 +58,8 @@ Script.include("/~/system/libraries/controllers.js");
         this.reticleMaxX = 0;
         this.reticleMinY = MARGIN;
         this.reticleMaxY = 0;
-        this.lastUnexpectedChildrenCheckTime = 0;
+        this.endedGrab = 0;
+        this.MIN_HAPTIC_PULSE_INTERVAL = 500; // ms
 
         var FAR_GRAB_JOINTS = [65527, 65528]; // FARGRAB_LEFTHAND_INDEX, FARGRAB_RIGHTHAND_INDEX
 
@@ -126,7 +127,12 @@ Script.include("/~/system/libraries/controllers.js");
             // compute the mass for the purpose of energy and how quickly to move object
             this.mass = this.getMass(targetProps.dimensions, targetProps.density);
 
-            Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+            // Debounce haptic pules. Can occur as near grab controller module vacillates between being ready or not due to
+            // changing positions and floating point rounding.
+            if (Date.now() - this.endedGrab > this.MIN_HAPTIC_PULSE_INTERVAL) {
+                Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+            }
+
             unhighlightTargetEntity(this.targetEntityID);
             var message = {
                 hand: this.hand,
@@ -237,7 +243,8 @@ Script.include("/~/system/libraries/controllers.js");
                 this.grabID = null;
             }
 
-            this.hapticTargetID = null;
+            this.endedGrab = Date.now();
+
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseGrab", args);
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
@@ -300,11 +307,6 @@ Script.include("/~/system/libraries/controllers.js");
             if (targetEntity) {
                 var gtProps = Entities.getEntityProperties(targetEntity, DISPATCHER_PROPERTIES);
                 if (entityIsGrabbable(gtProps)) {
-                    // give haptic feedback
-                    if (gtProps.id !== this.hapticTargetID) {
-                        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-                        this.hapticTargetID = gtProps.id;
-                    }
                     // if we've attempted to grab a child, roll up to the root of the tree
                     var groupRootProps = findGroupParent(controllerData, gtProps);
                     if (entityIsGrabbable(groupRootProps)) {
