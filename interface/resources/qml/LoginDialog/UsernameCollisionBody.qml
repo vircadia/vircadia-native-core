@@ -216,7 +216,9 @@ Item {
         }
         onHandleLoginCompleted: {
             console.log("Login Succeeded");
-            loginDialog.dismissLoginDialog();
+            if (loginDialog.getLoginDialogPoppedUp()) {
+                loginDialog.dismissLoginDialog();
+            }
             root.tryDestroy();
         }
 

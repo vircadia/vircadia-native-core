@@ -62,7 +62,9 @@ Item {
         running: false;
         repeat: false;
         onTriggered: {
-            loginDialog.dismissLoginDialog();
+            if (loginDialog.getLoginDialogPoppedUp()) {
+                loginDialog.dismissLoginDialog();
+            }
             root.tryDestroy();
         }
     }
