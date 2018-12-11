@@ -651,6 +651,31 @@ Rectangle {
                                 lightboxPopup.visible = false;
                             };
                             lightboxPopup.visible = true;
+                        } else if (msg.method === "showTrashLightbox") {
+                            lightboxPopup.titleText = "Send \"" + msg.itemName + "\" to Trash";
+                            lightboxPopup.bodyText = "Sending this item to the Trash means you will no longer own this item " +
+                                "and it will be inaccessible to you from Purchases.\n\nThis action cannot be undone.";
+                            lightboxPopup.button1text = "CANCEL";
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
+                            lightboxPopup.button2text = "CONFIRM";
+                            lightboxPopup.button2method = function() {
+                                if (msg.isInstalled) {
+                                    Commerce.uninstallApp(msg.itemHref);
+                                }
+                                Commerce.transferAssetToUsername("TrashCan", msg.certID, 1, "Sent " + msg.itemName + " to trash.");
+
+                                lightboxPopup.titleText = '"' + msg.itemName + '" Sent to Trash';
+                                lightboxPopup.button1text = "OK";
+                                lightboxPopup.button1method = function() {
+                                    lightboxPopup.visible = false;
+                                    getPurchases();
+                                }
+                                lightboxPopup.button2text = "";
+                                lightboxPopup.bodyText = "";
+                            };
+                            lightboxPopup.visible = true;
                         } else if (msg.method === "showChangeAvatarLightbox") {
                             lightboxPopup.titleText = "Change Avatar";
                             lightboxPopup.bodyText = "This will change your current avatar to " + msg.itemName + " while retaining your wearables.";
