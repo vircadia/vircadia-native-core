@@ -1,7 +1,8 @@
 set(TARGET_NAME model-baker)
 setup_hifi_library()
-include_hifi_library_headers(shared)
-include_hifi_library_headers(task)
+
+link_hifi_libraries(shared task)
+
 include_hifi_library_headers(gpu)
 include_hifi_library_headers(graphics)
 include_hifi_library_headers(hfm)
