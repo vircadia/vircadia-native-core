@@ -10,7 +10,7 @@
    disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE,
    makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS, findGroupParent, Vec3,
    cloneEntity, entityIsCloneable, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE,
-   distanceBetweenPointAndEntityBoundingBox, highlightTargetEntity, unhighlightTargetEntity, getGrabbableData,
+   distanceBetweenPointAndEntityBoundingBox, getGrabbableData,
    DISPATCHER_PROPERTIES, HMD, NEAR_GRAB_DISTANCE
 */
 
@@ -24,7 +24,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.hand = hand;
         this.targetEntityID = null;
         this.grabbing = false;
-        this.highlightedEntity = null;
         this.cloneAllowed = true;
         this.grabID = null;
 
@@ -37,14 +36,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.startNearGrabEntity = function (controllerData, targetProps) {
             var grabData = getGrabbableData(targetProps);
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-            unhighlightTargetEntity(this.targetEntityID);
-            this.highlightedEntity = null;
-            var message = {
-                hand: this.hand,
-                entityID: this.targetEntityID
-            };
 
-            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var handJointIndex;
             if (HMD.mounted && HMD.isHandControllerAvailable() && grabData.grabFollowsController) {
                 handJointIndex = getControllerJointIndex(this.hand);
@@ -87,8 +79,7 @@ Script.include("/~/system/libraries/controllers.js");
                 grabbedEntity: this.targetEntityID,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
-            unhighlightTargetEntity(this.targetEntityID);
-            this.highlightedEntity = null;
+
             this.grabbing = false;
             this.targetEntityID = null;
         };
@@ -135,14 +126,8 @@ Script.include("/~/system/libraries/controllers.js");
             var targetProps = this.getTargetProps(controllerData);
             if (targetProps) {
                 this.targetEntityID = targetProps.id;
-                this.highlightedEntity = this.targetEntityID;
-                highlightTargetEntity(this.targetEntityID);
                 return makeRunningValues(true, [this.targetEntityID], []);
             } else {
-                if (this.highlightedEntity) {
-                    unhighlightTargetEntity(this.highlightedEntity);
-                    this.highlightedEntity = null;
-                }
                 return makeRunningValues(false, [], []);
             }
         };
@@ -167,8 +152,6 @@ Script.include("/~/system/libraries/controllers.js");
                     props = Entities.getEntityProperties(this.targetEntityID, DISPATCHER_PROPERTIES);
                     if (!props) {
                         // entity was deleted
-                        unhighlightTargetEntity(this.targetEntityID);
-                        this.highlightedEntity = null;
                         this.grabbing = false;
                         this.targetEntityID = null;
                         return makeRunningValues(false, [], []);
@@ -178,11 +161,9 @@ Script.include("/~/system/libraries/controllers.js");
                 var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
                 Entities.callEntityMethod(this.targetEntityID, "continueNearGrab", args);
             } else {
-                // still searching / highlighting
+                // still searching
                 var readiness = this.isReady(controllerData);
                 if (!readiness.active) {
-                    unhighlightTargetEntity(this.highlightedEntity);
-                    this.highlightedEntity = null;
                     return readiness;
                 }
                 if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
