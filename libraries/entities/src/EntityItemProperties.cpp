@@ -347,7 +347,6 @@ void EntityItemProperties::setBillboardModeFromString(const QString& materialMap
     }
 }
 
-
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
@@ -1924,7 +1923,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     // Handle conversions from old 'textures' property to "imageURL"
     {
         QScriptValue V = object.property("textures");
-        if (V.isValid()) {
+        if (_type == EntityTypes::Image && V.isValid() && !object.property("imageURL").isValid()) {
             bool isValid = false;
             QString textures = QString_convertFromScriptValue(V, isValid);
             if (isValid) {
@@ -1943,7 +1942,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     // Handle old "faceCamera" and "isFacingAvatar" props
     {
         QScriptValue P = object.property("faceCamera");
-        if (P.isValid()) {
+        if (P.isValid() && !object.property("billboardMode").isValid()) {
             bool newValue = P.toVariant().toBool();
             bool oldValue = getBillboardMode() == BillboardMode::YAW;
             if (_defaultSettings || newValue != oldValue) {
@@ -1953,7 +1952,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     }
     {
         QScriptValue P = object.property("isFacingAvatar");
-        if (P.isValid()) {
+        if (P.isValid() && !object.property("billboardMode").isValid() && !object.property("faceCamera").isValid()) {
             bool newValue = P.toVariant().toBool();
             bool oldValue = getBillboardMode() == BillboardMode::FULL;
             if (_defaultSettings || newValue != oldValue) {
