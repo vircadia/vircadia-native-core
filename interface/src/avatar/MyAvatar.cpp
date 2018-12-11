@@ -50,6 +50,7 @@
 #include <RecordingScriptingInterface.h>
 #include <trackers/FaceTracker.h>
 #include <RenderableModelEntityItem.h>
+#include <VariantMapToScriptValue.h>
 
 #include "MyHead.h"
 #include "MySkeletonModel.h"
@@ -1263,11 +1264,11 @@ void MyAvatar::resizeAvatarEntitySettingHandles(uint32_t maxIndex) {
     // Create Setting::Handles to mimic this.
     uint32_t settingsIndex = (uint32_t)_avatarEntityIDSettings.size() + 1;
     while (settingsIndex <= maxIndex) {
-        Setting::Handle<QString> idHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
-                                        << QString::number(settingsIndex) << "id", QUuid().toString());
+        Setting::Handle<QUuid> idHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
+                                        << QString::number(settingsIndex) << "id", QUuid());
         _avatarEntityIDSettings.push_back(idHandle);
-        Setting::Handle<QString> dataHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
-                                               << QString::number(settingsIndex) << "properties", QString());
+        Setting::Handle<QByteArray> dataHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
+                                               << QString::number(settingsIndex) << "properties", QByteArray());
         _avatarEntityDataSettings.push_back(dataHandle);
         settingsIndex++;
     }
@@ -1320,22 +1321,22 @@ void MyAvatar::saveAvatarEntityDataToSettings() {
         for (const auto& id : _entitiesToRemoveFromSettings) {
             // remove
             entitiesToSave.erase(id);
-            std::map<QUuid, QString>::iterator itr =  _avatarEntityStrings.find(id);
-            if (itr != _avatarEntityStrings.end()) {
-                _avatarEntityStrings.erase(itr);
+            std::map<QUuid, QByteArray>::iterator itr =  _poorlyFormattedAvatarEntityData.find(id);
+            if (itr != _poorlyFormattedAvatarEntityData.end()) {
+                _poorlyFormattedAvatarEntityData.erase(itr);
             }
         }
         for (const auto& id : entitiesToSave) {
             // remove old strings to be replaced by new saves
-            std::map<QUuid, QString>::iterator itr =  _avatarEntityStrings.find(id);
-            if (itr != _avatarEntityStrings.end()) {
-                _avatarEntityStrings.erase(itr);
+            std::map<QUuid, QByteArray>::iterator itr =  _poorlyFormattedAvatarEntityData.find(id);
+            if (itr != _poorlyFormattedAvatarEntityData.end()) {
+                _poorlyFormattedAvatarEntityData.erase(itr);
             }
         }
         _entitiesToRemoveFromSettings.clear();
     });
 
-    uint32_t numEntities = (uint32_t)(entitiesToSave.size() + _avatarEntityStrings.size());
+    uint32_t numEntities = (uint32_t)(entitiesToSave.size() + _poorlyFormattedAvatarEntityData.size());
     uint32_t prevNumEntities = _avatarEntityCountSetting.get(0);
     resizeAvatarEntitySettingHandles(std::max<uint32_t>(numEntities, prevNumEntities));
 
@@ -1356,14 +1357,27 @@ void MyAvatar::saveAvatarEntityDataToSettings() {
         QScriptEngine scriptEngine;
         QScriptValue toStringMethod = scriptEngine.evaluate("(function() { return JSON.stringify(this) })");
         for (const auto& entry : allProperties) {
-            QScriptValue scriptValue = EntityItemPropertiesToScriptValue(&scriptEngine, entry.second);
-            scriptValue.setProperty("toString", toStringMethod);
-            _avatarEntityStrings[entry.first] = scriptValue.toString();
+            // begin recipe our unfortunate legacy avatarEntityData format
+            QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, entry.second);
+            QVariant variantProperties = scriptValue.toVariant();
+            QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
+            // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
+            QJsonObject jsonObject = jsonProperties.object();
+            if (jsonObject.contains("parentID")) {
+                if (QUuid(jsonObject["parentID"].toString()) == getID()) {
+                    jsonObject["parentID"] = AVATAR_SELF_ID.toString();
+                }
+            }
+            jsonProperties = QJsonDocument(jsonObject);
+            QByteArray binaryProperties = jsonProperties.toBinaryData();
+            // end recipe
+
+            _poorlyFormattedAvatarEntityData[entry.first] = binaryProperties;
         }
         // save all strings
         uint32_t i = 0;
-        for (const auto& entry : _avatarEntityStrings) {
-            _avatarEntityIDSettings[i].set(entry.first.toString());
+        for (const auto& entry : _poorlyFormattedAvatarEntityData) {
+            _avatarEntityIDSettings[i].set(entry.first);
             _avatarEntityDataSettings[i].set(entry.second);
             ++i;
         }
@@ -1567,18 +1581,53 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
 
     QScriptEngine scriptEngine;
     std::vector<EntityItemProperties> entitiesToLoad;
-    entitiesToLoad.resize(numEntities);
     resizeAvatarEntitySettingHandles(numEntities);
     for (int i = 0; i < numEntities; i++) {
-        // DANGER: this JSONString --> EntityItemProperties operation is expensive
-        EntityItemProperties& properties = entitiesToLoad[i];
-        properties.copyFromJSONString(scriptEngine, _avatarEntityDataSettings[i].get());
-        // the ClientOnly property can get stripped out elsewhere so we need to always set it true here
+        QUuid entityID = QUuid::createUuid(); // generate a new ID
+        QByteArray binaryData = _avatarEntityDataSettings[i].get();
+        //updateAvatarEntity(entityID, binaryData);
+
+
+        _avatarEntityDataChanged = true;
+        if (_clientTraitsHandler) {
+            // we have a client traits handler, so we need to mark this instanced trait as changed
+            // so that changes will be sent next frame
+            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+        }
+
+        QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(binaryData);
+        if (!jsonProperties.isObject()) {
+            qCDebug(interfaceapp) << "bad avatarEntityData json" << QString(binaryData.toHex());
+            continue;
+        }
+
+        QVariant variantProperties = jsonProperties.toVariant();
+        QVariantMap asMap = variantProperties.toMap();
+        QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
+        EntityItemProperties properties;
+        EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, properties);
         properties.setEntityHostType(entity::HostType::AVATAR);
         properties.setOwningAvatarID(getID());
+
+        // there's no entity-server to tell us we're the simulation owner, so always set the
+        // simulationOwner to the owningAvatarID and a high priority.
+        properties.setSimulationOwner(getID(), AVATAR_ENTITY_SIMULATION_PRIORITY);
+
+        if (properties.getParentID() == AVATAR_SELF_ID) {
+            properties.setParentID(getID());
+        }
+
+        // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
+        // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
+        // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
+        // back to the default), and the entity flew off somewhere.  Marking all changed definitely fixes this,
+        // and seems safe (per Seth).
+        properties.markAllChanged();
+
+        entitiesToLoad.push_back(properties);
     }
 
-    _avatarEntityStrings.clear();
+    _poorlyFormattedAvatarEntityData.clear();
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
@@ -1597,7 +1646,10 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
                         // only remember an AvatarEntity that successfully loads and can be packed
                         QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
                         storeAvatarEntityDataPayload(entityID, tempArray);
-                        _avatarEntityStrings[entityID] = _avatarEntityDataSettings[i].get();
+
+                        // we store these binaryProperties for later: when saving back to settings
+                        // unfortunately we must use this non-human-readable format because reasons
+                        _poorlyFormattedAvatarEntityData[entityID] = _avatarEntityDataSettings[i].get();
                     }
                     packetData.reset();
                 }

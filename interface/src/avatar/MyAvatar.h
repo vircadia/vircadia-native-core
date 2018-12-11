@@ -1944,10 +1944,9 @@ private:
     Setting::Handle<bool> _flyingHMDSetting;
     Setting::Handle<int> _avatarEntityCountSetting;
     Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
-    std::vector<Setting::Handle<QString>> _avatarEntityIDSettings;
-    std::vector<Setting::Handle<QString>> _avatarEntityDataSettings;
-    std::map<QUuid, QString> _avatarEntityStrings;
-    std::map<QUuid, QString> _avatarEntityProperties;
+    std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
+    std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
+    std::map<QUuid, QByteArray> _poorlyFormattedAvatarEntityData;
     std::set<QUuid> _entitiesToSaveToSettings;
     std::set<QUuid> _entitiesToRemoveFromSettings;
 };
