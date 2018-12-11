@@ -193,8 +193,7 @@ void GeometryReader::run() {
             return;
         }
 
-        QString urlname = _url.path().toLower();
-        if (urlname.isEmpty() || _url.path().isEmpty()) {
+        if (_url.path().isEmpty()) {
             throw QString("url is invalid");
         }
 
