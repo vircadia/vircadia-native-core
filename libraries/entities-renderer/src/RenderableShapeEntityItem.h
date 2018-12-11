@@ -25,7 +25,6 @@ public:
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
 protected:
-    ItemKey getKey() override;
     ShapeKey getShapeKey() override;
 
 private:

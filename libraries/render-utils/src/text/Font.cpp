@@ -222,7 +222,6 @@ void Font::setupGPU() {
         // Setup render pipeline
         {
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D);
-            gpu::ShaderPointer programTransparent = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_transparent);
             auto state = std::make_shared<gpu::State>();
             state->setCullMode(gpu::State::CULL_BACK);
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
@@ -232,13 +231,14 @@ void Font::setupGPU() {
             PrepareStencil::testMaskDrawShape(*state);
             _pipeline = gpu::Pipeline::create(program, state);
 
+            gpu::ShaderPointer programTransparent = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_transparent);
             auto transparentState = std::make_shared<gpu::State>();
             transparentState->setCullMode(gpu::State::CULL_BACK);
             transparentState->setDepthTest(true, true, gpu::LESS_EQUAL);
             transparentState->setBlendFunction(true,
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            PrepareStencil::testMaskDrawShape(*transparentState);
+            PrepareStencil::testMask(*transparentState);
             _transparentPipeline = gpu::Pipeline::create(programTransparent, transparentState);
         }
 
@@ -289,7 +289,7 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
                 break;
             }
         }
-        if ((bounds.y != -1) && (advance.y - _fontSize < -origin.y - bounds.y)) {
+        if ((bounds.y != -1) && (advance.y - _fontSize < origin.y - bounds.y)) {
             // We are out of the y bound, stop drawing
             break;
         }
@@ -343,7 +343,7 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
 }
 
 void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString& str, const glm::vec4& color,
-                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds, bool layered) {
+                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds) {
     if (str == "") {
         return;
     }
@@ -370,7 +370,7 @@ void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString
     }
     // need the gamma corrected color here
 
-    batch.setPipeline((color.a < 1.0f || layered) ? _transparentPipeline : _pipeline);
+    batch.setPipeline((color.a < 1.0f) ? _transparentPipeline : _pipeline);
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, drawInfo.verticesBuffer, 0, _format->getChannels().at(0)._stride);
     batch.setResourceTexture(render_utils::slot::texture::TextFont, _texture);

@@ -123,7 +123,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     glm::vec4 textColor = { toGlm(_color), getTextAlpha() };
 
     // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline for a gpu performance increase.
-    _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), true);
+    _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f));
 }
 
 const render::ShapeKey Text3DOverlay::getShapeKey() {
