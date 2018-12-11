@@ -1834,6 +1834,15 @@ glm::vec3 EntityScriptingInterface::localCoordsToVoxelCoords(const QUuid& entity
     }
 }
 
+int EntityScriptingInterface::getJointParent(const QUuid& entityID, int index) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        return modelEntity->getJointParent(index);
+    } else {
+        return -1;
+    }
+}
+
 glm::vec3 EntityScriptingInterface::getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);

@@ -163,6 +163,8 @@ public:
     virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const { return glm::vec3(1.0f); }
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const { return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const { return glm::vec3(); }
+    virtual int getJointParent(int index) const { return -1; }
+
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {return false; }
 
