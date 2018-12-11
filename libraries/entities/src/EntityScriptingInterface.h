@@ -1007,7 +1007,16 @@ public slots:
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex);
-
+    
+    /**jsdoc
+     * Get the index of the parent joint.
+     * @function Entities.getJointParent
+     * @param {Uuid} entityID - The ID of the entity.
+     * @param {number} index - The integer index of the joint.
+     * @returns {number} The index of the parent joint.
+     */
+    Q_INVOKABLE int getJointParent(const QUuid& entityID, int index);
+    
     /**jsdoc
      * Get the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's position and 
      * orientation.

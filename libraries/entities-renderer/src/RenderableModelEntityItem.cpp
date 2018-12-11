@@ -773,6 +773,14 @@ bool RenderableModelEntityItem::shouldBePhysical() const {
     }
 }
 
+int RenderableModelEntityItem::getJointParent(int index) const {
+    auto model = getModel();
+    if (model) {
+        return model->getRig().getJointParentIndex(index);
+    }
+    return -1;
+}
+
 glm::quat RenderableModelEntityItem::getAbsoluteJointRotationInObjectFrame(int index) const {
     auto model = getModel();
     if (model) {
