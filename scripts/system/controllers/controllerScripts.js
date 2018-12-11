@@ -35,7 +35,7 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/nearTabletHighlight.js"
 ];
 
-if (Settings.getValue("useTraitsGrab", false)) {
+if (Settings.getValue("useTraitsGrab", true)) {
     CONTOLLER_SCRIPTS.push("controllerModules/nearGrabEntity.js");
     CONTOLLER_SCRIPTS.push("controllerModules/farGrabEntity.js");
 } else {
