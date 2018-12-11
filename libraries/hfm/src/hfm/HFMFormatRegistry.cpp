@@ -54,9 +54,9 @@ std::shared_ptr<Serializer> FormatRegistry::getSerializerForMediaType(const hifi
         id = _mediaTypeLibrary.findMediaTypeForData(data);
         if (id == INVALID_MEDIA_TYPE_ID) {
             id = _mediaTypeLibrary.findMediaTypeForURL(url);
-        }
-        if (id == INVALID_MEDIA_TYPE_ID) {
-            id = _mediaTypeLibrary.findMediaTypeForWebID(webMediaType);
+            if (id == INVALID_MEDIA_TYPE_ID) {
+                id = _mediaTypeLibrary.findMediaTypeForWebID(webMediaType);
+            }
         }
     }
     return getSerializerForMediaTypeID(id);
