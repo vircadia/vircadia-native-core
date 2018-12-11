@@ -536,6 +536,10 @@ function fromQml(message) {
         shouldShowDotHistory = false;
         ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
         break;
+    case 'clearShouldShowDotUpdates':
+        shouldShowDotUpdates = false;
+        ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
+        break;
     case 'http.request':
         // Handled elsewhere, don't log.
         break;
