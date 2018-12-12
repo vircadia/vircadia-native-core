@@ -1854,6 +1854,17 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     return hfmModelPtr;
 }
 
+MediaType FBXSerializer::getMediaType() const {
+    MediaType mediaType("fbx");
+    mediaType.extensions.push_back("fbx");
+    mediaType.fileSignatures.emplace_back("Kaydara FBX Binary  \x00", 0);
+    return mediaType;
+}
+
+std::unique_ptr<hfm::Serializer::Factory> FBXSerializer::getFactory() const {
+    return std::make_unique<hfm::Serializer::SimpleFactory<FBXSerializer>>();
+}
+
 HFMModel::Pointer FBXSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);

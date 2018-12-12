@@ -51,6 +51,7 @@
         "emitterShouldTrail": 1,
         "isEmitting": 1,
         "lifespan": 3,
+        "lifetime": 5,
         "maxParticles": 1000,
         "particleRadius": 0.003,
         "polarStart": Math.PI / 2,
@@ -82,6 +83,7 @@
         "emitterShouldTrail": 1,
         "isEmitting": 1,
         "lifespan": 3.6,
+        "lifetime": 5,
         "maxParticles": 4000,
         "particleRadius": 0.048,
         "polarStart": 0,
@@ -287,6 +289,11 @@
     }
 
     function updateMakingConnection() {
+        if (!makingConnectionParticleEffect) {
+            particleEffectUpdateTimer = null;
+            return;
+        }
+
         makingConnectionEmitRate = Math.max(makingConnectionEmitRate * MAKING_CONNECTION_DECAY_RATE,
             MAKING_CONNECTION_MINIMUM_EMIT_RATE);
         isMakingConnectionEmitting = true;
@@ -302,6 +309,11 @@
     }
 
     function updateParticleEffect() {
+        if (!particleEffect) {
+            particleEffectUpdateTimer = null;
+            return;
+        }
+
         particleEmitRate = Math.max(PARTICLE_MINIMUM_EMIT_RATE, particleEmitRate * PARTICLE_DECAY_RATE);
         Entities.editEntity(particleEffect, {
             emitRate: particleEmitRate
