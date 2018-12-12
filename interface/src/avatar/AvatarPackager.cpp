@@ -12,11 +12,9 @@
 #include "AvatarPackager.h"
 
 #include <QQmlContext>
-#include <QStandardPaths>
 #include <QUrl>
 
 #include <OffscreenUi.h>
-#include "ModelSelector.h"
 
 bool AvatarPackager::open() {
     static const QUrl url{ "hifi/AvatarPackager.qml" };
@@ -28,17 +26,10 @@ bool AvatarPackager::open() {
     return true;
 }
 
-QObject* AvatarPackager::openAvatarProject() {
-    // TODO: use QML file browser here, could handle this on QML side instead
-    static Setting::Handle<QString> lastModelBrowseLocation("LastModelBrowseLocation",
-        QStandardPaths::writableLocation(QStandardPaths::DownloadLocation));
-    const QString filename = QFileDialog::getOpenFileName(nullptr, "Select your model file ...",
-        lastModelBrowseLocation.get(),
-        "Model files (*.fst *.fbx)");
-    QFileInfo fileInfo(filename);
-
-    if (fileInfo.isFile() && fileInfo.completeSuffix().contains(QRegExp("fst|fbx|FST|FBX"))) {
-        return AvatarProject::openAvatarProject(fileInfo.absoluteFilePath());
+QObject* AvatarPackager::openAvatarProject(QString avatarProjectFSTPath) {
+    if (_currentAvatarProject) {
+        _currentAvatarProject->deleteLater();
     }
-    return nullptr;
+    _currentAvatarProject = AvatarProject::openAvatarProject(avatarProjectFSTPath);
+    return _currentAvatarProject;
 }

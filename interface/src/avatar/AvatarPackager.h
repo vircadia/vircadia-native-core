@@ -21,15 +21,16 @@
 class AvatarPackager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
+    Q_PROPERTY(QObject* currentAvatarProject READ getAvatarProject)
 
 public:
     bool open();
 
-    Q_INVOKABLE void openAvatarProjectWithoutReturnType() {
-        openAvatarProject();
-    }
+    Q_INVOKABLE QObject* openAvatarProject(QString avatarProjectFSTPath);
 
-    Q_INVOKABLE QObject* openAvatarProject();
+private:
+    Q_INVOKABLE AvatarProject* getAvatarProject() const { return _currentAvatarProject; };
+    AvatarProject* _currentAvatarProject { nullptr };
 };
 
 #endif // hifi_AvatarPackager_h

@@ -1,5 +1,5 @@
 //
-//  AvatarProject.h
+//  AvatarProject.cpp
 //
 //
 //  Created by Thijs Wenker on 12/7/2018
