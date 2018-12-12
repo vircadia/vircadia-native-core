@@ -350,9 +350,6 @@ public:
     bool containsPositionChange() const { return _positionChanged; }
     bool containsDimensionsChange() const { return _dimensionsChanged; }
 
-    float getLocalRenderAlpha() const { return _localRenderAlpha; }
-    void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
-
     static OctreeElement::AppendState encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
                                        QByteArray& buffer, EntityPropertyFlags requestedProperties, EntityPropertyFlags& didntFitProperties);
 
@@ -362,8 +359,6 @@ public:
 
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                                        EntityItemID& entityID, EntityItemProperties& properties);
-
-    bool localRenderAlphaChanged() const { return _localRenderAlphaChanged; }
 
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
@@ -452,8 +447,6 @@ private:
     EntityTypes::EntityType _type;
     void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
 
-    float _localRenderAlpha;
-    bool _localRenderAlphaChanged;
     bool _defaultSettings;
     bool _dimensionsInitialized = true; // Only false if creating an entity locally with no dimensions properties
 

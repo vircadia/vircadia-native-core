@@ -24,17 +24,25 @@ class LineEntityRenderer : public TypedEntityRenderer<LineEntityItem> {
     friend class EntityRenderer;
 
 public:
-    LineEntityRenderer(const EntityItemPointer& entity) : Parent(entity) { }
+    LineEntityRenderer(const EntityItemPointer& entity);
+    ~LineEntityRenderer();
+
+    bool isTransparent() const override;
 
 protected:
-    virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 
 private:
     int _lineVerticesID { GeometryCache::UNKNOWN_ID };
+    std::vector<int> _glowGeometryIDs;
+
     QVector<glm::vec3> _linePoints;
+    glm::u8vec3 _color;
+    float _alpha;
+    float _lineWidth;
+    float _glow;
 };
 
 } } // namespace 

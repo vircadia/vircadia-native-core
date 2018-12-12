@@ -1302,7 +1302,6 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getLocalAngularVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRenderAlpha, getLocalRenderAlpha);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionless, getCollisionless);
@@ -1449,7 +1448,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(scriptTimestamp, setScriptTimestamp);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(serverScripts, setServerScripts);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
@@ -2649,20 +2647,6 @@ QString EntityItem::getDescription() const {
 void EntityItem::setDescription(const QString& value) {
     withWriteLock([&] {
         _description = value;
-    });
-}
-
-float EntityItem::getLocalRenderAlpha() const {
-    float result;
-    withReadLock([&] {
-        result = _localRenderAlpha;
-    });
-    return result;
-}
-
-void EntityItem::setLocalRenderAlpha(float localRenderAlpha) {
-    withWriteLock([&] {
-        _localRenderAlpha = localRenderAlpha;
     });
 }
 

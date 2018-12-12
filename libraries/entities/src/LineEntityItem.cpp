@@ -173,19 +173,15 @@ void LineEntityItem::setLineWidth(float lineWidth) {
 }
 
 float LineEntityItem::getLineWidth() const { 
-    float result;
-    withReadLock([&] {
-        result = _lineWidth;
+    return resultWithReadLock<bool>([&] {
+        return _lineWidth;
     });
-    return result;
 }
 
 QVector<glm::vec3> LineEntityItem::getLinePoints() const { 
-    QVector<glm::vec3> result;
-    withReadLock([&] {
-        result = _points;
+    return resultWithReadLock<QVector<glm::vec3>>([&] {
+        return _points;
     });
-    return result;
 }
 
 void LineEntityItem::resetPointsChanged() { 

@@ -50,10 +50,6 @@ EntityItemProperties::EntityItemProperties(EntityPropertyFlags desiredProperties
     _lastEdited(0),
     _type(EntityTypes::Unknown),
 
-    _localRenderAlpha(1.0f),
-
-    _localRenderAlphaChanged(false),
-
     _defaultSettings(true),
     _naturalDimensions(1.0f, 1.0f, 1.0f),
     _naturalPosition(0.0f, 0.0f, 0.0f),
@@ -1732,9 +1728,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         properties.setProperty("isFacingAvatar", convertScriptValue(engine, getBillboardMode() == BillboardMode::FULL));
     }
 
-    // FIXME - I don't think these properties are supported any more
-    //COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
-
     return properties;
 }
 
@@ -1775,7 +1768,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitterShouldTrail, bool, setEmitterShouldTrail);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionless, bool, setCollisionless);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(ignoreForCollisions, bool, setCollisionless, getCollisionless); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint16_t, setCollisionMask);
@@ -2021,7 +2013,6 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(emitterShouldTrail);
     COPY_PROPERTY_IF_CHANGED(modelURL);
     COPY_PROPERTY_IF_CHANGED(compoundShapeURL);
-    COPY_PROPERTY_IF_CHANGED(localRenderAlpha);
     COPY_PROPERTY_IF_CHANGED(collisionless);
     COPY_PROPERTY_IF_CHANGED(collisionMask);
     COPY_PROPERTY_IF_CHANGED(dynamic);
@@ -3401,7 +3392,6 @@ void EntityItemProperties::markAllChanged() {
     _alphaChanged = true;
     _modelURLChanged = true;
     _compoundShapeURLChanged = true;
-    _localRenderAlphaChanged = true;
     _isSpotlightChanged = true;
     _collisionlessChanged = true;
     _collisionMaskChanged = true;
