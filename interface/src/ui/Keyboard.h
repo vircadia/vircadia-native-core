@@ -152,9 +152,10 @@ private:
     void clearKeyboardKeys();
     void switchToLayer(int layerIndex);
     void updateTextDisplay();
+    bool getExitEarly(OverlayID overlayID) const;
 
     void startLayerSwitchTimer();
-    bool isLayerSwitchTimerFinished();
+    bool isLayerSwitchTimerFinished() const;
 
     bool shouldProcessPointerEvent(const PointerEvent& event) const;
 

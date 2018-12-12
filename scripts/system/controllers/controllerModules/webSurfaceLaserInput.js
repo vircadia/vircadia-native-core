@@ -125,7 +125,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.ignoredObjects = [];
         };
 
-        this.isPointingAtTriggerable = function(controllerData, triggerPressed, checkEntitiesOnly) {
+        this.getInteractableType = function(controllerData, triggerPressed, checkEntitiesOnly) {
             // allow pointing at tablet, unlocked web entities, or web overlays automatically without pressing trigger,
             // but for pointing at locked web entities or non-web overlays user must be pressing trigger
             var intersection = controllerData.rayPicks[this.hand];
@@ -175,7 +175,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.updateAlwaysOn = function(type) {
             var PREFER_STYLUS_OVER_LASER = "preferStylusOverLaser";
-            this.parameters.handLaser.allwaysOn = (!Settings.getValue(PREFER_STYLUS_OVER_LASER, false) || type === intersectionType["HifiKeyboard"]);
+            this.parameters.handLaser.alwaysOn = (!Settings.getValue(PREFER_STYLUS_OVER_LASER, false) || type === intersectionType["HifiKeyboard"]);
         };
 
         this.getDominantHand = function() {
@@ -186,8 +186,8 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.isReady = function(controllerData) {
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE &&
-                controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
-            var type = this.isPointingAtTriggerable(controllerData, isTriggerPressed, false);
+                                   controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
+            var type = this.getInteractableType(controllerData, isTriggerPressed, false);
 
             if (type !== intersectionType["None"] && !this.grabModuleWantsNearbyOverlay(controllerData)) {
                 if (type === intersectionType["WebOverlay"] || type === intersectionType["WebEntity"] || type === intersectionType["HifiTablet"]) {
@@ -206,7 +206,7 @@ Script.include("/~/system/libraries/controllers.js");
                 }
 
                 this.updateAlwaysOn(type);
-                if (this.parameters.handLaser.allwaysOn || isTriggerPressed) {
+                if (this.parameters.handLaser.alwaysOn || isTriggerPressed) {
                     return makeRunningValues(true, [], []);
                 }
             }
@@ -228,9 +228,9 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.run = function(controllerData, deltaTime) {
             this.addObjectToIgnoreList(controllerData);
-            var type = this.isPointingAtTriggerable(controllerData, isTriggerPressed, false);
+            var type = this.getInteractableType(controllerData, isTriggerPressed, false);
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
-            var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
+            var laserOn = isTriggerPressed || this.parameters.handLaser.alwaysOn;
             this.addObjectToIgnoreList(controllerData);
 
             if (type === intersectionType["HifiTablet"] && laserOn) {
@@ -246,7 +246,7 @@ Script.include("/~/system/libraries/controllers.js");
             } else if ((type === intersectionType["HifiKeyboard"] && laserOn) || type === intersectionType["Overlay"]) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
-            } else if (isTriggerPressed && !this.isPointingAtTriggerable(controllerData, isTriggerPressed, true)) {
+            } else if (isTriggerPressed && !this.getInteractableType(controllerData, isTriggerPressed, true)) {
                 // if trigger is down + not pointing at a web entity, keep running web surface laser
                 this.running = true;
                 return makeRunningValues(true, [], []);

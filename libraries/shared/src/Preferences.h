@@ -374,7 +374,7 @@ public:
     const QStringList& getItems() { return _items; }
     void setHeading(const QString& heading) { _heading = heading; }
     void setItems(const QStringList& items) { _items = items; }
-    bool getIndented() { return _indented; }
+    bool getIndented() const { return _indented; }
     void setIndented(const bool indented) { _indented = indented; }
 
 protected:
