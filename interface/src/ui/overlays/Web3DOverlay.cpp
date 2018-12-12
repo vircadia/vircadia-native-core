@@ -49,6 +49,7 @@
 #include "avatar/AvatarManager.h"
 #include "AudioClient.h"
 #include "LODManager.h"
+#include "ui/LoginDialog.h"
 #include "ui/OctreeStatsProvider.h"
 #include "ui/DomainConnectionModel.h"
 #include "ui/AvatarInputs.h"
@@ -190,7 +191,7 @@ void Web3DOverlay::buildWebSurface() {
         } else {
             _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), qmlSurfaceDeleter);
             connect(_webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [this](QQmlContext* surfaceContext) {
-                setupQmlSurface(_url == TabletScriptingInterface::QML);
+                setupQmlSurface(_url == TabletScriptingInterface::QML, _url == OVERLAY_LOGIN_DIALOG.toString());
             });
             _webSurface->load(_url);
             _cachedWebSurface = false;
@@ -221,9 +222,8 @@ bool Web3DOverlay::isWebContent() const {
     return false;
 }
 
-void Web3DOverlay::setupQmlSurface(bool isTablet) {
+void Web3DOverlay::setupQmlSurface(bool isTablet, bool isLoginDialog) {
     _webSurface->getSurfaceContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
-    _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
     _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
@@ -236,7 +236,9 @@ void Web3DOverlay::setupQmlSurface(bool isTablet) {
     _webSurface->getSurfaceContext()->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
     _webSurface->getSurfaceContext()->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
 
-    if (isTablet) {
+    if (isTablet || isLoginDialog) {
+        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    } else if (isTablet) {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         auto flags = tabletScriptingInterface->getFlags();
 

@@ -18,6 +18,8 @@
 
 class QNetworkReply;
 
+extern const QUrl OVERLAY_LOGIN_DIALOG;
+
 class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
     Q_PROPERTY(bool isLogIn READ getIsLogIn WRITE setIsLogIn)
