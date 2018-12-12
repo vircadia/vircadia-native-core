@@ -7,15 +7,13 @@ import "../../controlsUit" 1.0 as HifiControls
 import "../../stylesUit" 1.0
 
 Rectangle {
-    id: avatarProject
+    id: root
 
     HifiConstants { id: hifi }
 
-
-    z: 3
     property int colorScheme;
 
-    visible: false
+    visible: true
     
     anchors.left: parent.left
     anchors.right: parent.right
@@ -37,7 +35,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.top: avatarProjectLabel.bottom
         text: qsTr("Open Project Folder")
-        colorScheme: avatarProject.colorScheme
+        colorScheme: root.colorScheme
         height: 30
         onClicked: function() {
             fileDialogHelper.openDirectory(AvatarPackagerCore.currentAvatarProject.projectFolderPath);
@@ -50,7 +48,7 @@ Rectangle {
         anchors.top: openFolderButton.bottom
         text: qsTr("Upload")
         color: hifi.buttons.blue
-        colorScheme: avatarProject.colorScheme
+        colorScheme: root.colorScheme
         height: 30
         onClicked: function() {
                 

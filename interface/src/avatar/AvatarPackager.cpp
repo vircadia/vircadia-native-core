@@ -28,7 +28,8 @@ bool AvatarPackager::open() {
 
 QObject* AvatarPackager::openAvatarProject(QString avatarProjectFSTPath) {
     if (_currentAvatarProject) {
-        _currentAvatarProject->deleteLater();
+        //_currentAvatarProject->deleteLater();
+        //_currentAvatarProject = nullptr;
     }
     _currentAvatarProject = AvatarProject::openAvatarProject(avatarProjectFSTPath);
     return _currentAvatarProject;

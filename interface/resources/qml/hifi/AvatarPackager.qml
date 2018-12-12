@@ -22,76 +22,83 @@ Windows.ScrollingWindow {
     minSize: Qt.vector2d(200, 300)
 
     //HifiConstants { id: hifi }
-
-    AvatarProject {
-        id: avatarProject
-        colorScheme: root.colorScheme
-    }
-
     Rectangle {
-        id: avatarPackagerMain
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        RalewaySemiBold {
-            id: avatarPackagerLabel
-            size: 24;
+        AvatarProject {
+            id: avatarProject
+            colorScheme: root.colorScheme
+            visible: false
+        }
+
+        Rectangle {
+            id: avatarPackagerMain
             anchors.left: parent.left
+            anchors.right: parent.right
             anchors.top: parent.top
-            anchors.topMargin: 25
-            anchors.bottomMargin: 25
-            text: 'Avatar Packager'
-        }
-
-        HifiControls.Button {
-            id: createProjectButton
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: avatarPackagerLabel.bottom
-            text: qsTr("Create Project")
-            colorScheme: root.colorScheme
-            height: 30
-            onClicked: function() {
-                
+            anchors.bottom: parent.bottom
+            RalewaySemiBold {
+                id: avatarPackagerLabel
+                size: 24;
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.topMargin: 25
+                anchors.bottomMargin: 25
+                text: 'Avatar Packager'
             }
-        }
-        HifiControls.Button {
-            id: openProjectButton
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: createProjectButton.bottom
-            text: qsTr("Open Avatar Project")
-            colorScheme: root.colorScheme
-            height: 30
-            onClicked: function() {
-                var avatarProjectsPath = fileDialogHelper.standardPath(/*fileDialogHelper.StandardLocation.DocumentsLocation*/ 1) + "/High Fidelity/Avatar Projects";
-                console.log("path = " + avatarProjectsPath);
 
-                // TODO: make the dialog modal
+            HifiControls.Button {
+                id: createProjectButton
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: avatarPackagerLabel.bottom
+                text: qsTr("Create Project")
+                colorScheme: root.colorScheme
+                height: 30
+                onClicked: function() {
+                
+                }
+            }
+            HifiControls.Button {
+                id: openProjectButton
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: createProjectButton.bottom
+                text: qsTr("Open Avatar Project")
+                colorScheme: root.colorScheme
+                height: 30
+                onClicked: function() {
+                    var avatarProjectsPath = fileDialogHelper.standardPath(/*fileDialogHelper.StandardLocation.DocumentsLocation*/ 1) + "/High Fidelity/Avatar Projects";
+                    console.log("path = " + avatarProjectsPath);
 
-                var browser = desktop.fileDialog({
-                    selectDirectory: false,
-                    dir: fileDialogHelper.pathToUrl(avatarProjectsPath),
-                    filter: "Avatar Project FST Files (*.fst)",
-                    title: "Open Project (.fst)"
-                });
+                    // TODO: make the dialog modal
 
-                browser.canceled.connect(function() {
+                    var browser = desktop.fileDialog({
+                        selectDirectory: false,
+                        dir: fileDialogHelper.pathToUrl(avatarProjectsPath),
+                        filter: "Avatar Project FST Files (*.fst)",
+                        title: "Open Project (.fst)"
+                    });
+
+                    browser.canceled.connect(function() {
                     
-                });
+                    });
 
-                browser.selectedFile.connect(function(fileUrl) {
-                    console.log("FOUND PATH " + fileUrl);
-                    let fstFilePath = fileDialogHelper.urlToPath(fileUrl);
-                    let avatarProject = AvatarPackagerCore.openAvatarProject(fstFilePath);
-                    if (avatarProject) {
-                        console.log("LOAD COMPLETE");
-                        console.log("file dir = " + AvatarPackagerCore.currentAvatarProject.projectFolderPath);
-                        avatarProject.visible = true;
-                        avatarPackagerMain.visible = false;
-                    }
-                });
+                    browser.selectedFile.connect(function(fileUrl) {
+                        console.log("FOUND PATH " + fileUrl);
+                        let fstFilePath = fileDialogHelper.urlToPath(fileUrl);
+                        let currentAvatarProject = AvatarPackagerCore.openAvatarProject(fstFilePath);
+                        if (currentAvatarProject) {
+                            console.log("LOAD COMPLETE");
+                            console.log("file dir = " + AvatarPackagerCore.currentAvatarProject.projectFolderPath);
+                            
+                            avatarPackagerMain.visible = false;
+                            avatarProject.visible = true;
+                        }
+                    });
+                }
             }
         }
     }
