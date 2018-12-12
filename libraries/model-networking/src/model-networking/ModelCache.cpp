@@ -12,9 +12,6 @@
 #include "ModelCache.h"
 #include <Finally.h>
 #include <FSTReader.h>
-#include "FBXSerializer.h"
-#include "OBJSerializer.h"
-#include "GLTFSerializer.h"
 
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
@@ -26,6 +23,10 @@
 #include "ModelNetworkingLogging.h"
 #include <Trace.h>
 #include <StatTracker.h>
+#include <hfm/ModelFormatRegistry.h>
+#include <FBXSerializer.h>
+#include <OBJSerializer.h>
+#include <GLTFSerializer.h>
 
 Q_LOGGING_CATEGORY(trace_resource_parse_geometry, "trace.resource.parse.geometry")
 
@@ -144,9 +145,9 @@ void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
 
 class GeometryReader : public QRunnable {
 public:
-    GeometryReader(QWeakPointer<Resource>& resource, const QUrl& url, const QVariantHash& mapping,
-                   const QByteArray& data, bool combineParts) :
-        _resource(resource), _url(url), _mapping(mapping), _data(data), _combineParts(combineParts) {
+    GeometryReader(const ModelLoader& modelLoader, QWeakPointer<Resource>& resource, const QUrl& url, const QVariantHash& mapping,
+                   const QByteArray& data, bool combineParts, const QString& webMediaType) :
+        _modelLoader(modelLoader), _resource(resource), _url(url), _mapping(mapping), _data(data), _combineParts(combineParts), _webMediaType(webMediaType) {
 
         DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
     }
@@ -154,11 +155,13 @@ public:
     virtual void run() override;
 
 private:
+    ModelLoader _modelLoader;
     QWeakPointer<Resource> _resource;
     QUrl _url;
     QVariantHash _mapping;
     QByteArray _data;
     bool _combineParts;
+    QString _webMediaType;
 };
 
 void GeometryReader::run() {
@@ -183,62 +186,53 @@ void GeometryReader::run() {
             throw QString("reply is NULL");
         }
 
-        QString urlname = _url.path().toLower();
-        if (!urlname.isEmpty() && !_url.path().isEmpty() &&
+        // Ensure the resource has not been deleted
+        auto resource = _resource.toStrongRef();
+        if (!resource) {
+            qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+            return;
+        }
 
-            (_url.path().toLower().endsWith(".fbx") ||
-                _url.path().toLower().endsWith(".obj") ||
-                _url.path().toLower().endsWith(".obj.gz") ||
-                _url.path().toLower().endsWith(".gltf"))) {
-
-            HFMModel::Pointer hfmModel;
-
-            QVariantHash serializerMapping = _mapping;
-            serializerMapping["combineParts"] = _combineParts;
-
-            if (_url.path().toLower().endsWith(".fbx")) {
-                hfmModel = FBXSerializer().read(_data, serializerMapping, _url);
-                if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
-                    throw QString("empty geometry, possibly due to an unsupported FBX version");
-                }
-            } else if (_url.path().toLower().endsWith(".obj")) {
-                hfmModel = OBJSerializer().read(_data, serializerMapping, _url);
-            } else if (_url.path().toLower().endsWith(".obj.gz")) {
-                QByteArray uncompressedData;
-                if (gunzip(_data, uncompressedData)){
-                    hfmModel = OBJSerializer().read(uncompressedData, serializerMapping, _url);
-                } else {
-                    throw QString("failed to decompress .obj.gz");
-                }
-
-            } else if (_url.path().toLower().endsWith(".gltf")) {
-                hfmModel = GLTFSerializer().read(_data, serializerMapping, _url);
-                if (hfmModel->meshes.size() == 0 && hfmModel->joints.size() == 0) {
-                    throw QString("empty geometry, possibly due to an unsupported GLTF version");
-                }
-            } else {
-                throw QString("unsupported format");
-            }
-
-            // Add scripts to hfmModel
-            if (!_mapping.value(SCRIPT_FIELD).isNull()) {
-                QVariantList scripts = _mapping.values(SCRIPT_FIELD);
-                for (auto &script : scripts) {
-                    hfmModel->scripts.push_back(script.toString());
-                }
-            }
-
-            // Ensure the resource has not been deleted
-            auto resource = _resource.toStrongRef();
-            if (!resource) {
-                qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
-            } else {
-                QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                    Q_ARG(HFMModel::Pointer, hfmModel));
-            }
-        } else {
+        if (_url.path().isEmpty()) {
             throw QString("url is invalid");
         }
+
+        HFMModel::Pointer hfmModel;
+        QVariantHash serializerMapping = _mapping;
+        serializerMapping["combineParts"] = _combineParts;
+
+        if (_url.path().toLower().endsWith(".gz")) {
+            QByteArray uncompressedData;
+            if (!gunzip(_data, uncompressedData)) {
+                throw QString("failed to decompress .gz model");
+            }
+            // Strip the compression extension from the path, so the loader can infer the file type from what remains.
+            // This is okay because we don't expect the serializer to be able to read the contents of a compressed model file.
+            auto strippedUrl = _url;
+            strippedUrl.setPath(_url.path().left(_url.path().size() - 3));
+            hfmModel = _modelLoader.load(uncompressedData, serializerMapping, strippedUrl, "");
+        } else {
+            hfmModel = _modelLoader.load(_data, serializerMapping, _url, _webMediaType.toStdString());
+        }
+
+        if (!hfmModel) {
+            throw QString("unsupported format");
+        }
+
+        if (hfmModel->meshes.empty() || hfmModel->joints.empty()) {
+            throw QString("empty geometry, possibly due to an unsupported model version");
+        }
+
+        // Add scripts to hfmModel
+        if (!_mapping.value(SCRIPT_FIELD).isNull()) {
+            QVariantList scripts = _mapping.values(SCRIPT_FIELD);
+            for (auto &script : scripts) {
+                hfmModel->scripts.push_back(script.toString());
+            }
+        }
+
+        QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
+                Q_ARG(HFMModel::Pointer, hfmModel));
     } catch (const std::exception&) {
         auto resource = _resource.toStrongRef();
         if (resource) {
@@ -258,8 +252,8 @@ void GeometryReader::run() {
 class GeometryDefinitionResource : public GeometryResource {
     Q_OBJECT
 public:
-    GeometryDefinitionResource(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl, bool combineParts) :
-        GeometryResource(url, resolveTextureBaseUrl(url, textureBaseUrl)), _mapping(mapping), _combineParts(combineParts) {}
+    GeometryDefinitionResource(const ModelLoader& modelLoader, const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl, bool combineParts) :
+        GeometryResource(url, resolveTextureBaseUrl(url, textureBaseUrl)), _modelLoader(modelLoader), _mapping(mapping), _combineParts(combineParts) {}
 
     QString getType() const override { return "GeometryDefinition"; }
 
@@ -269,6 +263,7 @@ protected:
     Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel);
 
 private:
+    ModelLoader _modelLoader;
     QVariantHash _mapping;
     bool _combineParts;
 };
@@ -278,7 +273,7 @@ void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
         _url = _effectiveBaseURL;
         _textureBaseUrl = _effectiveBaseURL;
     }
-    QThreadPool::globalInstance()->start(new GeometryReader(_self, _effectiveBaseURL, _mapping, data, _combineParts));
+    QThreadPool::globalInstance()->start(new GeometryReader(_modelLoader, _self, _effectiveBaseURL, _mapping, data, _combineParts, _request->getWebMediaType()));
 }
 
 void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel) {
@@ -316,6 +311,11 @@ ModelCache::ModelCache() {
     const qint64 GEOMETRY_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(GEOMETRY_DEFAULT_UNUSED_MAX_SIZE);
     setObjectName("ModelCache");
+
+    auto modelFormatRegistry = DependencyManager::get<ModelFormatRegistry>();
+    modelFormatRegistry->addFormat(FBXSerializer());
+    modelFormatRegistry->addFormat(OBJSerializer());
+    modelFormatRegistry->addFormat(GLTFSerializer());
 }
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
@@ -328,7 +328,7 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QShar
         auto mapping = geometryExtra ? geometryExtra->mapping : QVariantHash();
         auto textureBaseUrl = geometryExtra ? geometryExtra->textureBaseUrl : QUrl();
         bool combineParts = geometryExtra ? geometryExtra->combineParts : true;
-        resource = new GeometryDefinitionResource(url, mapping, textureBaseUrl, combineParts);
+        resource = new GeometryDefinitionResource(_modelLoader, url, mapping, textureBaseUrl, combineParts);
     }
 
     return QSharedPointer<Resource>(resource, &Resource::deleter);

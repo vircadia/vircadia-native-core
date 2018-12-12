@@ -238,14 +238,15 @@ void setupPreferences() {
 
     static const QString VR_MOVEMENT{ "VR Movement" };
     {
-        auto getter = [myAvatar]()->int { return myAvatar->useAdvancedMovementControls() ? 1 : 0; };
-        auto setter = [myAvatar](int value) { myAvatar->setUseAdvancedMovementControls(value == 1); };
-        auto preference = 
-            new RadioButtonsPreference(VR_MOVEMENT, "Teleporting only / Walking and teleporting", getter, setter);
-        QStringList items;
-        items << "Teleporting only" << "Walking and teleporting";
-        preference->setHeading("Movement mode");
-        preference->setItems(items);
+        auto getter = [myAvatar]()->bool { return myAvatar->getAllowTeleporting(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setAllowTeleporting(value); };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Teleporting", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->bool { return myAvatar->useAdvancedMovementControls(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Walking", getter, setter);
         preferences->addPreference(preference);
     }
     {

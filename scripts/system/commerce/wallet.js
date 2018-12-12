@@ -536,6 +536,10 @@ function fromQml(message) {
         shouldShowDotHistory = false;
         ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
         break;
+    case 'clearShouldShowDotUpdates':
+        shouldShowDotUpdates = false;
+        ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
+        break;
     case 'http.request':
         // Handled elsewhere, don't log.
         break;
@@ -578,7 +582,7 @@ function notificationDataProcessPageHistory(data) {
 
 var shouldShowDotUpdates = false;
 function notificationPollCallbackUpdates(updatesArray) {
-    shouldShowDotUpdates = shouldShowDotUpdates || updatesArray.length > 0;
+    shouldShowDotUpdates = updatesArray.length > 0;
     ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
 
     if (updatesArray.length > 0) {
