@@ -42,8 +42,8 @@ Item {
             maxWidth = root.width;
             maxHeight = root.height;
             if (root.isTablet === false) {
-                var targetWidth = Math.max(Math.max(titleWidth, Math.max(additionalTextContainer.contentWidth,
-                                                                termsContainer.contentWidth)), mainContainer.width)
+                var targetWidth = Math.max(Math.max(titleWidth, Math.max(additionalTextContainer.width,
+                                                                termsContainer.width)), mainContainer.width)
                 parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
             }
             var targetHeight = Math.max(5 * hifi.dimensions.contentSpacing.y + d.minHeightButton + additionalTextContainer.height + termsContainer.height, d.maxHeight)
@@ -88,7 +88,7 @@ Item {
                     visible: true
                 }
                 Component.onCompleted: {
-                    if (loginErrorMessageTextMetrics.width > 350 && root.isTablet) {
+                    if (loginErrorMessageTextMetrics.width > root.bannerWidth && root.isTablet) {
                         loginErrorMessage.wrapMode = Text.WordWrap;
                         loginErrorMessage.verticalAlignment = Text.AlignLeft;
                         loginErrorMessage.horizontalAlignment = Text.AlignLeft;
@@ -148,64 +148,102 @@ Item {
                 }
             }
 
-            HifiStylesUit.ShortcutText {
+            Item {
                 id: additionalTextContainer
+                width: parent.width
+                height: additionalTextMetrics.height
                 anchors {
                     top: buttons.bottom
                     horizontalCenter: parent.horizontalCenter
-                    margins: 0
                     topMargin: hifi.dimensions.contentSpacing.y
+                    left: parent.left
                 }
 
-                text: "<a href='https://fake.link'>Already have a High Fidelity profile? Link to an existing profile here.</a>"
+                TextMetrics {
+                    id: additionalTextMetrics
+                    font: additionalText.font
+                    text: "Already have a High Fidelity profile? Link to an existing profile here."
+                }
 
-                font.family: completeProfileBody.fontFamily
-                font.pixelSize: completeProfileBody.fontSize
-                font.bold: completeProfileBody.fontBold
-                wrapMode: Text.WordWrap
-                lineHeight: 2
-                lineHeightMode: Text.ProportionalHeight
-                horizontalAlignment: Text.AlignHCenter
-                linkColor: hifi.colors.blueAccent
+                HifiStylesUit.ShortcutText {
+                    id: additionalText
+                    text: "<a href='https://fake.link'>Already have a High Fidelity profile? Link to an existing profile here.</a>"
 
-                onLinkActivated: {
-                    loginDialog.isLogIn = true;
-                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "", "withSteam": true, "linkSteam": true });
+                    font.family: completeProfileBody.fontFamily
+                    font.pixelSize: completeProfileBody.fontSize
+                    font.bold: completeProfileBody.fontBold
+                    wrapMode: Text.NoWrap
+                    lineHeight: 1
+                    lineHeightMode: Text.ProportionalHeight
+                    horizontalAlignment: Text.AlignHCenter
+                    linkColor: hifi.colors.blueAccent
+
+                    onLinkActivated: {
+                        loginDialog.isLogIn = true;
+                        bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "", "withSteam": true, "linkSteam": true });
+                    }
+                    Component.onCompleted: {
+                        if (additionalTextMetrics.width > root.bannerWidth && root.isTablet) {
+                            additionalText.width = root.bannerWidth;
+                            additionalText.wrapMode = Text.WordWrap;
+                            additionalText.verticalAlignment = Text.AlignLeft;
+                            additionalText.horizontalAlignment = Text.AlignLeft;
+                            additionalTextContainer.height = 3 * additionalTextMetrics.height;
+                            additionalTextContainer.anchors.left = buttons.left;
+                        } else {
+                            additionalText.anchors.centerIn = additionalTextContainer;
+                        }
+                    }
                 }
             }
 
-            TextMetrics {
-                id: termsContainerTextMetrics
-                font: termsContainer.font
-                text: completeProfileBody.termsContainerText
-                Component.onCompleted: {
-                    // with the link.
-                    termsContainer.text = qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
-                }
-            }
-
-            HifiStylesUit.InfoItem {
+            Item {
                 id: termsContainer
+                width: parent.width
+                height: termsTextMetrics.height
                 anchors {
                     top: additionalTextContainer.bottom
-                    margins: 0
-                    topMargin: 2 * hifi.dimensions.contentSpacing.y
                     horizontalCenter: parent.horizontalCenter
+                    topMargin: 2 * hifi.dimensions.contentSpacing.y
                     left: parent.left
-                    leftMargin: (parent.width - termsContainerTextMetrics.width) / 2
+                }
+                TextMetrics {
+                    id: termsTextMetrics
+                    font: termsText.font
+                    text: completeProfileBody.termsContainerText
+                    Component.onCompleted: {
+                        // with the link.
+                        termsText.text = qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                    }
                 }
 
-                text: completeProfileBody.termsContainerText
-                font.family: completeProfileBody.fontFamily
-                font.pixelSize: completeProfileBody.fontSize
-                font.bold: completeProfileBody.fontBold
-                wrapMode: Text.WordWrap
-                color: hifi.colors.lightGray
-                linkColor: hifi.colors.blueAccent
-                lineHeight: 1
-                lineHeightMode: Text.ProportionalHeight
+                HifiStylesUit.InfoItem {
+                    id: termsText
+                    text: completeProfileBody.termsContainerText
+                    font.family: completeProfileBody.fontFamily
+                    font.pixelSize: completeProfileBody.fontSize
+                    font.bold: completeProfileBody.fontBold
+                    wrapMode: Text.WordWrap
+                    color: hifi.colors.lightGray
+                    linkColor: hifi.colors.blueAccent
+                    lineHeight: 1
+                    lineHeightMode: Text.ProportionalHeight
 
-                onLinkActivated: loginDialog.openUrl(link);
+                    onLinkActivated: loginDialog.openUrl(link);
+
+                    Component.onCompleted: {
+                        if (termsTextMetrics.width > root.bannerWidth && root.isTablet) {
+                            termsText.width = root.bannerWidth;
+                            termsText.wrapMode = Text.WordWrap;
+                            additionalText.verticalAlignment = Text.AlignLeft;
+                            additionalText.horizontalAlignment = Text.AlignLeft;
+                            termsContainer.height = 3 * termsTextMetrics.height;
+                            termsContainer.anchors.left = buttons.left;
+                        } else {
+                            termsText.anchors.centerIn = termsContainer;
+                        }
+                    }
+                }
             }
         }
     }

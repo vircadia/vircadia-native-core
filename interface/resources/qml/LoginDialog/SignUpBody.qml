@@ -313,10 +313,10 @@ Item {
                 }
                 onCheckedChanged: {
                     Settings.setValue("keepMeLoggedIn", checked);
-                }
-                Component.onDestruction: {
                     if (keepMeLoggedInCheckbox.checked) {
                         Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                    } else {
+                        Settings.setValue("keepMeLoggedIn/savedUsername", "");
                     }
                 }
             }

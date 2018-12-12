@@ -52,8 +52,6 @@ FocusScope {
     }
 
     function tryDestroy() {
-        canceled();
-        root.destroy();
     }
 
     MouseArea {

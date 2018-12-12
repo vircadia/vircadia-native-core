@@ -108,7 +108,7 @@ Item {
             id: loginContainer
             width: emailField.width
             height: errorContainer.height + emailField.height + passwordField.height + 5.5 * hifi.dimensions.contentSpacing.y +
-                keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height
+                keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height + steamInfoTextMetrics.height
             anchors {
                 top: parent.top
                 topMargin: root.bannerHeight + 0.25 * parent.height
@@ -268,10 +268,10 @@ Item {
                 }
                 onCheckedChanged: {
                     Settings.setValue("keepMeLoggedIn", checked);
-                }
-                Component.onDestruction: {
                     if (keepMeLoggedInCheckbox.checked) {
                         Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                    } else {
+                        Settings.setValue("keepMeLoggedIn/savedUsername", "");
                     }
                 }
             }
@@ -309,8 +309,14 @@ Item {
                     linkAccountBody.login()
                 }
             }
+            TextMetrics {
+                id: steamInfoTextMetrics
+                font: steamInfoText.font
+                text: steamInfoText.text
+            }
             Text {
                 id: steamInfoText
+                width: root.bannerWidth
                 visible: linkAccountBody.linkSteam
                 anchors {
                     top: loginButton.bottom
@@ -324,6 +330,11 @@ Item {
                 text: qsTr("Your Steam account information will not be exposed to others.");
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
+                Component.onCompleted: {
+                    if (steamInfoTextMetrics.width > root.bannerWidth) {
+                        steamInfoText.wrapMode = Text.WordWrap;
+                    }
+                }
             }
             TextMetrics {
                 id: cantAccessTextMetrics
