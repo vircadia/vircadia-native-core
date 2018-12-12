@@ -188,7 +188,7 @@ Item {
                             additionalText.wrapMode = Text.WordWrap;
                             additionalText.verticalAlignment = Text.AlignLeft;
                             additionalText.horizontalAlignment = Text.AlignLeft;
-                            additionalTextContainer.height = 3 * additionalTextMetrics.height;
+                            additionalTextContainer.height = (additionalTextMetrics.width / root.bannerWidth) * additionalTextMetrics.height;
                             additionalTextContainer.anchors.left = buttons.left;
                         } else {
                             additionalText.anchors.centerIn = additionalTextContainer;
@@ -237,7 +237,7 @@ Item {
                             termsText.wrapMode = Text.WordWrap;
                             additionalText.verticalAlignment = Text.AlignLeft;
                             additionalText.horizontalAlignment = Text.AlignLeft;
-                            termsContainer.height = 3 * termsTextMetrics.height;
+                            termsContainer.height = (termsTextMetrics.width / root.bannerWidth) * termsTextMetrics.height;
                             termsContainer.anchors.left = buttons.left;
                         } else {
                             termsText.anchors.centerIn = termsContainer;
