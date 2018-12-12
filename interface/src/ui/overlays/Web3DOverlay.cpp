@@ -238,7 +238,8 @@ void Web3DOverlay::setupQmlSurface(bool isTablet, bool isLoginDialog) {
 
     if (isTablet || isLoginDialog) {
         _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
-    } else if (isTablet) {
+    }
+    if (isTablet) {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         auto flags = tabletScriptingInterface->getFlags();
 

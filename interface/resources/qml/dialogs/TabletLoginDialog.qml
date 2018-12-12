@@ -26,6 +26,8 @@ FocusScope {
     height: parent.height
 
     signal sendToScript(var message);
+    signal canceled();
+
     property bool isHMD: false
     property bool gotoPreviousApp: false;
 
@@ -50,7 +52,8 @@ FocusScope {
     }
 
     function tryDestroy() {
-        canceled()
+        canceled();
+        root.destroy();
     }
 
     MouseArea {
