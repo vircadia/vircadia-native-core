@@ -957,9 +957,9 @@ public:
     /**jsdoc
      * @function MyAvatar.updateAvatarEntity
      * @param {Uuid} entityID
-     * @param {string} entityData
+     * @param {object} entityData
      */
-    Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& entityID, const QString& entityPropertiesString);
+    Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& id, const QScriptValue& data);
 
     /**jsdoc
      * @function MyAvatar.clearAvatarEntity
@@ -1140,10 +1140,11 @@ public:
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
 
     /**jsdoc
+     * Temporarily disabled.  Use updateAvatarEntity(id, properties) in the meantime.
      * @function MyAvatar.setAvatarEntityData
      * @param {object} avatarEntityData
      */
-    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
+    void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
 
     virtual void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     void insertDetachedEntityID(const QUuid entityID);

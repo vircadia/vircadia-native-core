@@ -235,12 +235,12 @@ public:
     void updateDisplayNameAlpha(bool showDisplayName);
     virtual void setSessionDisplayName(const QString& sessionDisplayName) override { }; // no-op
 
+    virtual void updateAvatarEntity(const QUuid& entityID, const QScriptValue& entityData) override { }; // no-op
+
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
     static void renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                                float radius1, float radius2, const glm::vec4& color);
-
-    virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
     /**jsdoc
      * Set the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 

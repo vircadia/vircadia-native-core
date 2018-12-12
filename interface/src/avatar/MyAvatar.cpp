@@ -2061,6 +2061,10 @@ void MyAvatar::clearJointsData() {
     _skeletonModel->getRig().clearJointStates();
 }
 
+void MyAvatar::updateAvatarEntity(const QUuid& id, const QScriptValue& data) {
+    // TODO: implement this
+}
+
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelChangeCount++;
     int skeletonModelChangeCount = _skeletonModelChangeCount;

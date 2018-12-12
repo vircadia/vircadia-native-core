@@ -16,6 +16,7 @@
 #include <AnimSkeleton.h>
 #include <AvatarData.h>
 #include <ScriptEngine.h>
+#include <EntityItem.h>
 
 /**jsdoc
  * The <code>Avatar</code> API is used to manipulate scriptable avatars on the domain. This API is a subset of the 
@@ -184,6 +185,7 @@ public:
     bool getHasProceduralEyeFaceMovement() const override { return _headData->getHasProceduralEyeFaceMovement(); }
     void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
     bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
+    void updateAvatarEntity(const QUuid& id, const QScriptValue& data) override;
 
 public slots:
     void update(float deltatime);
@@ -202,6 +204,7 @@ private:
     QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _fstJointNames; ///< in order of depth-first traversal
     QUrl _skeletonFBXURL;
+    std::map<QUuid, EntityItemPointer> _entities;
 
     /// Loads the joint indices, names from the FST file (if any)
     void updateJointMappings();

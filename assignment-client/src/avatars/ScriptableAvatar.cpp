@@ -21,6 +21,8 @@
 #include <GLMHelpers.h>
 #include <ResourceRequestObserver.h>
 #include <AvatarLogging.h>
+#include <EntityItem.h>
+#include <EntityItemProperties.h>
 
 
 ScriptableAvatar::ScriptableAvatar() {
@@ -248,4 +250,53 @@ void ScriptableAvatar::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFace
 
 void ScriptableAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) {
     _headData->setHasAudioEnabledFaceMovement(hasAudioEnabledFaceMovement);
+}
+
+void ScriptableAvatar::updateAvatarEntity(const QUuid& id, const QScriptValue& data) {
+    if (data.isNull()) {
+        // interpret this as a DELETE
+        std::map<QUuid, EntityItemPointer>::iterator itr = _entities.find(id);
+        if (itr != _entities.end()) {
+            _entities.erase(itr);
+            clearAvatarEntity(id);
+        }
+    } else {
+        EntityItemPointer entity;
+        EntityItemProperties properties;
+        bool honorReadOnly = true;
+        properties.copyFromScriptValue(data, honorReadOnly);
+
+        std::map<QUuid, EntityItemPointer>::iterator itr = _entities.find(id);
+        if (itr == _entities.end()) {
+            // this is an ADD
+            entity = EntityTypes::constructEntityItem(id, properties);
+            if (entity) {
+                OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
+                EncodeBitstreamParams params;
+                EntityTreeElementExtraEncodeDataPointer extra { nullptr };
+                OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
+
+                if (appendState == OctreeElement::COMPLETED) {
+                    _entities[id] = entity;
+                    QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
+                    storeAvatarEntityDataPayload(id, tempArray);
+                }
+            }
+        } else {
+            // this is an UPDATE
+            entity = itr->second;
+            bool somethingChanged = entity->setProperties(properties);
+            if (somethingChanged) {
+                OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
+                EncodeBitstreamParams params;
+                EntityTreeElementExtraEncodeDataPointer extra { nullptr };
+                OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
+
+                if (appendState == OctreeElement::COMPLETED) {
+                    QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
+                    storeAvatarEntityDataPayload(id, tempArray);
+                }
+            }
+        }
+    }
 }

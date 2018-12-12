@@ -151,3 +151,7 @@ EntityItemPointer EntityTypes::constructEntityItem(const unsigned char* data, in
     }
     return nullptr;
 }
+
+EntityItemPointer EntityTypes::constructEntityItem(const QUuid& id, const EntityItemProperties& properties) {
+    return constructEntityItem(properties.getType(), id, properties);
+}

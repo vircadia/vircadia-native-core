@@ -116,6 +116,7 @@ public:
     static void extractEntityTypeAndID(const unsigned char* data, int dataLength, EntityTypes::EntityType& typeOut, QUuid& idOut);
     static EntityItemPointer constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer constructEntityItem(const unsigned char* data, int bytesToRead);
+    static EntityItemPointer constructEntityItem(const QUuid& id, const EntityItemProperties& properties);
 
 private:
     static QMap<EntityType, QString> _typeToNameMap;
