@@ -199,6 +199,14 @@ void Connection::recordRetransmission(int wireSize, int payloadSize,
     _congestionControl->onPacketReSent(wireSize, seqNum, timePoint);
 }
 
+void Connection::recordSentUnreliablePackets(int wireSize, int payloadSize) {
+    _stats.recordUnreliableSentPackets(payloadSize, wireSize);
+}
+
+void Connection::recordRecievedUnreliablePackets(int wireSize, int payloadSize) {
+    _stats.recordUnreliableReceivedPackets(payloadSize, wireSize);
+}
+
 void Connection::sendACK() {
     SequenceNumber nextACKNumber = nextACK();
 

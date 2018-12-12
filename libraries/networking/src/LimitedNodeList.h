@@ -319,6 +319,11 @@ public:
     void sendFakedHandshakeRequestToNode(SharedNodePointer node);
 #endif
 
+    int getInboundPPS() const { return _inboundPPS; }
+    int getOutboundPPS() const { return _outboundPPS; }
+    float getInboundKbps() const { return _inboundKbps; }
+    float getOutboundKbps() const { return _outboundKbps; }
+
 public slots:
     void reset();
     void eraseAllNodes();
@@ -332,10 +337,10 @@ public slots:
 
     bool killNodeWithUUID(const QUuid& nodeUUID, ConnectionID newConnectionID = NULL_CONNECTION_ID);
 
-signals:
-    void dataSent(quint8 channelType, int bytes);
-    void dataReceived(quint8 channelType, int bytes);
+private slots:
+    void sampleConnectionStats();
 
+signals:
     // QUuid might be zero for non-sourced packet types.
     void packetVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
 
@@ -442,6 +447,11 @@ private:
     LocalIDMapping _localIDMap;
     Node::LocalID _sessionLocalID { 0 };
     bool _flagTimeForConnectionStep { false }; // only keep track in interface
+
+    int _inboundPPS { 0 };
+    int _outboundPPS { 0 };
+    float _inboundKbps { 0.0f };
+    float _outboundKbps { 0.0f };
 };
 
 #endif // hifi_LimitedNodeList_h

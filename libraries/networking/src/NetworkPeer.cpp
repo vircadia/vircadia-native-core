@@ -228,19 +228,3 @@ QDebug operator<<(QDebug debug, const NetworkPeer &peer) {
         << "- local:" << peer.getLocalSocket();
     return debug;
 }
-
-void NetworkPeer::recordBytesSent(int count) const {
-    _bandwidthRecorder.updateOutboundData(0, count);
-}
-
-void NetworkPeer::recordBytesReceived(int count) const {
-    _bandwidthRecorder.updateInboundData(0, count);
-}
-
-float NetworkPeer::getOutboundBandwidth() const {
-    return _bandwidthRecorder.getAverageOutputKilobitsPerSecond(0);
-}
-
-float NetworkPeer::getInboundBandwidth() const {
-    return _bandwidthRecorder.getAverageInputKilobitsPerSecond(0);
-}

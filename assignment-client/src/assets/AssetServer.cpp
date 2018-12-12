@@ -915,59 +915,52 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
 void AssetServer::sendStatsPacket() {
     QJsonObject serverStats;
 
-    auto stats = DependencyManager::get<NodeList>()->sampleStatsForAllConnections();
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->eachNode([&](auto& node) {
+        auto& stats = node->getConnectionStats();
 
-    for (const auto& stat : stats) {
         QJsonObject nodeStats;
-        auto endTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(stat.second.endTime);
+        auto endTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(stats.endTime);
         QDateTime date = QDateTime::fromMSecsSinceEpoch(endTimeMs.count());
 
         static const float USEC_PER_SEC = 1000000.0f;
         static const float MEGABITS_PER_BYTE = 8.0f / 1000000.0f; // Bytes => Mbits
-        float elapsed = (float)(stat.second.endTime - stat.second.startTime).count() / USEC_PER_SEC; // sec
+        float elapsed = (float)(stats.endTime - stats.startTime).count() / USEC_PER_SEC; // sec
         float megabitsPerSecPerByte = MEGABITS_PER_BYTE / elapsed; // Bytes => Mb/s
 
         QJsonObject connectionStats;
         connectionStats["1. Last Heard"] = date.toString();
-        connectionStats["2. Est. Max (P/s)"] = stat.second.estimatedBandwith;
-        connectionStats["3. RTT (ms)"] = stat.second.rtt;
-        connectionStats["4. CW (P)"] = stat.second.congestionWindowSize;
-        connectionStats["5. Period (us)"] = stat.second.packetSendPeriod;
-        connectionStats["6. Up (Mb/s)"] = stat.second.sentBytes * megabitsPerSecPerByte;
-        connectionStats["7. Down (Mb/s)"] = stat.second.receivedBytes * megabitsPerSecPerByte;
+        connectionStats["2. Est. Max (P/s)"] = stats.estimatedBandwith;
+        connectionStats["3. RTT (ms)"] = stats.rtt;
+        connectionStats["4. CW (P)"] = stats.congestionWindowSize;
+        connectionStats["5. Period (us)"] = stats.packetSendPeriod;
+        connectionStats["6. Up (Mb/s)"] = stats.sentBytes * megabitsPerSecPerByte;
+        connectionStats["7. Down (Mb/s)"] = stats.receivedBytes * megabitsPerSecPerByte;
         nodeStats["Connection Stats"] = connectionStats;
 
         using Events = udt::ConnectionStats::Stats::Event;
-        const auto& events = stat.second.events;
+        const auto& events = stats.events;
 
         QJsonObject upstreamStats;
-        upstreamStats["1. Sent (P/s)"] = stat.second.sendRate;
-        upstreamStats["2. Sent Packets"] = stat.second.sentPackets;
+        upstreamStats["1. Sent (P/s)"] = stats.sendRate;
+        upstreamStats["2. Sent Packets"] = (int)stats.sentPackets;
         upstreamStats["3. Recvd ACK"] = events[Events::ReceivedACK];
         upstreamStats["4. Procd ACK"] = events[Events::ProcessedACK];
-        upstreamStats["5. Retransmitted"] = stat.second.retransmittedPackets;
+        upstreamStats["5. Retransmitted"] = (int)stats.retransmittedPackets;
         nodeStats["Upstream Stats"] = upstreamStats;
 
         QJsonObject downstreamStats;
-        downstreamStats["1. Recvd (P/s)"] = stat.second.receiveRate;
-        downstreamStats["2. Recvd Packets"] = stat.second.receivedPackets;
+        downstreamStats["1. Recvd (P/s)"] = stats.receiveRate;
+        downstreamStats["2. Recvd Packets"] = (int)stats.receivedPackets;
         downstreamStats["3. Sent ACK"] = events[Events::SentACK];
-        downstreamStats["4. Duplicates"] = stat.second.duplicatePackets;
+        downstreamStats["4. Duplicates"] = (int)stats.duplicatePackets;
         nodeStats["Downstream Stats"] = downstreamStats;
 
-        QString uuid;
-        auto nodelist = DependencyManager::get<NodeList>();
-        if (stat.first == nodelist->getDomainHandler().getSockAddr()) {
-            uuid = uuidStringWithoutCurlyBraces(nodelist->getDomainHandler().getUUID());
-            nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = "DomainServer";
-        } else {
-            auto node = nodelist->findNodeWithAddr(stat.first);
-            uuid = uuidStringWithoutCurlyBraces(node ? node->getUUID() : QUuid());
-            nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuid;
-        }
+        QString uuid = uuidStringWithoutCurlyBraces(node->getUUID());
+        nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuid;
 
         serverStats[uuid] = nodeStats;
-    }
+    });
 
     // send off the stats packets
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(serverStats);

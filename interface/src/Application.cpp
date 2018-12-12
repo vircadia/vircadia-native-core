@@ -859,7 +859,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<LODManager>();
     DependencyManager::set<StandAloneJSConsole>();
     DependencyManager::set<DialogsManager>();
-    DependencyManager::set<BandwidthRecorder>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>(true);
@@ -1574,13 +1573,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(onAboutToQuit()));
 
-    // hook up bandwidth estimator
-    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
-    connect(nodeList.data(), &LimitedNodeList::dataSent,
-        bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
-    connect(nodeList.data(), &LimitedNodeList::dataReceived,
-        bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
-
     // FIXME -- I'm a little concerned about this.
     connect(myAvatar->getSkeletonModel().get(), &SkeletonModel::skeletonLoaded,
         this, &Application::checkSkeleton, Qt::QueuedConnection);
@@ -2046,15 +2038,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["deadlock_watchdog_maxElapsed"] = (int)DeadlockWatchdogThread::_maxElapsed;
         properties["deadlock_watchdog_maxElapsedAverage"] = (int)DeadlockWatchdogThread::_maxElapsedAverage;
 
-        auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
-        properties["packet_rate_in"] = bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond();
-        properties["packet_rate_out"] = bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond();
-        properties["kbps_in"] = bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond();
-        properties["kbps_out"] = bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond();
-
-        properties["atp_in_kbps"] = bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer);
-
         auto nodeList = DependencyManager::get<NodeList>();
+        properties["packet_rate_in"] = nodeList->getInboundPPS();
+        properties["packet_rate_out"] = nodeList->getOutboundPPS();
+        properties["kbps_in"] = nodeList->getInboundKbps();
+        properties["kbps_out"] = nodeList->getOutboundKbps();
+
         SharedNodePointer entityServerNode = nodeList->soloNodeOfType(NodeType::EntityServer);
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
@@ -2065,6 +2054,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["avatar_ping"] = avatarMixerNode ? avatarMixerNode->getPingMs() : -1;
         properties["asset_ping"] = assetServerNode ? assetServerNode->getPingMs() : -1;
         properties["messages_ping"] = messagesMixerNode ? messagesMixerNode->getPingMs() : -1;
+        properties["atp_in_kbps"] = messagesMixerNode ? assetServerNode->getInboundKbps() : 0.0f;
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
 

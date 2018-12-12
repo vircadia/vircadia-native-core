@@ -129,6 +129,12 @@ qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
         sequenceNumber = ++_unreliableSequenceNumbers[sockAddr];
     }
 
+    auto connection = findOrCreateConnection(sockAddr, true);
+    if (connection) {
+        connection->recordSentUnreliablePackets(packet.getWireSize(),
+                                                packet.getPayloadSize());
+    }
+
     // write the correct sequence number to the Packet here
     packet.writeSequenceNumber(sequenceNumber);
 
@@ -392,9 +398,10 @@ void Socket::readPendingDatagrams() {
 
             // call our verification operator to see if this packet is verified
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
+                auto connection = findOrCreateConnection(senderSockAddr, true);
+
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
-                    auto connection = findOrCreateConnection(senderSockAddr, true);
 
                     if (!connection || !connection->processReceivedSequenceNumber(packet->getSequenceNumber(),
                                                                                   packet->getDataSize(),
@@ -406,6 +413,9 @@ void Socket::readPendingDatagrams() {
 #endif
                         continue;
                     }
+                } else if (connection) {
+                    connection->recordRecievedUnreliablePackets(packet->getWireSize(),
+                                                                packet->getPayloadSize());
                 }
 
                 if (packet->isPartOfMessage()) {

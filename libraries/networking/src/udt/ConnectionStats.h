@@ -76,7 +76,6 @@ public:
     ConnectionStats();
     
     Stats sample();
-    Stats getTotalStats();
     
     void record(Stats::Event event);
     
@@ -88,16 +87,12 @@ public:
     
     void recordUnreliableSentPackets(int payload, int total);
     void recordUnreliableReceivedPackets(int payload, int total);
-    
-    void recordSendRate(int sample);
-    void recordReceiveRate(int sample);
-    void recordRTT(int sample);
+
     void recordCongestionWindowSize(int sample);
     void recordPacketSendPeriod(int sample);
     
 private:
     Stats _currentSample;
-    Stats _total;
 };
     
 }
