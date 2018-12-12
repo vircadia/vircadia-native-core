@@ -5196,7 +5196,6 @@ void Application::pauseUntilLoginDetermined() {
     menu->getMenu("Navigate")->setVisible(false);
     menu->getMenu("Settings")->setVisible(false);
     _developerMenuVisible = menu->getMenu("Developer")->isVisible();
-    _showStatsEnabled = menu->isOptionChecked(MenuOption::Stats);
     menu->setIsOptionChecked(MenuOption::Stats, false);
     if (_developerMenuVisible) {
         menu->getMenu("Developer")->setVisible(false);
@@ -5285,7 +5284,6 @@ void Application::resumeAfterLoginDialogActionTaken() {
     menu->getMenu("Navigate")->setVisible(true);
     menu->getMenu("Settings")->setVisible(true);
     menu->getMenu("Developer")->setVisible(_developerMenuVisible);
-    menu->setIsOptionChecked(MenuOption::Stats, _showStatsEnabled);
     _myCamera.setMode(_previousCameraMode);
     cameraModeChanged();
 }

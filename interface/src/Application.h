@@ -688,7 +688,6 @@ private:
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
     bool _interstitialModeEnabled{ false };
-    bool _showStatsEnabled{ false };
 
     bool _loginDialogPoppedUp = false;
     // if visible before login popped up.
