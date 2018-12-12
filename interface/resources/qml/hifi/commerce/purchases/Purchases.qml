@@ -664,7 +664,7 @@ Rectangle {
                                 if (msg.isInstalled) {
                                     Commerce.uninstallApp(msg.itemHref);
                                 }
-                                Commerce.transferAssetToUsername("TrashCan", msg.certID, 1, "Sent " + msg.itemName + " to trash.");
+                                Commerce.transferAssetToUsername("trashbot", msg.certID, 1, "Sent " + msg.itemName + " to trash.");
 
                                 lightboxPopup.titleText = '"' + msg.itemName + '" Sent to Trash';
                                 lightboxPopup.button1text = "OK";
