@@ -246,11 +246,6 @@ Script.include("/~/system/libraries/controllers.js");
             } else if ((type === intersectionType["HifiKeyboard"] && laserOn) || type === intersectionType["Overlay"]) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
-            } else if (isTriggerPressed && !this.getInteractableType(controllerData, isTriggerPressed, true)) {
-                // if trigger is down + not pointing at a web entity, keep running web surface laser
-                this.running = true;
-                return makeRunningValues(true, [], []);
-
             }
 
             this.deleteContextOverlay();

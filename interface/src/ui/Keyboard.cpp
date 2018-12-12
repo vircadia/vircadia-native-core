@@ -488,6 +488,10 @@ void Keyboard::switchToLayer(int layerIndex) {
     }
 }
 
+bool Keyboard::shouldProcessOverlayAndPointerEvent(const PointerEvent& event, const OverlayID& overlayID) const {
+    return (shouldProcessPointerEvent(event) && shouldProcessOverlay(overlayID));
+}
+
 bool Keyboard::shouldProcessPointerEvent(const PointerEvent& event) const {
     bool preferMalletsOverLasers = getPreferMalletsOverLasers();
     unsigned int pointerID = event.getID();
@@ -497,12 +501,8 @@ bool Keyboard::shouldProcessPointerEvent(const PointerEvent& event) const {
 }
 
 void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent& event) {
-    if (getExitEarly(overlayID)) {
-        return;
-    }
-
     auto buttonType = event.getButton();
-    if (!shouldProcessPointerEvent(event) || buttonType != PointerEvent::PrimaryButton) {
+    if (!shouldProcessOverlayAndPointerEvent(event, overlayID) || buttonType != PointerEvent::PrimaryButton) {
         return;
     }
 
@@ -608,11 +608,7 @@ void Keyboard::setRightHandLaser(unsigned int rightHandLaser) {
 }
 
 void Keyboard::handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& event) {
-    if (getExitEarly(overlayID)) {
-        return;
-    }
-
-    if (!shouldProcessPointerEvent(event)) {
+    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
         return;
     }
 
@@ -641,11 +637,7 @@ void Keyboard::handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& 
 }
 
 void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEvent& event) {
-    if (getExitEarly(overlayID)) {
-        return;
-    }
-
-    if (!shouldProcessPointerEvent(event)) {
+    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
         return;
     }
 
@@ -684,11 +676,7 @@ void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEv
 }
 
 void Keyboard::handleHoverBegin(const OverlayID& overlayID, const PointerEvent& event) {
-    if (getExitEarly(overlayID)) {
-        return;
-    }
-
-    if (!shouldProcessPointerEvent(event)) {
+    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
         return;
     }
 
@@ -704,11 +692,7 @@ void Keyboard::handleHoverBegin(const OverlayID& overlayID, const PointerEvent& 
 }
 
 void Keyboard::handleHoverEnd(const OverlayID& overlayID, const PointerEvent& event) {
-    if (getExitEarly(overlayID)) {
-        return;
-    }
-
-    if (!shouldProcessPointerEvent(event)) {
+    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
         return;
     }
 
@@ -927,8 +911,8 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
     request->send();
 }
 
-bool Keyboard::getExitEarly(OverlayID overlayID) const {
-    return (_keyboardLayers.empty() || !isLayerSwitchTimerFinished() || overlayID == _backPlate.overlayID);
+bool Keyboard::shouldProcessOverlay(const OverlayID& overlayID) const {
+    return (!_keyboardLayers.empty() && isLayerSwitchTimerFinished() && overlayID != _backPlate.overlayID);
 }
 
 QVector<OverlayID> Keyboard::getKeysID() {
