@@ -270,8 +270,7 @@ Item {
                     Settings.setValue("keepMeLoggedIn", checked);
                 }
                 Component.onDestruction: {
-                    Settings.setValue("keepMeLoggedIn", checked);
-                    if (checked) {
+                    if (keepMeLoggedInCheckbox.checked) {
                         Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
                     }
                 }
