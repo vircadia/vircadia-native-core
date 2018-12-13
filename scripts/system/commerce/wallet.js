@@ -377,12 +377,8 @@ function deleteSendMoneyParticleEffect() {
 }
 
 function onUsernameChanged() {
-    if (Account.username !== Settings.getValue("keepMeLoggedIn/savedUsername")) {
-        Settings.setValue("keepMeLoggedIn", false);
-        Settings.setValue("keepMeLoggedIn/savedUsername", "");
-    }
 }    
-    
+
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
 var METAVERSE_SERVER_URL = Account.metaverseServerURL;
 var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?"; // Append "?" to signal injected script that it's the initial page.
