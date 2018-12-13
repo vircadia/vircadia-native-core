@@ -131,22 +131,6 @@ Item {
                         break;
                 }
             }
-            Component.onCompleted: {
-                root.text = "";
-                root.isPassword = false;
-            }
-        }
-
-        // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
-        HifiControlsUit.Keyboard {
-            raised: keyboardEnabled && keyboardRaised
-            numeric: punctuationMode
-            anchors {
-                left: parent.left
-                right: parent.right
-                bottom: buttons.top
-                bottomMargin: keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
-            }
         }
 
         Item {
@@ -199,6 +183,14 @@ Item {
                 }
             }
         }
+    }
+
+    Component.onCompleted: {
+        //but rise Tablet's one instead for Tablet interface
+        root.keyboardEnabled = HMD.active;
+        root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
+        root.text = "";
+        d.resize();
     }
 
     Connections {

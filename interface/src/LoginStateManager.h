@@ -20,8 +20,8 @@
 
 class LoginStateManager : protected ReadWriteLockable {
 public:
-    LoginStateManager() {}
-    ~LoginStateManager() {}
+    LoginStateManager() = default;
+    ~LoginStateManager() = default;
 
     void setUp();
     void tearDown();
