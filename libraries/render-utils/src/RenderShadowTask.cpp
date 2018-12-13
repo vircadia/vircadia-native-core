@@ -58,8 +58,8 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 
     // FIXME: calling this here before the zones/lights are drawn during the deferred/forward passes means we're actually using the frames from the previous draw
     // Fetch the current frame stacks from all the stages
-    const auto currentFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
-    const auto lightFrame = currentFrames.getN<FetchCurrentFrames::Output>(0);
+    // Starting with the Light Frame  genreated in previous tasks
+    const auto& lightFrame = input;
 
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup", lightFrame);
     const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(1);

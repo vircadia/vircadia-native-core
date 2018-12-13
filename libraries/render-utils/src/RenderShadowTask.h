@@ -49,9 +49,10 @@ class RenderShadowTask {
 public:
 
     // There is one AABox per shadow cascade
+    using Input = LightStage::FramePointer;
     using Output = render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>;
     using Config = RenderShadowTaskConfig;
-    using JobModel = render::Task::ModelO<RenderShadowTask, Output, Config>;
+    using JobModel = render::Task::ModelIO<RenderShadowTask, Input, Output, Config>;
 
     RenderShadowTask() {}
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cameraCullFunctor, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
