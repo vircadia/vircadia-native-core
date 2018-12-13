@@ -8623,15 +8623,15 @@ void Application::setShowBulletConstraintLimits(bool value) {
 
 void Application::createLoginDialogOverlay() {
     const glm::vec2 LOGIN_OVERLAY_DIMENSIONS{ 0.89f, 0.5f };
-    const auto overlayOffset = glm::vec2(0.7f, -0.1f);
+    const auto OVERLAY_OFFSET = glm::vec2(0.7f, -0.1f);
     auto cameraPosition = _myCamera.getPosition();
     auto cameraOrientation = _myCamera.getOrientation();
     auto upVec = getMyAvatar()->getWorldOrientation() * Vectors::UNIT_Y;
     auto headLookVec = (cameraOrientation * Vectors::FRONT);
     // DEFAULT_DPI / tablet scale percentage
-    const float overlayDpi = 31.0f / (75.0f / 100.0f);
-    auto offset = headLookVec * overlayOffset.x;
-    const auto overlayPosition = (cameraPosition + offset) + (upVec * overlayOffset.y);
+    const float OVERLAY_DPI = 31.0f / (75.0f / 100.0f);
+    auto offset = headLookVec * OVERLAY_OFFSET.x;
+    auto overlayPosition = (cameraPosition + offset) + (upVec * OVERLAY_OFFSET.y);
     QVariantMap overlayProperties = {
         { "name", "LoginDialogOverlay" },
         { "url", OVERLAY_LOGIN_DIALOG_URL },
@@ -8650,11 +8650,11 @@ void Application::createLoginDialogOverlay() {
     auto loginOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlays.getOverlay(_loginDialogOverlayID));
     auto keyboard = DependencyManager::get<Keyboard>().data();
     if (!keyboard->getAnchorID().isNull() && !_loginDialogOverlayID.isNull()) {
-        const auto keyboardLocalOrientation = glm::quat(0.0f, 0.0, 1.0f, 0.25f);
-        const auto keyboardLocalOffset = glm::vec3(-0.4f * getMyAvatar()->getSensorToWorldScale(), -0.3f, 0.2f);
+        const auto KEYBOARD_LOCAL_ORIENTATION = glm::quat(0.0f, 0.0, 1.0f, 0.25f);
+        auto keyboardLocalOffset = glm::vec3(-0.4f * getMyAvatar()->getSensorToWorldScale(), -0.3f, 0.2f);
         QVariantMap properties {
             { "position", vec3toVariant(loginOverlay->getWorldPosition() + keyboardLocalOffset) },
-            { "orientation", quatToVariant(loginOverlay->getWorldOrientation() * keyboardLocalOrientation) },
+            { "orientation", quatToVariant(loginOverlay->getWorldOrientation() * KEYBOARD_LOCAL_ORIENTATION) },
         };
         overlays.editOverlay(keyboard->getAnchorID(), properties);
         keyboard->setResetKeyboardPositionOnRaise(false);
@@ -8670,7 +8670,7 @@ void Application::createLoginDialogOverlay() {
 
 void Application::updateLoginDialogOverlayPosition() {
     const float LOOK_AWAY_THRESHOLD_ANGLE = 40.0f;
-    const auto overlayOffset = glm::vec2(0.7f, -0.1f);
+    const auto OVERLAY_OFFSET = glm::vec2(0.7f, -0.1f);
     auto& overlays = getOverlays();
     auto loginOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlays.getOverlay(_loginDialogOverlayID));
     auto overlayPositionVec = loginOverlay->getWorldPosition();
@@ -8680,18 +8680,18 @@ void Application::updateLoginDialogOverlayPosition() {
     auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
     auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
     auto upVec = getMyAvatar()->getWorldOrientation() * Vectors::UNIT_Y;
-    auto offset = headLookVec * overlayOffset.x;
-    const auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * overlayOffset.y);
-    const auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
+    auto offset = headLookVec * OVERLAY_OFFSET.x;
+    auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * OVERLAY_OFFSET.y);
+    auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
 
     bool overlayOutOfBounds = glm::distance(overlayPositionVec, cameraPositionVec) > 1.0f;
 
     if (pointAngle > LOOK_AWAY_THRESHOLD_ANGLE || overlayOutOfBounds) {
-        const auto keyboardLocalOrientation = glm::quat(0.0f, 0.0, 1.0f, 0.25f);
-        const auto keyboardLocalOffset = glm::vec3(-0.4f * getMyAvatar()->getSensorToWorldScale(), -0.3f, 0.2f);
+        const auto KEYBOARD_LOCAL_ORIENTATION = glm::quat(0.0f, 0.0, 1.0f, 0.25f);
+        auto keyboardLocalOffset = glm::vec3(-0.4f * getMyAvatar()->getSensorToWorldScale(), -0.3f, 0.2f);
         QVariantMap keyboardProperties {
             { "position", vec3toVariant(loginOverlay->getWorldPosition() + keyboardLocalOffset) },
-            { "orientation", quatToVariant(loginOverlay->getWorldOrientation() * keyboardLocalOrientation) },
+            { "orientation", quatToVariant(loginOverlay->getWorldOrientation() * KEYBOARD_LOCAL_ORIENTATION) },
         };
         auto keyboard = DependencyManager::get<Keyboard>().data();
         overlays.editOverlay(keyboard->getAnchorID(), keyboardProperties);
