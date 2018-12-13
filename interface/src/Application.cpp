@@ -8642,7 +8642,7 @@ void Application::createLoginDialogOverlay() {
         { "ignorePickIntersection", false },
         { "alpha", 1.0 },
         { "dimensions", vec2ToVariant(LOGIN_OVERLAY_DIMENSIONS)},
-        { "dpi", overlayDpi },
+        { "dpi", OVERLAY_DPI },
         { "visible", true }
     };
     auto& overlays = getOverlays();
