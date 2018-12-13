@@ -11,17 +11,56 @@
 
 #include "AvatarProject.h"
 
-AvatarProject* AvatarProject::openAvatarProject(QString path) {
+#include <FSTReader.h>
+
+#include <QFile>
+#include <QFileInfo>
+#include <QUrl>
+#include <QDebug>
+
+AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
     const auto pathToLower = path.toLower();
     if (pathToLower.endsWith(".fst")) {
-        // TODO: do we open FSTs from any path?
-        return new AvatarProject(path);
+        QFile file{ path };
+        if (!file.open(QIODevice::ReadOnly)) {
+            return nullptr;
+        }
+        return new AvatarProject(path, file.readAll());
     }
 
     if (pathToLower.endsWith(".fbx")) {
         // TODO: Create FST here:
-
     }
 
     return nullptr;
+}
+
+AvatarProject::AvatarProject(const QString& fstPath, const QByteArray& data) :
+    _fstPath(fstPath), _fst(fstPath, FSTReader::readMapping(data)) {
+
+    _directory = QFileInfo(_fstPath).absoluteDir();
+
+    //_projectFiles = _directory.entryList();
+    refreshProjectFiles();
+
+    auto fileInfo = QFileInfo(_fstPath);
+    _projectPath = fileInfo.absoluteDir().absolutePath();
+}
+
+void AvatarProject::appendDirectory(QString prefix, QDir dir) {
+    qDebug() << "Inside of " << prefix << dir.absolutePath();
+    auto flags = QDir::Dirs | QDir::Files | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::Hidden;
+    for (auto& entry : dir.entryInfoList({}, flags)) {
+        if (entry.isFile()) {
+            _projectFiles.append(prefix + "/" + entry.fileName());
+        } else if (entry.isDir()) {
+            qDebug() << "Found dir " << entry.absoluteFilePath() << " in " << dir.absolutePath();
+            appendDirectory(prefix + dir.dirName() + "/", entry.absoluteFilePath());
+        }
+    }
+}
+
+void AvatarProject::refreshProjectFiles() {
+    _projectFiles.clear();
+    appendDirectory("", _directory);
 }

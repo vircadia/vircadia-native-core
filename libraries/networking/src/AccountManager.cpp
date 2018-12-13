@@ -208,6 +208,44 @@ void AccountManager::setSessionID(const QUuid& sessionID) {
     }
 }
 
+QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::Type authType) {
+    QNetworkRequest networkRequest;
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+    networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER,
+                                uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
+
+    QUrl requestURL = _authURL;
+    
+    if (requestURL.isEmpty()) {  // Assignment client doesn't set _authURL.
+        requestURL = getMetaverseServerURL();
+    }
+
+    if (path.startsWith("/")) {
+        requestURL.setPath(path);
+    } else {
+        requestURL.setPath("/" + path);
+    }
+
+    if (authType != AccountManagerAuth::None ) {
+        if (hasValidAccessToken()) {
+            networkRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
+                                        _accountInfo.getAccessToken().authorizationHeaderValue());
+        } else {
+            if (authType == AccountManagerAuth::Required) {
+                qCDebug(networking) << "No valid access token present. Bailing on invoked request to"
+                    << path << "that requires authentication";
+                return QNetworkRequest();
+            }
+        }
+    }
+
+    networkRequest.setUrl(requestURL);
+
+    return networkRequest;
+}
+
 void AccountManager::sendRequest(const QString& path,
                                  AccountManagerAuth::Type authType,
                                  QNetworkAccessManager::Operation operation,
@@ -231,46 +269,10 @@ void AccountManager::sendRequest(const QString& path,
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
-    QNetworkRequest networkRequest;
-    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
-
-    networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER,
-                                uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
-
-    QUrl requestURL = _authURL;
-    
-    if (requestURL.isEmpty()) {  // Assignment client doesn't set _authURL.
-        requestURL = getMetaverseServerURL();
-    }
-
-    if (path.startsWith("/")) {
-        requestURL.setPath(path);
-    } else {
-        requestURL.setPath("/" + path);
-    }
-
-    if (!query.isEmpty()) {
-        requestURL.setQuery(query);
-    }
-
-    if (authType != AccountManagerAuth::None ) {
-        if (hasValidAccessToken()) {
-            networkRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
-                                        _accountInfo.getAccessToken().authorizationHeaderValue());
-        } else {
-            if (authType == AccountManagerAuth::Required) {
-                qCDebug(networking) << "No valid access token present. Bailing on invoked request to"
-                    << path << "that requires authentication";
-                return;
-            }
-        }
-    }
-
-    networkRequest.setUrl(requestURL);
+    QNetworkRequest networkRequest = createRequest(path, authType);
 
     if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-        qCDebug(networking) << "Making a request to" << qPrintable(requestURL.toString());
+        qCDebug(networking) << "Making a request to" << qPrintable(networkRequest.url().toString());
 
         if (!dataByteArray.isEmpty()) {
             qCDebug(networking) << "The POST/PUT body -" << QString(dataByteArray);

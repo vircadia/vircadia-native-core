@@ -13,12 +13,21 @@
 #ifndef hifi_AvatarProject_h
 #define hifi_AvatarProject_h
 
+#include "FST.h"
+
+#include <QDir>
 #include <QObject>
 #include <QDir>
 #include <QFileInfo>
+#include <QVariantHash>
+#include <QUuid>
 
 class AvatarProject : public QObject {
     Q_OBJECT
+    Q_PROPERTY(FST* fst READ getFST)
+
+    Q_PROPERTY(QStringList projectFiles MEMBER _projectFiles)
+
     Q_PROPERTY(QString projectFolderPath READ getProjectPath)
     Q_PROPERTY(QString projectFSTPath READ getFSTPath)
     Q_PROPERTY(QString projectFBXPath READ getFBXPath)
@@ -37,17 +46,10 @@ public:
     /**
      * returns the AvatarProject or a nullptr on failure.
      */
-    static AvatarProject* openAvatarProject(QString path);
+    static AvatarProject* openAvatarProject(const QString& path);
 
 private:
-    AvatarProject(QString fstPath) :
-        _fstPath(fstPath) {
-        auto fileInfo = QFileInfo(_fstPath);
-        _projectPath = fileInfo.absoluteDir().absolutePath();
-
-        _fstPath = _projectPath + "TemporaryFBX.fbx";
-
-    }
+    AvatarProject(const QString& fstPath, const QByteArray& data);
 
     ~AvatarProject() {
         // TODO: cleanup FST / AvatarProjectUploader etc.
@@ -55,13 +57,19 @@ private:
 
     Q_INVOKABLE QString getProjectPath() const { return _projectPath; }
     Q_INVOKABLE QString getFSTPath() const { return _fstPath; }
-    Q_INVOKABLE QString getFBXPath() const { return _fbxPath; }
+    Q_INVOKABLE QString getFBXPath() const { return _fst.getModelPath(); }
 
+    FST* getFST() { return &_fst; }
+
+    void refreshProjectFiles();
+    void appendDirectory(QString prefix, QDir dir);
+
+    FST _fst;
+
+    QDir _directory;
+    QStringList _projectFiles{};
     QString _projectPath;
     QString _fstPath;
-    // TODO: handle this in the FST Class
-    QString _fbxPath;
-    
 };
 
-#endif // hifi_AvatarProject_h
+#endif  // hifi_AvatarProject_h

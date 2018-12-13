@@ -13,26 +13,23 @@ Rectangle {
 
     property int colorScheme;
 
+    color: "blue"
+
     visible: true
-    
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: parent.top
-    anchors.bottom: parent.bottom
+
+    anchors.fill: parent
 
     RalewaySemiBold {
         id: avatarProjectLabel
         size: 24;
-        anchors.left: parent.left
-        anchors.top: parent.top
+        width: parent.width
         anchors.topMargin: 25
         anchors.bottomMargin: 25
         text: 'Avatar Project'
     }
     HifiControls.Button {
         id: openFolderButton
-        anchors.left: parent.left
-        anchors.right: parent.right
+        width: parent.width
         anchors.top: avatarProjectLabel.bottom
         text: qsTr("Open Project Folder")
         colorScheme: root.colorScheme
@@ -43,15 +40,32 @@ Rectangle {
     }
     HifiControls.Button {
         id: uploadButton
-        anchors.left: parent.left
-        anchors.right: parent.right
+        width: parent.width
         anchors.top: openFolderButton.bottom
         text: qsTr("Upload")
         color: hifi.buttons.blue
         colorScheme: root.colorScheme
         height: 30
         onClicked: function() {
-                
+        }
+    }
+    Text {
+        id: modelText
+        anchors.top: uploadButton.bottom
+        height: 30
+        text: parent.height
+    }
+    Rectangle {
+        color: 'white'
+        visible: AvatarPackagerCore.currentAvatarProject !== null
+        width: parent.width
+        anchors.top: modelText.bottom
+        height: 1000
+
+        ListView {
+            anchors.fill: parent
+            model: AvatarPackagerCore.currentAvatarProject === null ? [] : AvatarPackagerCore.currentAvatarProject.projectFiles
+            delegate: Text { text: '<b>File:</b> ' + modelData }
         }
     }
 }
