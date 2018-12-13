@@ -15,6 +15,18 @@
 #include <QUrl>
 
 #include <OffscreenUi.h>
+#include "ModelSelector.h"
+#include <avatar/MarketplaceItemUploader.h>
+
+#include <thread>
+#include <mutex>
+
+std::once_flag setupQMLTypesFlag;
+AvatarPackager::AvatarPackager() {
+    std::call_once(setupQMLTypesFlag, []() {
+        qmlRegisterType<FST>();
+    });
+}
 
 bool AvatarPackager::open() {
     static const QUrl url{ "hifi/AvatarPackager.qml" };
@@ -32,5 +44,11 @@ QObject* AvatarPackager::openAvatarProject(QString avatarProjectFSTPath) {
         //_currentAvatarProject = nullptr;
     }
     _currentAvatarProject = AvatarProject::openAvatarProject(avatarProjectFSTPath);
+    emit avatarProjectChanged();
     return _currentAvatarProject;
+}
+
+QObject* AvatarPackager::uploadItem() {
+    std::vector<QString> filePaths;
+    return new MarketplaceItemUploader(QUuid(), filePaths);
 }

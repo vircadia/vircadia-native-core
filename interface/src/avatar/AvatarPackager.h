@@ -21,16 +21,23 @@
 class AvatarPackager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    Q_PROPERTY(QObject* currentAvatarProject READ getAvatarProject)
+    Q_PROPERTY(QObject* currentAvatarProject READ getAvatarProject NOTIFY avatarProjectChanged)
 
 public:
+    AvatarPackager();
     bool open();
 
     Q_INVOKABLE QObject* openAvatarProject(QString avatarProjectFSTPath);
 
+signals:
+    void avatarProjectChanged();
+
 private:
     Q_INVOKABLE AvatarProject* getAvatarProject() const { return _currentAvatarProject; };
-    AvatarProject* _currentAvatarProject { nullptr };
+    //Q_INVOKABLE QObject* openAvatarProject();
+    Q_INVOKABLE QObject* uploadItem();
+
+    AvatarProject* _currentAvatarProject{ nullptr };
 };
 
-#endif // hifi_AvatarPackager_h
+#endif  // hifi_AvatarPackager_h

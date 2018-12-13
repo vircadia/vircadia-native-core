@@ -23,14 +23,13 @@ Windows.ScrollingWindow {
 
     //HifiConstants { id: hifi }
     Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
+        anchors.fill: parent
+
         AvatarProject {
             id: avatarProject
             colorScheme: root.colorScheme
             visible: false
+            anchors.fill: parent
         }
 
         Rectangle {
