@@ -19,6 +19,7 @@ Preference {
     property bool value: false
     Component.onCompleted: {
         checkBox.checked = preference.value;
+        value = checkBox.checked;
         preference.value = Qt.binding(function(){ return checkBox.checked; });
         value = checkBox.checked;
     }

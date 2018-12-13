@@ -351,6 +351,12 @@ void Keyboard::raiseKeyboardAnchor(bool raise) const {
         };
 
         overlays.editOverlay(_textDisplay.overlayID, textDisplayProperties);
+
+        auto backPlateOverlay = std::dynamic_pointer_cast<Cube3DOverlay>(overlays.getOverlay(_backPlate.overlayID));
+
+        if (backPlateOverlay) {
+            backPlateOverlay->setVisible(raise);
+        }
     }
 }
 
@@ -382,6 +388,17 @@ void Keyboard::scaleKeyboard(float sensorToWorldScale) {
     };
 
     overlays.editOverlay(_textDisplay.overlayID, textDisplayProperties);
+
+
+    glm::vec3 backPlateScaledDimensions = _backPlate.dimensions * sensorToWorldScale;
+    glm::vec3 backPlateScaledLocalPosition = _backPlate.localPosition * sensorToWorldScale;
+
+    QVariantMap backPlateProperties {
+        { "localPosition", vec3toVariant(backPlateScaledLocalPosition) },
+        { "dimensions", vec3toVariant(backPlateScaledDimensions) }
+    };
+
+    overlays.editOverlay(_backPlate.overlayID, backPlateProperties);
 }
 
 void Keyboard::startLayerSwitchTimer() {
@@ -391,7 +408,7 @@ void Keyboard::startLayerSwitchTimer() {
     }
 }
 
-bool Keyboard::isLayerSwitchTimerFinished() {
+bool Keyboard::isLayerSwitchTimerFinished() const {
     if (_layerSwitchTimer) {
         return (_layerSwitchTimer->remainingTime() <= 0);
     }
@@ -433,6 +450,16 @@ void Keyboard::setResetKeyboardPositionOnRaise(bool reset) {
             _resetKeyboardPositionOnRaise = reset;
         });
     }
+void Keyboard::setPreferMalletsOverLasers(bool preferMalletsOverLasers) {
+    _preferMalletsOverLasersSettingLock.withWriteLock([&] {
+        _preferMalletsOverLasers.set(preferMalletsOverLasers);
+    });
+}
+
+bool Keyboard::getPreferMalletsOverLasers() const {
+    return _preferMalletsOverLasersSettingLock.resultWithReadLock<bool>([&] {
+        return _preferMalletsOverLasers.get();
+    });
 }
 
 void Keyboard::switchToLayer(int layerIndex) {
@@ -469,15 +496,21 @@ void Keyboard::switchToLayer(int layerIndex) {
     }
 }
 
+bool Keyboard::shouldProcessOverlayAndPointerEvent(const PointerEvent& event, const OverlayID& overlayID) const {
+    return (shouldProcessPointerEvent(event) && shouldProcessOverlay(overlayID));
+}
+
+bool Keyboard::shouldProcessPointerEvent(const PointerEvent& event) const {
+    bool preferMalletsOverLasers = getPreferMalletsOverLasers();
+    unsigned int pointerID = event.getID();
+    bool isStylusEvent = (pointerID == _leftHandStylus || pointerID == _rightHandStylus);
+    bool isLaserEvent = (pointerID == _leftHandLaser || pointerID == _rightHandLaser);
+    return ((isStylusEvent && preferMalletsOverLasers) || (isLaserEvent && !preferMalletsOverLasers));
+}
+
 void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent& event) {
-    if (_keyboardLayers.empty() || !isLayerSwitchTimerFinished()) {
-        return;
-    }
-
-    auto pointerID = event.getID();
     auto buttonType = event.getButton();
-
-    if ((pointerID != _leftHandStylus && pointerID != _rightHandStylus) || buttonType != PointerEvent::PrimaryButton) {
+    if (!shouldProcessOverlayAndPointerEvent(event, overlayID) || buttonType != PointerEvent::PrimaryButton) {
         return;
     }
 
@@ -491,8 +524,10 @@ void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent
     Key& key = search.value();
 
     if (key.timerFinished()) {
+        unsigned int pointerID = event.getID();
+        auto handIndex = (pointerID == _leftHandStylus || pointerID == _leftHandLaser)
+            ? controller::Hand::LEFT : controller::Hand::RIGHT;
 
-        auto handIndex = (pointerID == _leftHandStylus) ? controller::Hand::LEFT : controller::Hand::RIGHT;
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         userInputMapper->triggerHapticPulse(PULSE_STRENGTH, PULSE_DURATION, handIndex);
 
@@ -560,19 +595,28 @@ void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent
         QCoreApplication::postEvent(QCoreApplication::instance(), pressEvent);
         QCoreApplication::postEvent(QCoreApplication::instance(), releaseEvent);
 
-        key.startTimer(KEY_PRESS_TIMEOUT_MS);
+        if (!getPreferMalletsOverLasers()) {
+            key.startTimer(KEY_PRESS_TIMEOUT_MS);
+        }
         auto selection = DependencyManager::get<SelectionScriptingInterface>();
         selection->addToSelectedItemsList(KEY_PRESSED_HIGHLIGHT, "overlay", overlayID);
     }
 }
 
-void Keyboard::handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& event) {
-    if (_keyboardLayers.empty() || !isLayerSwitchTimerFinished()) {
-        return;
-    }
+void Keyboard::setLeftHandLaser(unsigned int leftHandLaser) {
+    _handLaserLock.withWriteLock([&] {
+        _leftHandLaser = leftHandLaser;
+    });
+}
 
-    auto pointerID = event.getID();
-    if (pointerID != _leftHandStylus && pointerID != _rightHandStylus) {
+void Keyboard::setRightHandLaser(unsigned int rightHandLaser) {
+    _handLaserLock.withWriteLock([&] {
+        _rightHandLaser = rightHandLaser;
+    });
+}
+
+void Keyboard::handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& event) {
+    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
         return;
     }
 
@@ -592,7 +636,7 @@ void Keyboard::handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& 
     }
 
     key.setIsPressed(false);
-    if (key.timerFinished()) {
+    if (key.timerFinished() && getPreferMalletsOverLasers()) {
         key.startTimer(KEY_PRESS_TIMEOUT_MS);
     }
 
@@ -601,13 +645,7 @@ void Keyboard::handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& 
 }
 
 void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEvent& event) {
-    if (_keyboardLayers.empty() || !isLayerSwitchTimerFinished()) {
-        return;
-    }
-
-    auto pointerID = event.getID();
-
-    if (pointerID != _leftHandStylus && pointerID != _rightHandStylus) {
+    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
         return;
     }
 
@@ -621,10 +659,11 @@ void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEv
     Key& key = search.value();
     Overlays& overlays = qApp->getOverlays();
 
-    if (!key.isPressed()) {
+    if (!key.isPressed() && getPreferMalletsOverLasers()) {
         auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(overlayID));
 
         if (base3DOverlay) {
+            unsigned int pointerID = event.getID();
             auto pointerManager = DependencyManager::get<PointerManager>();
             auto pickResult = pointerManager->getPrevPickResult(pointerID);
             auto stylusPickResult = std::dynamic_pointer_cast<StylusPickResult>(pickResult);
@@ -645,13 +684,7 @@ void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEv
 }
 
 void Keyboard::handleHoverBegin(const OverlayID& overlayID, const PointerEvent& event) {
-    if (_keyboardLayers.empty() || !isLayerSwitchTimerFinished()) {
-        return;
-    }
-
-    auto pointerID = event.getID();
-
-    if (pointerID != _leftHandStylus && pointerID != _rightHandStylus) {
+    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
         return;
     }
 
@@ -667,13 +700,7 @@ void Keyboard::handleHoverBegin(const OverlayID& overlayID, const PointerEvent& 
 }
 
 void Keyboard::handleHoverEnd(const OverlayID& overlayID, const PointerEvent& event) {
-      if (_keyboardLayers.empty() || !isLayerSwitchTimerFinished()) {
-        return;
-    }
-
-    auto pointerID = event.getID();
-
-    if (pointerID != _leftHandStylus && pointerID != _rightHandStylus) {
+    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
         return;
     }
 
@@ -764,6 +791,27 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
         anchor.overlayID = overlays.addOverlay("cube", anchorProperties);
         anchor.originalDimensions = dimensions;
         _anchor = anchor;
+
+        QJsonObject backPlateObject = jsonObject["backPlate"].toObject();
+
+        QVariantMap backPlateProperties {
+            { "name", "backPlate"},
+            { "isSolid", true },
+            { "visible", true },
+            { "grabbable", false },
+            { "alpha", 0.0 },
+            { "ignoreRayIntersection", false},
+            { "dimensions", backPlateObject["dimensions"].toVariant() },
+            { "position", backPlateObject["position"].toVariant() },
+            { "orientation", backPlateObject["rotation"].toVariant() },
+            { "parentID", _anchor.overlayID }
+        };
+
+        BackPlate backPlate;
+        backPlate.overlayID = overlays.addOverlay("cube", backPlateProperties);
+        backPlate.dimensions = vec3FromVariant(backPlateObject["dimensions"].toVariant());
+        backPlate.localPosition = vec3FromVariant(overlays.getProperty(backPlate.overlayID, "localPosition").value);
+        _backPlate = backPlate;
 
         const QJsonArray& keyboardLayers = jsonObject["layers"].toArray();
         int keyboardLayerCount = keyboardLayers.size();
@@ -871,10 +919,15 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
     request->send();
 }
 
+
 OverlayID Keyboard::getAnchorID() {
     return _ignoreItemsLock.resultWithReadLock<OverlayID>([&] {
         return _anchor.overlayID;
     });
+}
+
+bool Keyboard::shouldProcessOverlay(const OverlayID& overlayID) const {
+    return (!_keyboardLayers.empty() && isLayerSwitchTimerFinished() && overlayID != _backPlate.overlayID);
 }
 
 QVector<OverlayID> Keyboard::getKeysID() {
@@ -894,6 +947,7 @@ void Keyboard::clearKeyboardKeys() {
 
     overlays.deleteOverlay(_anchor.overlayID);
     overlays.deleteOverlay(_textDisplay.overlayID);
+    overlays.deleteOverlay(_backPlate.overlayID);
 
     _keyboardLayers.clear();
 
@@ -903,10 +957,38 @@ void Keyboard::clearKeyboardKeys() {
 }
 
 void Keyboard::enableStylus() {
+    if (getPreferMalletsOverLasers()) {
+        enableRightMallet();
+        enableLeftMallet();
+    }
+}
+
+void Keyboard::enableRightMallet() {
     auto pointerManager = DependencyManager::get<PointerManager>();
-    pointerManager->setRenderState(_leftHandStylus, "events on");
-    pointerManager->enablePointer(_leftHandStylus);
     pointerManager->setRenderState(_rightHandStylus, "events on");
     pointerManager->enablePointer(_rightHandStylus);
+}
 
+void Keyboard::enableLeftMallet() {
+     auto pointerManager = DependencyManager::get<PointerManager>();
+     pointerManager->setRenderState(_leftHandStylus, "events on");
+     pointerManager->enablePointer(_leftHandStylus);
+}
+
+void Keyboard::disableLeftMallet() {
+    auto pointerManager = DependencyManager::get<PointerManager>();
+    pointerManager->setRenderState(_leftHandStylus, "events off");
+    pointerManager->disablePointer(_leftHandStylus);
+}
+
+void Keyboard::disableRightMallet() {
+    auto pointerManager = DependencyManager::get<PointerManager>();
+    pointerManager->setRenderState(_rightHandStylus, "events off");
+    pointerManager->disablePointer(_rightHandStylus);
+}
+
+bool Keyboard::containsID(OverlayID overlayID) const {
+    return resultWithReadLock<bool>([&] {
+        return _itemsToIgnore.contains(overlayID) || _backPlate.overlayID == overlayID;
+    });
 }
