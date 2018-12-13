@@ -1948,7 +1948,7 @@ private:
     Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
     std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
-    std::map<QUuid, QByteArray> _poorlyFormattedAvatarEntityData;
+    std::map<QUuid, QByteArray> _cachedAvatarEntityDataSettings;
     std::set<QUuid> _entitiesToSaveToSettings;
     std::set<QUuid> _entitiesToRemoveFromSettings;
 };

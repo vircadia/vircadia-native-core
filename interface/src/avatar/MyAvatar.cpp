@@ -1321,22 +1321,22 @@ void MyAvatar::saveAvatarEntityDataToSettings() {
         for (const auto& id : _entitiesToRemoveFromSettings) {
             // remove
             entitiesToSave.erase(id);
-            std::map<QUuid, QByteArray>::iterator itr =  _poorlyFormattedAvatarEntityData.find(id);
-            if (itr != _poorlyFormattedAvatarEntityData.end()) {
-                _poorlyFormattedAvatarEntityData.erase(itr);
+            std::map<QUuid, QByteArray>::iterator itr =  _cachedAvatarEntityDataSettings.find(id);
+            if (itr != _cachedAvatarEntityDataSettings.end()) {
+                _cachedAvatarEntityDataSettings.erase(itr);
             }
         }
         for (const auto& id : entitiesToSave) {
             // remove old strings to be replaced by new saves
-            std::map<QUuid, QByteArray>::iterator itr =  _poorlyFormattedAvatarEntityData.find(id);
-            if (itr != _poorlyFormattedAvatarEntityData.end()) {
-                _poorlyFormattedAvatarEntityData.erase(itr);
+            std::map<QUuid, QByteArray>::iterator itr =  _cachedAvatarEntityDataSettings.find(id);
+            if (itr != _cachedAvatarEntityDataSettings.end()) {
+                _cachedAvatarEntityDataSettings.erase(itr);
             }
         }
         _entitiesToRemoveFromSettings.clear();
     });
 
-    uint32_t numEntities = (uint32_t)(entitiesToSave.size() + _poorlyFormattedAvatarEntityData.size());
+    uint32_t numEntities = (uint32_t)(entitiesToSave.size() + _cachedAvatarEntityDataSettings.size());
     uint32_t prevNumEntities = _avatarEntityCountSetting.get(0);
     resizeAvatarEntitySettingHandles(std::max<uint32_t>(numEntities, prevNumEntities));
 
@@ -1353,11 +1353,11 @@ void MyAvatar::saveAvatarEntityDataToSettings() {
                 }
             }
         });
-        // convert properties to strings
+        // convert properties to our unfortunately-formatted-binary-blob format
         QScriptEngine scriptEngine;
         QScriptValue toStringMethod = scriptEngine.evaluate("(function() { return JSON.stringify(this) })");
         for (const auto& entry : allProperties) {
-            // begin recipe our unfortunate legacy avatarEntityData format
+            // begin recipe for converting to our unfortunately-formatted-binar-blob
             QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, entry.second);
             QVariant variantProperties = scriptValue.toVariant();
             QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
@@ -1372,11 +1372,12 @@ void MyAvatar::saveAvatarEntityDataToSettings() {
             QByteArray binaryProperties = jsonProperties.toBinaryData();
             // end recipe
 
-            _poorlyFormattedAvatarEntityData[entry.first] = binaryProperties;
+            // remember this unfortunately-formatted-binary-blob for later so we don't have go through this again
+            _cachedAvatarEntityDataSettings[entry.first] = binaryProperties;
         }
-        // save all strings
+        // save all unfortunately-formatted-binary-blobs to settings
         uint32_t i = 0;
-        for (const auto& entry : _poorlyFormattedAvatarEntityData) {
+        for (const auto& entry : _cachedAvatarEntityDataSettings) {
             _avatarEntityIDSettings[i].set(entry.first);
             _avatarEntityDataSettings[i].set(entry.second);
             ++i;
@@ -1570,7 +1571,7 @@ void MyAvatar::loadData() {
 
 void MyAvatar::loadAvatarEntityDataFromSettings() {
     _avatarEntitiesLock.withReadLock([&] {
-        _avatarEntityData.clear();
+        _packedAvatarEntityData.clear();
     });
 
     _reloadAvatarEntityDataFromSettings = false;
@@ -1580,32 +1581,34 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
     }
 
     QScriptEngine scriptEngine;
-    std::vector<EntityItemProperties> entitiesToLoad;
+    std::vector< std::pair<QUuid, EntityItemProperties> > entitiesToLoad;
     resizeAvatarEntitySettingHandles(numEntities);
     for (int i = 0; i < numEntities; i++) {
-        QUuid entityID = QUuid::createUuid(); // generate a new ID
-        QByteArray binaryData = _avatarEntityDataSettings[i].get();
-        //updateAvatarEntity(entityID, binaryData);
+        QUuid id = QUuid::createUuid(); // generate a new ID
 
+        // the avatarEntityData is stored as an unfortunately-formatted-binary-blob
+        QByteArray binaryData = _avatarEntityDataSettings[i].get();
 
         _avatarEntityDataChanged = true;
         if (_clientTraitsHandler) {
             // we have a client traits handler, so we need to mark this instanced trait as changed
             // so that changes will be sent next frame
-            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, id);
         }
 
+        // begin recipe to extract EntityItemProperties from unfortunately-formatted-binary-blob
         QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(binaryData);
         if (!jsonProperties.isObject()) {
             qCDebug(interfaceapp) << "bad avatarEntityData json" << QString(binaryData.toHex());
             continue;
         }
-
-        QVariant variantProperties = jsonProperties.toVariant();
-        QVariantMap asMap = variantProperties.toMap();
-        QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
+        QVariant variant = jsonProperties.toVariant();
+        QVariantMap variantMap = variant.toMap();
+        QScriptValue scriptValue = variantMapToScriptValue(variantMap, scriptEngine);
         EntityItemProperties properties;
-        EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, properties);
+        EntityItemPropertiesFromScriptValueHonorReadOnly(scriptValue, properties);
+        // end recipe
+
         properties.setEntityHostType(entity::HostType::AVATAR);
         properties.setOwningAvatarID(getID());
 
@@ -1624,36 +1627,38 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
         // and seems safe (per Seth).
         properties.markAllChanged();
 
-        entitiesToLoad.push_back(properties);
+        entitiesToLoad.push_back({id, properties});
     }
 
-    _poorlyFormattedAvatarEntityData.clear();
+    _cachedAvatarEntityDataSettings.clear();
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
         OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
         EncodeBitstreamParams params;
         EntityTreeElementExtraEncodeDataPointer extra { nullptr };
-        for (uint32_t i = 0; i < entitiesToLoad.size(); ++i) {
+        uint32_t i = 0;
+        for (const auto& entry : entitiesToLoad) {
             // try to create the entity
-            QUuid entityID = QUuid::createUuid(); // generate a new ID
             entityTree->withWriteLock([&] {
-                EntityItemPointer entity = entityTree->addEntity(entityID, entitiesToLoad[i]);
+                QUuid id = entry.first;
+                EntityItemPointer entity = entityTree->addEntity(id, entry.second);
                 if (entity) {
                     // use the entity to build the data payload
                     OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
                     if (appendState == OctreeElement::COMPLETED) {
                         // only remember an AvatarEntity that successfully loads and can be packed
                         QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
-                        storeAvatarEntityDataPayload(entityID, tempArray);
+                        storeAvatarEntityDataPayload(id, tempArray);
 
-                        // we store these binaryProperties for later: when saving back to settings
-                        // unfortunately we must use this non-human-readable format because reasons
-                        _poorlyFormattedAvatarEntityData[entityID] = _avatarEntityDataSettings[i].get();
+                        // only cache things that successfully loaded and packed
+                        // we cache these binaryProperties for later: for when saving back to settings
+                        _cachedAvatarEntityDataSettings[id] = _avatarEntityDataSettings[i].get();
                     }
                     packetData.reset();
                 }
             });
+            ++i;
         }
     } else {
         // TODO? handle this case: try to load AvatatEntityData from settings again later?
