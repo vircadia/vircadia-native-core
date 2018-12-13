@@ -6,18 +6,17 @@ import QtGraphicalEffects 1.0
 import "../../controlsUit" 1.0 as HifiControls
 import "../../stylesUit" 1.0
 
-Rectangle {
+Item {
     id: root
 
     HifiConstants { id: hifi }
 
     property int colorScheme;
 
-    color: "blue"
-
     visible: true
 
     anchors.fill: parent
+    anchors.margins: 10
 
     RalewaySemiBold {
         id: avatarProjectLabel
@@ -26,11 +25,13 @@ Rectangle {
         anchors.topMargin: 25
         anchors.bottomMargin: 25
         text: 'Avatar Project'
+        color: "white"
     }
     HifiControls.Button {
         id: openFolderButton
         width: parent.width
         anchors.top: avatarProjectLabel.bottom
+        anchors.topMargin: 10
         text: qsTr("Open Project Folder")
         colorScheme: root.colorScheme
         height: 30
@@ -38,34 +39,32 @@ Rectangle {
             fileDialogHelper.openDirectory(AvatarPackagerCore.currentAvatarProject.projectFolderPath);
         }
     }
-    HifiControls.Button {
-        id: uploadButton
-        width: parent.width
-        anchors.top: openFolderButton.bottom
-        text: qsTr("Upload")
-        color: hifi.buttons.blue
-        colorScheme: root.colorScheme
-        height: 30
-        onClicked: function() {
-        }
-    }
-    Text {
-        id: modelText
-        anchors.top: uploadButton.bottom
-        height: 30
-        text: parent.height
-    }
     Rectangle {
         color: 'white'
         visible: AvatarPackagerCore.currentAvatarProject !== null
-        width: parent.width
-        anchors.top: modelText.bottom
+        anchors.top: openFolderButton.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: uploadButton.top
+        anchors.topMargin: 10
+        anchors.bottomMargin: 10
         height: 1000
 
         ListView {
             anchors.fill: parent
             model: AvatarPackagerCore.currentAvatarProject === null ? [] : AvatarPackagerCore.currentAvatarProject.projectFiles
             delegate: Text { text: '<b>File:</b> ' + modelData }
+        }
+    }
+    HifiControls.Button {
+        id: uploadButton
+        width: parent.width
+        anchors.bottom: parent.bottom
+        text: qsTr("Upload")
+        color: hifi.buttons.blue
+        colorScheme: root.colorScheme
+        height: 30
+        onClicked: function() {
         }
     }
 }
