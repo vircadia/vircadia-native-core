@@ -7,11 +7,10 @@
 
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex, enableDispatcherModule,
-   disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE,
-   makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS, findGroupParent, Vec3,
-   cloneEntity, entityIsCloneable, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE,
-   distanceBetweenPointAndEntityBoundingBox, getGrabbableData,
-   DISPATCHER_PROPERTIES, HMD, NEAR_GRAB_DISTANCE
+   disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE,
+   makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS, findGroupParent, Vec3, cloneEntity,
+   entityIsCloneable, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, distanceBetweenPointAndEntityBoundingBox,
+   getGrabbableData, getEnabledModuleByName, DISPATCHER_PROPERTIES, HMD, NEAR_GRAB_DISTANCE
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -33,9 +32,12 @@ Script.include("/~/system/libraries/controllers.js");
             [],
             100);
 
-        this.startNearGrabEntity = function (controllerData, targetProps) {
+        this.startGrab = function (targetProps) {
+            if (this.grabID) {
+                MyAvatar.releaseGrab(this.grabID);
+            }
+
             var grabData = getGrabbableData(targetProps);
-            Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
             var handJointIndex;
             if (HMD.mounted && HMD.isHandControllerAvailable() && grabData.grabFollowsController) {
@@ -44,33 +46,42 @@ Script.include("/~/system/libraries/controllers.js");
                 handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
             }
 
-            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(targetProps.id, "startNearGrab", args);
-
             this.targetEntityID = targetProps.id;
-
-            if (this.grabID) {
-                MyAvatar.releaseGrab(this.grabID);
-            }
 
             var relativePosition = Entities.worldToLocalPosition(targetProps.position, MyAvatar.SELF_ID, handJointIndex);
             var relativeRotation = Entities.worldToLocalRotation(targetProps.rotation, MyAvatar.SELF_ID, handJointIndex);
-
             this.grabID = MyAvatar.grab(targetProps.id, handJointIndex, relativePosition, relativeRotation);
+        };
+
+        this.startNearGrabEntity = function (targetProps) {
+            Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+
+            this.startGrab(targetProps);
+
+            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+            Entities.callEntityMethod(targetProps.id, "startNearGrab", args);
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'grab',
                 grabbedEntity: targetProps.id,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
+
             this.grabbing = true;
         };
 
-        this.endNearGrabEntity = function (controllerData) {
+        this.endGrab = function () {
             if (this.grabID) {
                 MyAvatar.releaseGrab(this.grabID);
                 this.grabID = null;
             }
+        };
+
+        this.endNearGrabEntity = function () {
+            this.endGrab();
+
+            this.grabbing = false;
+            this.targetEntityID = null;
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseGrab", args);
@@ -79,9 +90,6 @@ Script.include("/~/system/libraries/controllers.js");
                 grabbedEntity: this.targetEntityID,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
-
-            this.grabbing = false;
-            this.targetEntityID = null;
         };
 
         this.getTargetProps = function (controllerData) {
@@ -123,6 +131,13 @@ Script.include("/~/system/libraries/controllers.js");
                 return makeRunningValues(false, [], []);
             }
 
+            var scaleModuleName = this.hand === RIGHT_HAND ? "RightScaleEntity" : "LeftScaleEntity";
+            var scaleModule = getEnabledModuleByName(scaleModuleName);
+            if (scaleModule.grabbedThingID || scaleModule.isReady(controllerData).active) {
+                // we're rescaling -- don't start a grab.
+                return makeRunningValues(false, [], []);
+            }
+
             var targetProps = this.getTargetProps(controllerData);
             if (targetProps) {
                 this.targetEntityID = targetProps.id;
@@ -133,17 +148,11 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData, deltaTime) {
+
             if (this.grabbing) {
                 if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE &&
                     controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
-                    this.endNearGrabEntity(controllerData);
-                    return makeRunningValues(false, [], []);
-                }
-
-                if (controllerData.secondaryValues[LEFT_HAND] >= TRIGGER_ON_VALUE &&
-                    controllerData.secondaryValues[RIGHT_HAND] >= TRIGGER_ON_VALUE) {
-                    // let scaleEntity module take over
-                    this.endNearGrabEntity(controllerData);
+                    this.endNearGrabEntity();
                     return makeRunningValues(false, [], []);
                 }
 
@@ -178,13 +187,13 @@ Script.include("/~/system/libraries/controllers.js");
                                 var cloneProps = Entities.getEntityProperties(cloneID, DISPATCHER_PROPERTIES);
                                 this.grabbing = true;
                                 this.targetEntityID = cloneID;
-                                this.startNearGrabEntity(controllerData, cloneProps);
+                                this.startNearGrabEntity(cloneProps);
                                 this.cloneAllowed = false; // prevent another clone call until inputs released
                             }
                         }
                     } else if (targetProps) {
                         this.grabbing = true;
-                        this.startNearGrabEntity(controllerData, targetProps);
+                        this.startNearGrabEntity(targetProps);
                     }
                 }
             }

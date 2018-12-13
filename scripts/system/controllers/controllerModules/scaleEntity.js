@@ -19,7 +19,7 @@
 
         this.parameters = dispatcherUtils.makeDispatcherModuleParameters(
             120,
-            this.hand === RIGHT_HAND ? ["rightHandTrigger", "rightHand"] : ["leftHandTrigger", "leftHand"],
+            this.hand === RIGHT_HAND ? ["rightHandTrigger"] : ["leftHandTrigger"],
             [],
             100
         );
@@ -63,13 +63,15 @@
                 if (thisHandTargetProps && otherHandTargetProps) {
                     if (thisHandTargetProps.id === otherHandTargetProps.id) {
                         this.grabbedThingID = thisHandTargetProps.id;
-                        this.scalingStartDistance = Vec3.length(Vec3.subtract(controllerData.controllerLocations[this.hand].position,
-                            controllerData.controllerLocations[this.otherHand()].position));
+                        this.scalingStartDistance =
+                            Vec3.length(Vec3.subtract(controllerData.controllerLocations[this.hand].position,
+                                                      controllerData.controllerLocations[this.otherHand()].position));
                         this.scalingStartDimensions = thisHandTargetProps.dimensions;
                         return dispatcherUtils.makeRunningValues(true, [], []);
                     }
                 }
             }
+            this.grabbedThingID = false;
             return dispatcherUtils.makeRunningValues(false, [], []);
         };
 
@@ -82,10 +84,11 @@
                             controllerData.controllerLocations[this.otherHand()].position));
                     var currentRescale = scalingCurrentDistance / this.scalingStartDistance;
                     var newDimensions = Vec3.multiply(currentRescale, this.scalingStartDimensions);
-                    Entities.editEntity(this.grabbedThingID, { dimensions: newDimensions });
+                    Entities.editEntity(this.grabbedThingID, { localDimensions: newDimensions });
                 }
                 return dispatcherUtils.makeRunningValues(true, [], []);
             }
+            this.grabbedThingID = false;
             return dispatcherUtils.makeRunningValues(false, [], []);
         };
     }
