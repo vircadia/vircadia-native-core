@@ -384,8 +384,6 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
 }
 
 void BuildGraphicsMeshTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
-    static int repeatMessageID = LogHandler::getInstance().newRepeatedMessageID();
-
     auto& meshes = input.get0();
     auto& url = input.get1();
     auto& meshIndicesToModelNames = input.get2();
