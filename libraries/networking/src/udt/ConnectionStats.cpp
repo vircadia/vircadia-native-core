@@ -36,6 +36,16 @@ void ConnectionStats::record(Stats::Event event) {
     ++_currentSample.events[(int) event];
 }
 
+void ConnectionStats::recordSentACK(int size) {
+    record(Stats::SentACK);
+    recordSentPackets(0, size);
+}
+
+void ConnectionStats::recordReceivedACK(int size) {
+    record(Stats::ReceivedACK);
+    recordReceivedPackets(0, size);
+}
+
 void ConnectionStats::recordSentPackets(int payload, int total) {
     ++_currentSample.sentPackets;
     _currentSample.sentUtilBytes += payload;

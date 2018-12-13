@@ -78,7 +78,10 @@ public:
     Stats sample();
     
     void record(Stats::Event event);
-    
+
+    void recordSentACK(int size);
+    void recordReceivedACK(int size);
+
     void recordSentPackets(int payload, int total);
     void recordReceivedPackets(int payload, int total);
 

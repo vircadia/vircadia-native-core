@@ -221,7 +221,7 @@ void Connection::sendACK() {
     // have the socket send off our packet
     _parentSocket->writeBasePacket(*_ackPacket, _destination);
     
-    _stats.record(ConnectionStats::Stats::SentACK);
+    _stats.recordSentACK(_ackPacket->getWireSize());
 }
 
 SequenceNumber Connection::nextACK() const {
@@ -327,7 +327,7 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
     controlPacket->readPrimitive(&ack);
     
     // update the total count of received ACKs
-    _stats.record(ConnectionStats::Stats::ReceivedACK);
+    _stats.recordReceivedACK(controlPacket->getWireSize());
     
     // validate that this isn't a BS ACK
     if (ack > getSendQueue().getCurrentSequenceNumber()) {
