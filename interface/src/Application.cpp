@@ -8622,16 +8622,16 @@ void Application::setShowBulletConstraintLimits(bool value) {
 }
 
 void Application::createLoginDialogOverlay() {
-    const auto cameraPosition = _myCamera.getPosition();
-    const auto cameraOrientation = _myCamera.getOrientation();
-    const auto upVec = getMyAvatar()->getWorldOrientation() * Vectors::UNIT_Y;
-    const auto headLookVec = (cameraOrientation * Vectors::FRONT);
+    const glm::vec2 LOGIN_OVERLAY_DIMENSIONS{ 0.89f, 0.5f };
+    const auto overlayOffset = glm::vec2(0.7f, -0.1f);
+    auto cameraPosition = _myCamera.getPosition();
+    auto cameraOrientation = _myCamera.getOrientation();
+    auto upVec = getMyAvatar()->getWorldOrientation() * Vectors::UNIT_Y;
+    auto headLookVec = (cameraOrientation * Vectors::FRONT);
     // DEFAULT_DPI / tablet scale percentage
     const float overlayDpi = 31.0f / (75.0f / 100.0f);
-    const auto offset = headLookVec * 0.7f;
-    const auto overlayPosition = (cameraPosition + offset) + (upVec * -0.1f);
-
-    const glm::vec2 LOGIN_OVERLAY_DIMENSIONS{ 0.89f, 0.5f };
+    auto offset = headLookVec * overlayOffset.x;
+    const auto overlayPosition = (cameraPosition + offset) + (upVec * overlayOffset.y);
     QVariantMap overlayProperties = {
         { "name", "LoginDialogOverlay" },
         { "url", OVERLAY_LOGIN_DIALOG_URL },
@@ -8673,18 +8673,18 @@ void Application::updateLoginDialogOverlayPosition() {
     const auto overlayOffset = glm::vec2(0.7f, -0.1f);
     auto& overlays = getOverlays();
     auto loginOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlays.getOverlay(_loginDialogOverlayID));
-    const auto overlayPositionVec = loginOverlay->getWorldPosition();
-    const auto cameraPositionVec = _myCamera.getPosition();
-    const auto cameraOrientation = cancelOutRollAndPitch(_myCamera.getOrientation());
-    const auto headLookVec = (cameraOrientation * Vectors::FRONT);
-    const auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
-    const auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
-    const auto upVec = getMyAvatar()->getWorldOrientation() * Vectors::UNIT_Y;
-    const auto offset = headLookVec * overlayOffset.x;
+    auto overlayPositionVec = loginOverlay->getWorldPosition();
+    auto cameraPositionVec = _myCamera.getPosition();
+    auto cameraOrientation = cancelOutRollAndPitch(_myCamera.getOrientation());
+    auto headLookVec = (cameraOrientation * Vectors::FRONT);
+    auto overlayToHeadVec = overlayPositionVec - cameraPositionVec;
+    auto pointAngle = (glm::acos(glm::dot(glm::normalize(overlayToHeadVec), glm::normalize(headLookVec))) * 180.0f / PI);
+    auto upVec = getMyAvatar()->getWorldOrientation() * Vectors::UNIT_Y;
+    auto offset = headLookVec * overlayOffset.x;
     const auto newOverlayPositionVec = (cameraPositionVec + offset) + (upVec * overlayOffset.y);
     const auto newOverlayOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newOverlayPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
 
-    const bool overlayOutOfBounds = glm::distance(overlayPositionVec, cameraPositionVec) > 1.0f;
+    bool overlayOutOfBounds = glm::distance(overlayPositionVec, cameraPositionVec) > 1.0f;
 
     if (pointAngle > LOOK_AWAY_THRESHOLD_ANGLE || overlayOutOfBounds) {
         const auto keyboardLocalOrientation = glm::quat(0.0f, 0.0, 1.0f, 0.25f);
