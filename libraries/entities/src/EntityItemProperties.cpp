@@ -3605,6 +3605,7 @@ bool EntityItemProperties::hasSimulationRestrictedChanges() const {
     return _positionChanged || _localPositionChanged
         || _rotationChanged || _localRotationChanged
         || _velocityChanged || _localVelocityChanged
+        || _localDimensionsChanged || _dimensionsChanged
         || _angularVelocityChanged || _localAngularVelocityChanged
         || _accelerationChanged
         || _parentIDChanged || _parentJointIndexChanged;
