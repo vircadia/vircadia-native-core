@@ -16,14 +16,14 @@
 
 namespace baker {
 
-    class ImportContext : public task::JobContext {
+    class BakeContext : public task::JobContext {
     public:
         // No context settings yet for model prep
     };
-    using ImportContextPointer = std::shared_ptr<ImportContext>;
+    using BakeContextPointer = std::shared_ptr<BakeContext>;
 
     Task_DeclareCategoryTimeProfilerClass(BakerTimeProfiler, trace_baker);
-    Task_DeclareTypeAliases(ImportContext, BakerTimeProfiler)
+    Task_DeclareTypeAliases(BakeContext, BakerTimeProfiler)
 
     using EnginePointer = std::shared_ptr<Engine>;
 

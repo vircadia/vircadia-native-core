@@ -26,7 +26,7 @@ namespace baker {
     };
 
     Baker::Baker(const hfm::Model::Pointer& hfmModel) :
-        _engine(std::make_shared<Engine>(BakerEngineBuilder::JobModel::create("Baker"), std::make_shared<ImportContext>())) {
+        _engine(std::make_shared<Engine>(BakerEngineBuilder::JobModel::create("Baker"), std::make_shared<BakeContext>())) {
         _engine->feedInput<BakerEngineBuilder::Input>(0, hfmModel);
     }
 
