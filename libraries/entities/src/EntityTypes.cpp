@@ -26,7 +26,6 @@
 #include "TextEntityItem.h"
 #include "ImageEntityItem.h"
 #include "WebEntityItem.h"
-#include "LineEntityItem.h"
 #include "PolyLineEntityItem.h"
 #include "PolyVoxEntityItem.h"
 #include "GridEntityItem.h"
@@ -50,7 +49,6 @@ REGISTER_ENTITY_TYPE(Text)
 REGISTER_ENTITY_TYPE(Image)
 REGISTER_ENTITY_TYPE(Web)
 REGISTER_ENTITY_TYPE(ParticleEffect)
-REGISTER_ENTITY_TYPE(Line)
 REGISTER_ENTITY_TYPE(PolyLine)
 REGISTER_ENTITY_TYPE(PolyVox)
 REGISTER_ENTITY_TYPE(Grid)

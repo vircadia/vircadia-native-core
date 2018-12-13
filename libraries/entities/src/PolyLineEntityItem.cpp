@@ -41,14 +41,15 @@ EntityItemProperties PolyLineEntityItem::getProperties(const EntityPropertyFlags
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
     
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
-
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeWidths, getStrokeWidths);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeColors, getStrokeColors);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeWidths, getStrokeWidths);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isUVModeStretch, getIsUVModeStretch);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(glow, getGlow);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(faceCamera, getFaceCamera);
+
     return properties;
 }
 
@@ -58,14 +59,14 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
-
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeWidths, setStrokeWidths);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(normals, setNormals);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeColors, setStrokeColors);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeWidths, setStrokeWidths);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isUVModeStretch, setIsUVModeStretch);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(glow, setGlow);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(faceCamera, setFaceCamera);
 
     if (somethingChanged) {
         bool wantDebug = false;

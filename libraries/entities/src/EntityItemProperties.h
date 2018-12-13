@@ -37,7 +37,6 @@
 #include "EntityPropertyFlags.h"
 #include "EntityPsuedoPropertyFlags.h"
 #include "LightEntityItem.h"
-#include "LineEntityItem.h"
 #include "ParticleEffectEntityItem.h"
 #include "PolyVoxEntityItem.h"
 #include "SimulationOwner.h"
@@ -78,7 +77,6 @@ class EntityItemProperties {
     friend class ImageEntityItem;
     friend class WebEntityItem;
     friend class ParticleEffectEntityItem;
-    friend class LineEntityItem;
     friend class PolyLineEntityItem;
     friend class PolyVoxEntityItem;
     friend class GridEntityItem;
@@ -181,8 +179,14 @@ public:
     DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP);
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
 
-    // Particles
+    // Common
     DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType, SHAPE_TYPE_NONE);
+    DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, u8vec3Color, particle::DEFAULT_COLOR);
+    DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, particle::DEFAULT_ALPHA);
+    DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString, "");
+
+    // Particles
     DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32, particle::DEFAULT_MAX_PARTICLES);
     DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float, particle::DEFAULT_LIFESPAN);
     DEFINE_PROPERTY(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool, true);
@@ -202,15 +206,12 @@ public:
     DEFINE_PROPERTY(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float, particle::DEFAULT_RADIUS_SPREAD);
     DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float, particle::DEFAULT_RADIUS_START);
     DEFINE_PROPERTY(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float, particle::DEFAULT_RADIUS_FINISH);
-    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, u8vec3Color, particle::DEFAULT_COLOR);
     DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, u8vec3Color, particle::DEFAULT_COLOR_SPREAD);
     DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, glm::vec3, particle::DEFAULT_COLOR_UNINITIALIZED);
     DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, glm::vec3, particle::DEFAULT_COLOR_UNINITIALIZED);
-    DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, particle::DEFAULT_ALPHA);
     DEFINE_PROPERTY(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float, particle::DEFAULT_ALPHA_SPREAD);
     DEFINE_PROPERTY(PROP_ALPHA_START, AlphaStart, alphaStart, float, particle::DEFAULT_ALPHA_START);
     DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float, particle::DEFAULT_ALPHA_FINISH);
-    DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString, "");
     DEFINE_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, EmitterShouldTrail, emitterShouldTrail, bool, particle::DEFAULT_EMITTER_SHOULD_TRAIL);
     DEFINE_PROPERTY(PROP_PARTICLE_SPIN, ParticleSpin, particleSpin, float, particle::DEFAULT_PARTICLE_SPIN);
     DEFINE_PROPERTY(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float, particle::DEFAULT_SPIN_SPREAD);
@@ -220,7 +221,6 @@ public:
 
     // Model
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString, "");
-    DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>, QVector<bool>());
@@ -281,15 +281,14 @@ public:
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
     DEFINE_PROPERTY_REF(PROP_DPI, DPI, dpi, uint16_t, ENTITY_ITEM_DEFAULT_DPI);
 
-    // Line
-    DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float, LineEntityItem::DEFAULT_LINE_WIDTH);
-    DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
-
     // Polyline
-    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
-    DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
+    DEFINE_PROPERTY_REF(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>, QVector<float>());
+    DEFINE_PROPERTY(PROP_STROKE_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
+    DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, bool, true);
+    DEFINE_PROPERTY(PROP_LINE_GLOW, Glow, glow, bool, false);
+    DEFINE_PROPERTY(PROP_LINE_FACE_CAMERA, FaceCamera, faceCamera, bool, false);
 
     // Shape
     DEFINE_PROPERTY_REF(PROP_SHAPE, Shape, shape, QString, "Sphere");

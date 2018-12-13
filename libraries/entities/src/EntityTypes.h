@@ -70,8 +70,6 @@ public:
      *     <tr><td><code>"ParticleEffect"</code></td><td>A particle system that can be used to simulate things such as fire, 
      *       smoke, snow, magic spells, etc.</td>
      *       <td>{@link Entities.EntityProperties-ParticleEffect|EntityProperties-ParticleEffect}</td></tr>
-     *     <tr><td><code>"Line"</code></td><td>A sequence of one or more simple straight lines.</td>
-     *       <td>{@link Entities.EntityProperties-Line|EntityProperties-Line}</td></tr>
      *     <tr><td><code>"PolyLine"</code></td><td>A sequence of one or more textured straight lines.</td>
      *       <td>{@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}</td></tr>
      *     <tr><td><code>"PolyVox"</code></td><td>A set of textured voxels.</td>
@@ -99,7 +97,6 @@ public:
         Image,
         Web,
         ParticleEffect,
-        Line,
         PolyLine,
         PolyVox,
         Grid,

@@ -49,7 +49,6 @@ QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
     result = f.getHasProperty(PROP_LIFESPAN) ? result + "lifespan " : result;
     result = f.getHasProperty(PROP_EMIT_RATE) ? result + "emitRate " : result;
     result = f.getHasProperty(PROP_EMIT_SPEED) ? result + "emitSpeed " : result;
-    result = f.getHasProperty(PROP_EMIT_STRENGTH) ? result + "emitStrength " : result;
     result = f.getHasProperty(PROP_EMIT_ACCELERATION) ? result + "emitAcceleration " : result;
     result = f.getHasProperty(PROP_PARTICLE_RADIUS) ? result + "particleRadius " : result;
     result = f.getHasProperty(PROP_COMPOUND_SHAPE_URL) ? result + "compoundShapeUrl " : result;
@@ -63,7 +62,6 @@ QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
     result = f.getHasProperty(PROP_VOXEL_VOLUME_SIZE) ? result + "voxelVolumeSize " : result;
     result = f.getHasProperty(PROP_VOXEL_DATA) ? result + "voxelData " : result;
     result = f.getHasProperty(PROP_VOXEL_SURFACE_STYLE) ? result + "voxelSurfaceStyle " : result;
-    result = f.getHasProperty(PROP_LINE_WIDTH) ? result + "lineWidth " : result;
     result = f.getHasProperty(PROP_LINE_POINTS) ? result + "linePoints " : result;
     result = f.getHasProperty(PROP_HREF) ? result + "href " : result;
     result = f.getHasProperty(PROP_DESCRIPTION) ? result + "description " : result;

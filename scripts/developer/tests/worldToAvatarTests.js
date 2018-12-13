@@ -49,53 +49,6 @@ function worldToJointPointTest() {
    Entities.addEntity(worldSphereProps);
 }
 
-//worldToJointDirection
-//	create line and attach to avatars head
-//	each frame calculate direction of world x axis in joint space of players head
-//	update arrow orientation to match
-var worldToJointDirectionTest_lineEntity;
-function worldToJointDirectionTest() {
-   var jointIndex = MyAvatar.getJointIndex("Head");
-
-   var jointPosition_WorldSpace =  MyAvatar.getJointPosition(jointIndex);
-   var jointOffset_WorldSpace = { x: 0, y: 0, z: 0 };
-   var jointPosition_WorldSpaceOffset = Vec3.sum(jointPosition_WorldSpace, jointOffset_WorldSpace);
-   var jointPosition_JointSpaceOffset = MyAvatar.worldToJointPoint(jointPosition_WorldSpaceOffset, jointIndex);
-
-   var worldDir = { x: 1, y: 0, z: 0 };
-   var avatarDir = MyAvatar.worldToJointDirection(worldDir, jointIndex);
-   
-   worldToJointDirectionTest_lineEntity = Entities.addEntity({
-      type: "Line",
-      color: {red: 200, green: 250, blue: 0},
-      dimensions: {x: 5, y: 5, z: 5},
-      lifetime: 10.0,
-      linePoints: [{
-        x: 0,
-        y: 0,
-        z: 0
-       }, avatarDir
-       ],
-      localPosition : jointOffset_WorldSpace,
-      parentID : AVATAR_SELF_ID,         
-      parentJointIndex : jointIndex      
-   });
-}
-
-function worldToJointDirectionTest_update(deltaTime) {  
-   var jointIndex = MyAvatar.getJointIndex("Head");
-   var worldDir = { x: 1, y: 0, z: 0 };
-   var avatarDir = MyAvatar.worldToJointDirection(worldDir, jointIndex);
-   var newProperties = { linePoints: [{
-        x: 0,
-        y: 0,
-        z: 0
-       }, avatarDir
-       ]};
-   
-   Entities.editEntity(worldToJointDirectionTest_lineEntity, newProperties);
-}
-
 //worldToJointRotation
 //	create box and parent to some player joint
 //	convert world identity rotation to joint space rotation
