@@ -8687,6 +8687,11 @@ void Application::updateLoginDialogOverlayPosition() {
     bool overlayOutOfBounds = glm::distance(overlayPositionVec, cameraPositionVec) > 1.0f;
 
     if (pointAngle > LOOK_AWAY_THRESHOLD_ANGLE || overlayOutOfBounds) {
+        QVariantMap properties {
+            {"position", vec3toVariant(newOverlayPositionVec)},
+            {"orientation", quatToVariant(newOverlayOrientation)}
+        };
+        overlays.editOverlay(_loginDialogOverlayID, properties);
         const auto KEYBOARD_LOCAL_ORIENTATION = glm::quat(0.0f, 0.0, 1.0f, 0.25f);
         auto keyboardLocalOffset = glm::vec3(-0.4f * getMyAvatar()->getSensorToWorldScale(), -0.3f, 0.2f);
         QVariantMap keyboardProperties {
