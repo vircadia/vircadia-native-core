@@ -21,9 +21,11 @@ Windows.ScrollingWindow {
     implicitWidth: 384; implicitHeight: 640
     minSize: Qt.vector2d(200, 300)
 
+
     //HifiConstants { id: hifi }
-    Rectangle {
-        anchors.fill: parent
+    Item {
+        height: pane.height
+        width: pane.width
 
         AvatarProject {
             id: avatarProject
@@ -32,7 +34,7 @@ Windows.ScrollingWindow {
             anchors.fill: parent
         }
 
-        Rectangle {
+        Item {
             id: avatarPackagerMain
             anchors.left: parent.left
             anchors.right: parent.right

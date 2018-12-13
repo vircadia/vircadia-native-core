@@ -17,6 +17,7 @@
 #include <QFileInfo>
 #include <QUrl>
 #include <QDebug>
+#include <QQmlEngine>
 
 AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
     const auto pathToLower = path.toLower();
@@ -25,7 +26,9 @@ AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
         if (!file.open(QIODevice::ReadOnly)) {
             return nullptr;
         }
-        return new AvatarProject(path, file.readAll());
+        auto project = new AvatarProject(path, file.readAll());
+        QQmlEngine::setObjectOwnership(project, QQmlEngine::CppOwnership);
+        return project;
     }
 
     if (pathToLower.endsWith(".fbx")) {
