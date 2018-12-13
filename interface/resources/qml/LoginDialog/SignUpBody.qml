@@ -28,6 +28,7 @@ Item {
     property int fontSize: 15
     property int textFieldFontSize: 18
     property bool fontBold: true
+    readonly property var passwordImageRatio: 16 / 23
 
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
@@ -249,8 +250,8 @@ Item {
 
                     Image {
                         id: showPasswordImage
-                        width: passwordField.height * 16 / 23
-                        height: passwordField.height * 16 / 23
+                        width: passwordField.height * passwordImageRatio
+                        height: passwordField.height * passwordImageRatio
                         anchors {
                             right: parent.right
                             rightMargin: 8

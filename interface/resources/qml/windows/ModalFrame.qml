@@ -85,35 +85,6 @@ Frame {
                     y: -hifi.dimensions.modalDialogTitleHeight
                     anchors.right: parent.right
                 }
-                // spacer for closeButton
-                Rectangle {
-                    id: closeButtonSpacer
-                    width: parent.width - closeButton.width - 50
-                    height: 20
-                    color: "transparent"
-                    anchors.left: title.right
-                    y: -hifi.dimensions.modalDialogTitleHeight
-                    visible: window.closeButtonVisible
-                }
-
-                GlyphButton {
-                    id: closeButton
-                    visible: window.closeButtonVisible
-                    width: 30
-                    y: -hifi.dimensions.modalDialogTitleHeight - 20
-                    anchors {
-                        // top: parent.top
-                        left: closeButtonSpacer.right
-                        // topMargin: 10
-                        // rightMargin: 10
-                    }
-                    glyph: hifi.glyphs.close
-                    size: 23
-                    onClicked: {
-                        window.clickedCloseButton = true;
-                        window.destroy();
-                    }
-                }
             }
 
             Rectangle {
@@ -123,5 +94,25 @@ Frame {
                 color: hifi.colors.lightGray
             }
         }
+
+
+        GlyphButton {
+             id: closeButton
+             visible: window.closeButtonVisible
+             width: 30
+             y: -hifi.dimensions.modalDialogTitleHeight
+             anchors {
+                 top: parent.top
+                 right: parent.right
+                 topMargin: 10
+                 rightMargin: 10
+             }
+             glyph: hifi.glyphs.close
+             size: 23
+             onClicked: {
+                 window.clickedCloseButton = true;
+                 window.destroy();
+             }
+         }
     }
 }

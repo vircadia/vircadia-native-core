@@ -109,9 +109,6 @@ bool LoginDialog::isOculusStoreRunning() const {
 }
 
 void LoginDialog::dismissLoginDialog() {
-    // it'll only pop up once.
-    qDebug() << "LoginDialog::dismissLoginDialog";
-
     QAction* loginAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
     Q_CHECK_PTR(loginAction);
     loginAction->setEnabled(true);
@@ -122,25 +119,6 @@ void LoginDialog::dismissLoginDialog() {
 void LoginDialog::login(const QString& username, const QString& password) const {
     qDebug() << "Attempting to login " << username;
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
-}
-
-void LoginDialog::loginThroughOculus() {
-    qDebug() << "Attempting to login through Oculus";
-    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        steamClient->requestTicket([this](Ticket ticket) {
-            if (ticket.isNull()) {
-                emit handleLoginFailed();
-                return;
-            }
-
-            DependencyManager::get<AccountManager>()->requestAccessTokenWithSteam(ticket);
-        });
-    }
-}
-
-void LoginDialog::linkOculus() {
-    qDebug() << "Attempting to link Oculus account";
-
 }
 
 void LoginDialog::loginThroughSteam() {

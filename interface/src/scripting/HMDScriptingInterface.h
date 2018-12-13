@@ -413,7 +413,6 @@ public:
     QVariant getPlayAreaRect();
     QVector<glm::vec3> getSensorPositions();
 
-    // Get the position of the HMD
     glm::vec3 getPosition() const;
 
 private:

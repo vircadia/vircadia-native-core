@@ -690,7 +690,6 @@ private:
     bool _interstitialModeEnabled{ false };
 
     bool _loginDialogPoppedUp = false;
-    // if visible before login popped up.
     bool _developerMenuVisible{ false };
     CameraMode _previousCameraMode;
     OverlayID _loginDialogOverlayID;

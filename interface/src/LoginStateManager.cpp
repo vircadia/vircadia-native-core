@@ -149,12 +149,12 @@ void LoginStateManager::setUp() {
     _renderStates = QList<QVariant>({halfRenderStateIdentifier, fullRenderStateIdentifier, holdRenderStateIdentifier});
     _defaultRenderStates = QList<QVariant>({halfDefaultRenderStateIdentifier, fullDefaultRenderStateIdentifier, holdDefaultRenderStateIdentifier});
 
-    auto pointers = DependencyManager::get<PointerScriptingInterface>().data();
-    auto controller = DependencyManager::get<controller::ScriptingInterface>().data();
+    auto pointers = DependencyManager::get<PointerScriptingInterface>();
+    auto controller = DependencyManager::get<controller::ScriptingInterface>();
 
-    glm::vec3 grabPointSphereOffsetLeft { -0.04f, 0.13f, 0.039f };  // x = upward, y = forward, z = lateral
-    glm::vec3 grabPointSphereOffsetRight { 0.04f, 0.13f, 0.039f };  // x = upward, y = forward, z = lateral
-    glm::vec3 malletOffset {glm::vec3(0.0f, 0.18f - 0.050f, 0.0f)};
+    const glm::vec3 grabPointSphereOffsetLeft { -0.04f, 0.13f, 0.039f };  // x = upward, y = forward, z = lateral
+    const glm::vec3 grabPointSphereOffsetRight { 0.04f, 0.13f, 0.039f };  // x = upward, y = forward, z = lateral
+    const glm::vec3 malletOffset {glm::vec3(0.0f, 0.18f - 0.050f, 0.0f)};
 
     QList<QVariant> leftPointerTriggerProperties;
     QVariantMap ltClick1 {
@@ -222,10 +222,10 @@ void LoginStateManager::update(const QString dominantHand, const QUuid loginOver
     auto pointers = DependencyManager::get<PointerScriptingInterface>();
     auto raypicks = DependencyManager::get<RayPickScriptingInterface>();
     if (pointers && raypicks) {
-        auto rightObjectID = raypicks->getPrevRayPickResult(_rightLoginPointerID)["objectID"].toUuid();
-        auto leftObjectID = raypicks->getPrevRayPickResult(_leftLoginPointerID)["objectID"].toUuid();
-        QString leftMode = (leftObjectID.isNull() || leftObjectID != loginOverlayID) ? "" : "full";
-        QString rightMode = (rightObjectID.isNull() || rightObjectID != loginOverlayID) ? "" : "full";
+        const auto rightObjectID = raypicks->getPrevRayPickResult(_rightLoginPointerID)["objectID"].toUuid();
+        const auto leftObjectID = raypicks->getPrevRayPickResult(_leftLoginPointerID)["objectID"].toUuid();
+        const QString leftMode = (leftObjectID.isNull() || leftObjectID != loginOverlayID) ? "" : "full";
+        const QString rightMode = (rightObjectID.isNull() || rightObjectID != loginOverlayID) ? "" : "full";
         pointers->setRenderState(_leftLoginPointerID, leftMode);
         pointers->setRenderState(_rightLoginPointerID, rightMode);
         if (_dominantHand == "left" && !leftObjectID.isNull()) {
