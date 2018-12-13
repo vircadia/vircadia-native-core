@@ -395,8 +395,14 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         }
         
         // If Avatar A's PAL WAS open but is no longer open, AND
-        // Avatar A should be ignoring Avatar B...
-        if (PALWasOpen && !PALIsOpen && shouldIgnore) {
+        // Avatar A is ignoring Avatar B OR Avatar B is ignoring Avatar A...
+        //
+        // This is a bit heavy-handed still - there are cases where a kill packet
+        // will be sent when it doesn't need to be (but where it _should_ be OK to send).
+        // However, it's less heavy-handed than using `shouldIgnore`.
+        if (PALWasOpen && !PALIsOpen &&
+            (destinationNode->isIgnoringNodeWithID(avatarNode->getUUID()) ||
+                avatarNode->isIgnoringNodeWithID(destinationNode->getUUID()))) {
             // ...send a Kill Packet to Node A, instructing Node A to kill Avatar B,
             // then have Node A cleanup the killed Node B.
             auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
