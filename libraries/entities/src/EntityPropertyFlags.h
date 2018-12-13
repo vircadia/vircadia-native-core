@@ -19,6 +19,7 @@ enum EntityPropertyList {
     PROP_CUSTOM_PROPERTIES_INCLUDED,
 
     // Core properties
+    PROP_SIMULATION_OWNER,
     PROP_VISIBLE,
     PROP_NAME,
     PROP_LOCKED,
@@ -66,7 +67,6 @@ enum EntityPropertyList {
     PROP_COLLISIONLESS,
     PROP_COLLISION_MASK,
     PROP_DYNAMIC,
-    PROP_SIMULATION_OWNER,
     PROP_COLLISION_SOUND_URL,
     PROP_ACTION_DATA,
 
@@ -166,13 +166,13 @@ enum EntityPropertyList {
     PROP_SPEED_SPREAD = PROP_DERIVED_5,
     PROP_EMIT_ORIENTATION = PROP_DERIVED_6,
     PROP_EMIT_DIMENSIONS = PROP_DERIVED_7,
-    PROP_EMIT_RADIUS_START = PROP_DERIVED_8,
-    PROP_EMIT_ACCELERATION = PROP_DERIVED_9,
-    PROP_ACCELERATION_SPREAD = PROP_DERIVED_10,
-    PROP_POLAR_START = PROP_DERIVED_11,
-    PROP_POLAR_FINISH = PROP_DERIVED_12,
-    PROP_AZIMUTH_START = PROP_DERIVED_13,
-    PROP_AZIMUTH_FINISH = PROP_DERIVED_14,
+    PROP_ACCELERATION_SPREAD = PROP_DERIVED_8,
+    PROP_POLAR_START = PROP_DERIVED_9,
+    PROP_POLAR_FINISH = PROP_DERIVED_10,
+    PROP_AZIMUTH_START = PROP_DERIVED_11,
+    PROP_AZIMUTH_FINISH = PROP_DERIVED_12,
+    PROP_EMIT_RADIUS_START = PROP_DERIVED_13,
+    PROP_EMIT_ACCELERATION = PROP_DERIVED_14,
     PROP_PARTICLE_RADIUS = PROP_DERIVED_15,
     PROP_RADIUS_SPREAD = PROP_DERIVED_16,
     PROP_RADIUS_START = PROP_DERIVED_17,
@@ -326,11 +326,5 @@ typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 // this is set at the top of EntityItemProperties.cpp to PROP_AFTER_LAST_ITEM - 1.  PROP_AFTER_LAST_ITEM is always
 // one greater than the last item property due to the enum's auto-incrementing.
 extern EntityPropertyList PROP_LAST_ITEM;
-
-QString EntityPropertyFlagsToString(EntityPropertyFlags propertiesFlags);
-
-
-QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f);
-
 
 #endif // hifi_EntityPropertyFlags_h

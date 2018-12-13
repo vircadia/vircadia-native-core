@@ -1,0 +1,48 @@
+<!
+//  paintStroke.slh
+//
+//  Created by Sam Gondelman on 12/13/2018
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+
+<@if not PAINTSTROKE_SLH@>
+<@def PAINTSTROKE_SLH@>
+
+<@include paintStroke_Shared.slh@>
+<@include gpu/ShaderConstants.h@>
+
+<@func declarePolyLineBuffers() @>
+
+// Hack comment to absorb the extra '//' scribe prepends
+
+#if !defined(GPU_SSBO_TRANSFORM_OBJECT)
+LAYOUT(binding=GPU_RESOURCE_BUFFER_SLOT0_TEXTURE) uniform samplerBuffer polylineVerticesBuffer;
+PolylineVertex getPolylineVertex(int i) {
+    int offset = 4 * i;
+    PolylineVertex vertex;
+    vertex.positionAndUCoord = texelFetch(polylineVerticesBuffer, offset);
+    vertex.color = texelFetch(polylineVerticesBuffer, offset + 1);
+    vertex.normal = texelFetch(polylineVerticesBuffer, offset + 2);
+    vertex.binormalAndHalfWidth = texelFetch(polylineVerticesBuffer, offset + 3);
+    return vertex;
+}
+#else
+LAYOUT_STD140(binding=GPU_RESOURCE_BUFFER_SLOT0_STORAGE) buffer polylineVerticesBuffer {
+    PolylineVertex _vertices[];
+};
+PolylineVertex getPolylineVertex(int i) {
+    PolylineVertex vertex = _vertices[i];
+    return vertex;
+}
+#endif
+
+LAYOUT_STD140(binding=0) uniform polylineDataBuffer {
+    PolylineData _polylineData;
+};
+
+<@endfunc@>
+
+<@endif@>

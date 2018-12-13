@@ -15,7 +15,6 @@
 #include <ObjectMotionState.h>
 
 #include "RenderableLightEntityItem.h"
-#include "RenderableLineEntityItem.h"
 #include "RenderableModelEntityItem.h"
 #include "RenderableParticleEffectEntityItem.h"
 #include "RenderablePolyVoxEntityItem.h"
@@ -246,10 +245,6 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
 
         case Type::ParticleEffect:
             result = make_renderer<ParticleEffectEntityRenderer>(entity);
-            break;
-
-        case Type::Line:
-            result = make_renderer<LineEntityRenderer>(entity);
             break;
 
         case Type::PolyLine:

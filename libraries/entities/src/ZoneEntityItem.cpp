@@ -48,6 +48,9 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
 EntityItemProperties ZoneEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
+
     // Contain QString properties, must be synchronized
     withReadLock([&] {
         _keyLightProperties.getProperties(properties);
@@ -56,9 +59,6 @@ EntityItemProperties ZoneEntityItem::getProperties(const EntityPropertyFlags& de
     });
     _hazeProperties.getProperties(properties);
     _bloomProperties.getProperties(properties);
-
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
@@ -94,6 +94,9 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
 bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
     bool somethingChanged = EntityItem::setSubClassProperties(properties); // set the properties in our base class
 
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
+
     // Contains a QString property, must be synchronized
     withWriteLock([&] {
         _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
@@ -102,9 +105,6 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     });
     _hazePropertiesChanged = _hazeProperties.setProperties(properties);
     _bloomPropertiesChanged = _bloomProperties.setProperties(properties);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
@@ -128,6 +128,9 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
                                                 bool& somethingChanged) {
     int bytesRead = 0;
     const unsigned char* dataAt = data;
+
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+    READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
 
     {
         int bytesFromKeylight;
@@ -178,9 +181,6 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
         dataAt += bytesFromBloom;
     }
 
-    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
-    READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-
     READ_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
     READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
     READ_ENTITY_PROPERTY(PROP_FILTER_URL, QString, setFilterURL);
@@ -197,14 +197,14 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
+    requestedProperties += PROP_SHAPE_TYPE;
+    requestedProperties += PROP_COMPOUND_SHAPE_URL;
+
     requestedProperties += _keyLightProperties.getEntityProperties(params);
     requestedProperties += _ambientLightProperties.getEntityProperties(params);
     requestedProperties += _skyboxProperties.getEntityProperties(params);
     requestedProperties += _hazeProperties.getEntityProperties(params);
     requestedProperties += _bloomProperties.getEntityProperties(params);
-
-    requestedProperties += PROP_SHAPE_TYPE;
-    requestedProperties += PROP_COMPOUND_SHAPE_URL;
 
     requestedProperties += PROP_FLYING_ALLOWED;
     requestedProperties += PROP_GHOSTING_ALLOWED;
@@ -229,6 +229,9 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     bool successPropertyFits = true;
 
+    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
+    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
+
     withReadLock([&] {
         _keyLightProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
             propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -241,9 +244,6 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
     _bloomProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
-    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
-    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
 
     APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, getFlyingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, getGhostingAllowed());

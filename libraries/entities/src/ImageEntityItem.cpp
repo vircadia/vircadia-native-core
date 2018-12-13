@@ -30,14 +30,14 @@ void ImageEntityItem::setUnscaledDimensions(const glm::vec3& value) {
 EntityItemProperties ImageEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(imageURL, getImageURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emissive, getEmissive);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(keepAspectRatio, getKeepAspectRatio);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(subImage, getSubImage);
-
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
 
     return properties;
 }
@@ -45,14 +45,14 @@ EntityItemProperties ImageEntityItem::getProperties(const EntityPropertyFlags& d
 bool ImageEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(imageURL, setImageURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emissive, setEmissive);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(keepAspectRatio, setKeepAspectRatio);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(subImage, setSubImage);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -75,14 +75,14 @@ int ImageEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
+    READ_ENTITY_PROPERTY(PROP_COLOR, u8vec3Color, setColor);
+    READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
+
     READ_ENTITY_PROPERTY(PROP_IMAGE_URL, QString, setImageURL);
     READ_ENTITY_PROPERTY(PROP_EMISSIVE, bool, setEmissive);
     READ_ENTITY_PROPERTY(PROP_KEEP_ASPECT_RATIO, bool, setKeepAspectRatio);
     READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
     READ_ENTITY_PROPERTY(PROP_SUB_IMAGE, QRect, setSubImage);
-
-    READ_ENTITY_PROPERTY(PROP_COLOR, u8vec3Color, setColor);
-    READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
 
     return bytesRead;
 }
@@ -90,14 +90,14 @@ int ImageEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 EntityPropertyFlags ImageEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
+    requestedProperties += PROP_COLOR;
+    requestedProperties += PROP_ALPHA;
+
     requestedProperties += PROP_IMAGE_URL;
     requestedProperties += PROP_EMISSIVE;
     requestedProperties += PROP_KEEP_ASPECT_RATIO;
     requestedProperties += PROP_BILLBOARD_MODE;
     requestedProperties += PROP_SUB_IMAGE;
-
-    requestedProperties += PROP_COLOR;
-    requestedProperties += PROP_ALPHA;
 
     return requestedProperties;
 }
@@ -112,14 +112,14 @@ void ImageEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     bool successPropertyFits = true;
 
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
+
     APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, getImageURL());
     APPEND_ENTITY_PROPERTY(PROP_EMISSIVE, getEmissive());
     APPEND_ENTITY_PROPERTY(PROP_KEEP_ASPECT_RATIO, getKeepAspectRatio());
     APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
     APPEND_ENTITY_PROPERTY(PROP_SUB_IMAGE, getSubImage());
-
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
 }
 
 bool ImageEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

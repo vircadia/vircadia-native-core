@@ -410,6 +410,10 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(const EntityPropert
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxParticles, getMaxParticles);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifespan, getLifespan);
 
@@ -434,17 +438,14 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(const EntityPropert
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusStart, getRadiusStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusFinish, getRadiusFinish);
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorSpread, getColorSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorStart, getColorStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorFinish, getColorFinish);
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaSpread, getAlphaSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaStart, getAlphaStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaFinish, getAlphaFinish);
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitterShouldTrail, getEmitterShouldTrail);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(particleSpin, getParticleSpin);
@@ -460,6 +461,10 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxParticles, setMaxParticles);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifespan, setLifespan);
 
@@ -484,17 +489,14 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusStart, setRadiusStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusFinish, setRadiusFinish);
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(colorSpread, setColorSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(colorStart, setColorStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(colorFinish, setColorFinish);
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaSpread, setAlphaSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaStart, setAlphaStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaFinish, setAlphaFinish);
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitterShouldTrail, setEmitterShouldTrail);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleSpin, setParticleSpin);
@@ -531,6 +533,10 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+    READ_ENTITY_PROPERTY(PROP_COLOR, u8vec3Color, setColor);
+    READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
+    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
 
@@ -555,17 +561,14 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
     READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, u8vec3Color, setColor);
     READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, u8vec3Color, setColorSpread);
     READ_ENTITY_PROPERTY(PROP_COLOR_START, vec3Color, setColorStart);
     READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, vec3Color, setColorFinish);
 
-    READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
     READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
     READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);
     READ_ENTITY_PROPERTY(PROP_ALPHA_FINISH, float, setAlphaFinish);
 
-    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     READ_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, bool, setEmitterShouldTrail);
 
     READ_ENTITY_PROPERTY(PROP_PARTICLE_SPIN, float, setParticleSpin);
@@ -581,6 +584,10 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += PROP_SHAPE_TYPE;
+    requestedProperties += PROP_COLOR;
+    requestedProperties += PROP_ALPHA;
+    requestedProperties += PROP_TEXTURES;
+
     requestedProperties += PROP_MAX_PARTICLES;
     requestedProperties += PROP_LIFESPAN;
 
@@ -605,17 +612,14 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_RADIUS_START;
     requestedProperties += PROP_RADIUS_FINISH;
 
-    requestedProperties += PROP_COLOR;
     requestedProperties += PROP_COLOR_SPREAD;
     requestedProperties += PROP_COLOR_START;
     requestedProperties += PROP_COLOR_FINISH;
 
-    requestedProperties += PROP_ALPHA;
     requestedProperties += PROP_ALPHA_SPREAD;
     requestedProperties += PROP_ALPHA_START;
     requestedProperties += PROP_ALPHA_FINISH;
 
-    requestedProperties += PROP_TEXTURES;
     requestedProperties += PROP_EMITTER_SHOULD_TRAIL;
 
     requestedProperties += PROP_PARTICLE_SPIN;
@@ -637,10 +641,14 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
 
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
+    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
+
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
     APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());
-    APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, getIsEmitting());
 
+    APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, getIsEmitting());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, getEmitRate());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, getEmitSpeed());
     APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, getSpeedSpread());
@@ -661,17 +669,14 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
 
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, getColorSpread());
     APPEND_ENTITY_PROPERTY(PROP_COLOR_START, getColorStart());
     APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, getColorFinish());
 
-    APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, getAlphaSpread());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, getAlphaStart());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, getAlphaFinish());
 
-    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
     APPEND_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, getEmitterShouldTrail());
 
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_SPIN, getParticleSpin());
