@@ -450,6 +450,8 @@ void Keyboard::setResetKeyboardPositionOnRaise(bool reset) {
             _resetKeyboardPositionOnRaise = reset;
         });
     }
+}
+
 void Keyboard::setPreferMalletsOverLasers(bool preferMalletsOverLasers) {
     _preferMalletsOverLasersSettingLock.withWriteLock([&] {
         _preferMalletsOverLasers.set(preferMalletsOverLasers);
