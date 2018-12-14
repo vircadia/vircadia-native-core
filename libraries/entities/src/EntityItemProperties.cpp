@@ -527,8 +527,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_STROKE_NORMALS, normals);
     CHECK_PROPERTY_CHANGE(PROP_STROKE_COLORS, strokeColors);
     CHECK_PROPERTY_CHANGE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
-    CHECK_PROPERTY_CHANGE(PROP_LINE_GLOW, glow);
-    CHECK_PROPERTY_CHANGE(PROP_LINE_FACE_CAMERA, faceCamera);
 
     // Shape
     CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
@@ -741,6 +739,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-Image|EntityProperties-Image}
  * @see {@link Entities.EntityProperties-Web|EntityProperties-Web}
  * @see {@link Entities.EntityProperties-ParticleEffect|EntityProperties-ParticleEffect}
+ * @see {@link Entities.EntityProperties-Line|EntityProperties-Line}
  * @see {@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}
  * @see {@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}
  * @see {@link Entities.EntityProperties-Grid|EntityProperties-Grid}
@@ -782,6 +781,33 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     isSpotlight: true,
  *     exponent: 20,
  *     cutoff: 30,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Line"</code> {@link Entities.EntityType|EntityType} draws thin, straight lines between a sequence of two or more
+ * points.  Deprecated: Use PolyLines instead.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Line
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. Must be sufficient to contain all the
+ *     <code>linePoints</code>.
+ * @property {Vec3[]} linePoints=[]] - The sequence of points to draw lines between. The values are relative to the entity's
+ *     position. A maximum of 70 points can be specified. The property's value is set only if all the <code>linePoints</code>
+ *     lie within the entity's <code>dimensions</code>.
+ * @property {Color} color=255,255,255 - The color of the line.
+ * @example <caption>Draw lines in a "V".</caption>
+ * var entity = Entities.addEntity({
+ *     type: "Line",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -5 })),
+ *     rotation: MyAvatar.orientation,
+ *     dimensions: { x: 2, y: 2, z: 1 },
+ *     linePoints: [
+ *         { x: -1, y: 1, z: 0 },
+ *         { x: 0, y: -1, z: 0 },
+ *         { x: 1, y: 1, z: 0 },
+ *     ],
+ *     color: { red: 255, green: 0, blue: 0 },
  *     lifetime: 300  // Delete after 5 minutes.
  * });
  */
@@ -1025,8 +1051,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     format.
  * @property {boolean} isUVModeStretch=true - If <code>true</code>, the texture is stretched to fill the whole line, otherwise 
  *     the texture repeats along the line.
- * @property {bool} glow=false - If <code>true</code>, the alpha of the strokes will drop off farther from the center.
- * @property {bool} faceCamera=false - If <code>true</code>, each line segment will rotate to face the camera.
  * @example <caption>Draw a textured "V".</caption>
  * var entity = Entities.addEntity({
  *     type: "PolyLine",
@@ -1593,6 +1617,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_Z_P_NEIGHBOR_ID, zPNeighborID);
     }
 
+    // Lines
+    if (_type == EntityTypes::Line) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_POINTS, linePoints);
+    }
+
     // Polylines
     if (_type == EntityTypes::PolyLine) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
@@ -1603,8 +1634,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_NORMALS, normals);
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_STROKE_COLORS, strokeColors, qVectorVec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_GLOW, glow);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_FACE_CAMERA, faceCamera);
     }
 
     // Materials
@@ -1927,8 +1956,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(normals, qVectorVec3, setNormals);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeColors, qVectorVec3, setStrokeColors);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isUVModeStretch, bool, setIsUVModeStretch);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(glow, bool, setGlow);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(faceCamera, bool, setFaceCamera);
 
     // Shape
     COPY_PROPERTY_FROM_QSCRIPTVALUE(shape, QString, setShape);
@@ -2181,8 +2208,6 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(normals);
     COPY_PROPERTY_IF_CHANGED(strokeColors);
     COPY_PROPERTY_IF_CHANGED(isUVModeStretch);
-    COPY_PROPERTY_IF_CHANGED(glow);
-    COPY_PROPERTY_IF_CHANGED(faceCamera);
 
     // Shape
     COPY_PROPERTY_IF_CHANGED(shape);
@@ -2498,8 +2523,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_STROKE_NORMALS, Normals, normals, QVector<vec3>);
         ADD_PROPERTY_TO_MAP(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<vec3>);
         ADD_PROPERTY_TO_MAP(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, QVector<float>);
-        ADD_PROPERTY_TO_MAP(PROP_LINE_GLOW, Glow, glow);
-        ADD_PROPERTY_TO_MAP(PROP_LINE_FACE_CAMERA, FaceCamera, faceCamera, bool);
 
         // Shape
         ADD_PROPERTY_TO_MAP(PROP_SHAPE, Shape, shape, QString);
@@ -2849,6 +2872,12 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
             }
 
+            if (properties.getType() == EntityTypes::Line) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+
+                APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
+            }
+
             if (properties.getType() == EntityTypes::PolyLine) {
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
@@ -2858,8 +2887,6 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_STROKE_NORMALS, properties.getPackedNormals());
                 APPEND_ENTITY_PROPERTY(PROP_STROKE_COLORS, properties.getPackedStrokeColors());
                 APPEND_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, properties.getIsUVModeStretch());
-                APPEND_ENTITY_PROPERTY(PROP_LINE_GLOW, properties.getGlow());
-                APPEND_ENTITY_PROPERTY(PROP_LINE_FACE_CAMERA, properties.getFaceCamera());
             }
 
             // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
@@ -3278,6 +3305,12 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
     }
 
+    if (properties.getType() == EntityTypes::Line) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<vec3>, setLinePoints);
+    }
+
     if (properties.getType() == EntityTypes::PolyLine) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
@@ -3287,8 +3320,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_NORMALS, QByteArray, setPackedNormals);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_COLORS, QByteArray, setPackedStrokeColors);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_UV_MODE_STRETCH, bool, setIsUVModeStretch);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_GLOW, bool, setGlow);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_FACE_CAMERA, bool, setFaceCamera);
     }
 
     // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
@@ -3634,8 +3665,6 @@ void EntityItemProperties::markAllChanged() {
     _normalsChanged = true;
     _strokeColorsChanged = true;
     _isUVModeStretchChanged = true;
-    _glowChanged = true;
-    _faceCameraChanged = true;
 
     // Shape
     _shapeChanged = true;
@@ -4233,12 +4262,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (isUVModeStretchChanged()) {
         out += "isUVModeStretch";
-    }
-    if (glowChanged()) {
-        out += "glow";
-    }
-    if (faceCameraChanged()) {
-        out += "faceCamera";
     }
 
     // Shape

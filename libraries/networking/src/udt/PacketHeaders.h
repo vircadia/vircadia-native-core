@@ -251,7 +251,7 @@ enum class EntityVersion : PacketVersion {
     ImageEntities,
     GridEntities,
     MissingTextProperties,
-    MissingLineProperties
+    MorePropertiesCleanup
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

@@ -2,11 +2,11 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  paintStroke.vert
+//  paintStroke_fade.vert
 //  vertex shader
 //
-//  Created by Eric Levin on 7/20/15.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Olivier Prat on 19/07/17.
+//  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -24,16 +24,20 @@ layout(location=0) out vec3 interpolatedNormal;
 layout(location=1) out vec2 varTexcoord;
 
 layout(location=2) out vec4 varColor;
+layout(location=3) out vec4 _worldPosition;
 
 void main(void) {
+    
     varTexcoord = inTexCoord0.st;
-
+    
     // pass along the diffuse color
     varColor = color_sRGBAToLinear(inColor);
+
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
     <$transformModelToEyeDir(cam, obj, inNormal.xyz, interpolatedNormal)$>
+    <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
 }

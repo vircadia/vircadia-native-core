@@ -26,6 +26,7 @@
 #include <PointerEvent.h>
 
 #include "PolyVoxEntityItem.h"
+#include "LineEntityItem.h"
 #include "PolyLineEntityItem.h"
 #include "EntityTree.h"
 
@@ -861,10 +862,73 @@ public slots:
     Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
 
     /**jsdoc
+     * Set the <code>linePoints</code> property of a {@link Entities.EntityType|Line} entity.
+     * @function Entities.setAllPoints
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Line} entity.
+     * @param {Vec3[]} points - The array of points to set the entity's <code>linePoints</code> property to.
+     * @returns {boolean} <code>true</code> if the entity's property was updated, otherwise <code>false</code>. The property 
+     *     may fail to be updated if the entity does not exist, the entity is not a {@link Entities.EntityType|Line} entity, 
+     *     one of the points is outside the entity's dimensions, or the number of points is greater than the maximum allowed.
+     * @example <caption>Change the shape of a Line entity.</caption>
+     * // Draw a horizontal line between two points.
+     * var entity = Entities.addEntity({
+     *     type: "Line",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -5 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 2, y: 2, z: 1 },
+     *     linePoints: [
+     *         { x: -1, y: 0, z: 0 },
+     *         { x:1, y: -0, z: 0 }
+     *     ],
+     *     color: { red: 255, green: 0, blue: 0 },
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     *
+     * // Change the line to be a "V".
+     * Script.setTimeout(function () {
+     *     Entities.setAllPoints(entity, [
+     *         { x: -1, y: 1, z: 0 },
+     *         { x: 0, y: -1, z: 0 },
+     *         { x: 1, y: 1, z: 0 },
+     *     ]);
+     * }, 2000);
+     */
+    Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<glm::vec3>& points);
+    
+    /**jsdoc
+     * Append a point to a {@link Entities.EntityType|Line} entity.
+     * @function Entities.appendPoint
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Line} entity.
+     * @param {Vec3} point - The point to add to the line. The coordinates are relative to the entity's position.
+     * @returns {boolean} <code>true</code> if the point was added to the line, otherwise <code>false</code>. The point may 
+     *     fail to be added if the entity does not exist, the entity is not a {@link Entities.EntityType|Line} entity, the 
+     *     point is outside the entity's dimensions, or the maximum number of points has been reached.
+     * @example <caption>Append a point to a Line entity.</caption>
+     * // Draw a line between two points.
+     * var entity = Entities.addEntity({
+     *     type: "Line",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -5 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 2, y: 2, z: 1 },
+     *     linePoints: [
+     *         { x: -1, y: 1, z: 0 },
+     *         { x: 0, y: -1, z: 0 }
+     *     ],
+     *     color: { red: 255, green: 0, blue: 0 },
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     *
+     * // Add a third point to create a "V".
+     * Entities.appendPoint(entity, { x: 1, y: 1, z: 0 });
+     */
+    Q_INVOKABLE bool appendPoint(QUuid entityID, const glm::vec3& point);
+
+    /**jsdoc
      * Dumps debug information about all entities in Interface's local in-memory tree of entities it knows about to the program log.
      * @function Entities.dumpTree
      */
     Q_INVOKABLE void dumpTree() const;
+
 
     /**jsdoc
      * Add an action to an entity. An action is registered with the physics engine and is applied every physics simulation 
@@ -1914,6 +1978,7 @@ private slots:
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor);
     bool polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
+    bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
     bool addLocalEntityCopy(EntityItemProperties& propertiesWithSimID, EntityItemID& id, bool isClone = false);
 

@@ -37,6 +37,7 @@
 #include "EntityPropertyFlags.h"
 #include "EntityPsuedoPropertyFlags.h"
 #include "LightEntityItem.h"
+#include "LineEntityItem.h"
 #include "ParticleEffectEntityItem.h"
 #include "PolyVoxEntityItem.h"
 #include "SimulationOwner.h"
@@ -77,6 +78,7 @@ class EntityItemProperties {
     friend class ImageEntityItem;
     friend class WebEntityItem;
     friend class ParticleEffectEntityItem;
+    friend class LineEntityItem;
     friend class PolyLineEntityItem;
     friend class PolyVoxEntityItem;
     friend class GridEntityItem;
@@ -307,8 +309,6 @@ public:
     DEFINE_PROPERTY(PROP_STROKE_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, bool, true);
-    DEFINE_PROPERTY(PROP_LINE_GLOW, Glow, glow, bool, false);
-    DEFINE_PROPERTY(PROP_LINE_FACE_CAMERA, FaceCamera, faceCamera, bool, false);
 
     // Shape
     DEFINE_PROPERTY_REF(PROP_SHAPE, Shape, shape, QString, "Sphere");
