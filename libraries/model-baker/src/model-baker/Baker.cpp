@@ -20,12 +20,12 @@ namespace baker {
 
     class GetModelPartsTask {
     public:
-        using Input = VaryingSet1<hfm::Model::Pointer>;
+        using Input = hfm::Model::Pointer;
         using Output = VaryingSet3<std::vector<hfm::Mesh>, hifi::URL, MeshIndicesToModelNames>;
         using JobModel = Job::ModelIO<GetModelPartsTask, Input, Output>;
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
-            auto& hfmModelIn = input.get0();
+            auto& hfmModelIn = input;
             output.edit0() = hfmModelIn->meshes.toStdVector();
             output.edit1() = hfmModelIn->originalURL;
             output.edit2() = hfmModelIn->meshIndicesToModelNames;
@@ -35,7 +35,7 @@ namespace baker {
     class BuildMeshesTask {
     public:
         using Input = VaryingSet4<std::vector<hfm::Mesh>, std::vector<graphics::MeshPointer>, TangentsPerMesh, BlendshapesPerMesh>;
-        using Output = VaryingSet1<std::vector<hfm::Mesh>>;
+        using Output = std::vector<hfm::Mesh>;
         using JobModel = Job::ModelIO<BuildMeshesTask, Input, Output>;
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
@@ -52,20 +52,20 @@ namespace baker {
                 meshOut.tangents = QVector<glm::vec3>::fromStdVector(tangentsPerMeshIn[i]);
                 meshOut.blendshapes = QVector<hfm::Blendshape>::fromStdVector(blendshapesPerMeshIn[i]);
             }
-            output.edit0() = meshesOut;
+            output = meshesOut;
         }
     };
 
     class BuildModelTask {
     public:
         using Input = VaryingSet2<hfm::Model::Pointer, std::vector<hfm::Mesh>>;
-        using Output = VaryingSet1<hfm::Model::Pointer>;
+        using Output = hfm::Model::Pointer;
         using JobModel = Job::ModelIO<BuildModelTask, Input, Output>;
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
             auto hfmModelOut = input.get0();
             hfmModelOut->meshes = QVector<hfm::Mesh>::fromStdVector(input.get1());
-            output.edit0() = hfmModelOut;
+            output = hfmModelOut;
         }
     };
 
@@ -74,12 +74,9 @@ namespace baker {
         using Input = hfm::Model::Pointer;
         using Output = hfm::Model::Pointer;
         using JobModel = Task::ModelIO<BakerEngineBuilder, Input, Output>;
-        void build(JobModel& model, const Varying& in, Varying& out) {
-            const auto hfmModelIn = in;
-
+        void build(JobModel& model, const Varying& hfmModelIn, Varying& hfmModelOut) {
             // Split up the inputs from hfm::Model
-            const auto getModelPartsInputs = hfmModelIn;
-            const auto modelPartsIn = model.addJob<GetModelPartsTask>("GetModelParts", getModelPartsInputs);
+            const auto modelPartsIn = model.addJob<GetModelPartsTask>("GetModelParts", hfmModelIn);
             const auto meshesIn = modelPartsIn.getN<GetModelPartsTask::Output>(0);
             const auto url = modelPartsIn.getN<GetModelPartsTask::Output>(1);
             const auto meshIndicesToModelNames = modelPartsIn.getN<GetModelPartsTask::Output>(2);
@@ -94,13 +91,9 @@ namespace baker {
 
             // Combine the outputs into a new hfm::Model
             const auto buildMeshesInputs = BuildMeshesTask::Input(meshesIn, graphicsMeshes, tangentsPerMesh, blendshapesPerMesh).asVarying();
-            const auto buildMeshesOutputs = model.addJob<BuildMeshesTask>("BuildMeshes", buildMeshesInputs);
-            const auto meshesOut = buildMeshesOutputs.getN<BuildMeshesTask::Output>(0);
+            const auto meshesOut = model.addJob<BuildMeshesTask>("BuildMeshes", buildMeshesInputs);
             const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut).asVarying();
-            const auto buildModelOutputs = model.addJob<BuildModelTask>("BuildModel", buildModelInputs);
-            const auto hfmModelOut = buildModelOutputs.getN<BuildModelTask::Output>(0);
-
-            out = hfmModelOut;
+            hfmModelOut = model.addJob<BuildModelTask>("BuildModel", buildModelInputs);
         }
     };
 
