@@ -332,17 +332,9 @@ getControllerJointIndex = function (hand) {
     var now = Date.now();
     if (now - getControllerJointIndexCacheTime[hand] > GET_CONTROLLERJOINTINDEX_CACHE_REFRESH_TIME) {
         if (HMD.isHandControllerAvailable()) {
-            var controllerJointIndex = -1;
-            // if (Camera.mode === "first person") {
-            //     controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-            //                                                   "_CONTROLLER_RIGHTHAND" :
-            //                                                   "_CONTROLLER_LEFTHAND");
-            // } else if (Camera.mode === "third person") {
-                controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                                                              "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                                                              "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
-            // }
-
+            var controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+                                                              "_CONTROLLER_RIGHTHAND" :
+                                                              "_CONTROLLER_LEFTHAND");
             getControllerJointIndexCacheTime[hand] = now;
             getControllerJointIndexCache[hand] = controllerJointIndex;
             return controllerJointIndex;

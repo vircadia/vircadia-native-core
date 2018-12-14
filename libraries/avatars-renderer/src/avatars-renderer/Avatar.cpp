@@ -680,7 +680,6 @@ void Avatar::simulate(float deltaTime, bool inView) {
             head->setScale(getModelScale());
             head->simulate(deltaTime);
             relayJointDataToChildren();
-            updateGrabs();
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
@@ -714,6 +713,11 @@ void Avatar::simulate(float deltaTime, bool inView) {
     {
         PROFILE_RANGE(simulation, "entities");
         updateAvatarEntities();
+    }
+
+    {
+        PROFILE_RANGE(simulation, "grabs");
+        updateGrabs();
     }
 
     updateFadingStatus();

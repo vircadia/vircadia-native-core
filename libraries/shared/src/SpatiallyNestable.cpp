@@ -481,27 +481,29 @@ void SpatiallyNestable::setWorldTransform(const glm::vec3& position, const glm::
         return;
     }
 
-    bool changed = false;
     bool success = true;
     Transform parentTransform = getParentTransform(success);
-    _transformLock.withWriteLock([&] {
-        Transform myWorldTransform;
-        Transform::mult(myWorldTransform, parentTransform, _transform);
-        if (myWorldTransform.getRotation() != orientation) {
-            changed = true;
-            myWorldTransform.setRotation(orientation);
-        }
-        if (myWorldTransform.getTranslation() != position) {
-            changed = true;
-            myWorldTransform.setTranslation(position);
-        }
+    if (success) {
+        bool changed = false;
+        _transformLock.withWriteLock([&] {
+            Transform myWorldTransform;
+            Transform::mult(myWorldTransform, parentTransform, _transform);
+            if (myWorldTransform.getRotation() != orientation) {
+                changed = true;
+                myWorldTransform.setRotation(orientation);
+            }
+            if (myWorldTransform.getTranslation() != position) {
+                changed = true;
+                myWorldTransform.setTranslation(position);
+            }
+            if (changed) {
+                Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+                _translationChanged = usecTimestampNow();
+            }
+        });
         if (changed) {
-            Transform::inverseMult(_transform, parentTransform, myWorldTransform);
-            _translationChanged = usecTimestampNow();
+            locationChanged(false);
         }
-    });
-    if (success && changed) {
-        locationChanged(false);
     }
 }
 
@@ -788,19 +790,21 @@ void SpatiallyNestable::setTransform(const Transform& transform, bool& success) 
         return;
     }
 
-    bool changed = false;
     Transform parentTransform = getParentTransform(success);
-    _transformLock.withWriteLock([&] {
-        Transform beforeTransform = _transform;
-        Transform::inverseMult(_transform, parentTransform, transform);
-        if (_transform != beforeTransform) {
-            changed = true;
-            _translationChanged = usecTimestampNow();
-            _rotationChanged = usecTimestampNow();
+    if (success) {
+        bool changed = false;
+        _transformLock.withWriteLock([&] {
+            Transform beforeTransform = _transform;
+            Transform::inverseMult(_transform, parentTransform, transform);
+            if (_transform != beforeTransform) {
+                changed = true;
+                _translationChanged = usecTimestampNow();
+                _rotationChanged = usecTimestampNow();
+            }
+        });
+        if (changed) {
+            locationChanged();
         }
-    });
-    if (success && changed) {
-        locationChanged();
     }
 }
 

@@ -32,7 +32,7 @@ void GrabManager::simulateGrabs() {
             if (success && grabbedThing) {
                 glm::vec3 finalPosition = acc.finalizePosition();
                 glm::quat finalOrientation = acc.finalizeOrientation();
-                grabbedThing->setWorldTransform(finalPosition, finalOrientation);
+                grabbedThing->setTransform(createMatFromQuatAndPos(finalOrientation, finalPosition));
             }
         }
     });

@@ -3301,7 +3301,7 @@ bool EntityItem::isWearable() const {
 void EntityItem::addGrab(GrabPointer grab) {
     SpatiallyNestable::addGrab(grab);
 
-    if (getDynamic()) {
+    if (getDynamic() && getParentID().isNull()) {
         EntityTreePointer entityTree = getTree();
         assert(entityTree);
         EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
