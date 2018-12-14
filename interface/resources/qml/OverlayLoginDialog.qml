@@ -1,8 +1,9 @@
 //
 //  LoginDialog.qml
 //
-//  Created by David Rowe on 3 Jun 2015
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Wayne Chen
+//  Copyright 2018 High Fidelity, Inc.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -19,23 +20,22 @@ FocusScope {
     id: root
     HifiStylesUit.HifiConstants { id: hifi }
     objectName: "LoginDialog"
-    property bool shown: true
-    visible: shown
+    visible: true
 
     anchors.fill: parent
 
     readonly property bool isTablet: false
-    readonly property bool isOverlay: false
-
-    property string iconText: ""
-    property int iconSize: 50
+    readonly property bool isOverlay: true
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool isPassword: false
+    property string iconText: ""
+    property int iconSize: 50
+
     property string title: ""
-    property string text: ""
     property int titleWidth: 0
+    property alias text: loginKeyboard.mirroredText
     property alias bannerWidth: banner.width
     property alias bannerHeight: banner.height
 
@@ -45,9 +45,10 @@ FocusScope {
 
     LoginDialog {
         id: loginDialog
-
+        anchors.fill: parent
         Loader {
             id: bodyLoader
+            anchors.fill: parent
         }
     }
 
@@ -81,6 +82,30 @@ FocusScope {
             anchors.centerIn: parent
             source: "../images/high-fidelity-banner.svg"
             horizontalAlignment: Image.AlignHCenter
+        }
+    }
+
+    Timer {
+        id: keyboardTimer
+        repeat: false
+        interval: 200
+
+        onTriggered: {
+            if (MenuInterface.isOptionChecked("Use 3D Keyboard")) {
+                KeyboardScriptingInterface.raised = true;
+            }
+        }
+    }
+
+    HifiControlsUit.Keyboard {
+        id: loginKeyboard
+        raised: root.keyboardEnabled && root.keyboardRaised
+        numeric: root.punctuationMode
+        password: root.isPassword
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
         }
     }
 
@@ -118,7 +143,12 @@ FocusScope {
         }
     }
 
+    Component.onDestruction: {
+        loginKeyboard.raised = false;
+    }
+
     Component.onCompleted: {
+        keyboardTimer.start();
         bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": false });
     }
 }

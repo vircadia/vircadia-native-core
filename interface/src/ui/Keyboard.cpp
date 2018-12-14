@@ -340,8 +340,10 @@ void Keyboard::raiseKeyboardAnchor(bool raise) const {
     auto anchorOverlay = std::dynamic_pointer_cast<Cube3DOverlay>(overlays.getOverlay(anchorOverlayID));
     if (anchorOverlay) {
         std::pair<glm::vec3, glm::quat> keyboardLocation = calculateKeyboardPositionAndOrientation();
-        anchorOverlay->setWorldPosition(keyboardLocation.first);
-        anchorOverlay->setWorldOrientation(keyboardLocation.second);
+        if (_resetKeyboardPositionOnRaise) {
+            anchorOverlay->setWorldPosition(keyboardLocation.first);
+            anchorOverlay->setWorldOrientation(keyboardLocation.second);
+        }
         anchorOverlay->setVisible(raise);
 
         QVariantMap textDisplayProperties {
@@ -440,6 +442,14 @@ void Keyboard::setPassword(bool password) {
     }
 
     updateTextDisplay();
+}
+
+void Keyboard::setResetKeyboardPositionOnRaise(bool reset) {
+    if (_resetKeyboardPositionOnRaise != reset) {
+        withWriteLock([&] {
+            _resetKeyboardPositionOnRaise = reset;
+        });
+    }
 }
 
 void Keyboard::setPreferMalletsOverLasers(bool preferMalletsOverLasers) {
@@ -909,6 +919,13 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
     });
 
     request->send();
+}
+
+
+OverlayID Keyboard::getAnchorID() {
+    return _ignoreItemsLock.resultWithReadLock<OverlayID>([&] {
+        return _anchor.overlayID;
+    });
 }
 
 bool Keyboard::shouldProcessOverlay(const OverlayID& overlayID) const {
