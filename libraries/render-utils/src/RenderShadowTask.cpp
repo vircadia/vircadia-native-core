@@ -376,14 +376,14 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
         }
 
         // copy paste the values for the shadow params:
-        if (!_globalShadowObject.first) {
+    /*    if (!_globalShadowObject) {
             LightStage::Shadow::Schema schema;
-            _globalShadowObject.first = std::make_shared<gpu::Buffer>(sizeof(LightStage::Shadow::Schema), (const gpu::Byte*) &schema);
+            _globalShadowObject = std::make_shared<gpu::Buffer>(sizeof(LightStage::Shadow::Schema), (const gpu::Byte*) &schema);
         }
-        _globalShadowObject.first->setData(globalShadow->getBuffer()._size, globalShadow->getBuffer()._buffer->getData());
+        _globalShadowObject->getBuffersetData(globalShadow->getBuffer()._size, globalShadow->getBuffer()._buffer->getData());
 
 
-        _shadowFrameCache->pushShadow(0, _globalShadowObject.first, _globalShadowObject.second);
+        _shadowFrameCache->pushShadow(_globalShadowObject);*/
 
         // Now adjust coarse frustum bounds
         auto frustumPosition = firstCascadeFrustum->getPosition();

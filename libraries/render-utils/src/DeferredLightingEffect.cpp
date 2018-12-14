@@ -374,6 +374,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
     const LightStage::FramePointer& lightFrame,
+    const LightStage::ShadowFramePointer& shadowFrame,
     const HazeStage::FramePointer& hazeFrame,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
     const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
@@ -627,7 +628,8 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
     auto args = renderContext->args;
 
     const auto& lightFrame = inputs.get7();
-    const auto& hazeFrame = inputs.get8();
+    const auto& shadowFrame = inputs.get8();
+    const auto& hazeFrame = inputs.get9();
 
     if (!_gpuTimer) {
         _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);

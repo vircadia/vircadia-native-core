@@ -188,11 +188,11 @@ public:
         
         void clear() {}
         
-        using Object = std::pair<gpu::BufferPointer, gpu::TexturePointer>;
+        using Object = ShadowPointer;
         using Objects = std::vector<Object>;
 
-        void pushShadow(LightStage::Index index, const gpu::BufferPointer& params, const gpu::TexturePointer& maps) {
-            _objects.emplace_back(params, maps);
+        void pushShadow(const ShadowPointer& shadow) {
+            _objects.emplace_back(shadow);
         }
 
 
