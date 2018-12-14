@@ -17,23 +17,22 @@ namespace baker {
     public:
         using Unused = int;
 
-        using Input = VaryingSet1<hfm::Model::Pointer>;
-        using Output = VaryingSet1<hfm::Model::Pointer>;
+        using Input = hfm::Model::Pointer;
+        using Output = hfm::Model::Pointer;
         using JobModel = Task::ModelIO<BakerEngineBuilder, Input, Output>;
         void build(JobModel& model, const Varying& in, Varying& out) {
-            out = Output(in.getN<Input>(0));
+            out = in;
         }
     };
 
     Baker::Baker(const hfm::Model::Pointer& hfmModel) :
         _engine(std::make_shared<Engine>(BakerEngineBuilder::JobModel::create("Baker"), std::make_shared<BakeContext>())) {
-        _engine->feedInput<BakerEngineBuilder::Input>(0, hfmModel);
+        _engine->feedInput<BakerEngineBuilder::Input>(hfmModel);
     }
 
     void Baker::run() {
         _engine->run();
-        auto& output = _engine->getOutput().get<BakerEngineBuilder::Output>();
-        hfmModel = output.get0();
+        hfmModel = _engine->getOutput().get<BakerEngineBuilder::Output>();
     }
 
 };
