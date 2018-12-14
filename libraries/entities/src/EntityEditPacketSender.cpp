@@ -44,7 +44,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(EntityTreePointer enti
                                                           const EntityItemProperties& properties) {
     assert(_myAvatar);
     if (!entityTree) {
-        qCDebug(entities) << "EntityEditPacketSender::queueEditEntityMessage null entityTree.";
+        qCDebug(entities) << "EntityEditPacketSender::queueEditAvatarEntityMessage null entityTree.";
         return;
     }
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(entityItemID);
