@@ -72,7 +72,7 @@ bool ObjectActionTractor::getTarget(float deltaTimeStep, glm::quat& rotation, gl
                     angularTimeScale = FLT_MAX;
                     return false;
                 }
-                rotation = _desiredRotationalTarget * otherWorldOrientation;
+                rotation = otherWorldOrientation * _desiredRotationalTarget;
                 position = otherWorldOrientation * _desiredPositionalTarget + otherWorldPosition;
             } else {
                 // we should have an "other" but can't find it, or its collision shape isn't loaded,

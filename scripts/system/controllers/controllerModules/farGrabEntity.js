@@ -146,7 +146,7 @@ Script.include("/~/system/libraries/controllers.js");
             MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(targetProps.id, "startNearGrab", args);
+            Entities.callEntityMethod(targetProps.id, "startDistanceGrab", args);
 
             this.targetEntityID = targetProps.id;
 
