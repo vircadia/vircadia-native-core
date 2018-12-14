@@ -411,7 +411,6 @@ protected:
     using Task = task::Task<ContextType, TimeProfiler>; \
     using Engine = task::Engine<ContextType, TimeProfiler>; \
     using Varying = task::Varying; \
-    template < typename T0 > using VaryingSet1 = task::VaryingSet1<T0>; \
     template < typename T0, typename T1 > using VaryingSet2 = task::VaryingSet2<T0, T1>; \
     template < typename T0, typename T1, typename T2 > using VaryingSet3 = task::VaryingSet3<T0, T1, T2>; \
     template < typename T0, typename T1, typename T2, typename T3 > using VaryingSet4 = task::VaryingSet4<T0, T1, T2, T3>; \
