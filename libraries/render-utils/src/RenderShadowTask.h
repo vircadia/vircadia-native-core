@@ -50,7 +50,7 @@ public:
 
     // There is one AABox per shadow cascade
     using Input = LightStage::FramePointer;
-    using Output = render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>;
+    using Output = render::VaryingSet2<render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>, LightStage::ShadowFramePointer>;
     using Config = RenderShadowTaskConfig;
     using JobModel = render::Task::ModelIO<RenderShadowTask, Input, Output, Config>;
 
@@ -101,7 +101,7 @@ signals:
 class RenderShadowSetup {
 public:
     using Inputs = LightStage::FramePointer;
-    using Outputs = render::VaryingSet3<RenderArgs::RenderMode, glm::ivec2, ViewFrustumPointer>;
+    using Outputs = render::VaryingSet4<RenderArgs::RenderMode, glm::ivec2, ViewFrustumPointer, LightStage::ShadowFramePointer>;
     using Config = RenderShadowSetupConfig;
     using JobModel = render::Job::ModelIO<RenderShadowSetup, Inputs, Outputs, Config>;
 
@@ -117,6 +117,9 @@ private:
         float _constant;
         float _slope;
     } _bias[SHADOW_CASCADE_MAX_COUNT];
+
+    LightStage::ShadowFrame::Object _globalShadowObject;
+    LightStage::ShadowFramePointer _shadowFrameCache;
 
     void setConstantBias(int cascadeIndex, float value);
     void setSlopeBias(int cascadeIndex, float value);

@@ -93,10 +93,15 @@ public:
         const graphics::LightPointer& getLight() const { return _light; }
 
         gpu::TexturePointer map;
+#include "Shadows_shared.slh"
+        class Schema : public ShadowParameters {
+        public:
 
+            Schema();
+
+        };
     protected:
 
-#include "Shadows_shared.slh"
 
         using Cascades = std::vector<Cascade>;
 
@@ -106,12 +111,7 @@ public:
         float _maxDistance;
         Cascades _cascades;
 
-        class Schema : public ShadowParameters {
-        public:
 
-            Schema();
-
-        };
         UniformBufferView _schemaBuffer = nullptr;
     };
 
@@ -182,6 +182,24 @@ public:
     };
     using FramePointer = std::shared_ptr<Frame>;
     
+    class ShadowFrame {
+    public:
+        ShadowFrame() {}
+        
+        void clear() {}
+        
+        using Object = std::pair<gpu::BufferPointer, gpu::TexturePointer>;
+        using Objects = std::vector<Object>;
+
+        void pushShadow(LightStage::Index index, const gpu::BufferPointer& params, const gpu::TexturePointer& maps) {
+            _objects.emplace_back(params, maps);
+        }
+
+
+        Objects _objects;
+    };
+    using ShadowFramePointer = std::shared_ptr<ShadowFrame>;
+
     Frame _currentFrame;
     
     Index getAmbientOffLight() { return _ambientOffLightId; }

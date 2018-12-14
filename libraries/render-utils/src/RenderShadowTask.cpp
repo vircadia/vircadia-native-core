@@ -91,7 +91,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 #endif
     };
 
-    Output cascadeSceneBBoxes;
+    render::VaryingArray<AABox,4> cascadeSceneBBoxes;
 
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
         char jobName[64];
@@ -118,10 +118,11 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 
         cascadeSceneBBoxes[i] = culledShadowItemsAndBounds.getN<CullShadowBounds::Outputs>(1);
     }
-
-    output = render::Varying(cascadeSceneBBoxes);
-
     task.addJob<RenderShadowTeardown>("ShadowTeardown", setupOutput);
+
+
+    output = Output(cascadeSceneBBoxes, setupOutput.getN<RenderShadowSetup::Outputs>(3));
+
 }
 
 static void computeNearFar(const Triangle& triangle, const Plane shadowClipPlanes[4], float& near, float& far) {
@@ -315,7 +316,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
 RenderShadowSetup::RenderShadowSetup() :
     _cameraFrustum{ std::make_shared<ViewFrustum>() },
     _coarseShadowFrustum{ std::make_shared<ViewFrustum>() } {
-
+    _shadowFrameCache = std::make_shared<LightStage::ShadowFrame>();
 }
 
 void RenderShadowSetup::configure(const Config& configuration) {
@@ -374,6 +375,16 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
                                                     bias._constant, bias._slope);
         }
 
+        // copy paste the values for the shadow params:
+        if (!_globalShadowObject.first) {
+            LightStage::Shadow::Schema schema;
+            _globalShadowObject.first = std::make_shared<gpu::Buffer>(sizeof(LightStage::Shadow::Schema), (const gpu::Byte*) &schema);
+        }
+        _globalShadowObject.first->setData(globalShadow->getBuffer()._size, globalShadow->getBuffer()._buffer->getData());
+
+
+        _shadowFrameCache->pushShadow(0, _globalShadowObject.first, _globalShadowObject.second);
+
         // Now adjust coarse frustum bounds
         auto frustumPosition = firstCascadeFrustum->getPosition();
         auto farTopLeft = firstCascadeFrustum->getFarTopLeft() - frustumPosition;
@@ -422,6 +433,8 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
         queryResolution.x = int(queryResolution.x * _coarseShadowFrustum->getWidth() / firstCascadeFrustum->getWidth());
         queryResolution.y = int(queryResolution.y * _coarseShadowFrustum->getHeight() / firstCascadeFrustum->getHeight());
         output.edit1() = queryResolution;
+
+        output.edit3() = _shadowFrameCache;
     }
 }
 
