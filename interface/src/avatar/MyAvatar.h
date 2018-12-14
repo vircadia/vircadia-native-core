@@ -1210,6 +1210,10 @@ public:
      */
     Q_INVOKABLE void releaseGrab(const QUuid& grabID);
 
+    AvatarEntityMap getAvatarEntityData() const override;
+    void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
+    void avatarEntityDataToJson(QJsonObject& root) const override;
+
 public slots:
 
     /**jsdoc
@@ -1410,6 +1414,7 @@ public slots:
 
     void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
     void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true) override;
+    void sanitizeAvatarEntityProperties(EntityItemProperties& properties) const;
 
     /**jsdoc
      * Set whether or not your avatar mesh is visible.
@@ -1621,6 +1626,7 @@ protected:
     virtual void recalculateChildCauterization() const override;
 
 private:
+    bool updateStaleAvatarEntityBlobs() const;
 
     bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
 
@@ -1948,9 +1954,38 @@ private:
     Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
     std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
-    std::map<QUuid, QByteArray> _cachedAvatarEntityDataSettings;
-    std::set<QUuid> _entitiesToSaveToSettings;
-    std::set<QUuid> _entitiesToRemoveFromSettings;
+
+    // AvatarEntities stuff:
+    // We cache the "map of unfortunately-formatted-binary-blobs" because they are expensive to compute
+    // Do not confuse these with AvatarData::_packedAvatarEntityData which are in wire-format.
+    mutable AvatarEntityMap _cachedAvatarEntityBlobs;
+
+    // We collect changes to AvatarEntities and then handle them all in one spot per frame: updateAvatarEntities().
+    // Basically this is a "transaction pattern" with an extra complication: these changes can come from two
+    // "directions" and the "authoritative source" of each direction is different, so maintain two distinct sets of
+    // transaction lists;
+    //
+    // The _entitiesToDelete/Add/Update lists are for changes whose "authoritative sources" are already
+    // correctly stored in _cachedAvatarEntityBlobs.  These come from loadAvatarEntityDataFromSettings() and
+    // setAvatarEntityData().  These changes need to be extracted from _cachedAvatarEntityBlobs and applied to
+    // real EntityItems.
+    std::vector<QUuid> _entitiesToDelete;
+    std::vector<QUuid> _entitiesToAdd;
+    std::vector<QUuid> _entitiesToUpdate;
+    //
+    // The _cachedAvatarEntityBlobsToDelete/Add/Update lists are for changes whose "authoritative sources" are
+    // already reflected in real EntityItems. These changes need to be propagated to _cachedAvatarEntityBlobs
+    // and eventually to settings.
+    std::vector<QUuid> _cachedAvatarEntityBlobsToDelete;
+    std::vector<QUuid> _cachedAvatarEntityBlobsToAddOrUpdate;
+    std::vector<QUuid> _cachedAvatarEntityBlobUpdatesToSkip;
+    //
+    // Also these lists for tracking delayed changes to blobs and Settings
+    std::set<QUuid> _staleCachedAvatarEntityBlobs;
+    //
+    // keep a ScriptEngine around so we don't have to instantiate on the fly (these are very slow to create/delete)
+    QScriptEngine* _myScriptEngine { nullptr };
+    bool _needToSaveAvatarEntitySettings { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

@@ -72,6 +72,8 @@ using AvatarGrabMap = QMap<QUuid, GrabPointer>;
 
 using AvatarDataSequenceNumber = uint16_t;
 
+const int MAX_NUM_AVATAR_ENTITIES = 42;
+
 // avatar motion behaviors
 const quint32 AVATAR_MOTION_ACTION_MOTOR_ENABLED = 1U << 0;
 const quint32 AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED = 1U << 1;
@@ -1128,7 +1130,7 @@ public:
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
     void createRecordingIDs();
-    void avatarEntityDataToJson(QJsonObject& root) const;
+    virtual void avatarEntityDataToJson(QJsonObject& root) const;
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
@@ -1140,13 +1142,13 @@ public:
      * @function MyAvatar.getAvatarEntityData
      * @returns {object} 
      */
-    Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
+    Q_INVOKABLE virtual AvatarEntityMap getAvatarEntityData() const;
 
     /**jsdoc
      * @function MyAvatar.setAvatarEntityData
      * @param {object} avatarEntityData
      */
-    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
+    Q_INVOKABLE virtual void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
 
     virtual void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     void insertDetachedEntityID(const QUuid entityID);

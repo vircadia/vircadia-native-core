@@ -282,6 +282,8 @@ MyAvatar::MyAvatar(QThread* thread) :
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
+    delete _myScriptEngine;
+    _myScriptEngine = nullptr;
 }
 
 void MyAvatar::setDominantHand(const QString& hand) {
@@ -1304,89 +1306,37 @@ void MyAvatar::saveData() {
 }
 
 void MyAvatar::saveAvatarEntityDataToSettings() {
-    if (_entitiesToSaveToSettings.size() + _entitiesToRemoveFromSettings.size() == 0) {
-        // nothing to do
+    if (!_needToSaveAvatarEntitySettings) {
         return;
     }
-    auto entityTreeRenderer = qApp->getEntities();
-    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
-    if (!entityTree) {
+    bool success = updateStaleAvatarEntityBlobs();
+    if (!success) {
         return;
     }
+    _needToSaveAvatarEntitySettings = false;
 
-    // find set of things that changed
-    std::set<QUuid> entitiesToSave;
-    _avatarEntitiesLock.withWriteLock([&] {
-        entitiesToSave = std::move(_entitiesToSaveToSettings);
-        for (const auto& id : _entitiesToRemoveFromSettings) {
-            // remove
-            entitiesToSave.erase(id);
-            std::map<QUuid, QByteArray>::iterator itr =  _cachedAvatarEntityDataSettings.find(id);
-            if (itr != _cachedAvatarEntityDataSettings.end()) {
-                _cachedAvatarEntityDataSettings.erase(itr);
-            }
-        }
-        for (const auto& id : entitiesToSave) {
-            // remove old strings to be replaced by new saves
-            std::map<QUuid, QByteArray>::iterator itr =  _cachedAvatarEntityDataSettings.find(id);
-            if (itr != _cachedAvatarEntityDataSettings.end()) {
-                _cachedAvatarEntityDataSettings.erase(itr);
-            }
-        }
-        _entitiesToRemoveFromSettings.clear();
-    });
-
-    uint32_t numEntities = (uint32_t)(entitiesToSave.size() + _cachedAvatarEntityDataSettings.size());
+    uint32_t numEntities = (uint32_t)_cachedAvatarEntityBlobs.size();
     uint32_t prevNumEntities = _avatarEntityCountSetting.get(0);
     resizeAvatarEntitySettingHandles(std::max<uint32_t>(numEntities, prevNumEntities));
 
-    // save new settings
+    // save new Settings
     if (numEntities > 0) {
-        // get all properties to save
-        std::map<QUuid, EntityItemProperties> allProperties;
-        EntityItemPointer entity;
-        entityTree->withWriteLock([&] {
-            for (auto& id : entitiesToSave) {
-                EntityItemPointer entity = entityTree->findEntityByID(id);
-                if (entity) {
-                    allProperties[id] = entity->getProperties();
-                }
+        // save all unfortunately-formatted-binary-blobs to Settings
+        _avatarEntitiesLock.withWriteLock([&] {
+            uint32_t i = 0;
+            AvatarEntityMap::const_iterator itr = _cachedAvatarEntityBlobs.begin();
+            while (itr != _cachedAvatarEntityBlobs.end()) {
+                _avatarEntityIDSettings[i].set(itr.key());
+                _avatarEntityDataSettings[i].set(itr.value());
+                ++itr;
+                ++i;
             }
+            numEntities = i;
         });
-        // convert properties to our unfortunately-formatted-binary-blob format
-        QScriptEngine scriptEngine;
-        QScriptValue toStringMethod = scriptEngine.evaluate("(function() { return JSON.stringify(this) })");
-        for (const auto& entry : allProperties) {
-            // begin recipe for converting to our unfortunately-formatted-binar-blob
-            QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, entry.second);
-            QVariant variantProperties = scriptValue.toVariant();
-            QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
-            // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
-            QJsonObject jsonObject = jsonProperties.object();
-            if (jsonObject.contains("parentID")) {
-                if (QUuid(jsonObject["parentID"].toString()) == getID()) {
-                    jsonObject["parentID"] = AVATAR_SELF_ID.toString();
-                }
-            }
-            jsonProperties = QJsonDocument(jsonObject);
-            QByteArray binaryProperties = jsonProperties.toBinaryData();
-            // end recipe
-
-            // remember this unfortunately-formatted-binary-blob for later so we don't have go through this again
-            _cachedAvatarEntityDataSettings[entry.first] = binaryProperties;
-        }
-        // save all unfortunately-formatted-binary-blobs to settings
-        uint32_t i = 0;
-        for (const auto& entry : _cachedAvatarEntityDataSettings) {
-            _avatarEntityIDSettings[i].set(entry.first);
-            _avatarEntityDataSettings[i].set(entry.second);
-            ++i;
-        }
-        numEntities = i;
     }
     _avatarEntityCountSetting.set(numEntities);
 
-    // remove old settings if any
+    // remove old Settings if any
     if (numEntities < prevNumEntities) {
         uint32_t numEntitiesToRemove = prevNumEntities - numEntities;
         for (uint32_t i = 0; i < numEntitiesToRemove; ++i) {
@@ -1499,35 +1449,304 @@ void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
 void MyAvatar::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) {
     AvatarData::storeAvatarEntityDataPayload(entityID, payload);
     _avatarEntitiesLock.withWriteLock([&] {
-        _entitiesToSaveToSettings.insert(entityID);
+        _cachedAvatarEntityBlobsToAddOrUpdate.push_back(entityID);
     });
 }
 
 void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
-    _avatarEntitiesLock.withWriteLock([&] {
-        _entitiesToRemoveFromSettings.insert(entityID);
-    });
     AvatarData::clearAvatarEntity(entityID, requiresRemovalFromTree);
+    _avatarEntitiesLock.withWriteLock([&] {
+        _cachedAvatarEntityBlobsToDelete.push_back(entityID);
+    });
+}
+
+bool blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties) {
+    // begin recipe for converting unfortunately-formatted-binary-blob to EntityItemProperties
+    QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(blob);
+    if (!jsonProperties.isObject()) {
+        qCDebug(interfaceapp) << "bad avatarEntityData json" << QString(blob.toHex());
+        return false;
+    }
+    QVariant variant = jsonProperties.toVariant();
+    QVariantMap variantMap = variant.toMap();
+    QScriptValue scriptValue = variantMapToScriptValue(variantMap, scriptEngine);
+    EntityItemPropertiesFromScriptValueHonorReadOnly(scriptValue, properties);
+    // end recipe
+    return true;
+}
+
+void propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob) {
+    // begin recipe for extracting unfortunately-formatted-binary-blob from EntityItem
+    QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, properties);
+    QVariant variantProperties = scriptValue.toVariant();
+    QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
+    // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
+    QJsonObject jsonObject = jsonProperties.object();
+    if (jsonObject.contains("parentID")) {
+        if (QUuid(jsonObject["parentID"].toString()) == myAvatarID) {
+            jsonObject["parentID"] = AVATAR_SELF_ID.toString();
+        }
+    }
+    jsonProperties = QJsonDocument(jsonObject);
+    blob = jsonProperties.toBinaryData();
+    // end recipe
+}
+
+void MyAvatar::sanitizeAvatarEntityProperties(EntityItemProperties& properties) const {
+    properties.setEntityHostType(entity::HostType::AVATAR);
+    properties.setOwningAvatarID(getID());
+
+    // there's no entity-server to tell us we're the simulation owner, so always set the
+    // simulationOwner to the owningAvatarID and a high priority.
+    properties.setSimulationOwner(getID(), AVATAR_ENTITY_SIMULATION_PRIORITY);
+
+    if (properties.getParentID() == AVATAR_SELF_ID) {
+        properties.setParentID(getID());
+    }
+
+    // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
+    // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
+    // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
+    // back to the default), and the entity flew off somewhere.  Marking all changed definitely fixes this,
+    // and seems safe (per Seth).
+    properties.markAllChanged();
 }
 
 void MyAvatar::updateAvatarEntities() {
+    if (getID().isNull() ||
+        getID() == AVATAR_SELF_ID ||
+        DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
+        // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong:
+        // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
+        return;
+    }
     if (_reloadAvatarEntityDataFromSettings) {
-        if (getID().isNull() ||
-            getID() == AVATAR_SELF_ID ||
-            DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
-            // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong:
-            // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
-            return;
-        }
-        auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-        EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-        if (!entityTree) {
-            return;
-        }
         loadAvatarEntityDataFromSettings();
+    }
+
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (!entityTree) {
+        return;
+    }
+
+    // We collect changes to AvatarEntities and then handle them all in one spot per frame: updateAvatarEntities().
+    // Basically this is a "transaction pattern" with an extra complication: these changes can come from two
+    // "directions" and the "authoritative source" of each direction is different, so maintain two distinct sets of
+    // transaction lists;
+    //
+    // The _entitiesToDelete/Add/Update lists are for changes whose "authoritative sources" are already
+    // correctly stored in _cachedAvatarEntityBlobs.  These come from loadAvatarEntityDataFromSettings() and
+    // setAvatarEntityData().  These changes need to be extracted from _cachedAvatarEntityBlobs and applied to
+    // real EntityItems.
+    //
+    // The _cachedAvatarEntityBlobsToDelete/Add/Update lists are for changes whose "authoritative sources" are
+    // already reflected in real EntityItems. These changes need to be propagated to _cachedAvatarEntityBlobs
+    // and eventually to Settings.
+    //
+    // The DELETEs also need to be propagated to the traits, which will eventually propagate to
+    // AvatarData::_packedAvatarEntityData via deeper logic.
+
+    // move the lists to minimize lock time
+    std::vector<QUuid> cachedBlobsToDelete;
+    std::vector<QUuid> cachedBlobsToUpdate;
+    std::vector<QUuid> entitiesToDelete;
+    std::vector<QUuid> entitiesToAdd;
+    std::vector<QUuid> entitiesToUpdate;
+    _avatarEntitiesLock.withWriteLock([&] {
+        cachedBlobsToDelete = std::move(_cachedAvatarEntityBlobsToDelete);
+        cachedBlobsToUpdate = std::move(_cachedAvatarEntityBlobsToAddOrUpdate);
+        entitiesToDelete = std::move(_entitiesToDelete);
+        entitiesToAdd = std::move(_entitiesToAdd);
+        entitiesToUpdate = std::move(_entitiesToUpdate);
+    });
+
+    auto removeAllInstancesHelper = [] (const QUuid& id, std::vector<QUuid>& v) {
+        uint32_t i = 0;
+        while (i < v.size()) {
+            if (id == v[i]) {
+                v[i] = v.back();
+                v.pop_back();
+            } else {
+                ++i;
+            }
+        }
+    };
+
+    // remove delete-add and delete-update overlap
+    for (const auto& id : entitiesToDelete) {
+        removeAllInstancesHelper(id, cachedBlobsToUpdate);
+        removeAllInstancesHelper(id, entitiesToAdd);
+        removeAllInstancesHelper(id, entitiesToUpdate);
+    }
+    for (const auto& id : cachedBlobsToDelete) {
+        removeAllInstancesHelper(id, entitiesToUpdate);
+        removeAllInstancesHelper(id, cachedBlobsToUpdate);
+    }
+    for (const auto& id : entitiesToAdd) {
+        removeAllInstancesHelper(id, entitiesToUpdate);
+    }
+
+    // DELETE real entities
+    for (const auto& id : entitiesToDelete) {
+        entityTree->withWriteLock([&] {
+            entityTree->deleteEntity(id);
+        });
+    }
+
+    // ADD real entities
+    for (const auto& id : entitiesToAdd) {
+        bool blobFailed = false;
+        EntityItemProperties properties;
+        _avatarEntitiesLock.withReadLock([&] {
+            AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.find(id);
+            if (itr == _cachedAvatarEntityBlobs.end()) {
+                blobFailed = true; // blob doesn't exist
+                return;
+            }
+            if (!blobToProperties(*_myScriptEngine, itr.value(), properties)) {
+                blobFailed = true; // blob is corrupt
+            }
+        });
+        if (blobFailed) {
+            // remove from _cachedAvatarEntityBlobUpdatesToSkip just in case:
+            // avoids a resource leak when blob updates to be skipped are never actually skipped
+            // when the blob fails to result in a real EntityItem
+            _avatarEntitiesLock.withWriteLock([&] {
+                removeAllInstancesHelper(id, _cachedAvatarEntityBlobUpdatesToSkip);
+            });
+            continue;
+        }
+        sanitizeAvatarEntityProperties(properties);
+        entityTree->withWriteLock([&] {
+            EntityItemPointer entity = entityTree->addEntity(id, properties);
+        });
+    }
+
+    // CHANGE real entities
+    for (const auto& id : entitiesToUpdate) {
+        EntityItemProperties properties;
+        bool skip = false;
+        _avatarEntitiesLock.withReadLock([&] {
+            AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.find(id);
+            if (itr == _cachedAvatarEntityBlobs.end()) {
+                skip = true;
+                return;
+            }
+            if (!blobToProperties(*_myScriptEngine, itr.value(), properties)) {
+                skip = true;
+            }
+        });
+        sanitizeAvatarEntityProperties(properties);
+        entityTree->withWriteLock([&] {
+            entityTree->updateEntity(id, properties);
+        });
+    }
+
+    // DELETE cached blobs
+    _avatarEntitiesLock.withWriteLock([&] {
+        for (const auto& id : cachedBlobsToDelete) {
+            AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.find(id);
+            // remove blob and remember to remove from settings
+            if (itr != _cachedAvatarEntityBlobs.end()) {
+                _cachedAvatarEntityBlobs.erase(itr);
+                _needToSaveAvatarEntitySettings = true;
+            }
+            // also remove from list of stale blobs to avoid failed entity lookup later
+            std::set<QUuid>::iterator blobItr = _staleCachedAvatarEntityBlobs.find(id);
+            if (blobItr != _staleCachedAvatarEntityBlobs.end()) {
+                _staleCachedAvatarEntityBlobs.erase(blobItr);
+            }
+            // also remove from _cachedAvatarEntityBlobUpdatesToSkip just in case:
+            // avoids a resource leak when things are deleted before they could be skipped
+            removeAllInstancesHelper(id, _cachedAvatarEntityBlobUpdatesToSkip);
+        }
+    });
+
+    // ADD/UPDATE cached blobs
+    for (const auto& id : cachedBlobsToUpdate) {
+        // computing the blobs is expensive and we want to avoid it when possible
+        // so we add these ids to _staleCachedAvatarEntityBlobs for later
+        // and only build the blobs when absolutely necessary
+        bool skip = false;
+        uint32_t i = 0;
+        _avatarEntitiesLock.withWriteLock([&] {
+            while (i < _cachedAvatarEntityBlobUpdatesToSkip.size()) {
+                if (id == _cachedAvatarEntityBlobUpdatesToSkip[i]) {
+                    _cachedAvatarEntityBlobUpdatesToSkip[i] = _cachedAvatarEntityBlobUpdatesToSkip.back();
+                    _cachedAvatarEntityBlobUpdatesToSkip.pop_back();
+                    skip = true;
+                    break; // assume no duplicates
+                } else {
+                    ++i;
+                }
+            }
+        });
+        if (!skip) {
+            _staleCachedAvatarEntityBlobs.insert(id);
+            _needToSaveAvatarEntitySettings = true;
+        }
+    }
+
+    // DELETE traits
+    // (no need to worry about the ADDs and UPDATEs: each will be handled when the interface
+    // tries to send a real update packet (via AvatarData::storeAvatarEntityDataPayload()))
+    if (_clientTraitsHandler) {
+        // we have a client traits handler
+        // flag removed entities as deleted so that changes are sent next frame
+        _avatarEntitiesLock.withWriteLock([&] {
+            for (const auto& id : entitiesToDelete) {
+                if (_packedAvatarEntityData.find(id) != _packedAvatarEntityData.end()) {
+                    _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, id);
+                }
+            }
+            for (const auto& id : cachedBlobsToDelete) {
+                if (_packedAvatarEntityData.find(id) != _packedAvatarEntityData.end()) {
+                    _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, id);
+                }
+            }
+        });
     }
 }
 
+bool MyAvatar::updateStaleAvatarEntityBlobs() const {
+    // call this right before you actually need to use the blobs
+    //
+    // Note: this method is const (and modifies mutable data members)
+    // so we can call it at the Last Minute inside other const methods
+    //
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (!entityTree) {
+        return false;
+    }
+
+    std::set<QUuid> staleBlobs;
+    _avatarEntitiesLock.withWriteLock([&] {
+        staleBlobs = std::move(_staleCachedAvatarEntityBlobs);
+    });
+    int32_t numFound = 0;
+    for (const auto& id : staleBlobs) {
+        bool found = false;
+        EntityItemProperties properties;
+        entityTree->withReadLock([&] {
+            EntityItemPointer entity = entityTree->findEntityByID(id);
+            if (entity) {
+                properties = entity->getProperties();
+                found = true;
+            }
+        });
+        if (found) {
+            ++numFound;
+            QByteArray blob;
+            propertiesToBlob(*_myScriptEngine, getID(), properties, blob);
+            _avatarEntitiesLock.withWriteLock([&] {
+                _cachedAvatarEntityBlobs[id] = blob;
+            });
+        }
+    }
+    return true;
+}
 
 void MyAvatar::rememberToReloadAvatarEntityDataFromSettings() {
     AvatarEntityMap emptyMap;
@@ -1535,7 +1754,84 @@ void MyAvatar::rememberToReloadAvatarEntityDataFromSettings() {
     _reloadAvatarEntityDataFromSettings = true;
 }
 
+AvatarEntityMap MyAvatar::getAvatarEntityData() const {
+    // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
+    updateStaleAvatarEntityBlobs();
+    AvatarEntityMap result;
+    _avatarEntitiesLock.withReadLock([&] {
+        result = _cachedAvatarEntityBlobs;
+    });
+    return result;
+}
+
+void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
+    // NOTE: the argument is expected to be a map of unfortunately-formatted-binary-blobs
+    if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
+        // the data is suspect
+        qCDebug(interfaceapp) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
+        return;
+    }
+
+    _avatarEntitiesLock.withWriteLock([&] {
+        // find new and updated IDs
+        AvatarEntityMap::const_iterator constItr = avatarEntityData.begin();
+        while (constItr != avatarEntityData.end()) {
+            QUuid id = constItr.key();
+            if (_cachedAvatarEntityBlobs.find(id) == _cachedAvatarEntityBlobs.end()) {
+                _entitiesToAdd.push_back(id);
+            } else {
+                _entitiesToUpdate.push_back(id);
+            }
+        }
+        // find and erase deleted IDs from _cachedAvatarEntityBlobs
+        std::vector<QUuid> deletedIDs;
+        AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.begin();
+        while (itr != _cachedAvatarEntityBlobs.end()) {
+            QUuid id = itr.key();
+            if (std::find(_entitiesToUpdate.begin(), _entitiesToUpdate.end(), id) == _entitiesToUpdate.end()) {
+                deletedIDs.push_back(id);
+                itr = _cachedAvatarEntityBlobs.erase(itr);
+            } else {
+                ++itr;
+            }
+        }
+        // erase deleted IDs from _packedAvatarEntityData
+        for (const auto& id : deletedIDs) {
+            itr = _packedAvatarEntityData.find(id);
+            if (itr != _packedAvatarEntityData.end()) {
+                _packedAvatarEntityData.erase(itr);
+            } else {
+                ++itr;
+            }
+            _entitiesToDelete.push_back(id);
+        }
+    });
+}
+
+void MyAvatar::avatarEntityDataToJson(QJsonObject& root) const {
+    _avatarEntitiesLock.withReadLock([&] {
+        if (!_cachedAvatarEntityBlobs.empty()) {
+            QJsonArray avatarEntityJson;
+            int entityCount = 0;
+            AvatarEntityMap::const_iterator itr = _cachedAvatarEntityBlobs.begin();
+            while (itr != _cachedAvatarEntityBlobs.end()) {
+                QVariantMap entityData;
+                QUuid id = _avatarEntityForRecording.size() == _cachedAvatarEntityBlobs.size() ? _avatarEntityForRecording.values()[entityCount++] : itr.key();
+                entityData.insert("id", id);
+                entityData.insert("properties", itr.value().toBase64());
+                avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
+                ++itr;
+            }
+            const QString JSON_AVATAR_ENTITIES = QStringLiteral("attachedEntities");
+            root[JSON_AVATAR_ENTITIES] = avatarEntityJson;
+        }
+    });
+}
+
 void MyAvatar::loadData() {
+    if (!_myScriptEngine) {
+        _myScriptEngine = new QScriptEngine();
+    }
     getHead()->setBasePitch(_headPitchSetting.get());
 
     _yawSpeed = _yawSpeedSetting.get(_yawSpeed);
@@ -1570,99 +1866,33 @@ void MyAvatar::loadData() {
 }
 
 void MyAvatar::loadAvatarEntityDataFromSettings() {
-    _avatarEntitiesLock.withReadLock([&] {
+    _avatarEntitiesLock.withWriteLock([&] {
         _packedAvatarEntityData.clear();
+        _entitiesToDelete.clear();
+        _entitiesToAdd.clear();
+        _entitiesToUpdate.clear();
     });
-
     _reloadAvatarEntityDataFromSettings = false;
+
     int numEntities = _avatarEntityCountSetting.get(0);
     if (numEntities == 0) {
         return;
     }
-
-    QScriptEngine scriptEngine;
-    std::vector< std::pair<QUuid, EntityItemProperties> > entitiesToLoad;
     resizeAvatarEntitySettingHandles(numEntities);
-    for (int i = 0; i < numEntities; i++) {
-        QUuid id = QUuid::createUuid(); // generate a new ID
 
-        // the avatarEntityData is stored as an unfortunately-formatted-binary-blob
-        QByteArray binaryData = _avatarEntityDataSettings[i].get();
-
-        _avatarEntityDataChanged = true;
-        if (_clientTraitsHandler) {
-            // we have a client traits handler, so we need to mark this instanced trait as changed
-            // so that changes will be sent next frame
-            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, id);
+    _avatarEntitiesLock.withWriteLock([&] {
+        _entitiesToAdd.reserve(numEntities);
+        // TODO: build map between old and new IDs so we can restitch parent-child relationships
+        for (int i = 0; i < numEntities; i++) {
+            QUuid id = QUuid::createUuid(); // generate a new ID
+            _cachedAvatarEntityBlobs[id] = _avatarEntityDataSettings[i].get();
+            _entitiesToAdd.push_back(id);
+            // this blob is the "authoritative source" for this AvatarEntity and we want to avoid overwriting it
+            // (the outgoing update packet will flag it for save-back into the blob)
+            // which is why we remember its id: to skip its save-back later
+            _cachedAvatarEntityBlobUpdatesToSkip.push_back(id);
         }
-
-        // begin recipe to extract EntityItemProperties from unfortunately-formatted-binary-blob
-        QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(binaryData);
-        if (!jsonProperties.isObject()) {
-            qCDebug(interfaceapp) << "bad avatarEntityData json" << QString(binaryData.toHex());
-            continue;
-        }
-        QVariant variant = jsonProperties.toVariant();
-        QVariantMap variantMap = variant.toMap();
-        QScriptValue scriptValue = variantMapToScriptValue(variantMap, scriptEngine);
-        EntityItemProperties properties;
-        EntityItemPropertiesFromScriptValueHonorReadOnly(scriptValue, properties);
-        // end recipe
-
-        properties.setEntityHostType(entity::HostType::AVATAR);
-        properties.setOwningAvatarID(getID());
-
-        // there's no entity-server to tell us we're the simulation owner, so always set the
-        // simulationOwner to the owningAvatarID and a high priority.
-        properties.setSimulationOwner(getID(), AVATAR_ENTITY_SIMULATION_PRIORITY);
-
-        if (properties.getParentID() == AVATAR_SELF_ID) {
-            properties.setParentID(getID());
-        }
-
-        // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
-        // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
-        // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
-        // back to the default), and the entity flew off somewhere.  Marking all changed definitely fixes this,
-        // and seems safe (per Seth).
-        properties.markAllChanged();
-
-        entitiesToLoad.push_back({id, properties});
-    }
-
-    _cachedAvatarEntityDataSettings.clear();
-    auto entityTreeRenderer = qApp->getEntities();
-    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
-    if (entityTree) {
-        OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
-        EncodeBitstreamParams params;
-        EntityTreeElementExtraEncodeDataPointer extra { nullptr };
-        uint32_t i = 0;
-        for (const auto& entry : entitiesToLoad) {
-            // try to create the entity
-            entityTree->withWriteLock([&] {
-                QUuid id = entry.first;
-                EntityItemPointer entity = entityTree->addEntity(id, entry.second);
-                if (entity) {
-                    // use the entity to build the data payload
-                    OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
-                    if (appendState == OctreeElement::COMPLETED) {
-                        // only remember an AvatarEntity that successfully loads and can be packed
-                        QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
-                        storeAvatarEntityDataPayload(id, tempArray);
-
-                        // only cache things that successfully loaded and packed
-                        // we cache these binaryProperties for later: for when saving back to settings
-                        _cachedAvatarEntityDataSettings[id] = _avatarEntityDataSettings[i].get();
-                    }
-                    packetData.reset();
-                }
-            });
-            ++i;
-        }
-    } else {
-        // TODO? handle this case: try to load AvatatEntityData from settings again later?
-    }
+    });
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
@@ -2158,7 +2388,6 @@ void MyAvatar::removeWearableAvatarEntities() {
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
     // NOTE: this method is NOT efficient
     QVariantList avatarEntitiesData;
-    QScriptEngine scriptEngine;
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
@@ -2174,7 +2403,7 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             desiredProperties += PROP_LOCAL_POSITION;
             desiredProperties += PROP_LOCAL_ROTATION;
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
-            QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
+            QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_myScriptEngine, entityProperties);
             avatarEntityData["properties"] = scriptProperties.toVariant();
             avatarEntitiesData.append(QVariant(avatarEntityData));
         }

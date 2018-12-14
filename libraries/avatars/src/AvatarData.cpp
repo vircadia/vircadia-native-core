@@ -2422,22 +2422,7 @@ JointData jointDataFromJsonValue(int version, const QJsonValue& json) {
 }
 
 void AvatarData::avatarEntityDataToJson(QJsonObject& root) const {
-    // ADEBUG this is broken
-    _avatarEntitiesLock.withReadLock([&] {
-        AvatarEntityMap _avatarEntityData = _packedAvatarEntityData; // hack to compile
-        if (!_avatarEntityData.empty()) {
-            QJsonArray avatarEntityJson;
-            int entityCount = 0;
-            for (auto entityID : _avatarEntityData.keys()) {
-                QVariantMap entityData;
-                QUuid newId = _avatarEntityForRecording.size() == _avatarEntityData.size() ? _avatarEntityForRecording.values()[entityCount++] : entityID;
-                entityData.insert("id", newId);
-                entityData.insert("properties", _avatarEntityData.value(entityID).toBase64());
-                avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
-            }
-            root[JSON_AVATAR_ENTITIES] = avatarEntityJson;
-        }
-    });
+    // overridden where needed
 }
 
 QJsonObject AvatarData::toJson() const {
@@ -2575,7 +2560,6 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             if (attachmentJson.isObject()) {
                 QVariantMap entityData = attachmentJson.toObject().toVariantMap();
                 QUuid id = entityData.value("id").toUuid();
-                // ADEBUG TODO: fix this broken path
                 QByteArray data = QByteArray::fromBase64(entityData.value("properties").toByteArray());
                 updateAvatarEntityData(id, data);
             }
@@ -2759,8 +2743,6 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
     setAttachmentData(newAttachments);
 }
 
-const int MAX_NUM_AVATAR_ENTITIES = 42;
-
 void AvatarData::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& data) {
     _avatarEntitiesLock.withWriteLock([&] {
         PackedAvatarEntityMap::iterator itr = _packedAvatarEntityData.find(entityID);
@@ -2787,7 +2769,8 @@ void AvatarData::updateAvatarEntity(const QUuid& id, const QScriptValue& scriptV
 }
 
 void AvatarData::updateAvatarEntityData(const QUuid& id, const QByteArray& data) {
-    // ADEBUG TODO: implement this
+    // overridden where needed
+    // NOTE: expects 'data' to be an unfortunately-formatted-binary-blob
 }
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
@@ -2808,71 +2791,21 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
-    // ADEBUG broken
-    AvatarEntityMap result;
-    _avatarEntitiesLock.withReadLock([&] {
-        result = _packedAvatarEntityData;
-    });
-    return result;
+    // overridden where needed
+    // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
+    return AvatarEntityMap();
+}
+
+void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
+    // overridden where needed
+    // NOTE: the argument is expected to be a map of unfortunately-formatted-binary-blobs
 }
 
 void AvatarData::insertDetachedEntityID(const QUuid entityID) {
     _avatarEntitiesLock.withWriteLock([&] {
         _avatarEntityDetached.insert(entityID);
     });
-
     _avatarEntityDataChanged = true;
-}
-
-void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
-    if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
-        // the data is suspect
-        qCDebug(avatars) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
-        return;
-    }
-
-    std::vector<QUuid> deletedEntityIDs;
-    QList<QUuid> updatedEntityIDs;
-
-    // ADEBUG this is broken
-    _avatarEntitiesLock.withWriteLock([&] {
-        AvatarEntityMap _avatarEntityData = _packedAvatarEntityData; // hack to compile
-        if (_avatarEntityData != avatarEntityData) {
-
-            // keep track of entities that were attached to this avatar but no longer are
-            AvatarEntityIDs previousAvatarEntityIDs = QSet<QUuid>::fromList(_avatarEntityData.keys());
-
-            _avatarEntityData = avatarEntityData;
-            setAvatarEntityDataChanged(true);
-
-            deletedEntityIDs.reserve(previousAvatarEntityIDs.size());
-
-            foreach (auto entityID, previousAvatarEntityIDs) {
-                if (!_avatarEntityData.contains(entityID)) {
-                    _avatarEntityDetached.insert(entityID);
-                    deletedEntityIDs.push_back(entityID);
-                }
-            }
-
-            updatedEntityIDs = _avatarEntityData.keys();
-        }
-    });
-
-    if (_clientTraitsHandler) {
-        // we have a client traits handler
-
-        // flag removed entities as deleted so that changes are sent next frame
-        for (auto& deletedEntityID : deletedEntityIDs) {
-            _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, deletedEntityID);
-        }
-
-        // flag any updated or created entities so that we send changes for them next frame
-        for (auto& entityID : updatedEntityIDs) {
-            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
-        }
-    }
-
-
 }
 
 AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
