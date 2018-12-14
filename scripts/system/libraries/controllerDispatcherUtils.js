@@ -5,7 +5,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform, Mat4,
+/* global module, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform, Mat4,
    Selection, Uuid,
    MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
@@ -31,6 +31,7 @@
    disableDispatcherModule:true,
    getEnabledModuleByName:true,
    getGrabbableData:true,
+   isAnothersAvatarEntity:true,
    entityIsGrabbable:true,
    entityIsDistanceGrabbable:true,
    getControllerJointIndexCacheTime:true,
@@ -152,7 +153,9 @@ DISPATCHER_PROPERTIES = [
     "grab.equippableIndicatorURL",
     "grab.equippableIndicatorScale",
     "grab.equippableIndicatorOffset",
-    "userData"
+    "userData",
+    "entityHostType",
+    "owningAvatarID"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -287,10 +290,24 @@ getGrabbableData = function (ggdProps) {
     return grabbableData;
 };
 
+isAnothersAvatarEntity = function (iaaeProps) {
+    if (iaaeProps.entityHostType !== "avatar") {
+        return false;
+    }
+    if (iaaeProps.owningAvatarID === MyAvatar.sessionUUID) {
+        return false;
+    }
+    if (iaaeProps.owningAvatarID === MyAvatar.SELF_ID) {
+        return false;
+    }
+    return true;
+};
+
 entityIsGrabbable = function (eigProps) {
     var grabbable = getGrabbableData(eigProps).grabbable;
     if (!grabbable ||
         eigProps.locked ||
+        isAnothersAvatarEntity(eigProps) ||
         FORBIDDEN_GRAB_TYPES.indexOf(eigProps.type) >= 0) {
         return false;
     }
