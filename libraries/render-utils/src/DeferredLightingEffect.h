@@ -146,6 +146,7 @@ public:
         const DeferredFramebufferPointer& deferredFramebuffer,
         const LightingModelPointer& lightingModel,
         const LightStage::FramePointer& lightFrame,
+        const LightStage::ShadowFramePointer& shadowFrame,
         const HazeStage::FramePointer& hazeFrame,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
         const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
