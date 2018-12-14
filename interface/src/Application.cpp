@@ -331,7 +331,6 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 Setting::Handle<int> maxOctreePacketsPerSecond{"maxOctreePPS", DEFAULT_MAX_OCTREE_PPS};
 
 Setting::Handle<bool> loginDialogPoppedUp{"loginDialogPoppedUp", false};
-static const QUrl OVERLAY_LOGIN_DIALOG_URL(PathUtils::qmlUrl("OverlayLoginDialog.qml"));
 
 static const QString STANDARD_TO_ACTION_MAPPING_NAME = "Standard to Action";
 static const QString NO_MOVEMENT_MAPPING_NAME = "Standard to Action (No Movement)";
@@ -8634,7 +8633,7 @@ void Application::createLoginDialogOverlay() {
     auto overlayPosition = (cameraPosition + offset) + (upVec * OVERLAY_OFFSET.y);
     QVariantMap overlayProperties = {
         { "name", "LoginDialogOverlay" },
-        { "url", OVERLAY_LOGIN_DIALOG_URL },
+        { "url", OVERLAY_LOGIN_DIALOG },
         { "position", vec3toVariant(overlayPosition) },
         { "orientation", quatToVariant(cameraOrientation) },
         { "isSolid", true },
