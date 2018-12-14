@@ -71,13 +71,14 @@ namespace baker {
 
     class BakerEngineBuilder {
     public:
-        using Input = VaryingSet1<hfm::Model::Pointer>;
-        using Output = VaryingSet1<hfm::Model::Pointer>;
+        using Input = hfm::Model::Pointer;
+        using Output = hfm::Model::Pointer;
         using JobModel = Task::ModelIO<BakerEngineBuilder, Input, Output>;
         void build(JobModel& model, const Varying& in, Varying& out) {
-            const auto hfmModelIn = in.getN<Input>(0);
+            const auto hfmModelIn = in;
+
             // Split up the inputs from hfm::Model
-            const auto getModelPartsInputs = GetModelPartsTask::Input(hfmModelIn).asVarying();
+            const auto getModelPartsInputs = hfmModelIn;
             const auto modelPartsIn = model.addJob<GetModelPartsTask>("GetModelParts", getModelPartsInputs);
             const auto meshesIn = modelPartsIn.getN<GetModelPartsTask::Output>(0);
             const auto url = modelPartsIn.getN<GetModelPartsTask::Output>(1);
@@ -98,19 +99,19 @@ namespace baker {
             const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut).asVarying();
             const auto buildModelOutputs = model.addJob<BuildModelTask>("BuildModel", buildModelInputs);
             const auto hfmModelOut = buildModelOutputs.getN<BuildModelTask::Output>(0);
-            out = Output(hfmModelOut);
+
+            out = hfmModelOut;
         }
     };
 
     Baker::Baker(const hfm::Model::Pointer& hfmModel) :
         _engine(std::make_shared<Engine>(BakerEngineBuilder::JobModel::create("Baker"), std::make_shared<BakeContext>())) {
-        _engine->feedInput<BakerEngineBuilder::Input>(0, hfmModel);
+        _engine->feedInput<BakerEngineBuilder::Input>(hfmModel);
     }
 
     void Baker::run() {
         _engine->run();
-        auto& output = _engine->getOutput().get<BakerEngineBuilder::Output>();
-        hfmModel = output.get0();
+        hfmModel = _engine->getOutput().get<BakerEngineBuilder::Output>();
     }
 
 };
