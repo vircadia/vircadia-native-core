@@ -13,6 +13,7 @@
 #ifndef hifi_AvatarProject_h
 #define hifi_AvatarProject_h
 
+#include "MarketplaceItemUploader.h"
 #include "FST.h"
 
 #include <QDir>
@@ -38,10 +39,7 @@ public:
         return false;
     }
 
-    Q_INVOKABLE QObject* upload() {
-        // TODO: create new AvatarProjectUploader here, launch it and return it for status tracking in QML
-        return nullptr;
-    }
+    Q_INVOKABLE MarketplaceItemUploader* upload();
 
     /**
      * returns the AvatarProject or a nullptr on failure.
@@ -70,6 +68,7 @@ private:
     QStringList _projectFiles{};
     QString _projectPath;
     QString _fstPath;
+    QString _fstFilename;
 };
 
 #endif  // hifi_AvatarProject_h

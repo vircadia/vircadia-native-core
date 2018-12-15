@@ -35,7 +35,6 @@ signals:
 private:
     Q_INVOKABLE AvatarProject* getAvatarProject() const { return _currentAvatarProject; };
     //Q_INVOKABLE QObject* openAvatarProject();
-    Q_INVOKABLE QObject* uploadItem();
 
     AvatarProject* _currentAvatarProject{ nullptr };
 };

@@ -41,6 +41,9 @@ AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
 AvatarProject::AvatarProject(const QString& fstPath, const QByteArray& data) :
     _fstPath(fstPath), _fst(fstPath, FSTReader::readMapping(data)) {
 
+    _fstFilename = QFileInfo(_fstPath).fileName();
+    qDebug() << "Pointers: " << this << &_fst;
+
     _directory = QFileInfo(_fstPath).absoluteDir();
 
     //_projectFiles = _directory.entryList();
@@ -51,13 +54,12 @@ AvatarProject::AvatarProject(const QString& fstPath, const QByteArray& data) :
 }
 
 void AvatarProject::appendDirectory(QString prefix, QDir dir) {
-    qDebug() << "Inside of " << prefix << dir.absolutePath();
     auto flags = QDir::Dirs | QDir::Files | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::Hidden;
     for (auto& entry : dir.entryInfoList({}, flags)) {
         if (entry.isFile()) {
-            _projectFiles.append(prefix + "/" + entry.fileName());
+            //_projectFiles.append(prefix + "/" + entry.fileName());
+            _projectFiles.append(entry.absoluteFilePath());
         } else if (entry.isDir()) {
-            qDebug() << "Found dir " << entry.absoluteFilePath() << " in " << dir.absolutePath();
             appendDirectory(prefix + dir.dirName() + "/", entry.absoluteFilePath());
         }
     }
@@ -66,4 +68,8 @@ void AvatarProject::appendDirectory(QString prefix, QDir dir) {
 void AvatarProject::refreshProjectFiles() {
     _projectFiles.clear();
     appendDirectory("", _directory);
+}
+
+Q_INVOKABLE MarketplaceItemUploader* AvatarProject::upload() {
+    return new MarketplaceItemUploader("test_avatar", "blank description", _fstFilename, QUuid(), _projectFiles);
 }

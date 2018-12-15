@@ -25,6 +25,7 @@ std::once_flag setupQMLTypesFlag;
 AvatarPackager::AvatarPackager() {
     std::call_once(setupQMLTypesFlag, []() {
         qmlRegisterType<FST>();
+        qmlRegisterType<MarketplaceItemUploader>();
     });
 }
 
@@ -46,9 +47,4 @@ QObject* AvatarPackager::openAvatarProject(QString avatarProjectFSTPath) {
     _currentAvatarProject = AvatarProject::openAvatarProject(avatarProjectFSTPath);
     emit avatarProjectChanged();
     return _currentAvatarProject;
-}
-
-QObject* AvatarPackager::uploadItem() {
-    std::vector<QString> filePaths;
-    return new MarketplaceItemUploader(QUuid(), filePaths);
 }

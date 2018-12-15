@@ -47,7 +47,7 @@ Windows.ScrollingWindow {
                 anchors.top: parent.top
                 anchors.topMargin: 25
                 anchors.bottomMargin: 25
-                text: 'Avatar Packager'
+                text: 'Avatar Packager ' + parent.width + " " + parent.height
             }
 
             HifiControls.Button {
@@ -72,6 +72,7 @@ Windows.ScrollingWindow {
                 height: 30
                 onClicked: function() {
                     var avatarProjectsPath = fileDialogHelper.standardPath(/*fileDialogHelper.StandardLocation.DocumentsLocation*/ 1) + "/High Fidelity/Avatar Projects";
+                    var avatarProjectsPath = "C:/Users/ryanh/Documents/High Fidelity Avatars";
                     console.log("path = " + avatarProjectsPath);
 
                     // TODO: make the dialog modal
