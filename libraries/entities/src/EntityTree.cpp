@@ -305,6 +305,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     fixupNeedsParentFixups();
 
     emit addingEntity(entity->getEntityItemID());
+    emit addingEntityPointer(entity.get());
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {

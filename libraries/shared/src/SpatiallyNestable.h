@@ -75,7 +75,7 @@ public:
     static QString nestableTypeToString(NestableType nestableType);
 
 
-    virtual bool isParentPathComplete() const;
+    virtual bool isParentPathComplete(int depth = 0) const;
 
 
     // world frame
@@ -163,6 +163,8 @@ public:
     virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const { return glm::vec3(1.0f); }
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const { return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const { return glm::vec3(); }
+    virtual int getJointParent(int index) const { return -1; }
+
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {return false; }
 
@@ -187,8 +189,8 @@ public:
     bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
     virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
-    bool hasAncestorOfType(NestableType nestableType) const;
-    const QUuid findAncestorOfType(NestableType nestableType) const;
+    bool hasAncestorOfType(NestableType nestableType, int depth = 0) const;
+    const QUuid findAncestorOfType(NestableType nestableType, int depth = 0) const;
     SpatiallyNestablePointer getParentPointer(bool& success) const;
     static SpatiallyNestablePointer findByID(QUuid id, bool& success);
 
@@ -246,6 +248,8 @@ private:
     mutable bool _parentKnowsMe { false };
     bool _isDead { false };
     bool _queryAACubeIsPuffed { false };
+
+    void breakParentingLoop() const;
 };
 
 
