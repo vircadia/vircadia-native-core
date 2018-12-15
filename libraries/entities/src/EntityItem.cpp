@@ -2096,6 +2096,35 @@ bool EntityItem::addAction(EntitySimulationPointer simulation, EntityDynamicPoin
     return result;
 }
 
+void EntityItem::enableNoBootstrap() {
+    if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
+        _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+        _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        forEachDescendant([&](SpatiallyNestablePointer child) {
+            if (child->getNestableType() == NestableType::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+                entity->markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+            }
+        });
+    }
+}
+
+void EntityItem::disableNoBootstrap() {
+    if (!stillHasGrabActions()) {
+        _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+        _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        forEachDescendant([&](SpatiallyNestablePointer child) {
+            if (child->getNestableType() == NestableType::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+                entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+            }
+        });
+    }
+}
+
+
 bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityDynamicPointer action) {
     assert(action);
     assert(simulation);
@@ -2117,17 +2146,7 @@ bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityDyn
 
         auto actionType = action->getType();
         if (actionType == DYNAMIC_TYPE_HOLD || actionType == DYNAMIC_TYPE_FAR_GRAB) {
-            if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
-                _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
-                _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
-                forEachDescendant([&](SpatiallyNestablePointer child) {
-                    if (child->getNestableType() == NestableType::Entity) {
-                        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
-                        entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                        entity->markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
-                    }
-                });
-            }
+            enableNoBootstrap();
         }
     } else {
         qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
@@ -2208,16 +2227,8 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         action->setIsMine(false);
         _objectActions.remove(actionID);
 
-        if ((removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) && !stillHasGrabActions()) {
-            _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
-            _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
-            forEachDescendant([&](SpatiallyNestablePointer child) {
-                if (child->getNestableType() == NestableType::Entity) {
-                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
-                    entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                    entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
-                }
-            });
+        if (removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) {
+            disableNoBootstrap();
         } else {
             // NO-OP: we assume SPECIAL_FLAGS_NO_BOOTSTRAPPING bits and collision group are correct
             // because they should have been set correctly when the action was added
@@ -3299,6 +3310,7 @@ bool EntityItem::isWearable() const {
 }
 
 void EntityItem::addGrab(GrabPointer grab) {
+    enableNoBootstrap();
     SpatiallyNestable::addGrab(grab);
 
     if (getDynamic() && getParentID().isNull()) {
@@ -3357,4 +3369,5 @@ void EntityItem::removeGrab(GrabPointer grab) {
             }
         }
     }
+    disableNoBootstrap();
 }

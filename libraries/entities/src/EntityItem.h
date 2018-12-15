@@ -670,6 +670,9 @@ protected:
     bool _simulated { false }; // set by EntitySimulation
     bool _visuallyReady { true };
 
+    void enableNoBootstrap();
+    void disableNoBootstrap();
+
     bool addActionInternal(EntitySimulationPointer simulation, EntityDynamicPointer action);
     bool removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation = nullptr);
     void deserializeActionsInternal();
