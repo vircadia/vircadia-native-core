@@ -152,6 +152,11 @@ LightStage::Shadow::Shadow(graphics::LightPointer light, float maxDistance, unsi
     setMaxDistance(maxDistance);
 }
 
+void LightStage::Shadow::setLight(graphics::LightPointer light) {
+    _light = light;
+}
+
+
 void LightStage::Shadow::setMaxDistance(float value) {
     // This overlaping factor isn't really used directly for blending of shadow cascades. It
     // just there to be sure the cascades do overlap. The blending width used is relative

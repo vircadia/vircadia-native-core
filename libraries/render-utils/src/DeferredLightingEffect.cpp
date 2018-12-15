@@ -436,7 +436,11 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
         auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow(*lightFrame);
-        const auto& globalShadow = lightAndShadow.second;
+        //const auto& globalShadow = lightAndShadow.second;
+        LightStage::ShadowPointer globalShadow;
+        if (shadowFrame && !shadowFrame->_objects.empty()) {
+            globalShadow = shadowFrame->_objects.front();
+        }
 
         // Bind the shadow buffers
         if (globalShadow) {
@@ -640,7 +644,7 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
         args->_batch = &batch;
         _gpuTimer->begin(batch);
 
-        setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, lightFrame, hazeFrame, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource, _renderShadows);
+        setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, lightFrame, shadowFrame, hazeFrame, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource, _renderShadows);
 
         lightsJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
 

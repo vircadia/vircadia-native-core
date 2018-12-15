@@ -154,7 +154,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto shadowTaskOutputs = inputs.get2();
 
         // Shadow Stage Frame
-        const auto shadowFrame = shadowTaskOutputs.get1();
+        const auto shadowFrame = shadowTaskOutputs[1];
 
     fadeEffect->build(task, opaques);
 

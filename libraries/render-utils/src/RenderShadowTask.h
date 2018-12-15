@@ -127,7 +127,7 @@ private:
 
 class RenderShadowCascadeSetup {
 public:
-    using Inputs = LightStage::FramePointer;
+    using Inputs = LightStage::ShadowFramePointer;
     using Outputs = render::VaryingSet3<render::ItemFilter, ViewFrustumPointer, RenderShadowTask::CullFunctor>;
     using JobModel = render::Job::ModelIO<RenderShadowCascadeSetup, Inputs, Outputs>;
 

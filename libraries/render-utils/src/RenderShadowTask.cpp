@@ -63,6 +63,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup", lightFrame);
     const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(1);
+    const auto shadowFrame = setupOutput.getN<RenderShadowSetup::Outputs>(3);
     // Fetch and cull the items from the scene
 
     static const auto shadowCasterReceiverFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
@@ -96,7 +97,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
         char jobName[64];
         sprintf(jobName, "ShadowCascadeSetup%d", i);
-        const auto cascadeSetupOutput = task.addJob<RenderShadowCascadeSetup>(jobName, lightFrame, i, tagBits, tagMask);
+        const auto cascadeSetupOutput = task.addJob<RenderShadowCascadeSetup>(jobName, shadowFrame, i, tagBits, tagMask);
         const auto shadowFilter = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(0);
         auto antiFrustum = render::Varying(ViewFrustumPointer());
         cascadeFrustums[i] = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
@@ -359,31 +360,30 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     *_cameraFrustum = args->getViewFrustum();
     output.edit2() = _cameraFrustum;
 
-    const auto globalShadow = lightStage->getCurrentKeyShadow(lightFrame);
-    if (globalShadow) {
-        globalShadow->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+    // Clear previous shadow frame
+    if (!_globalShadowObject) {
+        _globalShadowObject = std::make_shared<LightStage::Shadow>(graphics::LightPointer(), 100.0f);
+    }
+    _shadowFrameCache->_objects.clear();
+    
+    const auto theGlobalShadow = lightStage->getCurrentKeyShadow(lightFrame);
+    if (theGlobalShadow) {
+        _globalShadowObject->setLight(theGlobalShadow->getLight());
+        _globalShadowObject->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
-        auto& firstCascade = globalShadow->getCascade(0);
+        auto& firstCascade = _globalShadowObject->getCascade(0);
         auto& firstCascadeFrustum = firstCascade.getFrustum();
         unsigned int cascadeIndex;
 
         // Adjust each cascade frustum
-        for (cascadeIndex = 0; cascadeIndex < globalShadow->getCascadeCount(); ++cascadeIndex) {
+        for (cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
             auto& bias = _bias[cascadeIndex];
-            globalShadow->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(),
+            _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(),
                                                     SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR,
                                                     bias._constant, bias._slope);
         }
 
-        // copy paste the values for the shadow params:
-    /*    if (!_globalShadowObject) {
-            LightStage::Shadow::Schema schema;
-            _globalShadowObject = std::make_shared<gpu::Buffer>(sizeof(LightStage::Shadow::Schema), (const gpu::Byte*) &schema);
-        }
-        _globalShadowObject->getBuffersetData(globalShadow->getBuffer()._size, globalShadow->getBuffer()._buffer->getData());
-
-
-        _shadowFrameCache->pushShadow(_globalShadowObject);*/
+        _shadowFrameCache->pushShadow(_globalShadowObject);
 
         // Now adjust coarse frustum bounds
         auto frustumPosition = firstCascadeFrustum->getPosition();
@@ -397,8 +397,8 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
         auto near = firstCascadeFrustum->getNearClip();
         auto far = firstCascadeFrustum->getFarClip();
 
-        for (cascadeIndex = 1; cascadeIndex < globalShadow->getCascadeCount(); ++cascadeIndex) {
-            auto& cascadeFrustum = globalShadow->getCascade(cascadeIndex).getFrustum();
+        for (cascadeIndex = 1; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
+            auto& cascadeFrustum = _globalShadowObject->getCascade(cascadeIndex).getFrustum();
 
             farTopLeft = cascadeFrustum->getFarTopLeft() - frustumPosition;
             farBottomRight = cascadeFrustum->getFarBottomRight() - frustumPosition;
@@ -439,36 +439,48 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
 }
 
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, const Inputs& input, Outputs& output) {
+    const auto shadowFrame = input;
+   /* 
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     const auto& lightFrame = *input;
     assert(lightStage);
-
+*/
     // Cache old render args
     RenderArgs* args = renderContext->args;
 
     RenderShadowTask::CullFunctor cullFunctor;
 
-    const auto globalShadow = lightStage->getCurrentKeyShadow(lightFrame);
-    if (globalShadow && _cascadeIndex < globalShadow->getCascadeCount()) {
-        // Second item filter is to filter items to keep in shadow frustum computation (here we need to keep shadow receivers)
-        output.edit0() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask);
+    
+    if (shadowFrame && !shadowFrame->_objects.empty() && shadowFrame->_objects[0]) {
+        const auto globalShadow = shadowFrame->_objects[0]; //lightStage->getCurrentKeyShadow(lightFrame);
 
-        // Set the keylight render args
-        auto& cascade = globalShadow->getCascade(_cascadeIndex);
-        auto& cascadeFrustum = cascade.getFrustum();
-        args->pushViewFrustum(*cascadeFrustum);
-        auto texelSize = glm::min(cascadeFrustum->getHeight(), cascadeFrustum->getWidth()) / cascade.framebuffer->getSize().x;
-        // Set the cull threshold to 24 shadow texels. This is totally arbitrary
-        const auto minTexelCount = 24.0f;
-        // TODO : maybe adapt that with LOD management system?
-        texelSize *= minTexelCount;
-        cullFunctor._minSquareSize = texelSize * texelSize;
+        if (globalShadow && _cascadeIndex < globalShadow->getCascadeCount()) {
+            // Second item filter is to filter items to keep in shadow frustum computation (here we need to keep shadow receivers)
+            output.edit0() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask);
 
-        output.edit1() = cascadeFrustum;
-    } else {
+            // Set the keylight render args
+            auto& cascade = globalShadow->getCascade(_cascadeIndex);
+            auto& cascadeFrustum = cascade.getFrustum();
+            args->pushViewFrustum(*cascadeFrustum);
+            auto texelSize = glm::min(cascadeFrustum->getHeight(), cascadeFrustum->getWidth()) / cascade.framebuffer->getSize().x;
+            // Set the cull threshold to 24 shadow texels. This is totally arbitrary
+            const auto minTexelCount = 24.0f;
+            // TODO : maybe adapt that with LOD management system?
+            texelSize *= minTexelCount;
+            cullFunctor._minSquareSize = texelSize * texelSize;
+
+            output.edit1() = cascadeFrustum;
+
+        } else {
+            output.edit0() = ItemFilter::Builder::nothing();
+            output.edit1() = ViewFrustumPointer();
+        }
+    }
+    else {
         output.edit0() = ItemFilter::Builder::nothing();
         output.edit1() = ViewFrustumPointer();
     }
+
     output.edit2() = cullFunctor;
 }
 

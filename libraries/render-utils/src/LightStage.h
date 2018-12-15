@@ -76,6 +76,8 @@ public:
 
         Shadow(graphics::LightPointer light, float maxDistance, unsigned int cascadeCount = 1);
 
+        void setLight(graphics::LightPointer light);
+
         void setKeylightFrustum(const ViewFrustum& viewFrustum,
                                 float nearDepth = 1.0f, float farDepth = 1000.0f);
         void setKeylightCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
