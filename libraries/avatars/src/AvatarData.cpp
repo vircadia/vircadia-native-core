@@ -2766,7 +2766,7 @@ void AvatarData::storeAvatarEntityDataPayload(const QUuid& entityID, const QByte
 
 void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
     // overridden where needed
-    // NOTE: expects 'data' to be an unfortunately-formatted-binary-blob
+    // expects 'entityData' to be a JavaScript EntityItemProperties Object in QByteArray form
 }
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {

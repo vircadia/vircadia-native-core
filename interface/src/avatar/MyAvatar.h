@@ -1210,6 +1210,7 @@ public:
 
     AvatarEntityMap getAvatarEntityData() const override;
     void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
+    void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
     void avatarEntityDataToJson(QJsonObject& root) const override;
 
 public slots:

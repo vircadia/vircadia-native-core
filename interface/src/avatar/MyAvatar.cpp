@@ -1513,6 +1513,7 @@ void MyAvatar::sanitizeAvatarEntityProperties(EntityItemProperties& properties) 
 }
 
 void MyAvatar::updateAvatarEntities() {
+    // NOTE: this is a per-frame update
     if (getID().isNull() ||
         getID() == AVATAR_SELF_ID ||
         DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
@@ -1765,16 +1766,25 @@ AvatarEntityMap MyAvatar::getAvatarEntityData() const {
 }
 
 void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
-    // NOTE: the argument is expected to be a map of unfortunately-formatted-binary-blobs
+    // Note: this is an invokable Script call
+    // The argument is expected to be a map of QByteArrays that represent EntityItemProperties objects from JavaScript,
+    // aka: unfortunately-formatted-binary-blobs because we store them in non-human-readable format in Settings.
+    //
     if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
         // the data is suspect
         qCDebug(interfaceapp) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
         return;
     }
 
-    if (!avatarEntityData.empty() && !_cachedAvatarEntityBlobs.empty()) {
-        _needToSaveAvatarEntitySettings = true;
-    }
+    // this overwrites ALL AvatarEntityData so we clear pending operations
+    _avatarEntitiesLock.withWriteLock([&] {
+        _packedAvatarEntityData.clear();
+        _entitiesToDelete.clear();
+        _entitiesToAdd.clear();
+        _entitiesToUpdate.clear();
+    });
+    _needToSaveAvatarEntitySettings = true;
+
     _avatarEntitiesLock.withWriteLock([&] {
         // find new and updated IDs
         AvatarEntityMap::const_iterator constItr = avatarEntityData.begin();
@@ -1817,6 +1827,23 @@ void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
                 ++itr;
             }
             _entitiesToDelete.push_back(id);
+        }
+    });
+}
+
+void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
+    // NOTE: this is an invokable Script call
+    // TODO: we should handle the case where entityData is corrupt or invalid
+    // BEFORE we store into _cachedAvatarEntityBlobs
+    _needToSaveAvatarEntitySettings = true;
+    _avatarEntitiesLock.withWriteLock([&] {
+        AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.find(entityID);
+        if (itr != _cachedAvatarEntityBlobs.end()) {
+            _entitiesToUpdate.push_back(entityID);
+            itr.value() = entityData;
+        } else {
+            _entitiesToAdd.push_back(entityID);
+            _cachedAvatarEntityBlobs.insert(entityID, entityData);
         }
     });
 }
@@ -1879,6 +1906,7 @@ void MyAvatar::loadData() {
 }
 
 void MyAvatar::loadAvatarEntityDataFromSettings() {
+    // this overwrites ALL AvatarEntityData so we clear pending operations
     _avatarEntitiesLock.withWriteLock([&] {
         _packedAvatarEntityData.clear();
         _entitiesToDelete.clear();
@@ -1886,6 +1914,7 @@ void MyAvatar::loadAvatarEntityDataFromSettings() {
         _entitiesToUpdate.clear();
     });
     _reloadAvatarEntityDataFromSettings = false;
+    _needToSaveAvatarEntitySettings = false;
 
     int numEntities = _avatarEntityCountSetting.get(0);
     if (numEntities == 0) {
