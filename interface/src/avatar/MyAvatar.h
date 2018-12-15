@@ -851,8 +851,6 @@ public:
     virtual void clearJointData(const QString& name) override;
     virtual void clearJointsData() override;
 
-    void updateAvatarEntity(const QUuid& id, const QScriptValue& data) override;
-
     /**jsdoc
      * @function MyAvatar.pinJoint
      * @param {number} index

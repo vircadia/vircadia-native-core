@@ -252,7 +252,8 @@ void ScriptableAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMo
     _headData->setHasAudioEnabledFaceMovement(hasAudioEnabledFaceMovement);
 }
 
-void ScriptableAvatar::updateAvatarEntity(const QUuid& id, const QScriptValue& data) {
+void ScriptableAvatar::updateAvatarEntity(const QUuid& id, const QByteArray& data) {
+    /* TODO: fix this
     if (data.isNull()) {
         // interpret this as a DELETE
         std::map<QUuid, EntityItemPointer>::iterator itr = _entities.find(id);
@@ -299,4 +300,5 @@ void ScriptableAvatar::updateAvatarEntity(const QUuid& id, const QScriptValue& d
             }
         }
     }
+    */
 }

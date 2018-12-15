@@ -2561,7 +2561,7 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
                 QVariantMap entityData = attachmentJson.toObject().toVariantMap();
                 QUuid id = entityData.value("id").toUuid();
                 QByteArray data = QByteArray::fromBase64(entityData.value("properties").toByteArray());
-                updateAvatarEntityData(id, data);
+                updateAvatarEntity(id, data);
             }
         }
     }
@@ -2764,11 +2764,7 @@ void AvatarData::storeAvatarEntityDataPayload(const QUuid& entityID, const QByte
     }
 }
 
-void AvatarData::updateAvatarEntity(const QUuid& id, const QScriptValue& scriptValue) {
-    // overridden where needed
-}
-
-void AvatarData::updateAvatarEntityData(const QUuid& id, const QByteArray& data) {
+void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
     // overridden where needed
     // NOTE: expects 'data' to be an unfortunately-formatted-binary-blob
 }

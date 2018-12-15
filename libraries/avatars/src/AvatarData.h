@@ -960,10 +960,9 @@ public:
     /**jsdoc
      * @function MyAvatar.updateAvatarEntity
      * @param {Uuid} entityID
-     * @param {object} entityData
+     * @param {string} entityData
      */
-    Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& id, const QScriptValue& scriptValue);
-    virtual void updateAvatarEntityData(const QUuid& id, const QByteArray& data);
+    Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
 
     /**jsdoc
      * @function MyAvatar.clearAvatarEntity

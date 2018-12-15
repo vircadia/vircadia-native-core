@@ -185,7 +185,7 @@ public:
     bool getHasProceduralEyeFaceMovement() const override { return _headData->getHasProceduralEyeFaceMovement(); }
     void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
     bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
-    void updateAvatarEntity(const QUuid& id, const QScriptValue& data) override;
+    void updateAvatarEntity(const QUuid& id, const QByteArray& data) override;
 
 public slots:
     void update(float deltatime);

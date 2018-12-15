@@ -1772,16 +1772,23 @@ void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
         return;
     }
 
+    if (!avatarEntityData.empty() && !_cachedAvatarEntityBlobs.empty()) {
+        _needToSaveAvatarEntitySettings = true;
+    }
     _avatarEntitiesLock.withWriteLock([&] {
         // find new and updated IDs
         AvatarEntityMap::const_iterator constItr = avatarEntityData.begin();
+        std::vector<QUuid> blobsToCache;
+        blobsToCache.reserve(avatarEntityData.size());
         while (constItr != avatarEntityData.end()) {
             QUuid id = constItr.key();
             if (_cachedAvatarEntityBlobs.find(id) == _cachedAvatarEntityBlobs.end()) {
                 _entitiesToAdd.push_back(id);
+                blobsToCache.push_back(id);
             } else {
                 _entitiesToUpdate.push_back(id);
             }
+            ++constItr;
         }
         // find and erase deleted IDs from _cachedAvatarEntityBlobs
         std::vector<QUuid> deletedIDs;
@@ -1794,6 +1801,12 @@ void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
             } else {
                 ++itr;
             }
+        }
+        // now that we've 'deleted' unknown ids, copy over the new ones
+        constItr = avatarEntityData.begin();
+        while (constItr != avatarEntityData.end()) {
+            _cachedAvatarEntityBlobs.insert(constItr.key(), constItr.value());
+            ++constItr;
         }
         // erase deleted IDs from _packedAvatarEntityData
         for (const auto& id : deletedIDs) {
@@ -2294,10 +2307,6 @@ void MyAvatar::clearJointsData() {
     _farGrabLeftMatrixCache.invalidate();
     _farGrabMouseMatrixCache.invalidate();
     _skeletonModel->getRig().clearJointStates();
-}
-
-void MyAvatar::updateAvatarEntity(const QUuid& id, const QScriptValue& data) {
-    // TODO: implement this
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
