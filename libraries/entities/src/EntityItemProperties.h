@@ -98,6 +98,9 @@ class EntityItemProperties {
     friend class ZoneEntityItem;
     friend class MaterialEntityItem;
 public:
+    static bool blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties);
+    static void propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob);
+
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties() = default;
 

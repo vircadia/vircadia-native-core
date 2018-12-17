@@ -4612,6 +4612,38 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
     setCloneAvatarEntity(ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY);
 }
 
+bool EntityItemProperties::blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties) {
+    // begin recipe for converting unfortunately-formatted-binary-blob to EntityItemProperties
+    QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(blob);
+    if (!jsonProperties.isObject()) {
+        qCDebug(entities) << "bad avatarEntityData json" << QString(blob.toHex());
+        return false;
+    }
+    QVariant variant = jsonProperties.toVariant();
+    QVariantMap variantMap = variant.toMap();
+    QScriptValue scriptValue = variantMapToScriptValue(variantMap, scriptEngine);
+    EntityItemPropertiesFromScriptValueHonorReadOnly(scriptValue, properties);
+    // end recipe
+    return true;
+}
+
+void EntityItemProperties::propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob) {
+    // begin recipe for extracting unfortunately-formatted-binary-blob from EntityItem
+    QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, properties);
+    QVariant variantProperties = scriptValue.toVariant();
+    QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
+    // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
+    QJsonObject jsonObject = jsonProperties.object();
+    if (jsonObject.contains("parentID")) {
+        if (QUuid(jsonObject["parentID"].toString()) == myAvatarID) {
+            jsonObject["parentID"] = AVATAR_SELF_ID.toString();
+        }
+    }
+    jsonProperties = QJsonDocument(jsonObject);
+    blob = jsonProperties.toBinaryData();
+    // end recipe
+}
+
 QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
     QString result = "[ ";
 

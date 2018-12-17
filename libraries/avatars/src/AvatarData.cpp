@@ -2794,7 +2794,8 @@ AvatarEntityMap AvatarData::getAvatarEntityData() const {
 
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
     // overridden where needed
-    // NOTE: the argument is expected to be a map of unfortunately-formatted-binary-blobs
+    // avatarEntityData is expected to be a map of QByteArrays
+    // each QByteArray represents an EntityItemProperties object from JavaScript
 }
 
 void AvatarData::insertDetachedEntityID(const QUuid entityID) {
