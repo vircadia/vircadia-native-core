@@ -603,7 +603,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                     }
 
                     if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye" || (hfmModel.hfmToHifiJointNameMapping.contains(jointEyeLeftName) && (name == hfmModel.hfmToHifiJointNameMapping[jointEyeLeftName]))) {
-                        qDebug(modelformat) << "made it to left eye get id " << name << " " << jointEyeLeftName;
                         jointEyeLeftID = getID(object.properties);
 
                     } else if (name == jointEyeRightName || name == "EyeR" || name == "joint_Reye" || (hfmModel.hfmToHifiJointNameMapping.contains(jointEyeRightName) && (name == hfmModel.hfmToHifiJointNameMapping[jointEyeRightName]))) {
@@ -1452,14 +1451,11 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
 
     // find our special joints
     hfmModel.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);
-    qDebug(modelformat) << "jointlefteye" << hfmModel.leftEyeJointIndex << " " << jointEyeLeftID;
     hfmModel.rightEyeJointIndex = modelIDs.indexOf(jointEyeRightID);
-    qDebug(modelformat) << "jointrighteye" << hfmModel.rightEyeJointIndex << " " << jointEyeRightID;
     hfmModel.neckJointIndex = modelIDs.indexOf(jointNeckID);
     hfmModel.rootJointIndex = modelIDs.indexOf(jointRootID);
     hfmModel.leanJointIndex = modelIDs.indexOf(jointLeanID);
     hfmModel.headJointIndex = modelIDs.indexOf(jointHeadID);
-    qDebug(modelformat) << "head joint" << hfmModel.headJointIndex;
     hfmModel.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
     hfmModel.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
     hfmModel.leftToeJointIndex = modelIDs.indexOf(jointLeftToeID);

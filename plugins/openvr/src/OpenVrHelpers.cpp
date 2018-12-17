@@ -268,7 +268,7 @@ void handleOpenVrEvents() {
                 _keyboardShown = false;
                 DependencyManager::get<OffscreenUi>()->unfocusWindows();
                 break;
-            
+
             case vr::VREvent_TrackedDeviceUserInteractionStarted:
                 qDebug() << "Put on the headset";
                 //hmdMountedChanged();
