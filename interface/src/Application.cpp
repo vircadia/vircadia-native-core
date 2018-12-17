@@ -5272,12 +5272,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
     nodeList->getDomainHandler().resetting();
 
     if (!accountManager->isLoggedIn()) {
-        if (arguments().contains("--url")) {
-            auto reply = SandboxUtils::getStatus();
-            connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
-        } else {
-            addressManager->goToEntry();
-        }
+        addressManager->goToEntry();
     } else {
         QVariant testProperty = property(hifi::properties::TEST);
         if (testProperty.isValid()) {
@@ -5290,8 +5285,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
                 connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
             }
         } else {
-            auto reply = SandboxUtils::getStatus();
-            connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
+            addressManager->loadSettings();
         }
     }
 
