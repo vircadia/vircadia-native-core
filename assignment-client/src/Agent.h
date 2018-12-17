@@ -122,6 +122,8 @@ private:
     Encoder* _encoder { nullptr };
     QTimer _avatarAudioTimer;
     bool _flushEncoder { false };
+
+    bool _recordingInterrupted { false };
 };
 
 #endif // hifi_Agent_h

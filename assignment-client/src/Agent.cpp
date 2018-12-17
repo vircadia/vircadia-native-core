@@ -756,6 +756,11 @@ void Agent::processAgentAvatarAudio() {
         const int16_t* nextSoundOutput = NULL;
 
         if (_avatarSound) {
+            if (isPlayingRecording) {
+                recordingInterface->stopPlaying();
+                _recordingInterrupted = true;
+            }
+
             auto audioData = _avatarSound->getAudioData();
             nextSoundOutput = reinterpret_cast<const int16_t*>(audioData->rawData()
                     + _numAvatarSoundSentBytes);
@@ -781,6 +786,11 @@ void Agent::processAgentAvatarAudio() {
                 _avatarSound.clear();
                 _numAvatarSoundSentBytes = 0;
                 _flushEncoder = true;
+
+                if (_recordingInterrupted) {
+                    _recordingInterrupted = false;
+                    recordingInterface->startPlaying();
+                }
             }
         }
 
