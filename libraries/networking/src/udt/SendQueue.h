@@ -140,6 +140,9 @@ private:
     std::condition_variable_any _emptyCondition;
 
     std::chrono::high_resolution_clock::time_point _lastPacketSentAt;
+
+    static const std::chrono::microseconds MAXIMUM_ESTIMATED_TIMEOUT;
+    static const std::chrono::microseconds MINIMUM_ESTIMATED_TIMEOUT;
 };
     
 }
