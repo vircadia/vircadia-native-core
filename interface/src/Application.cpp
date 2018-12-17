@@ -8057,7 +8057,7 @@ void Application::windowMinimizedChanged(bool minimized) {
         getActiveDisplayPlugin()->activate();
     } else if (minimized && getActiveDisplayPlugin()->isActive()) {
         getActiveDisplayPlugin()->deactivate();
-        _minimizedWindowTimer.start(THROTTLED_SIM_FRAME_PERIOD_MS);
+        //_minimizedWindowTimer.start(THROTTLED_SIM_FRAME_PERIOD_MS);
     }
 }
 

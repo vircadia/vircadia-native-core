@@ -686,6 +686,7 @@ void OpenVrDisplayPlugin::postPreview() {
     }
 
     if (isHmdMounted() != _hmdMounted) {
+        qDebug() << "changed hmd status " << isHmdMounted();
         _hmdMounted = !_hmdMounted;
         emit hmdMountedChanged();
     }

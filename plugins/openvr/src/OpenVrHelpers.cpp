@@ -120,7 +120,7 @@ vr::IVRSystem* acquireOpenVrSystem() {
         }
         if (activeHmd) {
             #if DEV_BUILD
-                qCDebug(displayplugins) << "OpenVR: incrementing refcount";
+                //qCDebug(displayplugins) << "OpenVR: incrementing refcount";
             #endif
             ++refCount;
         }
@@ -267,6 +267,15 @@ void handleOpenVrEvents() {
                 _keyboardFocusObject = nullptr;
                 _keyboardShown = false;
                 DependencyManager::get<OffscreenUi>()->unfocusWindows();
+                break;
+            
+            case vr::VREvent_TrackedDeviceUserInteractionStarted:
+                qDebug() << "Put on the headset";
+                //hmdMountedChanged();
+                break;
+
+            case vr::VREvent_TrackedDeviceUserInteractionEnded:
+                qDebug() << "Took off the headset";
                 break;
 
             default:
@@ -416,6 +425,15 @@ void showMinSpecWarning() {
                     if (event.data.controller.button != vr::k_EButton_ProximitySensor) {
                         QCoreApplication::quit();
                     }
+                    break;
+
+                case vr::VREvent_TrackedDeviceUserInteractionStarted:
+                    qDebug() << "Put on the headset2";
+                    //hmdMountedChanged();
+                    break;
+
+                case vr::VREvent_TrackedDeviceUserInteractionEnded:
+                    qDebug() << "Took off the headset2";
                     break;
 
                 default:
