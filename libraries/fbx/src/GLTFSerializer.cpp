@@ -1188,9 +1188,6 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << hfmModel.offset;
 
-    qCDebug(modelformat) << "  leftEyeSize = " << hfmModel.leftEyeSize;
-    qCDebug(modelformat) << "  rightEyeSize = " << hfmModel.rightEyeSize;
-
     qCDebug(modelformat) << "  palmDirection = " << hfmModel.palmDirection;
 
     qCDebug(modelformat) << "  neckPivot = " << hfmModel.neckPivot;

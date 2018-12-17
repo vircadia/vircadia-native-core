@@ -127,26 +127,6 @@ QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
 
-/// The names of the joints in the Maya HumanIK rig
-static const std::array<const char*, 16> HUMANIK_JOINTS = {{
-    "RightHand",
-    "RightForeArm",
-    "RightArm",
-    "Head",
-    "LeftArm",
-    "LeftForeArm",
-    "LeftHand",
-    "Neck",
-    "Spine",
-    "Hips",
-    "RightUpLeg",
-    "LeftUpLeg",
-    "RightLeg",
-    "LeftLeg",
-    "RightFoot",
-    "LeftFoot"
-}};
-
 class FBXModel {
 public:
     QString name;
@@ -480,13 +460,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
 
     QVariantHash joints = mapping.value("joint").toHash();
 
-    QVector<QString> humanIKJointNames;
-    for (int i = 0; i <  (int) HUMANIK_JOINTS.size(); i++) {
-        QByteArray jointName = HUMANIK_JOINTS[i];
-        humanIKJointNames.append(processID(getString(joints.value(jointName, jointName))));
-    }
-    QVector<QString> humanIKJointIDs(humanIKJointNames.size());
-
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
 
     QMultiHash<QByteArray, WeightedIndex> blendshapeIndices;
@@ -582,11 +555,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                     QString modelname = name.toLower();
                     if (modelname.startsWith("hifi")) {
                         hifiGlobalNodeID = id;
-                    }
-
-                    int humanIKJointIndex = humanIKJointNames.indexOf(name);
-                    if (humanIKJointIndex != -1) {
-                        humanIKJointIDs[humanIKJointIndex] = getID(object.properties);
                     }
 
                     glm::vec3 translation;
@@ -1399,10 +1367,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     // NOTE: shapeVertices are in joint-frame
     std::vector<ShapeVertices> shapeVertices;
     shapeVertices.resize(std::max(1, hfmModel.joints.size()) );
-
-    foreach (const QString& id, humanIKJointIDs) {
-        hfmModel.humanIKJointIndices.append(modelIDs.indexOf(id));
-    }
 
     hfmModel.bindExtents.reset();
     hfmModel.meshExtents.reset();
