@@ -2417,10 +2417,10 @@ void MyAvatar::attachmentDataToEntityProperties(const AttachmentData& data, Enti
 void MyAvatar::initHeadBones() {
     int neckJointIndex = -1;
     if (_skeletonModel->isLoaded()) {
-        neckJointIndex = _skeletonModel->getHFMModel().neckJointIndex;
+        neckJointIndex = getJointIndex("Neck");
     }
     if (neckJointIndex == -1) {
-        neckJointIndex = (_skeletonModel->getHFMModel().headJointIndex - 1);
+        neckJointIndex = (getJointIndex("Head") - 1);
         if (neckJointIndex < 0) {
             // return if the head is not even there. can't cauterize!!
             return;
