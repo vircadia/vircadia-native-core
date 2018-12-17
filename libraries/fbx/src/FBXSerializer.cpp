@@ -583,7 +583,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                     if (modelname.startsWith("hifi")) {
                         hifiGlobalNodeID = id;
                     }
-                    
+
                     int humanIKJointIndex = humanIKJointNames.indexOf(name);
                     if (humanIKJointIndex != -1) {
                         humanIKJointIDs[humanIKJointIndex] = getID(object.properties);
