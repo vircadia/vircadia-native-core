@@ -13,6 +13,7 @@
 #define hifi_KeyboardScriptingInterface_h
 
 #include <QtCore/QObject>
+#include <QtCore/QUuid>
 
 #include "DependencyManager.h"
 #include "ui/overlays/Overlay.h"

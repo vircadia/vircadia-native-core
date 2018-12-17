@@ -95,7 +95,7 @@ public:
     void registerKeyboardHighlighting();
     bool isRaised() const;
     void setRaised(bool raised);
-
+    void setResetKeyboardPositionOnRaise(bool reset);
     bool isPassword() const;
     void setPassword(bool password);
     void enableRightMallet();
@@ -115,6 +115,7 @@ public:
 
     void loadKeyboardFile(const QString& keyboardFile);
     QVector<OverlayID> getKeysID();
+    OverlayID getAnchorID();
 
 public slots:
     void handleTriggerBegin(const OverlayID& overlayID, const PointerEvent& event);
@@ -160,6 +161,7 @@ private:
     bool isLayerSwitchTimerFinished() const;
 
     bool _raised { false };
+    bool _resetKeyboardPositionOnRaise { true };
     bool _password { false };
     bool _capsEnabled { false };
     int _layerIndex { 0 };
