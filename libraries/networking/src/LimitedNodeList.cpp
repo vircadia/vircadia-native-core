@@ -40,15 +40,6 @@
 
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
-const std::set<NodeType_t> SOLO_NODE_TYPES = {
-    NodeType::AvatarMixer,
-    NodeType::AudioMixer,
-    NodeType::AssetServer,
-    NodeType::EntityServer,
-    NodeType::MessagesMixer,
-    NodeType::EntityScriptServer
-};
-
 LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     _nodeSocket(this),
     _packetReceiver(new PacketReceiver(this))

@@ -444,6 +444,15 @@ private:
     int _outboundPPS { 0 };
     float _inboundKbps { 0.0f };
     float _outboundKbps { 0.0f };
+
+    const std::set<NodeType_t> SOLO_NODE_TYPES = {
+        NodeType::AvatarMixer,
+        NodeType::AudioMixer,
+        NodeType::AssetServer,
+        NodeType::EntityServer,
+        NodeType::MessagesMixer,
+        NodeType::EntityScriptServer
+    };
 };
 
 #endif // hifi_LimitedNodeList_h
