@@ -55,15 +55,15 @@ public:
     static void setupLocalLightsBatch(gpu::Batch& batch, const LightClustersPointer& lightClusters);
     static void unsetLocalLightsBatch(gpu::Batch& batch);
 
-    void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
-    void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
-    bool isAmbientOcclusionEnabled() const { return _ambientOcclusionEnabled; }
+ //   void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
+//    void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
+ //   bool isAmbientOcclusionEnabled() const { return _ambientOcclusionEnabled; }
 
 private:
     DeferredLightingEffect() = default;
 
-    bool _shadowMapEnabled{ true };  // note that this value is overwritten in the ::configure method
-    bool _ambientOcclusionEnabled{ false };
+//    bool _shadowMapEnabled{ true };  // note that this value is overwritten in the ::configure method
+ //   bool _ambientOcclusionEnabled{ false };
 
     graphics::MeshPointer _pointLightMesh;
     graphics::MeshPointer getPointLightMesh();

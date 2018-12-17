@@ -93,7 +93,9 @@ Rectangle {
                          "Spot:LightingModel:enableSpotLight",
                          "Light Contour:LightingModel:showLightContour",
                          "Zone Stack:DrawZoneStack:enabled",
-                         "Shadow:RenderShadowTask:enabled"
+                         "Shadow:RenderShadowTask:enabled",
+                         "Shadowning:LightingModel:enableShadow",
+                         "AmbientOcclusioning:LightingModel:enableAmbientOcclusion"
                     ]
                     HifiControls.CheckBox {
                         boxSize: 20

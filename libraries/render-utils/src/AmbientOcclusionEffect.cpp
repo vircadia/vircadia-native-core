@@ -303,8 +303,6 @@ AmbientOcclusionEffect::AmbientOcclusionEffect() {
 }
 
 void AmbientOcclusionEffect::configure(const Config& config) {
-    DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(config.isEnabled());
-
     bool shouldUpdateBlurs = false;
     bool shouldUpdateTechnique = false;
 

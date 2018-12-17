@@ -39,7 +39,7 @@ using namespace render;
 extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 void RenderShadowTask::configure(const Config& configuration) {
-    DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.isEnabled());
+    //DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.isEnabled());
     // This is a task, so must still propogate configure() to its Jobs
     //    Task::configure(configuration);
 }
@@ -112,7 +112,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         // GPU jobs: Render to shadow map
         sprintf(jobName, "RenderShadowMap%d", i);
         const auto shadowInputs = RenderShadowMap::Inputs(culledShadowItemsAndBounds.getN<CullShadowBounds::Outputs>(0),
-            culledShadowItemsAndBounds.getN<CullShadowBounds::Outputs>(1), lightFrame).asVarying();
+            culledShadowItemsAndBounds.getN<CullShadowBounds::Outputs>(1), shadowFrame).asVarying();
         task.addJob<RenderShadowMap>(jobName, shadowInputs, shapePlumber, i);
         sprintf(jobName, "ShadowCascadeTeardown%d", i);
         task.addJob<RenderShadowCascadeTeardown>(jobName, shadowFilter);
@@ -214,12 +214,12 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
 
     const auto& inShapes = inputs.get0();
     const auto& inShapeBounds = inputs.get1();
-    const auto& lightFrame = inputs.get2();
+    const auto& shadowFrame = inputs.get2();
 
-    auto lightStage = renderContext->_scene->getStage<LightStage>();
-    assert(lightStage);
-
-    auto shadow = lightStage->getCurrentKeyShadow(*lightFrame);
+    LightStage::ShadowPointer shadow;
+    if (shadowFrame && !shadowFrame->_objects.empty()) {
+        shadow = shadowFrame->_objects.front();
+    }
     if (!shadow || _cascadeIndex >= shadow->getCascadeCount()) {
         return;
     }
@@ -362,13 +362,15 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
 
     // Clear previous shadow frame
     if (!_globalShadowObject) {
-        _globalShadowObject = std::make_shared<LightStage::Shadow>(graphics::LightPointer(), 100.0f);
+        _globalShadowObject = std::make_shared<LightStage::Shadow>(graphics::LightPointer(), 100.f, 4);
     }
     _shadowFrameCache->_objects.clear();
     
-    const auto theGlobalShadow = lightStage->getCurrentKeyShadow(lightFrame);
-    if (theGlobalShadow) {
-        _globalShadowObject->setLight(theGlobalShadow->getLight());
+    const auto theGlobalLight = lightStage->getCurrentKeyLight(lightFrame);
+    if (theGlobalLight && theGlobalLight->getCastShadows()) {
+    //const auto theGlobalShadow = lightStage->getCurrentKeyShadow(lightFrame);
+    //if (theGlobalShadow) {
+        _globalShadowObject->setLight(theGlobalLight);
         _globalShadowObject->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
         auto& firstCascade = _globalShadowObject->getCascade(0);

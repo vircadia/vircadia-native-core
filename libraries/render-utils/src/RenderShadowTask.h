@@ -25,7 +25,7 @@ class ViewFrustum;
 
 class RenderShadowMap {
 public:
-    using Inputs = render::VaryingSet3<render::ShapeBounds, AABox, LightStage::FramePointer>;
+    using Inputs = render::VaryingSet3<render::ShapeBounds, AABox, LightStage::ShadowFramePointer>;
     using JobModel = render::Job::ModelI<RenderShadowMap, Inputs>;
 
     RenderShadowMap(render::ShapePlumberPointer shapePlumber, unsigned int cascadeIndex) : _shapePlumber{ shapePlumber }, _cascadeIndex{ cascadeIndex } {}
