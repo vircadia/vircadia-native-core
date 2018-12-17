@@ -13,7 +13,7 @@ using System.IO;
 using System.Collections.Generic;
 
 public class AvatarExporter : MonoBehaviour {   
-    public static Dictionary<string, string> HUMANOID_TO_HIFI_JOINT_NAME = new Dictionary<string, string> {
+    public static readonly Dictionary<string, string> HUMANOID_TO_HIFI_JOINT_NAME = new Dictionary<string, string> {
         {"Chest", "Spine1"},
         {"Head", "Head"},
         {"Hips", "Hips"},
@@ -70,7 +70,7 @@ public class AvatarExporter : MonoBehaviour {
         {"UpperChest", "Spine2"},
     };
     
-    public static Dictionary<string, Quaternion> referenceAbsoluteRotations = new Dictionary<string, Quaternion> {
+    public static readonly Dictionary<string, Quaternion> referenceAbsoluteRotations = new Dictionary<string, Quaternion> {
         {"Head", new Quaternion(-2.509889e-9f, -3.379446e-12f, 2.306033e-13f, 1f)},
         {"Hips", new Quaternion(-3.043941e-10f, -1.573706e-7f, 5.112975e-6f, 1f)},
         {"LeftHandIndex3", new Quaternion(-0.5086057f, 0.4908088f, -0.4912299f, -0.5090388f)},
@@ -151,16 +151,10 @@ public class AvatarExporter : MonoBehaviour {
             }
             return;
         }
-        string assetPath = AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]);
-        string assetName = Path.GetFileNameWithoutExtension(assetPath);
-        string assetDirectory = Path.GetDirectoryName(assetPath);
-        if (assetDirectory != "Assets/Resources") {
-            EditorUtility.DisplayDialog("Error", "Please place asset in the Assets/Resources folder", "Ok");
-            return;
-        }       
+        string assetPath = AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]);    
         ModelImporter importer = ModelImporter.GetAtPath(assetPath) as ModelImporter;
         if (assetPath.LastIndexOf(".fbx") == -1 || importer == null) {
-            EditorUtility.DisplayDialog("Error", "Please select an fbx model asset to export", "Ok");
+            EditorUtility.DisplayDialog("Error", "Please select an .fbx model asset to export", "Ok");
             return;
         }
         if (importer.animationType != ModelImporterAnimationType.Human) {
@@ -173,7 +167,7 @@ public class AvatarExporter : MonoBehaviour {
         userAbsoluteRotations.Clear();
         
         // instantiate a game object of the user avatar to save out bone parents then destroy it
-        UnityEngine.Object avatarResource = Resources.Load(assetName);
+        UnityEngine.Object avatarResource = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
         if (avatarResource) {
              GameObject assetGameObject = (GameObject)Instantiate(avatarResource);
              SetParentNames(assetGameObject.transform, userParentNames);
@@ -246,9 +240,10 @@ public class AvatarExporter : MonoBehaviour {
                 userBoneToHumanoidMappings[chestUserBone] = "UpperChest";
             }
         }
-    
+
         bool copyModelToExport = false;
         string exportFstPath, exportModelPath;
+        string assetName = Path.GetFileNameWithoutExtension(assetPath);
         string documentsFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
         if (updateAvatar) {
             // open file explorer defaulting to user documents folder to select target fst to update
@@ -338,10 +333,12 @@ public class AvatarExporter : MonoBehaviour {
                 Quaternion rotation = referenceAbsoluteRotations[outputJointName];
                 jointOffset = Quaternion.Inverse(userAbsoluteRotations[userBoneName]) * rotation;
             } else if (userAbsoluteRotations.ContainsKey(userBoneName)) {
+                outputJointName = userBoneName;
                 string lastRequiredParent = FindLastRequiredParentBone(userBoneName);
-                if (lastRequiredParent != "root") {
+                if (lastRequiredParent == "root") {
+                    jointOffset = Quaternion.Inverse(userAbsoluteRotations[userBoneName]);
+                } else {
                     // take the previous offset and multiply it by the current local when we have an extra joint
-                    outputJointName = userBoneName;
                     string lastRequiredParentHifiName = HUMANOID_TO_HIFI_JOINT_NAME[userBoneToHumanoidMappings[lastRequiredParent]];
                     Quaternion lastRequiredParentRotation = referenceAbsoluteRotations[lastRequiredParentHifiName];
                     jointOffset = Quaternion.Inverse(userAbsoluteRotations[userBoneName]) * lastRequiredParentRotation;
