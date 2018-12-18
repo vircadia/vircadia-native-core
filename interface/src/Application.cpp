@@ -5176,7 +5176,13 @@ void Application::pauseUntilLoginDetermined() {
         return;
     }
 
-    getMyAvatar()->setEnableMeshVisible(false);
+    auto myAvatar = getMyAvatar();
+    _previousAvatarTargetScale = myAvatar->getTargetScale();
+    _previousAvatarSkeletonModel = myAvatar->getSkeletonModelURL().toString();
+    myAvatar->setTargetScale(1.0f);
+    myAvatar->setSkeletonModelURLFromScript(myAvatar->defaultFullAvatarModelUrl().toString());
+    myAvatar->setEnableMeshVisible(false);
+
     _controllerScriptingInterface->disableMapping(STANDARD_TO_ACTION_MAPPING_NAME);
 
     {
@@ -5231,7 +5237,12 @@ void Application::resumeAfterLoginDialogActionTaken() {
         userInputMapper->unloadMapping(NO_MOVEMENT_MAPPING_JSON);
         _controllerScriptingInterface->disableMapping(NO_MOVEMENT_MAPPING_NAME);
     }
-    getMyAvatar()->setEnableMeshVisible(true);
+
+    auto myAvatar = getMyAvatar();
+    myAvatar->setTargetScale(_previousAvatarTargetScale);
+    myAvatar->setSkeletonModelURLFromScript(_previousAvatarSkeletonModel);
+    myAvatar->setEnableMeshVisible(true);
+
     _controllerScriptingInterface->enableMapping(STANDARD_TO_ACTION_MAPPING_NAME);
 
     const auto& nodeList = DependencyManager::get<NodeList>();
