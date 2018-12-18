@@ -185,6 +185,7 @@ Script.include("/~/system/libraries/controllers.js");
                             var cloneID = cloneEntity(targetProps);
                             if (cloneID !== null) {
                                 var cloneProps = Entities.getEntityProperties(cloneID, DISPATCHER_PROPERTIES);
+                                cloneProps.id = cloneID;
                                 this.grabbing = true;
                                 this.targetEntityID = cloneID;
                                 this.startNearGrabEntity(cloneProps);

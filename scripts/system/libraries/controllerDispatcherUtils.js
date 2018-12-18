@@ -32,6 +32,7 @@
    getEnabledModuleByName:true,
    getGrabbableData:true,
    isAnothersAvatarEntity:true,
+   isAnothersChildEntity:true,
    entityIsGrabbable:true,
    entityIsDistanceGrabbable:true,
    getControllerJointIndexCacheTime:true,
@@ -302,11 +303,31 @@ isAnothersAvatarEntity = function (iaaeProps) {
     return true;
 };
 
+isAnothersChildEntity = function (iaceProps) {
+    while (iaceProps.parentID && iaceProps.parentID !== Uuid.NULL) {
+        if (Entities.getNestableType(iaceProps.parentID) == "avatar") {
+            if (iaceProps.parentID == MyAvatar.SELF_ID || iaceProps.parentID == MyAvatar.sessionUUID) {
+                return false; // not another's, it's mine.
+            }
+            return true;
+        }
+        // Entities.getNestableType(iaceProps.parentID) == "entity") {
+        var parentProps = Entities.getEntityProperties(iaceProps.parentID, DISPATCHER_PROPERTIES);
+        if (!parentProps) {
+            break;
+        }
+        parentProps.id = iaceProps.parentID;
+        iaceProps = parentProps;
+    }
+    return false;
+};
+
 entityIsGrabbable = function (eigProps) {
     var grabbable = getGrabbableData(eigProps).grabbable;
     if (!grabbable ||
         eigProps.locked ||
         isAnothersAvatarEntity(eigProps) ||
+        isAnothersChildEntity(eigProps) ||
         FORBIDDEN_GRAB_TYPES.indexOf(eigProps.type) >= 0) {
         return false;
     }
