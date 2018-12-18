@@ -163,8 +163,8 @@ class MakeLightingModelConfig : public render::Job::Config {
     Q_PROPERTY(bool enableSkinning MEMBER enableSkinning NOTIFY dirty)
     Q_PROPERTY(bool enableBlendshape MEMBER enableBlendshape NOTIFY dirty)
 
-    Q_PROPERTY(bool enableAmbientOcclusion MEMBER enableAmbientOcclusion NOTIFY dirty)
-    Q_PROPERTY(bool enableShadow MEMBER enableShadow NOTIFY dirty)
+    Q_PROPERTY(bool enableAmbientOcclusion READ isAmbientOcclusionEnabled WRITE setAmbientOcclusion NOTIFY dirty)
+    Q_PROPERTY(bool enableShadow READ isShadowEnabled WRITE setShadow NOTIFY dirty)
 
 
 public:
@@ -198,6 +198,14 @@ public:
 
     bool enableAmbientOcclusion{ true };
     bool enableShadow{ true };
+
+
+    void setAmbientOcclusion(bool enable) { enableAmbientOcclusion = enable; emit dirty();}
+    bool isAmbientOcclusionEnabled() const { return enableAmbientOcclusion; }
+    void setShadow(bool enable) { 
+        enableShadow = enable; emit dirty();
+     }
+    bool isShadowEnabled() const { return enableShadow; }
 
 signals:
     void dirty();

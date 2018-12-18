@@ -19,6 +19,7 @@
 
 #include "Shadows_shared.slh"
 
+#include "LightingModel.h"
 #include "LightStage.h"
 
 class ViewFrustum;
@@ -36,10 +37,12 @@ protected:
     unsigned int _cascadeIndex;
 };
 
-class RenderShadowTaskConfig : public render::Task::Config::Persistent {
+//class RenderShadowTaskConfig : public render::Task::Config::Persistent {
+class RenderShadowTaskConfig : public render::Task::Config {
     Q_OBJECT
 public:
-    RenderShadowTaskConfig() : render::Task::Config::Persistent(QStringList() << "Render" << "Engine" << "Shadows", true) {}
+   // RenderShadowTaskConfig() : render::Task::Config::Persistent(QStringList() << "Render" << "Engine" << "Shadows", true) {}
+    RenderShadowTaskConfig() {}
 
 signals:
     void dirty();
@@ -49,7 +52,7 @@ class RenderShadowTask {
 public:
 
     // There is one AABox per shadow cascade
-    using Input = LightStage::FramePointer;
+    using Input = render::VaryingSet2<LightStage::FramePointer, LightingModelPointer>;
     using Output = render::VaryingSet2<render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>, LightStage::ShadowFramePointer>;
     using Config = RenderShadowTaskConfig;
     using JobModel = render::Task::ModelIO<RenderShadowTask, Input, Output, Config>;
@@ -100,14 +103,14 @@ signals:
 
 class RenderShadowSetup {
 public:
-    using Inputs = LightStage::FramePointer;
-    using Outputs = render::VaryingSet4<RenderArgs::RenderMode, glm::ivec2, ViewFrustumPointer, LightStage::ShadowFramePointer>;
+    using Input = RenderShadowTask::Input;
+    using Output = render::VaryingSet4<RenderArgs::RenderMode, glm::ivec2, ViewFrustumPointer, LightStage::ShadowFramePointer>;
     using Config = RenderShadowSetupConfig;
-    using JobModel = render::Job::ModelIO<RenderShadowSetup, Inputs, Outputs, Config>;
+    using JobModel = render::Job::ModelIO<RenderShadowSetup, Input, Output, Config>;
 
     RenderShadowSetup();
     void configure(const Config& configuration);
-    void run(const render::RenderContextPointer& renderContext, const Inputs& input, Outputs& output);
+    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
 private:
 
@@ -151,7 +154,7 @@ public:
 
 class RenderShadowTeardown {
 public:
-    using Input = RenderShadowSetup::Outputs;
+    using Input = RenderShadowSetup::Output;
     using JobModel = render::Job::ModelI<RenderShadowTeardown, Input>;
     void run(const render::RenderContextPointer& renderContext, const Input& input);
 };

@@ -59,11 +59,14 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     // FIXME: calling this here before the zones/lights are drawn during the deferred/forward passes means we're actually using the frames from the previous draw
     // Fetch the current frame stacks from all the stages
     // Starting with the Light Frame  genreated in previous tasks
-    const auto& lightFrame = input;
+    
+    const auto& lightFrame = input.getN<Input>(0);
 
-    const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup", lightFrame);
-    const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(1);
-    const auto shadowFrame = setupOutput.getN<RenderShadowSetup::Outputs>(3);
+    const auto& lightingModel = input.getN<Input>(1);
+
+    const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup", input);
+    const auto queryResolution = setupOutput.getN<RenderShadowSetup::Output>(1);
+    const auto shadowFrame = setupOutput.getN<RenderShadowSetup::Output>(3);
     // Fetch and cull the items from the scene
 
     static const auto shadowCasterReceiverFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
@@ -75,7 +78,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 
     // Cull objects that are not visible in camera view. Hopefully the cull functor only performs LOD culling, not
     // frustum culling or this will make shadow casters out of the camera frustum disappear.
-    const auto cameraFrustum = setupOutput.getN<RenderShadowSetup::Outputs>(2);
+    const auto cameraFrustum = setupOutput.getN<RenderShadowSetup::Output>(2);
     const auto applyFunctorInputs = ApplyCullFunctorOnItemBounds::Inputs(shadowItems, cameraFrustum).asVarying();
     const auto culledShadowItems = task.addJob<ApplyCullFunctorOnItemBounds>("ShadowCullCamera", applyFunctorInputs, cameraCullFunctor);
 
@@ -122,7 +125,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     task.addJob<RenderShadowTeardown>("ShadowTeardown", setupOutput);
 
 
-    output = Output(cascadeSceneBBoxes, setupOutput.getN<RenderShadowSetup::Outputs>(3));
+    output = Output(cascadeSceneBBoxes, setupOutput.getN<RenderShadowSetup::Output>(3));
 
 }
 
@@ -341,12 +344,19 @@ void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
     _bias[cascadeIndex]._slope = value * value * value * 0.01f;
 }
 
-void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, const Inputs& input, Outputs& output) {
+void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
     // Abort all jobs if not casting shadows
     auto lightStage = renderContext->_scene->getStage<LightStage>();
-    auto lightFrame = *input;
     assert(lightStage);
-    if (!lightStage->getCurrentKeyLight(lightFrame) || !lightStage->getCurrentKeyLight(lightFrame)->getCastShadows()) {
+
+    const auto lightFrame = *input.get0();
+    const auto lightingModel = input.get1();
+
+    // Clear previous shadow frame always
+    _shadowFrameCache->_objects.clear();
+    output.edit3() = _shadowFrameCache;
+
+    if (!lightingModel->isShadowEnabled() || !lightStage->getCurrentKeyLight(lightFrame) || !lightStage->getCurrentKeyLight(lightFrame)->getCastShadows()) {
         renderContext->taskFlow.abortTask();
         return;
     }
@@ -360,16 +370,12 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     *_cameraFrustum = args->getViewFrustum();
     output.edit2() = _cameraFrustum;
 
-    // Clear previous shadow frame
     if (!_globalShadowObject) {
         _globalShadowObject = std::make_shared<LightStage::Shadow>(graphics::LightPointer(), 100.f, 4);
     }
-    _shadowFrameCache->_objects.clear();
     
     const auto theGlobalLight = lightStage->getCurrentKeyLight(lightFrame);
     if (theGlobalLight && theGlobalLight->getCastShadows()) {
-    //const auto theGlobalShadow = lightStage->getCurrentKeyShadow(lightFrame);
-    //if (theGlobalShadow) {
         _globalShadowObject->setLight(theGlobalLight);
         _globalShadowObject->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
@@ -435,8 +441,6 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
         queryResolution.x = int(queryResolution.x * _coarseShadowFrustum->getWidth() / firstCascadeFrustum->getWidth());
         queryResolution.y = int(queryResolution.y * _coarseShadowFrustum->getHeight() / firstCascadeFrustum->getHeight());
         output.edit1() = queryResolution;
-
-        output.edit3() = _shadowFrameCache;
     }
 }
 

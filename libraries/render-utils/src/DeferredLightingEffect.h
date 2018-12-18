@@ -55,15 +55,8 @@ public:
     static void setupLocalLightsBatch(gpu::Batch& batch, const LightClustersPointer& lightClusters);
     static void unsetLocalLightsBatch(gpu::Batch& batch);
 
- //   void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
-//    void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
- //   bool isAmbientOcclusionEnabled() const { return _ambientOcclusionEnabled; }
-
 private:
     DeferredLightingEffect() = default;
-
-//    bool _shadowMapEnabled{ true };  // note that this value is overwritten in the ::configure method
- //   bool _ambientOcclusionEnabled{ false };
 
     graphics::MeshPointer _pointLightMesh;
     graphics::MeshPointer getPointLightMesh();
@@ -150,8 +143,7 @@ public:
         const HazeStage::FramePointer& hazeFrame,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
         const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
-        const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource,
-        bool renderShadows);
+        const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
 };
 
 class RenderDeferredLocals {
@@ -168,7 +160,6 @@ public:
     gpu::BufferView _localLightsBuffer;
 
     RenderDeferredLocals();
-
 };
 
 
@@ -190,7 +181,7 @@ public:
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 
-    RenderDeferred(bool renderShadows = false);
+    RenderDeferred();
 
     void configure(const Config& config);
 
@@ -204,7 +195,6 @@ protected:
     gpu::RangeTimerPointer _gpuTimer;
 
 private:
-    bool _renderShadows { false };
 };
 
 class DefaultLightingSetup {

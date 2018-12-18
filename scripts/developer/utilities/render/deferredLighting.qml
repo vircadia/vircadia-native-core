@@ -47,8 +47,8 @@ Rectangle {
                          "Emissive:LightingModel:enableEmissive", 
                          "Lightmap:LightingModel:enableLightmap",
                          "Background:LightingModel:enableBackground",      
-                         "Haze:LightingModel:enableHaze",                
-                         "ssao:AmbientOcclusion:enabled",                      
+                         "Haze:LightingModel:enableHaze",                        
+                         "ssao:LightingModel:enableAmbientOcclusion",
                          "Textures:LightingModel:enableMaterialTexturing"                     
                     ]
                     HifiControls.CheckBox {
@@ -93,9 +93,7 @@ Rectangle {
                          "Spot:LightingModel:enableSpotLight",
                          "Light Contour:LightingModel:showLightContour",
                          "Zone Stack:DrawZoneStack:enabled",
-                         "Shadow:RenderShadowTask:enabled",
-                         "Shadowning:LightingModel:enableShadow",
-                         "AmbientOcclusioning:LightingModel:enableAmbientOcclusion"
+                         "Shadow:LightingModel:enableShadow"
                     ]
                     HifiControls.CheckBox {
                         boxSize: 20

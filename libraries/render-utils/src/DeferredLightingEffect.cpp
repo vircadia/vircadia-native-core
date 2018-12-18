@@ -378,8 +378,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     const HazeStage::FramePointer& hazeFrame,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
     const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
-    const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource,
-    bool renderShadows) {
+    const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
 
     auto args = renderContext->args;
     auto& batch = (*args->_batch);
@@ -596,9 +595,7 @@ void RenderDeferredCleanup::run(const render::RenderContextPointer& renderContex
     }
 }
 
-RenderDeferred::RenderDeferred(bool renderShadows):
-   _renderShadows(renderShadows)
-{
+RenderDeferred::RenderDeferred() {
     DependencyManager::get<DeferredLightingEffect>()->init();
 }
 
@@ -629,7 +626,7 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
         args->_batch = &batch;
         _gpuTimer->begin(batch);
 
-        setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, lightFrame, shadowFrame, hazeFrame, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource, _renderShadows);
+        setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, lightFrame, shadowFrame, hazeFrame, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
 
         lightsJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
 

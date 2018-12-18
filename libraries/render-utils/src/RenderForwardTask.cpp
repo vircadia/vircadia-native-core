@@ -54,8 +54,10 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // const auto& items = fetchedItems[0];
     const auto& items = fetchedItems.get0();
 
+    // Lighting model comes next, the big configuration of the view
+    const auto& lightingModel = inputs.get1();
 
-    const auto& lightingStageInputs = inputs.get1();
+    const auto& lightingStageInputs = inputs.get2();
     // Fetch the current frame stacks from all the stages
     const auto& currentStageFrames = lightingStageInputs.get0();
     const auto& lightFrame = currentStageFrames[0];
@@ -91,7 +93,6 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // Prepare objects shared by several jobs
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
-    const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
 
     // Filter zones from the general metas bucket
    // const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);

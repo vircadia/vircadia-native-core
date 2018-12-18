@@ -112,7 +112,7 @@ void RenderDeferredTask::configure(const Config& config) {
     upsamplePrimaryBufferConfig->setProperty("factor", 1.0f / config.resolutionScale);
 }
 
-void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output, bool renderShadows) {
+void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     auto fadeEffect = DependencyManager::get<FadeEffect>();
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
@@ -139,8 +139,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
         const auto& spatialSelection = fetchedItems.get1();
 
+    // Lighting model comes next, the big configuration of the view
+    const auto& lightingModel = inputs[1];
+
     // Extract the Lighting Stages Current frame ( and zones)
-    const auto lightingStageInputs = inputs.get1();
+    const auto& lightingStageInputs = inputs.get2();
         // Fetch the current frame stacks from all the stages
         const auto currentStageFrames = lightingStageInputs.get0();
             const auto lightFrame = currentStageFrames[0];
@@ -151,10 +154,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         const auto& zones = lightingStageInputs[1];
 
     // Shadow Task Outputs
-    const auto shadowTaskOutputs = inputs.get2();
+    const auto& shadowTaskOutputs = inputs.get3();
 
         // Shadow Stage Frame
         const auto shadowFrame = shadowTaskOutputs[1];
+
 
     fadeEffect->build(task, opaques);
 
@@ -165,7 +169,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Prepare deferred, generate the shared Deferred Frame Transform. Only valid with the scaled frame buffer
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform", jitter);
-    const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
 
     const auto opaqueRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
 
@@ -202,10 +205,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto scatteringResource = task.addJob<SubsurfaceScattering>("Scattering");
 
     // AO job
-    const auto ambientOcclusionInputs = AmbientOcclusionEffect::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).asVarying();
+    const auto ambientOcclusionInputs = AmbientOcclusionEffect::Input(lightingModel, deferredFrameTransform, deferredFramebuffer, linearDepthTarget).asVarying();
     const auto ambientOcclusionOutputs = task.addJob<AmbientOcclusionEffect>("AmbientOcclusion", ambientOcclusionInputs);
-    const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(0);
-    const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(1);
+    const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Output>(0);
+    const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Output>(1);
 
     // Velocity
     const auto velocityBufferInputs = VelocityBufferPass::Inputs(deferredFrameTransform, deferredFramebuffer).asVarying();
@@ -220,7 +223,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
         surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters, lightFrame, shadowFrame, hazeFrame).asVarying();
-    task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs, renderShadows);
+    task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
     const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame).asVarying();

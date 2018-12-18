@@ -19,7 +19,7 @@
 
 class RenderForwardTask {
 public:
-    using Input = render::VaryingSet2<RenderFetchCullSortTask::Output, AssembleLightingStageTask::Output>;
+    using Input = render::VaryingSet3<RenderFetchCullSortTask::Output, LightingModelPointer, AssembleLightingStageTask::Output>;
     using JobModel = render::Task::ModelI<RenderForwardTask, Input>;
 
     RenderForwardTask() {}

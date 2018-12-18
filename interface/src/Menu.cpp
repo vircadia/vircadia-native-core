@@ -48,6 +48,7 @@
 #include "DeferredLightingEffect.h"
 #include "PickManager.h"
 
+#include "LightingModel.h"
 #include "AmbientOcclusionEffect.h"
 #include "RenderShadowTask.h"
 #include "AntialiasingEffect.h"
@@ -393,14 +394,19 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto mainViewShadowTaskConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
+            auto lightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
+            if (lightingModelConfig) {
+                lightingModelConfig->setShadow(action->isChecked());
+            }
+
+        /*    auto mainViewShadowTaskConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
             if (mainViewShadowTaskConfig) {
                 if (action->isChecked()) {
                     mainViewShadowTaskConfig->setPreset("Enabled");
                 } else {
                     mainViewShadowTaskConfig->setPreset("None");
                 }
-            }
+            }*/
         }
     });
 
@@ -408,14 +414,24 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
+            auto lightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
+            if (lightingModelConfig) {
+                lightingModelConfig->setAmbientOcclusion(action->isChecked());
+               /* if (action->isChecked()) {
+                    lightingModelConfig->setPreset("Enabled");
+                }
+                else {
+                    mainViewAmbientOcclusionConfig->setPreset("None");
+                }*/
+            }
+         /*   auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
             if (mainViewAmbientOcclusionConfig) {
                 if (action->isChecked()) {
                     mainViewAmbientOcclusionConfig->setPreset("Enabled");
                 } else {
                     mainViewAmbientOcclusionConfig->setPreset("None");
                 }
-            }
+            }*/
         }
     });
 
