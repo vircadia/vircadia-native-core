@@ -525,6 +525,14 @@ void Avatar::updateGrabs() {
             // only clear this entry from the _deletedAvatarGrabs if we found the entity.
             if (success && target) {
                 bool iShouldTellServer = target->getEditSenderID() == sessionID;
+
+                EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(target);
+                if (entity && entity->isAvatarEntity() && (entity->getOwningAvatarID() == sessionID ||
+                                                           entity->getOwningAvatarID() == AVATAR_SELF_ID)) {
+                    // this is our own avatar-entity, so we always tell the server about the release
+                    iShouldTellServer = true;
+                }
+
                 target->removeGrab(grab);
                 delItr.remove();
                 // in case this is the last grab on an entity, we need to shrink the queryAACube and tell the server
