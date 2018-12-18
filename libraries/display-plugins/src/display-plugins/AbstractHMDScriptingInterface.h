@@ -15,7 +15,7 @@
 // These properties have JSDoc documentation in HMDScriptingInterface.h.
 class AbstractHMDScriptingInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(bool active READ isHMDMode NOTIFY activeChanged)
+    Q_PROPERTY(bool active READ isHMDMode NOTIFY mountedChanged)
     Q_PROPERTY(float ipd READ getIPD)
     Q_PROPERTY(float eyeHeight READ getEyeHeight)
     Q_PROPERTY(float playerHeight READ getPlayerHeight)
@@ -66,8 +66,6 @@ signals:
      * });
      */
     void mountedChanged();
-
-    void activeChanged();
 
 private:
     float _IPDScale{ 1.0 };
