@@ -668,11 +668,22 @@ void OpenVrDisplayPlugin::hmdPresent() {
 
 void OpenVrDisplayPlugin::postPreview() {
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
-    PoseData nextRender, nextSim;
+        PoseData nextRender, nextSim;
     nextRender.frameIndex = presentCount();
 
     _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
-
+    switch (_hmdActivityLevel) {
+    case vr::EDeviceActivityLevel::k_EDeviceActivityLevel_Unknown: qDebug() << "unkown hmd activity ";
+        break;
+    case vr::EDeviceActivityLevel::k_EDeviceActivityLevel_Idle: qDebug() << "no activity 10 secs ";
+        break;
+    case vr::EDeviceActivityLevel::k_EDeviceActivityLevel_UserInteraction: qDebug() << "activity ";
+        break;
+    case vr::EDeviceActivityLevel::k_EDeviceActivityLevel_UserInteraction_Timeout: qDebug() << "idle for 0.5 secs ";
+        break;
+    case vr::EDeviceActivityLevel::k_EDeviceActivityLevel_Standby: qDebug() << "idle for 5 secs ";
+        break;
+    }
     if (!_threadedSubmit) {
         vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses,
                                          vr::k_unMaxTrackedDeviceCount);
