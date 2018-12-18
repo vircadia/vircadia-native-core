@@ -96,7 +96,6 @@ void SkeletonModel::initJointStates() {
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     assert(!_owningAvatar->isMyAvatar());
-    const HFMModel& hfmModel = getHFMModel();
 
     Head* head = _owningAvatar->getHead();
 
@@ -274,7 +273,6 @@ bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3&
     if (!isActive()) {
         return false;
     }
-    const HFMModel& hfmModel = getHFMModel();
 
     if (getJointPosition(_rig.indexOfJoint("LeftEye"), firstEyePosition) &&
         getJointPosition(_rig.indexOfJoint("RightEye"), secondEyePosition)) {
