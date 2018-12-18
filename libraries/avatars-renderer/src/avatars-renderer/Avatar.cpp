@@ -340,10 +340,13 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
+    PackedAvatarEntityMap packedAvatarEntityData;
+    _avatarEntitiesLock.withReadLock([&] {
+        packedAvatarEntityData = _packedAvatarEntityData;
+    });
     entityTree->withWriteLock([&] {
-        AvatarEntityMap avatarEntities = getAvatarEntityData();
-        AvatarEntityMap::const_iterator dataItr = avatarEntities.begin();
-        while (dataItr != avatarEntities.end()) {
+        AvatarEntityMap::const_iterator dataItr = packedAvatarEntityData.begin();
+        while (dataItr != packedAvatarEntityData.end()) {
             // compute hash of data.  TODO? cache this?
             QByteArray data = dataItr.value();
             uint32_t newHash = qHash(data);
@@ -381,10 +384,11 @@ void Avatar::updateAvatarEntities() {
             ++dataItr;
 
             EntityItemProperties properties;
-            {
-                int32_t bytesLeftToRead = data.size();
-                unsigned char* dataAt = (unsigned char*)(data.data());
-                properties.constructFromBuffer(dataAt, bytesLeftToRead);
+            int32_t bytesLeftToRead = data.size();
+            unsigned char* dataAt = (unsigned char*)(data.data());
+            if (!properties.constructFromBuffer(dataAt, bytesLeftToRead)) {
+                // properties are corrupt
+                continue;
             }
 
             properties.setEntityHostType(entity::HostType::AVATAR);
@@ -454,7 +458,7 @@ void Avatar::updateAvatarEntities() {
                 }
             }
         }
-        if (avatarEntities.size() != _avatarEntityForRecording.size()) {
+        if (packedAvatarEntityData.size() != _avatarEntityForRecording.size()) {
             createRecordingIDs();
         }
     });
@@ -466,9 +470,12 @@ void Avatar::removeAvatarEntitiesFromTree() {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
+        QList<QUuid> avatarEntityIDs;
+        _avatarEntitiesLock.withReadLock([&] {
+            avatarEntityIDs = _packedAvatarEntityData.keys();
+        });
         entityTree->withWriteLock([&] {
-            AvatarEntityMap avatarEntities = getAvatarEntityData();
-            for (auto entityID : avatarEntities.keys()) {
+            for (const auto& entityID : avatarEntityIDs) {
                 entityTree->deleteEntity(entityID, true, true);
             }
         });

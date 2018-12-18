@@ -4613,6 +4613,7 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
 }
 
 bool EntityItemProperties::blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties) {
+    // DANGER: this method is NOT efficient.
     // begin recipe for converting unfortunately-formatted-binary-blob to EntityItemProperties
     QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(blob);
     if (!jsonProperties.isObject()) {
@@ -4628,6 +4629,7 @@ bool EntityItemProperties::blobToProperties(QScriptEngine& scriptEngine, const Q
 }
 
 void EntityItemProperties::propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob) {
+    // DANGER: this method is NOT efficient.
     // begin recipe for extracting unfortunately-formatted-binary-blob from EntityItem
     QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, properties);
     QVariant variantProperties = scriptValue.toVariant();
