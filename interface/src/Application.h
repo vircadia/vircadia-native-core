@@ -56,6 +56,7 @@
 #include "ConnectionMonitor.h"
 #include "CursorManager.h"
 #include "gpu/Context.h"
+#include "LoginStateManager.h"
 #include "Menu.h"
 #include "octree/OctreePacketProcessor.h"
 #include "render/Engine.h"
@@ -72,7 +73,6 @@
 #include "workload/GameWorkload.h"
 #include "graphics/GraphicsEngine.h"
 
-#include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
 
@@ -98,6 +98,7 @@ static const UINT UWM_SHOW_APPLICATION =
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
 static const QString SCRIPTS_SWITCH = "scripts";
+static const QString HIFI_NO_LOGIN_COMMAND_LINE_KEY = "no-login-suggestion";
 
 class Application;
 #if defined(qApp)
@@ -233,7 +234,7 @@ public:
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
 
-     Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
+    Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
@@ -321,6 +322,10 @@ public:
     int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
+    bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
+    void createLoginDialogOverlay();
+    void updateLoginDialogOverlayPosition();
+
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
     void enterBackground();
@@ -339,7 +344,8 @@ signals:
 
     void interstitialModeChanged(bool isInInterstitialMode);
 
-    void loginDialogPoppedUp();
+    void loginDialogFocusEnabled();
+    void loginDialogFocusDisabled();
 
     void miniTabletEnabledChanged(bool enabled);
 
@@ -362,6 +368,8 @@ public slots:
     Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
+
+    void showLoginScreen();
 
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
@@ -441,7 +449,10 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
     void setIsServerlessMode(bool serverlessDomain);
-    void loadServerlessDomain(QUrl domainURL, bool errorDomain = false);
+    std::map<QString, QString> prepareServerlessDomainContents(QUrl domainURL);
+
+    void loadServerlessDomain(QUrl domainURL);
+    void loadErrorDomain(QUrl domainURL);
     void setIsInterstitialMode(bool interstitialMode);
 
     void updateVerboseLogging();
@@ -506,10 +517,14 @@ private slots:
     void setShowBulletConstraints(bool value);
     void setShowBulletConstraintLimits(bool value);
 
+    void onDismissedLoginDialog();
+
     void setShowTrackedObjects(bool value);
 
 private:
     void init();
+    void pauseUntilLoginDetermined();
+    void resumeAfterLoginDialogActionTaken();
     bool handleKeyEventForFocusedEntityOrOverlay(QEvent* event);
     bool handleFileOpenEvent(QFileOpenEvent* event);
     void cleanupBeforeQuit();
@@ -623,6 +638,7 @@ private:
     Setting::Handle<float> _fieldOfView;
     Setting::Handle<float> _hmdTabletScale;
     Setting::Handle<float> _desktopTabletScale;
+    Setting::Handle<bool> _firstRun;
     Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
     Setting::Handle<bool> _preferStylusOverLaserSetting;
@@ -650,6 +666,7 @@ private:
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
     QPointer<EntityScriptServerLogDialog> _entityScriptServerLogDialog;
+    QDir _defaultScriptsLocation;
 
     FileLogger* _logger;
 
@@ -670,6 +687,15 @@ private:
     glm::uvec2 _renderResolution;
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
+    bool _interstitialModeEnabled{ false };
+
+    bool _loginDialogPoppedUp = false;
+    bool _developerMenuVisible{ false };
+    QString _previousAvatarSkeletonModel;
+    float _previousAvatarTargetScale;
+    CameraMode _previousCameraMode;
+    OverlayID _loginDialogOverlayID;
+    LoginStateManager _loginStateManager;
 
     quint64 _lastFaceTrackerUpdate;
 
@@ -761,5 +787,6 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
 };
 #endif // hifi_Application_h

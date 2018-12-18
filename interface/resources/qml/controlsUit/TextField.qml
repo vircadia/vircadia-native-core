@@ -31,6 +31,7 @@ TextField {
     property bool hasClearButton: false;
     property string leftPermanentGlyph: "";
     property string centerPlaceholderGlyph: "";
+    property int styleRenderType: Text.NativeRendering
 
     placeholderText: textField.placeholderText
 
@@ -44,8 +45,8 @@ TextField {
     // workaround for https://bugreports.qt.io/browse/QTBUG-49297
     Keys.onPressed: {
         switch (event.key) {
-            case Qt.Key_Return: 
-            case Qt.Key_Enter: 
+            case Qt.Key_Return:
+            case Qt.Key_Enter:
                 event.accepted = true;
 
                 // emit accepted signal manually
@@ -156,6 +157,7 @@ TextField {
         selectionColor: hifi.colors.primaryHighlight
         padding.left: hasRoundedBorder ? textField.height / 2 : ((isSearchField || textField.leftPermanentGlyph !== "") ? textField.height - 2 : 0) + hifi.dimensions.textPadding
         padding.right: (hasClearButton ? textField.height - 2 : 0) + hifi.dimensions.textPadding
+        renderType: textField.styleRenderType
     }
 
     HifiControls.Label {

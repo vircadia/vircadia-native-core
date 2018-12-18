@@ -96,6 +96,9 @@ class ExtractedMesh;
 
 class FBXSerializer : public HFMSerializer {
 public:
+    MediaType getMediaType() const override;
+    std::unique_ptr<hfm::Serializer::Factory> getFactory() const override;
+
     HFMModel* _hfmModel;
     /// Reads HFMModel from the supplied model and mapping data.
     /// \exception QString if an error occurs in parsing

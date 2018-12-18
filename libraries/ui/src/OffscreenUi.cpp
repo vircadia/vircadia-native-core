@@ -639,24 +639,28 @@ public:
     KeyboardFocusHack() {
         Q_ASSERT(_mainWindow);
         QTimer::singleShot(200, [=] {
-            _hackWindow = new QWindow();
-            _hackWindow->setFlags(Qt::FramelessWindowHint);
-            _hackWindow->setGeometry(_mainWindow->x(), _mainWindow->y(), 10, 10);
-            _hackWindow->show();
-            _hackWindow->requestActivate();
+            _window = new QWindow();
+            _window->setFlags(Qt::FramelessWindowHint);
+            _window->setGeometry(_mainWindow->x(), _mainWindow->y(), 10, 10);
+            _window->show();
+            _window->requestActivate();
             QTimer::singleShot(200, [=] {
-                _hackWindow->hide();
-                _hackWindow->deleteLater();
-                _hackWindow = nullptr;
+                _window->hide();
+                _window->deleteLater();
+                _window = nullptr;
                 _mainWindow->requestActivate();
+                emit keyboardFocusActive();
                 this->deleteLater();
             });
         });
     }
 
+signals:
+    void keyboardFocusActive();
+
 private:
     QWindow* const _mainWindow { MainWindow::findMainWindow() };
-    QWindow* _hackWindow { nullptr };
+    QWindow* _window { nullptr };
 };
 
 void OffscreenUi::createDesktop(const QUrl& url) {
@@ -675,9 +679,10 @@ void OffscreenUi::createDesktop(const QUrl& url) {
             menuInitializer(_vrMenu);
         }
 
-        new KeyboardFocusHack();
+        auto keyboardFocus = new KeyboardFocusHack();
         connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
         emit desktopReady();
+        connect(keyboardFocus, SIGNAL(keyboardFocusActive()), this, SIGNAL(keyboardFocusActive()));
     });
 }
 

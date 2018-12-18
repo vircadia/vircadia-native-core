@@ -35,11 +35,6 @@
 
 #include "FBXSerializer.h"
 
-
-GLTFSerializer::GLTFSerializer() {
-
-}
-
 bool GLTFSerializer::getStringVal(const QJsonObject& object, const QString& fieldname,
                               QString& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isString());
@@ -908,6 +903,17 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
 
     
     return true;
+}
+
+MediaType GLTFSerializer::getMediaType() const {
+    MediaType mediaType("gltf");
+    mediaType.extensions.push_back("gltf");
+    mediaType.webMediaTypes.push_back("model/gltf+json");
+    return mediaType;
+}
+
+std::unique_ptr<hfm::Serializer::Factory> GLTFSerializer::getFactory() const {
+    return std::make_unique<hfm::Serializer::SimpleFactory<GLTFSerializer>>();
 }
 
 HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {

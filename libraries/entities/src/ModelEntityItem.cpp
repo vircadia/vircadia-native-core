@@ -519,7 +519,6 @@ QVector<bool> ModelEntityItem::getJointTranslationsSet() const {
     return result;
 }
 
-
 bool ModelEntityItem::hasModel() const { 
     return resultWithReadLock<bool>([&] {
         return !_modelURL.isEmpty();

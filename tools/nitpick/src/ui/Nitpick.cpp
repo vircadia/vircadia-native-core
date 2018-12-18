@@ -36,7 +36,7 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
    _ui.statusLabel->setText("");
    _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Nitpick - v1.1");
+   setWindowTitle("Nitpick - v1.2");
 
    // Coming soon to a nitpick near you...
    //// _helpWindow.textBrowser->setText()

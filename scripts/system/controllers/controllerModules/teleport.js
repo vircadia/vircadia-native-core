@@ -701,7 +701,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function(controllerData, deltaTime) {
-            if (Window.interstitialModeEnabled && !Window.isPhysicsEnabled()) {
+            if ((Window.interstitialModeEnabled && !Window.isPhysicsEnabled()) || !MyAvatar.allowTeleporting) {
                 return makeRunningValues(false, [], []);
             }
 

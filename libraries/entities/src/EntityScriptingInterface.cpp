@@ -114,6 +114,8 @@ bool EntityScriptingInterface::canReplaceContent() {
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     if (_entityTree) {
+        disconnect(_entityTree.get(), &EntityTree::addingEntityPointer, this, &EntityScriptingInterface::onAddingEntity);
+        disconnect(_entityTree.get(), &EntityTree::deletingEntityPointer, this, &EntityScriptingInterface::onDeletingEntity);
         disconnect(_entityTree.get(), &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
         disconnect(_entityTree.get(), &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
         disconnect(_entityTree.get(), &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
@@ -122,6 +124,8 @@ void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     _entityTree = elementTree;
 
     if (_entityTree) {
+        connect(_entityTree.get(), &EntityTree::addingEntityPointer, this, &EntityScriptingInterface::onAddingEntity, Qt::DirectConnection);
+        connect(_entityTree.get(), &EntityTree::deletingEntityPointer, this, &EntityScriptingInterface::onDeletingEntity, Qt::DirectConnection);
         connect(_entityTree.get(), &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
         connect(_entityTree.get(), &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
         connect(_entityTree.get(), &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
@@ -1060,7 +1064,17 @@ void EntityScriptingInterface::handleEntityScriptCallMethodPacket(QSharedPointer
     }
 }
 
+void EntityScriptingInterface::onAddingEntity(EntityItem* entity) {
+    if (entity->isWearable()) {
+        emit addingWearable(entity->getEntityItemID());
+    }
+}
 
+void EntityScriptingInterface::onDeletingEntity(EntityItem* entity) {
+    if (entity->isWearable()) {
+        emit deletingWearable(entity->getEntityItemID());
+    }
+}
 
 QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
     PROFILE_RANGE(script_entities, __FUNCTION__);
@@ -1817,6 +1831,15 @@ glm::vec3 EntityScriptingInterface::localCoordsToVoxelCoords(const QUuid& entity
         return polyVoxEntity->localCoordsToVoxelCoords(localCoords);
     } else {
         return glm::vec3(0.0f);
+    }
+}
+
+int EntityScriptingInterface::getJointParent(const QUuid& entityID, int index) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        return modelEntity->getJointParent(index);
+    } else {
+        return -1;
     }
 }
 

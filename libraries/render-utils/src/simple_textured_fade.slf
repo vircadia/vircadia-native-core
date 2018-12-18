@@ -41,9 +41,9 @@ void main(void) {
     applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
     
     vec4 texel = texture(originalTexture, _texCoord0);
-    texel = mix(color_sRGBAToLinear(texel), texel, float(_color.a <= 0.0));
+    texel = mix(texel, color_sRGBAToLinear(texel), float(_color.a <= 0.0));
     texel.rgb *= _color.rgb;
-    texel.a = abs(_color.a);
+    texel.a *= abs(_color.a);
 
     const float ALPHA_THRESHOLD = 0.999;
     if (texel.a < ALPHA_THRESHOLD) {

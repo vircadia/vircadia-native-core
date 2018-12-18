@@ -20,6 +20,7 @@
 #include <Profile.h>
 
 #include "AnimationLogging.h"
+#include <FBXSerializer.h>
 
 int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
 

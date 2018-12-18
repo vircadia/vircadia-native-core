@@ -75,7 +75,7 @@ const GROUPS = [
             },
             {
                 label: "Parent Joint Index",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "parentJointIndex",
             },
             {
@@ -144,7 +144,7 @@ const GROUPS = [
             },
             {
                 label: "Line Height",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 step: 0.005,
                 decimals: 4,
@@ -192,7 +192,7 @@ const GROUPS = [
             },
             {
                 label: "Light Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 10,
                 step: 0.1,
@@ -202,7 +202,7 @@ const GROUPS = [
             },
             {
                 label: "Light Horizontal Angle",
-                type: "number",
+                type: "number-draggable",
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
@@ -211,7 +211,7 @@ const GROUPS = [
             },
             {
                 label: "Light Vertical Angle",
-                type: "number",
+                type: "number-draggable",
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
@@ -250,7 +250,7 @@ const GROUPS = [
             },
             {
                 label: "Ambient Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 10,
                 step: 0.1,
@@ -279,7 +279,7 @@ const GROUPS = [
             },
             {
                 label: "Range",
-                type: "number",
+                type: "number-draggable",
                 min: 5,
                 max: 10000,
                 step: 5,
@@ -296,7 +296,7 @@ const GROUPS = [
             },
             {
                 label: "Base",
-                type: "number",
+                type: "number-draggable",
                 min: -1000,
                 max: 1000,
                 step: 10,
@@ -307,7 +307,7 @@ const GROUPS = [
             },
             {
                 label: "Ceiling",
-                type: "number",
+                type: "number-draggable",
                 min: -1000,
                 max: 5000,
                 step: 10,
@@ -324,7 +324,7 @@ const GROUPS = [
             },
             {
                 label: "Background Blend",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -346,7 +346,7 @@ const GROUPS = [
             },
             {
                 label: "Glare Angle",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 180,
                 step: 1,
@@ -362,7 +362,7 @@ const GROUPS = [
             },
             {
                 label: "Bloom Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -372,7 +372,7 @@ const GROUPS = [
             },
             {
                 label: "Bloom Threshold",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -382,7 +382,7 @@ const GROUPS = [
             },
             {
                 label: "Bloom Size",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 2,
                 step: 0.01,
@@ -399,7 +399,9 @@ const GROUPS = [
             {
                 label: "Model",
                 type: "string",
+                placeholder: "URL",
                 propertyID: "modelURL",
+                hideIfCertified: true,
             },
             {
                 label: "Collision Shape",
@@ -413,11 +415,13 @@ const GROUPS = [
                 label: "Compound Shape",
                 type: "string",
                 propertyID: "compoundShapeURL",
+                hideIfCertified: true,
             },
             {
                 label: "Animation",
                 type: "string",
                 propertyID: "animation.url",
+                hideIfCertified: true,
             },
             {
                 label: "Play Automatically",
@@ -441,22 +445,22 @@ const GROUPS = [
             },
             {
                 label: "Animation Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.currentFrame",
             },
             {
                 label: "First Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.firstFrame",
             },
             {
                 label: "Last Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.lastFrame",
             },
             {
                 label: "Animation FPS",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.fps",
             },
             {
@@ -469,6 +473,7 @@ const GROUPS = [
                 type: "textarea",
                 propertyID: "originalTextures",
                 readOnly: true,
+                hideIfCertified: true,
             },
         ]
     },
@@ -495,7 +500,7 @@ const GROUPS = [
             },
             {
                 label: "Source Resolution",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "dpi",
             },
         ]
@@ -512,7 +517,7 @@ const GROUPS = [
             },
             {
                 label: "Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 step: 0.1,
                 decimals: 1,
@@ -520,7 +525,7 @@ const GROUPS = [
             },
             {
                 label: "Fall-Off Radius",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 step: 0.1,
                 decimals: 1,
@@ -534,14 +539,14 @@ const GROUPS = [
             },
             {
                 label: "Spotlight Exponent",
-                type: "number",
+                type: "number-draggable",
                 step: 0.01,
                 decimals: 2,
                 propertyID: "exponent",
             },
             {
                 label: "Spotlight Cut-Off",
-                type: "number",
+                type: "number-draggable",
                 step: 0.01,
                 decimals: 2,
                 propertyID: "cutoff",
@@ -566,25 +571,27 @@ const GROUPS = [
                 propertyID: "materialData",
             },
             {
-                label: "Submesh to Replace",
-                type: "number",
-                min: 0,
-                step: 1,
-                propertyID: "submeshToReplace",
-            },
-            {
-                label: "Material Name to Replace",
-                type: "string",
-                propertyID: "materialNameToReplace",
-            },
-            {
                 label: "Select Submesh",
                 type: "bool",
                 propertyID: "selectSubmesh",
             },
             {
+                label: "Submesh to Replace",
+                type: "number-draggable",
+                min: 0,
+                step: 1,
+                propertyID: "submeshToReplace",
+                indentedLabel: true,
+            },
+            {
+                label: "Material to Replace",
+                type: "string",
+                propertyID: "materialNameToReplace",
+                indentedLabel: true,
+            },
+            {
                 label: "Priority",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 propertyID: "priority",
             },
@@ -599,7 +606,7 @@ const GROUPS = [
             {
                 label: "Material Position",
                 type: "vec2",
-                vec2Type: "xy",
+                vec2Type: "xyz",
                 min: 0,
                 max: 1,
                 step: 0.1,
@@ -610,16 +617,16 @@ const GROUPS = [
             {
                 label: "Material Scale",
                 type: "vec2",
-                vec2Type: "wh",
+                vec2Type: "xyz",
                 min: 0,
                 step: 0.1,
                 decimals: 4,
-                subLabels: [ "width", "height" ],
+                subLabels: [ "x", "y" ],
                 propertyID: "materialMappingScale",
             },
             {
                 label: "Material Rotation",
-                type: "number",
+                type: "number-draggable",
                 step: 0.1,
                 decimals: 2,
                 unit: "deg",
@@ -643,7 +650,7 @@ const GROUPS = [
             },
             {
                 label: "Lifespan",
-                type: "number",
+                type: "number-draggable",
                 unit: "s",
                 min: 0.01,
                 max: 10,
@@ -653,7 +660,7 @@ const GROUPS = [
             },
             {
                 label: "Max Particles",
-                type: "number",
+                type: "number-draggable",
                 min: 1,
                 max: 10000,
                 step: 1,
@@ -674,7 +681,7 @@ const GROUPS = [
         properties: [
             {
                 label: "Emit Rate",
-                type: "number",
+                type: "number-draggable",
                 min: 1,
                 max: 1000,
                 step: 1,
@@ -682,7 +689,7 @@ const GROUPS = [
             },
             {
                 label: "Emit Speed",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 5,
                 step: 0.01,
@@ -691,7 +698,7 @@ const GROUPS = [
             },
             {
                 label: "Speed Spread",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 5,
                 step: 0.01,
@@ -710,7 +717,7 @@ const GROUPS = [
             },
             {
                 label: "Emit Radius Start",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -742,10 +749,11 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Size",
+                propertyID: "particleRadiusTriple",
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 4,
                         step: 0.01,
@@ -755,7 +763,7 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 4,
                         step: 0.01,
@@ -764,7 +772,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 4,
                         step: 0.01,
@@ -776,7 +784,7 @@ const GROUPS = [
             },
             {
                 label: "Size Spread",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 4,
                 step: 0.01,
@@ -793,6 +801,7 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Color",
+                propertyID: "particleColorTriple",
                 properties: [
                     {
                         label: "Start",
@@ -829,10 +838,11 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Alpha",
+                propertyID: "particleAlphaTriple",
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 1,
                         step: 0.01,
@@ -842,7 +852,7 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 1,
                         step: 0.01,
@@ -851,7 +861,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 1,
                         step: 0.01,
@@ -863,7 +873,7 @@ const GROUPS = [
             },
             {
                 label: "Alpha Spread",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -905,10 +915,11 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Spin",
+                propertyID: "particleSpinTriple",
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
+                        type: "number-draggable",
                         min: -360,
                         max: 360,
                         step: 1,
@@ -920,7 +931,7 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "number",
+                        type: "number-draggable",
                         min: -360,
                         max: 360,
                         step: 1,
@@ -931,7 +942,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "number",
+                        type: "number-draggable",
                         min: -360,
                         max: 360,
                         step: 1,
@@ -945,7 +956,7 @@ const GROUPS = [
             },
             {
                 label: "Spin Spread",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 360,
                 step: 1,
@@ -969,10 +980,11 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Horizontal Angle",
+                propertyID: "particlePolarTriple",
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 180,
                         step: 1,
@@ -983,7 +995,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "number",
+                        type: "number-draggable",
                         min: 0,
                         max: 180,
                         step: 1,
@@ -997,10 +1009,11 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Vertical Angle",
+                propertyID: "particleAzimuthTriple",
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
+                        type: "number-draggable",
                         min: -180,
                         max: 180,
                         step: 1,
@@ -1011,7 +1024,7 @@ const GROUPS = [
                     },
                     {
                         label: "Finish",
-                        type: "number",
+                        type: "number-draggable",
                         min: -180,
                         max: 180,
                         step: 1,
@@ -1096,7 +1109,7 @@ const GROUPS = [
             },
             {
                 label: "Scale",
-                type: "number",
+                type: "number-draggable",
                 defaultValue: 100,
                 unit: "%",
                 buttons: [ { id: "rescale", label: "Rescale", className: "blue", onClick: rescaleDimensions }, 
@@ -1138,14 +1151,14 @@ const GROUPS = [
             },
             {
                 label: "Clone Lifetime",
-                type: "number",
+                type: "number-draggable",
                 unit: "s",
                 propertyID: "cloneLifetime",
                 showPropertyRule: { "cloneable": "true" },
             },
             {
                 label: "Clone Limit",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "cloneLimit",
                 showPropertyRule: { "cloneable": "true" },
             },
@@ -1188,6 +1201,7 @@ const GROUPS = [
                 buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadScripts } ],
                 propertyID: "script",
                 placeholder: "URL",
+                hideIfCertified: true,
             },
             {
                 label: "Server Script",
@@ -1204,7 +1218,7 @@ const GROUPS = [
             },
             {
                 label: "Lifetime",
-                type: "string",
+                type: "number",
                 unit: "s",
                 propertyID: "lifetime",
             },
@@ -1274,6 +1288,7 @@ const GROUPS = [
                 placeholder: "URL",
                 propertyID: "collisionSoundURL",
                 showPropertyRule: { "collisionless": "false" },
+                hideIfCertified: true,
             },
             {
                 label: "Dynamic",
@@ -1298,7 +1313,7 @@ const GROUPS = [
             },
             {
                 label: "Linear Damping",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -1317,7 +1332,7 @@ const GROUPS = [
             },
             {
                 label: "Angular Damping",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -1326,7 +1341,7 @@ const GROUPS = [
             },
             {
                 label: "Bounciness",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
                 step: 0.01,
@@ -1335,7 +1350,7 @@ const GROUPS = [
             },
             {
                 label: "Friction",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 10,
                 step: 0.1,
@@ -1344,7 +1359,7 @@ const GROUPS = [
             },
             {
                 label: "Density",
-                type: "number",
+                type: "number-draggable",
                 min: 100,
                 max: 10000,
                 step: 1,
@@ -1438,13 +1453,13 @@ const TEXTURE_ELEMENTS = {
 
 const JSON_EDITOR_ROW_DIV_INDEX = 2;
 
-var elGroups = {};
-var properties = {};
-var colorPickers = {};
-var particlePropertyUpdates = {};
-var selectedEntityProperties;
-var lastEntityID = null;
-var createAppTooltip = new CreateAppTooltip();
+let elGroups = {};
+let properties = {};
+let colorPickers = {};
+let particlePropertyUpdates = {};
+let selectedEntityProperties;
+let lastEntityID = null;
+let createAppTooltip = new CreateAppTooltip();
 let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
 function createElementFromHTML(htmlString) {
@@ -1461,12 +1476,13 @@ function getPropertyInputElement(propertyID) {
     let property = properties[propertyID];          
     switch (property.data.type) {
         case 'string':
+        case 'number':
         case 'bool':
         case 'dropdown':
         case 'textarea':
         case 'texture':
             return property.elInput;
-        case 'number':
+        case 'number-draggable':
             return property.elNumber.elInput;
         case 'vec3': 
         case 'vec2':
@@ -1536,15 +1552,20 @@ function resetProperties() {
         let propertyData = property.data;
         
         switch (propertyData.type) {
+            case 'number':
             case 'string': {
-                property.elInput.value = "";
+                if (propertyData.defaultValue !== undefined) {
+                    property.elInput.value = propertyData.defaultValue;
+                } else {
+                    property.elInput.value = "";
+                }
                 break;
             }
             case 'bool': {
                 property.elInput.checked = false;
                 break;
             }
-            case 'number': {
+            case 'number-draggable': {
                 if (propertyData.defaultValue !== undefined) {
                     property.elNumber.setValue(propertyData.defaultValue);
                 } else { 
@@ -1698,7 +1719,7 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty)
     }
 }
 
-var particleSyncDebounce = _.debounce(function () {
+let particleSyncDebounce = _.debounce(function () {
     updateProperties(particlePropertyUpdates);
     particlePropertyUpdates = {};
 }, DEBOUNCE_TIMEOUT);
@@ -1832,7 +1853,7 @@ function createStringProperty(property, elProperty) {
                type="text"
                ${propertyData.placeholder ? 'placeholder="' + propertyData.placeholder + '"' : ''}
                ${propertyData.readOnly ? 'readonly' : ''}></input>
-        `)
+        `);
 
     
     elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
@@ -1880,11 +1901,49 @@ function createBoolProperty(property, elProperty) {
     return elInput;
 }
 
-function createNumberProperty(property, elProperty) { 
+function createNumberProperty(property, elProperty) {
+    let elementID = property.elementID;
+    let propertyData = property.data;
+
+    elProperty.className = "text";
+
+    let elInput = createElementFromHTML(`
+        <input id="${elementID}"
+               class='hide-spinner'
+               type="number"
+               ${propertyData.placeholder ? 'placeholder="' + propertyData.placeholder + '"' : ''}
+               ${propertyData.readOnly ? 'readonly' : ''}></input>
+        `)
+
+    if (propertyData.min !== undefined) {
+        elInput.setAttribute("min", propertyData.min);
+    }
+    if (propertyData.max !== undefined) {
+        elInput.setAttribute("max", propertyData.max);
+    }
+    if (propertyData.step !== undefined) {
+        elInput.setAttribute("step", propertyData.step);
+    }
+    if (propertyData.defaultValue !== undefined) {
+        elInput.value = propertyData.defaultValue;
+    }
+
+    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(property));
+
+    elProperty.appendChild(elInput);
+
+    if (propertyData.buttons !== undefined) {
+        addButtons(elProperty, elementID, propertyData.buttons, false);
+    }
+
+    return elInput;
+}
+
+function createNumberDraggableProperty(property, elProperty) { 
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "draggable-number";
+    elProperty.className += " draggable-number-container";
 
     let dragStartFunction = createDragStartFunction(property);
     let dragEndFunction = createDragEndFunction(property);
@@ -1963,7 +2022,7 @@ function createColorProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "rgb fstuple";
+    elProperty.className += " rgb fstuple";
     
     let elColorPicker = document.createElement('div');
     elColorPicker.className = "color-picker";
@@ -2004,6 +2063,7 @@ function createColorProperty(property, elProperty) {
         color: '000000',
         submit: false, // We don't want to have a submission button
         onShow: function(colpick) {
+            console.log("Showing");
             $(colorPickerID).attr('active', 'true');
             // The original color preview within the picker needs to be updated on show because
             // prior to the picker being shown we don't have access to the selections' starting color.
@@ -2223,7 +2283,11 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
             break;
         }
         case 'number': {
-            property.elNumber = createNumberProperty(property, elProperty);
+            property.elInput = createNumberProperty(property, elProperty);
+            break;
+        }
+        case 'number-draggable': {
+            property.elNumber = createNumberDraggableProperty(property, elProperty);
             break;
         }
         case 'vec3': {
@@ -2368,31 +2432,41 @@ function saveUserData() {
     saveJSONUserData(true);
 }
 
+function setJSONError(property, isError) {
+    $("#property-"+ property + "-editor").toggleClass('error', isError);
+    let $propertyUserDataEditorStatus = $("#property-"+ property + "-editorStatus");
+    $propertyUserDataEditorStatus.css('display', isError ? 'block' : 'none');
+    $propertyUserDataEditorStatus.text(isError ? 'Invalid JSON code - look for red X in your code' : '');
+}
+
 function setUserDataFromEditor(noUpdate) {
     let json = null;
+    let errorFound = false;
     try {
         json = editor.get();
     } catch (e) {
-        alert('Invalid JSON code - look for red X in your code ', +e);
+        errorFound = true;
     }
-    if (json === null) {
+
+    setJSONError('userData', errorFound);
+
+    if (errorFound) {
         return;
+    }
+
+    let text = editor.getText();
+    if (noUpdate) {
+        EventBridge.emitWebEvent(
+            JSON.stringify({
+                id: lastEntityID,
+                type: "saveUserData",
+                properties: {
+                    userData: text
+                }
+            })
+        );
     } else {
-        let text = editor.getText();
-        if (noUpdate === true) {
-            EventBridge.emitWebEvent(
-                JSON.stringify({
-                    id: lastEntityID,
-                    type: "saveUserData",
-                    properties: {
-                        userData: text
-                    }
-                })
-            );
-            return;
-        } else {
-            updateProperty('userData', text, false);
-        }
+        updateProperty('userData', text, false);
     }
 }
 
@@ -2451,7 +2525,7 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, r
     updateProperties(propertyUpdate, false);
 }
 
-var editor = null;
+let editor = null;
 
 function createJSONEditor() {
     let container = document.getElementById("property-userData-editor");
@@ -2514,9 +2588,10 @@ function hideUserDataSaved() {
 
 function showStaticUserData() {
     if (editor !== null) {
-        $('#property-userData-static').show();
-        $('#property-userData-static').css('height', $('#property-userData-editor').height());
-        $('#property-userData-static').text(editor.getText());
+        let $propertyUserDataStatic = $('#property-userData-static');
+        $propertyUserDataStatic.show();
+        $propertyUserDataStatic.css('height', $('#property-userData-editor').height());
+        $propertyUserDataStatic.text(editor.getText());
     }
 }
 
@@ -2537,12 +2612,13 @@ function getEditorJSON() {
 
 function deleteJSONEditor() {
     if (editor !== null) {
+        setJSONError('userData', false);
         editor.destroy();
         editor = null;
     }
 }
 
-var savedJSONTimer = null;
+let savedJSONTimer = null;
 
 function saveJSONUserData(noUpdate) {
     setUserDataFromEditor(noUpdate);
@@ -2587,33 +2663,35 @@ function saveMaterialData() {
 
 function setMaterialDataFromEditor(noUpdate) {
     let json = null;
+    let errorFound = false;
     try {
         json = materialEditor.get();
     } catch (e) {
-        alert('Invalid JSON code - look for red X in your code ', +e);
+        errorFound = true;
     }
-    if (json === null) {
+
+    setJSONError('materialData', errorFound);
+
+    if (errorFound) {
         return;
+    }
+    let text = materialEditor.getText();
+    if (noUpdate) {
+        EventBridge.emitWebEvent(
+            JSON.stringify({
+                id: lastEntityID,
+                type: "saveMaterialData",
+                properties: {
+                    materialData: text
+                }
+            })
+        );
     } else {
-        let text = materialEditor.getText();
-        if (noUpdate === true) {
-            EventBridge.emitWebEvent(
-                JSON.stringify({
-                    id: lastEntityID,
-                    type: "saveMaterialData",
-                    properties: {
-                        materialData: text
-                    }
-                })
-            );
-            return;
-        } else {
-            updateProperty('materialData', text, false);
-        }
+        updateProperty('materialData', text, false);
     }
 }
 
-var materialEditor = null;
+let materialEditor = null;
 
 function createJSONMaterialEditor() {
     let container = document.getElementById("property-materialData-editor");
@@ -2676,9 +2754,10 @@ function hideMaterialDataSaved() {
 
 function showStaticMaterialData() {
     if (materialEditor !== null) {
-        $('#property-materialData-static').show();
-        $('#property-materialData-static').css('height', $('#property-materialData-editor').height());
-        $('#property-materialData-static').text(materialEditor.getText());
+        let $propertyMaterialDataStatic = $('#property-materialData-static');
+        $propertyMaterialDataStatic.show();
+        $propertyMaterialDataStatic.css('height', $('#property-materialData-editor').height());
+        $propertyMaterialDataStatic.text(materialEditor.getText());
     }
 }
 
@@ -2699,12 +2778,13 @@ function getMaterialEditorJSON() {
 
 function deleteJSONMaterialEditor() {
     if (materialEditor !== null) {
+        setJSONError('materialData', false);
         materialEditor.destroy();
         materialEditor = null;
     }
 }
 
-var savedMaterialJSONTimer = null;
+let savedMaterialJSONTimer = null;
 
 function saveJSONMaterialData(noUpdate) {
     setMaterialDataFromEditor(noUpdate);
@@ -2878,23 +2958,20 @@ function loaded() {
                         elGroup.appendChild(elContainer);
                     }
 
-                    elLabel = document.createElement('label');
-                    elLabel.setAttribute("for", propertyElementID);
+                    let labelText = propertyData.label !== undefined ? propertyData.label : "";
+                    let className = '';
                     if (propertyData.indentedLabel || propertyData.showPropertyRule !== undefined) {
-                        let elSpan = document.createElement('span');
-                        elSpan.className = 'indented';
-                        elSpan.innerText = propertyData.label !== undefined ? propertyData.label : "";
-                        elLabel.appendChild(elSpan);
-                    } else {
-                        elLabel.innerText = propertyData.label !== undefined ? propertyData.label : "";
+                        className = 'indented';
                     }
+                    elLabel = createElementFromHTML(
+                        `<label><span class="${className}">${labelText}</span></label>`);
                     elContainer.appendChild(elLabel);
                 } else {
                     elContainer = document.getElementById(propertyData.replaceID);
                 }
 
                 if (elLabel) {
-                    createAppTooltip.registerTooltipElement(elLabel, propertyID);
+                    createAppTooltip.registerTooltipElement(elLabel.childNodes[0], propertyID);
                 }
 
                 let elProperty = createElementFromHTML('<div style="width: 100%;"></div>');
@@ -2905,20 +2982,23 @@ function loaded() {
                     for (let i = 0; i < propertyData.properties.length; ++i) {
                         let innerPropertyData = propertyData.properties[i];
 
-                        let elWrapper = createElementFromHTML('<div class="flex-column flex-center triple-item"><div></div></div>');
+                        let elWrapper = createElementFromHTML('<div class="triple-item"></div>');
+                        elProperty.appendChild(elWrapper);
 
                         let propertyID = innerPropertyData.propertyID;               
                         let propertyName = innerPropertyData.propertyName !== undefined ? innerPropertyData.propertyName : propertyID;
                         let propertyElementID = "property-" + propertyID;
                         propertyElementID = propertyElementID.replace('.', '-');
 
-                        elWrapper.appendChild(createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`));
-                        elProperty.appendChild(elWrapper);
-
-                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper.childNodes[0]);
+                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper);
                         property.isParticleProperty = group.id.includes("particles");
                         property.elContainer = elContainer;
                         property.spaceMode = propertySpaceMode;
+
+                        let elLabel = createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`);
+                        createAppTooltip.registerTooltipElement(elLabel, propertyID);
+
+                        elWrapper.appendChild(elLabel);
                         
                         if (property.type !== 'placeholder') {
                             properties[propertyID] = property;
@@ -2964,7 +3044,7 @@ function loaded() {
                     let elServerScriptError = document.getElementById("property-serverScripts-error");
                     let elServerScriptStatus = document.getElementById("property-serverScripts-status");
                     elServerScriptError.value = data.errorInfo;
-                    // If we just set elServerScriptError's diplay to block or none, we still end up with
+                    // If we just set elServerScriptError's display to block or none, we still end up with
                     // it's parent contributing 21px bottom padding even when elServerScriptError is display:none.
                     // So set it's parent to block or none
                     elServerScriptError.parentElement.style.display = data.errorInfo ? "block" : "none";
@@ -3074,6 +3154,15 @@ function loaded() {
 
                         showGroupsForType(selectedEntityProperties.type);
                         
+                        if (selectedEntityProperties.locked) {
+                            disableProperties();
+                            getPropertyInputElement("locked").removeAttribute('disabled');
+                        } else {
+                            enableProperties();
+                            disableSaveUserDataButton();
+                            disableSaveMaterialDataButton()
+                        }
+                        
                         for (let propertyID in properties) {
                             let property = properties[propertyID];
                             let propertyData = property.data;
@@ -3084,10 +3173,19 @@ function loaded() {
                             if (propertyValue === undefined && !isSubProperty) {
                                 continue;
                             }
+
+                            if (propertyData.hideIfCertified) {
+                                let shouldHide = selectedEntityProperties.certificateID !== "";
+                                if (shouldHide) {
+                                    propertyValue = "** Certified **";
+                                }
+                                property.elInput.disabled = shouldHide;
+                            }
                             
                             let isPropertyNotNumber = false;
                             switch (propertyData.type) {
                                 case 'number':
+                                case 'number-draggable':
                                     isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
                                     break;
                                 case 'vec3':
@@ -3120,6 +3218,10 @@ function loaded() {
                                     break;
                                 }
                                 case 'number': {
+                                    property.elInput.value = propertyValue;
+                                    break;
+                                }
+                                case 'number-draggable': {
                                     let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
                                     let value = propertyValue / multiplier;
                                     if (propertyData.round !== undefined) {
@@ -3262,15 +3364,6 @@ function loaded() {
                             hideMaterialDataSaved();
                         }
                         
-                        if (selectedEntityProperties.locked) {
-                            disableProperties();
-                            getPropertyInputElement("locked").removeAttribute('disabled');
-                        } else {
-                            enableProperties();
-                            disableSaveUserDataButton();
-                            disableSaveMaterialDataButton()
-                        }
-                        
                         let activeElement = document.activeElement;
                         if (doSelectElement && typeof activeElement.select !== "undefined") {
                             activeElement.select();
@@ -3323,12 +3416,15 @@ function loaded() {
         elStaticUserData.setAttribute("id", userDataElementID + "-static");
         let elUserDataEditor = document.createElement('div');
         elUserDataEditor.setAttribute("id", userDataElementID + "-editor");
+        let elUserDataEditorStatus = document.createElement('div');
+        elUserDataEditorStatus.setAttribute("id", userDataElementID + "-editorStatus");
         let elUserDataSaved = document.createElement('span');
         elUserDataSaved.setAttribute("id", userDataElementID + "-saved");
         elUserDataSaved.innerText = "Saved!";
         elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elUserDataSaved);
         elDiv.insertBefore(elStaticUserData, elUserData);
         elDiv.insertBefore(elUserDataEditor, elUserData);
+        elDiv.insertBefore(elUserDataEditorStatus, elUserData);
         
         // Material Data
         let materialDataProperty = properties["materialData"];
@@ -3339,12 +3435,15 @@ function loaded() {
         elStaticMaterialData.setAttribute("id", materialDataElementID + "-static");
         let elMaterialDataEditor = document.createElement('div');
         elMaterialDataEditor.setAttribute("id", materialDataElementID + "-editor");
+        let elMaterialDataEditorStatus = document.createElement('div');
+        elMaterialDataEditorStatus.setAttribute("id", materialDataElementID + "-editorStatus");
         let elMaterialDataSaved = document.createElement('span');
         elMaterialDataSaved.setAttribute("id", materialDataElementID + "-saved");
         elMaterialDataSaved.innerText = "Saved!";
         elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elMaterialDataSaved);
         elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
+        elDiv.insertBefore(elMaterialDataEditorStatus, elMaterialData);
         
         // Special Property Callbacks
         let elParentMaterialNameString = getPropertyInputElement("materialNameToReplace");
@@ -3535,6 +3634,7 @@ function loaded() {
     });
 
     augmentSpinButtons();
+    disableDragDrop();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function(event) {

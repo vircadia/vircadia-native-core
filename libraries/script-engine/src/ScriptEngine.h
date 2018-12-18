@@ -747,7 +747,6 @@ protected:
     void updateEntityScriptStatus(const EntityItemID& entityID, const EntityScriptStatus& status, const QString& errorInfo = QString());
     void setEntityScriptDetails(const EntityItemID& entityID, const EntityScriptDetails& details);
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
-    void processDeferredEntityLoads(const QString& entityScript, const EntityItemID& leaderID);
 
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
@@ -783,8 +782,6 @@ protected:
     QSet<QUrl> _includedURLs;
     mutable QReadWriteLock _entityScriptsLock { QReadWriteLock::Recursive };
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
-    QHash<QString, EntityItemID> _occupiedScriptURLs;
-    QList<DeferredLoadEntity> _deferredEntityLoads;
     EntityScriptContentAvailableMap _contentAvailableQueue;
 
     bool _isThreaded { false };
