@@ -24,7 +24,8 @@
     //*****************************************************
     // Holo 
     //*****************************************************
-
+    const SECONDARY_CAMERA_RESOLUTION = 1024; // width/height multiplier, in pixels
+ 
     function Holo(config) {
         this.baseEntityProperties = {
                 name: "Holo-base",
@@ -47,50 +48,86 @@
                 shape: "Cylinder",
                 shapeType:"box",
                 "position": inFrontOf(8, Vec3.sum(MyAvatar.position, { x: 0, y: -1, z: 0 })),
-                "rotation": Quat.multiply(MyAvatar.orientation, { w: 0, x: 0, y: 1, z: 0 }),
+                "rotation": MyAvatar.orientation,
                 lifetime: config.lifetime,
             }
         this.baseEntity = Entities.addEntity( this.baseEntityProperties );
         this.baseEntityProperties = Entities.getEntityProperties(this.baseEntity);
 
+        var DIM = {x: 6.0, y: 3.0, z: 0.0};
+
         this.screenEntityProperties = {
             name: "Holo-screen",
+            "visible": false,
             "collisionless": true,
             "color": {
                 "blue": 239,
                 "red": 180,
                 "green": 0
             },
-            "dimensions": {
-                "x": 5,
-                "y": 0.1,
-                "z": 5,
-            },
+            "dimensions": DIM,
             "grab": {
                 "grabbable": false,
             },
             "ignoreForCollisions": true,
             type: "Shape",
-            shape: "Cylinder",
-            "position": inFrontOf(8, Vec3.sum(MyAvatar.position, { x: 0, y: -0.9, z: 0 })),
-            "rotation": Quat.multiply(MyAvatar.orientation, { w: 0, x: 0, y: 1, z: 0 }),
+            shape: "Box",
+            parentID:  this.baseEntity,
+            localPosition: { x: 0, y: DIM.y * 0.5, z: 0 },
+            localRotation: { w: 1, x: 0, y: 0, z: 0 },
             lifetime: config.lifetime,
         }
         this.screenEntity = Entities.addEntity( this.screenEntityProperties );
         this.screenEntityProperties = Entities.getEntityProperties(this.screenEntity);
 
-        var DIM = {x: 5.0, y: 5.0, z: 0.0};
+        this.screenOutEntityProperties = {
+            name: "Holo-screen-out",
+            "visible": false,
+            "collisionless": true,
+            "color": {
+                "blue": 239,
+                "red": 180,
+                "green": 0
+            },
+            "dimensions": DIM,
+            "grab": {
+                "grabbable": false,
+            },
+            "ignoreForCollisions": true,
+            type: "Shape",
+            shape: "Box",
+            parentID:  this.screenEntity,
+           // localRotation: { w: 0, x: 0, y: 1, z: 0 },
+            lifetime: config.lifetime,
+        }
+        this.screenOutEntity = Entities.addEntity( this.screenOutEntityProperties );
+        this.screenOutEntityProperties = Entities.getEntityProperties(this.screenOutEntity);
 
+        
+    
+        var spectatorCameraConfig = Render.getConfig("SecondaryCamera");
+        Render.getConfig("SecondaryCameraJob.ToneMapping").curve = 0;
+        spectatorCameraConfig.enableSecondaryCameraRenderConfigs(true);
+        spectatorCameraConfig.portalProjection = true;
+        spectatorCameraConfig.portalEntranceEntityId = this.screenOutEntity;
+        spectatorCameraConfig.attachedEntityId = this.screenEntity;
+
+        spectatorCameraConfig.resetSizeSpectatorCamera(DIM.x * SECONDARY_CAMERA_RESOLUTION,
+            DIM.y * SECONDARY_CAMERA_RESOLUTION);
         this.screen = Overlays.addOverlay("image3d", {
             url: "resource://spectatorCameraFrame",
             emissive: true,
             parentID:  this.screenEntity,
             alpha: 1,
             localRotation: { w: 1, x: 0, y: 0, z: 0 },
-            localPosition: { x: 0, y: 4.0, z: 0.0 },
-            dimensions: DIM,
+            localPosition: { x: 0, y: 0.0, z: 0.0 },
+            dimensions: {
+                x: (DIM.y > DIM.x ? DIM.y : DIM.x),
+                y: -(DIM.y > DIM.x ? DIM.y : DIM.x),
+                z: 0
+            },
             lifetime: config.lifetime,
-        });
+        });        
     }
 
     Holo.prototype.kill = function () {
@@ -100,6 +137,10 @@
         }
         if (this.screenEntity) {
             Entities.deleteEntity(this.screenEntity);
+           // this.entity = null
+        }
+        if (this.screenOutEntity) {
+            Entities.deleteEntity(this.screenOutEntity);
            // this.entity = null
         }
         if (this.screen) {
