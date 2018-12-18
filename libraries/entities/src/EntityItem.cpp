@@ -2465,6 +2465,14 @@ bool EntityItem::shouldSuppressLocationEdits() const {
         i++;
     }
 
+    i = _grabActions.begin();
+    while (i != _grabActions.end()) {
+        if (i.value()->shouldSuppressLocationEdits()) {
+            return true;
+        }
+        i++;
+    }
+
     // if any of the ancestors are MyAvatar, suppress
     return isChildOfMyAvatar();
 }

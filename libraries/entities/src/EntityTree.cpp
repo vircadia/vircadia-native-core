@@ -2969,9 +2969,9 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
         if (success) {
             moveOperator.addEntityToMoveList(entity, newCube);
         }
-        // send an edit packet to update the entity-server about the queryAABox
-        // unless it is client-only
-        if (tellServer && packetSender && entity->isDomainEntity()) {
+        // send an edit packet to update the entity-server about the queryAABox.  We do this for domain-hosted
+        // entities as well as for avatar-entities; the packet-sender will route the update accordingly
+        if (tellServer && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
             quint64 now = usecTimestampNow();
             EntityItemProperties properties = entity->getProperties();
             properties.setQueryAACubeDirty();

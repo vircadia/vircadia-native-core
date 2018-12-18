@@ -154,7 +154,6 @@ DISPATCHER_PROPERTIES = [
     "grab.equippableIndicatorScale",
     "grab.equippableIndicatorOffset",
     "userData",
-    "entityHostType",
     "owningAvatarID"
 ];
 
@@ -291,7 +290,7 @@ getGrabbableData = function (ggdProps) {
 };
 
 isAnothersAvatarEntity = function (iaaeProps) {
-    if (iaaeProps.entityHostType !== "avatar") {
+    if (!iaaeProps.avatarEntity) {
         return false;
     }
     if (iaaeProps.owningAvatarID === MyAvatar.sessionUUID) {
