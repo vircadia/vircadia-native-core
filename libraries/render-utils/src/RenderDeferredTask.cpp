@@ -74,7 +74,7 @@ namespace gr {
 
 class RenderDeferredTaskDebug {
 public:
-    using ExtraBuffers = render::VaryingSet5<LinearDepthFramebufferPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionEffect::Output, SubsurfaceScatteringResourcePointer, VelocityFramebufferPointer>;
+    using ExtraBuffers = render::VaryingSet6<LinearDepthFramebufferPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, gpu::BufferView, SubsurfaceScatteringResourcePointer, VelocityFramebufferPointer>;
     using Input = render::VaryingSet9<RenderFetchCullSortTask::Output, RenderShadowTask::Output,
         AssembleLightingStageTask::Output, LightClusteringPass::Output, 
         PrepareDeferred::Outputs, ExtraBuffers, GenerateDeferredFrameTransform::Output,
@@ -256,7 +256,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Debugging task is happening in the "over" layer after tone mapping and just before HUD
     { // Debug the bounds of the rendered items, still look at the zbuffer
-        const auto extraDebugBuffers = RenderDeferredTaskDebug::ExtraBuffers(linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionOutputs, scatteringResource, velocityBuffer);
+        const auto extraDebugBuffers = RenderDeferredTaskDebug::ExtraBuffers(linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, ambientOcclusionFramebuffer, scatteringResource, velocityBuffer);
         const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, inputs.get2(), lightingStageInputs, lightClusters, prepareDeferredOutputs, extraDebugBuffers,
                  deferredFrameTransform, jitter, lightingModel).asVarying();
         task.addJob<RenderDeferredTaskDebug>("DebugRenderDeferredTask", debugInputs);
@@ -331,13 +331,12 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
 
     // extraDeferredBuffer 
     const auto& extraDeferredBuffer = inputs.get5();
-        const auto& linearDepthTarget = extraDeferredBuffer.get0();
-        const auto& surfaceGeometryFramebuffer = extraDeferredBuffer.get1();
-        const auto& ambientOcclusionOut = extraDeferredBuffer.get2();
-            const auto& ambientOcclusionFramebuffer = ambientOcclusionOut[0];
-            const auto& ambientOcclusionUniforms = ambientOcclusionOut[1];
-        const auto& scatteringResource = extraDeferredBuffer[3];
-        const auto& velocityBuffer = extraDeferredBuffer[4];
+        const auto& linearDepthTarget = extraDeferredBuffer[0];
+        const auto& surfaceGeometryFramebuffer = extraDeferredBuffer[1];
+        const auto& ambientOcclusionFramebuffer = extraDeferredBuffer[2];
+        const auto& ambientOcclusionUniforms = extraDeferredBuffer[3];
+        const auto& scatteringResource = extraDeferredBuffer[4];
+        const auto& velocityBuffer = extraDeferredBuffer[5];
 
     // GenerateDeferredFrameTransform out
     const auto& deferredFrameTransform = inputs[6];
