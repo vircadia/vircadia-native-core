@@ -48,61 +48,52 @@ using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
-    const auto& inputs = input.get<Input>();
-    const auto& fetchedItems = inputs.get0();
-    //  const auto& fetchedItems = inputs[0];
-    // const auto& items = fetchedItems[0];
-    const auto& items = fetchedItems.get0();
-
-    // Lighting model comes next, the big configuration of the view
-    const auto& lightingModel = inputs.get1();
-
-    const auto& lightingStageInputs = inputs.get2();
-    // Fetch the current frame stacks from all the stages
-    const auto& currentStageFrames = lightingStageInputs.get0();
-    const auto& lightFrame = currentStageFrames[0];
-    const auto& backgroundFrame = currentStageFrames[1];
-    const auto& hazeFrame = currentStageFrames[2];
-    const auto& bloomFrame = currentStageFrames[3];
-
-    const auto& zones = lightingStageInputs[1];
-
-
-    auto fadeEffect = DependencyManager::get<FadeEffect>();
-
     // Prepare the ShapePipelines
+    auto fadeEffect = DependencyManager::get<FadeEffect>();
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initForwardPipelines(*shapePlumber);
 
-    // Extract opaques / transparents / lights / metas / overlays / background
-    const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
-    const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-    const auto& lights = items[RenderFetchCullSortTask::LIGHT];
-    const auto& metas = items[RenderFetchCullSortTask::META];
-    const auto& overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-    const auto& overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
-    const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
-    const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
-    const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
-    const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
+    // Unpack inputs
+    const auto& inputs = input.get<Input>();
+    
+    // Separate the fetched items
+    const auto& fetchedItems = inputs.get0();
 
-    const auto& spatialSelection = fetchedItems[1];
+        const auto& items = fetchedItems.get0();
 
+            // Extract opaques / transparents / lights / metas / overlays / background
+            const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
+            const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+            const auto& lights = items[RenderFetchCullSortTask::LIGHT];
+            const auto& metas = items[RenderFetchCullSortTask::META];
+            const auto& overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+            const auto& overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+            const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
+            const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
+            const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
+            const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
 
+        const auto& spatialSelection = fetchedItems.get1();
+
+    // Lighting model comes next, the big configuration of the view
+    const auto& lightingModel = inputs[1];
+
+    // Extract the Lighting Stages Current frame ( and zones)
+    const auto& lightingStageInputs = inputs.get2();
+        // Fetch the current frame stacks from all the stages
+        const auto currentStageFrames = lightingStageInputs.get0();
+            const auto lightFrame = currentStageFrames[0];
+            const auto backgroundFrame = currentStageFrames[1];
+            const auto& hazeFrame = currentStageFrames[2];
+            const auto& bloomFrame = currentStageFrames[3];
+
+        const auto& zones = lightingStageInputs[1];
+
+    // First job, alter faded
     fadeEffect->build(task, opaques);
 
     // Prepare objects shared by several jobs
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
-
-    // Filter zones from the general metas bucket
-   // const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
-
-    // Fetch the current frame stacks from all the stages
-   // const auto currentFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
-   // const auto lightFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(0);
-   // const auto backgroundFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(1);
-    //const auto hazeFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(2);
-    //const auto bloomFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(3);
 
     // GPU jobs: Start preparing the main framebuffer
     const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");

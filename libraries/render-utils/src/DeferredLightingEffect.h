@@ -174,9 +174,9 @@ using RenderDeferredConfig = render::GPUJobConfig;
 
 class RenderDeferred {
 public:
-    using Inputs = render::VaryingSet10<
-        DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, 
-        AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer, LightClustersPointer, LightStage::FramePointer, LightStage::ShadowFramePointer, HazeStage::FramePointer>;
+    using ExtraDeferredBuffer = render::VaryingSet3<SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Inputs = render::VaryingSet8<
+        DeferredFrameTransformPointer, DeferredFramebufferPointer, ExtraDeferredBuffer, LightingModelPointer, LightClustersPointer, LightStage::FramePointer, LightStage::ShadowFramePointer, HazeStage::FramePointer>;
 
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;

@@ -45,11 +45,6 @@ void AssembleLightingStageTask::build(JobModel& task, const render::Varying& inp
     // Fetch the current frame stacks from all the stages
     const auto currentStageFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
 
- /*   const auto lightFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(0);
-    const auto backgroundFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(1);
-    const auto hazeFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(2);
-    const auto bloomFrame = currentStageFrames.getN<FetchCurrentFrames::Outputs>(3);
-*/
     output = Output(currentStageFrames, zones);
 }
 

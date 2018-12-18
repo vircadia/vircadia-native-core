@@ -72,28 +72,19 @@ namespace gr {
 }
 
 
-/*
-class RenderDeferredTaskDebugConfig : public render::Task::Config {
-
-public:
-
-    signals :
-            void dirty();
-};*/
-
 class RenderDeferredTaskDebug {
 public:
+    using ExtraBuffers = render::VaryingSet5<LinearDepthFramebufferPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionEffect::Output, SubsurfaceScatteringResourcePointer, VelocityFramebufferPointer>;
     using Input = render::VaryingSet9<RenderFetchCullSortTask::Output, RenderShadowTask::Output,
-        AssembleLightingStageTask::Output, LightClusteringPass::Output, LinearDepthFramebufferPointer,
-        PrepareDeferred::Outputs, GenerateDeferredFrameTransform::Output, JitterSample::Output, LightingModel>;
-   // using Config = RenderDeferredTaskConfig;
+        AssembleLightingStageTask::Output, LightClusteringPass::Output, 
+        PrepareDeferred::Outputs, ExtraBuffers, GenerateDeferredFrameTransform::Output,
+        JitterSample::Output, LightingModel>;
+
     using JobModel = render::Task::ModelI<RenderDeferredTaskDebug, Input>;
 
     RenderDeferredTaskDebug();
 
-   // void configure(const Config& config);
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
-
 private:
 };
 
@@ -221,8 +212,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto lightClusters = task.addJob<LightClusteringPass>("LightClustering", lightClusteringPassInputs);
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
-    const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters, lightFrame, shadowFrame, hazeFrame).asVarying();
+    const auto extraDeferredBuffer = RenderDeferred::ExtraDeferredBuffer(surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).asVarying();
+    const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, extraDeferredBuffer, lightingModel, lightClusters, lightFrame, shadowFrame, hazeFrame).asVarying();
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
@@ -265,7 +256,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Debugging task is happening in the "over" layer after tone mapping and just before HUD
     { // Debug the bounds of the rendered items, still look at the zbuffer
-        const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, inputs.get2(), lightingStageInputs, lightClusters, linearDepthTarget, prepareDeferredOutputs, deferredFrameTransform, jitter, lightingModel).asVarying();
+        const auto extraDebugBuffers = RenderDeferredTaskDebug::ExtraBuffers(linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionOutputs, scatteringResource, velocityBuffer);
+        const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, inputs.get2(), lightingStageInputs, lightClusters, prepareDeferredOutputs, extraDebugBuffers,
+                 deferredFrameTransform, jitter, lightingModel).asVarying();
         task.addJob<RenderDeferredTaskDebug>("DebugRenderDeferredTask", debugInputs);
     }
 
@@ -289,10 +282,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
 RenderDeferredTaskDebug::RenderDeferredTaskDebug() {
 }
-/*
-void RenderDeferredTaskDebug::configure(const Config& config) {
-
-}*/
 
 void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input, render::Varying& outputs) {
 
@@ -300,20 +289,21 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
 
     // RenderFetchCullSortTask out
     const auto& fetchCullSortTaskOut = inputs.get0();
-    const auto& items = fetchCullSortTaskOut.get0();
-    const auto& spatialSelection = fetchCullSortTaskOut[1];
+        const auto& items = fetchCullSortTaskOut.get0();
 
-        // Extract opaques / transparents / lights / metas / overlays InFront and HUD / background
-        const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
-        const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-        const auto& lights = items[RenderFetchCullSortTask::LIGHT];
-        const auto& metas = items[RenderFetchCullSortTask::META];
-        const auto& overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-        const auto& overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
-        const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
-        const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
-        const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
-        const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
+            // Extract opaques / transparents / lights / metas / overlays InFront and HUD / background
+            const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
+            const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+            const auto& lights = items[RenderFetchCullSortTask::LIGHT];
+            const auto& metas = items[RenderFetchCullSortTask::META];
+            const auto& overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+            const auto& overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+            const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
+            const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
+            const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
+            const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
+
+        const auto& spatialSelection = fetchCullSortTaskOut[1];
 
     // RenderShadowTask out
     const auto& shadowOut = inputs.get1();
@@ -324,10 +314,10 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
     const auto lightingStageInputs = inputs.get2();
         // Fetch the current frame stacks from all the stages
         const auto stageCurrentFrames = lightingStageInputs.get0();
-        const auto lightFrame = stageCurrentFrames[0];
-        const auto backgroundFrame = stageCurrentFrames[1];
-        const auto hazeFrame = stageCurrentFrames[2];
-        const auto bloomFrame = stageCurrentFrames[3];
+            const auto lightFrame = stageCurrentFrames[0];
+            const auto backgroundFrame = stageCurrentFrames[1];
+            const auto hazeFrame = stageCurrentFrames[2];
+            const auto bloomFrame = stageCurrentFrames[3];
 
         // Zones
         const auto& zones = lightingStageInputs[1];
@@ -335,11 +325,19 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
     // Light CLuster
     const auto& lightClusters = inputs[3];
 
-    // linear Depth Target
-    const auto& linearDepthTarget = inputs[4];
-
     // PrepareDeferred out
-    const auto& deferredFramebuffer = inputs[5];
+    const auto& prepareDeferredOutputs = inputs.get4();
+        const auto& deferredFramebuffer = prepareDeferredOutputs[0];
+
+    // extraDeferredBuffer 
+    const auto& extraDeferredBuffer = inputs.get5();
+        const auto& linearDepthTarget = extraDeferredBuffer.get0();
+        const auto& surfaceGeometryFramebuffer = extraDeferredBuffer.get1();
+        const auto& ambientOcclusionOut = extraDeferredBuffer.get2();
+            const auto& ambientOcclusionFramebuffer = ambientOcclusionOut[0];
+            const auto& ambientOcclusionUniforms = ambientOcclusionOut[1];
+        const auto& scatteringResource = extraDeferredBuffer[3];
+        const auto& velocityBuffer = extraDeferredBuffer[4];
 
     // GenerateDeferredFrameTransform out
     const auto& deferredFrameTransform = inputs[6];
@@ -412,8 +410,9 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
 
     // Debugging stages
     {
+
         // Debugging Deferred buffer job
-    /*    const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer, deferredFrameTransform, lightFrame));
+        const auto debugFramebuffers = DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer, deferredFrameTransform, lightFrame).asVarying();
         task.addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
@@ -422,7 +421,7 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
 
         const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).asVarying();
         task.addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
-*/
+
         // Scene Octree Debugging job
         {
             task.addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);

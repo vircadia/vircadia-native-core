@@ -603,19 +603,21 @@ void RenderDeferred::configure(const Config& config) {
 }
 
 void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
+    auto args = renderContext->args;
 
     auto deferredTransform = inputs.get0();
     auto deferredFramebuffer = inputs.get1();
-    auto lightingModel = inputs.get2();
-    auto surfaceGeometryFramebuffer = inputs.get3();
-    auto ssaoFramebuffer = inputs.get4();
-    auto subsurfaceScatteringResource = inputs.get5();
-    auto lightClusters = inputs.get6();
-    auto args = renderContext->args;
+    auto extraRenderBuffers = inputs.get2();
+        auto surfaceGeometryFramebuffer = extraRenderBuffers.get0();
+        auto ssaoFramebuffer = extraRenderBuffers.get1();
+        auto subsurfaceScatteringResource = extraRenderBuffers.get2();
 
-    const auto& lightFrame = inputs.get7();
-    const auto& shadowFrame = inputs.get8();
-    const auto& hazeFrame = inputs.get9();
+    auto lightingModel = inputs.get3();
+    auto lightClusters = inputs.get4();
+    
+    const auto& lightFrame = inputs.get5();
+    const auto& shadowFrame = inputs.get6();
+    const auto& hazeFrame = inputs.get7();
 
     if (!_gpuTimer) {
         _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
@@ -684,7 +686,6 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             // Add the global light to the light stage (for later shadow rendering)
             // Set this light to be the default
             _defaultLightID = lightStage->addLight(lp, true);
-        //    lightStage->addShadow(_defaultLightID);
         }
 
         auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();

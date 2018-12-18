@@ -272,22 +272,7 @@ public:
 void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
     const auto cachedArg = task.addJob<SecondaryCameraJob>("SecondaryCamera");
 
-    task.addJob<RenderViewTask>("RenderSecondView", cullFunctor, true, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
-/*
-    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
-    assert(items.canCast<RenderFetchCullSortTask::Output>());
+    task.addJob<RenderViewTask>("RenderSecondView", cullFunctor, isDeferred, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
 
-  //  const auto lightingStageFramesAndZones = task.addJob<AssembleLightingStageTask>("AssembleStages", items[0]);
-    const auto lightingStageFramesAndZones = task.addJob<AssembleLightingStageTask>("AssembleStages", items);
-
-    if (isDeferred) {
-        const render::Varying cascadeSceneBBoxes;
-        const auto renderInput = RenderDeferredTask::Input(items, lightingStageFramesAndZones, cascadeSceneBBoxes).asVarying();
-        task.addJob<RenderDeferredTask>("RenderDeferredTask", renderInput, false);
-    } else {
-        const auto renderInput = RenderForwardTask::Input(items, lightingStageFramesAndZones).asVarying();
-        task.addJob<RenderForwardTask>("Forward", renderInput);
-    }
-*/
     task.addJob<EndSecondaryCameraFrame>("EndSecondaryCamera", cachedArg);
 }

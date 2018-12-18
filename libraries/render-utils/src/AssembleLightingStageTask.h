@@ -32,7 +32,6 @@ public:
 
 class AssembleLightingStageTask {
 public:
-   // using Input = RenderFetchCullSortTask::BucketList;
     using Input = RenderFetchCullSortTask::Output;
     using Output = render::VaryingSet2<FetchCurrentFrames::Output, ZoneRendererTask::Output>;
     using JobModel = render::Task::ModelIO<AssembleLightingStageTask, Input, Output, render::Task::Config>;
