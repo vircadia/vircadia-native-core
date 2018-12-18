@@ -390,6 +390,7 @@ public:
     void setCreated(QDateTime& v);
 
     bool hasTransformOrVelocityChanges() const;
+    void clearTransformOrVelocityChanges();
     bool hasMiscPhysicsChanges() const;
 
     bool hasSimulationRestrictedChanges() const;

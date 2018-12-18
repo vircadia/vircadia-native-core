@@ -816,6 +816,10 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     QString previousUserdata;
     if (entity) {
+        if (properties.hasTransformOrVelocityChanges() && entity->hasGrabs()) {
+            // if an entity is grabbed, the grab will override any position changes
+            properties.clearTransformOrVelocityChanges();
+        }
         if (properties.hasSimulationRestrictedChanges()) {
             if (_bidOnSimulationOwnership) {
                 // flag for simulation ownership, or upgrade existing ownership priority

@@ -1386,6 +1386,14 @@ void SpatiallyNestable::removeGrab(GrabPointer grab) {
     });
 }
 
+bool SpatiallyNestable::hasGrabs() {
+    bool result { false };
+    _grabsLock.withReadLock([&] {
+        result = !_grabs.isEmpty();
+    });
+    return result;
+}
+
 QUuid SpatiallyNestable::getEditSenderID() {
     // if more than one avatar is grabbing something, decide which one should tell the enity-server about it
     QUuid editSenderID;

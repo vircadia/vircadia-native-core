@@ -216,6 +216,7 @@ public:
 
     virtual void addGrab(GrabPointer grab);
     virtual void removeGrab(GrabPointer grab);
+    bool hasGrabs();
     virtual QUuid getEditSenderID();
 
 protected:
