@@ -2815,8 +2815,6 @@ void Application::initializeDisplayPlugins() {
             auto hmdDisplayPlugin = dynamic_cast<HmdDisplayPlugin*>(displayPlugin.get());
             QObject::connect(hmdDisplayPlugin, &HmdDisplayPlugin::hmdMountedChanged,
                 DependencyManager::get<HMDScriptingInterface>().data(), &HMDScriptingInterface::mountedChanged);
-            QObject::connect(hmdDisplayPlugin, &HmdDisplayPlugin::hmdMountedChanged,
-                DependencyManager::get<HMDScriptingInterface>().data(), &HMDScriptingInterface::activeChanged);
             QObject::connect(hmdDisplayPlugin, &HmdDisplayPlugin::hmdVisibleChanged, this, &Application::hmdVisibleChanged);
         }
     }
