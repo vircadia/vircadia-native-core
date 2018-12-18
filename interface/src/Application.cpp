@@ -5273,11 +5273,9 @@ void Application::resumeAfterLoginDialogActionTaken() {
 
     if (!accountManager->isLoggedIn()) {
         if (arguments().contains("--url")) {
-            addressManager->goToEntry();
             auto reply = SandboxUtils::getStatus();
             connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
-        }
-        else {
+        } else {
             addressManager->goToEntry();
         }
     } else {
@@ -5293,7 +5291,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
             }
         } else {
             auto reply = SandboxUtils::getStatus();
-            connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });;
+            connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
         }
     }
 
