@@ -107,6 +107,7 @@ private:
     ResourceRequest* _pendingScriptRequest { nullptr };
     bool _isListeningToAudioStream = false;
     SharedSoundPointer _avatarSound;
+    bool _shouldMuteRecordingAudio{ false };
     int _numAvatarSoundSentBytes = 0;
     bool _isAvatar = false;
     QTimer* _avatarIdentityTimer = nullptr;
@@ -122,8 +123,6 @@ private:
     Encoder* _encoder { nullptr };
     QTimer _avatarAudioTimer;
     bool _flushEncoder { false };
-
-    bool _recordingInterrupted { false };
 };
 
 #endif // hifi_Agent_h
