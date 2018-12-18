@@ -1814,6 +1814,7 @@ void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QByteArray& entit
 }
 
 void MyAvatar::avatarEntityDataToJson(QJsonObject& root) const {
+    updateStaleAvatarEntityBlobs();
     _avatarEntitiesLock.withReadLock([&] {
         if (!_cachedAvatarEntityBlobs.empty()) {
             QJsonArray avatarEntityJson;
