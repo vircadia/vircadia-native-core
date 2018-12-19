@@ -23,6 +23,7 @@ vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
 void handleOpenVrEvents();
 bool openVrQuitRequested();
+bool isHeadInHeadset();
 void enableOpenVrKeyboard(PluginContainer* container);
 void disableOpenVrKeyboard();
 bool isOpenVrKeyboardShown();

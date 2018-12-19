@@ -37,6 +37,11 @@ static int refCount { 0 };
 static Mutex mutex;
 static vr::IVRSystem* activeHmd { nullptr };
 static bool _openVrQuitRequested { false };
+static bool _headInHeadset { false };
+
+bool isHeadInHeadset() {
+    return _headInHeadset;
+}
 
 bool openVrQuitRequested() {
     return _openVrQuitRequested;
@@ -282,7 +287,24 @@ void handleOpenVrEvents() {
                 break;
         }
         #if DEV_BUILD
+        if (event.data.controller.button == vr::k_EButton_ProximitySensor) {
+            qDebug() << "fired the proximity sensor!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ";
+            vr::VRControllerState_t controllerState = vr::VRControllerState_t();
+            if (activeHmd->GetControllerState(vr::k_unTrackedDeviceIndex_Hmd, &controllerState, sizeof(vr::VRControllerState_t))) {
+                ulong prox = controllerState.ulButtonPressed & (1UL << ((int)vr::k_EButton_ProximitySensor));
+                qDebug() << "prox is -----------------------------> " << (int)prox;
+                if (prox) {
+                    qDebug() << "headset is on";
+                    _headInHeadset = true;
+                } else {
+                    qDebug() << "headset is off";
+                    _headInHeadset = false;
+                }
+            }
+
+        } else {
             qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+        }
         #endif
     }
 

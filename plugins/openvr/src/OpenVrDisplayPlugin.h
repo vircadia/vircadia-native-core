@@ -37,6 +37,7 @@ class OpenVrDisplayPlugin : public HmdDisplayPlugin {
 public:
     bool isSupported() const override;
     const QString getName() const override;
+    bool getSupportsAutoSwitch() override final { return true; }
 
     glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
     glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override;

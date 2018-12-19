@@ -6611,6 +6611,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
 
 
 bool Application::isHMDMode() const {
+    qDebug() << "the hmd is visible " << getActiveDisplayPlugin()->isDisplayVisible();
+    qDebug() << "the hmd is active " << getActiveDisplayPlugin()->isHmd();
     return getActiveDisplayPlugin()->isHmd();
 }
 
@@ -6690,6 +6692,7 @@ void Application::resetSensors(bool andReload) {
 }
 
 void Application::hmdVisibleChanged(bool visible) {
+    qDebug() << "hmd visible changed ";
     // TODO
     // calling start and stop will change audio input and ouput to default audio devices.
     // we need to add a pause/unpause functionality to AudioClient for this to work properly

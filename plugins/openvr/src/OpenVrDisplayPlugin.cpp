@@ -677,8 +677,8 @@ void OpenVrDisplayPlugin::postPreview() {
         break;
     case vr::EDeviceActivityLevel::k_EDeviceActivityLevel_Idle: qDebug() << "no activity 10 secs ";
         break;
-    case vr::EDeviceActivityLevel::k_EDeviceActivityLevel_UserInteraction: qDebug() << "activity ";
-        break;
+    //case vr::EDeviceActivityLevel::k_EDeviceActivityLevel_UserInteraction: qDebug() << "activity ";
+      //  break;
     case vr::EDeviceActivityLevel::k_EDeviceActivityLevel_UserInteraction_Timeout: qDebug() << "idle for 0.5 secs ";
         break;
     case vr::EDeviceActivityLevel::k_EDeviceActivityLevel_Standby: qDebug() << "idle for 5 secs ";
@@ -704,7 +704,8 @@ void OpenVrDisplayPlugin::postPreview() {
 }
 
 bool OpenVrDisplayPlugin::isHmdMounted() const {
-    return _hmdActivityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
+    // return _hmdActivityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
+    return isHeadInHeadset();
 }
 
 void OpenVrDisplayPlugin::updatePresentPose() {
