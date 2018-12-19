@@ -308,7 +308,7 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
     AssignmentClientChildData* childData = nullptr;
 
     if (!matchingNode) {
-        // The parent only expects to be talking with prorams running on this same machine.
+        // The parent only expects to be talking with programs running on this same machine.
         if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
                 senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
 
