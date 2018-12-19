@@ -12,6 +12,7 @@
 #include "AvatarPackager.h"
 
 #include <QQmlContext>
+#include <QQmlEngine>
 #include <QUrl>
 
 #include <OffscreenUi.h>
@@ -26,6 +27,8 @@ AvatarPackager::AvatarPackager() {
     std::call_once(setupQMLTypesFlag, []() {
         qmlRegisterType<FST>();
         qmlRegisterType<MarketplaceItemUploader>();
+        qRegisterMetaType<AvatarPackager*>();
+        qRegisterMetaType<AvatarProject*>();
     });
 }
 
@@ -39,12 +42,24 @@ bool AvatarPackager::open() {
     return true;
 }
 
-QObject* AvatarPackager::openAvatarProject(QString avatarProjectFSTPath) {
+AvatarProject* AvatarPackager::openAvatarProject(const QString& avatarProjectFSTPath) {
     if (_currentAvatarProject) {
-        //_currentAvatarProject->deleteLater();
-        //_currentAvatarProject = nullptr;
+        _currentAvatarProject->deleteLater();
     }
     _currentAvatarProject = AvatarProject::openAvatarProject(avatarProjectFSTPath);
+    qDebug() << "_currentAvatarProject has" << (QQmlEngine::objectOwnership(_currentAvatarProject) == QQmlEngine::CppOwnership ? "CPP" : "JS") << "OWNERSHIP";
+    QQmlEngine::setObjectOwnership(_currentAvatarProject, QQmlEngine::CppOwnership);
+    emit avatarProjectChanged();
+    return _currentAvatarProject;
+}
+
+AvatarProject* AvatarPackager::createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName, const QString& avatarModelPath, const QString& textureFolder) {
+    if (_currentAvatarProject) {
+        _currentAvatarProject->deleteLater();
+    }
+    _currentAvatarProject = AvatarProject::createAvatarProject(avatarProjectName, avatarModelPath);
+    qDebug() << "_currentAvatarProject has" << (QQmlEngine::objectOwnership(_currentAvatarProject) == QQmlEngine::CppOwnership ? "CPP" : "JS") << "OWNERSHIP";
+    QQmlEngine::setObjectOwnership(_currentAvatarProject, QQmlEngine::CppOwnership);
     emit avatarProjectChanged();
     return _currentAvatarProject;
 }

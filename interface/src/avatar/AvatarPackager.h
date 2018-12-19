@@ -16,25 +16,28 @@
 #include <QObject>
 #include <DependencyManager.h>
 
+#include "FileDialogHelper.h"
+
 #include "avatar/AvatarProject.h"
 
 class AvatarPackager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    Q_PROPERTY(QObject* currentAvatarProject READ getAvatarProject NOTIFY avatarProjectChanged)
-
-public:
+    Q_PROPERTY(AvatarProject* currentAvatarProject READ getAvatarProject NOTIFY avatarProjectChanged)
+    Q_PROPERTY(QString AVATAR_PROJECTS_PATH READ getAvatarProjectsPath CONSTANT)
+public: 
     AvatarPackager();
     bool open();
 
-    Q_INVOKABLE QObject* openAvatarProject(QString avatarProjectFSTPath);
+    Q_INVOKABLE AvatarProject* createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName, const QString& avatarModelPath, const QString& textureFolder);
+    Q_INVOKABLE AvatarProject* openAvatarProject(const QString& avatarProjectFSTPath);
 
 signals:
     void avatarProjectChanged();
 
 private:
     Q_INVOKABLE AvatarProject* getAvatarProject() const { return _currentAvatarProject; };
-    //Q_INVOKABLE QObject* openAvatarProject();
+    Q_INVOKABLE QString getAvatarProjectsPath() const { return AvatarProject::getDefaultProjectsPath(); }
 
     AvatarProject* _currentAvatarProject{ nullptr };
 };

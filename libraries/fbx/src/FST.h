@@ -13,6 +13,11 @@
 
 #include <QVariantHash>
 #include <QUuid>
+#include "FSTReader.h"
+
+namespace hfm {
+    class Model;
+};
 
 class FST : public QObject {
     Q_OBJECT
@@ -20,7 +25,9 @@ class FST : public QObject {
     Q_PROPERTY(QString modelPath READ getModelPath WRITE setModelPath NOTIFY modelPathChanged)
     Q_PROPERTY(QUuid marketplaceID READ getMarketplaceID)
 public:
-    FST(QString fstPath, QVariantHash data);
+    FST(const QString& fstPath, QVariantHash data);
+
+    static FST* createFSTFromModel(QString fstPath, QString modelFilePath, const hfm::Model& hfmModel);
 
     QString absoluteModelPath() const;
 
@@ -31,6 +38,12 @@ public:
     void setModelPath(const QString& modelPath);
 
     QUuid getMarketplaceID() const { return _marketplaceID; }
+
+    QString getPath() { return _fstPath; }
+
+    QVariantHash getMapping();
+
+    bool write();
 
 signals:
     void nameChanged(const QString& name);
