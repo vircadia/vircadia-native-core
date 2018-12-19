@@ -32,7 +32,6 @@
 #include <QMetaObject>
 #include "ui/Stats.h"
 #include "Application.h"
-#include "InterfaceLogging.h"
 
 GraphicsEngine::GraphicsEngine() {
     const QString SPLASH_SKYBOX { "{\"ProceduralEntity\":{ \"version\":2, \"shaderUrl\":\"qrc:///shaders/splashSkybox.frag\" } }" };
@@ -154,7 +153,7 @@ bool GraphicsEngine::shouldPaint() const {
             (static_cast<RenderEventHandler*>(_renderEventHandler)->_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
         return false;
     }
-    // qCDebug(interfaceapp) << "we are now throttling!!!!!";
+
     return true;
 }
 

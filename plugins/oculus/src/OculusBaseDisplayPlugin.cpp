@@ -39,7 +39,6 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     }
     if (ovr::hmdMounted(status) != _hmdMounted) {
         _hmdMounted = !_hmdMounted;
-        qCDebug(oculusLog) << "changed the hmd status" << _hmdMounted;
         emit hmdMountedChanged();
     }
     if (ovr::isVisible(status) != _visible) {

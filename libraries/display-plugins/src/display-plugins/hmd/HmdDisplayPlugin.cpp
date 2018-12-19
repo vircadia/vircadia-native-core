@@ -48,10 +48,6 @@ static const glm::mat4 IDENTITY_MATRIX;
 //#define LIVE_SHADER_RELOAD 1
 extern glm::vec3 getPoint(float yaw, float pitch);
 
-bool HmdDisplayPlugin::isHmd() const { 
-    return true; 
-}
-
 glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
     return CompositorHelper::VIRTUAL_SCREEN_SIZE;
 }

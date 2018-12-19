@@ -25,7 +25,7 @@ class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
 public:
     ~HmdDisplayPlugin();
-    bool isHmd() const override final;
+    bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
     glm::mat4 getEyeToHeadTransform(Eye eye) const override final;
     glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
