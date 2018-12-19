@@ -293,11 +293,15 @@ void handleOpenVrEvents() {
             if (activeHmd->GetControllerState(vr::k_unTrackedDeviceIndex_Hmd, &controllerState, sizeof(vr::VRControllerState_t))) {
                 ulong prox = controllerState.ulButtonPressed & (1UL << ((int)vr::k_EButton_ProximitySensor));
                 qDebug() << "prox is -----------------------------> " << (int)prox;
+                bool test = false;
+                if (prox == (1UL << ((int)vr::k_EButton_ProximitySensor))) {
+                    test = true;
+                }
                 if (prox) {
-                    qDebug() << "headset is on";
+                    qDebug() << "headset is on " << test;
                     _headInHeadset = true;
                 } else {
-                    qDebug() << "headset is off";
+                    qDebug() << "headset is off " <<  test;
                     _headInHeadset = false;
                 }
             }

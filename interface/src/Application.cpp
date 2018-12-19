@@ -6611,8 +6611,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
 
 
 bool Application::isHMDMode() const {
-    qDebug() << "the hmd is visible " << getActiveDisplayPlugin()->isDisplayVisible();
-    qDebug() << "the hmd is active " << getActiveDisplayPlugin()->isHmd();
+   // qDebug() << "the hmd is visible " << getActiveDisplayPlugin()->isDisplayVisible();
+   // qDebug() << "the hmd is active " << getActiveDisplayPlugin()->isHmd();
     return getActiveDisplayPlugin()->isHmd();
 }
 
