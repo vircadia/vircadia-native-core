@@ -118,6 +118,7 @@ public:
 
 protected:
     QPoint _lastCursor;
+    QPoint _previousCursor;
     QPoint _mousePressPos;
     quint64 _mousePressTime;
     bool _mouseMoved;

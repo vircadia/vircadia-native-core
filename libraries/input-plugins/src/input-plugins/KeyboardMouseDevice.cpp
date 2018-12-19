@@ -29,6 +29,14 @@ void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputC
 
         _inputDevice->_axisStateMap[MOUSE_AXIS_X] = _lastCursor.x();
         _inputDevice->_axisStateMap[MOUSE_AXIS_Y] = _lastCursor.y();
+
+        QPoint currentMove = _lastCursor - _previousCursor;
+        _inputDevice->_axisStateMap[MOUSE_AXIS_X_POS] = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
+        _inputDevice->_axisStateMap[MOUSE_AXIS_X_NEG] = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
+        // Y mouse is inverted positive is pointing up the screen
+        _inputDevice->_axisStateMap[MOUSE_AXIS_Y_POS] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
+        _inputDevice->_axisStateMap[MOUSE_AXIS_Y_NEG] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
+        _previousCursor = _lastCursor;
     });
 
     // For touch event, we need to check that the last event is not too long ago
@@ -102,13 +110,6 @@ void KeyboardMouseDevice::eraseMouseClicked() {
 
 void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
     QPoint currentPos = event->pos();
-    QPoint currentMove = currentPos - _lastCursor;
-
-    _inputDevice->_axisStateMap[MOUSE_AXIS_X_POS] = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
-    _inputDevice->_axisStateMap[MOUSE_AXIS_X_NEG] = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
-    // Y mouse is inverted positive is pointing up the screen
-    _inputDevice->_axisStateMap[MOUSE_AXIS_Y_POS] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
-    _inputDevice->_axisStateMap[MOUSE_AXIS_Y_NEG] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
 
     // FIXME - this has the characteristic that it will show large jumps when you move the cursor
     // outside of the application window, because we don't get MouseEvents when the cursor is outside
