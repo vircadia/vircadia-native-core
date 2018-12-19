@@ -679,6 +679,7 @@ Rectangle {
                                 lightboxPopup.titleText = '"' + msg.itemName + '" Sent to Trash';
                                 lightboxPopup.button1text = "OK";
                                 lightboxPopup.button1method = function() {
+                                    root.purchasesReceived = false;
                                     lightboxPopup.visible = false;
                                     getPurchases();
                                 }
