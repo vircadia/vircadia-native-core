@@ -299,7 +299,6 @@ public:
 
     DEFINE_PROPERTY_GROUP(Grab, grab, GrabPropertyGroup);
 
-    static QString getComponentModeString(uint32_t mode);
     static QString getComponentModeAsString(uint32_t mode);
 
     std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator findComponent(const QString& mode);
