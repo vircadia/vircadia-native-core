@@ -277,29 +277,17 @@ void handleOpenVrEvents() {
             default:
                 break;
         }
-        #if DEV_BUILD
         if (event.data.controller.button == vr::k_EButton_ProximitySensor) {
-            qDebug() << "fired the proximity sensor!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ";
             vr::VRControllerState_t controllerState = vr::VRControllerState_t();
             if (activeHmd->GetControllerState(vr::k_unTrackedDeviceIndex_Hmd, &controllerState, sizeof(vr::VRControllerState_t))) {
-                ulong prox = controllerState.ulButtonPressed & (1UL << ((int)vr::k_EButton_ProximitySensor));
-                qDebug() << "prox is -----------------------------> " << (int)prox;
-                bool test = false;
-                if (prox == (1UL << ((int)vr::k_EButton_ProximitySensor))) {
-                    test = true;
-                }
-                if (prox) {
-                    qDebug() << "headset is on " << test;
-                    _headInHeadset = true;
-                } else {
-                    qDebug() << "headset is off " <<  test;
-                    _headInHeadset = false;
-                }
+                ulong promitySensorFlag = (1UL << ((int)vr::k_EButton_ProximitySensor));
+                _headInHeadset = (controllerState.ulButtonPressed & promitySensorFlag) == promitySensorFlag;
             }
 
-        } else {
-            qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
         }
+
+        #if DEV_BUILD
+            qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
         #endif
     }
 
