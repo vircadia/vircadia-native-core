@@ -48,6 +48,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     function FarActionGrabEntity(hand) {
         this.hand = hand;
+        this.grabbing = false;
         this.grabbedThingID = null;
         this.targetObject = null;
         this.actionID = null; // action this script created...
@@ -151,6 +152,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
             this.previousRoomControllerPosition = roomControllerPosition;
+            this.grabbing = true;
         };
 
         this.continueDistanceHolding = function(controllerData) {
@@ -246,6 +248,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.grabbedThingID = null;
             this.targetObject = null;
             this.potentialEntityWithContextOverlay = false;
+            this.grabbing = false;
         };
 
         this.updateRecommendedArea = function() {
@@ -357,8 +360,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
-                this.notPointingAtEntity(controllerData) || this.targetIsNull()) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
                 this.endFarGrabAction();
                 Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                     this.highlightedEntity);
@@ -375,10 +377,12 @@ Script.include("/~/system/libraries/controllers.js");
                 this.hand === RIGHT_HAND ? "RightScaleAvatar" : "LeftScaleAvatar",
                 this.hand === RIGHT_HAND ? "RightFarTriggerEntity" : "LeftFarTriggerEntity",
                 this.hand === RIGHT_HAND ? "RightNearActionGrabEntity" : "LeftNearActionGrabEntity",
-                this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity",
-                this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay",
-                this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight"
+                this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity"
             ];
+            if (!this.grabbing) {
+                nearGrabNames.push(this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
+                nearGrabNames.push(this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            }
 
             var nearGrabReadiness = [];
             for (var i = 0; i < nearGrabNames.length; i++) {

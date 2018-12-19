@@ -291,7 +291,7 @@ QByteArray RenderablePolyVoxEntityItem::volDataToArray(quint16 voxelXSize, quint
     withReadLock([&] {
         if (isEdged()) {
             low += 1;
-            voxelSize += 1;
+            voxelSize += 2;
         }
 
         loop3(low, voxelSize, [&](const ivec3& v){

@@ -35,11 +35,6 @@
 
 #include "FBXSerializer.h"
 
-
-GLTFSerializer::GLTFSerializer() {
-
-}
-
 bool GLTFSerializer::getStringVal(const QJsonObject& object, const QString& fieldname,
                               QString& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isString());
@@ -910,6 +905,17 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     return true;
 }
 
+MediaType GLTFSerializer::getMediaType() const {
+    MediaType mediaType("gltf");
+    mediaType.extensions.push_back("gltf");
+    mediaType.webMediaTypes.push_back("model/gltf+json");
+    return mediaType;
+}
+
+std::unique_ptr<hfm::Serializer::Factory> GLTFSerializer::getFactory() const {
+    return std::make_unique<hfm::Serializer::SimpleFactory<GLTFSerializer>>();
+}
+
 HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     
     _url = url;
@@ -1181,19 +1187,6 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "---------------- hfmModel ----------------";
     qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << hfmModel.offset;
-
-    qCDebug(modelformat) << "  leftEyeJointIndex =" << hfmModel.leftEyeJointIndex;
-    qCDebug(modelformat) << "  rightEyeJointIndex =" << hfmModel.rightEyeJointIndex;
-    qCDebug(modelformat) << "  neckJointIndex =" << hfmModel.neckJointIndex;
-    qCDebug(modelformat) << "  rootJointIndex =" << hfmModel.rootJointIndex;
-    qCDebug(modelformat) << "  leanJointIndex =" << hfmModel.leanJointIndex;
-    qCDebug(modelformat) << "  headJointIndex =" << hfmModel.headJointIndex;
-    qCDebug(modelformat) << "  leftHandJointIndex" << hfmModel.leftHandJointIndex;
-    qCDebug(modelformat) << "  rightHandJointIndex" << hfmModel.rightHandJointIndex;
-    qCDebug(modelformat) << "  leftToeJointIndex" << hfmModel.leftToeJointIndex;
-    qCDebug(modelformat) << "  rightToeJointIndex" << hfmModel.rightToeJointIndex;
-    qCDebug(modelformat) << "  leftEyeSize = " << hfmModel.leftEyeSize;
-    qCDebug(modelformat) << "  rightEyeSize = " << hfmModel.rightEyeSize;
 
     qCDebug(modelformat) << "  palmDirection = " << hfmModel.palmDirection;
 

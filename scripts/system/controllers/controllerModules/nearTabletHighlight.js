@@ -11,7 +11,7 @@
 //
 
 /* global LEFT_HAND, RIGHT_HAND, makeDispatcherModuleParameters, makeRunningValues, enableDispatcherModule, 
- * disableDispatcherModule */
+ * disableDispatcherModule, getEnabledModuleByName */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
@@ -66,12 +66,26 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             100
         );
 
+        this.isEditing = function () {
+            var inEditModeModule = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightHandInEditMode" : "LeftHandInEditMode");
+            if (inEditModeModule && inEditModeModule.isEditing) {
+                return true;
+            }
+            var inVREditModeModule = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightHandInVREditMode" : "LeftHandInVREditMode");
+            if (inVREditModeModule && inVREditModeModule.isEditing) {
+                return true;
+            }
+            return false;
+        };
+
         this.isNearTablet = function (controllerData) {
             return HMD.tabletID && controllerData.nearbyOverlayIDs[this.hand].indexOf(HMD.tabletID) !== -1;
         };
 
         this.isReady = function (controllerData) {
-            if (this.isNearTablet(controllerData)) {
+            if (!this.isEditing() && this.isNearTablet(controllerData)) {
                 return makeRunningValues(true, [], []);
             }
             setTabletNearGrabbable(this.hand, false);
@@ -79,7 +93,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.run = function (controllerData) {
-            if (!this.isNearTablet(controllerData)) {
+            if (this.isEditing() || !this.isNearTablet(controllerData)) {
                 setTabletNearGrabbable(this.hand, false);
                 return makeRunningValues(false, [], []);
             }

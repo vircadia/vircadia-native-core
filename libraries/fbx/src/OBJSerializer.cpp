@@ -651,6 +651,15 @@ done:
     return result;
 }
 
+MediaType OBJSerializer::getMediaType() const {
+    MediaType mediaType("obj");
+    mediaType.extensions.push_back("obj");
+    return mediaType;
+}
+
+std::unique_ptr<hfm::Serializer::Factory> OBJSerializer::getFactory() const {
+    return std::make_unique<hfm::Serializer::SimpleFactory<OBJSerializer>>();
+}
 
 HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);

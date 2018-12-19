@@ -206,7 +206,7 @@ endif()
 link_hifi_libraries(
   shared workload task octree ktx gpu gl procedural graphics graphics-scripting render
   pointers
-  recording hfm fbx networking model-networking entities avatars trackers
+  recording hfm fbx networking model-networking model-baker entities avatars trackers
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
