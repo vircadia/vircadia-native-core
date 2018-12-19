@@ -313,6 +313,10 @@ Item {
                             Commerce.uninstallApp(root.itemHref);
                         }
                     }
+
+                    onVisibleChanged: {
+                        trashButton.updateProperties();
+                    }
                 }
 
                 Loader {
@@ -342,6 +346,10 @@ Item {
                             });
                         }
                     }
+
+                    onVisibleChanged: {
+                        trashButton.updateProperties();
+                    }
                 }
 
                 Loader {
@@ -355,20 +363,26 @@ Item {
 
                     onLoaded: {
                         item.buttonGlyphText = hifi.glyphs.trash;
+                        updateProperties();
+                        item.buttonClicked = function() {
+                            sendToPurchases({method: 'showTrashLightbox',
+                                isInstalled: root.isInstalled,
+                                itemHref: root.itemHref,
+                                itemName: root.itemName,
+                                certID: root.certificateId,
+                                itemType: root.itemType,
+                                wornEntityID: root.wornEntityID
+                            });
+                        }
+                    }
+
+                    function updateProperties() {
                         if (updateButton.visible && uninstallButton.visible) {
                             item.buttonText = "";
                             item.glyphSize = 20;
                         } else {
                             item.buttonText = "Send to Trash";
                             item.glyphSize = 30;
-                        }
-                        item.buttonClicked = function() {
-                            sendToPurchases({method: 'showTrashLightbox',
-                                isInstalled: root.isInstalled,
-                                itemHref: root.itemHref,
-                                itemName: root.itemName,
-                                certID: root.certificateId
-                            });
                         }
                     }
                 }

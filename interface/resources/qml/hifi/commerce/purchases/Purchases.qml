@@ -664,6 +664,16 @@ Rectangle {
                                 if (msg.isInstalled) {
                                     Commerce.uninstallApp(msg.itemHref);
                                 }
+
+                                if (MyAvatar.skeletonModelURL === msg.itemHref) {
+                                    MyAvatar.useFullAvatarURL('');
+                                }
+
+                                if (msg.itemType === "wearable" && msg.wornEntityID !== '') {
+                                    Entities.deleteEntity(msg.wornEntityID);
+                                    purchasesModel.setProperty(index, 'wornEntityID', '');
+                                }
+
                                 Commerce.transferAssetToUsername("trashbot", msg.certID, 1, "Sent " + msg.itemName + " to trash.");
 
                                 lightboxPopup.titleText = '"' + msg.itemName + '" Sent to Trash';
