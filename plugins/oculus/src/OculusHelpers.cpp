@@ -174,6 +174,18 @@ ovrTrackingState ovr::getTrackingState(double absTime, ovrBool latencyMarker) {
     return result;
 }
 
+QString ovr::getLoggedInUserID() {
+    ovr_GetLoggedInUserID();
+    ovrMessageHandle message = ovr_PopMessage();
+    if (!ovr_Message_IsError(message)) {
+        ovrUserHandle user = ovr_Message_GetUser(message);
+        qCDebug(oculusLog) << "User is: " << ovr_User_GetID(user) << ", " << ovr_User_GetOculusID(user);
+    } else {
+        auto error = ovr_Message_GetError(message);
+        qCDebug(oculusLog) << "User failure error: " << ovr_Error_GetMessage(error);
+    }
+}
+
 QString ovr::getError() {
     static ovrErrorInfo error;
     ovr_GetLastErrorInfo(&error);
