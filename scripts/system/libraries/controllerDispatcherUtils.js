@@ -181,14 +181,14 @@ makeLaserLockInfo = function(targetID, isOverlay, hand, offset) {
     };
 };
 
-makeLaserParams = function(hand, allwaysOn) {
-    if (allwaysOn === undefined) {
-        allwaysOn = false;
+makeLaserParams = function(hand, alwaysOn) {
+    if (alwaysOn === undefined) {
+        alwaysOn = false;
     }
 
     return {
         hand: hand,
-        allwaysOn: allwaysOn
+        alwaysOn: alwaysOn
     };
 };
 

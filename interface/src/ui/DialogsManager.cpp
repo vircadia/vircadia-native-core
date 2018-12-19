@@ -39,7 +39,7 @@ void DialogsManager::maybeCreateDialog(QPointer<T>& member) {
         Q_CHECK_PTR(parent);
         member = new T(parent);
         Q_CHECK_PTR(member);
-        
+
         if (_hmdToolsDialog && member->windowHandle()) {
             _hmdToolsDialog->watchWindow(member->windowHandle());
         }
@@ -115,6 +115,10 @@ void DialogsManager::toggleLoginDialog() {
 
 void DialogsManager::showLoginDialog() {
     LoginDialog::showWithSelection();
+}
+
+void DialogsManager::hideLoginDialog() {
+    LoginDialog::hide();
 }
 
 void DialogsManager::showUpdateDialog() {

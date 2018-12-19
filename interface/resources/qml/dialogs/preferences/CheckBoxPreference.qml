@@ -16,10 +16,12 @@ import controlsUit 1.0
 Preference {
     id: root
     height: spacer.height + Math.max(hifi.dimensions.controlLineHeight, checkBox.implicitHeight)
-
+    property bool value: false
     Component.onCompleted: {
         checkBox.checked = preference.value;
+        value = checkBox.checked;
         preference.value = Qt.binding(function(){ return checkBox.checked; });
+        value = checkBox.checked;
     }
 
     function save() {
@@ -47,6 +49,7 @@ Preference {
 
         onClicked: {
             Tablet.playSound(TabletEnums.ButtonClick);
+            value = checked;
         }
 
         anchors {

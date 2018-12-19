@@ -110,6 +110,8 @@ public:
     void setBaseDisplayName(const QString& baseDisplayName) { _baseDisplayName = baseDisplayName; }
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
+    bool getPrevRequestsDomainListData() { return _prevRequestsDomainListData; }
+    void setPrevRequestsDomainListData(bool requesting) { _prevRequestsDomainListData = requesting; }
 
     const ConicalViewFrustums& getViewFrustums() const { return _currentViewFrustums; }
 
@@ -176,6 +178,7 @@ private:
     int _recentOtherAvatarsOutOfView { 0 };
     QString _baseDisplayName{}; // The santized key used in determinging unique sessionDisplayName, so that we can remove from dictionary.
     bool _requestsDomainListData { false };
+    bool _prevRequestsDomainListData{ false };
 
     AvatarTraits::TraitVersions _lastReceivedTraitVersions;
     TraitsCheckTimestamp _lastReceivedTraitsChange;

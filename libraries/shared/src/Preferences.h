@@ -364,6 +364,7 @@ class RadioButtonsPreference : public IntPreference {
     Q_OBJECT
     Q_PROPERTY(QString heading READ getHeading CONSTANT)
     Q_PROPERTY(QStringList items READ getItems CONSTANT)
+    Q_PROPERTY(bool indented READ getIndented CONSTANT)
 public:
     RadioButtonsPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : IntPreference(category, name, getter, setter) { }
@@ -373,10 +374,13 @@ public:
     const QStringList& getItems() { return _items; }
     void setHeading(const QString& heading) { _heading = heading; }
     void setItems(const QStringList& items) { _items = items; }
+    bool getIndented() const { return _indented; }
+    void setIndented(const bool indented) { _indented = indented; }
 
 protected:
     QString _heading;
     QStringList _items;
+    bool _indented { false };
 };
 #endif
 

@@ -123,10 +123,12 @@ Menu::Menu() {
     // Edit > Running Scripts
     auto action = addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J);
     connect(action, &QAction::triggered, [] {
-        static const QUrl widgetUrl("hifi/dialogs/RunningScripts.qml");
-        static const QUrl tabletUrl("hifi/dialogs/TabletRunningScripts.qml");
-        static const QString name("RunningScripts");
-        qApp->showDialog(widgetUrl, tabletUrl, name);
+        if (!qApp->getLoginDialogPoppedUp()) {
+            static const QUrl widgetUrl("hifi/dialogs/RunningScripts.qml");
+            static const QUrl tabletUrl("hifi/dialogs/TabletRunningScripts.qml");
+            static const QString name("RunningScripts");
+            qApp->showDialog(widgetUrl, tabletUrl, name);
+        }
     });
 
     editMenu->addSeparator();
@@ -241,8 +243,10 @@ Menu::Menu() {
     // Settings > General...
     action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_G, nullptr, nullptr);
     connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
-            QString("hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
+        if (!qApp->getLoginDialogPoppedUp()) {
+            qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
+                QString("hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
+        }
     });
 
     // Settings > Controls...
