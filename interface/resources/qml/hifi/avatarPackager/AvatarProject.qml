@@ -156,6 +156,8 @@ Item {
                 colorScheme: root.colorScheme
                 onClicked: function() {
                     console.log("Opening in inventory");
+
+                    AvatarPackagerCore.currentAvatarProject.openInInventory();
                 }
             }
         }

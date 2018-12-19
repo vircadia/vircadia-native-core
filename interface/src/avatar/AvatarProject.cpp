@@ -19,6 +19,9 @@
 #include <QDebug>
 #include <QQmlEngine>
 
+#include <ui/TabletScriptingInterface.h>
+#include "scripting/HMDScriptingInterface.h"
+
 AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
     const auto pathToLower = path.toLower();
     if (pathToLower.endsWith(".fst")) {
@@ -40,7 +43,6 @@ AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
 
 AvatarProject::AvatarProject(const QString& fstPath, const QByteArray& data) :
     _fstPath(fstPath), _fst(fstPath, FSTReader::readMapping(data)) {
-
     _fstFilename = QFileInfo(_fstPath).fileName();
     qDebug() << "Pointers: " << this << &_fst;
 
@@ -70,6 +72,16 @@ void AvatarProject::refreshProjectFiles() {
     appendDirectory("", _directory);
 }
 
-Q_INVOKABLE MarketplaceItemUploader* AvatarProject::upload() {
+MarketplaceItemUploader* AvatarProject::upload() {
     return new MarketplaceItemUploader("test_avatar", "blank description", _fstFilename, QUuid(), _projectFiles);
+}
+
+void AvatarProject::openInInventory() {
+    auto tablet = dynamic_cast<TabletProxy*>(
+        DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+    tablet->loadQMLSource("hifi/commerce/wallet/Wallet.qml");
+    DependencyManager::get<HMDScriptingInterface>()->openTablet();
+    tablet->sendToQml(QVariantMap({
+        { "method", "updatePurchases" },
+        { "filterText", "filtertext" } }));
 }

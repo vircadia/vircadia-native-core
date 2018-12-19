@@ -40,6 +40,7 @@ public:
     }
 
     Q_INVOKABLE MarketplaceItemUploader* upload();
+    Q_INVOKABLE void openInInventory();
 
     /**
      * returns the AvatarProject or a nullptr on failure.

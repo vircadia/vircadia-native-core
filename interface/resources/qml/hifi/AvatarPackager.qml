@@ -72,7 +72,6 @@ Windows.ScrollingWindow {
                 height: 30
                 onClicked: function() {
                     var avatarProjectsPath = fileDialogHelper.standardPath(/*fileDialogHelper.StandardLocation.DocumentsLocation*/ 1) + "/High Fidelity/Avatar Projects";
-                    var avatarProjectsPath = "C:/Users/ryanh/Documents/High Fidelity Avatars";
                     console.log("path = " + avatarProjectsPath);
 
                     // TODO: make the dialog modal
