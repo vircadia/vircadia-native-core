@@ -81,7 +81,6 @@ void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event) {
     }
     _lastCursor = event->pos();
     _mousePressTime = usecTimestampNow();
-    _mouseMoved = false;
 
     _mousePressPos = event->pos();
     _clickDeadspotActive = true;
@@ -115,8 +114,6 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
     // outside of the application window, because we don't get MouseEvents when the cursor is outside
     // of the application window.
     _lastCursor = currentPos;
-
-    _mouseMoved = true;
 
     const int CLICK_EVENT_DEADSPOT = 6; // pixels
     if (_clickDeadspotActive && (_mousePressPos - currentPos).manhattanLength() > CLICK_EVENT_DEADSPOT) {
