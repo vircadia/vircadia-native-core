@@ -29,6 +29,7 @@ Item {
     property bool withSteam: withSteam
     property bool withOculus: withOculus
     property bool linkSteam: linkSteam
+    property bool linkOculus: linkOculus
 
     QtObject {
         id: d

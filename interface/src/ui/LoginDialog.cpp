@@ -121,6 +121,11 @@ void LoginDialog::login(const QString& username, const QString& password) const 
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
 }
 
+void LoginDialog::loginThroughOculus() {
+    qDebug() << "Attempting to login through Oculus";
+
+}
+
 void LoginDialog::loginThroughSteam() {
     qDebug() << "Attempting to login through Steam";
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
