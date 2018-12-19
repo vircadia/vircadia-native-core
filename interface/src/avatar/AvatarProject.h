@@ -21,6 +21,7 @@
 #include <QFileInfo>
 #include <QVariantHash>
 #include <QUuid>
+#include <QStandardPaths>
 
 class AvatarProject : public QObject {
     Q_OBJECT
@@ -31,6 +32,7 @@ class AvatarProject : public QObject {
     Q_PROPERTY(QString projectFolderPath READ getProjectPath)
     Q_PROPERTY(QString projectFSTPath READ getFSTPath)
     Q_PROPERTY(QString projectFBXPath READ getFBXPath)
+    Q_PROPERTY(QString name READ getProjectName)
 
 public:
     Q_INVOKABLE bool write() {
@@ -38,38 +40,41 @@ public:
         return false;
     }
 
-    Q_INVOKABLE QObject* upload() {
-        // TODO: create new AvatarProjectUploader here, launch it and return it for status tracking in QML
-        return nullptr;
-    }
-
     /**
      * returns the AvatarProject or a nullptr on failure.
      */
     static AvatarProject* openAvatarProject(const QString& path);
+    static AvatarProject* createAvatarProject(const QString& avatarProjectName, const QString& avatarModelPath);
+
+    static bool isValidNewProjectName(const QString& projectName);
+
+    static QString getDefaultProjectsPath() {
+        return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/High Fidelity Projects";
+    }
 
 private:
     AvatarProject(const QString& fstPath, const QByteArray& data);
+    AvatarProject(FST* fst);
 
     ~AvatarProject() {
         // TODO: cleanup FST / AvatarProjectUploader etc.
     }
 
+    Q_INVOKABLE QString getProjectName() const { return _fst->getName(); }
     Q_INVOKABLE QString getProjectPath() const { return _projectPath; }
-    Q_INVOKABLE QString getFSTPath() const { return _fstPath; }
-    Q_INVOKABLE QString getFBXPath() const { return _fst.getModelPath(); }
+    Q_INVOKABLE QString getFSTPath() const { return _fst->getPath(); }
+    Q_INVOKABLE QString getFBXPath() const { return _fst->getModelPath(); }
 
-    FST* getFST() { return &_fst; }
+    FST* getFST() { return _fst; }
 
     void refreshProjectFiles();
     void appendDirectory(QString prefix, QDir dir);
 
-    FST _fst;
+    FST* _fst;
 
     QDir _directory;
     QStringList _projectFiles{};
     QString _projectPath;
-    QString _fstPath;
 };
 
 #endif  // hifi_AvatarProject_h
