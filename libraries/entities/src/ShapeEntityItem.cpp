@@ -158,9 +158,9 @@ void ShapeEntityItem::setShape(const entity::Shape& shape) {
 bool ShapeEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shape, setShape);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
 
     if (somethingChanged) {
         bool wantDebug = false;

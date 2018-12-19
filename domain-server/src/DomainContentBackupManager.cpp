@@ -127,6 +127,10 @@ int64_t DomainContentBackupManager::getMostRecentBackupTimeInSecs(const QString&
 }
 
 void DomainContentBackupManager::setup() {
+    for (auto& rule : _backupRules) {
+        removeOldBackupVersions(rule);
+    }
+
     auto backups = getAllBackups();
     for (auto& backup : backups) {
         QFile backupFile { backup.absolutePath };
