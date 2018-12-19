@@ -39,7 +39,8 @@ Rectangle {
     property int numUpdatesAvailable: 0;
     // Style
     color: hifi.colors.white;
-    function getPurchases() {
+    function 
+    () {
         root.activeView = "purchasesMain";
         root.installedApps = Commerce.getInstalledApps();
         purchasesModel.getFirstPage();
@@ -669,6 +670,7 @@ Rectangle {
                                 lightboxPopup.titleText = '"' + msg.itemName + '" Sent to Trash';
                                 lightboxPopup.button1text = "OK";
                                 lightboxPopup.button1method = function() {
+                                    root.purchasesReceived = false;
                                     lightboxPopup.visible = false;
                                     getPurchases();
                                 }
