@@ -12,8 +12,8 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 
-public class AvatarExporter : MonoBehaviour {   
-    public static readonly Dictionary<string, string> HUMANOID_TO_HIFI_JOINT_NAME = new Dictionary<string, string> {
+class AvatarExporter : MonoBehaviour {    
+    static readonly Dictionary<string, string> HUMANOID_TO_HIFI_JOINT_NAME = new Dictionary<string, string> {
         {"Chest", "Spine1"},
         {"Head", "Head"},
         {"Hips", "Hips"},
@@ -70,7 +70,7 @@ public class AvatarExporter : MonoBehaviour {
         {"UpperChest", "Spine2"},
     };
     
-    public static readonly Dictionary<string, Quaternion> referenceAbsoluteRotations = new Dictionary<string, Quaternion> {
+    static readonly Dictionary<string, Quaternion> referenceAbsoluteRotations = new Dictionary<string, Quaternion> {
         {"Head", new Quaternion(-2.509889e-9f, -3.379446e-12f, 2.306033e-13f, 1f)},
         {"Hips", new Quaternion(-3.043941e-10f, -1.573706e-7f, 5.112975e-6f, 1f)},
         {"LeftHandIndex3", new Quaternion(-0.5086057f, 0.4908088f, -0.4912299f, -0.5090388f)},
@@ -127,55 +127,176 @@ public class AvatarExporter : MonoBehaviour {
         {"Spine2", new Quaternion(-0.0824653f, 1.25274e-7f, -6.75759e-6f, 0.996594f)},
     };
 
-    public static Dictionary<string, string> userBoneToHumanoidMappings = new Dictionary<string, string>();
-    public static Dictionary<string, string> userParentNames = new Dictionary<string, string>();
-    public static Dictionary<string, Quaternion> userAbsoluteRotations = new Dictionary<string, Quaternion>();
+    static Dictionary<string, string> userBoneToHumanoidMappings = new Dictionary<string, string>();
+    static Dictionary<string, string> userParentNames = new Dictionary<string, string>();
+    static Dictionary<string, Quaternion> userAbsoluteRotations = new Dictionary<string, Quaternion>();
+    
+    static string assetPath = "";
+    static string assetName = "";
+    static HumanDescription humanDescription;
  
     [MenuItem("High Fidelity/Export New Avatar")]
-    public static void ExportNewAvatar() {
+    static void ExportNewAvatar() {
         ExportSelectedAvatar(false);
     }
 
-    [MenuItem("High Fidelity/Update Avatar")]
-    public static void UpdateAvatar() {
+    [MenuItem("High Fidelity/Update Existing Avatar")]
+    static void UpdateAvatar() {
         ExportSelectedAvatar(true);
     }
 
-    public static void ExportSelectedAvatar(bool updateAvatar) {     
+    static void ExportSelectedAvatar(bool updateAvatar) {     
         string[] guids = Selection.assetGUIDs;
         if (guids.Length != 1) {
             if (guids.Length == 0) {
-                EditorUtility.DisplayDialog("Error", "Please select an asset to export", "Ok");
+                EditorUtility.DisplayDialog("Error", "Please select an asset to export.", "Ok");
             } else {
-                EditorUtility.DisplayDialog("Error", "Please select a single asset to export", "Ok");
+                EditorUtility.DisplayDialog("Error", "Please select a single asset to export.", "Ok");
             }
             return;
         }
-        string assetPath = AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]);    
-        ModelImporter importer = ModelImporter.GetAtPath(assetPath) as ModelImporter;
-        if (assetPath.LastIndexOf(".fbx") == -1 || importer == null) {
-            EditorUtility.DisplayDialog("Error", "Please select an .fbx model asset to export", "Ok");
+        assetPath = AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]);
+        assetName = Path.GetFileNameWithoutExtension(assetPath);
+        ModelImporter modelImporter = ModelImporter.GetAtPath(assetPath) as ModelImporter;
+        if (assetPath.LastIndexOf(".fbx") == -1 || modelImporter == null) {
+            EditorUtility.DisplayDialog("Error", "Please select an .fbx model asset to export.", "Ok");
             return;
         }
-        if (importer.animationType != ModelImporterAnimationType.Human) {
-            EditorUtility.DisplayDialog("Error", "Please set model's Animation Type to Humanoid", "Ok");
+        if (modelImporter.animationType != ModelImporterAnimationType.Human) {
+            EditorUtility.DisplayDialog("Error", "Please set model's Animation Type to Humanoid in the Rig section of it's Inspector window.", "Ok");
             return;
         }
+                
+        humanDescription = modelImporter.humanDescription;   
+        if (!SetJointMappingsAndParentNames()) {
+            return;
+        }
+    
+        string documentsFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
+        string hifiFolder = documentsFolder + "\\High Fidelity Projects";
+        if (updateAvatar) { // Update Existing Avatar menu option
+            bool copyModelToExport = false;
+            string initialPath = Directory.Exists(hifiFolder) ? hifiFolder : documentsFolder;
+            
+            // open file explorer defaulting to hifi folder in user documents to select target fst to update
+            string exportFstPath = EditorUtility.OpenFilePanel("Select fst to update", initialPath, "fst");
+            if (exportFstPath.Length == 0) { // file selection cancelled
+                return;
+            }
+            string exportModelPath = Path.GetDirectoryName(exportFstPath) + "/" + assetName + ".fbx";
+            
+            if (File.Exists(exportModelPath)) { 
+                // if the fbx in Unity Assets is newer than the fbx in the target export
+                // folder or vice-versa then ask to replace the older fbx with the newer fbx
+                DateTime assetModelWriteTime = File.GetLastWriteTime(assetPath);
+                DateTime targetModelWriteTime = File.GetLastWriteTime(exportModelPath);
+                if (assetModelWriteTime > targetModelWriteTime) {
+                    int option = EditorUtility.DisplayDialogComplex("Error", "The " + assetName + 
+                                 ".fbx model in the Unity Assets folder is newer than the " + exportModelPath + 
+                                 " model.\n\nDo you want to replace the older .fbx with the newer .fbx?",
+                                 "Yes", "No", "Cancel");
+                    if (option == 2) { // Cancel
+                        return;
+                    }
+                    copyModelToExport = option == 0;
+                } else if (assetModelWriteTime < targetModelWriteTime) {
+                    int option = EditorUtility.DisplayDialogComplex("Error", "The " + exportModelPath + 
+                                 " model is newer than the " + assetName + ".fbx model in the Unity Assets folder." +
+                                 "\n\nDo you want to replace the older .fbx with the newer .fbx and re-import it?", 
+                                 "Yes", "No" , "Cancel");
+                    if (option == 2) { // Cancel
+                        return;
+                    } else if (option == 0) { // Yes - copy model to Unity project
+                        // delete existing fbx and associated meta file in Unity Assets
+                        File.Delete(assetPath);
+                        File.Delete(assetPath + ".meta");
+                        AssetDatabase.Refresh();
+                        
+                        // copy the fbx from the project folder to Unity Assets and import it
+                        File.Copy(exportModelPath, assetPath);
+                        AssetDatabase.ImportAsset(assetPath);
+                        
+                        // set model to Humanoid animation type and force another refresh on it to process Humanoid
+                        modelImporter = ModelImporter.GetAtPath(assetPath) as ModelImporter;
+                        modelImporter.animationType = ModelImporterAnimationType.Human;
+                        EditorUtility.SetDirty(modelImporter);
+                        modelImporter.SaveAndReimport();
+                        humanDescription = modelImporter.humanDescription;   
+                        
+                        // redo joint mappings and parent names due to the fbx change
+                        SetJointMappingsAndParentNames();
+                    }
+                }
+            } else {
+                // if no matching fbx exists in the target export folder then ask to copy fbx over
+                int option = EditorUtility.DisplayDialogComplex("Error", "There is no existing " + exportModelPath + 
+                             " model.\n\nDo you want to copy over the " + assetName + 
+                             ".fbx model from the Unity Assets folder?", "Yes", "No", "Cancel");
+                if (option == 2) { // Cancel
+                    return;
+                }
+                copyModelToExport = option == 0;
+            }  
+
+            // delete any existing fbx if we agreed to overwrite it, and copy asset fbx over
+            if (copyModelToExport) {
+                if (File.Exists(exportModelPath)) {
+                    File.Delete(exportModelPath);
+                }
+                File.Copy(assetPath, exportModelPath);
+            }
+            
+            // delete any existing fst since we are re-exporting it
+            // TODO: updating fst should only rewrite joint mappings and joint rotation offsets to existing file
+            if (File.Exists(exportFstPath)) {
+                File.Delete(exportFstPath);
+            }
+            
+            WriteFST(exportFstPath);
+        } else { // Export New Avatar menu option
+            // create High Fidelity folder in user documents folder if it doesn't exist
+            if (!Directory.Exists(hifiFolder)) {    
+                Directory.CreateDirectory(hifiFolder);
+            }
+            
+            // open a popup window to enter new export project name and project location
+            ExportProjectWindow window = ScriptableObject.CreateInstance<ExportProjectWindow>();
+            window.Init(hifiFolder, OnExportProjectWindowClose);
+        }
+    }
+    
+    static void OnExportProjectWindowClose(string projectDirectory) {
+        // copy the fbx from the Unity Assets folder to the project directory,
+        // and then write out the fst file to the project directory
+        string exportModelPath = projectDirectory + assetName + ".fbx";
+        string exportFstPath = projectDirectory + "avatar.fst";
+        File.Copy(assetPath, exportModelPath);
+        WriteFST(exportFstPath);
         
-        userBoneToHumanoidMappings.Clear();
+        // create empty Textures and Scripts folders in the project directory
+        string texturesDirectory = projectDirectory + "\\textures";
+        string scriptsDirectory = projectDirectory + "\\scripts";
+        Directory.CreateDirectory(texturesDirectory);
+        Directory.CreateDirectory(scriptsDirectory);
+        
+        // open File Explorer to the project directory once finished
+        System.Diagnostics.Process.Start("explorer.exe", "/select," + exportFstPath);
+    }
+    
+    static bool SetJointMappingsAndParentNames() {
         userParentNames.Clear();
-        userAbsoluteRotations.Clear();
+        userBoneToHumanoidMappings.Clear();
         
         // instantiate a game object of the user avatar to save out bone parents then destroy it
         UnityEngine.Object avatarResource = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
-        if (avatarResource) {
-             GameObject assetGameObject = (GameObject)Instantiate(avatarResource);
-             SetParentNames(assetGameObject.transform, userParentNames);
-             DestroyImmediate(assetGameObject);
+        if (!avatarResource) {
+            return false;
         }
+        GameObject assetGameObject = (GameObject)Instantiate(avatarResource);
+        SetParentNames(assetGameObject.transform, userParentNames);
+        DestroyImmediate(assetGameObject);
         
         // store joint mappings only for joints that exist in hifi and verify missing joints
-        HumanDescription humanDescription = importer.humanDescription;
         HumanBone[] boneMap = humanDescription.human;
         string chestUserBone = "";
         string neckUserBone = "";
@@ -195,11 +316,11 @@ public class AvatarExporter : MonoBehaviour {
         }
         if (!userBoneToHumanoidMappings.ContainsValue("Hips")) {
             EditorUtility.DisplayDialog("Error", "There is no Hips bone in selected avatar", "Ok");
-            return;
+            return false;
         }
         if (!userBoneToHumanoidMappings.ContainsValue("Spine")) {
             EditorUtility.DisplayDialog("Error", "There is no Spine bone in selected avatar", "Ok");
-            return;
+            return false;
         }
         if (!userBoneToHumanoidMappings.ContainsValue("Chest")) {
             // check to see if there is a child of Spine that could be mapped to Chest
@@ -222,7 +343,7 @@ public class AvatarExporter : MonoBehaviour {
                 chestUserBone = spineChild;
             } else {
                 EditorUtility.DisplayDialog("Error", "There is no Chest bone in selected avatar", "Ok");
-                return;
+                return false;
             }
         }
         if (!userBoneToHumanoidMappings.ContainsValue("UpperChest")) {
@@ -240,66 +361,13 @@ public class AvatarExporter : MonoBehaviour {
                 userBoneToHumanoidMappings[chestUserBone] = "UpperChest";
             }
         }
-
-        bool copyModelToExport = false;
-        string exportFstPath, exportModelPath;
-        string assetName = Path.GetFileNameWithoutExtension(assetPath);
-        string documentsFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
-        if (updateAvatar) {
-            // open file explorer defaulting to user documents folder to select target fst to update
-            exportFstPath = EditorUtility.OpenFilePanel("Select fst to update", documentsFolder, "fst");
-            if (exportFstPath.Length == 0) { // file selection cancelled
-                return;
-            }
-            exportModelPath = Path.GetDirectoryName(exportFstPath) + "/" + assetName + ".fbx";
-            
-            if (File.Exists(exportModelPath)) { 
-                // if the fbx in Unity Assets/Resources is newer than the fbx in the 
-                // target export folder or vice-versa then ask to copy fbx over
-                DateTime assetModelWriteTime = File.GetLastWriteTime(assetPath);
-                DateTime targetModelWriteTime = File.GetLastWriteTime(exportModelPath);
-                if (assetModelWriteTime > targetModelWriteTime) {
-                    copyModelToExport = EditorUtility.DisplayDialog("Error", "The " + assetName + 
-                                        ".fbx model in the Unity Assets/Resources folder is newer than the " + exportModelPath +
-                                        " model. Do you want to copy the newer .fbx model over?" , "Yes", "No");
-                } else if (assetModelWriteTime < targetModelWriteTime) {
-                    bool copyModelToUnity = EditorUtility.DisplayDialog("Error", "The " + exportModelPath + 
-                                            " model is newer than the " + assetName + 
-                                            ".fbx model in the Unity Assets/Resources folder. Do you want to copy the newer .fbx model over?",
-                                            "Yes", "No");
-                    if (copyModelToUnity) {
-                        File.Delete(assetPath);
-                        File.Copy(exportModelPath, assetPath);
-                    }
-                }
-            } else {
-                // if no matching fbx exists in the target export folder then ask to copy fbx over
-                copyModelToExport = EditorUtility.DisplayDialog("Error", "There is no existing " + exportModelPath + 
-                                    " model. Do you want to copy over the " + assetName + 
-                                    ".fbx model from the Unity Assets/Resources folder?" , "Yes", "No");
-            }   
-        } else {
-            // open folder explorer defaulting to user documents folder to select target folder to export fst and fbx to
-            if (!SelectExportFolder(assetName, documentsFolder, out exportFstPath, out exportModelPath)) {
-                return;
-            }
-            copyModelToExport = true;
-        }
         
-        // delete any existing fbx since we would have agreed to overwrite it, and copy asset fbx over
-        if (copyModelToExport) {
-            if (File.Exists(exportModelPath)) {
-                File.Delete(exportModelPath);
-            }
-            File.Copy(assetPath, exportModelPath);
-        }
-        
-        // delete any existing fst since we agreed to overwrite it or are updating it
-        // TODO: should updating fst only rewrite joint mappings and joint rotation offsets?
-        if (File.Exists(exportFstPath)) {
-            File.Delete(exportFstPath);
-        }
-        
+        return true;
+    }
+    
+    static void WriteFST(string exportFstPath) {
+        userAbsoluteRotations.Clear();
+                
         // write out core fields to top of fst file
         File.WriteAllText(exportFstPath, "name = " + assetName + "\ntype = body+head\nscale = 1\nfilename = " + 
                           assetName + ".fbx\n" + "texdir = textures\n");
@@ -310,6 +378,7 @@ public class AvatarExporter : MonoBehaviour {
             File.AppendAllText(exportFstPath, "jointMap = " + hifiJointName + " = " + jointMapping.Key + "\n");
         }
         
+        // calculate and write out joint rotation offsets to fst file
         SkeletonBone[] skeletonMap = humanDescription.skeleton;
         foreach (SkeletonBone userBone in skeletonMap) {
             string userBoneName = userBone.name;
@@ -353,37 +422,8 @@ public class AvatarExporter : MonoBehaviour {
             }
         }
     }
-    
-    public static bool SelectExportFolder(string assetName, string initialPath, out string fstPath, out string modelPath) {
-        string selectedPath = EditorUtility.OpenFolderPanel("Select export location", initialPath, "");
-        if (selectedPath.Length == 0) { // folder selection cancelled
-            fstPath = "";
-            modelPath = "";
-            return false;
-        }
-        fstPath = selectedPath + "/" + assetName + ".fst";
-        modelPath = selectedPath + "/" + assetName + ".fbx";
-        bool fstExists = File.Exists(fstPath);
-        bool modelExists = File.Exists(modelPath);
-        if (fstExists || modelExists) {
-            string overwriteMessage;
-            if (fstExists && modelExists) {
-                overwriteMessage = assetName + ".fst and " + assetName + 
-                                   ".fbx already exist here, would you like to overwrite them?";
-            } else if (fstExists) {
-                overwriteMessage = assetName + ".fst already exists here, would you like to overwrite it?";
-            } else {
-                overwriteMessage = assetName + ".fbx already exists here, would you like to overwrite it?";
-            }
-            bool overwrite = EditorUtility.DisplayDialog("Error", overwriteMessage, "Yes", "No");
-            if (!overwrite) {
-                return SelectExportFolder(assetName, selectedPath, out fstPath, out modelPath);
-            }
-        }
-        return true;
-    }
-    
-    public static void SetParentNames(Transform modelBone, Dictionary<string, string> parentNames) {
+
+    static void SetParentNames(Transform modelBone, Dictionary<string, string> parentNames) {
         for (int i = 0; i < modelBone.childCount; i++) {
             SetParentNames(modelBone.GetChild(i), parentNames);
         }
@@ -394,11 +434,111 @@ public class AvatarExporter : MonoBehaviour {
         }
     }
     
-    public static string FindLastRequiredParentBone(string currentBone) {
+    static string FindLastRequiredParentBone(string currentBone) {
         string result = currentBone;
         while (result != "root" && !userBoneToHumanoidMappings.ContainsKey(result)) {
             result = userParentNames[result];            
         }
         return result;
+    }
+}
+
+class ExportProjectWindow : EditorWindow {   
+    string projectName = "";
+    string projectLocation = "";
+    string projectDirectory = "";
+    string errorLabel = "";
+    
+    public delegate void OnCloseDelegate(string projectDirectory);
+    OnCloseDelegate onCloseCallback;
+    
+    public void Init(string initialPath, OnCloseDelegate closeCallback) {
+        projectLocation = initialPath;
+        onCloseCallback = closeCallback;
+        ShowUtility();
+    }
+
+    void OnGUI() {
+        GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
+        buttonStyle.fontSize = 20;  
+        GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
+        labelStyle.fontSize = 16;
+        GUIStyle errorStyle = new GUIStyle(GUI.skin.label); 
+        errorStyle.fontSize = 12;
+        errorStyle.normal.textColor = Color.red;
+        GUIStyle textStyle = new GUIStyle(GUI.skin.textField);
+        textStyle.fontSize = 16;
+     
+        GUILayout.Space(10);
+        
+        GUILayout.Label("Export project name:", labelStyle);
+        projectName = GUILayout.TextField(projectName, textStyle);
+        
+        GUILayout.Space(10);
+        
+        GUILayout.Label("Export project location:", labelStyle);
+        projectLocation = GUILayout.TextField(projectLocation, textStyle);      
+        
+        if (GUILayout.Button("Browse", buttonStyle)) {
+            string result = EditorUtility.OpenFolderPanel("Select export location", projectLocation, "");
+            if (result.Length > 0) { // folder selection not cancelled
+                projectLocation = result.Replace('/', '\\');
+            }
+        }
+        
+        GUILayout.Label(errorLabel, errorStyle);
+        
+        GUILayout.Space(30);
+        
+        bool export = false;
+        if (GUILayout.Button("Export", buttonStyle)) {
+            export = true;
+            if (!CheckForErrors(true)) {
+                Close();
+                onCloseCallback(projectDirectory);
+            }
+        }
+        
+        if (GUILayout.Button("Cancel", buttonStyle)) {
+            Close();
+        }
+        
+        if (GUI.changed && !export) {
+            CheckForErrors(false);
+        }
+    }
+    
+    bool CheckForErrors(bool exporting) {   
+        errorLabel = "";
+        projectDirectory = projectLocation + "\\" + projectName + "\\";
+        if (projectName.Length > 0) {
+            if (Directory.Exists(projectDirectory)) {
+                errorLabel = "A folder with the name " + projectName + " already exists at that location.\nPlease choose a different project name or location.";
+                return true;
+            }
+        }
+        if (projectLocation.Length > 0) {
+            if (!Char.IsLetter(projectLocation[0]) || projectLocation.Length == 1 || projectLocation[1] != ':') {
+                errorLabel = "Project location is invalid. Please choose a different project location.";
+                return true;
+            }
+        }
+        if (exporting) {
+            if (projectName.Length == 0) {
+                errorLabel = "Please define a project name.";
+                return true;
+            } else if (projectLocation.Length == 0) {
+                errorLabel = "Please define a project location.";
+                return true;
+            } else {
+                try {
+                    Directory.CreateDirectory(projectDirectory);
+                } catch {
+                    errorLabel = "Project location is invalid. Please choose a different project location.";
+                    return true;
+                }
+            }
+        } 
+        return false;
     }
 }
