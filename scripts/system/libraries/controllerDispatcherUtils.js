@@ -155,6 +155,7 @@ DISPATCHER_PROPERTIES = [
     "grab.equippableIndicatorScale",
     "grab.equippableIndicatorOffset",
     "userData",
+    "avatarEntity",
     "owningAvatarID"
 ];
 
