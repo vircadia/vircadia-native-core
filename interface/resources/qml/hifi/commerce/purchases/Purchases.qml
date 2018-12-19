@@ -39,8 +39,7 @@ Rectangle {
     property int numUpdatesAvailable: 0;
     // Style
     color: hifi.colors.white;
-    function 
-    () {
+    function getPurchases() {
         root.activeView = "purchasesMain";
         root.installedApps = Commerce.getInstalledApps();
         purchasesModel.getFirstPage();
