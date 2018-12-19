@@ -119,16 +119,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
             // Extract opaques / transparents / lights / metas / overlays / background
             const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
             const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-            const auto& lights = items[RenderFetchCullSortTask::LIGHT];
-            const auto& metas = items[RenderFetchCullSortTask::META];
-            const auto& overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-            const auto& overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
             const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
             const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
             const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
             const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
-
-        const auto& spatialSelection = fetchedItems.get1();
 
     // Lighting model comes next, the big configuration of the view
     const auto& lightingModel = inputs[1];
@@ -141,8 +135,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
             const auto backgroundFrame = currentStageFrames[1];
             const auto& hazeFrame = currentStageFrames[2];
             const auto& bloomFrame = currentStageFrames[3];
-
-        const auto& zones = lightingStageInputs[1];
 
     // Shadow Task Outputs
     const auto& shadowTaskOutputs = inputs.get3();
@@ -296,8 +288,6 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
             const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
             const auto& lights = items[RenderFetchCullSortTask::LIGHT];
             const auto& metas = items[RenderFetchCullSortTask::META];
-            const auto& overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-            const auto& overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
             const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
             const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
             const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
@@ -308,7 +298,7 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
     // RenderShadowTask out
     const auto& shadowOut = inputs.get1();
 
-        const auto& renderShadowTaskOut = inputs[0];
+        const auto& renderShadowTaskOut = shadowOut[0];
 
     // Extract the Lighting Stages Current frame ( and zones)
     const auto lightingStageInputs = inputs.get2();

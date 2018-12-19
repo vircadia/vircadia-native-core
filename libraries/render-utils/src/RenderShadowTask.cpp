@@ -33,6 +33,8 @@
 // but are readjusted afterwards
 #define SHADOW_FRUSTUM_NEAR 1.0f
 #define SHADOW_FRUSTUM_FAR  500.0f
+static const unsigned int SHADOW_CASCADE_COUNT{ 4 };
+static const float SHADOW_MAX_DISTANCE{ 40.0f };
 
 using namespace render;
 
@@ -61,8 +63,6 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     // Starting with the Light Frame  genreated in previous tasks
     
     const auto& lightFrame = input.getN<Input>(0);
-
-    const auto& lightingModel = input.getN<Input>(1);
 
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup", input);
     const auto queryResolution = setupOutput.getN<RenderShadowSetup::Output>(1);
@@ -371,7 +371,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     output.edit2() = _cameraFrustum;
 
     if (!_globalShadowObject) {
-        _globalShadowObject = std::make_shared<LightStage::Shadow>(graphics::LightPointer(), 100.f, 4);
+        _globalShadowObject = std::make_shared<LightStage::Shadow>(graphics::LightPointer(), SHADOW_MAX_DISTANCE, SHADOW_CASCADE_COUNT);
     }
     
     const auto theGlobalLight = lightStage->getCurrentKeyLight(lightFrame);
@@ -446,19 +446,13 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
 
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, const Inputs& input, Outputs& output) {
     const auto shadowFrame = input;
-   /* 
-    auto lightStage = renderContext->_scene->getStage<LightStage>();
-    const auto& lightFrame = *input;
-    assert(lightStage);
-*/
+
     // Cache old render args
     RenderArgs* args = renderContext->args;
 
     RenderShadowTask::CullFunctor cullFunctor;
-
-    
     if (shadowFrame && !shadowFrame->_objects.empty() && shadowFrame->_objects[0]) {
-        const auto globalShadow = shadowFrame->_objects[0]; //lightStage->getCurrentKeyShadow(lightFrame);
+        const auto globalShadow = shadowFrame->_objects[0];
 
         if (globalShadow && _cascadeIndex < globalShadow->getCascadeCount()) {
             // Second item filter is to filter items to keep in shadow frustum computation (here we need to keep shadow receivers)

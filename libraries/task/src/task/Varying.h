@@ -35,7 +35,7 @@ public:
     template <class T> const T& get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
     template <class T> T& edit() { return std::static_pointer_cast<Model<T>>(_concept)->_data; }
 
-    const std::string& name() const { return _concept->name(); }
+    const std::string name() const { return _concept->name(); }
 
     // access potential sub varyings contained in this one.
     Varying operator[] (uint8_t index) const { return (*_concept)[index]; }

@@ -64,16 +64,12 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
             // Extract opaques / transparents / lights / metas / overlays / background
             const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
             const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-            const auto& lights = items[RenderFetchCullSortTask::LIGHT];
             const auto& metas = items[RenderFetchCullSortTask::META];
-            const auto& overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-            const auto& overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
             const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
             const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
-            const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
-            const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
-
-        const auto& spatialSelection = fetchedItems.get1();
+          // TODO: Re enable the rendering of the HUD overlayes
+          // const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
+          // const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
 
     // Lighting model comes next, the big configuration of the view
     const auto& lightingModel = inputs[1];
@@ -84,9 +80,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         const auto currentStageFrames = lightingStageInputs.get0();
             const auto lightFrame = currentStageFrames[0];
             const auto backgroundFrame = currentStageFrames[1];
-            const auto& hazeFrame = currentStageFrames[2];
-            const auto& bloomFrame = currentStageFrames[3];
-
+ 
         const auto& zones = lightingStageInputs[1];
 
     // First job, alter faded
