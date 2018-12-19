@@ -39,6 +39,7 @@ Item {
     property bool withSteam: false
     property bool linkSteam: linkSteam
     property bool withOculus: false
+    property bool linkOculus: linkOculus
     property string errorString: errorString
     property bool lostFocus: false
 
@@ -373,7 +374,6 @@ Item {
                         lightboxPopup.visible = false;
                     }
                     lightboxPopup.visible = true;
-                    // bodyLoader.setSource("CantAccessBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                 }
             }
             HifiControlsUit.Button {
@@ -411,11 +411,10 @@ Item {
                         continueButton.visible = false;
                         return;
                     }
-                    // if (loginDialog.isOculusStoreRunning()) {
-                    //     continueButton.text = qsTr("CONTINUE WITH OCULUS");
-                    //     continueButton.buttonGlyph = hifi.glyphs.oculus;
-                    // } else
-                    if (loginDialog.isSteamRunning()) {
+                    if (loginDialog.isOculusStoreRunning()) {
+                        continueButton.text = qsTr("CONTINUE WITH OCULUS");
+                        continueButton.buttonGlyph = hifi.glyphs.oculus;
+                    } else if (loginDialog.isSteamRunning()) {
                         continueButton.text = qsTr("CONTINUE WITH STEAM");
                         continueButton.buttonGlyph = hifi.glyphs.steamSquare;
                     } else {
@@ -428,7 +427,7 @@ Item {
             id: signUpContainer
             width: loginContainer.width
             height: signUpTextMetrics.height
-            visible: !linkAccountBody.linkSteam
+            visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus
             anchors {
                 left: loginContainer.left
                 top: loginContainer.bottom
