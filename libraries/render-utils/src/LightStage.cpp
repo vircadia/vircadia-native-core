@@ -350,27 +350,9 @@ LightStage::Index LightStage::addLight(const LightPointer& light, const bool sho
     return lightId;
 }
 
-LightStage::Index LightStage::addShadow(Index lightIndex, float maxDistance, unsigned int cascadeCount) {
-    auto light = getLight(lightIndex);
-    Index shadowId = INVALID_INDEX;
-    if (light) {
-        assert(_descs[lightIndex].shadowId == INVALID_INDEX);
-        shadowId = _shadows.newElement(std::make_shared<Shadow>(light, maxDistance, cascadeCount));
-        _descs[lightIndex].shadowId = shadowId;
-    }
-    return shadowId;
-}
-
 LightStage::LightPointer LightStage::removeLight(Index index) {
     LightPointer removedLight = _lights.freeElement(index);
     if (removedLight) {
-        auto shadowId = _descs[index].shadowId;
-        // Remove shadow if one exists for this light
-        if (shadowId != INVALID_INDEX) {
-            auto removedShadow = _shadows.freeElement(shadowId);
-            assert(removedShadow);
-            assert(removedShadow->getLight() == removedLight);
-        }
         _lightMap.erase(removedLight);
         _descs[index] = Desc();
     }
@@ -392,35 +374,6 @@ LightStage::LightPointer LightStage::getCurrentAmbientLight(const LightStage::Fr
         keyLightId = frame._ambientLights.front();
     }
     return _lights.get(keyLightId);
-}
-
-LightStage::ShadowPointer LightStage::getCurrentKeyShadow(const LightStage::Frame& frame) const {
-    Index keyLightId { _defaultLightId };
-    if (!frame._sunLights.empty()) {
-        keyLightId = frame._sunLights.front();
-    }
-    auto shadow = getShadow(keyLightId);
-    assert(shadow == nullptr || shadow->getLight() == getLight(keyLightId));
-    return shadow;
-}
-
-LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow(const LightStage::Frame& frame) const {
-    Index keyLightId { _defaultLightId };
-    if (!frame._sunLights.empty()) {
-        keyLightId = frame._sunLights.front();
-    }
-    auto shadow = getShadow(keyLightId);
-    auto light = getLight(keyLightId);
-    assert(shadow == nullptr || shadow->getLight() == light);
-    return LightAndShadow(light, shadow);
-}
-
-LightStage::Index LightStage::getShadowId(Index lightId) const {
-    if (checkLightId(lightId)) {
-        return _descs[lightId].shadowId;
-    } else {
-        return INVALID_INDEX;
-    }
 }
 
 void LightStage::updateLightArrayBuffer(Index lightId) {

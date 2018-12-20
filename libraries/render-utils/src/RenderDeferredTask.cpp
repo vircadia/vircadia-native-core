@@ -298,7 +298,8 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
     // RenderShadowTask out
     const auto& shadowOut = inputs.get1();
 
-        const auto& renderShadowTaskOut = shadowOut[0];
+    const auto& renderShadowTaskOut = shadowOut[0];
+    const auto& shadowFrame = shadowOut[1];
 
     // Extract the Lighting Stages Current frame ( and zones)
     const auto lightingStageInputs = inputs.get2();
@@ -401,7 +402,7 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
     {
 
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer, deferredFrameTransform, lightFrame).asVarying();
+        const auto debugFramebuffers = DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer, deferredFrameTransform, shadowFrame).asVarying();
         task.addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
@@ -446,7 +447,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
     const auto& lightFrame = inputs.get2();
     const auto& lightingModel = inputs.get3();
     const auto& lightClusters = inputs.get4();
-    // Not used yet but will be: const auto& shadowFrame = inputs.get5();
+    const auto& shadowFrame = inputs.get5();
     const auto jitter = inputs.get6();
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
