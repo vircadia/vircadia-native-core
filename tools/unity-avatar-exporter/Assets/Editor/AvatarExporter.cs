@@ -186,7 +186,7 @@ class AvatarExporter : MonoBehaviour {
             string initialPath = Directory.Exists(hifiFolder) ? hifiFolder : documentsFolder;
             
             // open file explorer defaulting to hifi projects folder in user documents to select target fst to update
-            string exportFstPath = EditorUtility.OpenFilePanel("Select fst to update", initialPath, "fst");
+            string exportFstPath = EditorUtility.OpenFilePanel("Select .fst to update", initialPath, "fst");
             if (exportFstPath.Length == 0) { // file selection cancelled
                 return;
             }
@@ -498,7 +498,7 @@ class AvatarExporter : MonoBehaviour {
 
 class ExportProjectWindow : EditorWindow {
     const int MIN_WIDTH = 450;
-    const int MIN_HEIGHT = 260;
+    const int MIN_HEIGHT = 250;
     const int BUTTON_FONT_SIZE = 16;
     const int LABEL_FONT_SIZE = 16;
     const int TEXT_FIELD_FONT_SIZE = 14;
@@ -555,7 +555,7 @@ class ExportProjectWindow : EditorWindow {
         // Red error label text to display any issues under text fields and Browse button
         GUILayout.Label(errorLabel, errorStyle);
         
-        GUILayout.Space(25);
+        GUILayout.Space(20);
         
         // Export button which will verify project folder can actually be created 
         // before closing popup window and calling back to initiate the export
@@ -601,10 +601,10 @@ class ExportProjectWindow : EditorWindow {
             // when exporting, project name and location must both be defined, and project location must
             // be valid and accessible (we attempt to create the project folder at this time to verify this)
             if (projectName.Length == 0) {
-                errorLabel = "Please define a project name.";
+                errorLabel = "Please define a project name.\n";
                 return true;
             } else if (projectLocation.Length == 0) {
-                errorLabel = "Please define a project location.";
+                errorLabel = "Please define a project location.\n";
                 return true;
             } else {
                 try {
