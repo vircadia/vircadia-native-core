@@ -270,22 +270,6 @@ public:
 
     glm::mat4 offset; // This includes offset, rotation, and scale as specified by the FST file
 
-    int leftEyeJointIndex = -1;
-    int rightEyeJointIndex = -1;
-    int neckJointIndex = -1;
-    int rootJointIndex = -1;
-    int leanJointIndex = -1;
-    int headJointIndex = -1;
-    int leftHandJointIndex = -1;
-    int rightHandJointIndex = -1;
-    int leftToeJointIndex = -1;
-    int rightToeJointIndex = -1;
-
-    float leftEyeSize = 0.0f;  // Maximum mesh extents dimension
-    float rightEyeSize = 0.0f;
-
-    QVector<int> humanIKJointIndices;
-
     glm::vec3 palmDirection;
 
     glm::vec3 neckPivot;

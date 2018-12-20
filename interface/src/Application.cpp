@@ -2462,6 +2462,10 @@ void Application::updateHeartbeat() const {
 void Application::onAboutToQuit() {
     emit beforeAboutToQuit();
 
+    if (getLoginDialogPoppedUp() && _firstRun.get()) {
+        _firstRun.set(false);
+    }
+
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
             inputPlugin->deactivate();
@@ -5255,17 +5259,13 @@ void Application::resumeAfterLoginDialogActionTaken() {
         // this will force the model the look at the correct directory (weird order of operations issue)
         scriptEngines->reloadLocalFiles();
 
-        if (!_defaultScriptsLocation.exists()) {
+        // if the --scripts command-line argument was used.
+        if (!_defaultScriptsLocation.exists() && (arguments().indexOf(QString("--").append(SCRIPTS_SWITCH))) != -1) {
             scriptEngines->loadDefaultScripts();
             scriptEngines->defaultScriptsLocationOverridden(true);
         } else {
             scriptEngines->loadScripts();
         }
-    }
-
-    if (_firstRun.get()) {
-        // not first run anymore since action was taken.
-        _firstRun.set(false);
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -5274,28 +5274,19 @@ void Application::resumeAfterLoginDialogActionTaken() {
     // restart domain handler.
     nodeList->getDomainHandler().resetting();
 
-    if (!accountManager->isLoggedIn()) {
+    QVariant testProperty = property(hifi::properties::TEST);
+    if (testProperty.isValid()) {
+        const auto testScript = property(hifi::properties::TEST).toUrl();
+        // Set last parameter to exit interface when the test script finishes, if so requested
+        DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
+        // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
         if (arguments().contains("--url")) {
             auto reply = SandboxUtils::getStatus();
             connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
-        } else {
-            addressManager->goToEntry();
         }
     } else {
-        QVariant testProperty = property(hifi::properties::TEST);
-        if (testProperty.isValid()) {
-            const auto testScript = property(hifi::properties::TEST).toUrl();
-            // Set last parameter to exit interface when the test script finishes, if so requested
-            DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
-            // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
-            if (arguments().contains("--url")) {
-                auto reply = SandboxUtils::getStatus();
-                connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
-            }
-        } else {
-            auto reply = SandboxUtils::getStatus();
-            connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
-        }
+        auto reply = SandboxUtils::getStatus();
+        connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
     }
 
     auto menu = Menu::getInstance();
