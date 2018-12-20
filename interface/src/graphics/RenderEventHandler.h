@@ -10,6 +10,7 @@
 #ifndef hifi_RenderEventHandler_h
 #define hifi_RenderEventHandler_h
 
+#include <functional>
 #include <QEvent>
 #include <QElapsedTimer>
 #include "gl/OffscreenGLCanvas.h"

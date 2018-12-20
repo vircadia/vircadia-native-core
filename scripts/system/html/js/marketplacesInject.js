@@ -251,19 +251,39 @@
             $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
 
             var priceElement = $(this).find('.price');
-            priceElement.css({
-                "padding": "3px 5px",
-                "height": "40px",
-                "background": "linear-gradient(#00b4ef, #0093C5)",
-                "color": "#FFF",
-                "font-weight": "600",
-                "line-height": "34px"
-            });
+            var available = true;
+
+            if (priceElement.text() === 'invalidated' ||
+                priceElement.text() === 'sold out' ||
+                priceElement.text() === 'not for sale') {
+                available = false;
+                priceElement.css({
+                    "padding": "3px 5px 10px 5px",
+                    "height": "40px",
+                    "background": "linear-gradient(#a2a2a2, #fefefe)",
+                    "color": "#000",
+                    "font-weight": "600",
+                    "line-height": "34px"
+                });
+            } else {
+                priceElement.css({
+                    "padding": "3px 5px",
+                    "height": "40px",
+                    "background": "linear-gradient(#00b4ef, #0093C5)",
+                    "color": "#FFF",
+                    "font-weight": "600",
+                    "line-height": "34px"
+                });
+            }
 
             if (parseInt(cost) > 0) {
                 priceElement.css({ "width": "auto" });
-                priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
-                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+
+                if (available) {
+                    priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
+                        'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                }
+                
                 priceElement.css({ "min-width": priceElement.width() + 30 });
             }
         });

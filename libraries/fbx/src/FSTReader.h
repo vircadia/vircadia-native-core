@@ -29,6 +29,7 @@ static const QString JOINT_FIELD = "joint";
 static const QString FREE_JOINT_FIELD = "freeJoint";
 static const QString BLENDSHAPE_FIELD = "bs";
 static const QString SCRIPT_FIELD = "script";
+static const QString JOINT_NAME_MAPPING_FIELD = "jointMap";
 
 class FSTReader {
 public:
