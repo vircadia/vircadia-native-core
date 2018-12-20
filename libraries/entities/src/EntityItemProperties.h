@@ -48,6 +48,7 @@
 #include "ZoneEntityItem.h"
 
 #include "MaterialMappingMode.h"
+#include "BillboardMode.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -68,18 +69,19 @@ using u8vec3Color = glm::u8vec3;
 class EntityItemProperties {
     // TODO: consider removing these friend relationship and use public methods
     friend class EntityItem;
-    friend class ModelEntityItem;
     friend class BoxEntityItem;
     friend class SphereEntityItem;
-    friend class LightEntityItem;
-    friend class TextEntityItem;
-    friend class ParticleEffectEntityItem;
-    friend class ZoneEntityItem;
-    friend class WebEntityItem;
-    friend class LineEntityItem;
-    friend class PolyVoxEntityItem;
-    friend class PolyLineEntityItem;
     friend class ShapeEntityItem;
+    friend class ModelEntityItem;
+    friend class TextEntityItem;
+    friend class ImageEntityItem;
+    friend class WebEntityItem;
+    friend class ParticleEffectEntityItem;
+    friend class LineEntityItem;
+    friend class PolyLineEntityItem;
+    friend class PolyVoxEntityItem;
+    friend class LightEntityItem;
+    friend class ZoneEntityItem;
     friend class MaterialEntityItem;
 public:
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
@@ -213,7 +215,7 @@ public:
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString, "");
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString, "");
-    DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool, TextEntityItem::DEFAULT_FACE_CAMERA);
+    DEFINE_PROPERTY_REF_ENUM(PROP_BILLBOARD_MODE, BillboardMode, billboardMode, BillboardMode, BillboardMode::NONE);
     DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray, QByteArray());
     DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
@@ -250,6 +252,11 @@ public:
     DEFINE_PROPERTY(PROP_SPIN_START, SpinStart, spinStart, float, particle::DEFAULT_SPIN_START);
     DEFINE_PROPERTY(PROP_SPIN_FINISH, SpinFinish, spinFinish, float, particle::DEFAULT_SPIN_FINISH);
     DEFINE_PROPERTY(PROP_PARTICLE_ROTATE_WITH_ENTITY, RotateWithEntity, rotateWithEntity, bool, particle::DEFAULT_ROTATE_WITH_ENTITY);
+
+    DEFINE_PROPERTY_REF(PROP_IMAGE_URL, ImageURL, imageURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_EMISSIVE, Emissive, emissive, bool, false);
+    DEFINE_PROPERTY_REF(PROP_KEEP_ASPECT_RATIO, KeepAspectRatio, keepAspectRatio, bool, true);
+    DEFINE_PROPERTY_REF(PROP_SUB_IMAGE, SubImage, subImage, QRect, QRect());
 
     // Certifiable Properties - related to Proof of Purchase certificates
     DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);

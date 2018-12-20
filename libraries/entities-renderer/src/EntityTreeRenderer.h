@@ -117,6 +117,9 @@ public:
     // Access the workload Space
     workload::SpacePointer getWorkloadSpace() const { return _space; }
 
+    static void setGetAvatarUpOperator(std::function<glm::vec3()> getAvatarUpOperator) { _getAvatarUpOperator = getAvatarUpOperator; }
+    static glm::vec3 getAvatarUp() { return _getAvatarUpOperator(); }
+
 signals:
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
@@ -248,6 +251,8 @@ private:
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space{ new workload::Space() };
     workload::Transaction::Updates _spaceUpdates;
+
+    static std::function<glm::vec3()> _getAvatarUpOperator;
 };
 
 
