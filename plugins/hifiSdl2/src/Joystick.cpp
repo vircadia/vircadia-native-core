@@ -46,8 +46,8 @@ void Joystick::closeJoystick() {
 
 void Joystick::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     for (auto axisState : _axisStateMap) {
-        if (fabsf(axisState.second) < CONTROLLER_THRESHOLD) {
-            _axisStateMap[axisState.first] = 0.0f;
+        if (fabsf(axisState.second.value) < CONTROLLER_THRESHOLD) {
+            _axisStateMap[axisState.first].value = 0.0f;
         }
     }
 }
@@ -59,7 +59,7 @@ void Joystick::focusOutEvent() {
 
 void Joystick::handleAxisEvent(const SDL_ControllerAxisEvent& event) {
     SDL_GameControllerAxis axis = (SDL_GameControllerAxis) event.axis;
-    _axisStateMap[makeInput((controller::StandardAxisChannel)axis).getChannel()] = (float)event.value / MAX_AXIS;
+    _axisStateMap[makeInput((controller::StandardAxisChannel)axis).getChannel()].value = (float)event.value / MAX_AXIS;
 }
 
 void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {

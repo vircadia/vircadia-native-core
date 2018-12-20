@@ -27,15 +27,15 @@ void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputC
         _inputDevice->update(deltaTime, inputCalibrationData);
         eraseMouseClicked();
 
-        _inputDevice->_axisStateMap[MOUSE_AXIS_X] = _lastCursor.x();
-        _inputDevice->_axisStateMap[MOUSE_AXIS_Y] = _lastCursor.y();
+        _inputDevice->_axisStateMap[MOUSE_AXIS_X].value = _lastCursor.x();
+        _inputDevice->_axisStateMap[MOUSE_AXIS_Y].value = _lastCursor.y();
 
         QPoint currentMove = _lastCursor - _previousCursor;
-        _inputDevice->_axisStateMap[MOUSE_AXIS_X_POS] = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
-        _inputDevice->_axisStateMap[MOUSE_AXIS_X_NEG] = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
+        _inputDevice->_axisStateMap[MOUSE_AXIS_X_POS].value = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
+        _inputDevice->_axisStateMap[MOUSE_AXIS_X_NEG].value = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
         // Y mouse is inverted positive is pointing up the screen
-        _inputDevice->_axisStateMap[MOUSE_AXIS_Y_POS] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
-        _inputDevice->_axisStateMap[MOUSE_AXIS_Y_NEG] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
+        _inputDevice->_axisStateMap[MOUSE_AXIS_Y_POS].value = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
+        _inputDevice->_axisStateMap[MOUSE_AXIS_Y_NEG].value = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
         _previousCursor = _lastCursor;
     });
 
@@ -124,10 +124,11 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
 void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {
     auto currentMove = event->angleDelta() / 120.0f;
 
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_POS).getChannel()] = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_NEG).getChannel()] = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_POS).getChannel()] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_NEG).getChannel()] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
+    // ####### TODO: Use AxisValue timestamps?
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_POS).getChannel()].value = (currentMove.x() > 0 ? currentMove.x() : 0, 0);
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_NEG).getChannel()].value = (currentMove.x() < 0 ? -currentMove.x() : 0, 0);
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_POS).getChannel()].value = (currentMove.y() > 0 ? currentMove.y() : 0);
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_NEG).getChannel()].value = (currentMove.y() < 0 ? -currentMove.y() : 0);
 }
 
 glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) {
@@ -167,11 +168,12 @@ void KeyboardMouseDevice::touchUpdateEvent(const QTouchEvent* event) {
         } else {
             auto currentMove = currentPos - _lastTouch;
 
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()] = (currentMove.x > 0 ? currentMove.x : 0.0f);
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_NEG).getChannel()] = (currentMove.x < 0 ? -currentMove.x : 0.0f);
+            // ####### TODO: Use AxisValue timestamp fields?
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()].value = (currentMove.x > 0 ? currentMove.x : 0.0f);
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_NEG).getChannel()].value = (currentMove.x < 0 ? -currentMove.x : 0.0f);
             // Y mouse is inverted positive is pointing up the screen
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_POS).getChannel()] = (currentMove.y < 0 ? -currentMove.y : 0.0f);
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_NEG).getChannel()] = (currentMove.y > 0 ? currentMove.y : 0.0f);
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_POS).getChannel()].value = (currentMove.y < 0 ? -currentMove.y : 0.0f);
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_NEG).getChannel()].value = (currentMove.y > 0 ? currentMove.y : 0.0f);
         }
 
         _lastTouch = currentPos;

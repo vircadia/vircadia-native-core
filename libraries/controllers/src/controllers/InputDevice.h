@@ -16,6 +16,7 @@
 
 #include <QtCore/QString>
 
+#include "AxisValue.h"
 #include "Pose.h"
 #include "Input.h"
 #include "StandardControls.h"
@@ -103,12 +104,12 @@ public:
     using Pointer = std::shared_ptr<InputDevice>;
 
     typedef std::unordered_set<int> ButtonPressedMap;
-    typedef std::map<int, float> AxisStateMap;
+    typedef std::map<int, AxisValue> AxisStateMap;
     typedef std::map<int, Pose> PoseStateMap;
 
     // Get current state for each channel
     float getButton(int channel) const;
-    float getAxis(int channel) const;
+    AxisValue getAxis(int channel) const;
     Pose getPose(int channel) const;
 
     float getValue(const Input& input) const;
