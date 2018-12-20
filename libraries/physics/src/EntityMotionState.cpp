@@ -307,6 +307,8 @@ const btCollisionShape* EntityMotionState::computeNewShape() {
     return getShapeManager()->getShape(shapeInfo);
 }
 
+const uint8_t MAX_NUM_INACTIVE_UPDATES = 20;
+
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // NOTE: this method is only ever called when the entity simulation is locally owned
     DETAILED_PROFILE_RANGE(simulation_physics, "CheckOutOfSync");
@@ -316,15 +318,10 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // TODO: need to be able to detect when logic dictates we *decrease* priority
     // WIP: print info whenever _bidPriority mismatches what is known to the entity
 
-    if (_entity->dynamicDataNeedsTransmit()) {
-        return true;
-    }
-
     int numSteps = simulationStep - _lastStep;
     float dt = (float)(numSteps) * PHYSICS_ENGINE_FIXED_SUBSTEP;
 
     if (_numInactiveUpdates > 0) {
-        const uint8_t MAX_NUM_INACTIVE_UPDATES = 20;
         if (_numInactiveUpdates > MAX_NUM_INACTIVE_UPDATES) {
             // clear local ownership (stop sending updates) and let the server clear itself
             _entity->clearSimulationOwnership();
@@ -452,8 +449,13 @@ void EntityMotionState::updateSendVelocities() {
         if (!_body->isKinematicObject()) {
             clearObjectVelocities();
         }
-        // we pretend we sent the inactive update for this object
-        _numInactiveUpdates = 1;
+        if (_entity->getEntityHostType() == entity::HostType::AVATAR) {
+            // AvatarEntities only ever need to send one update (their updates are sent over a lossless protocol)
+            // so we set the count to the max to prevent resends
+            _numInactiveUpdates = MAX_NUM_INACTIVE_UPDATES;
+        } else {
+            ++_numInactiveUpdates;
+        }
     } else {
         glm::vec3 gravity = _entity->getGravity();
 

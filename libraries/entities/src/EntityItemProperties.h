@@ -143,7 +143,7 @@ public:
     DEFINE_PROPERTY(PROP_CREATED, Created, created, quint64, UNKNOWN_CREATED_TIME);
     DEFINE_PROPERTY_REF(PROP_LAST_EDITED_BY, LastEditedBy, lastEditedBy, QUuid, ENTITY_ITEM_DEFAULT_LAST_EDITED_BY);
     DEFINE_PROPERTY_REF_ENUM(PROP_ENTITY_HOST_TYPE, EntityHostType, entityHostType, entity::HostType, entity::HostType::DOMAIN);
-    DEFINE_PROPERTY_REF(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF_WITH_SETTER(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_PARENT_ID, ParentID, parentID, QUuid, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, quint16, -1);
     DEFINE_PROPERTY_REF(PROP_QUERY_AA_CUBE, QueryAACube, queryAACube, AACube, AACube());
@@ -481,6 +481,16 @@ void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityProper
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const glm::vec3& value)
                     { _position = glm::clamp(value, (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); _positionChanged = true; }
+
+inline void EntityItemProperties::setOwningAvatarID(const QUuid& id) {
+    _owningAvatarID = id;
+    if (!_owningAvatarID.isNull()) {
+        // for AvatarEntities there's no entity-server to tell us we're the simulation owner,
+        // so always set the simulationOwner to the owningAvatarID and a high priority.
+        setSimulationOwner(_owningAvatarID, AVATAR_ENTITY_SIMULATION_PRIORITY);
+    }
+    _owningAvatarIDChanged = true;
+}
 
 QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f);
 

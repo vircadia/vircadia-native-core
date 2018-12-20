@@ -25,6 +25,7 @@ public:
     Base3DOverlay(const Base3DOverlay* base3DOverlay);
 
     void setVisible(bool visible) override;
+    bool queryAACubeNeedsUpdate() const override { return false; } // HACK: queryAACube not relevant for Overlays
 
     virtual OverlayID getOverlayID() const override { return OverlayID(getID().toString()); }
     void setOverlayID(OverlayID overlayID) override { setID(overlayID); }

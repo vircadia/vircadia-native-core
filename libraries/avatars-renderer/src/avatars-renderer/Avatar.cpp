@@ -393,10 +393,6 @@ void Avatar::updateAvatarEntities() {
             properties.setEntityHostType(entity::HostType::AVATAR);
             properties.setOwningAvatarID(getID());
 
-            // there's no entity-server to tell us we're the simulation owner, so always set the
-            // simulationOwner to the owningAvatarID and a high priority.
-            properties.setSimulationOwner(getID(), AVATAR_ENTITY_SIMULATION_PRIORITY);
-
             if (properties.getParentID() == AVATAR_SELF_ID) {
                 properties.setParentID(getID());
             }
