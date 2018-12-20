@@ -15,7 +15,6 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 #include <Transform.h>
-#include <TextEntityItem.h>
 #include <TextRenderer3D.h>
 
 #include "GLMHelpers.h"
@@ -59,7 +58,7 @@ bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
 
-    if (_faceCamera != entity->getFaceCamera()) {
+    if (_billboardMode != entity->getBillboardMode()) {
         return true;
     }
     return false;
@@ -79,7 +78,7 @@ void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     _textColor = toGlm(entity->getTextColor());
     _backgroundColor = toGlm(entity->getBackgroundColor());
-    _faceCamera = entity->getFaceCamera();
+    _billboardMode = entity->getBillboardMode();
     _lineHeight = entity->getLineHeight();
     _text = entity->getText();
 }
@@ -110,13 +109,26 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
 
     auto transformToTopLeft = modelTransform;
-    if (_faceCamera) {
+    if (_billboardMode == BillboardMode::YAW) {
         //rotate about vertical to face the camera
         glm::vec3 dPosition = args->getViewFrustum().getPosition() - modelTransform.getTranslation();
         // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
         float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
         glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
         transformToTopLeft.setRotation(orientation);
+    } else if (_billboardMode == BillboardMode::FULL) {
+        glm::vec3 billboardPos = transformToTopLeft.getTranslation();
+        glm::vec3 cameraPos = args->getViewFrustum().getPosition();
+        // use the referencial from the avatar, y isn't always up
+        glm::vec3 avatarUP = EntityTreeRenderer::getAvatarUp();
+        // check to see if glm::lookAt will work / using glm::lookAt variable name
+        glm::highp_vec3 s(glm::cross(billboardPos - cameraPos, avatarUP));
+
+        // make sure s is not NaN for any component
+        if (glm::length2(s) > 0.0f) {
+            glm::quat rotation(conjugate(toQuat(glm::lookAt(cameraPos, billboardPos, avatarUP))));
+            transformToTopLeft.setRotation(rotation);
+        }
     }
     transformToTopLeft.postTranslate(dimensions * glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed

@@ -320,6 +320,33 @@ void EntityItemProperties::setEntityHostTypeFromString(const QString& entityHost
     }
 }
 
+QHash<QString, BillboardMode> stringToBillboardModeLookup;
+
+void addBillboardMode(BillboardMode mode) {
+    stringToBillboardModeLookup[BillboardModeHelpers::getNameForBillboardMode(mode)] = mode;
+}
+
+void buildStringToBillboardModeLookup() {
+    addBillboardMode(BillboardMode::NONE);
+    addBillboardMode(BillboardMode::YAW);
+    addBillboardMode(BillboardMode::FULL);
+}
+
+QString EntityItemProperties::getBillboardModeAsString() const {
+    return BillboardModeHelpers::getNameForBillboardMode(_billboardMode);
+}
+
+void EntityItemProperties::setBillboardModeFromString(const QString& materialMappingMode) {
+    if (stringToBillboardModeLookup.empty()) {
+        buildStringToBillboardModeLookup();
+    }
+    auto billboardModeItr = stringToBillboardModeLookup.find(materialMappingMode.toLower());
+    if (billboardModeItr != stringToBillboardModeLookup.end()) {
+        _billboardMode = billboardModeItr.value();
+        _billboardModeChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
@@ -407,6 +434,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_SPIN_FINISH, spinFinish);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_ROTATE_WITH_ENTITY, rotateWithEntity);
 
+    CHECK_PROPERTY_CHANGE(PROP_IMAGE_URL, imageURL);
+    CHECK_PROPERTY_CHANGE(PROP_EMISSIVE, emissive);
+    CHECK_PROPERTY_CHANGE(PROP_KEEP_ASPECT_RATIO, keepAspectRatio);
+    CHECK_PROPERTY_CHANGE(PROP_SUB_IMAGE, subImage);
+
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
     CHECK_PROPERTY_CHANGE(PROP_ITEM_DESCRIPTION, itemDescription);
@@ -436,7 +468,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
     CHECK_PROPERTY_CHANGE(PROP_HREF, href);
     CHECK_PROPERTY_CHANGE(PROP_DESCRIPTION, description);
-    CHECK_PROPERTY_CHANGE(PROP_FACE_CAMERA, faceCamera);
+    CHECK_PROPERTY_CHANGE(PROP_BILLBOARD_MODE, billboardMode);
     CHECK_PROPERTY_CHANGE(PROP_ACTION_DATA, actionData);
     CHECK_PROPERTY_CHANGE(PROP_NORMALS, normals);
     CHECK_PROPERTY_CHANGE(PROP_STROKE_COLORS, strokeColors);
@@ -672,18 +704,19 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @see The different entity types have additional properties as follows:
  * @see {@link Entities.EntityProperties-Box|EntityProperties-Box}
- * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
- * @see {@link Entities.EntityProperties-Line|EntityProperties-Line}
- * @see {@link Entities.EntityProperties-Material|EntityProperties-Material}
+ * @see {@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}
+ * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
  * @see {@link Entities.EntityProperties-Model|EntityProperties-Model}
+ * @see {@link Entities.EntityProperties-Text|EntityProperties-Text}
+ * @see {@link Entities.EntityProperties-Image|EntityProperties-Image}
+ * @see {@link Entities.EntityProperties-Web|EntityProperties-Web}
  * @see {@link Entities.EntityProperties-ParticleEffect|EntityProperties-ParticleEffect}
+ * @see {@link Entities.EntityProperties-Line|EntityProperties-Line}
  * @see {@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}
  * @see {@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}
- * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
- * @see {@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}
- * @see {@link Entities.EntityProperties-Text|EntityProperties-Text}
- * @see {@link Entities.EntityProperties-Web|EntityProperties-Web}
+ * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
  * @see {@link Entities.EntityProperties-Zone|EntityProperties-Zone}
+ * @see {@link Entities.EntityProperties-Material|EntityProperties-Material}
  */
 
 /**jsdoc
@@ -819,8 +852,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>{@link Entities.EntityProperties|naturalDimensions}</code>.
  * @property {Color} color=255,255,255 - <em>Currently not used.</em>
  * @property {string} modelURL="" - The URL of the FBX of OBJ model. Baked FBX models' URLs end in ".baked.fbx".<br />
- *     Note: If the name ends with <code>"default-image-model.fbx"</code> then the entity is considered to be an "Image" 
- *     entity, in which case the <code>textures</code> property should be set per the example.
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
  *     model's original textures. Use a texture name from the <code>originalTextures</code> property to override that texture. 
  *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no 
@@ -865,24 +896,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     modelURL: "http://content.highfidelity.com/seefo/production/puck-attach/vive_tracker_puck.obj",
  *     dimensions: { x: 0.0945, y: 0.0921, z: 0.0423 },
  *     lifetime: 300  // Delete after 5 minutes.
- * });
- * @example <caption>Create an "Image" entity like you can in the Create app.</caption>
- * var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
- * var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
- * var entity = Entities.addEntity({
- *     type: "Model",
- *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -3 })),
- *     rotation: MyAvatar.orientation,
- *     dimensions: {
- *         x: 0.5385,
- *         y: 0.2819,
- *         z: 0.0092
- *     },
- *     shapeType: "box",
- *     collisionless: true,
- *     modelURL: IMAGE_MODEL,
- *     textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE }),
- *     lifetime: 300  // Delete after 5 minutes
  * });
  */
 
@@ -1124,8 +1137,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} lineHeight=0.1 - The height of each line of text (thus determining the font size).
  * @property {Color} textColor=255,255,255 - The color of the text.
  * @property {Color} backgroundColor=0,0,0 - The color of the background rectangle.
- * @property {boolean} faceCamera=false - If <code>true</code>, the entity is oriented to face each user's camera (i.e., it
- *     differs for each user present).
+ * @property {BillboardMode} billboardMode="none" - If <code>"none"</code>, the entity is not billboarded.  If <code>"yaw"</code>, the entity will be
+ *     oriented to follow your camera around the y-axis.  If <code>"full"</code> the entity will be oriented to face your camera.  The following deprecated
+ *     behavior is also supported: you can also set <code>"faceCamera"</code> to <code>true</code> to set <code>billboardMode</code> to "yaw", and you can set
+ *     <code>"isFacingAvatar"</code> to <code>true</code> to set <code>billboardMode</code> to "full".  Setting either to <code>false</code> sets the mode to "none"
  * @example <caption>Create a text entity.</caption>
  * var text = Entities.addEntity({
  *     type: "Text",
@@ -1133,7 +1148,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     dimensions: { x: 0.6, y: 0.3, z: 0.01 },
  *     lineHeight: 0.12,
  *     text: "Hello\nthere!",
- *     faceCamera: true,
+ *     billboardMode: "yaw",
  *     lifetime: 300  // Delete after 5 minutes.
  * });
  */
@@ -1240,6 +1255,32 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *         "color": { "red": 255, "green": 0, "blue": 0 },
  *         "direction": { "x": 1, "y": 0, "z": 0 }
  *     },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Image"</code> {@link Entities.EntityType|EntityType} displays an image on a 2D rectangle in the domain.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Image
+ * @property {string} imageURL="" - The URL of the image to use.
+ * @property {boolean} emissive=false - Whether or not the image should be emissive (unlit).
+ * @property {boolean} keepAspectRatio=true - Whether or not the image should maintain its aspect ratio.
+ * @property {BillboardMode} billboardMode="none" - If <code>"none"</code>, the entity is not billboarded.  If <code>"yaw"</code>, the entity will be
+ *     oriented to follow your camera around the y-axis.  If <code>"full"</code> the entity will be oriented to face your camera.  The following deprecated
+ *     behavior is also supported: you can also set <code>"faceCamera"</code> to <code>true</code> to set <code>billboardMode</code> to "yaw", and you can set
+ *     <code>"isFacingAvatar"</code> to <code>true</code> to set <code>billboardMode</code> to "full".  Setting either to <code>false</code> sets the mode to "none"
+ * @property {Rect} subImage={ x: 0, y: 0, width: -1, height: -1 } - The portion of the image to display. If width or height are -1, defaults to
+ *     the full image in that dimension.
+ * @property {Color} color=255,255,255 - The color of image.
+ * @property {number} alpha=1 - The alpha of the image.
+ * @example <caption>Create a image entity.</caption>
+ * var image = Entities.addEntity({
+ *     type: "Image",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 0.6, y: 0.3, z: 0.01 },
+ *     imageURL: "https://images.pexels.com/photos/1020315/pexels-photo-1020315.jpeg",
+ *     billboardMode: "yaw",
  *     lifetime: 300  // Delete after 5 minutes.
  * });
  */
@@ -1434,7 +1475,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_HEIGHT, lineHeight);
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(PROP_TEXT_COLOR, textColor, getTextColor(), u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(PROP_BACKGROUND_COLOR, backgroundColor, getBackgroundColor(), u8vec3Color);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FACE_CAMERA, faceCamera);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
     }
 
     // Zones only
@@ -1514,6 +1555,26 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_DATA, materialData);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_REPEAT, materialRepeat);
+    }
+
+    // Image only
+    if (_type == EntityTypes::Image) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IMAGE_URL, imageURL);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMISSIVE, emissive);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEEP_ASPECT_RATIO, keepAspectRatio);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SUB_IMAGE, subImage);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+
+        // Handle conversions to old 'textures' property from "imageURL"
+        if (((!psuedoPropertyFlagsButDesiredEmpty && _desiredProperties.isEmpty()) || _desiredProperties.getHasProperty(PROP_IMAGE_URL)) &&
+                (!skipDefaults || defaultEntityProperties._imageURL != _imageURL)) {
+            QScriptValue textures = engine->newObject();
+            textures.setProperty("tex.picture", _imageURL);
+            properties.setProperty("textures", textures);
+        }
     }
 
     /**jsdoc
@@ -1604,6 +1665,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     }
     if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::LocalEntity)) {
         properties.setProperty("localEntity", convertScriptValue(engine, getEntityHostType() == entity::HostType::LOCAL));
+    }
+
+    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::FaceCamera)) {
+        properties.setProperty("faceCamera", convertScriptValue(engine, getBillboardMode() == BillboardMode::YAW));
+    }
+    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::IsFacingAvatar)) {
+        properties.setProperty("isFacingAvatar", convertScriptValue(engine, getBillboardMode() == BillboardMode::FULL));
     }
 
     // FIXME - I don't think these properties are supported any more
@@ -1735,13 +1803,17 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(href, QString, setHref);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(description, QString, setDescription);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(faceCamera, bool, setFaceCamera);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(billboardMode, BillboardMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(actionData, QByteArray, setActionData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(normals, qVectorVec3, setNormals);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeColors, qVectorVec3, setStrokeColors);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeWidths, qVectorFloat, setStrokeWidths);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isUVModeStretch, bool, setIsUVModeStretch);
 
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(imageURL, QString, setImageURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emissive, bool, setEmissive);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(keepAspectRatio, bool, setKeepAspectRatio);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(subImage, QRect, setSubImage);
 
     if (!honorReadOnly) {
         // this is used by the json reader to set things that we don't want javascript to able to affect.
@@ -1804,6 +1876,47 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneDynamic, bool, setCloneDynamic);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneAvatarEntity, bool, setCloneAvatarEntity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneOriginID, QUuid, setCloneOriginID);
+
+    // Handle conversions from old 'textures' property to "imageURL"
+    {
+        QScriptValue V = object.property("textures");
+        if (_type == EntityTypes::Image && V.isValid() && !object.property("imageURL").isValid()) {
+            bool isValid = false;
+            QString textures = QString_convertFromScriptValue(V, isValid);
+            if (isValid) {
+                QVariantMap texturesMap = parseTexturesToMap(textures, QVariantMap());
+                auto texPicture = texturesMap.find("tex.picture");
+                if (texPicture != texturesMap.end()) {
+                    auto imageURL = texPicture.value().toString();
+                    if (_defaultSettings || imageURL != _imageURL) {
+                        setImageURL(imageURL);
+                    }
+                }
+            }
+        }
+    }
+
+    // Handle old "faceCamera" and "isFacingAvatar" props
+    {
+        QScriptValue P = object.property("faceCamera");
+        if (P.isValid() && !object.property("billboardMode").isValid()) {
+            bool newValue = P.toVariant().toBool();
+            bool oldValue = getBillboardMode() == BillboardMode::YAW;
+            if (_defaultSettings || newValue != oldValue) {
+                setBillboardMode(newValue ? BillboardMode::YAW : BillboardMode::NONE);
+            }
+        }
+    }
+    {
+        QScriptValue P = object.property("isFacingAvatar");
+        if (P.isValid() && !object.property("billboardMode").isValid() && !object.property("faceCamera").isValid()) {
+            bool newValue = P.toVariant().toBool();
+            bool oldValue = getBillboardMode() == BillboardMode::FULL;
+            if (_defaultSettings || newValue != oldValue) {
+                setBillboardMode(newValue ? BillboardMode::FULL : BillboardMode::NONE);
+            }
+        }
+    }
 
     _lastEdited = usecTimestampNow();
 }
@@ -1881,6 +1994,11 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(spinFinish);
     COPY_PROPERTY_IF_CHANGED(rotateWithEntity);
 
+    COPY_PROPERTY_IF_CHANGED(imageURL);
+    COPY_PROPERTY_IF_CHANGED(emissive);
+    COPY_PROPERTY_IF_CHANGED(keepAspectRatio);
+    COPY_PROPERTY_IF_CHANGED(subImage);
+
     // Certifiable Properties
     COPY_PROPERTY_IF_CHANGED(itemName);
     COPY_PROPERTY_IF_CHANGED(itemDescription);
@@ -1911,7 +2029,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(linePoints);
     COPY_PROPERTY_IF_CHANGED(href);
     COPY_PROPERTY_IF_CHANGED(description);
-    COPY_PROPERTY_IF_CHANGED(faceCamera);
+    COPY_PROPERTY_IF_CHANGED(billboardMode);
     COPY_PROPERTY_IF_CHANGED(actionData);
     COPY_PROPERTY_IF_CHANGED(normals);
     COPY_PROPERTY_IF_CHANGED(strokeColors);
@@ -2130,7 +2248,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
         ADD_PROPERTY_TO_MAP(PROP_HREF, Href, href, QString);
         ADD_PROPERTY_TO_MAP(PROP_DESCRIPTION, Description, description, QString);
-        ADD_PROPERTY_TO_MAP(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
+        ADD_PROPERTY_TO_MAP(PROP_BILLBOARD_MODE, BillboardMode, billboardMode, BillboardMode);
         ADD_PROPERTY_TO_MAP(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
         ADD_PROPERTY_TO_MAP(PROP_NORMALS, Normals, normals, QVector<vec3>);
         ADD_PROPERTY_TO_MAP(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<vec3>);
@@ -2235,6 +2353,11 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
                                   EquippableIndicatorScale, equippableIndicatorScale);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_OFFSET, Grab, grab,
                                   EquippableIndicatorOffset, equippableIndicatorOffset);
+
+        ADD_PROPERTY_TO_MAP(PROP_IMAGE_URL, ImageURL, imageURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_EMISSIVE, Emissive, emissive, bool);
+        ADD_PROPERTY_TO_MAP(PROP_KEEP_ASPECT_RATIO, KeepAspectRatio, keepAspectRatio, bool);
+        ADD_PROPERTY_TO_MAP(PROP_SUB_IMAGE, SubImage, subImage, QRect);
 
         // FIXME - these are not yet handled
         //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
@@ -2399,7 +2522,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());
                 APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, properties.getTextColor());
                 APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, properties.getBackgroundColor());
-                APPEND_ENTITY_PROPERTY(PROP_FACE_CAMERA, properties.getFaceCamera());
+                APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)properties.getBillboardMode());
             }
 
             if (properties.getType() == EntityTypes::Model) {
@@ -2556,6 +2679,18 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, properties.getMaterialMappingRot());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_DATA, properties.getMaterialData());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_REPEAT, properties.getMaterialRepeat());
+            }
+
+            // Image
+            if (properties.getType() == EntityTypes::Image) {
+                APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, properties.getImageURL());
+                APPEND_ENTITY_PROPERTY(PROP_EMISSIVE, properties.getEmissive());
+                APPEND_ENTITY_PROPERTY(PROP_KEEP_ASPECT_RATIO, properties.getKeepAspectRatio());
+                APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)properties.getBillboardMode());
+                APPEND_ENTITY_PROPERTY(PROP_SUB_IMAGE, properties.getSubImage());
+
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
             }
 
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
@@ -2803,7 +2938,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_COLOR, u8vec3Color, setTextColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_COLOR, u8vec3Color, setBackgroundColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FACE_CAMERA, bool, setFaceCamera);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
     }
 
     if (properties.getType() == EntityTypes::Model) {
@@ -2952,6 +3087,18 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_DATA, QString, setMaterialData);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_REPEAT, bool, setMaterialRepeat);
+    }
+
+    // Image
+    if (properties.getType() == EntityTypes::Image) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IMAGE_URL, QString, setImageURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMISSIVE, bool, setEmissive);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEEP_ASPECT_RATIO, bool, setKeepAspectRatio);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SUB_IMAGE, QRect, setSubImage);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
@@ -3231,7 +3378,7 @@ void EntityItemProperties::markAllChanged() {
 
     _hrefChanged = true;
     _descriptionChanged = true;
-    _faceCameraChanged = true;
+    _billboardModeChanged = true;
     _actionDataChanged = true;
 
     _normalsChanged = true;
@@ -3281,6 +3428,11 @@ void EntityItemProperties::markAllChanged() {
     _cloneOriginIDChanged = true;
 
     _isVisibleInSecondaryCameraChanged = true;
+
+    _imageURLChanged = true;
+    _emissiveChanged = true;
+    _keepAspectRatioChanged = true;
+    _subImageChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -3818,6 +3970,23 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (cloneOriginIDChanged()) {
         out += "cloneOriginID";
+    }
+
+    if (imageURLChanged()) {
+        out += "imageURL";
+    }
+    if (emissiveChanged()) {
+        out += "emissive";
+    }
+    if (keepAspectRatioChanged()) {
+        out += "keepAspectRatio";
+    }
+    if (subImageChanged()) {
+        out += "subImage";
+    }
+
+    if (billboardModeChanged()) {
+        out += "billboardMode";
     }
 
     getAnimation().listChangedProperties(out);

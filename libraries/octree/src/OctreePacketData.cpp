@@ -546,6 +546,17 @@ bool OctreePacketData::appendValue(const AACube& aaCube) {
     return success;
 }
 
+bool OctreePacketData::appendValue(const QRect& value) {
+    const unsigned char* data = (const unsigned char*)&value;
+    int length = sizeof(QRect);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
+}
+
 bool OctreePacketData::appendPosition(const glm::vec3& value) {
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
@@ -803,4 +814,9 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, AACube
     memcpy(&cube, dataBytes, sizeof(aaCubeData));
     result = AACube(cube.corner, cube.scale);
     return sizeof(aaCubeData);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QRect& result) {
+    memcpy(&result, dataBytes, sizeof(result));
+    return sizeof(result);
 }
