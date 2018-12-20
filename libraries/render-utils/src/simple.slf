@@ -103,9 +103,7 @@ void main(void) {
 
     position = vec4(proceduralData.position, 1.0);
     vec4 posClip = cam._projection * (cam._view * position);
-    float far = gl_DepthRange.far;
-    float near = gl_DepthRange.near;
-    gl_FragDepth = 0.5 * ((far - near) * posClip.z / posClip.w + near + far);
+    gl_FragDepth = 0.5 * (posClip.z / posClip.w + 1.0);
 #endif
 
     if (emissiveAmount > 0.0) {
