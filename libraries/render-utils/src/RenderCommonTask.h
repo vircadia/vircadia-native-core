@@ -106,7 +106,7 @@ public:
         FRUSTUM_COUNT
     };
 
-    using Inputs = LightStage::FramePointer;
+    using Inputs = LightStage::ShadowFramePointer;
     using Outputs = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
     using JobModel = render::Job::ModelIO<ExtractFrustums, Inputs, Outputs>;
 

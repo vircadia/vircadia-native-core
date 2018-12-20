@@ -354,7 +354,7 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
 
         task.addJob<DrawBounds>("DrawLightBounds", lights);
         task.addJob<DrawBounds>("DrawZones", zones);
-        const auto frustums = task.addJob<ExtractFrustums>("ExtractFrustums", lightFrame);
+        const auto frustums = task.addJob<ExtractFrustums>("ExtractFrustums", shadowFrame);
         const auto viewFrustum = frustums.getN<ExtractFrustums::Outputs>(ExtractFrustums::VIEW_FRUSTUM);
         task.addJob<DrawFrustum>("DrawViewFrustum", viewFrustum, glm::vec3(0.0f, 1.0f, 0.0f));
         for (auto i = 0; i < ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
@@ -447,7 +447,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
     const auto& lightFrame = inputs.get2();
     const auto& lightingModel = inputs.get3();
     const auto& lightClusters = inputs.get4();
-    const auto& shadowFrame = inputs.get5();
+    // Not needed yet: const auto& shadowFrame = inputs.get5();
     const auto jitter = inputs.get6();
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
