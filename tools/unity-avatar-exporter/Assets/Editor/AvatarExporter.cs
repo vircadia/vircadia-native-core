@@ -171,6 +171,13 @@ class AvatarExporter : MonoBehaviour {
         if (!SetJointMappingsAndParentNames()) {
             return;
         }
+        
+        //var textures = AssetDatabase.LoadAllAssetsAtPath(assetPath).Where(x => x.GetType() == typeof(Texture));
+        var tests = AssetDatabase.LoadAllAssetsAtPath(assetPath);
+        Debug.Log("assetPath " + assetPath);
+        foreach (var test in tests) {
+            Debug.Log("test " + test.GetType());
+        }
     
         string documentsFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
         string hifiFolder = documentsFolder + "\\High Fidelity Projects";
@@ -178,13 +185,40 @@ class AvatarExporter : MonoBehaviour {
             bool copyModelToExport = false;
             string initialPath = Directory.Exists(hifiFolder) ? hifiFolder : documentsFolder;
             
-            // open file explorer defaulting to hifi folder in user documents to select target fst to update
+            // open file explorer defaulting to hifi projects folder in user documents to select target fst to update
             string exportFstPath = EditorUtility.OpenFilePanel("Select fst to update", initialPath, "fst");
             if (exportFstPath.Length == 0) { // file selection cancelled
                 return;
             }
-            string exportModelPath = Path.GetDirectoryName(exportFstPath) + "/" + assetName + ".fbx";
+            exportFstPath = exportFstPath.Replace('/', '\\');
             
+            // lookup the project name field from the fst file to update
+            string projectName = "";
+            try {
+                string[] lines = File.ReadAllLines(exportFstPath);
+                foreach (string line in lines) {
+                    if (line.StartsWith("name")) {
+                        projectName = line.Substring(line.IndexOf("=") + 2);
+                        break;
+                    }
+                }
+            } catch {
+                EditorUtility.DisplayDialog("Error", "Failed to read from existing file " + exportFstPath + 
+                                            ". Please check the file and try again.", "Ok");
+                return;
+            }
+            
+            // delete existing fst file since we will write a new file
+            // TODO: updating fst should only rewrite joint mappings and joint rotation offsets to existing file
+            try {
+                File.Delete(exportFstPath);
+            } catch {
+                EditorUtility.DisplayDialog("Error", "Failed to overwrite existing file " + exportFstPath + 
+                                            ". Please check the file and try again.", "Ok");
+                return;
+            }
+            
+            string exportModelPath = Path.GetDirectoryName(exportFstPath) + "/" + assetName + ".fbx";
             if (File.Exists(exportModelPath)) { 
                 // if the fbx in Unity Assets is newer than the fbx in the target export
                 // folder or vice-versa then ask to replace the older fbx with the newer fbx
@@ -198,7 +232,7 @@ class AvatarExporter : MonoBehaviour {
                     if (option == 2) { // Cancel
                         return;
                     }
-                    copyModelToExport = option == 0;
+                    copyModelToExport = option == 0; // Yes
                 } else if (assetModelWriteTime < targetModelWriteTime) {
                     int option = EditorUtility.DisplayDialogComplex("Error", "The " + exportModelPath + 
                                  " model is newer than the " + assetName + ".fbx model in the Unity Assets folder." +
@@ -235,26 +269,33 @@ class AvatarExporter : MonoBehaviour {
                 if (option == 2) { // Cancel
                     return;
                 }
-                copyModelToExport = option == 0;
+                copyModelToExport = option == 0; // Yes
             }  
 
             // delete any existing fbx if we agreed to overwrite it, and copy asset fbx over
             if (copyModelToExport) {
                 if (File.Exists(exportModelPath)) {
-                    File.Delete(exportModelPath);
+                    try {
+                        File.Delete(exportModelPath);
+                    } catch {
+                        EditorUtility.DisplayDialog("Error", "Failed to overwrite existing file " + exportModelPath + 
+                                                    ". Please check the file and try again.", "Ok");
+                        return;
+                    }
                 }
-                File.Copy(assetPath, exportModelPath);
+                try {
+                    File.Copy(assetPath, exportModelPath);
+                } catch {
+                    EditorUtility.DisplayDialog("Error", "Failed to copy existing file " + assetPath + " to " + exportModelPath + 
+                                                ". Please check the location and try again.", "Ok");
+                    return;
+                }
             }
-            
-            // delete any existing fst since we are re-exporting it
-            // TODO: updating fst should only rewrite joint mappings and joint rotation offsets to existing file
-            if (File.Exists(exportFstPath)) {
-                File.Delete(exportFstPath);
-            }
-            
-            WriteFST(exportFstPath);
+
+            // write out a new fst file in place of the old file
+            WriteFST(exportFstPath, projectName);
         } else { // Export New Avatar menu option
-            // create High Fidelity folder in user documents folder if it doesn't exist
+            // create High Fidelity Projects folder in user documents folder if it doesn't exist
             if (!Directory.Exists(hifiFolder)) {    
                 Directory.CreateDirectory(hifiFolder);
             }
@@ -265,13 +306,10 @@ class AvatarExporter : MonoBehaviour {
         }
     }
     
-    static void OnExportProjectWindowClose(string projectDirectory) {
-        // copy the fbx from the Unity Assets folder to the project directory,
-        // and then write out the fst file to the project directory
+    static void OnExportProjectWindowClose(string projectDirectory, string projectName) {
+        // copy the fbx from the Unity Assets folder to the project directory
         string exportModelPath = projectDirectory + assetName + ".fbx";
-        string exportFstPath = projectDirectory + "avatar.fst";
         File.Copy(assetPath, exportModelPath);
-        WriteFST(exportFstPath);
         
         // create empty Textures and Scripts folders in the project directory
         string texturesDirectory = projectDirectory + "\\textures";
@@ -279,8 +317,14 @@ class AvatarExporter : MonoBehaviour {
         Directory.CreateDirectory(texturesDirectory);
         Directory.CreateDirectory(scriptsDirectory);
         
-        // open File Explorer to the project directory once finished
-        System.Diagnostics.Process.Start("explorer.exe", "/select," + exportFstPath);
+        // write out the avatar.fst file to the project directory
+        string exportFstPath = projectDirectory + "avatar.fst";
+        WriteFST(exportFstPath, projectName);
+        
+        // remove any double slashes in texture directory path and warn user to copy external textures over
+        texturesDirectory = texturesDirectory.Replace("\\\\", "\\");
+        EditorUtility.DisplayDialog("Warning", "If you are using any external textures with your model, " +
+                                               "please copy those textures to " + texturesDirectory, "Ok");
     }
     
     static bool SetJointMappingsAndParentNames() {
@@ -296,7 +340,7 @@ class AvatarExporter : MonoBehaviour {
         SetParentNames(assetGameObject.transform, userParentNames);
         DestroyImmediate(assetGameObject);
         
-        // store joint mappings only for joints that exist in hifi and verify missing joints
+        // store joint mappings only for joints that exist in hifi and verify missing required joints
         HumanBone[] boneMap = humanDescription.human;
         string chestUserBone = "";
         string neckUserBone = "";
@@ -365,12 +409,18 @@ class AvatarExporter : MonoBehaviour {
         return true;
     }
     
-    static void WriteFST(string exportFstPath) {
+    static void WriteFST(string exportFstPath, string projectName) {
         userAbsoluteRotations.Clear();
-                
+        
         // write out core fields to top of fst file
-        File.WriteAllText(exportFstPath, "name = " + assetName + "\ntype = body+head\nscale = 1\nfilename = " + 
-                          assetName + ".fbx\n" + "texdir = textures\n");
+        try {
+            File.WriteAllText(exportFstPath, "name = " + projectName + "\ntype = body+head\nscale = 1\nfilename = " + 
+                              assetName + ".fbx\n" + "texdir = textures\n");
+        } catch { 
+            EditorUtility.DisplayDialog("Error", "Failed to write file " + exportFstPath + 
+                                        ". Please check the location and try again.", "Ok");
+            return;
+        }
         
         // write out joint mappings to fst file
         foreach (var jointMapping in userBoneToHumanoidMappings) {
@@ -414,13 +464,16 @@ class AvatarExporter : MonoBehaviour {
                 }
             }
             
-            // swap from left-handed (Unity) to right-handed (HiFi) coordinate system and write out joint rotation offset to fst
+            // swap from left-handed (Unity) to right-handed (HiFi) coordinates and write out joint rotation offset to fst
             if (outputJointName != "") {
                 jointOffset = new Quaternion(-jointOffset.x, jointOffset.y, jointOffset.z, -jointOffset.w);
                 File.AppendAllText(exportFstPath, "jointRotationOffset = " + outputJointName + " = (" + jointOffset.x + ", " +
                                                   jointOffset.y + ", " + jointOffset.z + ", " + jointOffset.w + ")\n");
             }
         }
+             
+        // open File Explorer to the project directory once finished
+        System.Diagnostics.Process.Start("explorer.exe", "/select," + exportFstPath);
     }
 
     static void SetParentNames(Transform modelBone, Dictionary<string, string> parentNames) {
@@ -443,42 +496,55 @@ class AvatarExporter : MonoBehaviour {
     }
 }
 
-class ExportProjectWindow : EditorWindow {   
+class ExportProjectWindow : EditorWindow {
+    const int MIN_WIDTH = 450;
+    const int MIN_HEIGHT = 260;
+    const int BUTTON_FONT_SIZE = 16;
+    const int LABEL_FONT_SIZE = 16;
+    const int TEXT_FIELD_FONT_SIZE = 14;
+    const int ERROR_FONT_SIZE = 12;
+    
     string projectName = "";
     string projectLocation = "";
     string projectDirectory = "";
-    string errorLabel = "";
+    string errorLabel = "\n";
     
-    public delegate void OnCloseDelegate(string projectDirectory);
+    public delegate void OnCloseDelegate(string projectDirectory, string projectName);
     OnCloseDelegate onCloseCallback;
     
     public void Init(string initialPath, OnCloseDelegate closeCallback) {
+        minSize = new Vector2(MIN_WIDTH, MIN_HEIGHT);
+        titleContent.text = "Export New Avatar";
         projectLocation = initialPath;
         onCloseCallback = closeCallback;
         ShowUtility();
     }
 
     void OnGUI() {
+        // define UI styles for all GUI elements to be created
         GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
-        buttonStyle.fontSize = 20;  
+        buttonStyle.fontSize = BUTTON_FONT_SIZE;
         GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
-        labelStyle.fontSize = 16;
-        GUIStyle errorStyle = new GUIStyle(GUI.skin.label); 
-        errorStyle.fontSize = 12;
-        errorStyle.normal.textColor = Color.red;
+        labelStyle.fontSize = LABEL_FONT_SIZE;
         GUIStyle textStyle = new GUIStyle(GUI.skin.textField);
-        textStyle.fontSize = 16;
+        textStyle.fontSize = TEXT_FIELD_FONT_SIZE;
+        GUIStyle errorStyle = new GUIStyle(GUI.skin.label); 
+        errorStyle.fontSize = ERROR_FONT_SIZE;
+        errorStyle.normal.textColor = Color.red;
      
         GUILayout.Space(10);
         
+        // Project name label and input text field
         GUILayout.Label("Export project name:", labelStyle);
         projectName = GUILayout.TextField(projectName, textStyle);
         
         GUILayout.Space(10);
         
+        // Project location label and input text field
         GUILayout.Label("Export project location:", labelStyle);
         projectLocation = GUILayout.TextField(projectLocation, textStyle);      
         
+        // Browse button to open folder explorer that starts at project location path and then updates project location
         if (GUILayout.Button("Browse", buttonStyle)) {
             string result = EditorUtility.OpenFolderPanel("Select export location", projectLocation, "");
             if (result.Length > 0) { // folder selection not cancelled
@@ -486,44 +552,54 @@ class ExportProjectWindow : EditorWindow {
             }
         }
         
+        // Red error label text to display any issues under text fields and Browse button
         GUILayout.Label(errorLabel, errorStyle);
         
-        GUILayout.Space(30);
+        GUILayout.Space(25);
         
+        // Export button which will verify project folder can actually be created 
+        // before closing popup window and calling back to initiate the export
         bool export = false;
         if (GUILayout.Button("Export", buttonStyle)) {
             export = true;
             if (!CheckForErrors(true)) {
                 Close();
-                onCloseCallback(projectDirectory);
+                onCloseCallback(projectDirectory, projectName);
             }
         }
         
+        // Cancel button just closes the popup window without callback
         if (GUILayout.Button("Cancel", buttonStyle)) {
             Close();
         }
         
+        // When either text field changes check for any errors if we didn't just check errors from clicking Export above
         if (GUI.changed && !export) {
             CheckForErrors(false);
         }
     }
     
     bool CheckForErrors(bool exporting) {   
-        errorLabel = "";
+        errorLabel = "\n"; // default to no error
         projectDirectory = projectLocation + "\\" + projectName + "\\";
         if (projectName.Length > 0) {
+            // new project must have a unique folder name since the folder will be created for it
             if (Directory.Exists(projectDirectory)) {
-                errorLabel = "A folder with the name " + projectName + " already exists at that location.\nPlease choose a different project name or location.";
+                errorLabel = "A folder with the name " + projectName + 
+                             " already exists at that location.\nPlease choose a different project name or location.";
                 return true;
             }
         }
         if (projectLocation.Length > 0) {
+            // before clicking Export we can verify that the project location at least starts with a drive
             if (!Char.IsLetter(projectLocation[0]) || projectLocation.Length == 1 || projectLocation[1] != ':') {
-                errorLabel = "Project location is invalid. Please choose a different project location.";
+                errorLabel = "Project location is invalid. Please choose a different project location.\n";
                 return true;
             }
         }
         if (exporting) {
+            // when exporting, project name and location must both be defined, and project location must
+            // be valid and accessible (we attempt to create the project folder at this time to verify this)
             if (projectName.Length == 0) {
                 errorLabel = "Please define a project name.";
                 return true;
@@ -534,7 +610,7 @@ class ExportProjectWindow : EditorWindow {
                 try {
                     Directory.CreateDirectory(projectDirectory);
                 } catch {
-                    errorLabel = "Project location is invalid. Please choose a different project location.";
+                    errorLabel = "Project location is invalid. Please choose a different project location.\n";
                     return true;
                 }
             }
