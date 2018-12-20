@@ -118,14 +118,11 @@ public:
     };
 
     using ShadowPointer = std::shared_ptr<Shadow>;
-    using Shadows = render::indexed_container::IndexedPointerVector<Shadow>;
 
     Index findLight(const LightPointer& light) const;
     Index addLight(const LightPointer& light, const bool shouldSetAsDefault = false);
     
     Index getDefaultLight() { return _defaultLightId; }
-
-    Index addShadow(Index lightIndex, float maxDistance = 20.0f, unsigned int cascadeCount = 1U);
 
     LightPointer removeLight(Index index);
     
@@ -135,23 +132,7 @@ public:
     Index getNumFreeLights() const { return _lights.getNumFreeIndices(); }
     Index getNumAllocatedLights() const { return _lights.getNumAllocatedIndices(); }
 
-    LightPointer getLight(Index lightId) const {
-        return _lights.get(lightId);
-    }
-
-    Index getShadowId(Index lightId) const;
-
-    ShadowPointer getShadow(Index lightId) const {
-        return _shadows.get(getShadowId(lightId));
-    }
-
-    using LightAndShadow = std::pair<LightPointer, ShadowPointer>;
-    LightAndShadow getLightAndShadow(Index lightId) const {
-        auto light = getLight(lightId);
-        auto shadow = getShadow(lightId);
-        assert(shadow == nullptr || shadow->getLight() == light);
-        return LightAndShadow(light, shadow);
-    }
+    LightPointer getLight(Index lightId) const { return _lights.get(lightId); }
 
     LightStage();
 
@@ -211,8 +192,6 @@ public:
 
     LightPointer getCurrentKeyLight(const LightStage::Frame& frame) const;
     LightPointer getCurrentAmbientLight(const LightStage::Frame& frame) const;
-    ShadowPointer getCurrentKeyShadow(const LightStage::Frame& frame) const;
-    LightAndShadow getCurrentKeyLightAndShadow(const LightStage::Frame& frame) const;
 
 protected:
 
@@ -224,7 +203,6 @@ protected:
     gpu::BufferPointer _lightArrayBuffer;
 
     Lights _lights;
-    Shadows _shadows;
     Descs _descs;
     LightMap _lightMap;
 
