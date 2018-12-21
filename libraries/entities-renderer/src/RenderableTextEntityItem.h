@@ -32,7 +32,7 @@ private:
     virtual void doRender(RenderArgs* args) override;
     int _geometryID{ 0 };
     std::shared_ptr<TextRenderer3D> _textRenderer;
-    bool _faceCamera;
+    BillboardMode _billboardMode;
     glm::vec3 _dimensions;
     glm::vec3 _textColor;
     glm::vec3 _backgroundColor;

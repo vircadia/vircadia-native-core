@@ -7,7 +7,7 @@ import "../controlsUit" 1.0 as HifiControls
 import "../stylesUit" 1.0
 import "../windows" as Windows
 import "../dialogs"
-import "avatarPackager"
+import "./avatarPackager" 1.0
 import "avatarapp" 1.0 as AvatarApp
 
 Windows.ScrollingWindow {
@@ -29,32 +29,46 @@ Windows.ScrollingWindow {
         height: pane.height
         width: pane.width
 
+        Rectangle {
+            id: modalOverlay
+            anchors.fill: parent
+            z: 20
+            color: "#aa031b33"
+            visible: false
+
+            // This mouse area captures the cursor events while the modalOverlay is active
+            MouseArea {
+                anchors.fill: parent
+                propagateComposedEvents: false;
+                hoverEnabled: true;
+            }
+        }
+
         AvatarApp.MessageBox {
             id: popup
             anchors.fill: parent
             visible: false
         }
 
-        // FIXME: modal overlay does not show
         Column {
             id: avatarPackager
             anchors.fill: parent
             state: "main"
             states: [
                 State {
-                    name: "main"
+                    name: AvatarPackagerState.main
                     PropertyChanges { target: avatarPackagerHeader; title: qsTr("Avatar Packager"); faqEnabled: true; backButtonEnabled: false }
                     PropertyChanges { target: avatarPackagerMain; visible: true }
                     PropertyChanges { target: avatarPackagerFooter; content: avatarPackagerMain.footer }
                 },
                 State {
-                    name: "createProject"
+                    name: AvatarPackagerState.createProject
                     PropertyChanges { target: avatarPackagerHeader; title: qsTr("Create Project") }
                     PropertyChanges { target: createAvatarProject; visible: true }
                     PropertyChanges { target: avatarPackagerFooter; content: createAvatarProject.footer }
                 },
                 State {
-                    name: "project"
+                    name: AvatarPackagerState.project
                     PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name }
                     PropertyChanges { target: avatarProject; visible: true }
                     PropertyChanges { target: avatarPackagerFooter; content: avatarProject.footer }
@@ -66,6 +80,8 @@ Windows.ScrollingWindow {
                     PropertyChanges { target: avatarPackagerFooter; visible: false }
                 }
             ]
+
+            property alias showModalOverlay: modalOverlay.visible
 
             AvatarPackagerHeader {
                 id: avatarPackagerHeader
@@ -119,7 +135,7 @@ Windows.ScrollingWindow {
                             text: qsTr("New Project")
                             colorScheme: root.colorScheme
                             onClicked: {
-                                avatarPackager.state = "createProject";
+                                avatarPackager.state = AvatarPackagerState.createProject;
                             }
                         }
 
@@ -133,7 +149,7 @@ Windows.ScrollingWindow {
                             color: hifi.buttons.blue
                             colorScheme: root.colorScheme
                             onClicked: {
-                                // TODO: make the dialog modal
+                                avatarPackager.showModalOverlay = true;
                                 let browser = desktop.fileDialog({
                                     selectDirectory: false,
                                     dir: fileDialogHelper.pathToUrl(AvatarPackagerCore.AVATAR_PROJECTS_PATH),
@@ -142,14 +158,15 @@ Windows.ScrollingWindow {
                                 });
 
                                 browser.canceled.connect(function() {
-
+                                    avatarPackager.showModalOverlay = false;
                                 });
 
                                 browser.selectedFile.connect(function(fileUrl) {
                                     let fstFilePath = fileDialogHelper.urlToPath(fileUrl);
                                     let currentAvatarProject = AvatarPackagerCore.openAvatarProject(fstFilePath);
                                     if (currentAvatarProject) {
-                                        avatarPackager.state = "project";
+                                        avatarPackager.state = AvatarPackagerState.project;
+                                        avatarPackager.showModalOverlay = false;
                                     }
                                 });
                             }

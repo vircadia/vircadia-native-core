@@ -41,6 +41,9 @@ public:
     QUuid getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(QUuid marketplaceID) { _marketplaceID = marketplaceID; }
 
+    QStringList getScriptPaths() const { return _scriptPaths; }
+    void setScriptPaths(QStringList scriptPaths) { _scriptPaths = scriptPaths; }
+
     QString getPath() { return _fstPath; }
 
     QVariantHash getMapping();
@@ -57,6 +60,8 @@ private:
     QString _name{};
     QString _modelPath{};
     QUuid _marketplaceID{};
+
+    QStringList _scriptPaths{};
 
     QVariantHash _other{};
 };

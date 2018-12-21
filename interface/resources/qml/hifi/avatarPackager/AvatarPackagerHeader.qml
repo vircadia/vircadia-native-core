@@ -65,7 +65,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 16
         anchors.verticalCenter: faq.verticalCenter
-        text: qsTr("FAQ")
+        text: qsTr("Docs")
         color: "white"
     }
 }

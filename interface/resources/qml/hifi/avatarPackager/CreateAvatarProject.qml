@@ -27,7 +27,7 @@ Item {
                     Window.alert('Failed to create project')
                     return;
                 }
-                avatarPackager.state = "project";
+                avatarPackager.state = AvatarPackagerState.project;
             }
         }
     }
@@ -37,6 +37,26 @@ Item {
     height: parent.height
     width: parent.width
 
+
+    property var errorMessages: QtObject {
+        readonly property string fileExists: "A folder with that name already exists at that location. Please choose a different project name or location."
+    }
+
+    RalewayRegular {
+        id: errorMessage
+        visible: text !== ""
+        text: ""
+        color: "#EA4C5F";
+        wrapMode: Text.WordWrap
+        size: 20
+        anchors {
+            top: createAvatarColumns.bottom
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+        }
+    }
+
     Column {
         id: createAvatarColumns
         anchors.left: parent.left
@@ -44,6 +64,8 @@ Item {
         anchors.margins: 10
 
         spacing: 17
+
+        property string defaultFileBrowserPath: fileDialogHelper.pathToUrl(AvatarPackagerCore.AVATAR_PROJECTS_PATH)
 
         ProjectInputControl {
             id: name
@@ -57,9 +79,8 @@ Item {
             colorScheme: root.colorScheme
             browseEnabled: true
             browseFolder: true
-            browseDir: fileDialogHelper.pathToUrl(AvatarPackagerCore.AVATAR_PROJECTS_PATH)
+            browseDir: text !== "" ? fileDialogHelper.pathToUrl(text) : createAvatarColumns.defaultFileBrowserPath
             browseTitle: "Project Location"
-            text: fileDialogHelper.pathToUrl(AvatarPackagerCore.AVATAR_PROJECTS_PATH)
             onTextChanged: {
                 //TODO: valid folder? Does project with name exist here already?
             }
@@ -71,11 +92,13 @@ Item {
             colorScheme: root.colorScheme
             browseEnabled: true
             browseFolder: false
-            browseDir: fileDialogHelper.pathToUrl(AvatarPackagerCore.AVATAR_PROJECTS_PATH)
+            browseDir: text !== "" ? fileDialogHelper.pathToUrl(text) : createAvatarColumns.defaultFileBrowserPath
             browseFilter: "Avatar Model File (*.fbx)"
             browseTitle: "Open Avatar Model (.fbx)"
             onTextChanged: {
-                //TODO: try to get texture folder from fbx if none is set?
+                if (avatarModel.text !== "") {
+                    textureFolder.browseDir = fileDialogHelper.pathToUrl(avatarModel.text.split('/')[0]);
+                }
             }
         }
 
@@ -85,7 +108,7 @@ Item {
             colorScheme: root.colorScheme
             browseEnabled: true
             browseFolder: true
-            browseDir: fileDialogHelper.pathToUrl(AvatarPackagerCore.AVATAR_PROJECTS_PATH)
+            browseDir: text !== "" ? fileDialogHelper.pathToUrl(text) : createAvatarColumns.defaultFileBrowserPath
             browseTitle: "Texture Folder"
             onTextChanged: {
                 //TODO: valid folder?
@@ -93,16 +116,5 @@ Item {
             }
         }
     }
-    RalewayRegular {
-        text: "A folder with that name already exists at that location. Please choose a different project name or location."
-        color: "#EA4C5F";
-        wrapMode: Text.WordWrap
-        size: 20
-        anchors {
-            top: createAvatarColumns.bottom
-            bottom: parent.bottom
-            left: parent.left
-            right: parent.right
-        }
-    }
+
 }

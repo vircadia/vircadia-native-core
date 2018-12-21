@@ -11,7 +11,6 @@ const DESCENDING_SORT = -1;
 const ASCENDING_STRING = '&#x25B4;';
 const DESCENDING_STRING = '&#x25BE;';
 const BYTES_PER_MEGABYTE = 1024 * 1024;
-const IMAGE_MODEL_NAME = 'default-image-model.fbx';
 const COLLAPSE_EXTRA_INFO = "E";
 const EXPAND_EXTRA_INFO = "D";
 const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
@@ -628,9 +627,6 @@ function loaded() {
                 entityData.forEach(function(entity) {
                     let type = entity.type;
                     let filename = getFilename(entity.url);
-                    if (filename === IMAGE_MODEL_NAME) {
-                        type = "Image";
-                    }
             
                     let entityData = {
                         id: entity.id,

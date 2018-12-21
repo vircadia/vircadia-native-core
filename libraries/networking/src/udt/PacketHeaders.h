@@ -246,7 +246,9 @@ enum class EntityVersion : PacketVersion {
     ScriptGlmVectors,
     FixedLightSerialization,
     MaterialRepeat,
-    EntityHostTypes
+    EntityHostTypes,
+    CleanupProperties,
+    ImageEntities
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

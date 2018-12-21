@@ -55,7 +55,7 @@ Column {
             text: qsTr("Browse")
             colorScheme: root.colorScheme
             onClicked: {
-                // TODO: make the dialog modal
+                avatarPackager.showModalOverlay = true;
                 let browser = desktop.fileDialog({
                      selectDirectory: browseFolder,
                      dir: browseDir,
@@ -64,11 +64,12 @@ Column {
                 });
 
                 browser.canceled.connect(function() {
-
+                    avatarPackager.showModalOverlay = false;
                 });
 
                 browser.selectedFile.connect(function(fileUrl) {
                     input.text = fileDialogHelper.urlToPath(fileUrl);
+                    avatarPackager.showModalOverlay = false;
                 });
             }
         }
