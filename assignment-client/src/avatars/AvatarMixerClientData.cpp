@@ -68,6 +68,9 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
             case PacketType::SetAvatarTraits:
                 processSetTraitsMessage(*packet, slaveSharedData, *node);
                 break;
+            case PacketType::BulkAvatarTraitsAck:
+                processBulkAvatarTraitsAckMessage(*packet);
+                break;
             default:
                 Q_UNREACHABLE();
         }
@@ -178,6 +181,29 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
         _lastReceivedTraitsChange = std::chrono::steady_clock::now();
     }
 }
+
+void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& message) {
+
+    // Look up the avatar/trait data associated with this ack and update the 'last ack' list
+    // with it.
+    AvatarTraits::TraitMessageSequence seq;
+    message.readPrimitive(&seq);
+    auto& sentAvatarTraitVersions = _pendingTraitVersions.find(seq);
+    if (sentAvatarTraitVersions != _pendingTraitVersions.end()) {
+        for (auto& nodeTraitVersions : sentAvatarTraitVersions->second) {
+            auto& nodeId = nodeTraitVersions.first;
+            auto& versions = nodeTraitVersions.second;
+            auto simpleReceivedIt = versions.simpleCBegin();
+            while (simpleReceivedIt != versions.simpleCEnd()) {
+                auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(versions.simpleCBegin(),
+                    simpleReceivedIt));
+                _ackedTraitVersions[nodeId][traitType] = *simpleReceivedIt;
+            }
+        }
+        _pendingTraitVersions.erase(sentAvatarTraitVersions);
+    }
+}
+
 
 void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedData &slaveSharedData, Node& sendingNode,
                                                              AvatarTraits::TraitVersion traitVersion) {

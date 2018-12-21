@@ -103,6 +103,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
 
         // compare trait versions so we can see what exactly needs to go out
         auto& lastSentVersions = listeningNodeData->getLastSentTraitVersions(otherNodeLocalID);
+        auto& lastAckedVersions = listeningNodeData->getLastAckedTraitVersions(otherNodeLocalID);
         const auto& lastReceivedVersions = sendingNodeData->getLastReceivedTraitVersions();
 
         auto simpleReceivedIt = lastReceivedVersions.simpleCBegin();
@@ -112,13 +113,18 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
 
             auto lastReceivedVersion = *simpleReceivedIt;
             auto& lastSentVersionRef = lastSentVersions[traitType];
+            auto& lastAckedVersionRef = lastAckedVersions[traitType];
 
-            if (lastReceivedVersions[traitType] > lastSentVersionRef) {
+            // hold sending more traits until we've been acked that the last one we sent was received
+            if (lastAckedVersionRef == lastSentVersionRef && lastReceivedVersions[traitType] > lastSentVersionRef) {
                 // there is an update to this trait, add it to the traits packet
                 bytesWritten += sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
-
                 // update the last sent version
                 lastSentVersionRef = lastReceivedVersion;
+                // Remember which versions we sent in this particular packet
+                // so we can verify when it's acked.
+                auto& pendingTraitVersions = listeningNodeData->getPendingTraitVersions(listeningNodeData->getTraitsMessageSequence(), otherNodeLocalID);
+                pendingTraitVersions[traitType] = lastReceivedVersion;
             }
 
             ++simpleReceivedIt;
@@ -419,6 +425,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     int remainingAvatars = (int)sortedAvatars.size();
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
+    traitsPacketList->writePrimitive(nodeData->nextTraitsMessageSequence());
+
     auto avatarPacket = NLPacket::create(PacketType::BulkAvatarData);
     const int avatarPacketCapacity = avatarPacket->getPayloadCapacity();
     int avatarSpaceAvailable = avatarPacketCapacity;

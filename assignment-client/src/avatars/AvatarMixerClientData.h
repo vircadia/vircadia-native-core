@@ -42,6 +42,7 @@ public:
     AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID);
     virtual ~AvatarMixerClientData() {}
     using HRCTime = p_high_resolution_clock::time_point;
+    using NodeTraitVersions = std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions>;
 
     int parseData(ReceivedMessage& message) override;
     AvatarData& getAvatar() { return *_avatar; }
@@ -124,6 +125,7 @@ public:
     int processPackets(const SlaveSharedData& slaveSharedData); // returns number of packets processed
 
     void processSetTraitsMessage(ReceivedMessage& message, const SlaveSharedData& slaveSharedData, Node& sendingNode);
+    void processBulkAvatarTraitsAckMessage(ReceivedMessage& message);
     void checkSkeletonURLAgainstWhitelist(const SlaveSharedData& slaveSharedData, Node& sendingNode,
                                           AvatarTraits::TraitVersion traitVersion);
 
@@ -138,7 +140,14 @@ public:
     void setLastOtherAvatarTraitsSendPoint(Node::LocalID otherAvatar, TraitsCheckTimestamp sendPoint)
         { _lastSentTraitsTimestamps[otherAvatar] = sendPoint; }
 
+    AvatarTraits::TraitMessageSequence getTraitsMessageSequence() const { return _currentTraitsMessageSequence; }
+    AvatarTraits::TraitMessageSequence nextTraitsMessageSequence() { return ++_currentTraitsMessageSequence; }
+    AvatarTraits::TraitVersions& getPendingTraitVersions(AvatarTraits::TraitMessageSequence seq, Node::LocalID otherId) {
+        return _pendingTraitVersions[seq][otherId];
+    }
+
     AvatarTraits::TraitVersions& getLastSentTraitVersions(Node::LocalID otherAvatar) { return _sentTraitVersions[otherAvatar]; }
+    AvatarTraits::TraitVersions& getLastAckedTraitVersions(Node::LocalID otherAvatar) { return _ackedTraitVersions[otherAvatar]; }
 
     void resetSentTraitData(Node::LocalID nodeID);
 
@@ -183,8 +192,13 @@ private:
     AvatarTraits::TraitVersions _lastReceivedTraitVersions;
     TraitsCheckTimestamp _lastReceivedTraitsChange;
 
+    AvatarTraits::TraitMessageSequence _currentTraitsMessageSequence{ 0 };
+
+    std::unordered_map<AvatarTraits::TraitMessageSequence, NodeTraitVersions> _pendingTraitVersions;
+
     std::unordered_map<Node::LocalID, TraitsCheckTimestamp> _lastSentTraitsTimestamps;
-    std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions> _sentTraitVersions;
+    NodeTraitVersions _sentTraitVersions;
+    NodeTraitVersions _ackedTraitVersions;
 
     std::atomic_bool _isIgnoreRadiusEnabled { false };
 };
