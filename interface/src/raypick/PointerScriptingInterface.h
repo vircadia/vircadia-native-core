@@ -41,12 +41,10 @@ public:
     * @property {string} button Which button to trigger.  "Primary", "Secondary", "Tertiary", and "Focus" are currently supported.  Only "Primary" will trigger clicks on web surfaces.  If "Focus" is triggered,
     * it will try to set the entity or overlay focus to the object at which the Pointer is aimed.  Buttons besides the first three will still trigger events, but event.button will be "None".
     */
-
     /**jsdoc
      * Adds a new Pointer
      * Different {@link PickType}s use different properties, and within one PickType, the properties you choose can lead to a wide range of behaviors.  For example,
      *   with PickType.Ray, depending on which optional parameters you pass, you could create a Static Ray Pointer, a Mouse Ray Pointer, or a Joint Ray Pointer.
-     * Pointers created with this method always intersect at least visible and collidable things
      * @function Pointers.createPointer
      * @param {PickType} type A PickType that specifies the method of picking to use
      * @param {Pointers.LaserPointerProperties|Pointers.StylusPointerProperties|Pointers.ParabolaPointerProperties} properties A PointerProperties object, containing all the properties for initializing this Pointer <b>and</b> the {@link Picks.PickProperties} for the Pick that
@@ -60,21 +58,21 @@ public:
      *     dimensions: {x:0.5, y:0.5, z:0.5},
      *     solid: true,
      *     color: {red:0, green:255, blue:0},
-     *     ignorePickIntersection: true
+     *     ignoreRayIntersection: true
      * };
      * var end2 = {
      *     type: "sphere",
      *     dimensions: {x:0.5, y:0.5, z:0.5},
      *     solid: true,
      *     color: {red:255, green:0, blue:0},
-     *     ignorePickIntersection: true
+     *     ignoreRayIntersection: true
      * };
      *
      * var renderStates = [ {name: "test", end: end} ];
      * var defaultRenderStates = [ {name: "test", distance: 10.0, end: end2} ];
      * var pointer = Pointers.createPointer(PickType.Ray, {
      *     joint: "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
-     *     filter: Picks.PICK_LOCAL_ENTITIES | Picks.PICK_DOMAIN_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
+     *     filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
      *     renderStates: renderStates,
      *     defaultRenderStates: defaultRenderStates,
      *     distanceScaleEnd: true,
@@ -84,7 +82,6 @@ public:
      * });
      * Pointers.setRenderState(pointer, "test");
      */
-    // TODO: expand Pointers to be able to be fully configurable with PickFilters
     Q_INVOKABLE unsigned int createPointer(const PickQuery::PickType& type, const QVariant& properties);
 
     /**jsdoc
