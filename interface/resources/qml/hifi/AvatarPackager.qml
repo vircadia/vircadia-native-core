@@ -63,7 +63,7 @@ Windows.ScrollingWindow {
                     name: "project-upload"
                     PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name }
                     PropertyChanges { target: avatarUploader; visible: true }
-                    PropertyChanges { target: avatarPackagerFooter; color: "blue"; visible: false }
+                    PropertyChanges { target: avatarPackagerFooter; visible: false }
                 }
             ]
 

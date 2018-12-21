@@ -28,7 +28,7 @@ class AvatarProject : public QObject {
     Q_OBJECT
     Q_PROPERTY(FST* fst READ getFST)
 
-    Q_PROPERTY(QStringList projectFiles MEMBER _projectFiles)
+    Q_PROPERTY(QStringList projectFiles READ getProjectFiles NOTIFY projectFilesChanged)
 
     Q_PROPERTY(QString projectFolderPath READ getProjectPath)
     Q_PROPERTY(QString projectFSTPath READ getFSTPath)
@@ -43,6 +43,7 @@ public:
 
     Q_INVOKABLE MarketplaceItemUploader* upload(bool updateExisting);
     Q_INVOKABLE void openInInventory();
+    Q_INVOKABLE QStringList getProjectFiles() const { return _projectFiles; }
 
     /**
      * returns the AvatarProject or a nullptr on failure.

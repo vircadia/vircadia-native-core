@@ -185,7 +185,7 @@ Item {
         id: loginRequiredMessage
 
         visible: !Account.loggedIn
-        height: loginRequiredTextRow.height + 20
+        height: !Account.loggedIn ? loginRequiredTextRow.height + 20 : 0
 
         anchors {
             bottom: parent.bottom
