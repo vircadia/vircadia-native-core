@@ -164,7 +164,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             var cameraPosition = Camera.position;
             PROFILE("getMultipleProperties", function () {
                 var multipleProperties = Entities.getMultipleEntityProperties(ids, ['name', 'type', 'locked',
-                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'script']);
+                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'certificateID']);
                 for (var i = 0; i < multipleProperties.length; i++) {
                     var properties = multipleProperties[i];
 
@@ -174,6 +174,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             url = properties.modelURL;
                         } else if (properties.type === "Material") {
                             url = properties.materialURL;
+                        } else if (properties.type === "Image") {
+                            url = properties.imageURL;
                         }
                         entities.push({
                             id: ids[i],
@@ -182,6 +184,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             url: url,
                             locked: properties.locked,
                             visible: properties.visible,
+                            certificateID: properties.certificateID,
                             verticesCount: (properties.renderInfo !== undefined ?
                                 valueIfDefined(properties.renderInfo.verticesCount) : ""),
                             texturesCount: (properties.renderInfo !== undefined ?

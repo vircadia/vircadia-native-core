@@ -18,8 +18,8 @@
 
 float color_scalar_sRGBToLinear(float value) {
     const float SRGB_ELBOW = 0.04045;
-    
-    return (value <= SRGB_ELBOW) ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4);
+
+    return mix(pow((value + 0.055) / 1.055, 2.4), value / 12.92, float(value <= SRGB_ELBOW));
 }
 
 vec3 color_sRGBToLinear(vec3 srgb) {

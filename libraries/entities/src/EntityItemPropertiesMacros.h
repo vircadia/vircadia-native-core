@@ -122,6 +122,8 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::quat
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<bool>& v) {return qVectorBoolToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<float>& v) { return qVectorFloatToScriptValue(e, v); }
 
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QRect& v) { return qRectToScriptValue(e, v); }
+
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
     QByteArray b64 = v.toBase64();
     return QScriptValue(QString(b64));
@@ -321,6 +323,13 @@ inline glm::quat quat_convertFromScriptValue(const QScriptValue& v, bool& isVali
         }
     }
     return glm::quat();
+}
+
+inline QRect QRect_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    QRect rect;
+    qRectFromScriptValue(v, rect);
+    return rect;
 }
 
 #define COPY_PROPERTY_IF_CHANGED(P) \

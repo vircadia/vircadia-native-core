@@ -807,46 +807,6 @@ void MyAvatar::simulate(float deltaTime) {
     // before we perform rig animations and IK.
     updateSensorToWorldMatrix();
 
-    // if we detect the hand controller is at rest, i.e. lying on the table, or the hand is too far away from the hmd
-    // disable the associated hand controller input.
-    {
-        // NOTE: all poses are in sensor space.
-        auto leftHandIter = _controllerPoseMap.find(controller::Action::LEFT_HAND);
-        if (leftHandIter != _controllerPoseMap.end() && leftHandIter->second.isValid()) {
-            _leftHandAtRestDetector.update(leftHandIter->second.getTranslation(), leftHandIter->second.getRotation());
-            if (_leftHandAtRestDetector.isAtRest()) {
-                leftHandIter->second.valid = false;
-            }
-        } else {
-            _leftHandAtRestDetector.invalidate();
-        }
-
-        auto rightHandIter = _controllerPoseMap.find(controller::Action::RIGHT_HAND);
-        if (rightHandIter != _controllerPoseMap.end() && rightHandIter->second.isValid()) {
-            _rightHandAtRestDetector.update(rightHandIter->second.getTranslation(), rightHandIter->second.getRotation());
-            if (_rightHandAtRestDetector.isAtRest()) {
-                rightHandIter->second.valid = false;
-            }
-        } else {
-            _rightHandAtRestDetector.invalidate();
-        }
-
-        auto headIter = _controllerPoseMap.find(controller::Action::HEAD);
-
-        // The 99th percentile man has a spine to fingertip to height ratio of 0.45.  Lets increase that by about 10% to 0.5
-        // then measure the distance the center of the eyes to the finger tips.  To come up with this ratio.
-        // From "The Measure of Man and Woman: Human Factors in Design, Revised Edition" by Alvin R. Tilley, Henry Dreyfuss Associates
-        const float MAX_HEAD_TO_HAND_DISTANCE_RATIO = 0.52f;
-
-        float maxHeadHandDistance = getUserHeight() * MAX_HEAD_TO_HAND_DISTANCE_RATIO;
-        if (glm::length(headIter->second.getTranslation() - leftHandIter->second.getTranslation()) > maxHeadHandDistance) {
-            leftHandIter->second.valid = false;
-        }
-        if (glm::length(headIter->second.getTranslation() - rightHandIter->second.getTranslation()) > maxHeadHandDistance) {
-            rightHandIter->second.valid = false;
-        }
-    }
-
     {
         PerformanceTimer perfTimer("skeleton");
 
@@ -927,8 +887,7 @@ void MyAvatar::simulate(float deltaTime) {
                         moveOperator.addEntityToMoveList(entity, newCube);
                     }
                     // send an edit packet to update the entity-server about the queryAABox
-                    // unless it is client-only
-                    if (packetSender && !entity->getClientOnly()) {
+                    if (packetSender && entity->isDomainEntity()) {
                         EntityItemProperties properties = entity->getProperties();
                         properties.setQueryAACubeDirty();
                         properties.setLastEdited(now);
@@ -939,7 +898,7 @@ void MyAvatar::simulate(float deltaTime) {
 
                         entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
                             EntityItemPointer entityDescendant = std::dynamic_pointer_cast<EntityItem>(descendant);
-                            if (entityDescendant && !entityDescendant->getClientOnly() && descendant->updateQueryAACube()) {
+                            if (entityDescendant && entityDescendant->isDomainEntity() && descendant->updateQueryAACube()) {
                                 EntityItemProperties descendantProperties;
                                 descendantProperties.setQueryAACube(descendant->getQueryAACube());
                                 descendantProperties.setLastEdited(now);
@@ -1520,6 +1479,7 @@ void MyAvatar::loadData() {
     setSnapTurn(_useSnapTurnSetting.get());
     setDominantHand(_dominantHandSetting.get(DOMINANT_RIGHT_HAND).toLower());
     setUserHeight(_userHeightSetting.get(DEFAULT_AVATAR_HEIGHT));
+    setTargetScale(_scaleSetting.get());
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
     _follow.setToggleHipsFollowing (Menu::getInstance()->isOptionChecked(MenuOption::ToggleHipsFollowing));
@@ -2458,10 +2418,10 @@ void MyAvatar::attachmentDataToEntityProperties(const AttachmentData& data, Enti
 void MyAvatar::initHeadBones() {
     int neckJointIndex = -1;
     if (_skeletonModel->isLoaded()) {
-        neckJointIndex = _skeletonModel->getHFMModel().neckJointIndex;
+        neckJointIndex = getJointIndex("Neck");
     }
     if (neckJointIndex == -1) {
-        neckJointIndex = (_skeletonModel->getHFMModel().headJointIndex - 1);
+        neckJointIndex = (getJointIndex("Head") - 1);
         if (neckJointIndex < 0) {
             // return if the head is not even there. can't cauterize!!
             return;
@@ -3227,17 +3187,15 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         OctreeElementPointer element;
         float distance;
         BoxFace face;
-        const bool visibleOnly = false;
-        // This isn't quite what we really want here. findRayIntersection always works on mesh, skipping entirely based on collidable.
-        // What we really want is to use the collision hull!
-        // See https://highfidelity.fogbugz.com/f/cases/5003/findRayIntersection-has-option-to-use-collidableOnly-but-doesn-t-actually-use-colliders
-        const bool collidableOnly = true;
-        const bool precisionPicking = true;
         const auto lockType = Octree::Lock; // Should we refactor to take a lock just once?
         bool* accurateResult = NULL;
 
+        // This isn't quite what we really want here. findRayIntersection always works on mesh, skipping entirely based on collidable.
+        // What we really want is to use the collision hull!
+        // See https://highfidelity.fogbugz.com/f/cases/5003/findRayIntersection-has-option-to-use-collidableOnly-but-doesn-t-actually-use-colliders
         QVariantMap extraInfo;
-        EntityItemID entityID = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
+        EntityItemID entityID = entityTree->evalRayIntersection(startPointIn, directionIn, include, ignore,
+            PickFilter(PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE) | PickFilter::getBitMask(PickFilter::FlagBit::PRECISE)),
             element, distance, face, normalOut, extraInfo, lockType, accurateResult);
         if (entityID.isNull()) {
             return false;

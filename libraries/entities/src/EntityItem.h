@@ -64,6 +64,18 @@ const uint64_t MAX_INCOMING_SIMULATION_UPDATE_PERIOD = MAX_OUTGOING_SIMULATION_U
 
 class MeshProxyList;
 
+#ifdef DOMAIN
+#undef DOMAIN
+#endif
+
+namespace entity {
+enum class HostType {
+    DOMAIN = 0,
+    AVATAR,
+    LOCAL
+};
+}
+
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
@@ -455,6 +467,7 @@ public:
     // these are in the frame of this object
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override { return glm::vec3(0.0f); }
+    virtual int getJointParent(int index) const override { return -1; }
 
     virtual bool setLocalJointRotation(int index, const glm::quat& rotation) override { return false; }
     virtual bool setLocalJointTranslation(int index, const glm::vec3& translation) override { return false; }
@@ -477,10 +490,14 @@ public:
     void scriptHasUnloaded();
     void setScriptHasFinishedPreload(bool value);
     bool isScriptPreloadFinished();
+    virtual bool isWearable() const;
+    bool isDomainEntity() const { return _hostType == entity::HostType::DOMAIN; }
+    bool isAvatarEntity() const { return _hostType == entity::HostType::AVATAR; }
+    bool isLocalEntity() const { return _hostType == entity::HostType::LOCAL; }
+    entity::HostType getEntityHostType() const { return _hostType; }
+    virtual void setEntityHostType(entity::HostType hostType) { _hostType = hostType; }
 
-    bool getClientOnly() const { return _clientOnly; }
-    virtual void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
-    // if this entity is client-only, which avatar is it associated with?
+    // if this entity is an avatar entity, which avatar is it associated with?
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
     virtual void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
 
@@ -673,7 +690,7 @@ protected:
 
     QUuid _sourceUUID; /// the server node UUID we came from
 
-    bool _clientOnly { false };
+    entity::HostType _hostType { entity::HostType::DOMAIN };
     bool _transitingWithAvatar{ false };
     QUuid _owningAvatarID;
 

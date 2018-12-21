@@ -137,7 +137,7 @@
                 direction: this.firingDirection
             };
             this.createGunFireEffect(this.barrelPoint)
-            var intersection = Entities.findRayIntersectionBlocking(pickRay, true);
+            var intersection = Entities.findRayIntersection(pickRay, true);
             if (intersection.intersects) {
                 this.createEntityHitEffect(intersection.intersection);
                 if (Math.random() < this.playRichochetSoundChance) {

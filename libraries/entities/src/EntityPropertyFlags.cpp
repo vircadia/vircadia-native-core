@@ -67,7 +67,7 @@ QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
     result = f.getHasProperty(PROP_LINE_POINTS) ? result + "linePoints " : result;
     result = f.getHasProperty(PROP_HREF) ? result + "href " : result;
     result = f.getHasProperty(PROP_DESCRIPTION) ? result + "description " : result;
-    result = f.getHasProperty(PROP_FACE_CAMERA) ? result + "faceCamera " : result;
+    result = f.getHasProperty(PROP_BILLBOARD_MODE) ? result + "billboardMode " : result;
     result = f.getHasProperty(PROP_SCRIPT_TIMESTAMP) ? result + "scriptTimestamp " : result;
     result = f.getHasProperty(PROP_ACTION_DATA) ? result + "actionData " : result;
     result = f.getHasProperty(PROP_X_TEXTURE_URL) ? result + "xTextureUrl " : result;
@@ -121,7 +121,7 @@ QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
     result = f.getHasProperty(PROP_FALLOFF_RADIUS) ? result + "falloffRadius " : result;
     result = f.getHasProperty(PROP_FLYING_ALLOWED) ? result + "flyingAllowed " : result;
     result = f.getHasProperty(PROP_GHOSTING_ALLOWED) ? result + "ghostingAllowed " : result;
-    result = f.getHasProperty(PROP_CLIENT_ONLY) ? result + "clientOnly " : result;
+    result = f.getHasProperty(PROP_ENTITY_HOST_TYPE) ? result + "entityHostType " : result;
     result = f.getHasProperty(PROP_OWNING_AVATAR_ID) ? result + "owningAvatarID " : result;
     result = f.getHasProperty(PROP_SHAPE) ? result + "shape " : result;
     result = f.getHasProperty(PROP_DPI) ? result + "dpi " : result;
@@ -175,6 +175,7 @@ QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
     result = f.getHasProperty(PROP_MATERIAL_MAPPING_SCALE) ? result + "materialMappingScale " : result;
     result = f.getHasProperty(PROP_MATERIAL_MAPPING_ROT) ? result + "materialMappingRot " : result;
     result = f.getHasProperty(PROP_MATERIAL_DATA) ? result + "materialData " : result;
+    result = f.getHasProperty(PROP_MATERIAL_REPEAT) ? result + "materialRepeat " : result;
     result = f.getHasProperty(PROP_VISIBLE_IN_SECONDARY_CAMERA) ? result + "visibleInSecondaryCamera " : result;
     result = f.getHasProperty(PROP_PARTICLE_SPIN) ? result + "particleSpin " : result;
     result = f.getHasProperty(PROP_SPIN_START) ? result + "spinStart " : result;

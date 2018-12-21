@@ -748,6 +748,18 @@ const Transform SpatiallyNestable::getTransform() const {
     return result;
 }
 
+void SpatiallyNestable::breakParentingLoop() const {
+    // someone created a loop.  break it...
+    qCDebug(shared) << "Parenting loop detected: " << getID();
+    SpatiallyNestablePointer _this = getThisPointer();
+    _this->setParentID(QUuid());
+    bool setPositionSuccess;
+    AACube aaCube = getQueryAACube(setPositionSuccess);
+    if (setPositionSuccess) {
+        _this->setWorldPosition(aaCube.calcCenter());
+    }
+}
+
 const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success, int depth) const {
     // this returns the world-space transform for this object.  It finds its parent's transform (which may
     // cause this object's parent to query its parent, etc) and multiplies this object's local transform onto it.
@@ -755,15 +767,7 @@ const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success, i
 
     if (depth > MAX_PARENTING_CHAIN_SIZE) {
         success = false;
-        // someone created a loop.  break it...
-        qCDebug(shared) << "Parenting loop detected: " << getID();
-        SpatiallyNestablePointer _this = getThisPointer();
-        _this->setParentID(QUuid());
-        bool setPositionSuccess;
-        AACube aaCube = getQueryAACube(setPositionSuccess);
-        if (setPositionSuccess) {
-            _this->setWorldPosition(aaCube.calcCenter());
-        }
+        breakParentingLoop();
         return jointInWorldFrame;
     }
 
@@ -1208,8 +1212,12 @@ AACube SpatiallyNestable::getQueryAACube() const {
     return result;
 }
 
-bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) const {
-    bool success;
+bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType, int depth) const {
+    if (depth > MAX_PARENTING_CHAIN_SIZE) {
+        breakParentingLoop();
+        return false;
+    }
+
     if (nestableType == NestableType::Avatar) {
         QUuid parentID = getParentID();
         if (parentID == AVATAR_SELF_ID) {
@@ -1217,6 +1225,7 @@ bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) const {
         }
     }
 
+    bool success;
     SpatiallyNestablePointer parent = getParentPointer(success);
     if (!success || !parent) {
         return false;
@@ -1226,11 +1235,14 @@ bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) const {
         return true;
     }
 
-    return parent->hasAncestorOfType(nestableType);
+    return parent->hasAncestorOfType(nestableType, depth + 1);
 }
 
-const QUuid SpatiallyNestable::findAncestorOfType(NestableType nestableType) const {
-    bool success;
+const QUuid SpatiallyNestable::findAncestorOfType(NestableType nestableType, int depth) const {
+    if (depth > MAX_PARENTING_CHAIN_SIZE) {
+        breakParentingLoop();
+        return QUuid();
+    }
 
     if (nestableType == NestableType::Avatar) {
         QUuid parentID = getParentID();
@@ -1239,6 +1251,7 @@ const QUuid SpatiallyNestable::findAncestorOfType(NestableType nestableType) con
         }
     }
 
+    bool success;
     SpatiallyNestablePointer parent = getParentPointer(success);
     if (!success || !parent) {
         return QUuid();
@@ -1248,7 +1261,7 @@ const QUuid SpatiallyNestable::findAncestorOfType(NestableType nestableType) con
         return parent->getID();
     }
 
-    return parent->findAncestorOfType(nestableType);
+    return parent->findAncestorOfType(nestableType, depth + 1);
 }
 
 void SpatiallyNestable::getLocalTransformAndVelocities(
@@ -1336,7 +1349,12 @@ void SpatiallyNestable::dump(const QString& prefix) const {
     }
 }
 
-bool SpatiallyNestable::isParentPathComplete() const {
+bool SpatiallyNestable::isParentPathComplete(int depth) const {
+    if (depth > MAX_PARENTING_CHAIN_SIZE) {
+        breakParentingLoop();
+        return false;
+    }
+
     static const QUuid IDENTITY;
     QUuid parentID = getParentID();
     if (parentID.isNull() || parentID == IDENTITY) {
@@ -1349,5 +1367,5 @@ bool SpatiallyNestable::isParentPathComplete() const {
         return false;
     }
 
-    return parent->isParentPathComplete();
+    return parent->isParentPathComplete(depth + 1);
 }

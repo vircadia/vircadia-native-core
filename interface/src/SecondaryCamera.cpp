@@ -33,6 +33,7 @@ public:
 
     void configure(const Config& config) {
         _attachedEntityId = config.attachedEntityId;
+        _portalEntranceEntityId = config.portalEntranceEntityId;
         _position = config.position;
         _orientation = config.orientation;
         _vFoV = config.vFoV;
@@ -40,7 +41,60 @@ public:
         _farClipPlaneDistance = config.farClipPlaneDistance;
         _textureWidth = config.textureWidth;
         _textureHeight = config.textureHeight;
-        _mirrorProjection = config.mirrorProjection;  
+        _mirrorProjection = config.mirrorProjection;
+        _portalProjection = config.portalProjection;
+    }
+
+    void setPortalProjection(ViewFrustum& srcViewFrustum) {
+        if (_portalEntranceEntityId.isNull() || _attachedEntityId.isNull()) {
+            qWarning() << "ERROR: Cannot set portal projection for SecondaryCamera without an attachedEntityId AND portalEntranceEntityId set.";
+            return;
+        }
+
+        EntityItemPointer portalEntrance = qApp->getEntities()->getTree()->findEntityByID(_portalEntranceEntityId);
+        if (!portalEntrance) {
+            qWarning() << "ERROR: Cannot get EntityItemPointer for portalEntrance.";
+            return;
+        }
+
+        EntityItemPointer portalExit = qApp->getEntities()->getTree()->findEntityByID(_attachedEntityId);
+        if (!portalExit) {
+            qWarning() << "ERROR: Cannot get EntityItemPointer for portalExit.";
+            return;
+        }
+
+        glm::vec3 portalEntrancePropertiesPosition = portalEntrance->getWorldPosition();
+        glm::quat portalEntrancePropertiesRotation = portalEntrance->getWorldOrientation();
+        glm::mat4 worldFromPortalEntranceRotation = glm::mat4_cast(portalEntrancePropertiesRotation);
+        glm::mat4 worldFromPortalEntranceTranslation = glm::translate(portalEntrancePropertiesPosition);
+        glm::mat4 worldFromPortalEntrance = worldFromPortalEntranceTranslation * worldFromPortalEntranceRotation;
+        glm::mat4 portalEntranceFromWorld = glm::inverse(worldFromPortalEntrance);
+
+        glm::vec3 portalExitPropertiesPosition = portalExit->getWorldPosition();
+        glm::quat portalExitPropertiesRotation = portalExit->getWorldOrientation();
+        glm::vec3 portalExitPropertiesDimensions = portalExit->getScaledDimensions();
+        glm::vec3 halfPortalExitPropertiesDimensions = 0.5f * portalExitPropertiesDimensions;
+
+        glm::mat4 worldFromPortalExitRotation = glm::mat4_cast(portalExitPropertiesRotation);
+        glm::mat4 worldFromPortalExitTranslation = glm::translate(portalExitPropertiesPosition);
+        glm::mat4 worldFromPortalExit = worldFromPortalExitTranslation * worldFromPortalExitRotation;
+
+        glm::vec3 mainCameraPositionWorld = qApp->getCamera().getPosition();
+        glm::vec3 mainCameraPositionPortalEntrance = vec3(portalEntranceFromWorld * vec4(mainCameraPositionWorld, 1.0f));
+        mainCameraPositionPortalEntrance = vec3(-mainCameraPositionPortalEntrance.x, mainCameraPositionPortalEntrance.y,
+            -mainCameraPositionPortalEntrance.z);
+        glm::vec3 portalExitCameraPositionWorld = vec3(worldFromPortalExit * vec4(mainCameraPositionPortalEntrance, 1.0f));
+
+        srcViewFrustum.setPosition(portalExitCameraPositionWorld);
+        srcViewFrustum.setOrientation(portalExitPropertiesRotation);
+
+        float nearClip = mainCameraPositionPortalEntrance.z + portalExitPropertiesDimensions.z * 2.0f;
+        // `mainCameraPositionPortalEntrance` should technically be `mainCameraPositionPortalExit`,
+        // but the values are the same.
+        glm::vec3 upperRight = halfPortalExitPropertiesDimensions - mainCameraPositionPortalEntrance;
+        glm::vec3 bottomLeft = -halfPortalExitPropertiesDimensions - mainCameraPositionPortalEntrance;
+        glm::mat4 frustum = glm::frustum(bottomLeft.x, upperRight.x, bottomLeft.y, upperRight.y, nearClip, _farClipPlaneDistance);
+        srcViewFrustum.setProjection(frustum);
     }
 
     void setMirrorProjection(ViewFrustum& srcViewFrustum) {
@@ -109,7 +163,17 @@ public:
 
             auto srcViewFrustum = args->getViewFrustum();
             if (_mirrorProjection) {
-                setMirrorProjection(srcViewFrustum);
+                if (_portalProjection) {
+                    qWarning() << "ERROR: You can't set both _portalProjection and _mirrorProjection";
+                } else {
+                    setMirrorProjection(srcViewFrustum);
+                }
+            } else if (_portalProjection) {
+                if (_mirrorProjection) {
+                    qWarning() << "ERROR: You can't set both _portalProjection and _mirrorProjection";
+                } else {
+                    setPortalProjection(srcViewFrustum);
+                }
             } else {
                 if (!_attachedEntityId.isNull()) {
                     EntityItemPointer attachedEntity = qApp->getEntities()->getTree()->findEntityByID(_attachedEntityId);
@@ -141,6 +205,7 @@ protected:
 
 private:
     QUuid _attachedEntityId;
+    QUuid _portalEntranceEntityId;
     glm::vec3 _position;
     glm::quat _orientation;
     float _vFoV;
@@ -149,6 +214,7 @@ private:
     int _textureWidth;
     int _textureHeight;
     bool _mirrorProjection;
+    bool _portalProjection;
     EntityPropertyFlags _attachedEntityPropertyFlags;
 };
 

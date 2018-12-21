@@ -126,26 +126,6 @@ QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
 
-/// The names of the joints in the Maya HumanIK rig
-static const std::array<const char*, 16> HUMANIK_JOINTS = {{
-    "RightHand",
-    "RightForeArm",
-    "RightArm",
-    "Head",
-    "LeftArm",
-    "LeftForeArm",
-    "LeftHand",
-    "Neck",
-    "Spine",
-    "Hips",
-    "RightUpLeg",
-    "LeftUpLeg",
-    "RightLeg",
-    "LeftLeg",
-    "RightFoot",
-    "LeftFoot"
-}};
-
 class FBXModel {
 public:
     QString name;
@@ -417,6 +397,19 @@ QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
     return filepath.mid(filepath.lastIndexOf('/') + 1);
 }
 
+QMap<QString, QString> getJointNameMapping(const QVariantHash& mapping) {
+    static const QString JOINT_NAME_MAPPING_FIELD = "jointMap";
+    QMap<QString, QString> hfmToHifiJointNameMap;
+    if (!mapping.isEmpty() && mapping.contains(JOINT_NAME_MAPPING_FIELD) && mapping[JOINT_NAME_MAPPING_FIELD].type() == QVariant::Hash) {
+        auto jointNames = mapping[JOINT_NAME_MAPPING_FIELD].toHash();
+        for (auto itr = jointNames.begin(); itr != jointNames.end(); itr++) {
+            hfmToHifiJointNameMap.insert(itr.key(), itr.value().toString());
+            qCDebug(modelformat) << "the mapped key " << itr.key() << " has a value of " << hfmToHifiJointNameMap[itr.key()];
+        }
+    }
+    return hfmToHifiJointNameMap;
+}
+
 QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
     QMap<QString, glm::quat> jointRotationOffsets;
     static const QString JOINT_ROTATION_OFFSET_FIELD = "jointRotationOffset";
@@ -465,32 +458,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     std::map<QString, HFMLight> lights;
 
     QVariantHash joints = mapping.value("joint").toHash();
-    QString jointEyeLeftName = processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
-    QString jointEyeRightName = processID(getString(joints.value("jointEyeRight", "jointEyeRight")));
-    QString jointNeckName = processID(getString(joints.value("jointNeck", "jointNeck")));
-    QString jointRootName = processID(getString(joints.value("jointRoot", "jointRoot")));
-    QString jointLeanName = processID(getString(joints.value("jointLean", "jointLean")));
-    QString jointHeadName = processID(getString(joints.value("jointHead", "jointHead")));
-    QString jointLeftHandName = processID(getString(joints.value("jointLeftHand", "jointLeftHand")));
-    QString jointRightHandName = processID(getString(joints.value("jointRightHand", "jointRightHand")));
-    QString jointEyeLeftID;
-    QString jointEyeRightID;
-    QString jointNeckID;
-    QString jointRootID;
-    QString jointLeanID;
-    QString jointHeadID;
-    QString jointLeftHandID;
-    QString jointRightHandID;
-    QString jointLeftToeID;
-    QString jointRightToeID;
-
-
-    QVector<QString> humanIKJointNames;
-    for (int i = 0; i <  (int) HUMANIK_JOINTS.size(); i++) {
-        QByteArray jointName = HUMANIK_JOINTS[i];
-        humanIKJointNames.append(processID(getString(joints.value(jointName, jointName))));
-    }
-    QVector<QString> humanIKJointIDs(humanIKJointNames.size());
 
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
 
@@ -519,6 +486,8 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     HFMModel& hfmModel = *hfmModelPtr;
 
     hfmModel.originalURL = url;
+    hfmModel.hfmToHifiJointNameMapping.clear();
+    hfmModel.hfmToHifiJointNameMapping = getJointNameMapping(mapping);
 
     float unitScaleFactor = 1.0f;
     glm::vec3 ambientColor;
@@ -585,42 +554,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                     QString modelname = name.toLower();
                     if (modelname.startsWith("hifi")) {
                         hifiGlobalNodeID = id;
-                    }
-
-                    if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye") {
-                        jointEyeLeftID = getID(object.properties);
-
-                    } else if (name == jointEyeRightName || name == "EyeR" || name == "joint_Reye") {
-                        jointEyeRightID = getID(object.properties);
-
-                    } else if (name == jointNeckName || name == "NeckRot" || name == "joint_neck") {
-                        jointNeckID = getID(object.properties);
-
-                    } else if (name == jointRootName) {
-                        jointRootID = getID(object.properties);
-
-                    } else if (name == jointLeanName) {
-                        jointLeanID = getID(object.properties);
-
-                    } else if (name == jointHeadName) {
-                        jointHeadID = getID(object.properties);
-
-                    } else if (name == jointLeftHandName || name == "LeftHand" || name == "joint_L_hand") {
-                        jointLeftHandID = getID(object.properties);
-
-                    } else if (name == jointRightHandName || name == "RightHand" || name == "joint_R_hand") {
-                        jointRightHandID = getID(object.properties);
-
-                    } else if (name == "LeftToe" || name == "joint_L_toe" || name == "LeftToe_End") {
-                        jointLeftToeID = getID(object.properties);
-
-                    } else if (name == "RightToe" || name == "joint_R_toe" || name == "RightToe_End") {
-                        jointRightToeID = getID(object.properties);
-                    }
-
-                    int humanIKJointIndex = humanIKJointNames.indexOf(name);
-                    if (humanIKJointIndex != -1) {
-                        humanIKJointIDs[humanIKJointIndex] = getID(object.properties);
                     }
 
                     glm::vec3 translation;
@@ -1388,6 +1321,9 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         }
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = fbxModel.name;
+        if (hfmModel.hfmToHifiJointNameMapping.contains(hfmModel.hfmToHifiJointNameMapping.key(joint.name))) {
+            joint.name = hfmModel.hfmToHifiJointNameMapping.key(fbxModel.name);
+        }
 
         foreach (const QString& childID, _connectionChildMap.values(modelID)) {
             QString type = typeFlags.value(childID);
@@ -1400,7 +1336,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         joint.bindTransformFoundInCluster = false;
 
         hfmModel.joints.append(joint);
-        hfmModel.jointIndices.insert(fbxModel.name, hfmModel.joints.size());
+        hfmModel.jointIndices.insert(joint.name, hfmModel.joints.size());
 
         QString rotationID = localRotations.value(modelID);
         AnimationCurve xRotCurve = animationCurves.value(xComponents.value(rotationID));
@@ -1430,28 +1366,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     // NOTE: shapeVertices are in joint-frame
     std::vector<ShapeVertices> shapeVertices;
     shapeVertices.resize(std::max(1, hfmModel.joints.size()) );
-
-    // find our special joints
-    hfmModel.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);
-    hfmModel.rightEyeJointIndex = modelIDs.indexOf(jointEyeRightID);
-    hfmModel.neckJointIndex = modelIDs.indexOf(jointNeckID);
-    hfmModel.rootJointIndex = modelIDs.indexOf(jointRootID);
-    hfmModel.leanJointIndex = modelIDs.indexOf(jointLeanID);
-    hfmModel.headJointIndex = modelIDs.indexOf(jointHeadID);
-    hfmModel.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
-    hfmModel.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
-    hfmModel.leftToeJointIndex = modelIDs.indexOf(jointLeftToeID);
-    hfmModel.rightToeJointIndex = modelIDs.indexOf(jointRightToeID);
-
-    foreach (const QString& id, humanIKJointIDs) {
-        hfmModel.humanIKJointIndices.append(modelIDs.indexOf(id));
-    }
-
-    // extract the translation component of the neck transform
-    if (hfmModel.neckJointIndex != -1) {
-        const glm::mat4& transform = hfmModel.joints.at(hfmModel.neckJointIndex).transform;
-        hfmModel.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
-    }
 
     hfmModel.bindExtents.reset();
     hfmModel.meshExtents.reset();
@@ -1824,6 +1738,9 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         QString jointName = itr.key();
         glm::quat rotationOffset = itr.value();
         int jointIndex = hfmModel.getJointIndex(jointName);
+        if (hfmModel.hfmToHifiJointNameMapping.contains(jointName)) {
+            jointIndex = hfmModel.getJointIndex(jointName);
+        }
         if (jointIndex != -1) {
             hfmModel.jointRotationOffsets.insert(jointIndex, rotationOffset);
         }
@@ -1831,6 +1748,17 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     }
 
     return hfmModelPtr;
+}
+
+MediaType FBXSerializer::getMediaType() const {
+    MediaType mediaType("fbx");
+    mediaType.extensions.push_back("fbx");
+    mediaType.fileSignatures.emplace_back("Kaydara FBX Binary  \x00", 0);
+    return mediaType;
+}
+
+std::unique_ptr<hfm::Serializer::Factory> FBXSerializer::getFactory() const {
+    return std::make_unique<hfm::Serializer::SimpleFactory<FBXSerializer>>();
 }
 
 HFMModel::Pointer FBXSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {

@@ -556,6 +556,7 @@ void ModelOverlay::locationChanged(bool tellPhysics) {
     if (_model && _model->isActive()) {
         _model->setRotation(getWorldOrientation());
         _model->setTranslation(getWorldPosition());
+        _updateModel = true;
     }
 }
 

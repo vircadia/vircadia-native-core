@@ -61,7 +61,7 @@ Rectangle {
                 'username';
         }
         sortAscending: connectionsTable.sortIndicatorOrder === Qt.AscendingOrder;
-        itemsPerPage: 10;
+        itemsPerPage: 1000;
         listView: connectionsTable;
         processPage: function (data) {
             return data.users.map(function (user) {
