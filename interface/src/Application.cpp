@@ -4911,7 +4911,7 @@ void Application::calibrateEyeTracker5Points() {
 #endif
 
 bool Application::exportEntities(const QString& filename,
-                                 const QVector<QUuid>& entityIDs,
+                                 const QVector<EntityItemID>& entityIDs,
                                  const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
 
@@ -4986,12 +4986,16 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     glm::vec3 minCorner = center - vec3(scale);
     float cubeSize = scale * 2;
     AACube boundingCube(minCorner, cubeSize);
-    QVector<QUuid> entities;
+    QVector<EntityItemPointer> entities;
+    QVector<EntityItemID> ids;
     auto entityTree = getEntities()->getTree();
     entityTree->withReadLock([&] {
-        entityTree->evalEntitiesInCube(boundingCube, PickFilter(), entities);
+        entityTree->findEntities(boundingCube, entities);
+        foreach(EntityItemPointer entity, entities) {
+            ids << entity->getEntityItemID();
+        }
     });
-    return exportEntities(filename, entities, &center);
+    return exportEntities(filename, ids, &center);
 }
 
 void Application::loadSettings() {
