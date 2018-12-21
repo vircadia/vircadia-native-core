@@ -56,7 +56,20 @@ LAYOUT_STD140(binding=0) uniform standardInputsBuffer {
 #define iChannelResolution standardInputs.channelResolution
 #define iWorldOrientation standardInputs.worldOrientation
 
-struct ProceduralFragmentData {
+struct ProceduralFragment {
+    vec3 normal;
+    vec3 diffuse;
+    vec3 specular;
+    vec3 emissive;
+    float alpha;
+    float roughness;
+    float metallic;
+    float occlusion;
+    float scattering;
+};
+
+// Same as ProceduralFragment but with position
+struct ProceduralFragmentWithPosition {
     vec3 position;
     vec3 normal;
     vec3 diffuse;

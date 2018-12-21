@@ -48,7 +48,11 @@ float getProceduralColors(inout vec3 diffuse, inout vec3 specular, inout float s
     return 1.0;
 }
 
-float getProceduralFragment(inout ProceduralFragmentData proceduralData) {
+float getProceduralFragment(inout ProceduralFragment proceduralData) {
+    return 1.0;
+}
+
+float getProceduralFragmentWithPosition(inout ProceduralFragmentWithPosition proceduralData) {
     return 1.0;
 }
 
@@ -77,11 +81,15 @@ void main(void) {
     roughness = max(0.0, 1.0 - shininess / 128.0);
     metallic = length(specular);
     emissive = vec3(clamp(emissiveAmount, 0.0, 1.0));
-#elif defined(PROCEDURAL_V3)
+#elif defined(PROCEDURAL_V3) || defined(PROCEDURAL_V4)
+#if defined(PROCEDURAL_V3)
+    ProceduralFragment proceduralData = {
+#else
     TransformCamera cam = getTransformCamera();
     vec4 position = cam._viewInverse * _positionES;
-    ProceduralFragmentData proceduralData = {
+    ProceduralFragmentWithPosition proceduralData = {
         position.xyz,
+#endif
         normal,
         vec3(0.0),
         DEFAULT_SPECULAR,
@@ -92,7 +100,12 @@ void main(void) {
         DEFAULT_OCCLUSION,
         DEFAULT_SCATTERING
     };
+
+#if defined(PROCEDURAL_V3)
     emissiveAmount = getProceduralFragment(proceduralData);
+#else
+    emissiveAmount = getProceduralFragmentWithPosition(proceduralData);
+#endif
     normal = proceduralData.normal;
     diffuse = proceduralData.diffuse;
     roughness = proceduralData.roughness;
@@ -101,9 +114,12 @@ void main(void) {
     occlusion = proceduralData.occlusion;
     scattering = proceduralData.scattering;
 
+#if defined(PROCEDURAL_V4)
     position = vec4(proceduralData.position, 1.0);
     vec4 posClip = cam._projection * (cam._view * position);
     gl_FragDepth = 0.5 * (posClip.z / posClip.w + 1.0);
+#endif
+
 #endif
 
     if (emissiveAmount > 0.0) {

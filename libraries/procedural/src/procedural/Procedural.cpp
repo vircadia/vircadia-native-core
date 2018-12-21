@@ -75,7 +75,7 @@ void ProceduralData::parse(const QJsonObject& proceduralData) {
         if (versionJson.isDouble()) {
             version = (uint8_t)(floor(versionJson.toDouble()));
             // invalid version
-            if (!(version == 1 || version == 2 || version == 3)) {
+            if (!(version == 1 || version == 2 || version == 3 || version == 4)) {
                 return;
             }
         } else {
