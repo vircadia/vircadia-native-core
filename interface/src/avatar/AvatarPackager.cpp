@@ -30,6 +30,9 @@ AvatarPackager::AvatarPackager() {
         qRegisterMetaType<AvatarPackager*>();
         qRegisterMetaType<AvatarProject*>();
     });
+
+    QDir defaultProjectsDir(AvatarProject::getDefaultProjectsPath());
+    defaultProjectsDir.mkpath(".");
 }
 
 bool AvatarPackager::open() {
@@ -57,7 +60,7 @@ AvatarProject* AvatarPackager::createAvatarProject(const QString& projectsFolder
     if (_currentAvatarProject) {
         _currentAvatarProject->deleteLater();
     }
-    _currentAvatarProject = AvatarProject::createAvatarProject(avatarProjectName, avatarModelPath);
+    _currentAvatarProject = AvatarProject::createAvatarProject(projectsFolder, avatarProjectName, avatarModelPath, textureFolder);
     qDebug() << "_currentAvatarProject has" << (QQmlEngine::objectOwnership(_currentAvatarProject) == QQmlEngine::CppOwnership ? "CPP" : "JS") << "OWNERSHIP";
     QQmlEngine::setObjectOwnership(_currentAvatarProject, QQmlEngine::CppOwnership);
     emit avatarProjectChanged();

@@ -8,6 +8,7 @@ Rectangle {
 
     color: "#404040"
     height: content === defaultContent ? 0 : 74
+    visible: content !== defaultContent
     width: parent.width
 
     property var content: Item { id: defaultContent }

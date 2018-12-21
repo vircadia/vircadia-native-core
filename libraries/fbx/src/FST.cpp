@@ -16,14 +16,23 @@
 #include <hfm/HFM.h>
 
 FST::FST(const QString& fstPath, QVariantHash data) : _fstPath(fstPath) {
-    if (data.contains(NAME_FIELD)) {
-        _name = data[NAME_FIELD].toString();
-        data.remove(NAME_FIELD);
-    }
 
-    if (data.contains(FILENAME_FIELD)) {
-        _modelPath = data[FILENAME_FIELD].toString();
-        data.remove(FILENAME_FIELD);
+    auto setValueFromFSTData = [&data] (const QString& propertyID, auto &targetProperty) mutable {
+        if (data.contains(propertyID)) {
+            targetProperty = data[propertyID].toString();
+            data.remove(propertyID);
+        }
+    };
+    setValueFromFSTData(NAME_FIELD, _name);
+    setValueFromFSTData(FILENAME_FIELD, _modelPath);
+    setValueFromFSTData(MARKETPLACE_ID_FIELD, _marketplaceID);
+
+    if (data.contains(SCRIPT_FIELD)) {
+        QVariantList scripts = data.values(SCRIPT_FIELD);
+        for (const auto& script : scripts) {
+            _scriptPaths.push_back(script.toString());
+        }
+        data.remove(SCRIPT_FIELD);
     }
 
     _other = data;
@@ -42,10 +51,8 @@ FST* FST::createFSTFromModel(QString fstPath, QString modelFilePath, const hfm::
             hfmModel.blendshapeChannelNames.contains("Squint_Right"));
 
     mapping.insert(NAME_FIELD, QFileInfo(fstPath).baseName());
-    QDir root(modelFilePath);
-    mapping.insert(FILENAME_FIELD, root.relativeFilePath(fstPath));
+    mapping.insert(FILENAME_FIELD, QFileInfo(modelFilePath).fileName());
     mapping.insert(TEXDIR_FIELD, "textures");
-    mapping.insert(SCRIPT_FIELD, "scripts");
 
     // mixamo/autodesk defaults
     mapping.insert(SCALE_FIELD, 1.0);
@@ -150,9 +157,13 @@ void FST::setModelPath(const QString& modelPath) {
 
 QVariantHash FST::getMapping() {
     QVariantHash mapping;
-    mapping.insertMulti(NAME_FIELD, _name);
-    mapping.insertMulti(FILENAME_FIELD, _modelPath);
     mapping.unite(_other);
+    mapping.insert(NAME_FIELD, _name);
+    mapping.insert(FILENAME_FIELD, _modelPath);
+    mapping.insert(MARKETPLACE_ID_FIELD, _marketplaceID);
+    for (const auto& scriptPath : _scriptPaths) {
+        mapping.insertMulti(SCRIPT_FIELD, scriptPath);
+    }
     return mapping;
 }
 

@@ -21,6 +21,7 @@
 
 #include "FBXSerializer.h"
 #include <ui/TabletScriptingInterface.h>
+#include <graphics/TextureMap.h>
 #include "scripting/HMDScriptingInterface.h"
 
 AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
@@ -36,17 +37,25 @@ AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
     return project;
 }
 
-AvatarProject* AvatarProject::createAvatarProject(const QString& avatarProjectName, const QString& avatarModelPath) {
+AvatarProject* AvatarProject::createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName, const QString& avatarModelPath, const QString& textureFolder) {
     if (!isValidNewProjectName(avatarProjectName)) {
         return nullptr;
     }
-    QDir dir(getDefaultProjectsPath() + "/" + avatarProjectName);
-    if (!dir.mkpath(".")) {
+    QDir projectDir(projectsFolder + "/" + avatarProjectName);
+    if (!projectDir.mkpath(".")) {
+        return nullptr;
+    }
+    QDir projectTexturesDir(projectDir.path() + "/textures");
+    if (!projectTexturesDir.mkpath(".")) {
+        return nullptr;
+    }
+    QDir projectScriptsDir(projectDir.path() + "/scripts");
+    if (!projectScriptsDir.mkpath(".")) {
         return nullptr;
     }
     const auto fileName = QFileInfo(avatarModelPath).fileName();
-    const auto newModelPath = dir.absoluteFilePath(fileName);
-    const auto newFSTPath = dir.absoluteFilePath("avatar.fst");
+    const auto newModelPath = projectDir.absoluteFilePath(fileName);
+    const auto newFSTPath = projectDir.absoluteFilePath("avatar.fst");
     QFile::copy(avatarModelPath, newModelPath);
 
     QFileInfo fbxInfo(newModelPath);
@@ -66,10 +75,41 @@ AvatarProject* AvatarProject::createAvatarProject(const QString& avatarProjectNa
         qDebug() << "Error reading: " << error;
         return nullptr;
     }
-    //TODO: copy/fix textures here:
+    QStringList textures{};
 
-    FST* fst = FST::createFSTFromModel(newFSTPath, newModelPath, *hfmModel);
+    auto addTextureToList = [&textures](hfm::Texture texture) mutable {
+        if (!texture.filename.isEmpty() && texture.content.isEmpty() && !textures.contains(texture.filename)) {
+            textures << texture.filename;
+        }
+    };
 
+    foreach(const HFMMaterial mat, hfmModel->materials) {
+        addTextureToList(mat.normalTexture);
+        addTextureToList(mat.albedoTexture);
+        addTextureToList(mat.opacityTexture);
+        addTextureToList(mat.glossTexture);
+        addTextureToList(mat.roughnessTexture);
+        addTextureToList(mat.specularTexture);
+        addTextureToList(mat.metallicTexture);
+        addTextureToList(mat.emissiveTexture);
+        addTextureToList(mat.occlusionTexture);
+        addTextureToList(mat.scatteringTexture);
+        addTextureToList(mat.lightmapTexture);
+    }
+
+    QDir textureDir(textureFolder.isEmpty() ? fbxInfo.absoluteDir() : textureFolder);
+
+    for (const auto& texture : textures) {
+        QString sourcePath = textureDir.path() + "/" + texture;
+        QString targetPath = projectTexturesDir.path() + "/" + texture;
+
+        QFileInfo sourceTexturePath(sourcePath);
+        if (sourceTexturePath.exists()) {
+            QFile::copy(sourcePath, targetPath);
+        }
+    }
+
+    auto fst = FST::createFSTFromModel(newFSTPath, newModelPath, *hfmModel);
     fst->setName(avatarProjectName);
 
     if (!fst->write()) {
@@ -77,6 +117,22 @@ AvatarProject* AvatarProject::createAvatarProject(const QString& avatarProjectNa
     }
 
     return new AvatarProject(fst);
+}
+
+QStringList AvatarProject::getScriptPaths(const QDir& scriptsDir) {
+    QStringList result{};
+    constexpr auto flags = QDir::Files | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::Hidden;
+    if (!scriptsDir.exists()) {
+        return result;
+    }
+
+    for (auto& script : scriptsDir.entryInfoList({}, flags)) {
+        if (script.fileName().endsWith(".js")) {
+            result.push_back("scripts/" + script.fileName());
+        }
+    }
+
+    return result;
 }
 
 bool AvatarProject::isValidNewProjectName(const QString& projectName) {
@@ -91,6 +147,9 @@ AvatarProject::AvatarProject(FST* fst) {
     _fst = fst;
     auto fileInfo = QFileInfo(getFSTPath());
     _directory = fileInfo.absoluteDir();
+
+    _fst->setScriptPaths(getScriptPaths(QDir(_directory.path() + "/scripts")));
+    _fst->write();
 
     //_projectFiles = _directory.entryList();
     refreshProjectFiles();
@@ -125,8 +184,7 @@ MarketplaceItemUploader* AvatarProject::upload(bool updateExisting) {
     connect(uploader, &MarketplaceItemUploader::completed, this, [this, uploader]() {
         if (uploader->getError() == MarketplaceItemUploader::Error::None) {
             _fst->setMarketplaceID(uploader->getMarketplaceID());
-            // TODO(thoys) uncomment this
-            //_fst->write();
+            _fst->write();
         }
     });
 

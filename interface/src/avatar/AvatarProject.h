@@ -36,11 +36,6 @@ class AvatarProject : public QObject {
     Q_PROPERTY(QString name READ getProjectName)
 
 public:
-    Q_INVOKABLE bool write() {
-        // Write FST here
-        return false;
-    }
-
     Q_INVOKABLE MarketplaceItemUploader* upload(bool updateExisting);
     Q_INVOKABLE void openInInventory();
 
@@ -48,7 +43,8 @@ public:
      * returns the AvatarProject or a nullptr on failure.
      */
     static AvatarProject* openAvatarProject(const QString& path);
-    static AvatarProject* createAvatarProject(const QString& avatarProjectName, const QString& avatarModelPath);
+    static AvatarProject* createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName,
+                                              const QString& avatarModelPath, const QString& textureFolder);
 
     static bool isValidNewProjectName(const QString& projectName);
 
@@ -61,7 +57,7 @@ private:
     AvatarProject(FST* fst);
 
     ~AvatarProject() {
-        // TODO: cleanup FST / AvatarProjectUploader etc.
+        _fst->deleteLater();
     }
 
     Q_INVOKABLE QString getProjectName() const { return _fst->getName(); }
@@ -73,6 +69,7 @@ private:
 
     void refreshProjectFiles();
     void appendDirectory(QString prefix, QDir dir);
+    QStringList getScriptPaths(const QDir& scriptsDir);
 
     FST* _fst;
 
