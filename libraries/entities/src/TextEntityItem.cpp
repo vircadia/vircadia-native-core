@@ -27,7 +27,6 @@ const QString TextEntityItem::DEFAULT_TEXT("");
 const float TextEntityItem::DEFAULT_LINE_HEIGHT = 0.1f;
 const glm::u8vec3 TextEntityItem::DEFAULT_TEXT_COLOR = { 255, 255, 255 };
 const glm::u8vec3 TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
-const bool TextEntityItem::DEFAULT_FACE_CAMERA = false;
 
 EntityItemPointer TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new TextEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
@@ -39,9 +38,8 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID) : EntityItem(en
     _type = EntityTypes::Text;
 }
 
-const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
-
 void TextEntityItem::setUnscaledDimensions(const glm::vec3& value) {
+    const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
     // NOTE: Text Entities always have a "depth" of 1cm.
     EntityItem::setUnscaledDimensions(glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH));
 }
@@ -53,7 +51,7 @@ EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& de
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineHeight, getLineHeight);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textColor, getTextColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundColor, getBackgroundColor);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(faceCamera, getFaceCamera);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
     return properties;
 }
 
@@ -65,7 +63,7 @@ bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineHeight, setLineHeight);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textColor, setTextColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundColor, setBackgroundColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(faceCamera, setFaceCamera);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -93,7 +91,7 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_LINE_HEIGHT, float, setLineHeight);
     READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, glm::u8vec3, setTextColor);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, glm::u8vec3, setBackgroundColor);
-    READ_ENTITY_PROPERTY(PROP_FACE_CAMERA, bool, setFaceCamera);
+    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
     
     return bytesRead;
 }
@@ -104,7 +102,7 @@ EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_LINE_HEIGHT;
     requestedProperties += PROP_TEXT_COLOR;
     requestedProperties += PROP_BACKGROUND_COLOR;
-    requestedProperties += PROP_FACE_CAMERA;
+    requestedProperties += PROP_BILLBOARD_MODE;
     return requestedProperties;
 }
 
@@ -122,7 +120,7 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, getLineHeight());
     APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, getTextColor());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, getBackgroundColor());
-    APPEND_ENTITY_PROPERTY(PROP_FACE_CAMERA, getFaceCamera());
+    APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
     
 }
 
@@ -230,17 +228,17 @@ glm::u8vec3 TextEntityItem::getBackgroundColor() const {
     });
 }
 
-bool TextEntityItem::getFaceCamera() const { 
-    bool result;
+BillboardMode TextEntityItem::getBillboardMode() const {
+    BillboardMode result;
     withReadLock([&] {
-        result = _faceCamera;
+        result = _billboardMode;
     });
     return result;
 }
 
-void TextEntityItem::setFaceCamera(bool value) { 
+void TextEntityItem::setBillboardMode(BillboardMode value) {
     withWriteLock([&] {
-        _faceCamera = value;
+        _billboardMode = value;
     });
 }
 

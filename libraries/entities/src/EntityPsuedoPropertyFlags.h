@@ -34,6 +34,8 @@ namespace EntityPsuedoPropertyFlag {
         OwningAvatarID,
         AvatarEntity,
         LocalEntity,
+        FaceCamera,
+        IsFacingAvatar,
 
         NumFlags
     };

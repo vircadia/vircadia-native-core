@@ -2317,6 +2317,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
 
+    EntityTreeRenderer::setGetAvatarUpOperator([] {
+        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * Vectors::UP;
+    });
+
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
     DependencyManager::get<Keyboard>()->createKeyboard();
@@ -4910,7 +4914,7 @@ void Application::calibrateEyeTracker5Points() {
 #endif
 
 bool Application::exportEntities(const QString& filename,
-                                 const QVector<EntityItemID>& entityIDs,
+                                 const QVector<QUuid>& entityIDs,
                                  const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
 
@@ -4985,16 +4989,12 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     glm::vec3 minCorner = center - vec3(scale);
     float cubeSize = scale * 2;
     AACube boundingCube(minCorner, cubeSize);
-    QVector<EntityItemPointer> entities;
-    QVector<EntityItemID> ids;
+    QVector<QUuid> entities;
     auto entityTree = getEntities()->getTree();
     entityTree->withReadLock([&] {
-        entityTree->findEntities(boundingCube, entities);
-        foreach(EntityItemPointer entity, entities) {
-            ids << entity->getEntityItemID();
-        }
+        entityTree->evalEntitiesInCube(boundingCube, PickFilter(), entities);
     });
-    return exportEntities(filename, ids, &center);
+    return exportEntities(filename, entities, &center);
 }
 
 void Application::loadSettings() {
@@ -7692,16 +7692,13 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
 
 void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     EntityItemProperties properties;
-    properties.setType(EntityTypes::Model);
     properties.setName(mapping.right(mapping.length() - 1));
     if (filePath.toLower().endsWith(PNG_EXTENSION) || filePath.toLower().endsWith(JPG_EXTENSION)) {
-        QJsonObject textures {
-            {"tex.picture", QString("atp:" + mapping) }
-        };
-        properties.setModelURL("https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx");
-        properties.setTextures(QJsonDocument(textures).toJson(QJsonDocument::Compact));
-        properties.setShapeType(SHAPE_TYPE_BOX);
+        properties.setType(EntityTypes::Image);
+        properties.setImageURL(QString("atp:" + mapping));
+        properties.setKeepAspectRatio(false);
     } else {
+        properties.setType(EntityTypes::Model);
         properties.setModelURL("atp:" + mapping);
         properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     }
