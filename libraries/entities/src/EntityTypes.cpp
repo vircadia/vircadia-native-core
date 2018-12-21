@@ -59,7 +59,7 @@ REGISTER_ENTITY_TYPE(Zone)
 REGISTER_ENTITY_TYPE(Material)
 
 bool EntityTypes::typeIsValid(EntityType type) {
-    return type > EntityType::Unknown && type <= EntityType::LAST;
+    return type > EntityType::Unknown && type <= EntityType::NUM_TYPES;
 }
 
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
@@ -144,7 +144,7 @@ EntityItemPointer EntityTypes::constructEntityItem(const unsigned char* data, in
     QUuid id;
     EntityTypes::EntityType type = EntityTypes::Unknown;
     extractEntityTypeAndID(data, bytesToRead, type, id);
-    if (type > EntityTypes::Unknown && type <= EntityTypes::LAST) {
+    if (type > EntityTypes::Unknown && type <= EntityTypes::NUM_TYPES) {
         EntityItemID tempEntityID(id);
         EntityItemProperties tempProperties;
         return constructEntityItem(type, tempEntityID, tempProperties);
