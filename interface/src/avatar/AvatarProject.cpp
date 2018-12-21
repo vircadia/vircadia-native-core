@@ -17,8 +17,9 @@
 #include <QFileInfo>
 #include <QDebug>
 #include <QQmlEngine>
-#include "FBXSerializer.h"
+#include <QTimer>
 
+#include "FBXSerializer.h"
 #include <ui/TabletScriptingInterface.h>
 #include "scripting/HMDScriptingInterface.h"
 
@@ -57,19 +58,15 @@ AvatarProject* AvatarProject::createAvatarProject(const QString& avatarProjectNa
 
     std::shared_ptr<hfm::Model> hfmModel;
 
-
     try {
         qDebug() << "Reading FBX file : " << fbxInfo.filePath();
         const QByteArray fbxContents = fbx.readAll();
         hfmModel = FBXSerializer().read(fbxContents, QVariantHash(), fbxInfo.filePath());
-    }
-    catch (const QString& error) {
+    } catch (const QString& error) {
         qDebug() << "Error reading: " << error;
         return nullptr;
     }
     //TODO: copy/fix textures here:
-
-
 
     FST* fst = FST::createFSTFromModel(newFSTPath, newModelPath, *hfmModel);
 
@@ -89,7 +86,6 @@ bool AvatarProject::isValidNewProjectName(const QString& projectName) {
 
 AvatarProject::AvatarProject(const QString& fstPath, const QByteArray& data) :
     AvatarProject::AvatarProject(new FST(fstPath, FSTReader::readMapping(data))) {
-
 }
 AvatarProject::AvatarProject(FST* fst) {
     _fst = fst;
@@ -119,8 +115,22 @@ void AvatarProject::refreshProjectFiles() {
     appendDirectory("", _directory);
 }
 
-MarketplaceItemUploader* AvatarProject::upload() {
-    return new MarketplaceItemUploader("test_avatar", "blank description", QFileInfo(getFSTPath()).fileName(), QUuid(), _projectFiles);
+MarketplaceItemUploader* AvatarProject::upload(bool updateExisting) {
+    QUuid itemID;
+    if (updateExisting) {
+        itemID = _fst->getMarketplaceID();
+    }
+    auto uploader = new MarketplaceItemUploader(getProjectName(), "Empty description", QFileInfo(getFSTPath()).fileName(), itemID,
+                                       _projectFiles);
+    connect(uploader, &MarketplaceItemUploader::completed, this, [this, uploader]() {
+        if (uploader->getError() == MarketplaceItemUploader::Error::None) {
+            _fst->setMarketplaceID(uploader->getMarketplaceID());
+            // TODO(thoys) uncomment this
+            //_fst->write();
+        }
+    });
+
+    return uploader;
 }
 
 void AvatarProject::openInInventory() {
@@ -128,7 +138,12 @@ void AvatarProject::openInInventory() {
         DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     tablet->loadQMLSource("hifi/commerce/wallet/Wallet.qml");
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
-    tablet->sendToQml(QVariantMap({
-        { "method", "updatePurchases" },
-        { "filterText", "filtertext" } }));
+    auto name = getProjectName();
+
+    // I'm not a fan of this, but it's the only current option.
+    QTimer::singleShot(1000, [name]() {
+        auto tablet = dynamic_cast<TabletProxy*>(
+            DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+        tablet->sendToQml(QVariantMap({ { "method", "updatePurchases" }, { "filterText", name } }));
+    });
 }

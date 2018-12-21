@@ -56,6 +56,8 @@ public:
     State getState() const { return _state; }
     bool getComplete() const { return _state == State::Complete; }
 
+    QUuid getMarketplaceID() const { return _marketplaceID; }
+
     Error getError() const { return _error; }
 
 signals:
@@ -77,8 +79,11 @@ private:
     QString _description;
     QString _rootFilename;
     QUuid _marketplaceID;
+    int _itemVersion;
 
     QString _responseData;
+
+    int _numRequestsForInventory{ 0 };
 
     QStringList _filePaths;
     QByteArray _fileData;

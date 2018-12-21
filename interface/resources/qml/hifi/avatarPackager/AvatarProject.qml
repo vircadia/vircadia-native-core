@@ -25,6 +25,7 @@ Item {
         anchors.rightMargin: 17
         HifiControls.Button {
             id: uploadButton
+            enabled: Account.loggedIn
             //width: parent.width
             //anchors.bottom: parent.bottom
             anchors.verticalCenter: parent.verticalCenter
@@ -35,24 +36,80 @@ Item {
             width: 133
             height: 40
             onClicked: function() {
-                console.log("Uploading");
-                root.uploader = AvatarPackagerCore.currentAvatarProject.upload();
-                console.log("uploader: "+ root.uploader);
-                root.uploader.uploadProgress.connect(function(uploaded, total) {
-                    console.log("Uploader progress: " + uploaded + " / " + total);
-                });
-                root.uploader.completed.connect(function() {
-                    try {
-                        var response = JSON.parse(root.uploader.responseData);
-                        console.log("Uploader complete! " + response);
-                        uploadStatus.text = response.status;
-                    } catch (e) {
-                        console.log("Error parsing JSON: " + root.uploader.reponseData);
-                    }
-                });
-                root.uploader.send();
+                if (AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID()) {
+                    showConfirmUploadPopup(uploadNew, uploadUpdate);
+                } else {
+                    uploadNew();
+                }
             }
         }
+    }
+
+    function uploadNew() {
+        console.log("Uploading new");
+        upload(false);
+    }
+    function uploadUpdate() {
+        console.log("Uploading update");
+        upload(true);
+    }
+
+    function upload(updateExisting) {
+        root.uploader = AvatarPackagerCore.currentAvatarProject.upload(updateExisting);
+        console.log("uploader: "+ root.uploader);
+        root.uploader.uploadProgress.connect(function(uploaded, total) {
+            console.log("Uploader progress: " + uploaded + " / " + total);
+        });
+        root.uploader.completed.connect(function() {
+            try {
+                var response = JSON.parse(root.uploader.responseData);
+                console.log("Uploader complete! " + response);
+                uploadStatus.text = response.status;
+            } catch (e) {
+                console.log("Error parsing JSON: " + root.uploader.reponseData);
+            }
+        });
+        root.uploader.send();
+        avatarPackager.state = "project-upload";
+    }
+
+    function showConfirmUploadPopup() {
+        popup.titleText = 'Overwrite Avatar'
+        popup.bodyText = 'You have previously uploaded the avatar file from this project.' + 
+                         ' This will overwrite that avatar and you won’t be able to access the older version.'
+
+        popup.button1text = 'CREATE NEW';
+        popup.button2text = 'OVERWRITE';
+
+        popup.onButton2Clicked = function() {
+            popup.close();
+            uploadUpdate();
+        }
+        popup.onButton1Clicked = function() {
+            popup.close();
+            showConfirmCreateNewPopup();
+        };
+
+        popup.open();
+        //popup.forceActiveFocus();
+    }
+
+    function showConfirmCreateNewPopup(confirmCallback) {
+        popup.titleText = 'Create New'
+        popup.bodyText = 'This will upload your current files with the same avatar name.' +
+                         ' You will lose the ability to update the previously uploaded avatar. Are you sure you want to continue?'
+
+        popup.button1text = 'CANCEL';
+        popup.button2text = 'CONFIRM';
+
+        popup.onButton1Clicked = function() { popup.close() };
+        popup.onButton2Clicked = function() {
+            popup.close();
+            uploadNew();
+        };
+
+        popup.open();
+        //popup.forceActiveFocus();
     }
 
     RalewaySemiBold {
@@ -79,11 +136,15 @@ Item {
     }
 
     Rectangle {
+        id: fileList
+
+        visible: false
+
         color: "white"
-        visible: AvatarPackagerCore.currentAvatarProject !== null
         anchors.top: openFolderButton.bottom
         anchors.left: parent.left
         anchors.right: parent.right
+        anchors.bottom: showFilesText.top
         //anchors.bottom: uploadButton.top
         anchors.topMargin: 10
         anchors.bottomMargin: 10
@@ -92,96 +153,82 @@ Item {
         ListView {
             anchors.fill: parent
             model: AvatarPackagerCore.currentAvatarProject === null ? [] : AvatarPackagerCore.currentAvatarProject.projectFiles
-            delegate: Text { text: '<b>File:</b> ' + modelData }
+            delegate: Rectangle {
+                width: parent.width
+                height: fileText.implicitHeight + 10
+                color: (index % 2 == 0) ? "white" : "grey"
+                Text {
+                    id: fileText
+                    anchors.top: parent.top + 5
+                    anchors.left: parent.left + 5
+                    text: modelData
+                }
+            }
         }
     }
 
+    Text {
+        id: showFilesText
+
+        visible: AvatarPackagerCore.currentAvatarProject !== null
+
+        anchors.bottom: loginRequiredMessage.top
+        anchors.bottomMargin: 10
+
+        font.pointSize: 12
+        text: AvatarPackagerCore.currentAvatarProject.projectFiles.length + " files in the project. <a href='toggle'>" + (fileList.visible ? "Hide" : "Show") + " list</a>"
+
+        onLinkActivated: fileList.visible = !fileList.visible
+    }
+
     Rectangle {
-        id: uploadingScreen
+        id: loginRequiredMessage
 
-        visible: !!root.uploader
-        anchors.fill: parent
+        visible: !Account.loggedIn
+        height: loginRequiredTextRow.height + 20
 
-        color: "black"
-
-        Item {
-            visible: !!root.uploader && !root.uploader.complete
-
-            anchors.fill: parent
-
-            AnimatedImage {
-                id: uploadSpinner
-
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                    verticalCenter: parent.verticalCenter
-                }
-
-                source: "../../../icons/loader-snake-64-w.gif"
-                playing: true
-                z: 10000
-            }
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
         }
 
-        Item {
-            visible: !!root.uploader && root.uploader.complete
+        color: "#FFD6AD"
 
+        border.color: "#F39622"
+        border.width: 2
+        radius: 2
+
+        Item {
+            id: loginRequiredTextRow
+
+            height: Math.max(loginWarningGlyph.implicitHeight, loginWarningText.implicitHeight)
             anchors.fill: parent
+            anchors.margins: 10
 
             HiFiGlyphs {
-                id: successIcon
+                id: loginWarningGlyph
 
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                    verticalCenter: parent.verticalCenter
-                }
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
 
-                size: 128
-                text: "\ue01a"
-                color: "#1FC6A6"
-            }
-
-            Text {
-                text: "Congratulations!"
-
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: successIcon.bottom
-
-                color: "white"
-            }
-
-            HifiControls.Button {
                 width: implicitWidth
-                height: implicitHeight
 
-                anchors.bottom: parent.bottom
+                font.pointSize: 20
+                text: "+"
+                color: "black"
+            }
+            Text {
+                id: loginWarningText
+
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: loginWarningGlyph.right
                 anchors.right: parent.right
 
-                text: "View in Inventory"
-
-                color: hifi.buttons.blue
-                colorScheme: root.colorScheme
-                onClicked: function() {
-                    console.log("Opening in inventory");
-
-                    AvatarPackagerCore.currentAvatarProject.openInInventory();
-                }
+                text: "Please login to upload your avatar to High Fidelity hosting."
+                font.pointSize: 12
+                wrapMode: Text.Wrap
             }
         }
-
-        Column {
-            Text {
-                id: uploadStatus
-
-                text: "Uploading"
-                color: "white"
-
-            }
-            Text {
-                text: "State: " + (!!root.uploader ? root.uploader.state : " NONE")
-                color: "white"
-            }
-        }
-
     }
 }

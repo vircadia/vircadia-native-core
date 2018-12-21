@@ -67,10 +67,9 @@ void MarketplaceItemUploader::doGetCategories() {
     QNetworkReply* reply = networkAccessManager.get(request);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        auto doc = QJsonDocument::fromJson(reply->readAll());
-
         auto error = reply->error();
         if (error == QNetworkReply::NoError) {
+            auto doc = QJsonDocument::fromJson(reply->readAll());
             auto extractCategoryID = [&doc]() -> std::pair<bool, int> {
                 auto items = doc.object()["data"].toObject()["items"];
                 if (!items.isArray()) {
@@ -119,116 +118,175 @@ void MarketplaceItemUploader::doGetCategories() {
 }
 
 void MarketplaceItemUploader::doUploadAvatar() {
-        QBuffer buffer{ &_fileData };
-        //buffer.open(QIODevice::WriteOnly);
-        QuaZip zip{ &buffer };
-        if (!zip.open(QuaZip::Mode::mdAdd)) {
-            qWarning() << "Failed to open zip!!";
+    QBuffer buffer{ &_fileData };
+    //buffer.open(QIODevice::WriteOnly);
+    QuaZip zip{ &buffer };
+    if (!zip.open(QuaZip::Mode::mdAdd)) {
+        qWarning() << "Failed to open zip!!";
+    }
+
+    for (auto& filePath : _filePaths) {
+        qWarning() << "Zipping: " << filePath;
+        QFileInfo fileInfo{ filePath };
+
+        QuaZipFile zipFile{ &zip };
+        if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(fileInfo.fileName()))) {
+            qWarning() << "Could not open zip file:" << zipFile.getZipError();
+            _error = Error::Unknown;
+            setState(State::Complete);
+            return;
         }
-
-        for (auto& filePath : _filePaths) {
-            qWarning() << "Zipping: " << filePath;
-            QFileInfo fileInfo{ filePath };
-
-            QuaZipFile zipFile{ &zip };
-            if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(fileInfo.fileName()))) {
-                qWarning() << "Could not open zip file:" << zipFile.getZipError();
-                _error = Error::Unknown;
-                setState(State::Complete);
-                return;
-            }
-            QFile file{ filePath };
-            if (file.open(QIODevice::ReadOnly)) {
-                zipFile.write(file.readAll());
-            } else {
-                qWarning() << "Failed to open: " << filePath;
-            }
-            file.close();
-            zipFile.close();
-            if (zipFile.getZipError() != UNZ_OK) {
-                qWarning() << "Could not close zip file: " << zipFile.getZipError();
-                setState(State::Complete);
-                return;
-            }
-        }
-
-        zip.close();
-
-        qDebug() << "Finished zipping, size: " << (buffer.size() / (1000.0f)) << "KB";
-
-        QString path = "/api/v1/marketplace/items";
-        bool creating = true;
-        if (!_marketplaceID.isNull()) {
-            creating = false;
-            auto idWithBraces = _marketplaceID.toString();
-            auto idWithoutBraces = idWithBraces.mid(1, idWithBraces.length() - 2);
-            path += "/" + idWithoutBraces;
-        }
-        auto accountManager = DependencyManager::get<AccountManager>();
-        auto request = accountManager->createRequest(path, AccountManagerAuth::Required);
-        qWarning() << "Request url is: " << request.url();
-
-        QJsonObject root{ { "marketplace_item",
-                            QJsonObject{ { "title", _title },
-                                         { "description", _description },
-                                         { "root_file_key", _rootFilename },
-                                         { "category_ids", QJsonArray({ 5 }) },
-                                         //{ "attributions", QJsonArray({ QJsonObject{ { "name", "" }, { "link", "" } } }) },
-                                         { "license", 0 },
-                                         { "files", QString::fromLatin1(_fileData.toBase64()) } } } };
-        request.setHeader(QNetworkRequest::KnownHeaders::ContentTypeHeader, "application/json");
-        QJsonDocument doc{ root };
-
-           qWarning() << "data: " << doc.toJson();
-
-        _fileData.toBase64();
-        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-
-        QNetworkReply* reply{ nullptr };
-        if (creating) {
-            reply = networkAccessManager.post(request, doc.toJson());
+        QFile file{ filePath };
+        if (file.open(QIODevice::ReadOnly)) {
+            zipFile.write(file.readAll());
         } else {
-            reply = networkAccessManager.put(request, doc.toJson());
+            qWarning() << "Failed to open: " << filePath;
         }
+        file.close();
+        zipFile.close();
+        if (zipFile.getZipError() != UNZ_OK) {
+            qWarning() << "Could not close zip file: " << zipFile.getZipError();
+            setState(State::Complete);
+            return;
+        }
+    }
 
-        connect(reply, &QNetworkReply::uploadProgress, this, &MarketplaceItemUploader::uploadProgress);
+    zip.close();
 
-        connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+    qDebug() << "Finished zipping, size: " << (buffer.size() / (1000.0f)) << "KB";
+
+    QString path = "/api/v1/marketplace/items";
+    bool creating = true;
+    if (!_marketplaceID.isNull()) {
+        creating = false;
+        auto idWithBraces = _marketplaceID.toString();
+        auto idWithoutBraces = idWithBraces.mid(1, idWithBraces.length() - 2);
+        path += "/" + idWithoutBraces;
+    }
+    auto accountManager = DependencyManager::get<AccountManager>();
+    auto request = accountManager->createRequest(path, AccountManagerAuth::Required);
+    qWarning() << "Request url is: " << request.url();
+
+    QJsonObject root{ { "marketplace_item",
+                        QJsonObject{ { "title", _title },
+                                     { "description", _description },
+                                     { "root_file_key", _rootFilename },
+                                     { "category_ids", QJsonArray({ 5 }) },
+                                     //{ "attributions", QJsonArray({ QJsonObject{ { "name", "" }, { "link", "" } } }) },
+                                     { "license", 0 },
+                                     { "files", QString::fromLatin1(_fileData.toBase64()) } } } };
+    request.setHeader(QNetworkRequest::KnownHeaders::ContentTypeHeader, "application/json");
+    QJsonDocument doc{ root };
+
+    qWarning() << "data: " << doc.toJson();
+
+    _fileData.toBase64();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+
+    QNetworkReply* reply{ nullptr };
+    if (creating) {
+        reply = networkAccessManager.post(request, doc.toJson());
+    } else {
+        reply = networkAccessManager.put(request, doc.toJson());
+    }
+
+    connect(reply, &QNetworkReply::uploadProgress, this, &MarketplaceItemUploader::uploadProgress);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        //_responseData = reply->readAll();
+        auto error = reply->error();
+        if (error == QNetworkReply::NoError) {
             _responseData = reply->readAll();
             qWarning() << "Finished request " << _responseData;
-            auto error = reply->error();
-            if (error == QNetworkReply::NoError) {
+
+            auto doc = QJsonDocument::fromJson(_responseData.toLatin1());
+            auto status = doc.object()["status"].toString();
+            if (status == "success") {
+                _marketplaceID = QUuid::fromString(doc["data"].toObject()["marketplace_id"].toString());
+                _itemVersion = doc["data"].toObject()["version"].toDouble();
                 doWaitForInventory();
             } else {
                 _error = Error::Unknown;
                 setState(State::Complete);
             }
-        });
+        } else {
+            _error = Error::Unknown;
+            setState(State::Complete);
+        }
+    });
 
-        setState(State::UploadingAvatar);
+    setState(State::UploadingAvatar);
 }
 
 void MarketplaceItemUploader::doWaitForInventory() {
-        static const QString path = "/api/v1/commerce/inventory";
+    static const QString path = "/api/v1/commerce/inventory";
 
-        auto accountManager = DependencyManager::get<AccountManager>();
-        auto request = accountManager->createRequest(path, AccountManagerAuth::Required);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    auto request = accountManager->createRequest(path, AccountManagerAuth::Required);
 
-        qWarning() << "Request url is: " << request.url();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
-        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkReply* reply = networkAccessManager.post(request, "");
 
-        QNetworkReply* reply = networkAccessManager.post(request, "");
+    _numRequestsForInventory++;
 
-        connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-            auto data = reply->readAll();
-            qWarning() << "Finished inventory request " << data;
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        auto data = reply->readAll();
 
-            auto error = reply->error();
-            if (error == QNetworkReply::NoError) {
-            } else {
-                _error = Error::Unknown;
-            }
+        bool success = false;
+
+        auto error = reply->error();
+        if (error == QNetworkReply::NoError) {
+            // Parse response data
+            auto doc = QJsonDocument::fromJson(data);
+            auto isAssetAvailable = [this, &doc]() -> bool {
+                if (!doc.isObject()) {
+                    return false;
+                }
+                auto root = doc.object();
+                auto status = root["status"].toString();
+                if (status != "success") {
+                    return false;
+                }
+                auto data = root["data"];
+                if (!data.isObject()) {
+                    return false; 
+                }
+                auto assets = data.toObject()["assets"];
+                if (!assets.isArray()) {
+                    return false;
+                }
+                for (auto asset : assets.toArray()) {
+                    auto assetObject = asset.toObject();
+                    auto id = QUuid::fromString(assetObject["id"].toString());
+                    if (id.isNull()) {
+                        continue;
+                    }
+                    if (id == _marketplaceID) {
+                        auto version = assetObject["version"];
+                        if (version.isDouble()) {
+                            int versionInt = version.toDouble();
+                            if (versionInt >= _itemVersion) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            };
+
+            success = isAssetAvailable();
+        }
+        if (success) {
             setState(State::Complete);
-        });
+        } else {
+            qDebug() << "Failed to find item in inventory";
+            if (_numRequestsForInventory > 8) {
+                _error = Error::Unknown;
+                setState(State::Complete);
+            } else {
+                QTimer::singleShot(5000, [this]() { doWaitForInventory(); });
+            }
+        }
+    });
 }

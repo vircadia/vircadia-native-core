@@ -7,10 +7,10 @@ Rectangle {
     id: avatarPackagerFooter
 
     color: "#404040"
-    height: 74
+    height: content === defaultContent ? 0 : 74
     width: parent.width
 
-    property var content: Item { }
+    property var content: Item { id: defaultContent }
 
     children: [background, content]
 
