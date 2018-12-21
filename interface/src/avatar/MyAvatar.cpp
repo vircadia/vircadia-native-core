@@ -1501,8 +1501,8 @@ void MyAvatar::updateAvatarEntities() {
 
     // We collect changes to AvatarEntities and then handle them all in one spot per frame: updateAvatarEntities().
     // Basically this is a "transaction pattern" with an extra complication: these changes can come from two
-    // "directions" and the "authoritative source" of each direction is different, so maintain two distinct sets of
-    // transaction lists;
+    // "directions" and the "authoritative source" of each direction is different, so we maintain two distinct sets
+    // of transaction lists:
     //
     // The _entitiesToDelete/Add/Update lists are for changes whose "authoritative sources" are already
     // correctly stored in _cachedAvatarEntityBlobs.  These come from loadAvatarEntityDataFromSettings() and
@@ -1690,10 +1690,7 @@ bool MyAvatar::updateStaleAvatarEntityBlobs() const {
         return false;
     }
 
-    std::set<QUuid> staleBlobs;
-    _avatarEntitiesLock.withWriteLock([&] {
-        staleBlobs = std::move(_staleCachedAvatarEntityBlobs);
-    });
+    std::set<QUuid> staleBlobs = std::move(_staleCachedAvatarEntityBlobs);
     int32_t numFound = 0;
     for (const auto& id : staleBlobs) {
         bool found = false;
@@ -1717,9 +1714,20 @@ bool MyAvatar::updateStaleAvatarEntityBlobs() const {
     return true;
 }
 
-void MyAvatar::rememberToReloadAvatarEntityDataFromSettings() {
-    AvatarEntityMap emptyMap;
-    setAvatarEntityData(emptyMap);
+void MyAvatar::prepareAvatarEntityDataForReload() {
+    saveAvatarEntityDataToSettings();
+
+    _avatarEntitiesLock.withWriteLock([&] {
+        _packedAvatarEntityData.clear();
+        _entitiesToDelete.clear();
+        _entitiesToAdd.clear();
+        _entitiesToUpdate.clear();
+        _cachedAvatarEntityBlobs.clear();
+        _cachedAvatarEntityBlobsToDelete.clear();
+        _cachedAvatarEntityBlobsToAddOrUpdate.clear();
+        _cachedAvatarEntityBlobUpdatesToSkip.clear();
+    });
+
     _reloadAvatarEntityDataFromSettings = true;
 }
 

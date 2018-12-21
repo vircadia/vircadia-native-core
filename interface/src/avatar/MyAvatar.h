@@ -1187,7 +1187,7 @@ public:
 
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
     void updateAvatarEntities() override;
-    void rememberToReloadAvatarEntityDataFromSettings();
+    void prepareAvatarEntityDataForReload();
 
     /**jsdoc
      * Create a new grab.
@@ -1614,7 +1614,6 @@ signals:
      */
     void disableHandTouchForIDChanged(const QUuid& entityID, bool disable);
 
-
 private slots:
     void leaveDomain();
     void updateCollisionCapsuleCache();
@@ -1980,7 +1979,7 @@ private:
     std::vector<QUuid> _cachedAvatarEntityBlobUpdatesToSkip;
     //
     // Also these lists for tracking delayed changes to blobs and Settings
-    std::set<QUuid> _staleCachedAvatarEntityBlobs;
+    mutable std::set<QUuid> _staleCachedAvatarEntityBlobs;
     //
     // keep a ScriptEngine around so we don't have to instantiate on the fly (these are very slow to create/delete)
     QScriptEngine* _myScriptEngine { nullptr };
