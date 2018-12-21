@@ -14,7 +14,7 @@
 #include <QMutex>
 
 #include <bitset>
-#include <map>
+#include <unordered_map>
 #include <queue>
 
 #include <ColorUtils.h>
@@ -266,84 +266,44 @@ public:
 
 class Material {
 public:
-    typedef gpu::BufferView UniformBufferView;
-
-    typedef glm::vec3 Color;
-
-    // Texture Map Array Schema
-    static const int NUM_TEXCOORD_TRANSFORMS{ 2 };
-
     typedef MaterialKey::MapChannel MapChannel;
-    typedef std::map<MapChannel, TextureMapPointer> TextureMaps;
-    typedef std::bitset<MaterialKey::NUM_MAP_CHANNELS> MapFlags;
+    typedef std::unordered_map<MapChannel, TextureMapPointer> TextureMaps;
 
     Material();
     Material(const Material& material);
     Material& operator= (const Material& material);
-    virtual ~Material();
 
     const MaterialKey& getKey() const { return _key; }
 
-    void setEmissive(const Color& emissive, bool isSRGB = true);
-    Color getEmissive(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_schemaBuffer.get<Schema>()._emissive) : _schemaBuffer.get<Schema>()._emissive); }
+    static const float DEFAULT_EMISSIVE;
+    void setEmissive(const glm::vec3& emissive, bool isSRGB = true);
+    glm::vec3 getEmissive(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_emissive) : _emissive); }
 
+    static const float DEFAULT_OPACITY;
     void setOpacity(float opacity);
-    float getOpacity() const { return _schemaBuffer.get<Schema>()._opacity; }
+    float getOpacity() const { return _opacity; }
 
     void setUnlit(bool value);
     bool isUnlit() const { return _key.isUnlit(); }
 
-    void setAlbedo(const Color& albedo, bool isSRGB = true);
-    Color getAlbedo(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_schemaBuffer.get<Schema>()._albedo) : _schemaBuffer.get<Schema>()._albedo); }
+    static const float DEFAULT_ALBEDO;
+    void setAlbedo(const glm::vec3& albedo, bool isSRGB = true);
+    glm::vec3 getAlbedo(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_albedo) : _albedo); }
 
+    static const float DEFAULT_METALLIC;
     void setMetallic(float metallic);
-    float getMetallic() const { return _schemaBuffer.get<Schema>()._metallic; }
+    float getMetallic() const { return _metallic; }
 
+    static const float DEFAULT_ROUGHNESS;
     void setRoughness(float roughness);
-    float getRoughness() const { return _schemaBuffer.get<Schema>()._roughness; }
+    float getRoughness() const { return _roughness; }
 
+    static const float DEFAULT_SCATTERING;
     void setScattering(float scattering);
-    float getScattering() const { return _schemaBuffer.get<Schema>()._scattering; }
-
-    // Schema to access the attribute values of the material
-    class Schema {
-    public:
-        glm::vec3 _emissive { 0.0f }; // No Emissive
-        float _opacity { 1.0f }; // Opacity = 1 => Not Transparent
-
-        glm::vec3 _albedo { 0.5f }; // Grey albedo => isAlbedo
-        float _roughness { 1.0f }; // Roughness = 1 => Not Glossy
-
-        float _metallic { 0.0f }; // Not Metallic
-        float _scattering { 0.0f }; // Scattering info
-#if defined(__clang__)
-        __attribute__((unused))
-#endif
-        glm::vec2 _spare { 0.0f }; // Padding
-
-        uint32_t _key { 0 }; // a copy of the materialKey
-#if defined(__clang__)
-        __attribute__((unused))
-#endif
-        glm::vec3 _spare2 { 0.0f };
-
-        // for alignment beauty, Material size == Mat4x4
-
-        // Texture Coord Transform Array
-        glm::mat4 _texcoordTransforms[NUM_TEXCOORD_TRANSFORMS];
-
-        glm::vec2 _lightmapParams { 0.0, 1.0 };
-
-        // x: material mode (0 for UV, 1 for PROJECTED)
-        // y: 1 for texture repeat, 0 for discard outside of 0 - 1
-        glm::vec2 _materialParams { 0.0, 1.0 };
-
-        Schema() {}
-    };
-
-    const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
+    float getScattering() const { return _scattering; }
 
     // The texture map to channel association
+    static const int NUM_TEXCOORD_TRANSFORMS { 2 };
     void setTextureMap(MapChannel channel, const TextureMapPointer& textureMap);
     const TextureMaps& getTextureMaps() const { return _textureMaps; } // FIXME - not thread safe... 
     const TextureMapPointer getTextureMap(MapChannel channel) const;
@@ -366,17 +326,33 @@ public:
     const std::string& getModel() const { return _model; }
     void setModel(const std::string& model) { _model = model; }
 
-    const gpu::TextureTablePointer& getTextureTable() const { return _textureTable; }
+    bool getDefaultFallthrough() const { return _defaultFallthrough; }
+    void setDefaultFallthrough(bool defaultFallthrough) { _defaultFallthrough = defaultFallthrough; }
+
+    std::unordered_map<MaterialKey::FlagBit, bool> getPropertyFallthroughs() { return _propertyFallthroughs; }
+    bool getPropertyFallthrough(MaterialKey::FlagBit property) { return _propertyFallthroughs[property]; }
+    void setPropertyDoesFallthrough(MaterialKey::FlagBit property) { _propertyFallthroughs[property] = true; }
 
 protected:
     std::string _name { "" };
 
 private:
-    mutable MaterialKey _key;
-    mutable UniformBufferView _schemaBuffer;
-    mutable gpu::TextureTablePointer _textureTable{ std::make_shared<gpu::TextureTable>() };
+    mutable MaterialKey _key { 0 };
 
+    // Material properties
+    glm::vec3 _emissive { DEFAULT_EMISSIVE };
+    float _opacity { DEFAULT_OPACITY };
+    glm::vec3 _albedo { DEFAULT_ALBEDO };
+    float _roughness { DEFAULT_ROUGHNESS };
+    float _metallic { DEFAULT_METALLIC };
+    float _scattering { DEFAULT_SCATTERING };
+    std::array<glm::mat4, NUM_TEXCOORD_TRANSFORMS> _texcoordTransforms;
+    glm::vec2 _lightmapParams { 0.0, 1.0 };
+    glm::vec2 _materialParams { 0.0, 1.0 };
     TextureMaps _textureMaps;
+
+    bool _defaultFallthrough { false };
+    std::unordered_map<MaterialKey::FlagBit, bool> _propertyFallthroughs;
 
     mutable QMutex _textureMapsMutex { QMutex::Recursive };
     mutable size_t _textureSize { 0 };
@@ -385,7 +361,6 @@ private:
     bool calculateMaterialInfo() const;
 
     std::string _model { "hifi_pbr" };
-
 };
 typedef std::shared_ptr< Material > MaterialPointer;
 
@@ -406,6 +381,8 @@ public:
 
 class MultiMaterial : public std::priority_queue<MaterialLayer, std::vector<MaterialLayer>, MaterialLayerCompare> {
 public:
+    MultiMaterial();
+
     bool remove(const MaterialPointer& value) {
         auto it = c.begin();
         while (it != c.end()) {
@@ -422,6 +399,49 @@ public:
             return false;
         }
     }
+
+    // Schema to access the attribute values of the material
+    class Schema {
+    public:
+        glm::vec3 _emissive { Material::DEFAULT_EMISSIVE }; // No Emissive
+        float _opacity { Material::DEFAULT_OPACITY }; // Opacity = 1 => Not Transparent
+
+        glm::vec3 _albedo { Material::DEFAULT_ALBEDO }; // Grey albedo => isAlbedo
+        float _roughness { Material::DEFAULT_ROUGHNESS }; // Roughness = 1 => Not Glossy
+
+        float _metallic { Material::DEFAULT_METALLIC }; // Not Metallic
+        float _scattering { Material::DEFAULT_SCATTERING }; // Scattering info
+#if defined(__clang__)
+        __attribute__((unused))
+#endif
+        glm::vec2 _spare { 0.0f }; // Padding
+
+        uint32_t _key { 0 }; // a copy of the materialKey
+#if defined(__clang__)
+        __attribute__((unused))
+#endif
+        glm::vec3 _spare2 { 0.0f };
+
+        // for alignment beauty, Material size == Mat4x4
+
+        // Texture Coord Transform Array
+        glm::mat4 _texcoordTransforms[Material::NUM_TEXCOORD_TRANSFORMS];
+
+        glm::vec2 _lightmapParams { 0.0, 1.0 };
+
+        // x: material mode (0 for UV, 1 for PROJECTED)
+        // y: 1 for texture repeat, 0 for discard outside of 0 - 1
+        glm::vec2 _materialParams { 0.0, 1.0 };
+
+        Schema() {}
+    };
+
+    gpu::BufferView& getSchemaBuffer() { return _schemaBuffer; }
+    const gpu::TextureTablePointer& getTextureTable() const { return _textureTable; }
+
+private:
+    gpu::BufferView _schemaBuffer;
+    gpu::TextureTablePointer _textureTable { std::make_shared<gpu::TextureTable>() };
 };
 
 };

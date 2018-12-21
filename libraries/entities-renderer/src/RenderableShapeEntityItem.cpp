@@ -228,7 +228,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
 
     gpu::Batch& batch = *args->_batch;
 
-    std::shared_ptr<graphics::Material> mat;
+    graphics::MultiMaterial materials;
     auto geometryCache = DependencyManager::get<GeometryCache>();
     GeometryCache::Shape geometryShape;
     bool proceduralRender = false;
@@ -236,9 +236,11 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     withReadLock([&] {
         geometryShape = geometryCache->getShapeForEntityShape(_shape);
         batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
-        mat = _materials["0"].top().material;
-        if (mat) {
-            outColor = glm::vec4(mat->getAlbedo(), mat->getOpacity());
+        materials = _materials["0"];
+        auto topMat = materials.top().material;
+        if (topMat) {
+            // FIXME: fallthrough to get proper albedo and opacity?
+            outColor = glm::vec4(topMat->getAlbedo(), topMat->getOpacity());
             if (_procedural.isReady()) {
                 outColor = _procedural.getColor(outColor);
                 outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
@@ -247,10 +249,6 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
             }
         }
     });
-
-    if (!mat) {
-        return;
-    }
 
     if (proceduralRender) {
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
@@ -269,7 +267,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         }
     } else {
         if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-            RenderPipelines::bindMaterial(mat, batch, args->_enableTexturing);
+            RenderPipelines::bindMaterials(materials, batch, args->_enableTexturing);
             args->_details._materialSwitches++;
         }
 

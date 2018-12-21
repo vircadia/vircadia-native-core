@@ -49,8 +49,6 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-const graphics::MaterialPointer MeshPartPayload::DEFAULT_MATERIAL = std::make_shared<graphics::Material>();
-
 MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     addMaterial(graphics::MaterialLayer(material, 0));
@@ -158,7 +156,7 @@ void MeshPartPayload::render(RenderArgs* args) {
 
     // apply material properties
     if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
         args->_details._materialSwitches++;
     }
 
@@ -434,7 +432,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     // apply material properties
     if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
         args->_details._materialSwitches++;
     }
 

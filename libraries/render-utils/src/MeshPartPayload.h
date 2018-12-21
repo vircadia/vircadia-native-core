@@ -74,7 +74,6 @@ public:
     void removeMaterial(graphics::MaterialPointer material);
 
 protected:
-    static const graphics::MaterialPointer DEFAULT_MATERIAL;
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
 
     bool topMaterialExists() const { return !_drawMaterials.empty() && _drawMaterials.top().material; }
