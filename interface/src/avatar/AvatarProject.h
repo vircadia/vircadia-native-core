@@ -41,7 +41,7 @@ public:
         return false;
     }
 
-    Q_INVOKABLE MarketplaceItemUploader* upload();
+    Q_INVOKABLE MarketplaceItemUploader* upload(bool updateExisting);
     Q_INVOKABLE void openInInventory();
 
     /**

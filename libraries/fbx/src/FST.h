@@ -37,7 +37,9 @@ public:
     QString getModelPath() const { return _modelPath; }
     void setModelPath(const QString& modelPath);
 
+    Q_INVOKABLE bool hasMarketplaceID() const { return !_marketplaceID.isNull(); }
     QUuid getMarketplaceID() const { return _marketplaceID; }
+    void setMarketplaceID(QUuid marketplaceID) { _marketplaceID = marketplaceID; }
 
     QString getPath() { return _fstPath; }
 

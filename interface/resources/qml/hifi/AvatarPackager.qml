@@ -8,6 +8,7 @@ import "../stylesUit" 1.0
 import "../windows" as Windows
 import "../dialogs"
 import "avatarPackager"
+import "avatarapp" 1.0 as AvatarApp
 
 Windows.ScrollingWindow {
     id: root
@@ -27,18 +28,14 @@ Windows.ScrollingWindow {
         id: windowContent
         height: pane.height
         width: pane.width
-        anchors.fill: parent
 
-        // FIXME: modal overlay does not show
-        Rectangle {
-            id: modalOverlay
+        AvatarApp.MessageBox {
+            id: popup
             anchors.fill: parent
-            z: 20000
-            color: "#aa031b33"
-            clip: true
-            visible: true
+            visible: false
         }
 
+        // FIXME: modal overlay does not show
         Column {
             id: avatarPackager
             anchors.fill: parent
@@ -61,6 +58,12 @@ Windows.ScrollingWindow {
                     PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name }
                     PropertyChanges { target: avatarProject; visible: true }
                     PropertyChanges { target: avatarPackagerFooter; content: avatarProject.footer }
+                },
+                State {
+                    name: "project-upload"
+                    PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name }
+                    PropertyChanges { target: avatarUploader; visible: true }
+                    PropertyChanges { target: avatarPackagerFooter; color: "blue"; visible: false }
                 }
             ]
 
@@ -84,6 +87,12 @@ Windows.ScrollingWindow {
                     id: avatarProject
                     colorScheme: root.colorScheme
                     anchors.fill: parent
+                }
+
+                AvatarProjectUpload {
+                    id: avatarUploader
+                    anchors.fill: parent
+                    root: avatarProject
                 }
 
                 CreateAvatarProject {
