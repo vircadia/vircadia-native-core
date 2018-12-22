@@ -2,8 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  Created by Zach Pomerantz on 2/16/2016.
-//  Copyright 2016 High Fidelity, Inc.
+//  Created by Sam Gondelman on 12/22/18
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -31,10 +31,11 @@ void main(void) {
     float alpha = mix(paintGridMajorMinor(varTexCoord0, grid.offset, grid.period, grid.edge),
                       paintGrid(varTexCoord0, grid.offset.xy, grid.period.xy, grid.edge.xy),
                       float(grid.edge.z == 0.0));
+    alpha *= varColor.w;
 
     if (alpha < 0.0001) {
         discard;
     }
 
-    packDeferredFragmentUnlit(vec3(1.0, 0.0, 0.0), 1.0, varColor.xyz);
+    packDeferredFragmentTranslucent(vec3(1.0, 0.0, 0.0), alpha, varColor.xyz, DEFAULT_ROUGHNESS);
 }
