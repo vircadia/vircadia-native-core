@@ -61,7 +61,7 @@ public:
     bool doesPickNonCollidable() const { return _flags[NONCOLLIDABLE] || !_flags[COLLIDABLE]; }
 
     bool isPrecise() const { return _flags[PRECISE] || !_flags[COARSE]; }
-    bool isCoarse() const { return _flags[COARSE] || !_flags[PRECISE]; }
+    bool isCoarse() const { return _flags[COARSE]; }
 
     bool doesWantAllIntersections() const { return _flags[PICK_ALL_INTERSECTIONS]; }
 
