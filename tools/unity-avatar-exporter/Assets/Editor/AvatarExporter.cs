@@ -171,14 +171,7 @@ class AvatarExporter : MonoBehaviour {
         if (!SetJointMappingsAndParentNames()) {
             return;
         }
-        
-        //var textures = AssetDatabase.LoadAllAssetsAtPath(assetPath).Where(x => x.GetType() == typeof(Texture));
-        var tests = AssetDatabase.LoadAllAssetsAtPath(assetPath);
-        Debug.Log("assetPath " + assetPath);
-        foreach (var test in tests) {
-            Debug.Log("test " + test.GetType());
-        }
-    
+
         string documentsFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
         string hifiFolder = documentsFolder + "\\High Fidelity Projects";
         if (updateAvatar) { // Update Existing Avatar menu option
