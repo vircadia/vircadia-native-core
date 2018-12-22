@@ -1323,8 +1323,8 @@ void ScriptEngine::updateMemoryCost(const qint64& deltaSize) {
 
 void ScriptEngine::timerFired() {
     {
-        QSharedPointer<ScriptEngines> engine(_scriptEngines);
-        if (!engine || engine->isStopped()) {
+        QSharedPointer<ScriptEngines> scriptEngines(_scriptEngines);
+        if (!scriptEngines || scriptEngines->isStopped()) {
             scriptWarningMessage("Script.timerFired() while shutting down is ignored... parent script:" + getFilename());
             return; // bail early
         }
