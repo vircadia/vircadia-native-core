@@ -82,18 +82,21 @@ void Image3DOverlay::render(RenderArgs* args) {
     float imageHeight = _texture->getHeight();
 
     QRect fromImage;
-    if (_fromImage.isNull()) {
+    if (_fromImage.width() <= 0) {
         fromImage.setX(0);
-        fromImage.setY(0);
         fromImage.setWidth(imageWidth);
-        fromImage.setHeight(imageHeight);
     } else {
         float scaleX = imageWidth / _texture->getOriginalWidth();
-        float scaleY = imageHeight / _texture->getOriginalHeight();
-
         fromImage.setX(scaleX * _fromImage.x());
-        fromImage.setY(scaleY * _fromImage.y());
         fromImage.setWidth(scaleX * _fromImage.width());
+    }
+
+    if (_fromImage.height() <= 0) {
+        fromImage.setY(0);
+        fromImage.setHeight(imageHeight);
+    } else {
+        float scaleY = imageHeight / _texture->getOriginalHeight();
+        fromImage.setY(scaleY * _fromImage.y());
         fromImage.setHeight(scaleY * _fromImage.height());
     }
 
@@ -246,9 +249,6 @@ QVariant Image3DOverlay::getProperty(const QString& property) {
     }
     if (property == "subImage") {
         return _fromImage;
-    }
-    if (property == "offsetPosition") {
-        return vec3toVariant(getOffsetPosition());
     }
     if (property == "emissive") {
         return _emissive;

@@ -691,6 +691,8 @@ private:
 
     bool _loginDialogPoppedUp = false;
     bool _developerMenuVisible{ false };
+    QString _previousAvatarSkeletonModel;
+    float _previousAvatarTargetScale;
     CameraMode _previousCameraMode;
     OverlayID _loginDialogOverlayID;
     LoginStateManager _loginStateManager;

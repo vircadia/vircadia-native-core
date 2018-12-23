@@ -107,6 +107,7 @@ private:
     ResourceRequest* _pendingScriptRequest { nullptr };
     bool _isListeningToAudioStream = false;
     SharedSoundPointer _avatarSound;
+    bool _shouldMuteRecordingAudio { false };
     int _numAvatarSoundSentBytes = 0;
     bool _isAvatar = false;
     QTimer* _avatarIdentityTimer = nullptr;

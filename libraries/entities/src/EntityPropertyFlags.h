@@ -99,7 +99,7 @@ enum EntityPropertyList {
     PROP_HREF,
     PROP_DESCRIPTION, // 61
 
-    PROP_FACE_CAMERA,
+    PROP_BILLBOARD_MODE,
     PROP_SCRIPT_TIMESTAMP,
 
     PROP_ACTION_DATA,
@@ -277,6 +277,9 @@ enum EntityPropertyList {
 
     PROP_MATERIAL_REPEAT,
 
+    PROP_EMISSIVE,
+    PROP_SUB_IMAGE,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
@@ -309,6 +312,11 @@ enum EntityPropertyList {
     // Aliases/Piggyback properties for Particle Emmitter. These properties intentionally reuse the enum values for
     // other properties which will never overlap with each other. 
     PROP_EMITTING_PARTICLES = PROP_ANIMATION_PLAYING,
+
+    // Aliases/Piggyback properties for Image. These properties intentionally reuse the enum values for
+    // other properties which will never overlap with each other. 
+    PROP_IMAGE_URL = PROP_MODEL_URL,
+    PROP_KEEP_ASPECT_RATIO = PROP_ANIMATION_PLAYING,
 
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };
