@@ -162,7 +162,7 @@ void AvatarProject::appendDirectory(QString prefix, QDir dir) {
     for (auto& entry : dir.entryInfoList({}, flags)) {
         if (entry.isFile()) {
             //_projectFiles.append(prefix + "/" + entry.fileName());
-            _projectFiles.append(entry.absoluteFilePath());
+            _projectFiles.append({ entry.absoluteFilePath(), prefix + "/" + entry.fileName() });
         } else if (entry.isDir()) {
             appendDirectory(prefix + dir.dirName() + "/", entry.absoluteFilePath());
         }
@@ -174,13 +174,25 @@ void AvatarProject::refreshProjectFiles() {
     appendDirectory("", _directory);
 }
 
+QStringList AvatarProject::getProjectFiles() const {
+    QStringList paths;
+    for (auto& path : _projectFiles) {
+        paths.append(path.relativePath); 
+    }
+    return paths;
+}
+
 MarketplaceItemUploader* AvatarProject::upload(bool updateExisting) {
     QUuid itemID;
     if (updateExisting) {
         itemID = _fst->getMarketplaceID();
     }
+    QStringList projectFilePaths;
+    for (auto& path : _projectFiles) {
+        projectFilePaths.append(path.absolutePath); 
+    }
     auto uploader = new MarketplaceItemUploader(getProjectName(), "Empty description", QFileInfo(getFSTPath()).fileName(), itemID,
-                                       _projectFiles);
+                                       projectFilePaths);
     connect(uploader, &MarketplaceItemUploader::completed, this, [this, uploader]() {
         if (uploader->getError() == MarketplaceItemUploader::Error::None) {
             _fst->setMarketplaceID(uploader->getMarketplaceID());

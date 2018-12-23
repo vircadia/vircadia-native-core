@@ -18,8 +18,25 @@ Rectangle {
     property var background: Rectangle {
         anchors.fill: parent
         color: "#404040"
-        // TODO Use a shadow instead / border is just here for element debug purposes
-        border.width: 2;
+
+        Rectangle {
+            id: topBorder1
+
+            anchors.top: parent.top
+
+            color: "#252525"
+            height: 1
+            width: parent.width
+        }
+        Rectangle {
+            id: topBorder2
+
+            anchors.top: topBorder1.bottom
+
+            color: "#575757"
+            height: 1
+            width: parent.width
+        }
     }
 
 }

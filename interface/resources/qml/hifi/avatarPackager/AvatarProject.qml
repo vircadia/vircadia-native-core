@@ -8,10 +8,13 @@ import QtQuick.Controls 2.2 as Original
 import "../../controlsUit" 1.0 as HifiControls
 import "../../stylesUit" 1.0
 
+
 Item {
     id: root
 
     HifiConstants { id: hifi }
+
+    Style { id: style }
 
     property int colorScheme;
     property var uploader: undefined;
@@ -21,6 +24,7 @@ Item {
     anchors.margins: 10
 
     property var footer: Item {
+        id: uploadFooter
         anchors.fill: parent
         anchors.rightMargin: 17
         HifiControls.Button {
@@ -91,7 +95,6 @@ Item {
         };
 
         popup.open();
-        //popup.forceActiveFocus();
     }
 
     function showConfirmCreateNewPopup(confirmCallback) {
@@ -102,30 +105,40 @@ Item {
         popup.button1text = 'CANCEL';
         popup.button2text = 'CONFIRM';
 
-        popup.onButton1Clicked = function() { popup.close() };
+        popup.onButton1Clicked = function() {
+            popup.close()
+        };
         popup.onButton2Clicked = function() {
             popup.close();
             uploadNew();
         };
 
         popup.open();
-        //popup.forceActiveFocus();
     }
 
-    RalewaySemiBold {
-        id: avatarFBXNameLabel
-        size: 14
+    RalewayRegular {
+        id: infoMessage
+
+        color: 'white'
+        size: 20
+
         anchors.left: parent.left
+        anchors.right: parent.right
         anchors.top: parent.top
-        anchors.topMargin: 25
-        anchors.bottomMargin: 25
-        text: qsTr("FBX file here")
+
+        anchors.bottomMargin: 24
+
+        wrapMode: Text.Wrap
+
+        text: "Click \"Update\" to overwrite the hosted files and update the avatar in your inventory. You will have to “Wear” the avatar again to see changes."
     }
 
     HifiControls.Button {
         id: openFolderButton
+
+        visible: false
         width: parent.width
-        anchors.top: avatarFBXNameLabel.bottom
+        anchors.top: infoMessage.bottom
         anchors.topMargin: 10
         text: qsTr("Open Project Folder")
         colorScheme: root.colorScheme
@@ -140,7 +153,8 @@ Item {
 
         visible: false
 
-        color: "white"
+        color: "#6A6A6A"
+
         anchors.top: openFolderButton.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -155,27 +169,39 @@ Item {
             model: AvatarPackagerCore.currentAvatarProject === null ? [] : AvatarPackagerCore.currentAvatarProject.projectFiles
             delegate: Rectangle {
                 width: parent.width
-                height: fileText.implicitHeight + 10
-                color: (index % 2 == 0) ? "white" : "grey"
-                Text {
+                height: fileText.implicitHeight + 8
+                color: (index % 2 == 0) ? "#6A6A6A" : "grey"
+                RalewaySemiBold {
                     id: fileText
-                    anchors.top: parent.top + 5
-                    anchors.left: parent.left + 5
+                    size: 16
+                    elide: Text.ElideLeft
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 16
+                    anchors.topMargin: 4
+                    width: parent.width - 10
+                    color: "white"
                     text: modelData
                 }
             }
         }
     }
 
-    Text {
+    RalewayRegular {
         id: showFilesText
+
+        color: 'white'
+        linkColor: style.colors.blueHighlight
 
         visible: AvatarPackagerCore.currentAvatarProject !== null
 
         anchors.bottom: loginRequiredMessage.top
         anchors.bottomMargin: 10
 
-        font.pointSize: 12
+        size: 20
+
         text: AvatarPackagerCore.currentAvatarProject.projectFiles.length + " files in the project. <a href='toggle'>" + (fileList.visible ? "Hide" : "Show") + " list</a>"
 
         onLinkActivated: fileList.visible = !fileList.visible
@@ -214,19 +240,20 @@ Item {
 
                 width: implicitWidth
 
-                font.pointSize: 20
+                size: 48
                 text: "+"
                 color: "black"
             }
-            Text {
+            RalewayRegular {
                 id: loginWarningText
 
                 anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 16
                 anchors.left: loginWarningGlyph.right
                 anchors.right: parent.right
 
                 text: "Please login to upload your avatar to High Fidelity hosting."
-                font.pointSize: 12
+                size: 18
                 wrapMode: Text.Wrap
             }
         }

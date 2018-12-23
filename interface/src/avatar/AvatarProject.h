@@ -14,6 +14,7 @@
 #define hifi_AvatarProject_h
 
 #include "MarketplaceItemUploader.h"
+#include "ProjectFile.h"
 #include "FST.h"
 
 #include <QDir>
@@ -38,14 +39,16 @@ class AvatarProject : public QObject {
 public:
     Q_INVOKABLE MarketplaceItemUploader* upload(bool updateExisting);
     Q_INVOKABLE void openInInventory();
-    Q_INVOKABLE QStringList getProjectFiles() const { return _projectFiles; }
+    Q_INVOKABLE QStringList getProjectFiles() const;
 
     /**
      * returns the AvatarProject or a nullptr on failure.
      */
     static AvatarProject* openAvatarProject(const QString& path);
-    static AvatarProject* createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName,
-                                              const QString& avatarModelPath, const QString& textureFolder);
+    static AvatarProject* createAvatarProject(const QString& projectsFolder,
+                                              const QString& avatarProjectName,
+                                              const QString& avatarModelPath,
+                                              const QString& textureFolder);
 
     static bool isValidNewProjectName(const QString& projectName);
 
@@ -53,13 +56,14 @@ public:
         return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/High Fidelity Projects";
     }
 
+signals:
+    void projectFilesChanged();
+
 private:
     AvatarProject(const QString& fstPath, const QByteArray& data);
     AvatarProject(FST* fst);
 
-    ~AvatarProject() {
-        _fst->deleteLater();
-    }
+    ~AvatarProject() { _fst->deleteLater(); }
 
     Q_INVOKABLE QString getProjectName() const { return _fst->getName(); }
     Q_INVOKABLE QString getProjectPath() const { return _projectPath; }
@@ -75,7 +79,7 @@ private:
     FST* _fst;
 
     QDir _directory;
-    QStringList _projectFiles{};
+    QList<ProjectFilePath> _projectFiles{};
     QString _projectPath;
 };
 
