@@ -23,7 +23,7 @@ class MarketplaceItemUploader : public QObject {
 
     Q_PROPERTY(bool complete READ getComplete NOTIFY stateChanged)
     Q_PROPERTY(State state READ getState NOTIFY stateChanged)
-    Q_PROPERTY(Error error READ getError)
+    Q_PROPERTY(Error error READ getError NOTIFY errorChanged)
     Q_PROPERTY(QString responseData READ getResponseData)
 public:
     enum class Error
@@ -51,10 +51,13 @@ public:
 
     Q_INVOKABLE void send();
 
+    void setError(Error error);
+
     QString getResponseData() const { return _responseData; }
     void setState(State newState);
     State getState() const { return _state; }
     bool getComplete() const { return _state == State::Complete; }
+
 
     QUuid getMarketplaceID() const { return _marketplaceID; }
 
@@ -63,7 +66,12 @@ public:
 signals:
     void uploadProgress(qint64 bytesSent, qint64 bytesTotal);
     void completed();
+
     void stateChanged(State newState);
+    void errorChanged(Error error);
+
+    // Triggered when the upload has finished, either succesfully completing, or stopping with an error
+    void finished();
 
 private:
     void doGetCategories();

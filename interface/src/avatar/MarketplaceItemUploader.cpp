@@ -39,13 +39,23 @@ MarketplaceItemUploader::MarketplaceItemUploader(QString title,
 }
 
 void MarketplaceItemUploader::setState(State newState) {
+    Q_ASSERT(newState != _state);
     qDebug() << "Setting uploader state to: " << newState;
 
     _state = newState;
     emit stateChanged(newState);
     if (newState == State::Complete) {
         emit completed();
+        emit finished();
     }
+}
+
+void MarketplaceItemUploader::setError(Error error) {
+    Q_ASSERT(_error == Error::None);
+
+    _error = error;
+    emit errorChanged(error);
+    emit finished();
 }
 
 void MarketplaceItemUploader::send() {
@@ -105,14 +115,12 @@ void MarketplaceItemUploader::doGetCategories() {
             qDebug() << "Done " << success << id;
             if (!success) {
                 qWarning() << "Failed to find marketplace category id";
-                _error = Error::Unknown;
-                setState(State::Complete);
+                setError(Error::Unknown);
             } else {
                 doUploadAvatar();
             }
         } else {
-            _error = Error::Unknown;
-            setState(State::Complete);
+            setError(Error::Unknown);
         }
     });
 }
@@ -132,8 +140,7 @@ void MarketplaceItemUploader::doUploadAvatar() {
         QuaZipFile zipFile{ &zip };
         if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(fileInfo.fileName()))) {
             qWarning() << "Could not open zip file:" << zipFile.getZipError();
-            _error = Error::Unknown;
-            setState(State::Complete);
+            setError(Error::Unknown);
             return;
         }
         QFile file{ filePath };
@@ -204,14 +211,13 @@ void MarketplaceItemUploader::doUploadAvatar() {
             if (status == "success") {
                 _marketplaceID = QUuid::fromString(doc["data"].toObject()["marketplace_id"].toString());
                 _itemVersion = doc["data"].toObject()["version"].toDouble();
+                setState(State::WaitingForInventory);
                 doWaitForInventory();
             } else {
-                _error = Error::Unknown;
-                setState(State::Complete);
+                setError(Error::Unknown);
             }
         } else {
-            _error = Error::Unknown;
-            setState(State::Complete);
+            setError(Error::Unknown);
         }
     });
 
@@ -282,8 +288,7 @@ void MarketplaceItemUploader::doWaitForInventory() {
         } else {
             qDebug() << "Failed to find item in inventory";
             if (_numRequestsForInventory > 8) {
-                _error = Error::Unknown;
-                setState(State::Complete);
+                setError(Error::Unknown);
             } else {
                 QTimer::singleShot(5000, [this]() { doWaitForInventory(); });
             }

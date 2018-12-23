@@ -28,7 +28,7 @@ Item {
     onVisibleChanged: {
         console.log("Visibility changed");
         if (visible) {
-            root.uploader.completed.connect(function() {
+            root.uploader.finished.connect(function() {
                 console.log("Did complete");
                 backToProjectTimer.start();
             });
@@ -36,127 +36,94 @@ Item {
     }
 
     Item {
-        visible: !!root.uploader && !root.uploader.complete
+        id: uploadStatus
+
+        visible: !!root.uploader
 
         anchors.fill: parent
 
-        AnimatedImage {
-            id: uploadSpinner
+        Item {
+            id: statusItem
 
-            anchors {
-                horizontalCenter: parent.horizontalCenter
-                verticalCenter: parent.verticalCenter
+            width: parent.width
+            height: 128
+
+            AnimatedImage {
+                id: uploadSpinner
+
+                visible: !!root.uploader && !root.uploader.complete
+
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    verticalCenter: parent.verticalCenter
+                }
+
+                source: "../../../icons/loader-snake-64-w.gif"
+                playing: true
+                z: 10000
             }
 
-            source: "../../../icons/loader-snake-64-w.gif"
-            playing: true
-            z: 10000
-        }
-    }
+            HiFiGlyphs {
+                id: errorIcon
+                visible: !!root.uploader && root.uploader.complete && root.uploader.error !== 0
 
-    Item {
-        id: failureScreen
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    verticalCenter: parent.verticalCenter
+                }
 
-        visible: !!root.uploader && root.uploader.complete && root.uploader.error !== 0
-
-        anchors.fill: parent
-
-        HiFiGlyphs {
-            id: errorIcon
-
-            anchors {
-                horizontalCenter: parent.horizontalCenter
-                verticalCenter: parent.verticalCenter
+                size: 128
+                text: "w"
+                color: "red"
             }
 
-            size: 128
-            text: "w"
-            color: "red"
-        }
+            HiFiGlyphs {
+                id: successIcon
 
-        Column {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: errorIcon.bottom
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
+                visible: !!root.uploader && root.uploader.complete && root.uploader.error === 0
 
-                text: "Error"
-                font.pointSize: 24
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    verticalCenter: parent.verticalCenter
+                }
 
-                color: "white"
-            }
-            Text {
-                text: "Your avatar has not been uploaded."
-                font.pointSize: 16
-
-                anchors.horizontalCenter: parent.horizontalCenter
-
-                color: "white"
+                size: 128
+                text: "\ue01a"
+                color: "#1FC6A6"
             }
         }
-    }
+        Item {
+            id: statusRows
 
-    Item {
-        id: successScreen
+            anchors.top: statusItem.bottom
 
-        visible: !!root.uploader && root.uploader.complete && root.uploader.error === 0
+            AvatarUploadStatusItem {
+                id: statusCategories
+                text: "Retreiving categories"
 
-        anchors.fill: parent
-
-        HiFiGlyphs {
-            id: successIcon
-
-            anchors {
-                horizontalCenter: parent.horizontalCenter
-                verticalCenter: parent.verticalCenter
+                state: root.uploader.state == 1 ? "running" : (root.uploader.state > 1 ? "success" : (root.uploader.error ? "fail" : ""))
             }
+            AvatarUploadStatusItem {
+                id: statusUploading
+                anchors.top: statusCategories.bottom
+                text: "Uploading data"
 
-            size: 128
-            text: "\ue01a"
-            color: "#1FC6A6"
-        }
-
-        Column {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: successIcon.bottom
-
-            Text {
-                id: successText
-
-                anchors.horizontalCenter: parent.horizontalCenter
-
-                text: "Congratulations!"
-                font.pointSize: 24
-
-                color: "white"
+                state: root.uploader.state == 2 ? "running" : (root.uploader.state > 2 ? "success" : (root.uploader.error ? "fail" : ""))
             }
-            Text {
-                text: "Your avatar has been uploaded."
-                font.pointSize: 16
+            // TODO add waiting for response
+            //AvatarUploadStatusItem {
+                //id: statusResponse
+                //text: "Waiting for completion"
+            //}
+            AvatarUploadStatusItem {
+                id: statusInventory
+                anchors.top: statusUploading.bottom
+                text: "Waiting for inventory"
 
-                anchors.horizontalCenter: parent.horizontalCenter
-
-                color: "white"
+                state: root.uploader.state == 3 ? "running" : (root.uploader.state > 3 ? "success" : (root.uploader.error ? "fail" : ""))
             }
         }
 
-        HifiControls.Button {
-            width: implicitWidth
-            height: implicitHeight
-
-            anchors.bottom: parent.bottom
-            anchors.right: parent.right
-
-            text: "View in Inventory"
-
-            color: hifi.buttons.blue
-            colorScheme: root.colorScheme
-            onClicked: function() {
-                console.log("Opening in inventory");
-
-                AvatarPackagerCore.currentAvatarProject.openInInventory();
-            }
-        }
     }
 
     Column {
@@ -165,8 +132,6 @@ Item {
         visible: false
 
         Text {
-            id: uploadStatus
-
             text: "Uploading"
             color: "white"
 

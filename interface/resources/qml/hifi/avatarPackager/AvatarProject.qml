@@ -25,8 +25,10 @@ Item {
 
     property var footer: Item {
         id: uploadFooter
+
         anchors.fill: parent
         anchors.rightMargin: 17
+
         HifiControls.Button {
             id: uploadButton
             enabled: Account.loggedIn
@@ -64,7 +66,7 @@ Item {
         root.uploader.uploadProgress.connect(function(uploaded, total) {
             console.log("Uploader progress: " + uploaded + " / " + total);
         });
-        root.uploader.completed.connect(function() {
+        root.uploader.finished.connect(function() {
             try {
                 var response = JSON.parse(root.uploader.responseData);
                 console.log("Uploader complete! " + response);
