@@ -19,8 +19,7 @@
 
 #include "EntityEditPacketSender.h"
 #include "EntityItem.h"
-
-#include <PickFilter.h>
+#include "EntityTree.h"
 
 class EntityTree;
 class EntityTreeElement;
@@ -77,6 +76,7 @@ public:
     glm::vec3 root;
     EntityEditPacketSender* packetSender;
 };
+
 
 class EntityTreeElement : public OctreeElement, ReadWriteLockable {
     friend class EntityTree; // to allow createElement to new us...
@@ -135,25 +135,28 @@ public:
     virtual bool deleteApproved() const override { return !hasEntities(); }
 
     virtual bool canPickIntersect() const override { return hasEntities(); }
-    virtual EntityItemID evalRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
         const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
-        PickFilter searchFilter, QVariantMap& extraInfo);
-    virtual EntityItemID evalDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking = false);
+    virtual EntityItemID findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
-                         const QVector<EntityItemID>& entityIdsToDiscard, PickFilter searchFilter, QVariantMap& extraInfo);
+                         const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+                         QVariantMap& extraInfo, bool precisionPicking);
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const override;
 
-    virtual EntityItemID evalParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+    virtual EntityItemID findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
         const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
         BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
-        const QVector<EntityItemID>& entityIdsToDiscard, PickFilter searchFilter, QVariantMap& extraInfo);
-    virtual EntityItemID evalDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+        QVariantMap& extraInfo, bool precisionPicking = false);
+    virtual EntityItemID findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
         const glm::vec3& normal, const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
         BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
-        const QVector<EntityItemID>& entityIdsToDiscard, PickFilter searchFilter, QVariantMap& extraInfo);
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+        QVariantMap& extraInfo, bool precisionPicking);
 
     template <typename F>
     void forEachEntity(F f) const {
@@ -172,13 +175,28 @@ public:
 
     void addEntityItem(EntityItemPointer entity);
 
-    QUuid evalClosetEntity(const glm::vec3& position, PickFilter searchFilter, float& closestDistanceSquared) const;
-    void evalEntitiesInSphere(const glm::vec3& position, float radius, PickFilter searchFilter, QVector<QUuid>& foundEntities) const;
-    void evalEntitiesInSphereWithType(const glm::vec3& position, float radius, EntityTypes::EntityType type, PickFilter searchFilter, QVector<QUuid>& foundEntities) const;
-    void evalEntitiesInSphereWithName(const glm::vec3& position, float radius, const QString& name, bool caseSensitive, PickFilter searchFilter, QVector<QUuid>& foundEntities) const;
-    void evalEntitiesInCube(const AACube& cube, PickFilter searchFilter, QVector<QUuid>& foundEntities) const;
-    void evalEntitiesInBox(const AABox& box, PickFilter searchFilter, QVector<QUuid>& foundEntities) const;
-    void evalEntitiesInFrustum(const ViewFrustum& frustum, PickFilter searchFilter, QVector<QUuid>& foundEntities) const;
+    EntityItemPointer getClosestEntity(glm::vec3 position) const;
+
+    /// finds all entities that touch a sphere
+    /// \param position the center of the query sphere
+    /// \param radius the radius of the query sphere
+    /// \param entities[out] vector of const EntityItemPointer
+    void getEntities(const glm::vec3& position, float radius, QVector<EntityItemPointer>& foundEntities) const;
+
+    /// finds all entities that touch a box
+    /// \param box the query box
+    /// \param entities[out] vector of non-const EntityItemPointer
+    void getEntities(const AACube& cube, QVector<EntityItemPointer>& foundEntities);
+
+    /// finds all entities that touch a box
+    /// \param box the query box
+    /// \param entities[out] vector of non-const EntityItemPointer
+    void getEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities);
+
+    /// finds all entities that touch a frustum
+    /// \param frustum the query frustum
+    /// \param entities[out] vector of non-const EntityItemPointer
+    void getEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities);
 
     /// finds all entities that match filter
     /// \param filter function that adds matching entities to foundEntities
