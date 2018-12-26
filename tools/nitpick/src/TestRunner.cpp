@@ -469,12 +469,30 @@ void TestRunner::runInterfaceWithTestScript() {
         url = "hifi://localhost";
     }
 
+    QString deleteScript =
+        QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/utils/deleteNearbyEntities.js";
+
     QString testScript =
         QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/testRecursive.js";
 
     QString commandLine;
 #ifdef Q_OS_WIN
-    QString exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"";
+    QString exeFile;
+    // First, run script to delete any entities in test area
+    // Note that this will run to completion before continuing
+    exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"";
+    commandLine = "start /wait \"\" " + exeFile +
+        " --url " + url +
+        " --no-updater" +
+        " --no-login-suggestion"
+        " --testScript " + deleteScript + " quitWhenFinished" +
+        " --testResultsLocation " + _snapshotFolder;
+
+
+    system(commandLine.toStdString().c_str());
+
+    // Now run the test suite
+    exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"";
     commandLine = exeFile +
     " --url " + url +
     " --no-updater" +
