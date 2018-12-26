@@ -80,6 +80,21 @@ int AvatarMixerSlave::sendIdentityPacket(NLPacketList& packetList, const AvatarM
     }
 }
 
+qint64 AvatarMixerSlave::addTraitsNodeHeader(AvatarMixerClientData* listeningNodeData,
+                                             const AvatarMixerClientData* sendingNodeData,
+                                             NLPacketList& traitsPacketList,
+                                             qint64 bytesWritten) {
+    if (bytesWritten == 0) {
+
+        if (traitsPacketList.getNumPackets() == 0) {
+            bytesWritten += traitsPacketList.writePrimitive(listeningNodeData->nextTraitsMessageSequence());
+        }
+        // add the avatar ID to mark the beginning of traits for this avatar
+        bytesWritten += traitsPacketList.write(sendingNodeData->getNodeID().toRfc4122());
+    }
+    return bytesWritten;
+}
+
 qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* listeningNodeData,
                                                       const AvatarMixerClientData* sendingNodeData,
                                                       NLPacketList& traitsPacketList) {
@@ -95,9 +110,6 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
 
     if (timeOfLastTraitsChange > timeOfLastTraitsSent) {
         // there is definitely new traits data to send
-
-        // add the avatar ID to mark the beginning of traits for this avatar
-        bytesWritten += traitsPacketList.write(sendingNodeData->getNodeID().toRfc4122());
 
         auto sendingAvatar = sendingNodeData->getAvatarSharedPointer();
 
@@ -116,7 +128,8 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
             auto& lastAckedVersionRef = lastAckedVersions[traitType];
 
             // hold sending more traits until we've been acked that the last one we sent was received
-            if (lastAckedVersionRef == lastSentVersionRef && lastReceivedVersions[traitType] > lastSentVersionRef) {
+            if (lastSentVersionRef == lastAckedVersionRef && lastReceivedVersions[traitType] > lastSentVersionRef) {
+                addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
                 // there is an update to this trait, add it to the traits packet
                 bytesWritten += sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
                 // update the last sent version
@@ -156,6 +169,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                                                    });
 
                 if (!isDeleted && (sentInstanceIt == sentIDValuePairs.end() || receivedVersion > sentInstanceIt->value)) {
+                    addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
 
                     // this instance version exists and has never been sent or is newer so we need to send it
                     bytesWritten += sendingAvatar->packTraitInstance(traitType, instanceID, traitsPacketList, receivedVersion);
@@ -166,6 +180,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                         sentIDValuePairs.emplace_back(instanceID, receivedVersion);
                     }
                 } else if (isDeleted && sentInstanceIt != sentIDValuePairs.end() && absoluteReceivedVersion > sentInstanceIt->value) {
+                    addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
 
                     // this instance version was deleted and we haven't sent the delete to this client yet
                     bytesWritten += AvatarTraits::packInstancedTraitDelete(traitType, instanceID, traitsPacketList, absoluteReceivedVersion);
@@ -177,10 +192,10 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
 
             ++instancedReceivedIt;
         }
-
-        // write a null trait type to mark the end of trait data for this avatar
-        bytesWritten += traitsPacketList.writePrimitive(AvatarTraits::NullTrait);
-
+        if (bytesWritten) {
+            // write a null trait type to mark the end of trait data for this avatar
+            bytesWritten += traitsPacketList.writePrimitive(AvatarTraits::NullTrait);
+        }
         // since we send all traits for this other avatar, update the time of last traits sent
         // to match the time of last traits change
         listeningNodeData->setLastOtherAvatarTraitsSendPoint(otherNodeLocalID, timeOfLastTraitsChange);
@@ -425,7 +440,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     int remainingAvatars = (int)sortedAvatars.size();
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
-    traitsPacketList->writePrimitive(nodeData->nextTraitsMessageSequence());
 
     auto avatarPacket = NLPacket::create(PacketType::BulkAvatarData);
     const int avatarPacketCapacity = avatarPacket->getPayloadCapacity();
@@ -558,6 +572,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     if (traitsPacketList->getNumPackets() >= 1) {
         // send the traits packet list
+
         nodeList->sendPacketList(std::move(traitsPacketList), *destinationNode);
     }
 

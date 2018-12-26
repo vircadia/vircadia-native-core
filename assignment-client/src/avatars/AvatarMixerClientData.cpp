@@ -190,6 +190,10 @@ void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& m
     message.readPrimitive(&seq);
     auto& sentAvatarTraitVersions = _pendingTraitVersions.find(seq);
     if (sentAvatarTraitVersions != _pendingTraitVersions.end()) {
+        // Note, this is not a simple move of the pending traits
+        // to the acked traits.  Instead, it's a copy where existing
+        // trait versions in the acked hash are retained for traits not 
+        // included in the pending hash 
         for (auto& nodeTraitVersions : sentAvatarTraitVersions->second) {
             auto& nodeId = nodeTraitVersions.first;
             auto& versions = nodeTraitVersions.second;
@@ -198,9 +202,18 @@ void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& m
                 auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(versions.simpleCBegin(),
                     simpleReceivedIt));
                 _ackedTraitVersions[nodeId][traitType] = *simpleReceivedIt;
+                simpleReceivedIt++;
             }
         }
         _pendingTraitVersions.erase(sentAvatarTraitVersions);
+    }
+    else {
+        // This can happen either the BulkAvatarTraits was sent with no simple traits,
+        // or if the avatar mixer restarts while there are pending
+        // BulkAvatarTraits messages in-flight.
+        if (seq > getTraitsMessageSequence()) {
+            qWarning() << "Received BulkAvatarTraitsAck with future seq (potential avatar mixer restart) " << seq << " from " << message.getSenderSockAddr();
+        }
     }
 }
 

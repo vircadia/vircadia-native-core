@@ -104,6 +104,11 @@ private:
     int sendIdentityPacket(NLPacketList& packet, const AvatarMixerClientData* nodeData, const Node& destinationNode);
     int sendReplicatedIdentityPacket(const Node& agentNode, const AvatarMixerClientData* nodeData, const Node& destinationNode);
 
+    qint64 addTraitsNodeHeader(AvatarMixerClientData* listeningNodeData,
+                               const AvatarMixerClientData* sendingNodeData,
+                               NLPacketList& traitsPacketList,
+                               qint64 bytesWritten);
+
     qint64 addChangedTraitsToBulkPacket(AvatarMixerClientData* listeningNodeData,
                                         const AvatarMixerClientData* sendingNodeData,
                                         NLPacketList& traitsPacketList);
