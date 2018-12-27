@@ -271,47 +271,6 @@ Item {
         }
     }
 
-    Rectangle {
-        id: fileList
-
-        visible: false
-
-        color: "#6A6A6A"
-
-        anchors.top: openFolderButton.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: showFilesText.top
-        //anchors.bottom: uploadButton.top
-        anchors.topMargin: 10
-        anchors.bottomMargin: 10
-        height: 1000
-
-        ListView {
-            anchors.fill: parent
-            model: AvatarPackagerCore.currentAvatarProject === null ? [] : AvatarPackagerCore.currentAvatarProject.projectFiles
-            delegate: Rectangle {
-                width: parent.width
-                height: fileText.implicitHeight + 8
-                color: (index % 2 == 0) ? "#6A6A6A" : "grey"
-                RalewaySemiBold {
-                    id: fileText
-                    size: 16
-                    elide: Text.ElideLeft
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 16
-                    anchors.topMargin: 4
-                    width: parent.width - 10
-                    color: "white"
-                    text: modelData
-                }
-            }
-        }
-    }
-
     RalewayRegular {
         id: showFilesText
 
@@ -325,9 +284,9 @@ Item {
 
         size: 20
 
-        text: AvatarPackagerCore.currentAvatarProject.projectFiles.length + " files in the project. <a href='toggle'>" + (fileList.visible ? "Hide" : "Show") + " list</a>"
+        text: AvatarPackagerCore.currentAvatarProject.projectFiles.length + " files in project. <a href='toggle'>Show list</a>"
 
-        onLinkActivated: fileList.visible = !fileList.visible
+        onLinkActivated: fileListPopup.open()
     }
 
     Rectangle {

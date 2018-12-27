@@ -29,6 +29,48 @@ Windows.ScrollingWindow {
         height: pane.height
         width: pane.width
 
+        InfoBox {
+            id: fileListPopup
+
+            title: "List of Files"
+
+            content: Rectangle {
+                id: fileList
+
+                color: "#404040"
+
+                anchors.fill: parent
+                anchors.topMargin: 10
+                anchors.bottomMargin: 10
+                anchors.leftMargin: 29
+                anchors.rightMargin: 29
+
+                ListView {
+                    anchors.fill: parent
+                    model: AvatarPackagerCore.currentAvatarProject === null ? [] : AvatarPackagerCore.currentAvatarProject.projectFiles
+                    delegate: Rectangle {
+                        width: parent.width
+                        height: fileText.implicitHeight + 8
+                        color: "#404040"
+                        RalewaySemiBold {
+                            id: fileText
+                            size: 16
+                            elide: Text.ElideLeft
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 16
+                            anchors.topMargin: 4
+                            width: parent.width - 10
+                            color: "white"
+                            text: modelData
+                        }
+                    }
+                }
+            }
+        }
+
         Rectangle {
             id: modalOverlay
             anchors.fill: parent
