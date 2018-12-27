@@ -23,6 +23,8 @@ Rectangle {
     property string button2color: hifi.buttons.blue;
     property string button2text: ''
 
+    property bool closeOnClickOutside: false;
+
     property var onButton2Clicked;
     property var onButton1Clicked;
     property var onLinkClicked;
@@ -56,6 +58,11 @@ Rectangle {
         anchors.fill: parent;
         propagateComposedEvents: false;
         hoverEnabled: true;
+        onClicked: {
+            if (closeOnClickOutside) {
+                root.close()
+            }
+        }
     }
 
     Rectangle {
@@ -66,6 +73,15 @@ Rectangle {
         height: childrenRect.height + margin * 2
         onHeightChanged: {
             console.debug('mainContainer: height = ', height)
+        }
+
+        MouseArea {
+            anchors.fill: parent;
+            propagateComposedEvents: false;
+            hoverEnabled: true;
+            onClicked: function(ev) {
+                ev.accepted = true;
+            }
         }
 
         anchors.centerIn: parent

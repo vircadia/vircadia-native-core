@@ -34,7 +34,7 @@ class AvatarProject : public QObject {
     Q_PROPERTY(QString projectFolderPath READ getProjectPath)
     Q_PROPERTY(QString projectFSTPath READ getFSTPath)
     Q_PROPERTY(QString projectFBXPath READ getFBXPath)
-    Q_PROPERTY(QString name READ getProjectName)
+    Q_PROPERTY(QString name READ getProjectName NOTIFY nameChanged)
 
 public:
     Q_INVOKABLE MarketplaceItemUploader* upload(bool updateExisting);
@@ -57,6 +57,7 @@ public:
     }
 
 signals:
+    void nameChanged();
     void projectFilesChanged();
 
 private:
