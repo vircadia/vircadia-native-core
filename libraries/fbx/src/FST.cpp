@@ -175,3 +175,8 @@ bool FST::write() {
     fst.write(FSTReader::writeMapping(getMapping()));
     return true;
 }
+
+void FST::setMarketplaceID(QUuid marketplaceID) {
+    _marketplaceID = marketplaceID;
+    emit marketplaceIDChanged();
+}

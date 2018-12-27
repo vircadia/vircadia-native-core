@@ -48,6 +48,7 @@ Windows.ScrollingWindow {
             id: popup
             anchors.fill: parent
             visible: false
+            closeOnClickOutside: true
         }
 
         Column {

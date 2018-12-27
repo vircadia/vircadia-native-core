@@ -21,6 +21,8 @@ class QNetworkReply;
 class MarketplaceItemUploader : public QObject {
     Q_OBJECT
 
+    Q_PROPERTY(bool finished READ getFinished NOTIFY finishedChanged)
+
     Q_PROPERTY(bool complete READ getComplete NOTIFY stateChanged)
     Q_PROPERTY(State state READ getState NOTIFY stateChanged)
     Q_PROPERTY(Error error READ getError NOTIFY errorChanged)
@@ -38,6 +40,7 @@ public:
         Idle,
         GettingCategories,
         UploadingAvatar,
+        WaitingForUploadResponse,
         WaitingForInventory,
         Complete
     };
@@ -62,6 +65,7 @@ public:
     QUuid getMarketplaceID() const { return _marketplaceID; }
 
     Error getError() const { return _error; }
+    bool getFinished() const { return _state == State::Complete || _error != Error::None; }
 
 signals:
     void uploadProgress(qint64 bytesSent, qint64 bytesTotal);
@@ -71,7 +75,7 @@ signals:
     void errorChanged(Error error);
 
     // Triggered when the upload has finished, either succesfully completing, or stopping with an error
-    void finished();
+    void finishedChanged();
 
 private:
     void doGetCategories();

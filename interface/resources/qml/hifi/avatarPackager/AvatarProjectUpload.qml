@@ -8,28 +8,35 @@ import QtQuick.Controls 2.2 as Original
 import "../../controlsUit" 1.0 as HifiControls
 import "../../stylesUit" 1.0
 
-
 Item {
     id: uploadingScreen
 
     property var root: undefined
-    //visible: !!root.uploader
     visible: false
     anchors.fill: parent
 
     Timer {
         id: backToProjectTimer
-        interval: 2000
+        interval: 5000
         running: false
         repeat: false
-        onTriggered: avatarPackager.state = "project"
+        onTriggered: {
+            if (avatarPackager.state =="project-upload") {
+                avatarPackager.state = "project"
+            }
+        }
     }
 
+    function stateChangedCallback(newState) {
+        if (newState >= 4) {
+            root.uploader.stateChanged.disconnect(stateChangedCallback)
+            backToProjectTimer.start();
+        }
+    }
     onVisibleChanged: {
-        console.log("Visibility changed");
         if (visible) {
-            root.uploader.finished.connect(function() {
-                console.log("Did complete");
+            root.uploader.stateChanged.connect(stateChangedCallback);
+            root.uploader.finishedChanged.connect(function() {
                 backToProjectTimer.start();
             });
         }
@@ -46,48 +53,62 @@ Item {
             id: statusItem
 
             width: parent.width
-            height: 128
+            height: 192
 
-            AnimatedImage {
+            states: [
+                State {
+                    name: "success"
+                    when: !!root.uploader && root.uploader.state >= 4 && root.uploader.error === 0
+                    PropertyChanges { target: uploadSpinner; visible: false }
+                    PropertyChanges { target: errorIcon; visible: false }
+                    PropertyChanges { target: successIcon; visible: true }
+                },
+                State {
+                    name: "error"
+                    when: !!root.uploader && root.uploader.finished && root.uploader.error !== 0
+                    PropertyChanges { target: uploadSpinner; visible: false }
+                    PropertyChanges { target: errorIcon; visible: true }
+                    PropertyChanges { target: successIcon; visible: false }
+                }
+            ]
+
+            LoadingCircle {
                 id: uploadSpinner
 
-                visible: !!root.uploader && !root.uploader.complete
+                visible: true
 
                 anchors {
                     horizontalCenter: parent.horizontalCenter
                     verticalCenter: parent.verticalCenter
                 }
-
-                source: "../../../icons/loader-snake-64-w.gif"
-                playing: true
-                z: 10000
             }
 
             HiFiGlyphs {
                 id: errorIcon
-                visible: !!root.uploader && root.uploader.complete && root.uploader.error !== 0
+
+                visible: false
 
                 anchors {
                     horizontalCenter: parent.horizontalCenter
                     verticalCenter: parent.verticalCenter
                 }
 
-                size: 128
+                size: 164
                 text: "w"
-                color: "red"
+                color: "#EA4C5F"
             }
 
             HiFiGlyphs {
                 id: successIcon
 
-                visible: !!root.uploader && root.uploader.complete && root.uploader.error === 0
+                visible: false
 
                 anchors {
                     horizontalCenter: parent.horizontalCenter
                     verticalCenter: parent.verticalCenter
                 }
 
-                size: 128
+                size: 164
                 text: "\ue01a"
                 color: "#1FC6A6"
             }
@@ -96,34 +117,49 @@ Item {
             id: statusRows
 
             anchors.top: statusItem.bottom
+            anchors.left: parent.left
+            anchors.leftMargin: 12
 
             AvatarUploadStatusItem {
                 id: statusCategories
+                uploader: root.uploader
                 text: "Retreiving categories"
 
-                state: root.uploader.state == 1 ? "running" : (root.uploader.state > 1 ? "success" : (root.uploader.error ? "fail" : ""))
+                uploaderState: 1
             }
             AvatarUploadStatusItem {
                 id: statusUploading
+                uploader: root.uploader
                 anchors.top: statusCategories.bottom
                 text: "Uploading data"
 
-                state: root.uploader.state == 2 ? "running" : (root.uploader.state > 2 ? "success" : (root.uploader.error ? "fail" : ""))
+                uploaderState: 2
             }
-            // TODO add waiting for response
-            //AvatarUploadStatusItem {
-                //id: statusResponse
-                //text: "Waiting for completion"
-            //}
             AvatarUploadStatusItem {
-                id: statusInventory
+                id: statusResponse
+                uploader: root.uploader
                 anchors.top: statusUploading.bottom
-                text: "Waiting for inventory"
+                text: "Waiting for response"
 
-                state: root.uploader.state == 3 ? "running" : (root.uploader.state > 3 ? "success" : (root.uploader.error ? "fail" : ""))
+                uploaderState: 3
             }
         }
 
+        RalewayRegular {
+            visible: root.uploader.error
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            anchors.bottomMargin: 16
+
+            size: 28
+            wrapMode: Text.Wrap
+            color: "white"
+            text: "We couldn't upload your avatar at this time. Please try again later."
+        }
     }
 
     Column {

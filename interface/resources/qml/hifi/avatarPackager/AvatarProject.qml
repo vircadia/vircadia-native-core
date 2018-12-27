@@ -19,34 +19,129 @@ Item {
     property int colorScheme;
     property var uploader: undefined;
 
+    property bool hasSuccessfullyUploaded: true;
+
     visible: false
     anchors.fill: parent
     anchors.margins: 10
 
     property var footer: Item {
-        id: uploadFooter
-
         anchors.fill: parent
-        anchors.rightMargin: 17
 
-        HifiControls.Button {
-            id: uploadButton
-            enabled: Account.loggedIn
-            //width: parent.width
-            //anchors.bottom: parent.bottom
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
-            text: qsTr("Upload")
-            color: hifi.buttons.blue
-            colorScheme: root.colorScheme
-            width: 133
-            height: 40
-            onClicked: function() {
-                if (AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID()) {
-                    showConfirmUploadPopup(uploadNew, uploadUpdate);
-                } else {
+        Item {
+            id: uploadFooter
+
+            visible: !root.uploader || root.finished || root.uploader.state !== 4
+
+            anchors.fill: parent
+            anchors.rightMargin: 17
+
+            HifiControls.Button {
+                id: uploadButton
+
+                visible: !AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID && !root.hasSuccessfullyUploaded
+                enabled: Account.loggedIn
+                //width: parent.width
+                //anchors.bottom: parent.bottom
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: parent.right
+                text: qsTr("Upload")
+                color: hifi.buttons.blue
+                colorScheme: root.colorScheme
+                width: 133
+                height: 40
+                onClicked: function() {
                     uploadNew();
                 }
+            }
+            HifiControls.Button {
+                id: updateButton
+
+                visible: AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID && !root.hasSuccessfullyUploaded
+                enabled: Account.loggedIn
+
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: parent.right
+
+                text: qsTr("Update")
+                color: hifi.buttons.blue
+                colorScheme: root.colorScheme
+                width: 134
+                height: 40
+                onClicked: function() {
+                    showConfirmUploadPopup(uploadNew, uploadUpdate);
+                }
+            }
+            Item {
+                anchors.fill: parent
+                visible: root.hasSuccessfullyUploaded
+
+                HifiControls.Button {
+                    enabled: Account.loggedIn
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: viewInInventoryButton.left
+                    anchors.rightMargin: 16
+
+                    text: qsTr("Update")
+                    color: hifi.buttons.white
+                    colorScheme: root.colorScheme
+                    width: 134
+                    height: 40
+                    onClicked: function() {
+                        showConfirmUploadPopup(uploadNew, uploadUpdate);
+                    }
+                }
+                HifiControls.Button {
+                    id: viewInInventoryButton
+
+                    enabled: Account.loggedIn
+
+                    width: 168
+                    height: 40
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: parent.right
+
+                    text: qsTr("View in Inventory")
+                    color: hifi.buttons.blue
+                    colorScheme: root.colorScheme
+
+                    onClicked: AvatarPackagerCore.currentAvatarProject.openInInventory()
+                }
+            }
+        }
+
+        Rectangle {
+            id: uploadingItemFooter
+
+            anchors.fill: parent
+            anchors.topMargin: 1 
+            visible: !!root.uploader && !root.finished && root.uploader.state === 4
+
+            color: "#00B4EF"
+
+            LoadingCircle {
+                id: runningImage
+
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+
+                width: 28
+                height: 28
+            }
+            RalewayRegular {
+                id: stepText
+
+                size: 20
+
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: runningImage.right
+                anchors.leftMargin: 16
+
+                text: "Adding item to Inventory"
+                color: "white"
             }
         }
     }
@@ -66,7 +161,10 @@ Item {
         root.uploader.uploadProgress.connect(function(uploaded, total) {
             console.log("Uploader progress: " + uploaded + " / " + total);
         });
-        root.uploader.finished.connect(function() {
+        root.uploader.completed.connect(function() {
+            root.hasSuccessfullyUploaded = true;
+        });
+        root.uploader.finishedChanged.connect(function() {
             try {
                 var response = JSON.parse(root.uploader.responseData);
                 console.log("Uploader complete! " + response);
@@ -121,6 +219,25 @@ Item {
     RalewayRegular {
         id: infoMessage
 
+        states: [
+            State {
+                when: root.hasSuccessfullyUploaded
+                name: "upload-success"
+                PropertyChanges {
+                    target: infoMessage
+                    text: "Your avatar has been uploaded to our servers. You can modify the project files and update it again to make changes on the uploaded avatar."
+                }
+            },
+            State {
+                name: "has-previous-success"
+                when: !!AvatarPackagerCore.currentAvatarProject && AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID
+                PropertyChanges {
+                    target: infoMessage
+                    text: "Click \"Update\" to overwrite the hosted files and update the avatar in your inventory. You will have to “Wear” the avatar again to see changes."
+                }
+            }
+        ]
+
         color: 'white'
         size: 20
 
@@ -132,7 +249,7 @@ Item {
 
         wrapMode: Text.Wrap
 
-        text: "Click \"Update\" to overwrite the hosted files and update the avatar in your inventory. You will have to “Wear” the avatar again to see changes."
+        text: "You can upload your files to our servers to always access them, and to make your avatar visible to other users."
     }
 
     HifiControls.Button {

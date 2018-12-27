@@ -39,6 +39,8 @@ MarketplaceItemUploader::MarketplaceItemUploader(QString title,
 }
 
 void MarketplaceItemUploader::setState(State newState) {
+    Q_ASSERT(_state != State::Complete);
+    Q_ASSERT(_error == Error::None);
     Q_ASSERT(newState != _state);
     qDebug() << "Setting uploader state to: " << newState;
 
@@ -46,16 +48,17 @@ void MarketplaceItemUploader::setState(State newState) {
     emit stateChanged(newState);
     if (newState == State::Complete) {
         emit completed();
-        emit finished();
+        emit finishedChanged();
     }
 }
 
 void MarketplaceItemUploader::setError(Error error) {
+    Q_ASSERT(_state != State::Complete);
     Q_ASSERT(_error == Error::None);
 
     _error = error;
     emit errorChanged(error);
-    emit finished();
+    emit finishedChanged();
 }
 
 void MarketplaceItemUploader::send() {
@@ -179,7 +182,6 @@ void MarketplaceItemUploader::doUploadAvatar() {
                                      { "description", _description },
                                      { "root_file_key", _rootFilename },
                                      { "category_ids", QJsonArray({ 5 }) },
-                                     //{ "attributions", QJsonArray({ QJsonObject{ { "name", "" }, { "link", "" } } }) },
                                      { "license", 0 },
                                      { "files", QString::fromLatin1(_fileData.toBase64()) } } } };
     request.setHeader(QNetworkRequest::KnownHeaders::ContentTypeHeader, "application/json");
@@ -197,14 +199,21 @@ void MarketplaceItemUploader::doUploadAvatar() {
         reply = networkAccessManager.put(request, doc.toJson());
     }
 
-    connect(reply, &QNetworkReply::uploadProgress, this, &MarketplaceItemUploader::uploadProgress);
+    connect(reply, &QNetworkReply::uploadProgress, this, [this](float bytesSent, float bytesTotal) {
+        if (_state == State::UploadingAvatar) {
+            emit uploadProgress(bytesSent, bytesTotal);
+            if (bytesSent >= bytesTotal) {
+                setState(State::WaitingForUploadResponse);
+            }
+        }
+    });
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        //_responseData = reply->readAll();
+        _responseData = reply->readAll();
+        qWarning() << "Finished request " << _responseData;
+
         auto error = reply->error();
         if (error == QNetworkReply::NoError) {
-            _responseData = reply->readAll();
-            qWarning() << "Finished request " << _responseData;
 
             auto doc = QJsonDocument::fromJson(_responseData.toLatin1());
             auto status = doc.object()["status"].toString();
