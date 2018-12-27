@@ -890,7 +890,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                 }
 
                 mesh.meshIndex = hfmModel.meshes.size();
-                FBXSerializer::buildModelMesh(mesh, url.toString());
             }
             
         }
