@@ -284,7 +284,7 @@ Item {
 
         size: 20
 
-        text: AvatarPackagerCore.currentAvatarProject.projectFiles.length + " files in project. <a href='toggle'>Show list</a>"
+        text: AvatarPackagerCore.currentAvatarProject.projectFiles.length + " files in project. <a href='toggle'>See list</a>"
 
         onLinkActivated: fileListPopup.open()
     }
