@@ -45,6 +45,24 @@ function job_propKeys(job) {
     return propKeys; 
 }
 
+// Access job inputs
+// return all the inputs of a job
+function job_inoutKeys(job) {
+    var keys = Object.keys(job)
+    var inoutKeys = [];
+    for (var k=0; k < keys.length;k++) {
+        // Filter for relevant property
+        var key = keys[k]
+        if ((typeof job[key]) !== "function") {
+            if ((key == "input") || (key == "output")) {
+                inoutKeys.push(keys[k]);
+            }
+        }
+    }
+
+    return inoutKeys; 
+}
+
 // Use this function to create a functor that will fill the specifed array with one entry name per task and job and it s rank
 function job_list_functor(jobList, maxDepth) {
     if (maxDepth === undefined) maxDepth = 100
@@ -55,7 +73,7 @@ function job_list_functor(jobList, maxDepth) {
 } 
 
 // Use this function to create a functor that will print the content of the Job visited calling the  specified 'printout' function
-function job_print_functor(printout, showProps, maxDepth) {
+function job_print_functor(printout, showProps, showInOuts, maxDepth) {
     if (maxDepth === undefined) maxDepth = 100
     return function (job, depth, index) {
         var tab = "    "
@@ -67,6 +85,14 @@ function job_print_functor(printout, showProps, maxDepth) {
             for (var p=0; p < keys.length;p++) {
                 var prop = job[keys[p]]
                 printout(depthTab + tab + tab + typeof prop + " " + keys[p] + " " + prop);
+            }
+        }
+        if (showInOuts) {
+            printout("jsdkfkjdskflj")
+            var inouts = job_inoutKeys(job);
+            for (var p=0; p < inouts.length;p++) {
+                var prop = job[inouts[p]]
+                printout(depthTab + tab + tab + typeof prop + " " + inouts[p] + " " + prop);
             }
         }
         return depth < maxDepth;
