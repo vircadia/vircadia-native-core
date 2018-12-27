@@ -15,6 +15,7 @@ Item {
     property var openBrowser: null;
     property string subMenu: ""
     signal showDesktop();
+    signal screenChanged(var type, var url);
     property bool shown: true
     property int currentApp: -1;
     property alias tabletApps: tabletApps
@@ -113,6 +114,8 @@ Item {
                 if (loader.item.hasOwnProperty("gotoPreviousApp")) {
                     loader.item.gotoPreviousApp = true;
                 }
+            
+                screenChanged("Web", url)
             });
         }
     }
@@ -266,6 +269,24 @@ Item {
 	            if (callback) {
 	            	callback();
 	            }
+
+                var type = "Unknown";
+                if (newSource === "") {
+                    type = "Closed";
+                } else if (newSource === "hifi/tablet/TabletMenu.qml") {
+                    type = "Menu";
+                } else if (newSource === "hifi/tablet/TabletHome.qml") {
+                    type = "Home";
+                } else if (newSource === "hifi/tablet/TabletWebView.qml") {
+                    // Handled in `callback()`
+                    return;
+                } else if (newSource.toLowerCase().indexOf(".qml") > -1) {
+                    type = "QML";
+                } else {
+                    console.log("newSource is of unknown type!");
+                }
+                
+                screenChanged(type, newSource);
 	        });
     	}
 	}

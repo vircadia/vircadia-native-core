@@ -71,16 +71,15 @@ public:
     glm::u8vec3 getBackgroundColor() const;
     void setBackgroundColor(const glm::u8vec3& value);
 
-    static const bool DEFAULT_FACE_CAMERA;
-    bool getFaceCamera() const;
-    void setFaceCamera(bool value);
+    BillboardMode getBillboardMode() const;
+    void setBillboardMode(BillboardMode value);
 
 private:
     QString _text;
     float _lineHeight;
     glm::u8vec3 _textColor;
     glm::u8vec3 _backgroundColor;
-    bool _faceCamera;
+    BillboardMode _billboardMode;
 };
 
 #endif // hifi_TextEntityItem_h

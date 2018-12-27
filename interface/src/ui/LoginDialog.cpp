@@ -95,7 +95,12 @@ void LoginDialog::toggleAction() {
     } else {
         // change the menu item to login
         loginAction->setText("Log In / Sign Up");
-        connection = connect(loginAction, &QAction::triggered, [] { LoginDialog::showWithSelection(); });
+        connection = connect(loginAction, &QAction::triggered, [] {
+            // if not in login state, show.
+            if (!qApp->getLoginDialogPoppedUp()) {
+                LoginDialog::showWithSelection();
+            }
+        });
     }
 }
 
