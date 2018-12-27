@@ -158,7 +158,7 @@ class AvatarExporter : MonoBehaviour {
         assetPath = AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]);
         assetName = Path.GetFileNameWithoutExtension(assetPath);
         ModelImporter modelImporter = ModelImporter.GetAtPath(assetPath) as ModelImporter;
-        if (assetPath.ToLower().LastIndexOf(".fbx") == -1 || modelImporter == null) {
+        if (Path.GetExtension(assetPath).ToLower() != ".fbx" || modelImporter == null) {
             EditorUtility.DisplayDialog("Error", "Please select an .fbx model asset to export.", "Ok");
             return;
         }
